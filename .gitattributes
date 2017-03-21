@@ -1,0 +1,17 @@
+# Auto detect text files and perform LF normalization
+*        text eol=crlf
+
+# Binary files to ignore and not modify
+*.pfx binary
+*.ico binary
+*.svg binary
+*.jpg binary
+*.png binary
+*.exe binary
+*.dll binary
+*.pdb binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
