@@ -1,5 +1,5 @@
 # Auto detect text files and perform LF normalization
-*        text eol=crlf
+*        text=auto
 
 # Binary files to ignore and not modify
 *.pfx binary
