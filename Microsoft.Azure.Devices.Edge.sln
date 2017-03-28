@@ -1,0 +1,126 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
+	ProjectSection(SolutionItems) = preProject
+		edge-agent\Dockerfile = edge-agent\Dockerfile
+		edge-agent\README.md = edge-agent\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "iothub", "iothub", "{5037265C-7ABF-419E-9786-5DEB5D7F3BEA}"
+	ProjectSection(SolutionItems) = preProject
+		edge-iothub\Dockerfile = edge-iothub\Dockerfile
+		edge-iothub\README.md = edge-iothub\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "util", "util", "{F7D7DD5B-42E1-4E62-8951-514A8711F96D}"
+	ProjectSection(SolutionItems) = preProject
+		edge-util\README.md = edge-util\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{66964A75-04AC-4FDE-8505-E6CB2EF90BE8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{373FFF5E-E84C-4789-B768-676FFF51E7A6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AB4285D8-CF1D-4B20-95F6-CB80892C8321}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{63969606-14B2-4D9D-AB72-A5D60D22037C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{54351E51-19CB-4DE3-8302-99846AB216CF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Util", "edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj", "{B0F37919-0D16-490F-B7A1-665BB93B9A62}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Util.Test", "edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test\Microsoft.Azure.Devices.Edge.Util.Test.csproj", "{48F30397-9D10-4305-8E9D-35F7AE4ACE7C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.IoTHub.Core", "edge-iothub\src\Microsoft.Azure.Devices.Edge.IoTHub.Core\Microsoft.Azure.Devices.Edge.IoTHub.Core.csproj", "{6D58E36E-F5F4-4AB4-916E-9248585ECD61}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.IoTHub.Core.Test", "edge-iothub\test\Microsoft.Azure.Devices.Edge.IoTHub.Core.Test\Microsoft.Azure.Devices.Edge.IoTHub.Core.Test.csproj", "{AD65788A-6A25-4191-B681-819169A290D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Core", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj", "{84B77973-0092-4DC9-87E3-F16FC2F4E9AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Core.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Core.Test\Microsoft.Azure.Devices.Edge.Agent.Core.Test.csproj", "{2C5EE730-8AAC-4927-8C68-E470D0AF5649}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{A9F6AF55-7190-4C05-BF28-9BCA07B7C9F7}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{372C8639-B8B6-4063-80A1-3064A452372B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{FA2C8688-A8E2-433A-A28D-64836F677EDB}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\linux\buildBranch.sh = scripts\linux\buildBranch.sh
+		scripts\linux\buildDockerImage.sh = scripts\linux\buildDockerImage.sh
+		scripts\linux\Dockerfile = scripts\linux\Dockerfile
+		scripts\linux\installPrereqs.sh = scripts\linux\installPrereqs.sh
+		scripts\linux\runTests.sh = scripts\linux\runTests.sh
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Service", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Service\Microsoft.Azure.Devices.Edge.Agent.Service.csproj", "{37129265-046F-4A46-A1BD-C067E6C06264}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.IoTHub.Service", "edge-iothub\src\Microsoft.Azure.Devices.Edge.IoTHub.Service\Microsoft.Azure.Devices.Edge.IoTHub.Service.csproj", "{295B2695-6757-452B-B54F-79FB0841CA87}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B0F37919-0D16-490F-B7A1-665BB93B9A62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0F37919-0D16-490F-B7A1-665BB93B9A62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0F37919-0D16-490F-B7A1-665BB93B9A62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0F37919-0D16-490F-B7A1-665BB93B9A62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D58E36E-F5F4-4AB4-916E-9248585ECD61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D58E36E-F5F4-4AB4-916E-9248585ECD61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D58E36E-F5F4-4AB4-916E-9248585ECD61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D58E36E-F5F4-4AB4-916E-9248585ECD61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD65788A-6A25-4191-B681-819169A290D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD65788A-6A25-4191-B681-819169A290D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD65788A-6A25-4191-B681-819169A290D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD65788A-6A25-4191-B681-819169A290D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C5EE730-8AAC-4927-8C68-E470D0AF5649}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C5EE730-8AAC-4927-8C68-E470D0AF5649}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C5EE730-8AAC-4927-8C68-E470D0AF5649}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C5EE730-8AAC-4927-8C68-E470D0AF5649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37129265-046F-4A46-A1BD-C067E6C06264}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37129265-046F-4A46-A1BD-C067E6C06264}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37129265-046F-4A46-A1BD-C067E6C06264}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37129265-046F-4A46-A1BD-C067E6C06264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{295B2695-6757-452B-B54F-79FB0841CA87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{295B2695-6757-452B-B54F-79FB0841CA87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{295B2695-6757-452B-B54F-79FB0841CA87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{295B2695-6757-452B-B54F-79FB0841CA87}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{66964A75-04AC-4FDE-8505-E6CB2EF90BE8} = {F7D7DD5B-42E1-4E62-8951-514A8711F96D}
+		{373FFF5E-E84C-4789-B768-676FFF51E7A6} = {F7D7DD5B-42E1-4E62-8951-514A8711F96D}
+		{AB4285D8-CF1D-4B20-95F6-CB80892C8321} = {5037265C-7ABF-419E-9786-5DEB5D7F3BEA}
+		{63969606-14B2-4D9D-AB72-A5D60D22037C} = {5037265C-7ABF-419E-9786-5DEB5D7F3BEA}
+		{54351E51-19CB-4DE3-8302-99846AB216CF} = {EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}
+		{F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3} = {EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}
+		{B0F37919-0D16-490F-B7A1-665BB93B9A62} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
+		{48F30397-9D10-4305-8E9D-35F7AE4ACE7C} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
+		{6D58E36E-F5F4-4AB4-916E-9248585ECD61} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
+		{AD65788A-6A25-4191-B681-819169A290D4} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
+		{84B77973-0092-4DC9-87E3-F16FC2F4E9AE} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{2C5EE730-8AAC-4927-8C68-E470D0AF5649} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{FA2C8688-A8E2-433A-A28D-64836F677EDB} = {372C8639-B8B6-4063-80A1-3064A452372B}
+		{37129265-046F-4A46-A1BD-C067E6C06264} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{295B2695-6757-452B-B54F-79FB0841CA87} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
+	EndGlobalSection
+EndGlobal

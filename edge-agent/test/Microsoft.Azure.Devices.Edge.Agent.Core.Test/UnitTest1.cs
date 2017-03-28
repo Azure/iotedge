@@ -1,8 +1,9 @@
-using System;
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
-namespace NetCoreDummyTest
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
+    using Xunit;
+
     public class UnitTest1
     {
         [Fact]

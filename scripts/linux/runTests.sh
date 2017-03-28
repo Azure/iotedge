@@ -9,7 +9,7 @@ BASEDIR=$(dirname $0)
 echo Building all solutions in repo
 find $ROOTFOLDER -type f -iname $SUFFIX | while read line; do
     echo Running tests for project - $line
-    $DOTNET_ROOT_PATH/dotnet test --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
+	$DOTNET_ROOT_PATH/dotnet test --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
 done
 
 exit 0
