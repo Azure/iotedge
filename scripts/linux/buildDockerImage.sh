@@ -1,17 +1,27 @@
 #!/bin/bash
 
+checkEnvVar() {
+	varname=$1
+	if [ -z "${!varname}" ]; then
+		echo Error: Environment variable $varname is not set 1>&2
+		exit 1
+	fi
+}
+
+# Check if Environment variables are set.
+checkEnvVar BUILD_BINARIESDIRECTORY
+
 OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 DOCKER_IMAGENAME=azedge
-DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
 BASEDIR=$(dirname $0)
 
 usage() 
 { 
-	echo "Missing arguments. Usage: $0 -r <registry> -u <username> -p <password>" 1>&2; 
+	echo "Missing arguments. Usage: $0 -r <registry> -u <username> -p <password> [-i <docker image name=azedge>] [-v <docker image version=build number]" 1>&2; 
 	exit 1; 
 }
 
-while getopts ":r:u:p:" o; do
+while getopts ":r:u:p:i:v:" o; do
     case "${o}" in
         r)
             DOCKER_REGISTRY=${OPTARG}
@@ -22,7 +32,13 @@ while getopts ":r:u:p:" o; do
         p)
             DOCKER_PASSWORD=${OPTARG}
             ;;
-        *)
+        i)
+            DOCKER_IMAGENAME=${OPTARG}
+            ;;        
+		v)
+            DOCKER_IMAGEVERSION=${OPTARG}
+            ;;
+		*)
             usage
             ;;
     esac
@@ -33,7 +49,19 @@ if [ -z "${DOCKER_REGISTRY}" ] || [ -z "${DOCKER_USERNAME}" ] || [ -z "${DOCKER_
     usage
 fi
 
-echo BUILD_BINARIESDIRECTORY = $OUTPUT_FOLDER
+if [ -z "${DOCKER_IMAGEVERSION}" ]; then 
+	if [ ! -z "${BUILD_BUILDNUMBER}" ]; then
+		DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
+	else
+		echo Error: Docker image version not found. Either set BUILD_BUILDNUMBER environment variable, or pass in -v parameter.
+		exit 1
+	fi
+fi
+
+if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
+	echo Path $BUILD_BINARIESDIRECTORY does not exist 1>&2
+	exit 1
+fi
 
 # Build docker image and push it to private repo
 cp $BASEDIR/Dockerfile $OUTPUT_FOLDER
