@@ -20,7 +20,7 @@ IF NOT DEFINED BUILD_BINARIESDIRECTORY (
 	EXIT /B 1
 )
 
-SET TEST_PROJ_PATTERN=*test*.csproj
+SET TEST_PROJ_PATTERN=Microsoft.Azure*test*.csproj
 SET ROOTFOLDER=%BUILD_REPOSITORY_LOCALPATH%
 SET DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 SET OUTPUT_FOLDER=%BUILD_BINARIESDIRECTORY%
@@ -39,8 +39,18 @@ IF NOT EXIST %OUTPUT_FOLDER% (
 	MKDIR %OUTPUT_FOLDER%
 )
 
+SET opencover=%ROOTFOLDER%\OpenCover.4.6.519\tools\OpenCover.Console.exe
+SET targetargs=test --logger trx;LogFileName=result.trx
+
 ECHO Running tests in all Test Projects in repo
-FOR /R %ROOTFOLDER% %%f IN (%TEST_PROJ_PATTERN%) DO (
+FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
     ECHO Running tests for project - %%f
-    %DOTNET_ROOT_PATH%/dotnet test --logger "trx;LogFileName=result.trx" -o %OUTPUT_FOLDER% --no-build %%f
+  
+    %opencover% -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml
 )
+
+%ROOTFOLDER%\OpenCoverToCoberturaConverter.0.2.6.0\tools\OpenCoverToCoberturaConverter.exe -input:%OUTPUT_FOLDER%\code-coverage.xml -output:%OUTPUT_FOLDER%\CoberturaCoverage.xml -sources:.
+
+%ROOTFOLDER%\ReportGenerator.2.5.6\tools\ReportGenerator.exe -reporttypes:MHtml -reports:%OUTPUT_FOLDER%\code-coverage.xml -targetdir:%OUTPUT_FOLDER%\Report
+
+
