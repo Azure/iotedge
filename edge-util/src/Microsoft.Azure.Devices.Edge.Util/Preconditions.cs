@@ -155,5 +155,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
             return item;
         }
+
+        /// <summary>
+        /// Checks if the string is null or whitespace, and throws ArgumentException if it is.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="paramName"></param>
+        public static string CheckNonWhiteSpace(string value, string paramName)
+        {
+            CheckArgument(!string.IsNullOrWhiteSpace(value), $"{paramName} is null or whitespace.");
+            return value;
+        }
     }
 }

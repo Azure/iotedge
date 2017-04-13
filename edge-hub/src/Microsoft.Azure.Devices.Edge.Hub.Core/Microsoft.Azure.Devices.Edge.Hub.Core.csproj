@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
+    <AssemblyName>Microsoft.Azure.Devices.Edge.Hub.Core</AssemblyName>
+    <RootNamespace>Microsoft.Azure.Devices.Edge.Hub.Core</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -10,6 +12,12 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <OutputPath>bin\Debug</OutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Listeners\**" />
+    <EmbeddedResource Remove="Listeners\**" />
+    <None Remove="Listeners\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />

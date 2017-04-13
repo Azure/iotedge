@@ -46,5 +46,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Throws<ArgumentOutOfRangeException>(() => Preconditions.CheckRange(9, 6, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => Preconditions.CheckRange(8, 6, 8));
         }
+
+        [Fact]
+        public void TestCheckNonWhiteS()
+        {
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace("   ", "param1"));
+            Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace("", "param2"));
+            Preconditions.CheckNonWhiteSpace("   foo   ", "param3");
+            Preconditions.CheckNonWhiteSpace("  b", "param4");
+        }
     }
 }
