@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -72,6 +72,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.csproj", "{CC963F2C-4482-4882-99AC-21A653AA25D3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Util.Test.Common", "edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj", "{840816E2-D691-45B4-9995-0291FB5AADDA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -126,6 +128,10 @@ Global
 		{CC963F2C-4482-4882-99AC-21A653AA25D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC963F2C-4482-4882-99AC-21A653AA25D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC963F2C-4482-4882-99AC-21A653AA25D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{840816E2-D691-45B4-9995-0291FB5AADDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{840816E2-D691-45B4-9995-0291FB5AADDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{840816E2-D691-45B4-9995-0291FB5AADDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{840816E2-D691-45B4-9995-0291FB5AADDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -150,5 +156,6 @@ Global
 		{95227F90-8487-40F8-9F95-D11B46A52668} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{E15B42E2-9D31-452B-9ABE-E37F8483D5DB} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{CC963F2C-4482-4882-99AC-21A653AA25D3} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
+		{840816E2-D691-45B4-9995-0291FB5AADDA} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 	EndGlobalSection
 EndGlobal
