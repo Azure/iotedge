@@ -5,13 +5,11 @@ VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
-		edge-agent\Dockerfile = edge-agent\Dockerfile
 		edge-agent\README.md = edge-agent\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hub", "hub", "{5037265C-7ABF-419E-9786-5DEB5D7F3BEA}"
 	ProjectSection(SolutionItems) = preProject
-		edge-hub\Dockerfile = edge-hub\Dockerfile
 		edge-hub\README.md = edge-hub\README.md
 	EndProjectSection
 EndProject
@@ -51,7 +49,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{FA2C8688
 	ProjectSection(SolutionItems) = preProject
 		scripts\linux\buildBranch.sh = scripts\linux\buildBranch.sh
 		scripts\linux\buildDockerImage.sh = scripts\linux\buildDockerImage.sh
-		scripts\linux\Dockerfile = scripts\linux\Dockerfile
 		scripts\linux\installPrereqs.sh = scripts\linux\installPrereqs.sh
 		scripts\linux\runTests.sh = scripts\linux\runTests.sh
 	EndProjectSection
@@ -72,7 +69,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.csproj", "{CC963F2C-4482-4882-99AC-21A653AA25D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Util.Test.Common", "edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj", "{840816E2-D691-45B4-9995-0291FB5AADDA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Util.Test.Common", "edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj", "{840816E2-D691-45B4-9995-0291FB5AADDA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
