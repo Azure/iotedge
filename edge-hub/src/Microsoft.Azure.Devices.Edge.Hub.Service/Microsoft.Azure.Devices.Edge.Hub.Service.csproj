@@ -12,4 +12,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../../docker*/**/*.*" CopyToPublishDirectory="Always">
+        <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
 </Project>
