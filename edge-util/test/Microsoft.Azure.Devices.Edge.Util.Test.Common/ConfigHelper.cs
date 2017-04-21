@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             () =>
             {
                 IConfigurationBuilder builder = new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .AddJsonFile("appSettings.json", optional: true, reloadOnChange: true)
                     .AddEnvironmentVariables();
                 IConfiguration config = builder.Build();
                 return config;

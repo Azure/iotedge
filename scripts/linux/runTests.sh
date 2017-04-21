@@ -19,10 +19,10 @@ checkEnvVar BUILD_REPOSITORY_LOCALPATH
 checkEnvVar AGENT_WORKFOLDER
 checkEnvVar BUILD_BINARIESDIRECTORY
 
-SUFFIX='Microsoft.Azure*test*.csproj'
+SUFFIX='Microsoft.Azure*test.csproj'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
-OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY/target
+OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 
 if [ ! -d "$ROOTFOLDER" ]; then
 	echo Folder $ROOTFOLDER does not exist 1>&2
@@ -40,9 +40,14 @@ if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
 fi
 
 echo Running tests in all Test Projects in repo
-find $ROOTFOLDER -type f -iname $SUFFIX | while read line; do
+RES=0
+while read line; do
     echo Running tests for project - $line
 	$DOTNET_ROOT_PATH/dotnet test --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
-done
+	if [ $? -gt 0 ]
+	then 
+		RES=1
+	fi
+done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
 
-exit 0
+exit $RES

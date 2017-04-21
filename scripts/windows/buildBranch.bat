@@ -1,4 +1,4 @@
-REM @echo off
+@echo off
 
 REM This Script builds all .Net Core Solutions in the repo by recursing through
 REM the repo and finding any *.sln files
