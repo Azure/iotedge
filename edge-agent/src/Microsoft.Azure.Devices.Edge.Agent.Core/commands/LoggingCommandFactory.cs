@@ -72,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
                 }
             }
 
+            public string Show() => $"[Log] [{this.operation}]";
+
             static class Events
             {
                 const int ExecuteId = 1;
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
                 public static void Execute(ILogger logger, ICommand command)
                 {
-                    logger.LogInformation(ExecuteId, "Executing command: {0}", command);
+                    logger.LogInformation(ExecuteId, "Executing command: {0}", command.Show());
                 }
 
                 public static void ExecuteSuccess(ILogger logger, string operation)
@@ -99,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
                 public static void Undo(ILogger logger, ICommand command)
                 {
-                    logger.LogInformation(UndoId, "Undoing command: {0}", command);
+                    logger.LogInformation(UndoId, "Undoing command: {0}", command.Show());
                 }
 
                 public static void UndoSuccess(ILogger logger, string operation)

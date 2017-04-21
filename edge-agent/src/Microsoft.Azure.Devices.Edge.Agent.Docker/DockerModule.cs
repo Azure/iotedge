@@ -1,40 +1,11 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using System;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class TestConfig : IEquatable<TestConfig>
-    {
-        public string Image { get; }
-
-        public TestConfig(string image)
-        {
-            this.Image = Preconditions.CheckNotNull(image, nameof(image));
-        }
-
-        public bool Equals(TestConfig other)
-        {
-            if (ReferenceEquals(null, other))
-                return false;
-            return ReferenceEquals(this, other) || string.Equals(this.Image, other.Image);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj))
-                return false;
-            if (ReferenceEquals(this, obj))
-                return true;
-            return obj.GetType() == this.GetType() && this.Equals((TestConfig)obj);
-        }
-
-        public override int GetHashCode() => this.Image?.GetHashCode() ?? 0;
-    }
-
-    public class TestModule : IModule<TestConfig>
+    public class DockerModule : IModule<DockerConfig>
     {
         public string Name { get; }
 
@@ -44,9 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public ModuleStatus Status { get; }
 
-        public TestConfig Config { get; }
+        public DockerConfig Config { get; }
 
-        public TestModule(string name, string version, string type, ModuleStatus status, TestConfig config)
+        public DockerModule(string name, string version, string type, ModuleStatus status, DockerConfig config)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
@@ -55,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
         }
 
-        public override bool Equals(object obj) => this.Equals(obj as TestModule);
+        public override bool Equals(object obj) => this.Equals(obj as DockerModule);
 
-        public bool Equals(IModule other) => this.Equals(other as TestModule);
+        public bool Equals(IModule other) => this.Equals(other as DockerModule);
 
-        public bool Equals(IModule<TestConfig> other)
+        public bool Equals(IModule<DockerConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
@@ -84,5 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 return hashCode;
             }
         }
+
     }
 }

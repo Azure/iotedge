@@ -15,25 +15,22 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     public static class SecretsHelper
     {
         static readonly string KeyVaultBaseUrl = ConfigHelper.KeyVaultConfig["baseUrl"];
+        static readonly Lazy<KeyVaultHelper> KeyVaultHelperLazy = new Lazy<KeyVaultHelper>(() => InitKeyVaultHelper(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-        static readonly Lazy<KeyVaultHelper> KeyVaultHelperLazy = new Lazy<KeyVaultHelper>(
-            () =>
-            {
-                string clientId = ConfigHelper.KeyVaultConfig["clientId"];
-                string thumbprint = ConfigHelper.KeyVaultConfig["clientCertificateThumbprint"];
-                X509Certificate2 certificate = CertificateHelper.GetCertificate(thumbprint, StoreName.My, StoreLocation.CurrentUser);
-                return new KeyVaultHelper(clientId, certificate);    
-            }, 
-            LazyThreadSafetyMode.ExecutionAndPublication);
-
-        public static async Task<string> GetSecret(string secret)
+        public static Task<string> GetSecret(string secret)
         {
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
-            if (Uri.TryCreate(secret, UriKind.Absolute, out Uri secretUri))
-            {
-                return await KeyVaultHelperLazy.Value.GetSecret(secretUri.AbsoluteUri);
-            }
-            return await KeyVaultHelperLazy.Value.GetSecret(KeyVaultBaseUrl, secret);
+            return Uri.TryCreate(secret, UriKind.Absolute, out Uri secretUri)
+                ? KeyVaultHelperLazy.Value.GetSecret(secretUri.AbsoluteUri)
+                : KeyVaultHelperLazy.Value.GetSecret(KeyVaultBaseUrl, secret);
+        }
+
+        static KeyVaultHelper InitKeyVaultHelper()
+        {
+            string clientId = ConfigHelper.KeyVaultConfig["clientId"];
+            string thumbprint = ConfigHelper.KeyVaultConfig["clientCertificateThumbprint"];
+            X509Certificate2 certificate = CertificateHelper.GetCertificate(thumbprint, StoreName.My, StoreLocation.CurrentUser);
+            return new KeyVaultHelper(clientId, certificate);
         }
     }
 }

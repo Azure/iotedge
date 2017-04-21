@@ -7,10 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class ModuleSetTest
     {
-        static readonly IModule Module1 = new TestModule("mod1", "type1");
-        static readonly IModule Module2 = new TestModule("mod2", "type1");
-        static readonly IModule Module3 = new TestModule("mod3", "type1");
-        static readonly IModule Module4 = new TestModule("mod1", "type2");
+        static readonly TestConfig Config1 = new TestConfig("image1");
+        static readonly TestConfig Config2 = new TestConfig("image2");
+
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
+        static readonly IModule Module2 = new TestModule("mod2", "version1", "type1", ModuleStatus.Running, Config1);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1);
+        static readonly IModule Module4 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config2);
 
         static class TestApplyDiffSource
         {
@@ -19,7 +22,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // TODO Add more test cases
             static readonly IList<object[]> Data = new List<object[]>
             {
-                new object[] { ModuleSet.Create(Module1, Module2), new Diff(new List<IModule> { Module4, Module3 }, new List<string> { "mod2" }), ModuleSet.Create(Module3, Module4) },
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(new List<IModule> { Module4, Module3 }, new List<string> { "mod2" }),
+                    ModuleSet.Create(Module3, Module4)
+                },
+                new object[]
+                {
+                    ModuleSet.Empty,
+                    Diff.Create(Module2, Module1),
+                    ModuleSet.Create(Module1, Module2)
+                },
             };
         }
 
@@ -33,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             foreach (IModule module in expected.Modules)
             {
                 Assert.True(updated.TryGetModule(module.Name, out IModule updatedMod));
-                Assert.Equal(module.Type, updatedMod.Type);
+                Assert.Equal(module, updatedMod);
             }
         }
     }

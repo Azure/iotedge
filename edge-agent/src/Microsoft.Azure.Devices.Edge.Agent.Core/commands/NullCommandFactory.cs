@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
             public Task ExecuteAsync(CancellationToken token) => TaskEx.Done;
 
             public Task UndoAsync(CancellationToken token) => TaskEx.Done;
+
+            public string Show() => "[Null]";
         }
     }
 }
