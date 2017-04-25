@@ -25,6 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
                 : KeyVaultHelperLazy.Value.GetSecret(KeyVaultBaseUrl, secret);
         }
 
+        public static Task<string> GetSecretFromConfigKey(string configName)
+        {
+            string configValue = ConfigHelper.AppConfig[Preconditions.CheckNonWhiteSpace(configName, nameof(configName))];
+            return GetSecret(configValue);
+        }
+
         static KeyVaultHelper InitKeyVaultHelper()
         {
             string clientId = ConfigHelper.KeyVaultConfig["clientId"];

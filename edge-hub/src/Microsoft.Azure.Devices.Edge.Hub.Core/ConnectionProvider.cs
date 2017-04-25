@@ -2,10 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System.Security.Authentication;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
-    using System.Threading.Tasks;
 
     public class ConnectionProvider : IConnectionProvider
     {
@@ -21,32 +22,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IAuthenticator authenticator,
             ICloudProxyProvider cloudProxyProvider)
         {
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager);
-            this.router = Preconditions.CheckNotNull(router);
-            this.dispatcher = Preconditions.CheckNotNull(dispatcher);
-            this.authenticator = Preconditions.CheckNotNull(authenticator);
-            this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider);
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.router = Preconditions.CheckNotNull(router, nameof(router));
+            this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
         }
 
-        public async Task<Option<IDeviceListener>> Connect(string connectionString, IDeviceProxy deviceProxy)
+        public async Task<Try<IDeviceListener>> Connect(string connectionString, IDeviceProxy deviceProxy)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
 
-            string deviceId = ConnectionStringHelper.GetDeviceIdFromConnectionString(connectionString);
-            bool authenticationResult = this.authenticator.Authenticate(connectionString);
-            if (!authenticationResult)
+            // TODO - For Modules, this might have to be moduleId.
+            string deviceId = ConnectionStringUtil.GetDeviceIdFromConnectionString(connectionString);
+            Try<bool> authenticationResult = this.authenticator.Authenticate(connectionString);
+            if (!authenticationResult.Success)
             {
                 await deviceProxy.Disconnect();
-                return Option.None<IDeviceListener>();
+                return Try<IDeviceListener>.Failure(authenticationResult.Exception);
             }
+
             ICloudListener cloudListener = new CloudListener(deviceId, deviceProxy);
-            ICloudProxy cloudProxy = this.cloudProxyProvider.Connect(connectionString, cloudListener);
+            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(connectionString, cloudListener);
+            if (!cloudProxy.Success)
+            {
+                await deviceProxy.Disconnect();
+                return Try<IDeviceListener>.Failure(cloudProxy.Exception);
+            }
 
-            this.connectionManager.AddConnection(deviceId, deviceProxy, cloudProxy);
+            this.connectionManager.AddConnection(deviceId, deviceProxy, cloudProxy.Value);
 
-            IDeviceListener deviceListener = new DeviceListener(deviceId, this.router, this.dispatcher, cloudProxy);
-            return Option.Some(deviceListener);
+            IDeviceListener deviceListener = new DeviceListener(deviceId, this.router, this.dispatcher, cloudProxy.Value);
+            return Try.Success(deviceListener);
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             IDeviceProxy deviceProxy = this.GetDeviceProxy();
-            Option<IDeviceListener> deviceListener = await this.connectionProvider.Connect(connectionString, deviceProxy);
+            Try<IDeviceListener> deviceListener = await this.connectionProvider.Connect(connectionString, deviceProxy);
             // Use deviceListener interface to send messages from device to IoTHub
         }
 

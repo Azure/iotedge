@@ -6,18 +6,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    class Router : IRouter
+    public class Router : IRouter
     {
         readonly IDispatcher dispatcher;
 
         public Router(IDispatcher dispatcher)
         {
-            this.dispatcher = Preconditions.CheckNotNull(dispatcher);
+            this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
         }
 
         public async Task RouteMessage(IMessage message)
         {
             await this.dispatcher.Dispatch(message, new HashSet<Endpoint> { new Endpoint(EndpointType.Cloud, string.Empty) });
+        }
+
+        public async Task RouteMessageBatch(IEnumerable<IMessage> messages)
+        {
+            foreach (IMessage message in messages)
+            {
+                await this.RouteMessage(message);
+            }            
         }
     }
 }

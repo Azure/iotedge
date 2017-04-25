@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
 
@@ -29,17 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public async Task<Twin> GetTwin(string deviceId)
         {
             return await this.cloudProxy.GetTwin();
-        }
-
-        public Task ReceiveFeedback(string lockObject, FeedbackStatus status, string deviceId)
-        {
-            throw new NotImplementedException();
-        }
+        }        
 
         public async Task ReceiveMessage(IMessage message)
         {
             await this.router.RouteMessage(message);
         }
+
+        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages);
 
         public Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId)
         {

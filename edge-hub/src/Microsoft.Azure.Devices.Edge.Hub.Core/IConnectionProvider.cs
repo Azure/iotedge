@@ -8,6 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IConnectionProvider
     {
-        Task<Option<IDeviceListener>> Connect(string connectionString, IDeviceProxy deviceProxy);
+        Task<Try<IDeviceListener>> Connect(string connectionString, IDeviceProxy deviceProxy);
     }
 }

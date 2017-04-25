@@ -2,11 +2,14 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public interface ICloudProxyProvider
     {
         /// <summary>
         /// Connect sets up the CloudProxy and CloudReceiver
         /// </summary>
-        ICloudProxy Connect(string connectionString, ICloudListener listener);
+        Task<Try<ICloudProxy>> Connect(string connectionString, ICloudListener listener);
     }
 }

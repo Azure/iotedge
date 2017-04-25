@@ -2,10 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     public interface IRouter
     {
         Task RouteMessage(IMessage message);
+        Task RouteMessageBatch(IEnumerable<IMessage> messages);
     }
 }

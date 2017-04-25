@@ -7,13 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class Dispatcher : IDispatcher
+    public class Dispatcher : IDispatcher
     {
         readonly IConnectionManager connectionManager;
 
         public Dispatcher(IConnectionManager connectionManager)
         {
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager);
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
         }
 
         public Task<object> CallMethod(string methodName, object parameters, string deviceId)
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task Dispatch(IMessage message, Endpoint endpoint)
         {
-            var connection = this.connectionManager.GetConnection(endpoint.DeviceId);
+            Connection connection = this.connectionManager.GetConnection(endpoint.DeviceId);
             switch (endpoint.EndpointType)
             {
                 case EndpointType.Cloud:

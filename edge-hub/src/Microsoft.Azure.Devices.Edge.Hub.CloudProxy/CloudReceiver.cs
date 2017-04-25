@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -22,18 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void Init(ICloudListener listener)
         {
             Preconditions.CheckNotNull(listener, nameof(listener));
-            this.SetupReceiveMessage(listener.ReceiveMessage);
             this.SetupCallMethod(listener.CallMethod);
         }
 
-        private void SetupCallMethod(Func<string, object, string, Task<object>> callMethod)
+        void SetupCallMethod(Func<string, object, string, Task<object>> callMethod)
         {
-            throw new NotImplementedException();
-        }
-
-        private void SetupReceiveMessage(Func<IMessage, Task> receiveMessage)
-        {
-            throw new NotImplementedException();
+            // TODO - to be implemented
         }
     }
 }
