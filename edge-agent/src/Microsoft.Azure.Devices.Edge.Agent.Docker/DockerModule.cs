@@ -2,27 +2,35 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Runtime.Serialization;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class DockerModule : IModule<DockerConfig>
     {
+        [JsonProperty(Required = Required.Always)]
         public string Name { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public string Version { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public string Type { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public ModuleStatus Status { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public DockerConfig Config { get; }
 
+        [JsonConstructor]
         public DockerModule(string name, string version, string type, ModuleStatus status, DockerConfig config)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.Type = Preconditions.CheckNotNull(type, nameof(type));
-            this.Status = Preconditions.CheckNotNull(status, nameof(status));
+            this.Status = Preconditions.CheckIsDefined(status);
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
         }
 
@@ -55,6 +63,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return hashCode;
             }
         }
-
     }
 }

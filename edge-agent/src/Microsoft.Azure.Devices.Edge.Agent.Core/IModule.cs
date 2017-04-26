@@ -3,11 +3,18 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
+    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum ModuleStatus
     {
+        [EnumMember(Value = "unknown")]
         Unknown,
+        [EnumMember(Value = "running")]
         Running,
+        [EnumMember(Value = "stopped")]
         Stopped
     }
 

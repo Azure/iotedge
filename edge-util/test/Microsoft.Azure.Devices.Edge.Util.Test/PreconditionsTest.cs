@@ -7,6 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
     public class PreconditionsTest
     {
+        public enum MyEnum
+        {
+            Value1,
+            Value2,
+            Value3
+        }
+
         [Fact]
         public void TestCheckNotNull()
         {
@@ -30,6 +37,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
             Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false, "message"));
             Preconditions.CheckArgument(true);
+        }
+
+        [Fact]
+        public void TestCheckEnumRange()
+        {
+            Assert.Equal(MyEnum.Value1, Preconditions.CheckIsDefined(MyEnum.Value1));
+            Assert.Equal(MyEnum.Value2, Preconditions.CheckIsDefined(MyEnum.Value2));
+            Assert.Equal(MyEnum.Value3, Preconditions.CheckIsDefined(MyEnum.Value3));
+            Assert.Throws(typeof(ArgumentOutOfRangeException), () => Preconditions.CheckIsDefined((MyEnum)int.MaxValue));
         }
 
         [Fact]

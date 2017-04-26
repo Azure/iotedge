@@ -72,6 +72,25 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+
+        /// <summary>
+        ///  Checks that an Enum is defined. Throws ArgumentOutOfRangeException is not. 
+        /// </summary>
+        /// <typeparam name="T">Enum Type.</typeparam>
+        /// <param name="status">Value.</param>
+        /// <param name="nameOfEnum">Name of Enum to be printed on Message.</param>
+        /// <returns></returns>
+        public static T CheckIsDefined<T>(T status)
+        {
+            Type enumType = typeof(T);
+            if (!Enum.IsDefined(enumType, status))
+            {
+                throw new ArgumentOutOfRangeException(status + " is not a valid value for " + enumType.FullName +  ".");
+            }
+            return status;
+        }
+
+
         /// <summary>
         /// This checks that the item is greater than or equal to the low value.
         /// </summary>
@@ -166,5 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             CheckArgument(!string.IsNullOrWhiteSpace(value), $"{paramName} is null or whitespace.");
             return value;
         }
+
     }
 }

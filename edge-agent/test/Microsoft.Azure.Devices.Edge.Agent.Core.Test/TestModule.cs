@@ -5,9 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class TestConfig : IEquatable<TestConfig>
     {
+        [JsonProperty(Required = Required.Always)]
         public string Image { get; }
 
         public TestConfig(string image)
@@ -36,16 +38,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModule : IModule<TestConfig>
     {
+        [JsonProperty(Required = Required.Always)]
         public string Name { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public string Version { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public string Type { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public ModuleStatus Status { get; }
 
+        [JsonProperty(Required = Required.Always)]
         public TestConfig Config { get; }
 
+        [JsonConstructor]
         public TestModule(string name, string version, string type, ModuleStatus status, TestConfig config)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));

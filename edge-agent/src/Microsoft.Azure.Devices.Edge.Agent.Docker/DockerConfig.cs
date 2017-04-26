@@ -4,9 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+    using System.Runtime.Serialization;
 
     public class DockerConfig : IEquatable<DockerConfig>
     {
+        [JsonProperty(Required = Required.Always)]
         public string Image { get; }
 
         public DockerConfig(string image)
