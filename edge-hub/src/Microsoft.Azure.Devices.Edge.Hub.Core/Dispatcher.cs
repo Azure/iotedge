@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task Dispatch(IMessage message, ISet<Endpoint> endpoints)
         {
-            foreach (var endpoint in endpoints)
+            foreach (Endpoint endpoint in endpoints)
             {
                 await this.Dispatch(message, endpoint);
             }

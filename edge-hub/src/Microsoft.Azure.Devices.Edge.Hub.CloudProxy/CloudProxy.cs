@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     class CloudProxy : ICloudProxy
     {
+        const int ExceptionEventId = 0;
         readonly DeviceClient deviceClient;
         readonly IMessageConverter<Message> messageConverter;
         readonly ILogger logger;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
-            this.logger = logger;
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
         public async Task<bool> Disconnect()
@@ -33,9 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                this.logger.LogError($"Error closing IoTHub connection - {ex.ToString()}");
+                this.logger.LogError(ExceptionEventId, ex, "Error closing IoTHub connection");
                 return false;
-            }            
+            }
         }
 
         public Task<Twin> GetTwin()
@@ -54,9 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                this.logger.LogError($"Error sending message to IoTHub - {ex.ToString()}");
+                this.logger.LogError(ExceptionEventId, ex, "Error sending message to IoTHub");
                 return false;
-            }            
+            }
         }
 
         public async Task<bool> SendMessageBatch(IEnumerable<IMessage> inputMessages)
@@ -70,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                this.logger.LogError($"Error sending message batch to IoTHub - {ex.ToString()}");
+                this.logger.LogError(ExceptionEventId, ex, "Error sending message batch to IoTHub");
                 return false;
             }
         }

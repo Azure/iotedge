@@ -15,8 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public CloudReceiver(DeviceClient deviceClient)
         {
-            Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
-            this.deviceClient = deviceClient;
+            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
         }
 
         public void Init(ICloudListener listener)

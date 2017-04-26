@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public async Task<Twin> GetTwin(string deviceId)
         {
             return await this.cloudProxy.GetTwin();
-        }        
+        }
 
         public async Task ReceiveMessage(IMessage message)
         {

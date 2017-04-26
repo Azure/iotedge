@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
         /// </summary>
         public T Value
         {
-            get { return Volatile.Read(ref this.atomicValue); }
-            set { Volatile.Write(ref this.atomicValue, value); }
+            get => Volatile.Read(ref this.atomicValue);
+            set => Volatile.Write(ref this.atomicValue, value);
         }
 
         /// <summary>

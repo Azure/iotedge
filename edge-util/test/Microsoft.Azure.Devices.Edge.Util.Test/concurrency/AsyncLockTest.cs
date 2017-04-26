@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -101,13 +100,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
             var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            Func<Task> f1 = async () =>
+            async Task F1()
             {
                 using (await mutex.LockAsync(cts.Token))
                 {
                 }
-            };
-            await Assert.ThrowsAsync<TaskCanceledException>(f1);
+            }
+
+            await Assert.ThrowsAsync<TaskCanceledException>(F1);
         }
     }
 }

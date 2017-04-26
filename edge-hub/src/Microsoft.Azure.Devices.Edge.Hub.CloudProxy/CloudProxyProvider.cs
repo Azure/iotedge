@@ -12,27 +12,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudProxyProvider : ICloudProxyProvider
     {
-        static readonly ITransportSettings[] AmqpTcpTransportSettings = 
-            {
-                new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                {
-                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
-                    {
-                        Pooling = true,
-                        MaxPoolSize = 1
-                    }
-                }
-            };
-
         readonly ILogger logger;
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
 
         public CloudProxyProvider(ILogger logger, ITransportSettings[] transportSettings, IMessageConverter<Message> messageConverter)
         {
-            this.logger = logger;
-            this.transportSettings = transportSettings;
-            this.messageConverter = messageConverter;
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.transportSettings = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
+            this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
         }
 
         public async Task<Try<ICloudProxy>> Connect(string connectionString, ICloudListener cloudListener)
@@ -46,12 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return Try<ICloudProxy>.Failure(tryDeviceClient.Exception);
             }
 
-            DeviceClient deviceClient = tryDeviceClient.Value;        
+            DeviceClient deviceClient = tryDeviceClient.Value;
             ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.logger);
             ICloudReceiver cloudReceiver = new CloudReceiver(deviceClient);
             cloudReceiver.Init(cloudListener);
             return Try.Success(cloudProxy);
-        }        
+        }
 
         async Task<Try<DeviceClient>> ConnectToIoTHub(string connectionString)
         {
@@ -65,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 // TODO - Check if it is okay to emit connection string in logs
-                this.logger.LogError($"Error connecting to IoTHub with connection string {connectionString} - {ex.ToString()}");
+                this.logger.LogError(0, ex, $"Error connecting to IoTHub with connection string {connectionString}");
                 return Try<DeviceClient>.Failure(ex);
             }
         }

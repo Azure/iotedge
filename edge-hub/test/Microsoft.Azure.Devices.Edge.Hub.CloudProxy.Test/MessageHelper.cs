@@ -1,10 +1,13 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
+
+namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
 

@@ -9,15 +9,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Extensions.Logging;
+    using Serilog;
+    using Serilog.Core;
+    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class Program
     {
-        public static int Main(string[] args) => MainAsync(args).Result;
+        public static int Main(string[] args) => MainAsync().Result;
 
-        static async Task<int> MainAsync(string[] args)
+        static async Task<int> MainAsync()
         {
+            Logger loggerConfig = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console(
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] - {Message}{NewLine}{Exception}"
+                )
+                .CreateLogger();
+
             ILoggerFactory factory = new LoggerFactory()
-                .AddConsole();
+                .AddSerilog(loggerConfig);
             ILogger logger = factory.CreateLogger<Program>();
 
             logger.LogInformation("Starting module management agent.");

@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.EventHubs;

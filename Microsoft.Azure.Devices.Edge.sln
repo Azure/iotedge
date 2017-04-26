@@ -75,6 +75,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test.csproj", "{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{7F52F459-7B00-452B-96AD-D85BA05C3DDC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -141,6 +143,10 @@ Global
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F52F459-7B00-452B-96AD-D85BA05C3DDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F52F459-7B00-452B-96AD-D85BA05C3DDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F52F459-7B00-452B-96AD-D85BA05C3DDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F52F459-7B00-452B-96AD-D85BA05C3DDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -168,5 +174,6 @@ Global
 		{840816E2-D691-45B4-9995-0291FB5AADDA} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 		{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{7F52F459-7B00-452B-96AD-D85BA05C3DDC} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 	EndGlobalSection
 EndGlobal

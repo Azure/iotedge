@@ -15,8 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 switch (exception)
                 {
+                    // ReSharper disable once UnusedVariable
                     case OutOfMemoryException ex:
                         return true;
+                    // ReSharper disable once UnusedVariable
                     case SEHException ex:
                         return true;
                 }
