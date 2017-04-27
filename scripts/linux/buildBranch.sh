@@ -47,6 +47,9 @@ find $ROOTFOLDER -type f -name $CSPROJ_SUFFIX -exec grep -l "<OutputType>Exe</Ou
     filename=$(basename "$proj")
     proj_publish_dir="${filename%.*}"
     $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -o $PUBLISH_FOLDER/$proj_publish_dir $proj
+    # This is a workaround for dotnet publish issue when it adds netstandard1.1 to dependencies path
+    echo Remove netstandard1.1 from deps.json
+    sed -i 's/lib\/netstandard1.1\///g' $PUBLISH_FOLDER/$proj_publish_dir/$proj_publish_dir.deps.json
 done
 
 echo Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker

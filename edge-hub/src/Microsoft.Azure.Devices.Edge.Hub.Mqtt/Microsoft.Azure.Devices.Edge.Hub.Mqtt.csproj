@@ -12,6 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.ProtocolGateway.Core.NetStandard" Version="0.1.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.ProtocolGateway.IotHubClient.NetStandard" Version="0.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj" />
   </ItemGroup>
