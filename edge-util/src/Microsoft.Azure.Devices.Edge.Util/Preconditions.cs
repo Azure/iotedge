@@ -74,11 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
 
         /// <summary>
-        ///  Checks that an Enum is defined. Throws ArgumentOutOfRangeException is not. 
+        ///  Checks that an Enum is defined. Throws ArgumentOutOfRangeException is not.
         /// </summary>
         /// <typeparam name="T">Enum Type.</typeparam>
         /// <param name="status">Value.</param>
-        /// <param name="nameOfEnum">Name of Enum to be printed on Message.</param>
         /// <returns></returns>
         public static T CheckIsDefined<T>(T status)
         {

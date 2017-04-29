@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Util
 {
+    using System;
     using System.Collections.Generic;
 
     public static class CollectionEx
@@ -16,6 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             TValue value;
             return dict.TryGetValue(key, out value) ? value : orElse;
+        }
+
+        public static TValue GetOrElse<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> orElse)
+        {
+            TValue value;
+            return dict.TryGetValue(key, out value) ? value : orElse();
         }
 
         public static Option<T> HeadOption<T>(this IEnumerable<T> src)

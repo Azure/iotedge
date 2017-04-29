@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using System.Runtime.Serialization;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -16,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public string Version { get; }
 
         [JsonProperty(Required = Required.Always)]
-        public string Type { get; }
+        public string Type => "docker";
 
         [JsonProperty(Required = Required.Always)]
         public ModuleStatus Status { get; }
@@ -24,14 +23,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.Always)]
         public DockerConfig Config { get; }
 
-        [JsonConstructor]
-        public DockerModule(string name, string version, string type, ModuleStatus status, DockerConfig config)
+        public DockerModule(string name, string version, ModuleStatus status, DockerConfig config)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
-            this.Type = Preconditions.CheckNotNull(type, nameof(type));
             this.Status = Preconditions.CheckIsDefined(status);
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
+        }
+
+        [JsonConstructor]
+        DockerModule(string name, string version, string type, ModuleStatus status, DockerConfig config)
+            : this(name, version, status, config)
+        {
+            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);

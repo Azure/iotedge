@@ -15,7 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [EnumMember(Value = "running")]
         Running,
         [EnumMember(Value = "stopped")]
-        Stopped
+        Stopped,
+        [EnumMember(Value = "paused")]
+        Paused
     }
 
     public interface IModule : IEquatable<IModule>

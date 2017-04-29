@@ -2,37 +2,36 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Newtonsoft.Json;
     using Xunit;
 
+    [ExcludeFromCodeCoverage]
     public class DockerModuleTest
     {
         static readonly DockerConfig Config1 = new DockerConfig("image1");
         static readonly DockerConfig Config2 = new DockerConfig("image2");
 
-        static readonly IModule Module1 = new DockerModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module2 = new DockerModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module3 = new DockerModule("mod3", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module4 = new DockerModule("mod1", "version2", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module5 = new DockerModule("mod1", "version1", "type2", ModuleStatus.Running, Config1);
-        static readonly IModule Module6 = new DockerModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1);
-        static readonly IModule Module7 = new DockerModule("mod1", "version1", "type1", ModuleStatus.Running, Config2);
-        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
+        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
+        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
+        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, Config1);
+        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, Config1);
+        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, Config1);
+        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config2);
+        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
+        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, Config1);
 
-        static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
-
+        const string SerializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
 
         [Fact]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerModule(null, "version1", "type1", ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", null, "type1", ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", null, ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", "type1", ModuleStatus.Running, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", "type1", (ModuleStatus)int.MaxValue, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule(null, "version1", ModuleStatus.Running, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", null, ModuleStatus.Running, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, Config1));
         }
 
         [Fact]
@@ -43,7 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(Module8, Module8);
             Assert.NotEqual(Module1, Module3);
             Assert.NotEqual(Module1, Module4);
-            Assert.NotEqual(Module1, Module5);
             Assert.NotEqual(Module1, Module6);
             Assert.NotEqual(Module1, Module7);
             Assert.Equal(Module1, Module8);
@@ -82,18 +80,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
 
-
             var myModuleSerde = new ModuleSerde();
 
             var myModule1 = myModuleSerde.Deserialize<DockerModule>(validJson);
             var myModule2 = myModuleSerde.Deserialize<DockerModule>(validJsonAllLower);
             var myModule3 = myModuleSerde.Deserialize<DockerModule>(validJsonAllCap);
 
-
             Assert.True(ValidJsonModule.Equals(myModule1));
             Assert.True(ValidJsonModule.Equals(myModule2));
             Assert.True(ValidJsonModule.Equals(myModule3));
-
 
             Assert.Equal(ModuleStatus.Stopped, myModuleSerde.Deserialize<DockerModule>(validJsonStatusStopped).Status);
             Assert.Equal(ModuleStatus.Unknown, myModuleSerde.Deserialize<DockerModule>(validJsonStatusUnknown).Status);
@@ -115,8 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             string jsonFromIModule = myModuleSerde.Serialize(Module1);
             Assert.True(Module8.Equals(myModule));
-            Assert.Equal(serializedModule, jsonFromDockerModule);
-            Assert.Equal(serializedModule, jsonFromIModule);
+            Assert.Equal(SerializedModule, jsonFromDockerModule);
+            Assert.Equal(SerializedModule, jsonFromIModule);
         }
     }
 }

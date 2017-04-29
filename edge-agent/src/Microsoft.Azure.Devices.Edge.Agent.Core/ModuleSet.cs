@@ -34,5 +34,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 .RemoveRange(diff.Removed);
             return new ModuleSet(updated.Values.ToList());
         }
+
+        // TODO use equality comparer instead of equals?
+        public Diff Diff(ModuleSet other)
+        {
+            IEnumerable<IModule> created = this.modules.Keys
+                .Except(other.modules.Keys)
+                .Select(key => this.modules[key]);
+            IEnumerable<string> removed = other.modules.Keys
+                .Except(this.modules.Keys);
+            IEnumerable<IModule> updated = this.modules.Keys
+                .Intersect(other.modules.Keys)
+                .Where(key => !this.modules[key].Equals(other.modules[key]))
+                .Select(key => this.modules[key]);
+            return new Diff(created.Concat(updated).ToList(), removed.ToList());
+        }
     }
 }

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
-            StringBuilder payload = new StringBuilder();
+            var payload = new StringBuilder();
             foreach (object p in eventData.Payload)
             {
                 payload.Append("[" + p + "]");

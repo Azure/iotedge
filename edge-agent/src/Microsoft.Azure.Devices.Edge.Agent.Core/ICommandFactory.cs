@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         ICommand Create(IModule module);
 
+        ICommand Pull(IModule module);
+
         ICommand Update(IModule current, IModule next);
 
         ICommand Remove(IModule module);

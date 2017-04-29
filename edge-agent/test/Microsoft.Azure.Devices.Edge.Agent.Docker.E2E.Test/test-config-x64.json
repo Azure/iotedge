@@ -1,0 +1,33 @@
+﻿[
+    {
+        "name": "mongo-server",
+        "version": "1.0",
+        "imageName": "mongo",
+        "imageTag": "3.4.4",
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "docker",
+            "args": "run --rm --link mongo-server:mongo-server mongo:3.4.4 sh -c \"exec mongo --quiet --eval 'db.serverStatus().version' mongo-server:27017/test\"",
+            "outputEquals": "3.4.4"
+        }
+    },
+    {
+        "name": "nginx-server",
+        "version": "1.0",
+        "imageName": "nginx",
+        "imageTag": "latest",
+        "portBindings": [
+            {
+                "from": 80,
+                "to": 8080,
+                "type": "tcp"
+            }
+        ],
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "docker",
+            "args": "run --rm --link nginx-server:nginx-server appropriate/curl curl -s -o /dev/null -w '%{http_code}' http://nginx-server",
+            "outputEquals": "'200'"
+        }
+    }
+]

@@ -12,6 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         readonly ImmutableList<ICommand> commands;
 
+        public static Plan Empty { get; } = new Plan(ImmutableList<ICommand>.Empty);
+
+        public bool IsEmpty => this.commands.IsEmpty;
+
         public Plan(IList<ICommand> commands)
         {
             this.commands = Preconditions.CheckNotNull(commands.ToImmutableList(), nameof(commands));

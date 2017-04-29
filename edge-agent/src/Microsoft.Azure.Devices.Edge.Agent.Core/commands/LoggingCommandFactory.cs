@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public ICommand Create(IModule module) => new LoggingCommand(this.underlying.Create(module), "create", this.logger);
 
+        public ICommand Pull(IModule module) => new LoggingCommand(this.underlying.Pull(module), "pull", this.logger);
+
         public ICommand Update(IModule current, IModule next) => new LoggingCommand(this.underlying.Update(current, next), "update", this.logger);
 
         public ICommand Remove(IModule module) => new LoggingCommand(this.underlying.Remove(module), "remove", this.logger);
@@ -72,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
                 }
             }
 
-            public string Show() => $"[Log] [{this.operation}]";
+            public string Show() => this.underlying.Show();
 
             static class Events
             {
@@ -91,12 +93,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
                 public static void ExecuteSuccess(ILogger logger, string operation)
                 {
-                    logger.LogInformation(ExecuteSuccessId, "Executing command for operation [{0}] succeeded.", operation);
+                    logger.LogDebug(ExecuteSuccessId, "Executing command for operation [{0}] succeeded.", operation);
                 }
 
                 public static void ExecuteFailure(ILogger logger, string operation, Exception exception)
                 {
-                    logger.LogError(ExecuteFailureId, exception, "Executing command for operation [{0}] succeeded.", operation);
+                    logger.LogError(ExecuteFailureId, exception, "Executing command for operation [{0}] failed.", operation);
                 }
 
                 public static void Undo(ILogger logger, ICommand command)
@@ -106,12 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
                 public static void UndoSuccess(ILogger logger, string operation)
                 {
-                    logger.LogInformation(UndoSuccessId, "Undoing command for operation [{0}] succeeded.", operation);
+                    logger.LogDebug(UndoSuccessId, "Undoing command for operation [{0}] succeeded.", operation);
                 }
 
                 public static void UndoFailure(ILogger logger, string operation, Exception exception)
                 {
-                    logger.LogError(UndoFailureId, exception, "Undoing command for operation [{0}] succeeded.", operation);
+                    logger.LogError(UndoFailureId, exception, "Undoing command for operation [{0}] failed.", operation);
                 }
             }
         }

@@ -19,12 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     class Program
     {
-        public static int Main(string[] args)
-        {
-            return MainAsync(args).Result;
-        }
+        public static int Main() => MainAsync().Result;
 
-        static async Task<int> MainAsync(string[] args)
+        static async Task<int> MainAsync()
         {
             Logger loggerConfig = new LoggerConfiguration()
                 .Enrich.FromLogContext()
@@ -51,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var certificate = new X509Certificate2(certPath);
             var settingsProvider = new AppConfigSettingsProvider();
 
-            var bootstrapper = new MqttBoostrapper(settingsProvider, certificate);
+            var bootstrapper = new MqttBootstrapper(settingsProvider, certificate);
 
             await bootstrapper.StartAsync(cts.Token);
 

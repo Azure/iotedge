@@ -2,37 +2,24 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
-
     public class NullCommandFactory : ICommandFactory
     {
         public static NullCommandFactory Instance { get; } = new NullCommandFactory();
-
-        static NullCommand Command { get; } = new NullCommand();
 
         NullCommandFactory()
         {
         }
 
-        public ICommand Create(IModule module) => Command;
+        public ICommand Create(IModule module) => NullCommand.Instance;
 
-        public ICommand Update(IModule current, IModule next) => Command;
+        public ICommand Pull(IModule module) => NullCommand.Instance;
 
-        public ICommand Remove(IModule module) => Command;
+        public ICommand Update(IModule current, IModule next) => NullCommand.Instance;
 
-        public ICommand Start(IModule module) => Command;
+        public ICommand Remove(IModule module) => NullCommand.Instance;
 
-        public ICommand Stop(IModule module) => Command;
+        public ICommand Start(IModule module) => NullCommand.Instance;
 
-        class NullCommand : ICommand
-        {
-            public Task ExecuteAsync(CancellationToken token) => TaskEx.Done;
-
-            public Task UndoAsync(CancellationToken token) => TaskEx.Done;
-
-            public string Show() => "[Null]";
-        }
+        public ICommand Stop(IModule module) => NullCommand.Instance;
     }
 }

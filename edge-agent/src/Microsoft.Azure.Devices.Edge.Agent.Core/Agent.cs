@@ -23,14 +23,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.sync = new AsyncLock();
         }
 
-        public async Task Reconcile(CancellationToken token)
+        public async Task ReconcileAsync(CancellationToken token)
         {
             ModuleSet current = await this.environment.GetModulesAsync(token);
             Plan plan = this.planner.Plan(this.desired, current);
-            await plan.ExecuteAsync(token);
+
+            if (!plan.IsEmpty)
+            {
+                await plan.ExecuteAsync(token);
+            }
         }
 
-        public async Task Reconcile(Diff diff, CancellationToken token)
+        public async Task ReconcileAsync(Diff diff, CancellationToken token)
         {
             using (await this.sync.LockAsync(token))
             {
@@ -41,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     throw new InvalidOperationException("Invalid update desired moduleset operation.");
                 }
             }
-            await this.Reconcile(token);
+            await this.ReconcileAsync(token);
         }
     }
 }

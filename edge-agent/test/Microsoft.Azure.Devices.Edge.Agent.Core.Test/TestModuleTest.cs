@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
         static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
 
-
         [Fact]
         public void TestConstructor()
         {
@@ -87,18 +86,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
 
-
             var myModuleSerde = new ModuleSerde();
 
             var myModule1 = myModuleSerde.Deserialize<TestModule>(validJson);
             var myModule2 = myModuleSerde.Deserialize<TestModule>(validJsonAllLower);
             var myModule3 = myModuleSerde.Deserialize<TestModule>(validJsonAllCap);
 
-
             Assert.True(ValidJsonModule.Equals(myModule1));
             Assert.True(ValidJsonModule.Equals(myModule2));
             Assert.True(ValidJsonModule.Equals(myModule3));
-
 
             Assert.Equal(ModuleStatus.Stopped, myModuleSerde.Deserialize<TestModule>(validJsonStatusStopped).Status);
             Assert.Equal(ModuleStatus.Unknown, myModuleSerde.Deserialize<TestModule>(validJsonStatusUnknown).Status);

@@ -23,14 +23,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         public Plan Plan(ModuleSet desired, ModuleSet current)
         {
+            Diff diff = desired.Diff(current);
+            return diff.IsEmpty
+                ? Core.Plan.Empty
+                : this.CreatePlan(desired, current);
+        }
+
+        Plan CreatePlan(ModuleSet desired, ModuleSet current)
+        {
             IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m));
             IEnumerable<ICommand> start = desired.Modules.Select(m => this.commandFactory.Start(m));
+
+            IList<ICommand> pull = desired.Modules
+                .Select(m => this.commandFactory.Pull(m))
+                .ToList();
 
             IList<ICommand> update = desired.Modules
                 .Select(m => this.CreateOrUpdate(current, m))
                 .ToList();
 
-            IList<ICommand> commands = stop.Concat(update).Concat(start).ToList();
+            IList<ICommand> commands = stop
+                .Concat(pull)
+                .Concat(update)
+                .Concat(start).ToList();
             return new Plan(commands);
         }
 

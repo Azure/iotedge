@@ -23,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
 
-    public class MqttBoostrapper
+    public class MqttBootstrapper
     {
-        readonly ILogger logger = new LoggerFactory().AddConsole().CreateLogger<MqttBoostrapper>();
+        readonly ILogger logger = new LoggerFactory().AddConsole().CreateLogger<MqttBootstrapper>();
         readonly TimeSpan defaultConnectionIdleTimeout = TimeSpan.FromSeconds(210); // IoT Hub default connection idle timeout
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
@@ -44,10 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task CloseCompletion => this.closeCompletionSource.Task;
 
-        public MqttBoostrapper(ISettingsProvider settingsProvider, X509Certificate tlsCertificate)
+        public MqttBootstrapper(ISettingsProvider settingsProvider, X509Certificate tlsCertificate)
         {
-            this.settingsProvider = Preconditions.CheckNotNull<ISettingsProvider>(settingsProvider, nameof(settingsProvider));
-            this.tlsCertificate = Preconditions.CheckNotNull<X509Certificate>(tlsCertificate, nameof(tlsCertificate));
+            this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
+            this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
 
             this.closeCompletionSource = new TaskCompletionSource();
 
@@ -88,14 +88,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
 
             TimeSpan connectionIdleTimeout = this.settingsProvider.GetTimeSpanSetting("IotHubClient.ConnectionIdleTimeout", this.defaultConnectionIdleTimeout);
-            IotHubClientSettings iotHubClientSettings = new IotHubClientSettings(this.settingsProvider);
+            var iotHubClientSettings = new IotHubClientSettings(this.settingsProvider);
             string connectionString = iotHubClientSettings.IotHubConnectionString;
 
             Func<IDeviceIdentity, Task<IMessagingServiceClient>> deviceClientFactory = IotHubClient.PreparePoolFactory(connectionString, connectionPoolSize,
                 connectionIdleTimeout, iotHubClientSettings, PooledByteBufferAllocator.Default, this.topicNameConverter);
-            MessagingBridgeFactoryFunc bridgeFactory = async deviceIdentity => new SingleClientMessagingBridge(deviceIdentity, await deviceClientFactory(deviceIdentity));
+            async Task<IMessagingBridge> BridgeFactoryFunc(IDeviceIdentity deviceIdentity) => new SingleClientMessagingBridge(deviceIdentity, await deviceClientFactory(deviceIdentity));
 
-            ServerBootstrap boostrap = new ServerBootstrap();
+            var boostrap = new ServerBootstrap();
             // multithreaded event loop that handles the incoming connection
             IEventLoopGroup parentEventLoopGroup = new MultithreadEventLoopGroup(parentEventLoopCount);
             // multithreaded event loop (worker) that handles the traffic of the accepted connections
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             this.sessionStateManager,
                             this.authProvider,
                             null,
-                            bridgeFactory));
+                            BridgeFactoryFunc));
                 }));
 
             return boostrap;
