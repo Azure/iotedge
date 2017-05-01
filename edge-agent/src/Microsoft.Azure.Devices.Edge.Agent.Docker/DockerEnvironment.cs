@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 All = true
             };
             IList<ContainerListResponse> containers = await this.client.Containers.ListContainersAsync(parameters);
-            List<IModule> modules = containers.Select(c => ContainerToModule(c)).ToList();
+            IImmutableDictionary<string, IModule> modules = containers.Select(c => ContainerToModule(c)).ToImmutableDictionary(m => m.Name, m => m);
             return new ModuleSet(modules);
         }
 

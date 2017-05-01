@@ -86,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
 
-            var myModuleSerde = new ModuleSerde();
+
+            ModuleSerde myModuleSerde = ModuleSerde.Instance;
 
             var myModule1 = myModuleSerde.Deserialize<TestModule>(validJson);
             var myModule2 = myModuleSerde.Deserialize<TestModule>(validJsonAllLower);
@@ -110,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public void TestSerialize()
         {
-            var myModuleSerde = new ModuleSerde();
+            ModuleSerde myModuleSerde = ModuleSerde.Instance;
             string jsonFromTestModule = myModuleSerde.Serialize(Module8);
             var myModule = myModuleSerde.Deserialize<TestModule>(jsonFromTestModule);
 

@@ -31,15 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         Plan CreatePlan(ModuleSet desired, ModuleSet current)
         {
-            IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m));
-            IEnumerable<ICommand> start = desired.Modules.Select(m => this.commandFactory.Start(m));
+            IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
+            IEnumerable<ICommand> start = desired.Modules.Select(m => this.commandFactory.Start(m.Value));
 
             IList<ICommand> pull = desired.Modules
-                .Select(m => this.commandFactory.Pull(m))
+                .Select(m => this.commandFactory.Pull(m.Value))
                 .ToList();
 
             IList<ICommand> update = desired.Modules
-                .Select(m => this.CreateOrUpdate(current, m))
+                .Select(m => this.CreateOrUpdate(current, m.Value))
                 .ToList();
 
             IList<ICommand> commands = stop
