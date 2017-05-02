@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             return new List<object[]> { new object[] { messages[0] } };
         }
 
-        [Theory]
+        [Theory(Skip = "move to BVT")]
         [MemberData(nameof(GetTestMessage))]
         public async Task SendMessageTest(IMessage message)
         {
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(new List<IMessage> { message }, startTime);
         }
 
-        [Theory]
+        [Theory(Skip = "move to BVT")]
         [MemberData(nameof(GetTestMessages))]
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly IModule Module4 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
 
         static readonly TestModule Module5 = new TestModule("mod5", "version1", "test", ModuleStatus.Running, Config2);
-        
+
         static readonly ModuleSet ModuleSet1 = ModuleSet.Create(Module1);
         static readonly ModuleSet ModuleSet2 = ModuleSet.Create(Module5, Module3);
 
@@ -58,13 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             }
         }
 
-
-        [Fact]
-        public void ModuleSetDeserialize()
-        {
-
-        }
-
         [Fact]
         public void TestDeserialize()
         {
@@ -99,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(Module2.Equals(myModule4));
             Assert.True(Module1.Equals(myModule5));
             Assert.True(Module2.Equals(myModule6));
-            
+
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noNameson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noVersionJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noStatusJson));
@@ -112,9 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void ModuleSetSerialize()
         {
             var serializerInputTable = new Dictionary<string, Type>() {{"test", typeof(TestModule)}};
-
             var myModuleSetSerde = new ModuleSetSerde(serializerInputTable);
-            
+
             string jsonFromTestModuleSet = myModuleSetSerde.Serialize(ModuleSet1);
             string jsonFromTestModuleSet2 = myModuleSetSerde.Serialize(ModuleSet2);
 
@@ -128,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             IModule module4 = myModuleSet2.Modules["mod5"];
             IModule module5 = ModuleSet2.Modules["mod3"];
             IModule module6 = myModuleSet2.Modules["mod3"];
-            
+
             Assert.True(module1.Equals(module2));
             Assert.True(module3.Equals(module4));
             Assert.True(module5.Equals(module6));

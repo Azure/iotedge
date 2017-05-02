@@ -15,14 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         readonly JsonSerializerSettings jsonSerializerSettings= new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver()};
 
-    public ModuleSetSerde(IDictionary<string,Type> deserializerTypes)
+        public ModuleSetSerde(IDictionary<string,Type> deserializerTypes)
         {
             this.converters = new Dictionary<string, Type>(Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)), StringComparer.OrdinalIgnoreCase);
         }
 
-        public string Serialize(ModuleSet moduleSet) => JsonConvert.SerializeObject(
-            moduleSet,
-            this.jsonSerializerSettings);
+        public string Serialize(ModuleSet moduleSet) => JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
 
         public ModuleSet Deserialize(string json)
         {
@@ -58,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 JObject obj = JObject.Load(reader);
 
-                
                 if (!obj.TryGetValue("type", StringComparison.OrdinalIgnoreCase, out JToken converterType))
                 {
                     throw new JsonSerializationException("Could not find right converter type.");

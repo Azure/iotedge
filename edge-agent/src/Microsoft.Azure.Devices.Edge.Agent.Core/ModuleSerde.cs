@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public T Deserialize<T>(string json)
             where T : IModule
         {
-            //This try/catch is needed because NewtonSoft Deserialize is calling the constructor even 
+            //This try/catch is needed because NewtonSoft Deserialize is calling the constructor even
             //if the Name parameter is not present on the JSON.
             try
             {
@@ -36,10 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 throw new JsonSerializationException(e.Message);
             }
         }
-        
+
         public IModule Deserialize(string json, System.Type serializerType)
         {
-            //This try/catch is needed because NewtonSoft Deserialize is calling the constructor even 
+            //This try/catch is needed because NewtonSoft Deserialize is calling the constructor even
             //if the Name parameter is not present on the JSON.
             try
             {

@@ -2,33 +2,36 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Newtonsoft.Json;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class ModuleSet
     {
         public static ModuleSet Empty { get; } = new ModuleSet(ImmutableDictionary<string, IModule>.Empty);
-        
+
         public IImmutableDictionary<string, IModule> Modules { get; }
 
         [JsonConstructor]
-        public ModuleSet(IImmutableDictionary<string, IModule> modules)
+        public ModuleSet(IDictionary<string, IModule> modules)
         {
             this.Modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToImmutableDictionary();
         }
 
-        public static ModuleSet Create(params IModule[] modules) => new ModuleSet(modules.ToImmutableDictionary(m => m.Name, m => m));
+        public static ModuleSet Create(params IModule[] modules) => new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
 
         public bool TryGetModule(string key, out IModule module) => this.Modules.TryGetValue(key, out module);
 
         public ModuleSet ApplyDiff(Diff diff)
         {
-            IImmutableDictionary<string, IModule> updated = this.Modules
-                .SetItems(Preconditions.CheckNotNull(diff, nameof(diff)).Updated.Select(m => new KeyValuePair<string, IModule>(m.Name, m)))
-                .RemoveRange(diff.Removed);
+            Preconditions.CheckNotNull(diff, nameof(diff));
+
+            IDictionary<string, IModule> updated = this.Modules
+                .SetItems(diff.Updated.Select(m => new KeyValuePair<string, IModule>(m.Name, m)))
+                .RemoveRange(diff.Removed)
+                .ToDictionary(m => m.Key, m => m.Value);
             return new ModuleSet(updated);
         }
 
