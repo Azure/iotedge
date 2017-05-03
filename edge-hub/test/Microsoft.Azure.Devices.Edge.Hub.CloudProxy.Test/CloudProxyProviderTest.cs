@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudProxyProviderTest
     {
+        const int ConnectionPoolSize = 10;
         readonly ILogger logger;
 
         public CloudProxyProviderTest()
@@ -26,30 +27,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public async Task ConnectTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, TransportHelper.AmqpTcpTransportSettings, new MessageConverter());
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);
             var cloudListenerMock = new Mock<ICloudListener>();
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString, cloudListenerMock.Object).Result;
+            Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString).Result;
             Assert.True(cloudProxy.Success);
-            bool result = await cloudProxy.Value.Disconnect();
+            bool result = await cloudProxy.Value.CloseAsync();
             Assert.True(result);
         }
 
         [Fact]
         public async Task ConnectWithInvalidConnectionStringTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, TransportHelper.AmqpTcpTransportSettings, new MessageConverter());
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);
             var cloudListenerMock = new Mock<ICloudListener>();
 
-            await Assert.ThrowsAsync<ArgumentException>(() => cloudProxyProvider.Connect("", cloudListenerMock.Object));
+            await Assert.ThrowsAsync<ArgumentException>(() => cloudProxyProvider.Connect(""));
 
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             // Change the connection string key, deliberately.
             char updatedLastChar = (char)(deviceConnectionString[deviceConnectionString.Length - 1] + 1);
             deviceConnectionString = deviceConnectionString.Substring(0, deviceConnectionString.Length - 1) + updatedLastChar;
-            Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString, cloudListenerMock.Object).Result;
+            Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString).Result;
             Assert.False(cloudProxy.Success);
         }
     }

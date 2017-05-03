@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudProxyTest
     {
+        const int ConnectionPoolSize = 10;
         readonly ILogger logger;
 
         public CloudProxyTest()
@@ -48,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy.Success);
             bool result = await cloudProxy.Value.SendMessage(message);
             Assert.True(result);
-            bool disconnectResult = await cloudProxy.Value.Disconnect();
+            bool disconnectResult = await cloudProxy.Value.CloseAsync();
             Assert.True(disconnectResult);
             await CheckMessageInEventHub(new List<IMessage> { message }, startTime);
         }
@@ -59,14 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             DateTime startTime = DateTime.UtcNow;
             var mockCloudListener = new Mock<ICloudListener>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, TransportHelper.AmqpTcpTransportSettings, new MessageConverter());
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);
 
             string device1ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            Try<ICloudProxy> cloudProxy1 = await cloudProxyProvider.Connect(device1ConnectionString, mockCloudListener.Object);
+            Try<ICloudProxy> cloudProxy1 = await cloudProxyProvider.Connect(device1ConnectionString);
             Assert.True(cloudProxy1.Success);
 
             string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device2ConnStrKey");
-            Try<ICloudProxy> cloudProxy2 = await cloudProxyProvider.Connect(device2ConnectionString, mockCloudListener.Object);
+            Try<ICloudProxy> cloudProxy2 = await cloudProxyProvider.Connect(device2ConnectionString);
             Assert.True(cloudProxy2.Success);
 
             for (int i = 0; i < messages.Count; i = i + 2)
@@ -77,9 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Assert.True(result);
             }
 
-            bool disconnectResult = await cloudProxy1.Value.Disconnect();
+            bool disconnectResult = await cloudProxy1.Value.CloseAsync();
             Assert.True(disconnectResult);
-            disconnectResult = await cloudProxy2.Value.Disconnect();
+            disconnectResult = await cloudProxy2.Value.CloseAsync();
             Assert.True(disconnectResult);
 
             await CheckMessageInEventHub(messages, startTime);
@@ -94,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy.Success);
             bool result = await cloudProxy.Value.SendMessageBatch(messages);
             Assert.True(result);
-            bool disconnectResult = await cloudProxy.Value.Disconnect();
+            bool disconnectResult = await cloudProxy.Value.CloseAsync();
             Assert.True(disconnectResult);
             await CheckMessageInEventHub(messages, startTime);
         }
@@ -103,8 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var mockCloudListener = new Mock<ICloudListener>();
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, TransportHelper.AmqpTcpTransportSettings, new MessageConverter());
-            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString, mockCloudListener.Object);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);
+            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString);
             return cloudProxy;
         }
 

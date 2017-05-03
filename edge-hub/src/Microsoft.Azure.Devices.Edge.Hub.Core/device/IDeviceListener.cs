@@ -8,9 +8,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     public interface IDeviceListener
     {
         Task ReceiveMessage(IMessage message);
+
         Task ReceiveMessageBatch(IEnumerable<IMessage> message);
+
         Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId);
+
         Task<Twin> GetTwin(string deviceId);
+
         Task<object> CallMethod(string methodName, object parameters, string deviceId);
+
+        void BindDeviceProxy(IDeviceProxy deviceProxy);
+
+        Task CloseAsync();
     }
 }

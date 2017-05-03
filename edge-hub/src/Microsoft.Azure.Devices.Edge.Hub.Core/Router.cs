@@ -15,16 +15,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
         }
 
-        public async Task RouteMessage(IMessage message)
+        public Task RouteMessage(IMessage message, string deviceId)
         {
-            await this.dispatcher.Dispatch(message, new HashSet<Endpoint> { new Endpoint(EndpointType.Cloud, string.Empty) });
+            return this.dispatcher.Dispatch(message, new HashSet<Endpoint> { new Endpoint(EndpointType.Cloud, deviceId) });
         }
 
-        public async Task RouteMessageBatch(IEnumerable<IMessage> messages)
+        public async Task RouteMessageBatch(IEnumerable<IMessage> messages, string deviceId)
         {
             foreach (IMessage message in messages)
             {
-                await this.RouteMessage(message);
+                await this.RouteMessage(message, deviceId);
             }            
         }
     }

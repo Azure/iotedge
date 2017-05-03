@@ -2,8 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+
     public interface IAuthenticator
     {
-        bool Authenticate(string connectionString);
+        Task<bool> Authenticate(IHubDeviceIdentity hubDeviceIdentity);
     }
 }

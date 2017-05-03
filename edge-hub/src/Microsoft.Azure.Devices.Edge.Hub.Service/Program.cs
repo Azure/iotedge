@@ -9,6 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading;
     using System.Threading.Tasks;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
@@ -16,9 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Serilog;
     using Serilog.Core;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using IPgMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     class Program
     {
+        const int DefaultConnectionPoolSize = 400; // IoT Hub default connection pool size
+
         public static int Main() => MainAsync().Result;
 
         static async Task<int> MainAsync()
@@ -48,7 +56,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var certificate = new X509Certificate2(certPath);
             var settingsProvider = new AppConfigSettingsProvider();
 
-            var bootstrapper = new MqttBootstrapper(settingsProvider, certificate);
+            int connectionPoolSize = settingsProvider.GetIntegerSetting("IotHubClient.ConnectionPoolSize", DefaultConnectionPoolSize);
+            IMessageConverter<Message> deviceClientMessageConverter = new MessageConverter();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(logger, deviceClientMessageConverter, (uint)connectionPoolSize);
+
+            IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider);
+            IDispatcher dispatcher = new Dispatcher(connectionManager);
+            IRouter router = new Router(dispatcher);
+            IMessageConverter<IPgMessage> pgMessageConverter = new PgMessageConverter();
+            IAuthenticator authenticator = new Authenticator(connectionManager);
+            IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher, cloudProxyProvider);
+            IMqttConnectionProvider mqttConnectionProvider = new MqttConnectionProvider(connectionProvider, pgMessageConverter);
+
+            var bootstrapper = new MqttBootstrapper(settingsProvider, certificate, mqttConnectionProvider, authenticator);
 
             await bootstrapper.StartAsync(cts.Token);
 
@@ -65,6 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bootstrapper.CloseCompletion.Wait(TimeSpan.FromSeconds(20));
 
             return 0;
-        }
+        }        
     }
 }

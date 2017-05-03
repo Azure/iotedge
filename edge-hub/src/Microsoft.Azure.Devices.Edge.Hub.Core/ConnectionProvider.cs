@@ -12,48 +12,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IConnectionManager connectionManager;
         readonly IRouter router;
         readonly IDispatcher dispatcher;
-        readonly IAuthenticator authenticator;
         readonly ICloudProxyProvider cloudProxyProvider;
 
         public ConnectionProvider(IConnectionManager connectionManager,
             IRouter router,
             IDispatcher dispatcher,
-            IAuthenticator authenticator,
             ICloudProxyProvider cloudProxyProvider)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
-            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
         }
 
-        public async Task<Try<IDeviceListener>> Connect(string connectionString, IDeviceProxy deviceProxy)
+        public async Task<IDeviceListener> GetDeviceListener(IHubDeviceIdentity hubDeviceIdentity)
         {
-            Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
-            Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
-
-            // TODO - For Modules, this might have to be moduleId.
-            string deviceId = ConnectionStringUtil.GetDeviceIdFromConnectionString(connectionString);
-            Try<bool> authenticationResult = this.authenticator.Authenticate(connectionString);
-            if (!authenticationResult.Success)
-            {
-                await deviceProxy.Disconnect();
-                return Try<IDeviceListener>.Failure(authenticationResult.Exception);
-            }
-
-            ICloudListener cloudListener = new CloudListener(deviceId, deviceProxy);
-            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(connectionString, cloudListener);
+            // Set up a connection to the cloud here, so that we can use it in the 
+            Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnection(Preconditions.CheckNotNull(hubDeviceIdentity));
             if (!cloudProxy.Success)
             {
-                await deviceProxy.Disconnect();
-                return Try<IDeviceListener>.Failure(cloudProxy.Exception);
+                throw new IotHubConnectionException($"Unable to connect to IoTHub for device {hubDeviceIdentity.Id}", cloudProxy.Exception);
             }
-
-            this.connectionManager.AddConnection(deviceId, deviceProxy, cloudProxy.Value);
-
-            IDeviceListener deviceListener = new DeviceListener(deviceId, this.router, this.dispatcher, cloudProxy.Value);
-            return Try.Success(deviceListener);
+            IDeviceListener deviceListener = new DeviceListener(hubDeviceIdentity, this.router, this.dispatcher, this.connectionManager, cloudProxy.Value);
+            return deviceListener;
         }
     }
 }

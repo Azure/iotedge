@@ -6,38 +6,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class DeviceListener : IDeviceListener
     {
-        readonly string deviceId;
+        readonly IHubDeviceIdentity hubDeviceIdentity;
         readonly IRouter router;
         readonly IDispatcher dispatcher;
+        readonly IConnectionManager connectionManager;
         readonly ICloudProxy cloudProxy;
 
-        public DeviceListener(string deviceId, IRouter router, IDispatcher dispatcher, ICloudProxy cloudProxy)
+        public DeviceListener(IHubDeviceIdentity hubDeviceIdentity, IRouter router, IDispatcher dispatcher, IConnectionManager connectionManager, ICloudProxy cloudProxy)
         {
-            this.deviceId = deviceId;
+            this.hubDeviceIdentity = hubDeviceIdentity;
             this.router = router;
             this.dispatcher = dispatcher;
+            this.connectionManager = connectionManager;
             this.cloudProxy = cloudProxy;
         }
 
-        public async Task<object> CallMethod(string methodName, object parameters, string deviceId)
+        public Task<object> CallMethod(string methodName, object parameters, string deviceId)
         {
-            return await this.dispatcher.CallMethod(methodName, parameters, deviceId);
+            return this.dispatcher.CallMethod(methodName, parameters, deviceId);
         }
 
-        public async Task<Twin> GetTwin(string deviceId)
+        public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
-            return await this.cloudProxy.GetTwin();
+            ICloudListener cloudListener = new CloudListener(deviceProxy);
+            this.cloudProxy.BindCloudListener(cloudListener);
+            this.connectionManager.AddDeviceConnection(this.hubDeviceIdentity, deviceProxy);
         }
 
-        public async Task ReceiveMessage(IMessage message)
+        public Task CloseAsync()
         {
-            await this.router.RouteMessage(message);
+            return this.connectionManager.CloseConnection(this.hubDeviceIdentity.Id);
         }
 
-        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages);
+        public Task<Twin> GetTwin(string deviceId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ReceiveMessage(IMessage message)
+        {
+            return this.router.RouteMessage(message, this.hubDeviceIdentity.Id);
+        }
+
+        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.hubDeviceIdentity.Id);
 
         public Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId)
         {

@@ -16,16 +16,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
 
-        public CloudProxyProvider(ILogger logger, ITransportSettings[] transportSettings, IMessageConverter<Message> messageConverter)
+        public CloudProxyProvider(ILogger logger, IMessageConverter<Message> messageConverter, uint connectionPoolSize)
         {
+            Preconditions.CheckRange((int)connectionPoolSize, 1, nameof(connectionPoolSize));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.transportSettings = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.transportSettings = new ITransportSettings[] {
+                new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                {
+                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
+                    {
+                        Pooling = connectionPoolSize > 1,
+                        MaxPoolSize = connectionPoolSize
+                    }
+                }
+            };
         }
 
-        public async Task<Try<ICloudProxy>> Connect(string connectionString, ICloudListener cloudListener)
+        public async Task<Try<ICloudProxy>> Connect(string connectionString)
         {
-            Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
 
             Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(connectionString);
@@ -36,8 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             DeviceClient deviceClient = tryDeviceClient.Value;
             ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.logger);
-            ICloudReceiver cloudReceiver = new CloudReceiver(deviceClient);
-            cloudReceiver.Init(cloudListener);
             return Try.Success(cloudProxy);
         }
 

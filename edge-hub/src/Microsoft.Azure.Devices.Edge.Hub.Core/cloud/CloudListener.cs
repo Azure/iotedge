@@ -7,23 +7,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     class CloudListener : ICloudListener
     {
-        readonly string deviceId;
         readonly IDeviceProxy deviceProxy;
 
-        public CloudListener(string deviceId, IDeviceProxy deviceProxy)
+        public CloudListener(IDeviceProxy deviceProxy)
         {
-            this.deviceId = deviceId;
             this.deviceProxy = deviceProxy;
         }
 
-        public async Task<object> CallMethod(string methodName, object parameters, string deviceId)
+        public Task<object> CallMethod(string methodName, object parameters, string deviceId)
         {
-            return await this.deviceProxy.CallMethod(methodName, parameters);
+            return this.deviceProxy.CallMethod(methodName, parameters);
         }
 
-        public async Task ReceiveMessage(IMessage message)
+        public Task ReceiveMessage(IMessage message)
         {
-            await this.deviceProxy.SendMessage(message);
+            return this.deviceProxy.SendMessage(message);
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
     class CloudProxy : ICloudProxy
@@ -17,19 +18,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly DeviceClient deviceClient;
         readonly IMessageConverter<Message> messageConverter;
         readonly ILogger logger;
+        readonly AtomicBoolean isActive;
 
         public CloudProxy(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ILogger logger)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.isActive = new AtomicBoolean(true);
         }
 
-        public async Task<bool> Disconnect()
+        public async Task<bool> CloseAsync()
         {
             try
             {
-                await this.deviceClient.CloseAsync();
+                if (this.isActive.GetAndSet(false))
+                {
+                    await this.deviceClient.CloseAsync();
+                }
                 return true;
             }
             catch (Exception ex)
@@ -48,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             Message message = this.messageConverter.FromMessage(inputMessage);
+
             try
             {
                 await this.deviceClient.SendEventAsync(message);
@@ -80,5 +87,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             throw new NotImplementedException();
         }
+
+        public void BindCloudListener(ICloudListener cloudListener)
+        {
+            ICloudReceiver cloudReceiver = new CloudReceiver(this.deviceClient);
+            cloudReceiver.Init(cloudListener);
+        }
+
+        public bool IsActive => this.isActive.Get();
     }
 }

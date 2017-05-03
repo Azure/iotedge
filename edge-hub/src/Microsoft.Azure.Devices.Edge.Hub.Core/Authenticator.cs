@@ -2,10 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class Authenticator : IAuthenticator
+    public class Authenticator : IAuthenticator
     {
         readonly IConnectionManager connectionManager;
 
@@ -14,9 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.connectionManager = Preconditions.CheckNotNull(connectionManager);
         }
 
-        public bool Authenticate(string connectionString)
+        public async Task<bool> Authenticate(IHubDeviceIdentity hubDeviceIdentity)
         {
-            throw new NotImplementedException();
+            // Initially we will have many modules connecting with same device ID, so this is a GetOrCreate. 
+            // When we have module identity implemented, this should be CreateCloudConnection.
+            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.GetOrCreateCloudConnection(Preconditions.CheckNotNull(hubDeviceIdentity, nameof(hubDeviceIdentity)));
+            return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
         }
     }
 }

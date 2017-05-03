@@ -2,28 +2,38 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System.Security.Authentication;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using PGIMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
-    public abstract class MqttConnectionProvider : IMqttConnectionProvider
-    {
+    public class MqttConnectionProvider : IMqttConnectionProvider
+    {        
         readonly IConnectionProvider connectionProvider;
-
-        protected MqttConnectionProvider(IConnectionProvider connectionProvider)
+        readonly IMessageConverter<PGIMessage> pgMessageConverter;
+        
+        public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<PGIMessage> pgMessageConverter)
         {
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
+            this.pgMessageConverter = Preconditions.CheckNotNull(pgMessageConverter, nameof(pgMessageConverter));
         }
 
-        public async Task Connect(string connectionString)
+        public async Task<IMessagingBridge> Connect(IDeviceIdentity deviceidentity)
         {
-            Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
-            IDeviceProxy deviceProxy = this.GetDeviceProxy();
-            Try<IDeviceListener> deviceListener = await this.connectionProvider.Connect(connectionString, deviceProxy);
-            // Use deviceListener interface to send messages from device to IoTHub
-        }
+            var iotHubDeviceIdentity = deviceidentity as HubDeviceIdentity;
+            if(iotHubDeviceIdentity == null)
+            {
+                throw new AuthenticationException("Invalid identity object received");
+            }
 
-        protected abstract IDeviceProxy GetDeviceProxy();
+            IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListener(iotHubDeviceIdentity);
+            IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter);
+            IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient); 
+            return messagingBridge;
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public interface ICloudListener
     {
         Task ReceiveMessage(IMessage message);
+
         Task<object> CallMethod(string methodName, object parameters, string deviceId);
     }
 }

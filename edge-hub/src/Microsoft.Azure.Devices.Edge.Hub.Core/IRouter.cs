@@ -7,7 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IRouter
     {
-        Task RouteMessage(IMessage message);
-        Task RouteMessageBatch(IEnumerable<IMessage> messages);
+        Task RouteMessage(IMessage message, string deviceId);
+
+        Task RouteMessageBatch(IEnumerable<IMessage> messages, string deviceId);
     }
 }

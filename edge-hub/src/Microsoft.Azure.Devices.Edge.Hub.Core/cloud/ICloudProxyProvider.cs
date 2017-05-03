@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public interface ICloudProxyProvider
     {
         /// <summary>
-        /// Connect sets up the CloudProxy and CloudReceiver
+        /// Connect sets up the CloudProxy
         /// </summary>
-        Task<Try<ICloudProxy>> Connect(string connectionString, ICloudListener listener);
+        Task<Try<ICloudProxy>> Connect(string connectionString);
     }
 }
