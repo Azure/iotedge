@@ -3,11 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Security.Authentication;
-    using System.Security.Cryptography;
-    using System.Text;
     using System.Threading.Tasks;
-    using System.Web;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -26,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",                
                 sasToken,
                 true,
-                typeof(HubDeviceIdentity)
+                typeof(Identity)
             };
 
             yield return new object[]
@@ -73,11 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedType)
         {
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.Authenticate(It.IsAny<HubDeviceIdentity>())).ReturnsAsync(authRetVal);
+            authenticator.Setup(a => a.Authenticate(It.IsAny<Identity>())).ReturnsAsync(authRetVal);
 
-            IDeviceIdentityProvider deviceIdentityProvider = new SasTokenDeviceIdentityProvider(authenticator.Object, iotHubHostName);
+            IDeviceIdentityProvider deviceIdentityProvider = new SasTokenDeviceIdentityProvider(authenticator.Object, new IdentityFactory(iotHubHostName));
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
-            Assert.IsType(expectedType, deviceIdentity);
+            Assert.IsAssignableFrom(expectedType, deviceIdentity);
         }
     }
 }

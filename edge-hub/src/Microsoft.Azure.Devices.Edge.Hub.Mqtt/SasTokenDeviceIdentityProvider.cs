@@ -11,17 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class SasTokenDeviceIdentityProvider : IDeviceIdentityProvider
     {
         readonly IAuthenticator authenticator;
-        readonly string iotHubHostName;
+        readonly IIdentityFactory identityFactory;
 
-        public SasTokenDeviceIdentityProvider(IAuthenticator authenticator, string iotHubHostName)
+        public SasTokenDeviceIdentityProvider(IAuthenticator authenticator, IIdentityFactory identityFactory)
         {
             this.authenticator = authenticator;
-            this.iotHubHostName = iotHubHostName;
+            this.identityFactory = identityFactory;
         }
 
         public async Task<IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
         {
-            Try<HubDeviceIdentity> deviceIdentity = HubIdentityHelper.TryGetHubDeviceIdentityWithSasToken(username, this.iotHubHostName, password);
+            Try<Identity> deviceIdentity = this.identityFactory.GetWithSasToken(username, password);
             if (!deviceIdentity.Success
                 || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
                 || !await this.authenticator.Authenticate(deviceIdentity.Value))

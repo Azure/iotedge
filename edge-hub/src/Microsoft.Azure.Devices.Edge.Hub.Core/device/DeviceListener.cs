@@ -10,19 +10,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     class DeviceListener : IDeviceListener
     {
-        readonly IHubDeviceIdentity hubDeviceIdentity;
+        const string ModuleIdPropertyName = "module-Id";
+        readonly IIdentity identity;
         readonly IRouter router;
         readonly IDispatcher dispatcher;
         readonly IConnectionManager connectionManager;
         readonly ICloudProxy cloudProxy;
 
-        public DeviceListener(IHubDeviceIdentity hubDeviceIdentity, IRouter router, IDispatcher dispatcher, IConnectionManager connectionManager, ICloudProxy cloudProxy)
+        public DeviceListener(IIdentity identity, IRouter router, IDispatcher dispatcher, IConnectionManager connectionManager, ICloudProxy cloudProxy)
         {
-            this.hubDeviceIdentity = hubDeviceIdentity;
-            this.router = router;
-            this.dispatcher = dispatcher;
-            this.connectionManager = connectionManager;
-            this.cloudProxy = cloudProxy;
+            this.identity = Preconditions.CheckNotNull(identity);
+            this.router = Preconditions.CheckNotNull(router);
+            this.dispatcher = Preconditions.CheckNotNull(dispatcher);
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager);
+            this.cloudProxy = Preconditions.CheckNotNull(cloudProxy);            
         }
 
         public Task<object> CallMethod(string methodName, object parameters, string deviceId)
@@ -34,12 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             ICloudListener cloudListener = new CloudListener(deviceProxy);
             this.cloudProxy.BindCloudListener(cloudListener);
-            this.connectionManager.AddDeviceConnection(this.hubDeviceIdentity, deviceProxy);
+            this.connectionManager.AddDeviceConnection(this.identity, deviceProxy);
         }
 
         public Task CloseAsync()
         {
-            return this.connectionManager.CloseConnection(this.hubDeviceIdentity.Id);
+            return this.connectionManager.CloseConnection(this.identity.Id);
         }
 
         public Task<Twin> GetTwin(string deviceId)
@@ -49,10 +50,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task ReceiveMessage(IMessage message)
         {
-            return this.router.RouteMessage(message, this.hubDeviceIdentity.Id);
+            var moduleIdentity = this.identity as IModuleIdentity;
+            if (moduleIdentity != null)
+            {
+                message.Properties[ModuleIdPropertyName] = moduleIdentity.ModuleId;
+            }
+            return this.router.RouteMessage(message, this.identity.Id);
         }
 
-        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.hubDeviceIdentity.Id);
+        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.identity.Id);
 
         public Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId)
         {

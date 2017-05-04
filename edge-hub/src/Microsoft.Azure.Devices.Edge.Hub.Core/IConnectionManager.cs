@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IConnectionManager
     {
-        void AddDeviceConnection(IHubDeviceIdentity hubDeviceIdentity, IDeviceProxy deviceProxy);
+        void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
 
-        Task<Try<ICloudProxy>> CreateCloudConnection(IHubDeviceIdentity hubDeviceIdentity);
+        Task<Try<ICloudProxy>> CreateCloudConnection(IIdentity identity);
 
-        Task<Try<ICloudProxy>> GetOrCreateCloudConnection(IHubDeviceIdentity hubDeviceIdentity);
+        Task<Try<ICloudProxy>> GetOrCreateCloudConnection(IIdentity identity);
 
         Option<IDeviceProxy> GetDeviceConnection(string deviceId);
 

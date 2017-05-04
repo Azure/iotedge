@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
         readonly ISessionStatePersistenceProvider sessionStateManager;
-        readonly IAuthenticator authenticator;
+        readonly IConnectionManager connectionManager;
         readonly int DefaultThreadCount = 200;
-        readonly IMessageAddressConverter topicNameConverter;
+        
         readonly TaskCompletionSource closeCompletionSource;
         readonly IMqttConnectionProvider mqttConnectionProvider;
    
@@ -45,18 +45,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public MqttBootstrapper(ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
-            IMqttConnectionProvider mqttConnectionProvider, 
-            IAuthenticator authenticator)
+            IMqttConnectionProvider mqttConnectionProvider,
+            IConnectionManager connectionManager)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider);
-            this.authenticator = Preconditions.CheckNotNull(authenticator);
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager);
 
             this.closeCompletionSource = new TaskCompletionSource();
             this.sessionStateManager = new TransientSessionStatePersistenceProvider();
-            this.topicNameConverter = new ConfigurableMessageAddressConverter();
-
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -89,7 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             string iotHubHostName = this.settingsProvider.GetSetting("IotHubHostName");
-            var authProvider = new SasTokenDeviceIdentityProvider(this.authenticator, iotHubHostName);
+            string edgeDeviceId = this.settingsProvider.GetSetting("EdgeDeviceId");
+
+            var authenticator = new Authenticator(this.connectionManager, edgeDeviceId);
+            var identityFactory = new IdentityFactory(iotHubHostName);
+            var authProvider = new SasTokenDeviceIdentityProvider(authenticator, identityFactory);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 

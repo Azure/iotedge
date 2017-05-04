@@ -19,13 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.cloudProxyProvider = cloudProxyProvider;
         }
 
-        public void AddDeviceConnection(IHubDeviceIdentity hubDeviceIdentity, IDeviceProxy deviceProxy)
+        public void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
         {
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(Preconditions.CheckNotNull(hubDeviceIdentity, nameof(hubDeviceIdentity)));
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(Preconditions.CheckNotNull(identity, nameof(identity)));
             Option<IDeviceProxy> currentDeviceProxy = device.UpdateDeviceProxy(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
 
             currentDeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.Close(new MultipleConnectionsException($"Multiple connections detected for device {hubDeviceIdentity.Id}")));
+                .ForEach(dp => dp.Close(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
         }        
 
         public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
@@ -57,13 +57,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 .GetOrElse(Task.FromResult(true));            
         }
 
-        public async Task<Try<ICloudProxy>> CreateCloudConnection(IHubDeviceIdentity hubDeviceIdentity)
+        public async Task<Try<ICloudProxy>> CreateCloudConnection(IIdentity identity)
         {
-            Preconditions.CheckNotNull(hubDeviceIdentity, nameof(hubDeviceIdentity));
-            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(hubDeviceIdentity.ConnectionString);
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity.ConnectionString);
             if (cloudProxy.Success)
             {
-                ConnectedDevice device = this.GetOrCreateConnectedDevice(hubDeviceIdentity);
+                ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
                 Option<ICloudProxy> currentCloudProxy = device.UpdateCloudProxy(cloudProxy.Value);
                 await currentCloudProxy.Filter(cp => cp.IsActive)
                     .Map(cp => cp.CloseAsync())
@@ -72,18 +72,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return cloudProxy;
         }
 
-        public Task<Try<ICloudProxy>> GetOrCreateCloudConnection(IHubDeviceIdentity hubDeviceIdentity)
+        public Task<Try<ICloudProxy>> GetOrCreateCloudConnection(IIdentity identity)
         {
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(hubDeviceIdentity);
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             return device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnection(hubDeviceIdentity));            
+                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnection(identity));            
         }
 
-        ConnectedDevice GetOrCreateConnectedDevice(IHubDeviceIdentity hubDeviceIdentity)
+        ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)
         {
-            string deviceId = Preconditions.CheckNotNull(hubDeviceIdentity, nameof(hubDeviceIdentity)).Id;
-            ConnectedDevice device = this.devices.GetOrAdd(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), new ConnectedDevice(hubDeviceIdentity));
+            string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
+            ConnectedDevice device = this.devices.GetOrAdd(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), new ConnectedDevice(identity));
             return device;
         }
 
@@ -91,14 +91,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             readonly object lockObject = new object();
 
-            public ConnectedDevice(IHubDeviceIdentity deviceIdentity)
+            public ConnectedDevice(IIdentity identity)
             {
-                this.DeviceIdentity = deviceIdentity;
+                this.Identity = identity;
                 this.CloudProxy = Option.None<ICloudProxy>();
                 this.DeviceProxy = Option.None<IDeviceProxy>();
             }
 
-            IHubDeviceIdentity DeviceIdentity { get; }
+            IIdentity Identity { get; }
 
             public Option<ICloudProxy> CloudProxy { get; private set; }
 

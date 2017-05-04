@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Core.Test\Microsoft.Azure.Devices.Edge.Hub.Core.Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>

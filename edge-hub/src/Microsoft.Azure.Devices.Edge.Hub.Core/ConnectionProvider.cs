@@ -25,15 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
         }
 
-        public async Task<IDeviceListener> GetDeviceListener(IHubDeviceIdentity hubDeviceIdentity)
+        public async Task<IDeviceListener> GetDeviceListener(IIdentity identity)
         {
             // Set up a connection to the cloud here, so that we can use it in the 
-            Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnection(Preconditions.CheckNotNull(hubDeviceIdentity));
+            Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnection(Preconditions.CheckNotNull(identity));
             if (!cloudProxy.Success)
             {
-                throw new IotHubConnectionException($"Unable to connect to IoTHub for device {hubDeviceIdentity.Id}", cloudProxy.Exception);
+                throw new IotHubConnectionException($"Unable to connect to IoTHub for device {identity.Id}", cloudProxy.Exception);
             }
-            IDeviceListener deviceListener = new DeviceListener(hubDeviceIdentity, this.router, this.dispatcher, this.connectionManager, cloudProxy.Value);
+            IDeviceListener deviceListener = new DeviceListener(identity, this.router, this.dispatcher, this.connectionManager, cloudProxy.Value);
             return deviceListener;
         }
     }

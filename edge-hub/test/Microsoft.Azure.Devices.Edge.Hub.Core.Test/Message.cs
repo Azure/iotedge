@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -13,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     {
         public byte[] Body { get; }
 
-        public IReadOnlyDictionary<string, string> Properties { get; }
+        public IDictionary<string, string> Properties { get; }
 
-        public IReadOnlyDictionary<string, string> SystemProperties { get; }
+        public IDictionary<string, string> SystemProperties { get; }
 
         public Message(byte[] body)
             : this(body, new Dictionary<string, string>(), new Dictionary<string, string>())
@@ -30,8 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public Message(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
         {
             this.Body = Preconditions.CheckNotNull(body);
-            this.Properties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase));
-            this.SystemProperties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase));
+            this.Properties = new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase);
+            this.SystemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase);
         }
 
         public bool Equals(Message other)

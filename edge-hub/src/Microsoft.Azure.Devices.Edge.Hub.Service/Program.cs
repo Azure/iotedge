@@ -9,9 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading;
     using System.Threading.Tasks;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
@@ -19,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Serilog;
     using Serilog.Core;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using IPgMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     class Program
@@ -64,11 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IDispatcher dispatcher = new Dispatcher(connectionManager);
             IRouter router = new Router(dispatcher);
             IMessageConverter<IPgMessage> pgMessageConverter = new PgMessageConverter();
-            IAuthenticator authenticator = new Authenticator(connectionManager);
+            
             IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher, cloudProxyProvider);
             IMqttConnectionProvider mqttConnectionProvider = new MqttConnectionProvider(connectionProvider, pgMessageConverter);
 
-            var bootstrapper = new MqttBootstrapper(settingsProvider, certificate, mqttConnectionProvider, authenticator);
+            var bootstrapper = new MqttBootstrapper(settingsProvider, certificate, mqttConnectionProvider, connectionManager);
 
             await bootstrapper.StartAsync(cts.Token);
 

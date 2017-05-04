@@ -1,9 +1,8 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
-    public interface IHubDeviceIdentity
+    public interface IDeviceIdentity : IIdentity
     {
-        string Id { get; }
-        string ConnectionString { get; }
+        string DeviceId { get; }
     }
 }

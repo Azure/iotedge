@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IConnectionProvider
     {
-        Task<IDeviceListener> GetDeviceListener(IHubDeviceIdentity hubDeviceIdentity);
+        Task<IDeviceListener> GetDeviceListener(IIdentity identity);
     }
 }

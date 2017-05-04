@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         byte[] Body { get; }
 
-        IReadOnlyDictionary<string, string> Properties { get; }
+        IDictionary<string, string> Properties { get; }
 
-        IReadOnlyDictionary<string, string> SystemProperties { get; }
+        IDictionary<string, string> SystemProperties { get; }
     }
 }

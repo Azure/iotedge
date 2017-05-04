@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IAuthenticator
     {
-        Task<bool> Authenticate(IHubDeviceIdentity hubDeviceIdentity);
+        Task<bool> Authenticate(IIdentity identity);
     }
 }

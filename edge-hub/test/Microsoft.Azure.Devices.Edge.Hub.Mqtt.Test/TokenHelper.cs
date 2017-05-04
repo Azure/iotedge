@@ -8,8 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     public static class TokenHelper
     {
-        public static string CreateSasToken(string resourceUri, string key)
+        public static string CreateSasToken(string resourceUri, string key = null)
         {
+            key = key ?? GetRandomKey();
             TimeSpan sinceEpoch = new DateTime(2020, 1, 1) - new DateTime(1970, 1, 1);
             string expiry = Convert.ToString((int)sinceEpoch.TotalSeconds);
             string stringToSign = HttpUtility.UrlEncode(resourceUri) + "\n" + expiry;
@@ -17,6 +18,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string signature = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign)));
             string sasToken = $"SharedAccessSignature sr={HttpUtility.UrlEncode(resourceUri)}&sig={HttpUtility.UrlEncode(signature)}&se={expiry}";
             return sasToken;
+        }
+
+        static string GetRandomKey(int length = 45)
+        {
+            var rand = new Random();
+            var sb = new StringBuilder(length);
+
+            for (int i = 0; i < length; i++)
+            {
+                sb.Append('a' + rand.Next(0, 25));
+            }
+            return sb.ToString();
         }
     }
 }

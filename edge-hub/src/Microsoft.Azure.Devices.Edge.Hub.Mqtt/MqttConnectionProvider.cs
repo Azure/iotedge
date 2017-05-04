@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
     using PGIMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttConnectionProvider : IMqttConnectionProvider
@@ -24,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public async Task<IMessagingBridge> Connect(IDeviceIdentity deviceidentity)
         {
-            var iotHubDeviceIdentity = deviceidentity as HubDeviceIdentity;
+            var iotHubDeviceIdentity = deviceidentity as Identity;
             if(iotHubDeviceIdentity == null)
             {
                 throw new AuthenticationException("Invalid identity object received");
