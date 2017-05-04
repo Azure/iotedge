@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class MessageTest
@@ -18,12 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         static readonly Message Message8 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value2" } });
 
         [Fact]
+        [Unit]
         public void TestConstructor()
         {
             Assert.Throws(typeof(ArgumentNullException), () => new Message(new byte[0], null));
         }
 
         [Fact]
+        [Unit]
         public void TestEquals()
         {
             Assert.Equal(Message1, Message1);
@@ -48,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCaseSensitivity()
         {
             var message1 = new Message(new byte[] { 1, 2, 3 }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "KEY1", "value1" }, { "key2", "value2" } });
@@ -56,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestSet()
         {
             var messages = new HashSet<Message>

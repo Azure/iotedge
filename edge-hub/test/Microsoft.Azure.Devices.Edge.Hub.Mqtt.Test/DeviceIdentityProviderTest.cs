@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Threading.Tasks;
     using System.Web;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Moq;
     using Xunit;
@@ -61,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
         
         [Theory]
+        [Integration]
         [MemberData(nameof(GetIdentityProviderInputs))]
         public async Task SasTokenDeviceIdentityProviderTest(
             string iotHubHostName, 

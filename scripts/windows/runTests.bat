@@ -40,7 +40,7 @@ IF NOT EXIST %OUTPUT_FOLDER% (
 )
 
 SET opencover=%ROOTFOLDER%\OpenCover.4.6.519\tools\OpenCover.Console.exe
-SET targetargs=test --logger trx;LogFileName=result.trx
+SET targetargs=test --filter Category!=Bvt --logger trx;LogFileName=result.trx
 
 ECHO Running tests in all Test Projects in repo
 FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
@@ -52,5 +52,3 @@ FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
 %ROOTFOLDER%\OpenCoverToCoberturaConverter.0.2.6.0\tools\OpenCoverToCoberturaConverter.exe -input:%OUTPUT_FOLDER%\code-coverage.xml -output:%OUTPUT_FOLDER%\CoberturaCoverage.xml -sources:.
 
 %ROOTFOLDER%\ReportGenerator.2.5.6\tools\ReportGenerator.exe -reporttypes:MHtml -reports:%OUTPUT_FOLDER%\code-coverage.xml -targetdir:%OUTPUT_FOLDER%\Report
-
-

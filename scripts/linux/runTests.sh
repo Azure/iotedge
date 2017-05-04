@@ -43,7 +43,7 @@ echo Running tests in all Test Projects in repo
 RES=0
 while read line; do
     echo Running tests for project - $line
-	$DOTNET_ROOT_PATH/dotnet test --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
+	$DOTNET_ROOT_PATH/dotnet test --filter Category!=Bvt --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
 	if [ $? -gt 0 ]
 	then 
 		RES=1

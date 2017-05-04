@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Text;
     using System.Web;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class HubIdentityTest
@@ -54,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }        
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetHubDeviceIdentityInputs))]
         public void GetHubDeviceIdentityTest(string value,
             string iotHubHostName,
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetConnectionStringInputs))]
         public void GetConnectionStringTest(string iotHubHostName,
             string deviceId,

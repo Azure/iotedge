@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System;
     using System.Collections.Generic;
     using DotNetty.Buffers;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class ByteBufferHelperTest
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetTestByteArrays))]
         public void ByteBufferRoundtripTest(byte[] input)
         {
@@ -38,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetInvalidTestByteArrays))]
         public void ByteArrayConversionErrorTest(byte[] input, Type expectedException)
         {
@@ -45,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetInvalidTestByteBuffer))]
         public void ByteBufferConversionErrorTest(IByteBuffer input, Type expectedException)
         {

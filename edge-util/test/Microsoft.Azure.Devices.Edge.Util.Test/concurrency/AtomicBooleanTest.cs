@@ -3,11 +3,13 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
 {
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class AtomicBooleanTest
     {
         [Fact]
+        [Unit]
         public void TestDefault()
         {
             var b = new AtomicBoolean();
@@ -20,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public void TestSet()
         {
             var b = new AtomicBoolean(true);
@@ -31,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public void TestGetAndSet()
         {
             var b1 = new AtomicBoolean(true);
@@ -40,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public void TestCompareAndSet()
         {
             var b1 = new AtomicBoolean(true);

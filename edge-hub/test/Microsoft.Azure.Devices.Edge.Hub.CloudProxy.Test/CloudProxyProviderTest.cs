@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        [Integration]
         public async Task ConnectTest()
         {
             ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);
@@ -38,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        [Integration]
         public async Task ConnectWithInvalidConnectionStringTest()
         {
             ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter(), ConnectionPoolSize);

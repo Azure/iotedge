@@ -3,11 +3,13 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class OptionTest
     {
         [Fact]
+        [Unit]
         public void TestCreate()
         {
             Option<int> some = Option.Some(2);
@@ -18,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestEquals()
         {
             Option<int> some1 = Option.Some(1);
@@ -43,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestHashCode()
         {
             Option<int> some1 = Option.Some(1);
@@ -56,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestToString()
         {
             Option<int> some1 = Option.Some(1);
@@ -68,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestEnumerable()
         {
             Option<int> some = Option.Some(6);
@@ -93,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestContains()
         {
             Option<int> some = Option.Some(3);
@@ -106,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestExists()
         {
             Option<int> some = Option.Some(3);
@@ -117,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestGetOrElse()
         {
             Option<int> some = Option.Some(3);
@@ -127,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestElse()
         {
             Option<int> some = Option.Some(3);
@@ -137,6 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestOrDefault()
         {
             Option<int> some = Option.Some(3);
@@ -149,6 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestMap()
         {
             Option<int> some = Option.Some(3);
@@ -159,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestFlatMap()
         {
             Option<int> some = Option.Some(3);
@@ -169,6 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestFilter()
         {
             Option<int> some = Option.Some(3);
@@ -180,6 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestForEach()
         {
             Option<int> some = Option.Some(3);

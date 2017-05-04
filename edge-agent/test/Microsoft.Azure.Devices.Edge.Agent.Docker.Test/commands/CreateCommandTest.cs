@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -20,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         const int BufferSize = 1 << 19;
         static readonly DockerClient Client = new DockerClientConfiguration(new Uri("http://localhost:2375")).CreateClient();
 
-        [Fact(Skip = "No docker on build box")]
+        [Fact]
+        [Bvt]
         public async Task SmokeTest()
         {
             const string Image = "hello-world";

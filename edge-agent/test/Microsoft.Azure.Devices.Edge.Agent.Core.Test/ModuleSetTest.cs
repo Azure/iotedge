@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -45,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(TestApplyDiffSource.TestData), MemberType = typeof(TestApplyDiffSource))]
         public void TestApplyDiff(ModuleSet starting, Diff diff, ModuleSet expected)
         {
@@ -59,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestDeserialize()
         {
             string validJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"}}}}";
@@ -102,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void ModuleSetSerialize()
         {
             var serializerInputTable = new Dictionary<string, Type>() {{"test", typeof(TestModule)}};

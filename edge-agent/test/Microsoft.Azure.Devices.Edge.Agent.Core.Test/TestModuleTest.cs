@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
 
         [Fact]
+        [Unit]
         public void TestConstructor()
         {
             Assert.Throws<ArgumentNullException>(() => new TestModule(null, "version1", "type1", ModuleStatus.Running, Config1));
@@ -36,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestEquality()
         {
             Assert.Equal(Module1, Module1);
@@ -71,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestDeserialize()
         {
             string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
@@ -109,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Unit]
         public void TestSerialize()
         {
             ModuleSerde myModuleSerde = ModuleSerde.Instance;

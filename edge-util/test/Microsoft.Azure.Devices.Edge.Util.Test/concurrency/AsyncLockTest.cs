@@ -5,11 +5,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class AsyncLockTest
     {
         [Fact]
+        [Unit]
         public void TestUnlockedPermitsLockSynchronously()
         {
             var mutex = new AsyncLock();
@@ -21,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public async Task TestLockedPreventsLockUntilUnlocked()
         {
             var mutex = new AsyncLock();
@@ -47,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public async Task TestDoubleDisposeOnlyPermitsOneTask()
         {
             var mutex = new AsyncLock();
@@ -80,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public async Task TestCancellation()
         {
             var mutex = new AsyncLock();
@@ -94,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         }
 
         [Fact]
+        [Unit]
         public async Task TestThrowsIfTokenCancelled()
         {
             var mutex = new AsyncLock();

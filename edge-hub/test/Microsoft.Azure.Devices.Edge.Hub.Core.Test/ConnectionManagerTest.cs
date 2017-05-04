@@ -7,12 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
     public class ConnectionManagerTest
     {
         [Fact]
+        [Integration]
         public async Task DeviceConnectionTest()
         {
             var cloudProviderMock = new Mock<ICloudProxyProvider>();
@@ -55,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        [Integration]
         public async Task CloudConnectionTest()
         {
             Mock<ICloudProxy> GetCloudProxyMock()

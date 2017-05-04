@@ -5,11 +5,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class CollectionExTest
     {
         [Fact]
+        [Unit]
         public void TestGetOrElse()
         {
             var dict = new Dictionary<int, string>
@@ -23,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestHeadOption()
         {
             IEnumerable<int> list1 = new[] { 1, 2, 3 };
@@ -38,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestGet()
         {
             var dict = new Dictionary<string, string> { { "key", "value" } };

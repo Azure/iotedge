@@ -21,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
     public class AgentTests
     {
-        [Theory(Skip = "No docker on build box")]
+        [Theory]
+        [Bvt]
         [MemberData(nameof(GenerateStartTestData))]
         public async Task AgentStartsUpModules(TestConfig testConfig)
         {

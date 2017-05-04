@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -15,12 +16,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config3 = new DockerConfig("image1");
 
         [Fact]
+        [Unit]
         public void TestConstructor()
         {
             Assert.Throws<ArgumentNullException>(() => new DockerConfig(null));
         }
 
         [Fact]
+        [Unit]
         public void TestEquality()
         {
             Assert.Equal(Config1, Config1);

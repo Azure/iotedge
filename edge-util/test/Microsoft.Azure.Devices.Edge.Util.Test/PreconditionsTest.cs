@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class PreconditionsTest
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCheckNotNull()
         {
             Assert.Throws(typeof(ArgumentNullException), () => Preconditions.CheckNotNull<string>(null, "param"));
@@ -32,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCheckArgument()
         {
             Assert.Throws(typeof(ArgumentException), () => Preconditions.CheckArgument(false));
@@ -40,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCheckEnumRange()
         {
             Assert.Equal(MyEnum.Value1, Preconditions.CheckIsDefined(MyEnum.Value1));
@@ -49,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCheckRange()
         {
             int item = Preconditions.CheckRange(6, 5);
@@ -64,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public void TestCheckNonWhiteS()
         {
             Assert.Throws<ArgumentException>(() => Preconditions.CheckNonWhiteSpace("   ", "param1"));

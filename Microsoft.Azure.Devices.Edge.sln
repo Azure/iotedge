@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -78,6 +78,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{7F52F459-7B00-452B-96AD-D85BA05C3DDC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test.csproj", "{A03ECC50-84E7-49FE-9190-840F8DD64A1B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{DB969106-709B-428B-A6E5-B86E44ADFED2}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\windows\buildBranch.bat = scripts\windows\buildBranch.bat
+		scripts\windows\DownloadAndInstallCertificate.ps1 = scripts\windows\DownloadAndInstallCertificate.ps1
+		scripts\windows\installPrereqs.ps1 = scripts\windows\installPrereqs.ps1
+		scripts\windows\runTests.bat = scripts\windows\runTests.bat
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -182,5 +190,6 @@ Global
 		{6EDCED3D-F7E4-4830-872B-E4D1C24EC591} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{7F52F459-7B00-452B-96AD-D85BA05C3DDC} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{A03ECC50-84E7-49FE-9190-840F8DD64A1B} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{DB969106-709B-428B-A6E5-B86E44ADFED2} = {372C8639-B8B6-4063-80A1-3064A452372B}
 	EndGlobalSection
 EndGlobal

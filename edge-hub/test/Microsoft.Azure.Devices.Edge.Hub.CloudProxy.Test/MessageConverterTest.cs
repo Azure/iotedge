@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Text;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
@@ -51,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetInvalidMessages))]
         public void TestErrorCases(IMessage inputMessage, Type exceptionType)
         {
@@ -59,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
+        [Unit]
         [MemberData(nameof(GetValidMessagesData))]
         public void TestValidCases(byte[] messageBytes,
             IDictionary<string, string> properties,

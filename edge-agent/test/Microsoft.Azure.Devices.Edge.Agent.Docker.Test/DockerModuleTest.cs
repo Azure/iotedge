@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -26,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         const string SerializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
 
         [Fact]
+        [Unit]
         public void TestConstructor()
         {
             Assert.Throws<ArgumentNullException>(() => new DockerModule(null, "version1", ModuleStatus.Running, Config1));
@@ -35,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Fact]
+        [Unit]
         public void TestEquality()
         {
             Assert.Equal(Module1, Module1);
@@ -65,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Fact]
+        [Unit]
         public void TestDeserialize()
         {
             string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
@@ -103,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Fact]
+        [Unit]
         public void TestSerialize()
         {
             ModuleSerde myModuleSerde = ModuleSerde.Instance;

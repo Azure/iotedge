@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class TaskExTest
     {
         [Fact]
+        [Unit]
         public async Task SmokeTest()
         {
             Task t1 = TaskEx.FromException(new InvalidOperationException("the message"));
@@ -25,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        [Unit]
         public async Task WhenCancelled()
         {
             var cts = new CancellationTokenSource();

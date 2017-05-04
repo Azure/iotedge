@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         }
 
         [Theory]
+        [Bvt]
         [MemberData(nameof(GetTestMessage))]
         public void SendMessageTest(IMessage message)
         {
