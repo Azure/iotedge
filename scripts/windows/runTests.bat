@@ -40,7 +40,7 @@ IF NOT EXIST %OUTPUT_FOLDER% (
 )
 
 SET opencover=%ROOTFOLDER%\OpenCover.4.6.519\tools\OpenCover.Console.exe
-SET targetargs=test --filter Category!=Bvt --logger trx;LogFileName=result.trx
+SET targetargs=test %1 --logger trx;LogFileName=result.trx
 
 ECHO Running tests in all Test Projects in repo
 FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
