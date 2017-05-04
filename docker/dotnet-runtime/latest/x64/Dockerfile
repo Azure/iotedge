@@ -23,7 +23,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install .NET Core
-ENV DOTNET_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/master/Binaries/Latest/dotnet-debian-x64.latest.tar.gz
+ARG DOTNET_DOWNLOAD_URL=https://dotnetcli.blob.core.windows.net/dotnet/Sdk/master/dotnet-dev-ubuntu.16.04-x64.latest.tar.gz
 
 RUN curl -SL $DOTNET_DOWNLOAD_URL --output dotnet.tar.gz \
     && mkdir -p /usr/share/dotnet \

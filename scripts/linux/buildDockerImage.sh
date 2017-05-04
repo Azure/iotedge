@@ -7,79 +7,132 @@
 # directory identified by environement variable BUILD_BINARIESDIRECTORY
 ###############################################################################
 
+set -e
+
+###############################################################################
+# Define Environment Variables
+###############################################################################
+ARCH=$(uname -m)
+SCRIPT_NAME=$(basename $0)
+PUBLISH_DIR=
+DOTNET_DOWNLOAD_URL=
+BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
+
+###############################################################################
+# Function to obtain the underlying architecture and check if supported
+###############################################################################
+check_arch()
+{
+    if [ "$ARCH" == "x86_64" ]; then
+        ARCH="x64"
+    elif [ "$ARCH" == "armv7l" ]; then
+        ARCH="armv7hf"
+    else
+        echo "Unsupported Architecture"
+        exit 1
+    fi
+}
+
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
 usage()
 {
-    echo "Missing arguments. Usage: $0 -r <registry> -u <username> -p <password> [-v <docker image version=build number]"
+    echo "$SCRIPT_NAME [options]"
+    echo "Note: Depending on the options you might have to run this as root or sudo."
+    echo ""
+    echo "options"
+    echo " -r, --registry       Docker registry required to build, tag and run the module"
+    echo " -u, --username       Docker Registry Username"
+    echo " -p, --password       Docker Username's password"
+    echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
+    echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
+    echo "--dotnet-url          Dotnet Runtime Download (tar.gz) URL"
     exit 1;
 }
 
-###############################################################################
-# Validate Environment Variables
-###############################################################################
-TMP=${BUILD_BINARIESDIRECTORY:?Env variable BUILD_BINARIESDIRECTORY needs to be set and be non-empty}
-
-if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
-    echo "Path $BUILD_BINARIESDIRECTORY does not exist"
+print_help_and_exit()
+{
+    echo "Run $SCRIPT_NAME --help for more information."
     exit 1
-fi
-
-###############################################################################
-# Check if the underlying architecture is supported
-###############################################################################
-ARCH=$(uname -m)
-if [ "$ARCH" == "x86_64" ]; then
-    ARCH="x64"
-elif [ "$ARCH" == "armv7l" ]; then
-    ARCH="armv7hf"
-else
-    echo "Unsupported Architecture"
-    exit 1
-fi
-
-###############################################################################
-# Setup Global Variables
-###############################################################################
-PUBLISH_DIR=$BUILD_BINARIESDIRECTORY/publish
+}
 
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
-while getopts ":r:u:p:v:" o; do
-    case "${o}" in
-        r)
-            DOCKER_REGISTRY=${OPTARG}
-            ;;
-        u)
-            DOCKER_USERNAME=${OPTARG}
-            ;;
-        p)
-            DOCKER_PASSWORD=${OPTARG}
-            ;;
-        v)
-            DOCKER_IMAGEVERSION=${OPTARG}
-            ;;
-        *)
-            usage
-            ;;
-    esac
-done
-shift $((OPTIND-1))
+process_args()
+{
+    save_next_arg=0
+    for arg in $@
+    do
+        if [ $save_next_arg -eq 1 ]; then
+            DOCKER_REGISTRY="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            DOCKER_USERNAME="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            DOCKER_PASSWORD="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 4 ]; then
+            DOCKER_IMAGEVERSION="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 5 ]; then
+            BUILD_BINARIESDIRECTORY="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 6 ]; then
+            DOTNET_DOWNLOAD_URL="$arg"
+            save_next_arg=0
+        else
+            case "$arg" in
+                "-h" | "--help" ) usage;;
+                "-r" | "--registry" ) save_next_arg=1;;
+                "-u" | "--username" ) save_next_arg=2;;
+                "-p" | "--password" ) save_next_arg=3;;
+                "-v" | "--image-version" ) save_next_arg=4;;
+                "--bin-dir" ) save_next_arg=5;;
+                "--dotnet-url" ) save_next_arg=6;;
+                * ) usage;;
+            esac
+        fi
+    done
 
-if [ -z "${DOCKER_REGISTRY}" ] || [ -z "${DOCKER_USERNAME}" ] || [ -z "${DOCKER_PASSWORD}" ]; then
-    usage
-fi
-
-if [ -z "${DOCKER_IMAGEVERSION}" ]; then
-    if [ ! -z "${BUILD_BUILDNUMBER}" ]; then
-        DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
-    else
-        echo "Error: Docker image version not found. Either set BUILD_BUILDNUMBER environment variable, or pass in -v parameter."
-        exit 1
+    if [[ -z ${DOCKER_REGISTRY} ]]; then
+        echo "Registry Parameter Invalid"
+        print_help_and_exit
     fi
-fi
+
+    if [[ -z ${DOCKER_USERNAME} ]]; then
+        echo "Docker Username Parameter Invalid"
+        print_help_and_exit
+    fi
+
+    if [[ -z ${DOCKER_PASSWORD} ]]; then
+        echo "Docker Password Parameter Invalid"
+        print_help_and_exit
+    fi
+
+    if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
+        if [ ! -z "${BUILD_BUILDNUMBER}" ]; then
+            DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
+        else
+            echo "Docker image version not found."
+            print_help_and_exit
+        fi
+    fi
+    
+    if [[ -z ${BUILD_BINARIESDIRECTORY} ]] || [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
+        echo "Bin directory does not exist or is invalid"
+        print_help_and_exit
+    fi
+
+    PUBLISH_DIR=$BUILD_BINARIESDIRECTORY/publish
+
+    if [[ ! -d $PUBLISH_DIR ]]; then
+        echo "Publish directory does not exist or is invalid"
+        print_help_and_exit
+    fi
+}
 
 ###############################################################################
 # Build docker image and push it to private repo
@@ -117,29 +170,32 @@ docker_build_and_tag_and_push()
     echo "Running... $docker_build_cmd"
 
     $docker_build_cmd
-    cmd_output=$?
 
-    if [ ${cmd_output} -ne 0 ]; then
-        echo "Docker Build Failed With Exit Code $cmd_output"
+    if [ $? -ne 0 ]; then
+        echo "Docker Build Failed With Exit Code $?"
         exit 1
     else
         docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:$DOCKER_IMAGEVERSION
-        cmd_output=$?
-        if [ ${cmd_output} -ne 0 ]; then
-            echo "Docker Build Failed With Exit Code $cmd_output"
+        if [ $? -ne 0 ]; then
+            echo "Docker Build Failed With Exit Code $?"
             exit 1
         else
             docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:latest
-            cmd_output=$?
-            if [ ${cmd_output} -ne 0 ]; then
-                echo "Docker Push Latest Image Failed: $cmd_output"
+            if [ $? -ne 0 ]; then
+                echo "Docker Push Latest Image Failed: $?"
                 exit 1
             fi
         fi
     fi
 
-    return $cmd_output
+    return $?
 }
+
+###############################################################################
+# Main Script Execution
+###############################################################################
+check_arch
+process_args $@
 
 #echo Logging in to Docker registry
 docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -151,16 +207,25 @@ fi
 # push edge-runtime dotnet image
 EXE_DIR="dotnet-runtime"
 EXE_DOCKER_DIR=$PUBLISH_DIR/docker/$EXE_DIR/latest
-docker_build_and_tag_and_push $EXE_DIR "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$EXE_DOCKER_DIR" ""
+DOTNET_BUILD_ARG=""
+if [[ ! -z ${DOTNET_DOWNLOAD_URL} ]]; then
+    DOTNET_BUILD_ARG="--build-arg DOTNET_DOWNLOAD_URL=$DOTNET_DOWNLOAD_URL"
+fi
+docker_build_and_tag_and_push $EXE_DIR "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$EXE_DOCKER_DIR" "$DOTNET_BUILD_ARG"
+[ $? -eq 0 ] || exit $?
 
 # push edge-agent image
 EXE_DIR="Microsoft.Azure.Devices.Edge.Agent.Service"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
 docker_build_and_tag_and_push edge-agent "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+[ $? -eq 0 ] || exit $?
 
 # push edge-hub image
 EXE_DIR="Microsoft.Azure.Devices.Edge.Hub.Service"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
 docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+[ $? -eq 0 ] || exit $?
 
 echo "Done Building And Pushing Docker Images"
+
+[ $? -eq 0 ] || exit $?
