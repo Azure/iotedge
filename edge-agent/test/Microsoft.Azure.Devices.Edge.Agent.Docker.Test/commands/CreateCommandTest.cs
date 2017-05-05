@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
@@ -18,11 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     [ExcludeFromCodeCoverage]
     public class CreateCommandTest
     {
-        const int BufferSize = 1 << 19;
-        static readonly DockerClient Client = new DockerClientConfiguration(new Uri("http://localhost:2375")).CreateClient();
+        static readonly IDockerClient Client = DockerHelper.Client;
 
         [Fact]
-        [Bvt]
+        [Integration]
         public async Task SmokeTest()
         {
             const string Image = "hello-world";
@@ -31,42 +29,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                // ensure image has been pulled
-                var pullParams = new ImagesPullParameters
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                 {
-                    Parent = Image,
-                    Tag = Tag
-                };
-                Stream stream = await Client.Images.PullImageAsync(pullParams, null);
-                await stream.CopyToAsync(Stream.Null, BufferSize, cts.Token);
+                    await Client.CleanupContainerAsync(Name, Image);
 
-                var config = new DockerConfig(Image, Tag);
-                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                var command = new CreateCommand(Client, module);
+                    // ensure image has been pulled
+                    await Client.PullImageAsync(Image, Tag, cts.Token);
 
-                // run the command
-                await command.ExecuteAsync(cts.Token);
+                    var config = new DockerConfig(Image, Tag);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+                    var command = new CreateCommand(Client, module);
 
-                // verify container is created
-                ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
-                Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
-                Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                    // run the command
+                    await command.ExecuteAsync(cts.Token);
+
+                    // verify container is created
+                    ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
+                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                }
             }
             finally
             {
-                var removeParams = new ContainerRemoveParameters
-                {
-                    Force = true
-                };
-                await TestHelper.Safe(() => Client.Containers.RemoveContainerAsync(Name, removeParams));
-
-                var imageParams = new ImageDeleteParameters
-                {
-                    Force = true,
-                    PruneChildren = true
-                };
-                await TestHelper.Safe(() => Client.Images.DeleteImageAsync(Image, imageParams));
+                await Client.CleanupContainerAsync(Name, Image);
             }
         }
     }

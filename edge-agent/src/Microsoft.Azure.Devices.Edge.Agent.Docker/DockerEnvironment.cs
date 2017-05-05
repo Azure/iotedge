@@ -13,6 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerEnvironment : IEnvironment
     {
+        static readonly IDictionary<string, bool> Labels = new Dictionary<string, bool>
+        {
+            { $"owner={Constants.Owner}", true }
+        };
+
         readonly IDockerClient client;
 
         public DockerEnvironment(IDockerClient client)
@@ -24,7 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             var parameters = new ContainersListParameters
             {
-                All = true
+                All = true,
+                Filters = new Dictionary<string, IDictionary<string, bool>>
+                {
+                    { "label", Labels }
+                }
             };
             IList<ContainerListResponse> containers = await this.client.Containers.ListContainersAsync(parameters);
             IDictionary<string, IModule> modules = containers.Select(c => ContainerToModule(c)).ToDictionary(m => m.Name, m => m);

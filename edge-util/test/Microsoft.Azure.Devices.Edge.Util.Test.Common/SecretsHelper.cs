@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 
         public static Task<string> GetSecretFromConfigKey(string configName)
         {
-            string configValue = ConfigHelper.AppConfig[Preconditions.CheckNonWhiteSpace(configName, nameof(configName))];
+            string configValue = ConfigHelper.TestConfig[Preconditions.CheckNonWhiteSpace(configName, nameof(configName))];
             return GetSecret(configValue);
         }
 

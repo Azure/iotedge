@@ -27,7 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             var parameters = new CreateContainerParameters
             {
                 Name = this.module.Name,
-                Labels = new Dictionary<string, string> { { "version", this.module.Version } },
+                Labels = new Dictionary<string, string>
+                {
+                    { "version", this.module.Version },
+                    { "owner", Constants.Owner },
+                },
                 Image = this.module.Config.Image + ":" + this.module.Config.Tag,
             };
             ApplyPortBindings(parameters, this.module);
@@ -36,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker create {ShowPortBindings(this.module.Config.PortBindings)} --name {this.module.Name} --label version=\"{this.module.Version}\" {this.module.Config.Image}:{this.module.Config.Tag}";
+        public string Show() => $"docker create {ShowPortBindings(this.module.Config.PortBindings)} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
 
         static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
 

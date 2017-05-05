@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "Microsoft.Azure.Devices.Edge.Agent.Docker.Test": {
+      "commandName": "Project"
+    }
+  }
+}

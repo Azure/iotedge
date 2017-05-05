@@ -30,13 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 .AddConsole();
 
             // Build the docker host URL.
-            string dockerHostUrl = ConfigHelper.AppConfig["dockerHostUrl"];
-            string dockerPort = ConfigHelper.AppConfig["dockerHostPort"];
-            if (string.IsNullOrEmpty(dockerPort) == false)
-            {
-                dockerHostUrl += $":{dockerPort}";
-            }
-
+            string dockerHostUrl = ConfigHelper.TestConfig["dockerHostUrl"];
             DockerClient client = new DockerClientConfiguration(new Uri(dockerHostUrl)).CreateClient();
 
             try
@@ -111,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public static IEnumerable<object[]> GenerateStartTestData()
         {
-            IEnumerable<IConfigurationSection> testsToRun = ConfigHelper.AppConfig.GetSection("testSuite").GetChildren();
+            IEnumerable<IConfigurationSection> testsToRun = ConfigHelper.TestConfig.GetSection("testSuite").GetChildren();
 
             // Each test in the test suite supports the notion of a "validator". We determine what
             // validator to use by looking at the "$type" property in the test configuration JSON.

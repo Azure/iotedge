@@ -10,6 +10,5 @@
     "testSuite": [
         "test-config-x64.json"
     ],
-    "dockerHostUrl": "http://localhost",
-    "dockerHostPort": 2375
+    "dockerHostUrl": "http://localhost:2375"
 }
