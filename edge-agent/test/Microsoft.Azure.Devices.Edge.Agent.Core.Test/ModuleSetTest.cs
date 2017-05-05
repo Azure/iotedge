@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -42,6 +43,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     Diff.Create(Module2, Module1),
                     ModuleSet.Create(Module1, Module2)
                 },
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(ImmutableList<IModule>.Empty, new List<string> { "mod2", "mod1" }),
+                    ModuleSet.Empty
+                },
+                new object[]
+                {
+                    ModuleSet2,
+                    Diff.Empty,
+                    ModuleSet2
+                }
             };
         }
 
@@ -58,6 +71,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 Assert.True(updated.TryGetModule(module.Key, out IModule updatedMod));
                 Assert.Equal(module.Value, updatedMod);
             }
+        }
+
+        static class DiffTestSet
+        {
+            public static IEnumerable<object[]> TestData => Data;
+
+            static readonly IList<object[]> Data = new List<object[]>
+            {
+                // adding modules
+                new object[]
+                {
+                    ModuleSet.Empty,
+                    ModuleSet.Create(Module1, Module2),
+                    new Diff(new List<IModule> { Module1, Module2 }, new List<string>()),
+                },
+                // removing modules
+                new object[]
+                {
+                    ModuleSet.Create(Module1, Module2),
+                    ModuleSet.Empty,
+                    new Diff(new List<IModule>(), new List<string>(){ "mod1", "mod2" }),
+                },
+                // change a module
+                new object[]
+                {
+                    ModuleSet.Create(Module2, Module1),
+                    ModuleSet.Create(Module4, Module2),
+                    new Diff(new List<IModule>() {Module4 }, new List<string>())
+                },
+                // no changes
+                new object[]
+                {
+                    ModuleSet.Create(Module5, Module3, Module2),
+                    ModuleSet.Create(Module2, Module3, Module5),
+                    Diff.Empty
+                }
+            };
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(DiffTestSet.TestData), MemberType = typeof(DiffTestSet))]
+        public void TestDiff(ModuleSet start, ModuleSet end, Diff expected )
+        {
+            Diff setDifference = end.Diff(start);
+            
+            Assert.Equal(setDifference,expected);
         }
 
         [Fact]
