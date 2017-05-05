@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Xunit;
 
     [ExcludeFromCodeCoverage]
+    [Collection("Docker")]
     public class CreateCommandTest
     {
         static readonly IDockerClient Client = DockerHelper.Client;

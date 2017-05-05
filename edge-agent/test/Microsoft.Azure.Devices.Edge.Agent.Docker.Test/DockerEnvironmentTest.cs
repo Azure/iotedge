@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Collection("Docker")]
     public class DockerEnvironmentTest
     {
         static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
