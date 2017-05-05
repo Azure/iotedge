@@ -28,9 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appSettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="test-config-x64.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Serilog;
     using Serilog.Core;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
 
     class Program
     {
@@ -35,20 +36,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             logger.LogInformation("Starting module management agent.");
 
-            var bindings = new List<PortBinding> { new PortBinding("8080", "80", PortBindingType.Tcp) };
-            var module = new DockerModule("webserver", "1.0", ModuleStatus.Running, new DockerConfig("nginx", "latest", bindings));
-            ModuleSet moduleSet = ModuleSet.Create(module);
             DockerClient client = new DockerClientConfiguration(new Uri("http://localhost:2375")).CreateClient();
             var dockerCommandFactory = new DockerCommandFactory(client);
             var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
             var environment = new DockerEnvironment(client);
-            var agent = new Agent(moduleSet, environment, new RestartPlanner(commandFactory));
 
-            for (int i = 0; i < 1000; i++)
+            // We only support Docker modules at this point.
+            var moduleSetSerde = new ModuleSetSerde(
+                new Dictionary<string, Type>
+                {
+                    { "docker", typeof(DockerModule) }
+                }
+            );
+
+            using (FileConfigSource configSource = await FileConfigSource.Create("config.json", moduleSetSerde))
             {
-                Thread.Sleep(TimeSpan.FromSeconds(5));
-                logger.LogInformation("Reconciling... [{i}]", i);
-                await agent.ReconcileAsync(CancellationToken.None);
+                ModuleSet moduleSet = await configSource.GetConfigAsync();
+                var agent = new Agent(moduleSet, environment, new RestartPlanner(commandFactory));
+
+                // Do another reconcile whenever the config source reports that the desired
+                // configuration has changed.
+                configSource.Changed += async (sender, diff) =>
+                {
+                    logger.LogInformation("Applying config change...");
+                    await agent.ApplyDiffAsync(diff, CancellationToken.None);
+                };
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(5));
+                    logger.LogInformation($"Reconciling [scheduled]... [{i}]");
+                    await agent.ReconcileAsync(CancellationToken.None);
+                }
             }
             return 0;
         }

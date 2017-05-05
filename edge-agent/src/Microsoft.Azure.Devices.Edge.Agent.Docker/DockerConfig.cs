@@ -20,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonIgnore]
         public IList<PortBinding> PortBindings { get; }
 
-        [JsonConstructor]
         public DockerConfig(string image)
             : this(image, "latest", ImmutableList<PortBinding>.Empty)
         {
@@ -31,11 +30,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
         }
 
+        [JsonConstructor]
         public DockerConfig(string image, string tag, IList<PortBinding> portBindings)
         {
             this.Image = Preconditions.CheckNotNull(image, nameof(image));
-            this.Tag = Preconditions.CheckNotNull(tag, nameof(tag));
-            this.PortBindings = Preconditions.CheckNotNull(portBindings, nameof(portBindings)).ToImmutableList();
+            this.Tag = string.IsNullOrWhiteSpace(tag) ? "latest" : tag;
+            this.PortBindings = portBindings?.ToImmutableList() ?? ImmutableList<PortBinding>.Empty;
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);

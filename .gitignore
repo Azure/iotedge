@@ -288,3 +288,4 @@ FakesAssemblies/
 *.opt
 
 .vs/
+.vscode/

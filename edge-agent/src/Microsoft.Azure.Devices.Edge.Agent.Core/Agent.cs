@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
-        public async Task ReconcileAsync(Diff diff, CancellationToken token)
+        public async Task ApplyDiffAsync(Diff diff, CancellationToken token)
         {
             using (await this.sync.LockAsync(token))
             {
@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     throw new InvalidOperationException("Invalid update desired moduleset operation.");
                 }
             }
-            await this.ReconcileAsync(token);
         }
     }
 }

@@ -26,12 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Diff diff = desired.Diff(current);
             return diff.IsEmpty
                 ? Core.Plan.Empty
-                : this.CreatePlan(desired, current);
+                : this.CreatePlan(desired, current, diff);
         }
 
-        Plan CreatePlan(ModuleSet desired, ModuleSet current)
+        Plan CreatePlan(ModuleSet desired, ModuleSet current, Diff diff)
         {
             IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
+            IEnumerable<ICommand> remove = diff.Removed.Select(name => this.commandFactory.Remove(current.Modules[name]));
             IEnumerable<ICommand> start = desired.Modules.Select(m => this.commandFactory.Start(m.Value));
 
             IList<ICommand> pull = desired.Modules
@@ -43,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .ToList();
 
             IList<ICommand> commands = stop
+                .Concat(remove)
                 .Concat(pull)
                 .Concat(update)
                 .Concat(start).ToList();

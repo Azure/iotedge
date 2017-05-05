@@ -8,14 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;
 
-
     public class ModuleSetSerde
     {
         readonly IDictionary<string, Type> converters;
 
         readonly JsonSerializerSettings jsonSerializerSettings= new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver()};
 
-        public ModuleSetSerde(IDictionary<string,Type> deserializerTypes)
+        public ModuleSetSerde(IDictionary<string, Type> deserializerTypes)
         {
             this.converters = new Dictionary<string, Type>(Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)), StringComparer.OrdinalIgnoreCase);
         }
@@ -63,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                 if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
                 {
-                    throw new JsonSerializationException($"Could not find right converter given a type {converterType.Value<string>()}");
+                    throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
                 }
 
                 return this.moduleSerde.Deserialize(obj.ToString(), serializeType);
