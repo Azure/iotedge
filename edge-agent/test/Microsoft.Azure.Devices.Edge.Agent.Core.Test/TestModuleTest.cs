@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;

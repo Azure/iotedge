@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -116,7 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void TestDiff(ModuleSet start, ModuleSet end, Diff expected )
         {
             Diff setDifference = end.Diff(start);
-            
             Assert.Equal(setDifference,expected);
         }
 

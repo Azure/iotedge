@@ -1,13 +1,15 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
+﻿// Copyright (c) Microsoft. All rights reserved.
+
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Reactive;
     using System.Reactive.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
@@ -15,49 +17,49 @@
     {
         const double FileChangeWatcherDebounceInterval = 500;
 
-        readonly ModuleSetSerde moduleSetSerde;
+        readonly ISerde<ModuleSet> moduleSetSerde;
         readonly FileSystemWatcher watcher;
         readonly string configFilePath;
         readonly IDisposable watcherSubscription;
-        AtomicReference<ModuleSet> current;
+        readonly AtomicReference<ModuleSet> current;
         readonly AsyncLock sync;
 
-        FileConfigSource(string configFilePath, ModuleSetSerde moduleSetSerde)
+        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde)
         {
+            this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
+            this.current = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
             this.moduleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
-            this.configFilePath = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
-            if (!File.Exists(this.configFilePath))
-            {
-                throw new FileNotFoundException("Invalid config file path", this.configFilePath);
-            }
 
-            string directoryName = Path.GetDirectoryName(this.configFilePath);
-            string fileName = Path.GetFileName(this.configFilePath);
+            this.configFilePath = Path.Combine(this.watcher.Path, this.watcher.Filter);
+
             this.sync = new AsyncLock();
-            this.watcher = new FileSystemWatcher(directoryName, fileName)
-            {
-                NotifyFilter = NotifyFilters.LastWrite
-            };
             this.watcherSubscription = Observable
                 .FromEventPattern<FileSystemEventArgs>(this.watcher, "Changed")
                 // Rx.NET's "Throttle" is really "Debounce". An unfortunate naming mishap.
                 .Throttle(TimeSpan.FromMilliseconds(FileChangeWatcherDebounceInterval))
                 .Subscribe(this.WatcherOnChanged);
+            this.watcher.EnableRaisingEvents = true;
         }
 
-        public static async Task<FileConfigSource> Create(string configFilePath, ModuleSetSerde moduleSetSerde)
+        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde)
         {
-            var configSource = new FileConfigSource(configFilePath, moduleSetSerde);
+            string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("Invalid config file path", path);
+            }
 
-            // NOTE: We don't need to acquire a lock on `this.sync` here because at this point the
-            // file watcher has not been started yet - so there is no way `WatcherOnChanged` will get
-            // invoked.
-            configSource.current = new AtomicReference<ModuleSet>(await configSource.GetConfigAsync());
+            string directoryName = Path.GetDirectoryName(path);
+            string fileName = Path.GetFileName(path);
 
-            // This starts the file watcher.
-            configSource.watcher.EnableRaisingEvents = true;
+            var json = await ReadFileAsync(path);
+            var initial = moduleSetSerde.Deserialize(json);
 
-            return configSource;
+            var watcher = new FileSystemWatcher(directoryName, fileName)
+            {
+                NotifyFilter = NotifyFilters.LastWrite
+            };
+            return new FileConfigSource(watcher, initial, moduleSetSerde);
         }
 
         void AssignCurrentModuleSet(ModuleSet updated)
@@ -89,10 +91,15 @@
 
         public async Task<ModuleSet> GetConfigAsync()
         {
-            using (var reader = new StreamReader(File.OpenRead(this.configFilePath)))
+            var json = await ReadFileAsync(this.configFilePath);
+            return this.moduleSetSerde.Deserialize(json);
+        }
+
+        static async Task<string> ReadFileAsync(string configFilePath)
+        {
+            using (var reader = new StreamReader(File.OpenRead(configFilePath)))
             {
-                string configJson = await reader.ReadToEndAsync();
-                return this.moduleSetSerde.Deserialize(configJson);
+                return await reader.ReadToEndAsync();
             }
         }
 

@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class Diff
     {
-
         public static Diff Empty { get; } = new Diff(ImmutableList<IModule>.Empty, ImmutableList<string>.Empty);
 
         public bool IsEmpty => this.Updated.Count == 0 && this.Removed.Count == 0;

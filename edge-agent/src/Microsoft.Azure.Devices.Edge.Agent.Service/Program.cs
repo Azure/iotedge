@@ -3,19 +3,12 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Docker.DotNet;
+    using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Extensions.Logging;
-    using Serilog;
-    using Serilog.Core;
-    using ILogger = Microsoft.Extensions.Logging.ILogger;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
 
     class Program
     {
@@ -23,36 +16,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         static async Task<int> MainAsync()
         {
-            Logger loggerConfig = new LoggerConfiguration()
-                .Enrich.FromLogContext()
-                .WriteTo.Console(
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] - {Message}{NewLine}{Exception}"
-                )
-                .CreateLogger();
+            // TODO set these through config file or args
+            var dockerUri = new Uri("http://localhost:2375");
+            string configFile = "config.json";
 
-            ILoggerFactory loggerFactory = new LoggerFactory()
-                .AddSerilog(loggerConfig);
+            var builder = new ContainerBuilder();
+            builder.RegisterModule(new StandaloneModule(dockerUri, configFile));
+            IContainer container = builder.Build();
+
+            var loggerFactory = container.Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
-
             logger.LogInformation("Starting module management agent.");
 
-            DockerClient client = new DockerClientConfiguration(new Uri("http://localhost:2375")).CreateClient();
-            var dockerCommandFactory = new DockerCommandFactory(client);
-            var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
-            var environment = new DockerEnvironment(client);
-
-            // We only support Docker modules at this point.
-            var moduleSetSerde = new ModuleSetSerde(
-                new Dictionary<string, Type>
-                {
-                    { "docker", typeof(DockerModule) }
-                }
-            );
-
-            using (FileConfigSource configSource = await FileConfigSource.Create("config.json", moduleSetSerde))
+            using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
             {
-                ModuleSet moduleSet = await configSource.GetConfigAsync();
-                var agent = new Agent(moduleSet, environment, new RestartPlanner(commandFactory));
+                Agent agent = await container.Resolve<Task<Agent>>();
 
                 // Do another reconcile whenever the config source reports that the desired
                 // configuration has changed.

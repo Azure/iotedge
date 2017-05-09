@@ -23,6 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.sync = new AsyncLock();
         }
 
+        public static async Task<Agent> CreateAsync(IConfigSource config, IEnvironment environment, IPlanner planner)
+        {
+            ModuleSet initial = await config.GetConfigAsync();
+            return new Agent(initial, environment, planner);
+        }
+
         public async Task ReconcileAsync(CancellationToken token)
         {
             ModuleSet current = await this.environment.GetModulesAsync(token);

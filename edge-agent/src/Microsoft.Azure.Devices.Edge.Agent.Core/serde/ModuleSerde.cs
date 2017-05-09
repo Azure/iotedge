@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
     using System;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
 
-    public class ModuleSerde
+    public class ModuleSerde : ISerde<IModule>
     {
         public static ModuleSerde Instance { get; } = new ModuleSerde();
 
@@ -18,8 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string Serialize(IModule module) => JsonConvert.SerializeObject(module, this.jsonSerializerSetting);
 
-        public T Deserialize<T>(string json)
-            where T : IModule
+        public IModule Deserialize(string json) => this.Deserialize<IModule>(json);
+
+        public T Deserialize<T>(string json) where T : IModule
         {
             //This try/catch is needed because NewtonSoft Deserialize is calling the constructor even
             //if the Name parameter is not present on the JSON.
@@ -43,9 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             //if the Name parameter is not present on the JSON.
             try
             {
-                object returnObject = JsonConvert.DeserializeObject(json, serializerType);
-
-                return (IModule)returnObject;
+                return (IModule)JsonConvert.DeserializeObject(json, serializerType);
             }
             catch (ArgumentNullException e)
             {

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System;
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
@@ -112,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             ModuleSerde myModuleSerde = ModuleSerde.Instance;
             string jsonFromDockerModule = myModuleSerde.Serialize(Module8);
-            var myModule = myModuleSerde.Deserialize<DockerModule>(jsonFromDockerModule);
+            IModule myModule = myModuleSerde.Deserialize<DockerModule>(jsonFromDockerModule);
 
             string jsonFromIModule = myModuleSerde.Serialize(Module1);
             Assert.True(Module8.Equals(myModule));
