@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
     public interface ISerde<T>
     {
-        string Serialize(T module);
+        string Serialize(T t);
 
         T Deserialize(string json);
 

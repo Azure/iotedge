@@ -52,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             string directoryName = Path.GetDirectoryName(path);
             string fileName = Path.GetFileName(path);
 
-            var json = await ReadFileAsync(path);
-            var initial = moduleSetSerde.Deserialize(json);
+            string json = await ReadFileAsync(path);
+            ModuleSet initial = moduleSetSerde.Deserialize(json);
 
             var watcher = new FileSystemWatcher(directoryName, fileName)
             {

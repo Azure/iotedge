@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class ConfigSourceModule : Module
     {
+        const string DockerType = "docker";
         readonly string configFilename;
 
         public ConfigSourceModule(string configFilename)
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new ModuleSetSerde(
                     new Dictionary<string, Type>
                     {
-                        { "docker", typeof(DockerModule) }
+                        { DockerType, typeof(DockerModule) }
                     }
                 ))
                 .As<ISerde<ModuleSet>>()
