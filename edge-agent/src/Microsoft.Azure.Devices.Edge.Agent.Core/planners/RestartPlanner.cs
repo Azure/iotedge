@@ -33,7 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
             IEnumerable<ICommand> remove = diff.Removed.Select(name => this.commandFactory.Remove(current.Modules[name]));
-            IEnumerable<ICommand> start = desired.Modules.Select(m => this.commandFactory.Start(m.Value));
+            IEnumerable<ICommand> start = desired.Modules
+                .Where(m=> m.Value.Status == ModuleStatus.Running)
+                .Select(m => this.commandFactory.Start(m.Value));
 
             IList<ICommand> pull = desired.Modules
                 .Select(m => this.commandFactory.Pull(m.Value))

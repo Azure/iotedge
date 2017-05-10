@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2);
         static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
 
-        static readonly TestModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
+        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
         static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
 
         [Fact]
