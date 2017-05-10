@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IRouter router = new Router(dispatcher);
             IMessageConverter<IPgMessage> pgMessageConverter = new PgMessageConverter();
             
-            IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher, cloudProxyProvider);
+            IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
             IMqttConnectionProvider mqttConnectionProvider = new MqttConnectionProvider(connectionProvider, pgMessageConverter);
 
             var bootstrapper = new MqttBootstrapper(settingsProvider, certificate, mqttConnectionProvider, connectionManager);

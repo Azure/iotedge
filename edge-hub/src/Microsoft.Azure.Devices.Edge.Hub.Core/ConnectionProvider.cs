@@ -12,17 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IConnectionManager connectionManager;
         readonly IRouter router;
         readonly IDispatcher dispatcher;
-        readonly ICloudProxyProvider cloudProxyProvider;
 
         public ConnectionProvider(IConnectionManager connectionManager,
             IRouter router,
-            IDispatcher dispatcher,
-            ICloudProxyProvider cloudProxyProvider)
+            IDispatcher dispatcher)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
-            this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
         }
 
         public async Task<IDeviceListener> GetDeviceListener(IIdentity identity)
