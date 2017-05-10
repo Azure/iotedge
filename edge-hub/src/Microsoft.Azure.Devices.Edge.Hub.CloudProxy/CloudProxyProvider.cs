@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,20 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
 
-        public CloudProxyProvider(ILogger logger, IMessageConverter<Message> messageConverter, uint connectionPoolSize)
+        public CloudProxyProvider(ILogger logger, IMessageConverter<Message> messageConverter)
         {
-            Preconditions.CheckRange((int)connectionPoolSize, 1, nameof(connectionPoolSize));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.transportSettings = new ITransportSettings[] {
-                new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                {
-                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
-                    {
-                        Pooling = connectionPoolSize > 1,
-                        MaxPoolSize = connectionPoolSize
-                    }
-                }
+                new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
             };
         }
 

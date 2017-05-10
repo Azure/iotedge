@@ -55,9 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var certificate = new X509Certificate2(certPath);
             var settingsProvider = new AppConfigSettingsProvider();
 
-            int connectionPoolSize = settingsProvider.GetIntegerSetting("IotHubClient.ConnectionPoolSize", DefaultConnectionPoolSize);
             IMessageConverter<Message> deviceClientMessageConverter = new MessageConverter();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(logger, deviceClientMessageConverter, (uint)connectionPoolSize);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(logger, deviceClientMessageConverter);
 
             IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider);
             IDispatcher dispatcher = new Dispatcher(connectionManager);
