@@ -41,15 +41,19 @@ IF NOT EXIST %OUTPUT_FOLDER% (
 
 ECHO Building all solutions in repo
 
+SET RES=0
 IF EXIST %OUTPUT_FOLDER% RD /q /s %OUTPUT_FOLDER%
 FOR /R %%f IN (%SUFFIX%) DO (
     ECHO Building Solution - %%f
     %DOTNET_ROOT_PATH%\dotnet clean %%f
     %DOTNET_ROOT_PATH%\dotnet restore %%f
     %DOTNET_ROOT_PATH%\dotnet build %%f -o %OUTPUT_FOLDER%
+	IF %ERRORLEVEL% NEQ 0 (
+		SET RES=1
+	)
 )
 
-EXIT /B %ERRORLEVEL%
+EXIT /B %RES%
 
 :echoError
 ECHO %*
