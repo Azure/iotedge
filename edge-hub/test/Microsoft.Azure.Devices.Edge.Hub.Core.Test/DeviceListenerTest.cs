@@ -6,12 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
     public class DeviceListenerTest
     {
         [Fact]
+        [Unit]
         public async Task TestReceiveMessage()
         {            
             var dispatcher = new Mock<IDispatcher>();

@@ -2,11 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
+    using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.KeyVault;
     using Microsoft.Azure.KeyVault.Models;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
-    using System.Security.Cryptography.X509Certificates;
-    using System.Threading.Tasks;
 
     /// <summary>
     /// We should eventually replace this with the KeyVault Configuration provider.
