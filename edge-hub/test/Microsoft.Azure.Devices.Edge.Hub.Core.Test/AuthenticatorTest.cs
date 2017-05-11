@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void AuthenticatorConstructorTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            Assert.NotEqual(null, new Authenticator(connectionManager, "your-device"));
+            Assert.NotNull(new Authenticator(connectionManager, "your-device"));
         }
 
         [Fact]
