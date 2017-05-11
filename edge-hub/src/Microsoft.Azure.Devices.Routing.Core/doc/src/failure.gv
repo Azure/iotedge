@@ -1,0 +1,39 @@
+digraph async_failure_statemachine {
+  rankdir=LR;
+  node [shape = circle, width = 1.25, fixedsize = true];
+
+  Start[shape = point, width = 0.25; color=black; label=""];
+  Idle;
+  Sending;
+  Checkpointing [ fontsize=10 ];
+  Failing;
+  Dead;
+  Closed [shape = doublecircle];
+
+  Start -> Idle [ label = "Init"];
+
+  Idle -> Sending [ label = "SendMessage" ];
+  Idle -> Idle [ label = "UpdateEndpoint" ];
+  Idle -> Closed [ label = "Close" ];
+
+  Sending -> Idle [ label = "Throw" ];
+  Sending -> Checkpointing [ label = "Checkpoint" ];
+  Sending -> Failing [ label = "Fail" ];
+  Sending -> Dead [ label = "Die" ];
+
+  Checkpointing -> Idle [ label = "Succeed, Throw" ];
+  Checkpointing -> Sending [ label = "SendMessage" ];
+
+  Failing -> Dead [ label = "Die" ];
+  Failing -> Sending [ label = "Retry, UpdateEndpoint" ];
+  Failing -> Closed [ label = "Close" ];
+
+  Dead -> Dead [ label = "SendMessage" ];
+  Dead -> Idle [ label = "UpdateEndpoint" ];
+  Dead -> Sending [ label = "Retry" ];
+  Dead -> Closed [ label = "Close" ];
+
+  Closed -> Closed [ label = "SendMessage" ];
+
+  { rank=same; Sending, Checkpointing }
+}

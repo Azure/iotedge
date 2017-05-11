@@ -12,6 +12,7 @@ TMP=${BUILD_BINARIESDIRECTORY:?Env variable BUILD_BINARIESDIRECTORY needs to be 
 
 CSPROJ_SUFFIX='Microsoft.Azure.*.csproj'
 SLN_SUFFIX='Microsoft.Azure.*.sln'
+ANTLR_SUFFIX='*.g4'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
@@ -31,13 +32,25 @@ if [ ! -d "${BUILD_BINARIESDIRECTORY}" ]; then
     mkdir $BUILD_BINARIESDIRECTORY
 fi
 
-echo Building all solutions in repo
-RES=0
+echo Cleaning and restoring all solutions in repo
 
 while read soln; do
-    echo Building Solution - $soln
+    echo Cleaning and Restoring packages for solution - $soln
     $DOTNET_ROOT_PATH/dotnet clean --output $BUILD_BINARIESDIRECTORY $soln
     $DOTNET_ROOT_PATH/dotnet restore $soln
+done < <(find $ROOTFOLDER -type f -name $SLN_SUFFIX)
+
+echo Generate Antlr code files
+
+while read g4file; do
+    echo Generating .cs files for - $g4file
+    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -no-listener
+done < <(find $ROOTFOLDER -type f -name $ANTLR_SUFFIX)
+
+echo Building all solutions in repo
+RES=0
+while read soln; do
+    echo Building Solution - $soln
     $DOTNET_ROOT_PATH/dotnet build --output $BUILD_BINARIESDIRECTORY $soln
     if [ $? -gt 0 ]; then
         RES=1

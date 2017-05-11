@@ -21,6 +21,7 @@ IF NOT DEFINED BUILD_BINARIESDIRECTORY (
 )
 
 SET SUFFIX=Microsoft.Azure.*.sln
+SET ANTLRSUFFIX=*.g4
 SET ROOTFOLDER=%BUILD_REPOSITORY_LOCALPATH%
 SET DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 SET OUTPUT_FOLDER=%BUILD_BINARIESDIRECTORY%
@@ -39,14 +40,32 @@ IF NOT EXIST %OUTPUT_FOLDER% (
 	MKDIR %OUTPUT_FOLDER%
 )
 
+ECHO Cleaning and restoring all solutions in repo
+
+FOR /R %%f IN (%SUFFIX%) DO (
+    ECHO Cleaning and Restoring packages for solution - %%f
+    %DOTNET_ROOT_PATH%\dotnet clean %%f
+    %DOTNET_ROOT_PATH%\dotnet restore %%f
+)
+
+ECHO Generate Antlr code files
+SET JAVACOMMAND=java
+where %JAVACOMMAND%
+if %ERRORLEVEL% NEQ 0 (
+	SET JAVACOMMAND=%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/ikvm.exe
+)
+
+FOR /R %%f IN (%ANTLRSUFFIX%) DO (
+    ECHO Generating .cs files for - %%f
+    %JAVACOMMAND% -jar %UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar %%f -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -no-listener
+)
+
 ECHO Building all solutions in repo
 
 SET RES=0
 IF EXIST %OUTPUT_FOLDER% RD /q /s %OUTPUT_FOLDER%
 FOR /R %%f IN (%SUFFIX%) DO (
     ECHO Building Solution - %%f
-    %DOTNET_ROOT_PATH%\dotnet clean %%f
-    %DOTNET_ROOT_PATH%\dotnet restore %%f
     %DOTNET_ROOT_PATH%\dotnet build %%f -o %OUTPUT_FOLDER%
 	IF %ERRORLEVEL% NEQ 0 (
 		SET RES=1
