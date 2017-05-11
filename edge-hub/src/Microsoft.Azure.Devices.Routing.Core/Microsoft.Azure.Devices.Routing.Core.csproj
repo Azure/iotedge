@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'" >
-    <Antlr4 Include="query\Condition.g4">
+    <Antlr4 Include="query\grammar\Condition.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core.Query</CustomToolNamespace>
       <TargetLanguage>CSharp</TargetLanguage>

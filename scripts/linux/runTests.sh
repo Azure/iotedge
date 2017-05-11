@@ -42,13 +42,17 @@ fi
 
 echo Running tests in all Test Projects in repo
 RES=0
+echo RES = $RES
 while read line; do
     echo Running tests for project - $line
 	TESTENVIRONMENT=$ENVIRONMENT && $DOTNET_ROOT_PATH/dotnet test --filter Category!=Bvt --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
 	if [ $? -gt 0 ]
 	then
 		RES=1
+		echo Error running test $line, RES = $RES
 	fi
 done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
+
+echo RES = $RES
 
 exit $RES
