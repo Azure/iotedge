@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
-    using IPgMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using IPgMessage = ProtocolGateway.Messaging.IMessage;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
@@ -33,10 +33,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.deviceListener.BindDeviceProxy(deviceProxy);
         }
 
+        static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.ServicePrefix, StringComparison.Ordinal);
+
         public async Task SendAsync(IPgMessage message)
         {
-            Core.IMessage coreMessage = this.messageConverter.ToMessage(Preconditions.CheckNotNull(message, nameof(message)));
-            await this.deviceListener.ReceiveMessage(coreMessage);
+            if (!IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
+            {
+                Core.IMessage coreMessage = this.messageConverter.ToMessage(Preconditions.CheckNotNull(message, nameof(message)));
+                await this.deviceListener.ReceiveMessage(coreMessage);
+            }
         }
 
         public Task AbandonAsync(string messageId)
