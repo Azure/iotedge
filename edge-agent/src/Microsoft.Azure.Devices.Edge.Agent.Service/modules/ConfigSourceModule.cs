@@ -11,6 +11,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using Serilog;
+    using Serilog.Core;
+    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class ConfigSourceModule : Module
     {
@@ -38,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IConfigSource config = await FileConfigSource.Create(this.configFilename, c.Resolve<ISerde<ModuleSet>>());
+                    IConfigSource config = await FileConfigSource.Create(this.configFilename, c.Resolve<ISerde<ModuleSet>>(), c.Resolve<ILoggerFactory>());
                     return config;
                 })
                 .As<Task<IConfigSource>>()

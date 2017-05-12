@@ -10,5 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         Task<ModuleSet> GetConfigAsync();
 
         event EventHandler<Diff> Changed;
+        event EventHandler<Exception> Failed;
     }
 }

@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class FileConfigSource : IConfigSource
     {
@@ -23,9 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly IDisposable watcherSubscription;
         readonly AtomicReference<ModuleSet> current;
         readonly AsyncLock sync;
+        readonly ILogger logger;
 
-        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde)
+        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde, ILoggerFactory loggingFactory)
         {
+            this.logger = Preconditions.CheckNotNull(loggingFactory, nameof(loggingFactory))
+                .CreateLogger<FileConfigSource>();
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
             this.current = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
             this.moduleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
@@ -41,9 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             this.watcher.EnableRaisingEvents = true;
         }
 
-        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde)
+        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde, ILoggerFactory loggingFactory)
         {
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
+            Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException("Invalid config file path", path);
@@ -59,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, moduleSetSerde);
+            return new FileConfigSource(watcher, initial, moduleSetSerde, loggingFactory);
         }
 
         void AssignCurrentModuleSet(ModuleSet updated)
@@ -76,22 +81,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             if ((args.EventArgs.ChangeType & WatcherChangeTypes.Changed) != WatcherChangeTypes.Changed)
                 return;
 
-            ModuleSet newConfig = await this.GetConfigAsync();
-            Diff diff;
-            using (await this.sync.LockAsync())
+            try
             {
-                ModuleSet snapshot = this.current.Value;
-                diff = snapshot == null
-                    ? Diff.Create(newConfig.Modules.Values.ToArray())
-                    : newConfig.Diff(snapshot);
-                this.AssignCurrentModuleSet(newConfig);
+
+                ModuleSet newConfig = await this.GetConfigAsync();
+                Diff diff;
+                using (await this.sync.LockAsync())
+                {
+                    ModuleSet snapshot = this.current.Value;
+                    diff = snapshot == null
+                        ? Diff.Create(newConfig.Modules.Values.ToArray())
+                        : newConfig.Diff(snapshot);
+                    this.AssignCurrentModuleSet(newConfig);
+                }
+                this.OnChanged(diff);
             }
-            this.OnChanged(diff);
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                this.logger.LogError(0, ex, $"Error reading new configuration file, {this.configFilePath}");
+                this.OnFailed(ex);
+            }
         }
 
         public async Task<ModuleSet> GetConfigAsync()
         {
-            var json = await ReadFileAsync(this.configFilePath);
+            string json = await ReadFileAsync(this.configFilePath);
             return this.moduleSetSerde.Deserialize(json);
         }
 
@@ -108,6 +122,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         protected virtual void OnChanged(Diff diff)
         {
             this.Changed?.Invoke(this, diff);
+        }
+
+        public event EventHandler<Exception> Failed;
+
+        protected virtual void OnFailed(Exception ex)
+        {
+            this.Failed?.Invoke(this, ex);
         }
 
         public void Dispose()
