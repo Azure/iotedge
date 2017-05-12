@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedType)
         {
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.Authenticate(It.IsAny<Identity>())).ReturnsAsync(authRetVal);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<Identity>())).ReturnsAsync(authRetVal);
 
             IDeviceIdentityProvider deviceIdentityProvider = new SasTokenDeviceIdentityProvider(authenticator.Object, new IdentityFactory(iotHubHostName));
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);

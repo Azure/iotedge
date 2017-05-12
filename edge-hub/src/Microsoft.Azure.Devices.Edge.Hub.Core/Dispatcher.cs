@@ -37,13 +37,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 case EndpointType.Cloud:
                     Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(endpoint.DeviceId);
-                    await cloudProxy.Map(cp => cp.SendMessage(message))
+                    await cloudProxy.Map(cp => cp.SendMessageAsync(message))
                         .GetOrElse(Task.FromResult(true));
                     break;
 
                 case EndpointType.Module:
                     Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(endpoint.DeviceId);
-                    await deviceProxy.Map(dp => dp.SendMessage(message))
+                    await deviceProxy.Map(dp => dp.SendMessageAsync(message))
                         .GetOrElse(TaskEx.Done);
                     break;
 

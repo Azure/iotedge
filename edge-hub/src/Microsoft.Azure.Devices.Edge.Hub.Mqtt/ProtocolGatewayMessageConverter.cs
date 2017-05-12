@@ -6,18 +6,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Linq;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using IPgMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
-    public class PgMessageConverter : IMessageConverter<IPgMessage>
+    public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
     {
         readonly MessageAddressConverter addressConvertor;
 
-        public PgMessageConverter(MessageAddressConverter addressConvertor)
+        public ProtocolGatewayMessageConverter(MessageAddressConverter addressConvertor)
         {
             this.addressConvertor = addressConvertor;
         }
 
-        public Core.IMessage ToMessage(IPgMessage sourceMessage)
+        public Core.IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
             // TODO: should reject messages which are not matched ( PassThroughUnmatchedMessages)
             this.addressConvertor.TryParseAddressIntoMessageProperties(sourceMessage.Address, sourceMessage);
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return hubMessage;
         }
 
-        public IPgMessage FromMessage(Core.IMessage message)
+        public IProtocolGatewayMessage FromMessage(Core.IMessage message)
         {
             string lockToken;
             string createdTime;
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.addressConvertor.TryDeriveAddress(message.SystemProperties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), out string address);
 
             IByteBuffer payload = message.Body.ToByteBuffer();
-            var pgMessage = new PgMessage(payload, address, new Dictionary<string, string>(), lockToken, createdTimeUtc, 0, 0);
+            var pgMessage = new ProtocolGatewayMessage(payload, address, new Dictionary<string, string>(), lockToken, createdTimeUtc, 0, 0);
             foreach (KeyValuePair<string, string> property in message.Properties)
             {
                 pgMessage.Properties.Add(property);

@@ -50,12 +50,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Twin> GetTwin()
+        public Task<Twin> GetTwinAsync()
         {
             throw new NotImplementedException();
         }
 
-        public async Task<bool> SendMessage(IMessage inputMessage)
+        public async Task<bool> SendMessageAsync(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             Message message = this.messageConverter.FromMessage(inputMessage);
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task<bool> SendMessageBatch(IEnumerable<IMessage> inputMessages)
+        public async Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IEnumerable<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage => this.messageConverter.FromMessage(inputMessage));
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task UpdateReportedProperties(TwinCollection reportedProperties)
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
         {
             throw new NotImplementedException();
         }
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public bool IsActive => this.isActive.Get();
 
-        public Task SendFeedbackMessage(IFeedbackMessage message)
+        public Task SendFeedbackMessageAsync(IFeedbackMessage message)
         {
             message.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId);
             switch (message.FeedbackStatus)

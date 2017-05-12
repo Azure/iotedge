@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
-    using IPgMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     class Program
     {
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var configuration = new MessageAddressConversionConfiguration();
             configurationRoot.GetSection(topicNameConversionSectionName).Bind(configuration);
             var messageAddressConverter = new MessageAddressConverter(configuration);
-            IMessageConverter<IPgMessage> pgMessageConverter = new PgMessageConverter(messageAddressConverter);
+            IMessageConverter<IProtocolGatewayMessage> pgMessageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
             
             IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
             IMqttConnectionProvider mqttConnectionProvider = new MqttConnectionProvider(connectionProvider, pgMessageConverter);

@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
 
-    public class PgMessage : IMessage
+    public class ProtocolGatewayMessage : IMessage
     {
-        public PgMessage(IByteBuffer payload, string address)
+        public ProtocolGatewayMessage(IByteBuffer payload, string address)
             : this(payload,
                   address,
                   new Dictionary<string, string>(),
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                   0)
         { }
 
-        public PgMessage(
+        public ProtocolGatewayMessage(
             IByteBuffer payload,
             string address,
             IDictionary<string, string> properties,

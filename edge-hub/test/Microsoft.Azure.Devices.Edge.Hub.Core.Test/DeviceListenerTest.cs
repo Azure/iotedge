@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     public class DeviceListenerTest
     {
         [Fact]
-        public async Task TestReceiveMessage()
+        public async Task TestProcessMessage()
         {
             var dispatcher = Mock.Of<IDispatcher>();
             var connMgr = Mock.Of<IConnectionManager>();
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             rand.NextBytes(payload);
             IMessage message = new Message(payload);
 
-            await listener.ReceiveMessage(message);
+            await listener.ProcessMessageAsync(message);
             Assert.NotNull(sentMessage);
             Assert.True(sentMessage.Properties.ContainsKey("module-Id"));
 
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             message = new Message(payload);
             sentMessage = null;
 
-            await listener.ReceiveMessage(message);
+            await listener.ProcessMessageAsync(message);
             Assert.NotNull(sentMessage);
             Assert.False(sentMessage.Properties.ContainsKey("module-Id"));
         }
@@ -65,13 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var expectedTwin = new Twin();
 
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(x => x.GetTwin())
+            cloudProxy.Setup(x => x.GetTwinAsync())
                 .Returns(Task.FromResult(expectedTwin));
 
             var listener = new DeviceListener(identity, router, dispatcher, connMgr, cloudProxy.Object);
-            Twin actualTwin = await listener.GetTwin();
+            Twin actualTwin = await listener.GetTwinAsync();
 
-            cloudProxy.Verify(x => x.GetTwin(), Times.Once);
+            cloudProxy.Verify(x => x.GetTwinAsync(), Times.Once);
             Assert.Same(expectedTwin, actualTwin);
         }
     }

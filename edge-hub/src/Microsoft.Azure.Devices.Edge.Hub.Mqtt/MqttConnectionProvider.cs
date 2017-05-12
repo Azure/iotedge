@@ -7,17 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
-    using PGIMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttConnectionProvider : IMqttConnectionProvider
     {        
         readonly IConnectionProvider connectionProvider;
-        readonly IMessageConverter<PGIMessage> pgMessageConverter;
+        readonly IMessageConverter<IProtocolGatewayMessage> pgMessageConverter;
         
-        public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<PGIMessage> pgMessageConverter)
+        public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<IProtocolGatewayMessage> pgMessageConverter)
         {
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
             this.pgMessageConverter = Preconditions.CheckNotNull(pgMessageConverter, nameof(pgMessageConverter));
@@ -31,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new AuthenticationException("Invalid identity object received");
             }
 
-            IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListener(iotHubDeviceIdentity);
+            IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(iotHubDeviceIdentity);
             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter);
             IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient); 
             return messagingBridge;

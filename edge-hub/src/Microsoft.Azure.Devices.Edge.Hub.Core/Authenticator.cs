@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
         }
 
-        public async Task<bool> Authenticate(IIdentity identity)
+        public async Task<bool> AuthenticateAsync(IIdentity identity)
         {
             var moduleIdentity = identity as IModuleIdentity;
             if (moduleIdentity != null && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
@@ -28,8 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             // Initially we will have many modules connecting with same device ID, so this is a GetOrCreate. 
-            // When we have module identity implemented, this should be CreateCloudConnection.
-            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.GetOrCreateCloudConnection(Preconditions.CheckNotNull(identity, nameof(identity)));
+            // When we have module identity implemented, this should be CreateCloudConnectionAsync.
+            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity, nameof(identity)));
             return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
         }
     }

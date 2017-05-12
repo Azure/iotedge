@@ -68,7 +68,7 @@
             };
             string address = "devices/{deviceId}/messages/events/";
             DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3}.ToByteBuffer();
-            var message = new PgMessage(payload, address);
+            var message = new ProtocolGatewayMessage(payload, address);
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
 
             Assert.True(status);
@@ -86,7 +86,7 @@
             };
             string address = "devices/{deviceId}/messages/";
             DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
-            var message = new PgMessage(payload, address + "events/");
+            var message = new ProtocolGatewayMessage(payload, address + "events/");
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
 
             Assert.False(status);
@@ -104,7 +104,7 @@
             };
             string address = "devices/{deviceId}/messages/events/";
             DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
-            var message = new PgMessage(payload, address + "events/");
+            var message = new ProtocolGatewayMessage(payload, address + "events/");
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
 
             Assert.True(status);

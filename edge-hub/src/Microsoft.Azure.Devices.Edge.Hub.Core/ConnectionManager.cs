@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<IDeviceProxy> currentDeviceProxy = device.UpdateDeviceProxy(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
 
             currentDeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.Close(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
+                .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
         }        
 
         public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 : Option.None<ICloudProxy>();
         }
 
-        public async Task<bool> CloseConnection(string deviceId)
+        public async Task<bool> CloseConnectionAsync(string deviceId)
         {
             if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), out ConnectedDevice device))
             {
@@ -50,14 +50,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.Close(new MultipleConnectionsException($"Multiple connections detected for device {deviceId}")));
+                .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {deviceId}")));
 
             return await device.CloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));            
         }
 
-        public async Task<Try<ICloudProxy>> CreateCloudConnection(IIdentity identity)
+        public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity.ConnectionString);
@@ -72,12 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return cloudProxy;
         }
 
-        public Task<Try<ICloudProxy>> GetOrCreateCloudConnection(IIdentity identity)
+        public Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity)
         {
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             return device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnection(identity));            
+                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnectionAsync(identity));            
         }
 
         ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)

@@ -10,15 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-    using PGMessage = ProtocolGateway.Messaging.IMessage;
+    using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
 
     public class DeviceProxy : IDeviceProxy
     {
-        readonly IMessagingChannel<PGMessage> channel;
-        readonly IMessageConverter<PGMessage> messageConverter;
+        readonly IMessagingChannel<IProtocolGatewayMessage> channel;
+        readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
         readonly AtomicBoolean isActive;
 
-        public DeviceProxy(IMessagingChannel<PGMessage> channel, IIdentity identity, IMessageConverter<PGMessage> messageConverter)
+        public DeviceProxy(IMessagingChannel<IProtocolGatewayMessage> channel, IIdentity identity, IMessageConverter<IProtocolGatewayMessage> messageConverter)
         {
             this.isActive = new AtomicBoolean(true);
             this.channel = Preconditions.CheckNotNull(channel, nameof(channel));
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.Identity = Preconditions.CheckNotNull(identity, nameof(this.Identity));
         }
 
-        public Task Close(Exception ex)
+        public Task CloseAsync(Exception ex)
         {
             if (this.isActive.GetAndSet(false))
             {
@@ -35,17 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return TaskEx.Done;
         }
 
-        public Task SendMessage(IMessage message)
+        public Task SendMessageAsync(IMessage message)
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
-            PGMessage pgMessage = this.messageConverter.FromMessage(message);
+            IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
             
             this.channel.Handle(pgMessage);
             return TaskEx.Done;
         }
 
         // TODO - Need to figure out how to do this. Don't see the API on the channel
-        public Task<object> CallMethod(string method, object parameters)
+        public Task<object> CallMethodAsync(string method, object parameters)
         {
             throw new System.NotImplementedException();
         }

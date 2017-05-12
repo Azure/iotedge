@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             //var router = new Router(dispatcher);
 
             //var mockAuthenticator = new Mock<IAuthenticator>();
-            //mockAuthenticator.Setup(a => a.Authenticate(It.IsAny<string>())).Returns(Task.FromResult(true));
+            //mockAuthenticator.Setup(a => a.AuthenticateAsync(It.IsAny<string>())).Returns(Task.FromResult(true));
 
             //var cloudProxyProvider = new CloudProxyProvider(this.logger, TransportHelper.AmqpTcpTransportSettings, new MessageConverter());
             //var mockDeviceProxy = new Mock<IDeviceProxy>();
@@ -64,10 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             //string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
 
-            //Try<IDeviceListener> deviceListener = await connectionProvider.GetDeviceListener(deviceConnectionString, mockDeviceProxy.Object);
+            //Try<IDeviceListener> deviceListener = await connectionProvider.GetDeviceListenerAsync(deviceConnectionString, mockDeviceProxy.Object);
             //Assert.True(deviceListener.Success);
 
-            //await deviceListener.Value.ReceiveMessage(message);
+            //await deviceListener.Value.ProcessMessageAsync(message);
 
             //string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             //var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             //Assert.NotNull(cloudMessages);
             //Assert.NotEmpty(cloudMessages);
             //Assert.True(MessageHelper.CompareMessagesAndEventData(new List<IMessage> { message }, cloudMessages));
-            //await eventHubReceiver.Close();
+            //await eventHubReceiver.CloseAsync();
         }
     }
 }

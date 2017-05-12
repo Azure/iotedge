@@ -9,18 +9,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     {
         Task<bool> CloseAsync();
 
-        Task<bool> SendMessage(IMessage message);
+        Task<bool> SendMessageAsync(IMessage message);
 
-        Task<bool> SendMessageBatch(IEnumerable<IMessage> inputMessages);
+        Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);
 
-        Task UpdateReportedProperties(TwinCollection reportedProperties);
+        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
 
-        Task<Twin> GetTwin();
+        Task<Twin> GetTwinAsync();
 
         void BindCloudListener(ICloudListener cloudListener);
 
         bool IsActive { get; }
 
-        Task SendFeedbackMessage(IFeedbackMessage message);
+        Task SendFeedbackMessageAsync(IFeedbackMessage message);
     }
 }

@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Try<Identity> deviceIdentity = this.identityFactory.GetWithSasToken(username, password);
             if (!deviceIdentity.Success
                 || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
-                || !await this.authenticator.Authenticate(deviceIdentity.Value))
+                || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
             {
                 return UnauthenticatedDeviceIdentity.Instance;
             }

@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             DateTime startTime = DateTime.UtcNow;
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
             Assert.True(cloudProxy.Success);
-            bool result = await cloudProxy.Value.SendMessage(message);
+            bool result = await cloudProxy.Value.SendMessageAsync(message);
             Assert.True(result);
             bool disconnectResult = await cloudProxy.Value.CloseAsync();
             Assert.True(disconnectResult);
@@ -76,9 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             for (int i = 0; i < messages.Count; i = i + 2)
             {
-                bool result = await cloudProxy1.Value.SendMessage(messages[i]);
+                bool result = await cloudProxy1.Value.SendMessageAsync(messages[i]);
                 Assert.True(result);
-                result = await cloudProxy2.Value.SendMessage(messages[i + 1]);
+                result = await cloudProxy2.Value.SendMessageAsync(messages[i + 1]);
                 Assert.True(result);
             }
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             DateTime startTime = DateTime.UtcNow;
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
             Assert.True(cloudProxy.Success);
-            bool result = await cloudProxy.Value.SendMessageBatch(messages);
+            bool result = await cloudProxy.Value.SendMessageBatchAsync(messages);
             Assert.True(result);
             bool disconnectResult = await cloudProxy.Value.CloseAsync();
             Assert.True(disconnectResult);

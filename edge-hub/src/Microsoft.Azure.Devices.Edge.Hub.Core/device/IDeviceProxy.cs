@@ -7,11 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     public interface IDeviceProxy
     {
-        Task Close(Exception ex);
+        Task CloseAsync(Exception ex);
 
-        Task SendMessage(IMessage message);
+        Task SendMessageAsync(IMessage message);
 
-        Task<object> CallMethod(string method, object parameters);
+        Task<object> CallMethodAsync(string method, object parameters);
 
         bool IsActive { get; }
 

@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
-        public Task<object> CallMethod(string methodName, object parameters, string deviceId)
+        public Task<object> CallMethodAsync(string methodName, object parameters, string deviceId)
         {
             return this.dispatcher.CallMethod(methodName, parameters, deviceId);
         }
@@ -41,20 +41,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task CloseAsync()
         {
-            return this.connectionManager.CloseConnection(this.Identity.Id);
+            return this.connectionManager.CloseConnectionAsync(this.Identity.Id);
         }
 
-        public Task ReceiveFeedbackMessage(IFeedbackMessage feedbackMessage)
+        public Task ProcessFeedbackMessageAsync(IFeedbackMessage feedbackMessage)
         {
-            return this.cloudProxy.SendFeedbackMessage(feedbackMessage);
+            return this.cloudProxy.SendFeedbackMessageAsync(feedbackMessage);
         }
 
-        public Task<Twin> GetTwin()
+        public Task<Twin> GetTwinAsync()
         {
-            return this.cloudProxy.GetTwin();
+            return this.cloudProxy.GetTwinAsync();
         }
 
-        public Task ReceiveMessage(IMessage message)
+        public Task ProcessMessageAsync(IMessage message)
         {
             var moduleIdentity = this.Identity as IModuleIdentity;
             if (moduleIdentity != null)
@@ -64,9 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return this.router.RouteMessage(message, this.Identity.Id);
         }
 
-        public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.Identity.Id);
+        public Task ProcessMessageBatchAsync(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.Identity.Id);
 
-        public Task UpdateReportedProperties(TwinCollection reportedProperties)
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
         {
             throw new NotImplementedException();
         }

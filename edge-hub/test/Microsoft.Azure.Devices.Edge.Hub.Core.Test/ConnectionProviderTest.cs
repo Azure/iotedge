@@ -64,10 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var identity = Mock.Of<IIdentity>();
             var router = Mock.Of<IRouter>();
 
-            Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnection(identity)).ReturnsAsync(Try.Success(cloudProxy));
+            Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try.Success(cloudProxy));
 
             var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
-            Assert.NotNull(await connectionProvider.GetDeviceListener(identity));
+            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(identity));
         }
 
         [Fact]
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var router = Mock.Of<IRouter>();
 
             var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
-            await Assert.ThrowsAsync<ArgumentNullException>(() => connectionProvider.GetDeviceListener(null));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => connectionProvider.GetDeviceListenerAsync(null));
         }
 
         [Fact]
@@ -91,10 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var identity = Mock.Of<IIdentity>();
             var router = Mock.Of<IRouter>();
 
-            Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnection(identity)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
+            Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
 
             var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
-            await Assert.ThrowsAsync<IotHubConnectionException>(() => connectionProvider.GetDeviceListener(identity));
+            await Assert.ThrowsAsync<IotHubConnectionException>(() => connectionProvider.GetDeviceListenerAsync(identity));
         }
     }
 }

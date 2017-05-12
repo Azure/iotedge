@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         {
                             IMessage message = this.messageConverter.ToMessage(clientMessage);
                             // TODO: check if message delivery count exceeds the limit?
-                            await this.cloudListener.ReceiveMessage(message);
+                            await this.cloudListener.ProcessMessageAsync(message);
                         }
                     }
                     catch (Exception e)

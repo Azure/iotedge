@@ -12,12 +12,12 @@
     {
         [Fact]
         [Unit]
-        public async Task TestReceiveMessage()
+        public async Task TestProcessMessage()
         {
             var deviceProxy = new Mock<IDeviceProxy>();
 
             IMessage sentMessage = null;
-            deviceProxy.Setup(r => r.SendMessage(It.IsAny<IMessage>()))
+            deviceProxy.Setup(r => r.SendMessageAsync(It.IsAny<IMessage>()))
                 .Returns(TaskEx.Done)
                 .Callback<IMessage>(m => sentMessage = m);
 
@@ -26,7 +26,7 @@
 
             var payload = new byte[] {1, 2, 3};
             IMessage message = new Message(payload);
-            await cloudListener.ReceiveMessage(message);
+            await cloudListener.ProcessMessageAsync(message);
 
             Assert.NotNull(sentMessage);
         }
