@@ -62,7 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             DateTime startTime = DateTime.UtcNow;
             var mockCloudListener = new Mock<ICloudListener>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter());
+
+            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
 
             string device1ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             Try<ICloudProxy> cloudProxy1 = await cloudProxyProvider.Connect(device1ConnectionString);
@@ -106,7 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter());
+            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString);
             return cloudProxy;
         }

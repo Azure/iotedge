@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using PGMessage = ProtocolGateway.Messaging.IMessage;
 
@@ -17,12 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IMessageConverter<PGMessage> messageConverter;
         readonly AtomicBoolean isActive;
 
-        public DeviceProxy(IMessagingChannel<PGMessage> channel,
-            IMessageConverter<PGMessage> messageConverter)
+        public DeviceProxy(IMessagingChannel<PGMessage> channel, IIdentity identity, IMessageConverter<PGMessage> messageConverter)
         {
             this.isActive = new AtomicBoolean(true);
             this.channel = Preconditions.CheckNotNull(channel, nameof(channel));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.Identity = Preconditions.CheckNotNull(identity, nameof(this.Identity));
         }
 
         public Task Close(Exception ex)
@@ -36,7 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task SendMessage(IMessage message)
         {
+            message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
             PGMessage pgMessage = this.messageConverter.FromMessage(message);
+            
             this.channel.Handle(pgMessage);
             return TaskEx.Done;
         }
@@ -48,5 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         public bool IsActive => this.isActive.Get();
+
+        public IIdentity Identity { get; }
     }
 }

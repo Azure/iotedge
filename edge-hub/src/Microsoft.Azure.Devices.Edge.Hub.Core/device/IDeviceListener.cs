@@ -20,5 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         void BindDeviceProxy(IDeviceProxy deviceProxy);
 
         Task CloseAsync();
+
+        Task ReceiveFeedbackMessage(IFeedbackMessage feedbackMessage);
+
+        IIdentity Identity { get; }
     }
 }

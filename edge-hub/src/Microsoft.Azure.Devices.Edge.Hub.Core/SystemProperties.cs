@@ -15,5 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string ContentType = "contentType";
         public const string ContentEncoding = "contentEncoding";
         public const string MessageSchema = "messageSchema";
+        public const string LockToken = "lockToken";
+        public const string DeliveryCount = "deliveryCount";
     }
 }

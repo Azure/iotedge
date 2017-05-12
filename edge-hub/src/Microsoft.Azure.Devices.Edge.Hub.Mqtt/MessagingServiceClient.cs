@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IPgMessage> channel)
         {
-            IDeviceProxy deviceProxy = new DeviceProxy(Preconditions.CheckNotNull(channel, nameof(channel)), this.messageConverter);
+            IDeviceProxy deviceProxy = new DeviceProxy(Preconditions.CheckNotNull(channel, nameof(channel)), this.deviceListener.Identity, this.messageConverter);
             this.deviceListener.BindDeviceProxy(deviceProxy);
         }
 
@@ -46,17 +46,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task AbandonAsync(string messageId)
         {
-            throw new NotImplementedException();
+            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
+            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
+            var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Abandon);
+            return this.deviceListener.ReceiveFeedbackMessage(feedBackMessage);
         }
 
         public Task CompleteAsync(string messageId)
         {
-            throw new NotImplementedException();
+            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
+            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
+            var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Complete);
+            return this.deviceListener.ReceiveFeedbackMessage(feedBackMessage);
         }
 
         public Task RejectAsync(string messageId)
         {
-            throw new NotImplementedException();
+            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
+            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
+            var feedbackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Reject);
+            return this.deviceListener.ReceiveFeedbackMessage(feedbackMessage);
         }
 
         public Task DisposeAsync(Exception cause)

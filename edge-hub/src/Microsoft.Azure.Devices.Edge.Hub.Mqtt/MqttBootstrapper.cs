@@ -16,21 +16,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
-    using Microsoft.Azure.Devices.ProtocolGateway.IotHubClient.Addressing;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
 
     public class MqttBootstrapper
     {
-        readonly ILogger logger = new LoggerFactory().AddConsole().CreateLogger<MqttBootstrapper>();
+        readonly ILogger logger = EdgeLogging.LoggerFactory.CreateLogger<MqttBootstrapper>();
         readonly TimeSpan defaultConnectionIdleTimeout = TimeSpan.FromSeconds(210); // IoT Hub default connection idle timeout
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
         readonly ISessionStatePersistenceProvider sessionStateManager;
         readonly IConnectionManager connectionManager;
         readonly int DefaultThreadCount = 200;
-        
         readonly TaskCompletionSource closeCompletionSource;
         readonly IMqttConnectionProvider mqttConnectionProvider;
    

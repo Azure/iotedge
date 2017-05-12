@@ -1,5 +1,5 @@
 ﻿
-namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetInvalidMessages))]
         public void TestErrorCases(IMessage inputMessage, Type exceptionType)
         {
-            IMessageConverter<Message> messageConverter = new MessageConverter();
+            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
         }
 
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            IMessageConverter<Message> messageConverter = new MessageConverter();
+            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
             IMessage inputMessage = new Core.Test.Message(messageBytes, properties, systemProperties);
             Message proxyMessage = messageConverter.FromMessage(inputMessage);
 
@@ -94,6 +94,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(DateTime.MinValue, proxyMessage.EnqueuedTimeUtc);
             Assert.True(proxyMessage.SequenceNumber == 0);
             Assert.Null(proxyMessage.To);
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidMessagesData))]
+        public void TestValidCasesToMessage(byte[] messageBytes,
+            IDictionary<string, string> properties,
+            IDictionary<string, string> systemProperties)
+        {
+            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            var inputMessage = new Message(messageBytes);
+            var mqttMessage = messageConverter.ToMessage(inputMessage);
+
+            Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
         }
     }
 }

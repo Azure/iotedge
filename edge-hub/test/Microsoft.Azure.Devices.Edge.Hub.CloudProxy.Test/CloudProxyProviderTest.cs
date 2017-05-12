@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -27,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Integration]
         public async Task ConnectTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter());
+            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString).Result;
             Assert.True(cloudProxy.Success);
@@ -39,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Integration]
         public async Task ConnectWithInvalidConnectionStringTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, new MessageConverter());
+            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
             await Assert.ThrowsAsync<ArgumentException>(() => cloudProxyProvider.Connect(""));
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");

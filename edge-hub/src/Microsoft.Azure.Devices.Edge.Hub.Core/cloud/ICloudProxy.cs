@@ -8,11 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     public interface ICloudProxy
     {
         Task<bool> CloseAsync();
+
         Task<bool> SendMessage(IMessage message);
+
         Task<bool> SendMessageBatch(IEnumerable<IMessage> inputMessages);
+
         Task UpdateReportedProperties(TwinCollection reportedProperties);
+
         Task<Twin> GetTwin();
+
         void BindCloudListener(ICloudListener cloudListener);
+
         bool IsActive { get; }
+
+        Task SendFeedbackMessage(IFeedbackMessage message);
     }
 }

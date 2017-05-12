@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
+    using System;
     using System.Threading.Tasks;
 
     public interface ICloudListener

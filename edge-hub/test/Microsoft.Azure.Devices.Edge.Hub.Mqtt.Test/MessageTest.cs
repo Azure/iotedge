@@ -9,19 +9,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     public class MessageTest
     {
-        static readonly MqttMessage Message1 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
-        static readonly MqttMessage Message2 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
-        static readonly MqttMessage Message3 = new MqttMessage(new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
-        static readonly MqttMessage Message4 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key", "value" }, { "key2", "value2" } });
-        static readonly MqttMessage Message5 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key", "value" } });
-        static readonly MqttMessage Message6 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value1" } });
-        static readonly MqttMessage Message7 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value1" } });
-        static readonly MqttMessage Message8 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, new Dictionary<string, string> { { "sys1", "value2" } });
+        static readonly DateTime Now = DateTime.Now;
+        static readonly MqttMessage Message1 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly MqttMessage Message2 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly MqttMessage Message3 = new MqttMessage.Builder(new byte[] { 2, 3, 1 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly MqttMessage Message4 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key", "value" }, { "key2", "value2" } }).Build();
+        static readonly MqttMessage Message5 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key", "value" } }).Build();
+        static readonly MqttMessage Message6 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).SetSystemProperties(new Dictionary<string, string> { { "sys1", "value1" } }).Build();
+        static readonly MqttMessage Message7 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).SetSystemProperties(new Dictionary<string, string> { { "sys1", "value1" } }).Build();
+        static readonly MqttMessage Message8 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).SetSystemProperties(new Dictionary<string, string> { { "sys1", "value2" } }).Build();
 
         [Fact]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new MqttMessage(new byte[0], null));
+            Assert.Throws(typeof(ArgumentNullException), () => new MqttMessage.Builder(null).Build());
         }
 
         [Fact]
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Fact]
         public void TestCaseSensitivity()
         {
-            var message1 = new MqttMessage(new byte[] { 1, 2, 3 }, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "KEY1", "value1" }, { "key2", "value2" } });
+            MqttMessage message1 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "KEY1", "value1" }, { "key2", "value2" } }).Build();
             Assert.Equal("value1", message1.Properties["key1"]);
             Assert.Equal("value2", message1.Properties["key2"]);
         }

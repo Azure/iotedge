@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IMessageConverter<Message> messageConverter;
         readonly ILogger logger;
         readonly AtomicBoolean isActive;
+        CloudReceiver cloudReceiver;
 
         public CloudProxy(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ILogger logger)
         {
@@ -34,6 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 if (this.isActive.GetAndSet(false))
                 {
+                    if (this.cloudReceiver != null)
+                    {
+                        await this.cloudReceiver.CloseAsync();
+                    }
                     await this.deviceClient.CloseAsync();
                 }
                 return true;
@@ -90,10 +95,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void BindCloudListener(ICloudListener cloudListener)
         {
-            ICloudReceiver cloudReceiver = new CloudReceiver(this.deviceClient);
-            cloudReceiver.Init(cloudListener);
+            this.cloudReceiver = new CloudReceiver(this.deviceClient, this.messageConverter, cloudListener);
+            this.cloudReceiver.StarListening();
         }
 
         public bool IsActive => this.isActive.Get();
+
+        public Task SendFeedbackMessage(IFeedbackMessage message)
+        {
+            message.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId);
+            switch (message.FeedbackStatus)
+            {
+                case FeedbackStatus.Complete:
+                    return this.deviceClient.CompleteAsync(messageId);
+                case FeedbackStatus.Abandon:
+                    return this.deviceClient.AbandonAsync(messageId);
+                case FeedbackStatus.Reject:
+                    return this.deviceClient.ReceiveAsync();
+                default:
+                    throw new InvalidOperationException("Feedback status type is not supported");
+            }
+        }
     }
 }

@@ -14,5 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         Task<object> CallMethod(string method, object parameters);
 
         bool IsActive { get; }
+
+        IIdentity Identity { get; }
     }
 }

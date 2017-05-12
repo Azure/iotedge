@@ -15,21 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IDictionary<string, string> SystemProperties { get; }
 
-        public MqttMessage(byte[] body)
-            : this(body, new Dictionary<string, string>(), new Dictionary<string, string>())
+        MqttMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
         {
-        }
-
-        public MqttMessage(byte[] body, IDictionary<string, string> properties)
-            : this(body, properties, new Dictionary<string, string>())
-        {
-        }
-
-        public MqttMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
-        {
-            this.Body = Preconditions.CheckNotNull(body);
-            this.Properties = new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase);
-            this.SystemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase);
+            this.Body = body;
+            this.Properties = properties;
+            this.SystemProperties = systemProperties;
         }
 
         public bool Equals(MqttMessage other)
@@ -46,9 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             return this.Body.SequenceEqual(other.Body) &&
                 this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
-                this.Properties.Keys.All(key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
-                    this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
-                    this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
+                this.Properties.Keys.All(
+                    key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
+                        this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
+                        this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
         }
 
         public override bool Equals(object obj)
@@ -68,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 hash = this.Body.Aggregate(hash, (acc, b) => acc * 31 + b);
                 hash = this.Properties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value.GetHashCode());
                 hash = this.SystemProperties.Aggregate(hash, (acc, pair) => (acc * 31 + pair.Key.GetHashCode()) * 31 + pair.Value.GetHashCode());
+
                 return hash;
             }
         }
@@ -80,6 +72,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         protected virtual void Dispose(bool disposing)
         {
+        }
+
+        public class Builder
+        {
+            readonly byte[] body;
+            IDictionary<string, string> properties;
+            IDictionary<string, string> systemProperties;
+
+            public Builder(byte[] body)
+            {
+                this.body = Preconditions.CheckNotNull(body);
+            }
+
+            public Builder SetProperties(IDictionary<string, string> properties)
+            {
+                this.properties = new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase);
+                return this;
+            }
+
+            public Builder SetSystemProperties(IDictionary<string, string> systemProperties)
+            {
+                this.systemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase);
+                return this;
+            }
+
+            public MqttMessage Build()
+            {
+                if (this.properties == null)
+                    this.properties = new Dictionary<string, string>();
+                if (this.systemProperties == null)
+                    this.systemProperties = new Dictionary<string, string>();
+
+                return new MqttMessage(this.body, this.properties, this.systemProperties);
+            }
+
         }
     }
 }
