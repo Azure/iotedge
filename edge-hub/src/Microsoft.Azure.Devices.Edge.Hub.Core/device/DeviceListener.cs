@@ -49,9 +49,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return this.cloudProxy.SendFeedbackMessage(feedbackMessage);
         }
 
-        public Task<Twin> GetTwin(string deviceId)
+        public Task<Twin> GetTwin()
         {
-            throw new NotImplementedException();
+            return this.cloudProxy.GetTwin();
         }
 
         public Task ReceiveMessage(IMessage message)
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task ReceiveMessageBatch(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.Identity.Id);
 
-        public Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId)
+        public Task UpdateReportedProperties(TwinCollection reportedProperties)
         {
             throw new NotImplementedException();
         }

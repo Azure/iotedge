@@ -11,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task ReceiveMessageBatch(IEnumerable<IMessage> message);
 
-        Task UpdateReportedProperties(TwinCollection reportedProperties, string deviceId);
+        Task UpdateReportedProperties(TwinCollection reportedProperties);
 
-        Task<Twin> GetTwin(string deviceId);
+        Task<Twin> GetTwin();
 
         Task<object> CallMethod(string methodName, object parameters, string deviceId);
 

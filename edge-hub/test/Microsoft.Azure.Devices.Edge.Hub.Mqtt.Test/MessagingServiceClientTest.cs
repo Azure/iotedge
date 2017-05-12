@@ -48,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var listener = new Mock<IDeviceListener>();
             listener.Setup(x => x.ReceiveMessage(It.IsAny<IMessage>()))
                 .Returns(Task.CompletedTask);
+            listener.Setup(x => x.GetTwin())
+                .Returns(Task.FromResult(new Twin()));
             return listener;
         }
 
@@ -98,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        public async Task DoesNotForwardTwinMessagesToTheDeviceListener()
+        public async Task CallsGetTwinOnTheDeviceListener()
         {
             Messages m = MakeMessages("$iothub/whatever");
             Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
@@ -107,9 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var client = new MessagingServiceClient(listener.Object, new PgMessageConverter(messageAddressConverter));
             await client.SendAsync(m.Source);
 
-            listener.Verify(
-                x => x.ReceiveMessage(It.Is((IMessage actual) => actual.Equals(m.Expected))),
-                Times.Never);
+            listener.Verify(x => x.ReceiveMessage(It.IsAny<IMessage>()), Times.Never);
+            listener.Verify(x => x.GetTwin(), Times.Once);
         }
 
         [Fact]

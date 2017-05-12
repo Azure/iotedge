@@ -37,7 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public async Task SendAsync(IPgMessage message)
         {
-            if (!IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
+            if (IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
+            {
+                await this.deviceListener.GetTwin();
+            }
+            else
             {
                 Core.IMessage coreMessage = this.messageConverter.ToMessage(Preconditions.CheckNotNull(message, nameof(message)));
                 await this.deviceListener.ReceiveMessage(coreMessage);

@@ -10,15 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Moq;
     using Xunit;
 
+    [Unit]
     public class DeviceListenerTest
     {
         [Fact]
-        [Unit]
         public async Task TestReceiveMessage()
-        {            
-            var dispatcher = new Mock<IDispatcher>();
-            var connMgr = new Mock<IConnectionManager>();
-            var cloudProxy = new Mock<ICloudProxy>();            
+        {
+            var dispatcher = Mock.Of<IDispatcher>();
+            var connMgr = Mock.Of<IConnectionManager>();
+            var cloudProxy = Mock.Of<ICloudProxy>();            
 
             IMessage sentMessage = null;
             var router = new Mock<IRouter>();
@@ -30,28 +30,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             moduleIdentity.SetupGet(m => m.ModuleId).Returns("module1");
             moduleIdentity.SetupGet(m => m.DeviceId).Returns("device1");
 
-            var deviceListner = new DeviceListener(moduleIdentity.Object, router.Object, dispatcher.Object, connMgr.Object, cloudProxy.Object);
+            var listener = new DeviceListener(moduleIdentity.Object, router.Object, dispatcher, connMgr, cloudProxy);
             
             var rand = new Random();
             var payload = new byte[50];
             rand.NextBytes(payload);
             IMessage message = new Message(payload);
 
-            await deviceListner.ReceiveMessage(message);
+            await listener.ReceiveMessage(message);
             Assert.NotNull(sentMessage);
             Assert.True(sentMessage.Properties.ContainsKey("module-Id"));
 
             var deviceIdentity = new Mock<IDeviceIdentity>();
             deviceIdentity.SetupGet(m => m.DeviceId).Returns("device1");
 
-            deviceListner = new DeviceListener(deviceIdentity.Object, router.Object, dispatcher.Object, connMgr.Object, cloudProxy.Object);
+            listener = new DeviceListener(deviceIdentity.Object, router.Object, dispatcher, connMgr, cloudProxy);
 
             message = new Message(payload);
             sentMessage = null;
 
-            await deviceListner.ReceiveMessage(message);
+            await listener.ReceiveMessage(message);
             Assert.NotNull(sentMessage);
             Assert.False(sentMessage.Properties.ContainsKey("module-Id"));
+        }
+
+        [Fact]
+        public async Task ForwardsGetTwinOperationToTheCloudProxy()
+        {
+            var dispatcher = Mock.Of<IDispatcher>();
+            var connMgr = Mock.Of<IConnectionManager>();
+            var router = Mock.Of<IRouter>();
+            var identity = Mock.Of<IDeviceIdentity>();
+
+            var expectedTwin = new Twin();
+
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(x => x.GetTwin())
+                .Returns(Task.FromResult(expectedTwin));
+
+            var listener = new DeviceListener(identity, router, dispatcher, connMgr, cloudProxy.Object);
+            Twin actualTwin = await listener.GetTwin();
+
+            cloudProxy.Verify(x => x.GetTwin(), Times.Once);
+            Assert.Same(expectedTwin, actualTwin);
         }
     }
 }
