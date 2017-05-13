@@ -9,7 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     {
         Task CloseAsync(Exception ex);
 
-        Task SendMessageAsync(IMessage message);
+        Task<bool> SendMessageAsync(IMessage message);
+
+        Task<bool> SendMessage(IMessage message, string endpoint);
 
         Task<object> CallMethodAsync(string method, object parameters);
 

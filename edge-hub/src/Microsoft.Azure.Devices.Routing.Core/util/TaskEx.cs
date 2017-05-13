@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
     using System.Threading;
     using System.Threading.Tasks;
 
-    public static class TaskEx
+    static class TaskEx
     {
         public static Task Done { get; } = Task.FromResult(true);
 

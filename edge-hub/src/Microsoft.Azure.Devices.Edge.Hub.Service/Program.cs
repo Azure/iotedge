@@ -12,18 +12,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
+    using Message = Microsoft.Azure.Devices.Client.Message;
+    using SimpleRouteFactory = Microsoft.Azure.Devices.Edge.Hub.Core.Routing.SimpleRouteFactory;
 
     class Program
     {
-        const int DefaultConnectionPoolSize = 400; // IoT Hub default connection pool size
+        static readonly RetryStrategy DefaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
+        static readonly TimeSpan DefaultRevivePeriod = TimeSpan.FromHours(1);
+        static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+        static readonly EndpointExecutorConfig DefaultEndpointExecutorConfig = new EndpointExecutorConfig(DefaultTimeout, DefaultRetryStrategy, DefaultRevivePeriod, true);
         const string configFileName = "appsettings.json";
         const string topicNameConversionSectionName = "mqttTopicNameConversion";
         const string sslCertPathEnvName = "SSL_CERTIFICATE_PATH";
@@ -54,19 +64,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var certificate = new X509Certificate2(certPath);
             var settingsProvider = new AppConfigSettingsProvider();
          
-            IMessageConverter<Client.Message> deviceClientMessageConverter = new MqttMessageConverter();
+            string iotHubName = settingsProvider.GetSetting("IotHubHostName");
+            Core.IMessageConverter<Message> deviceClientMessageConverter = new MqttMessageConverter();
             ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(logger, deviceClientMessageConverter);
-
             IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider);
-            IDispatcher dispatcher = new Dispatcher(connectionManager);
-            IRouter router = new Router(dispatcher);
-
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            Router router = await SetupRouter(connectionManager, routingMessageConverter, iotHubName);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);
             var configuration = new MessageAddressConversionConfiguration();
             configurationRoot.GetSection(topicNameConversionSectionName).Bind(configuration);
             var messageAddressConverter = new MessageAddressConverter(configuration);
-            IMessageConverter<IProtocolGatewayMessage> pgMessageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
-            
-            IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
+            Core.IMessageConverter<IProtocolGatewayMessage> pgMessageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
+           
+            IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             IMqttConnectionProvider mqttConnectionProvider = new MqttConnectionProvider(connectionProvider, pgMessageConverter);
 
             var bootstrapper = new MqttBootstrapper(settingsProvider, certificate, mqttConnectionProvider, connectionManager);
@@ -86,6 +96,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bootstrapper.CloseCompletion.Wait(TimeSpan.FromSeconds(20));
 
             return 0;
-        }        
+        }
+
+        static Task<Router> SetupRouter(IConnectionManager connectionManager, Core.IMessageConverter<IRoutingMessage> routingMessageConverter, string iotHubName)
+        {
+            Routing.PerfCounter = new NullRoutingPerfCounter();
+            Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
+            Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
+                        
+            IEndpointFactory endpointFactory = new SimpleEndpointFactory(connectionManager, routingMessageConverter);
+            IRouteFactory routerFactory = new SimpleRouteFactory(endpointFactory);
+
+            // TODO - For now, SimpleRouterFactory always returns a Cloud route (for proxy)
+            Route route = routerFactory.Create(string.Empty);
+            var config = new RouterConfig(route.Endpoints, new [] { route });
+            return Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, config, new SyncEndpointExecutorFactory(DefaultEndpointExecutorConfig));            
+        }
     }
 }

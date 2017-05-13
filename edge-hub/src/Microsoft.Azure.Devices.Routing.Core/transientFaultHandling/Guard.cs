@@ -17,7 +17,7 @@
 using System;
 using System.Globalization;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
     /// Implements the common guard methods.

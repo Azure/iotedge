@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
 
     public class EndpointExecutorFsm : IDisposable

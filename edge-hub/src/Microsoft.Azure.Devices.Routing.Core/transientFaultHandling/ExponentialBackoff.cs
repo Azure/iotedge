@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
     /// A retry strategy with back-off parameters for calculating the exponential delay between retries.

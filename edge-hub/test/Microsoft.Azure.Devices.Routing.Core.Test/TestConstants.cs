@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Common.ErrorHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
 
     public static class TestConstants
     {

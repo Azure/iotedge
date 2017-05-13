@@ -16,10 +16,10 @@
 
 using System;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
-    /// Contains information that is required for the <see cref="E:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy.Retrying" /> event.
+    /// Contains information that is required for the <see cref="E:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy.Retrying" /> event.
     /// </summary>
     public class RetryingEventArgs : EventArgs
     {
@@ -51,7 +51,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryingEventArgs" /> class.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryingEventArgs" /> class.
         /// </summary>
         /// <param name="currentRetryCount">The current retry attempt count.</param>
         /// <param name="delay">The delay that indicates how long the current thread will be suspended before the next iteration is invoked.</param>

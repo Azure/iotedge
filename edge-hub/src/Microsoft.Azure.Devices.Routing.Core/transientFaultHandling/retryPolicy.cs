@@ -18,7 +18,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
     /// Provides the base implementation of the retry mechanism for unreliable actions and transient conditions.
@@ -82,7 +82,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a fixed retry interval configured with the default <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.FixedInterval" /> retry strategy.
+        /// Returns a default policy that implements a fixed retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultFixed
@@ -94,7 +94,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a progressive retry interval configured with the default <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.Incremental" /> retry strategy.
+        /// Returns a default policy that implements a progressive retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.Incremental" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultProgressive
@@ -106,7 +106,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a random exponential retry interval configured with the default <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.FixedInterval" /> retry strategy.
+        /// Returns a default policy that implements a random exponential retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultExponential
@@ -136,9 +136,9 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
         /// </summary>
-        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
+        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryStrategy">The strategy to use for this retry policy.</param>
         public RetryPolicy(ITransientErrorDetectionStrategy errorDetectionStrategy, RetryStrategy retryStrategy)
         {
@@ -153,18 +153,18 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and default fixed time interval between retries.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and default fixed time interval between retries.
         /// </summary>
-        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
+        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         public RetryPolicy(ITransientErrorDetectionStrategy errorDetectionStrategy, int retryCount) : this(errorDetectionStrategy, new FixedInterval(retryCount))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and fixed time interval between retries.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and fixed time interval between retries.
         /// </summary>
-        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
+        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="retryInterval">The interval between retries.</param>
         public RetryPolicy(ITransientErrorDetectionStrategy errorDetectionStrategy, int retryCount, TimeSpan retryInterval) : this(errorDetectionStrategy, new FixedInterval(retryCount, retryInterval))
@@ -172,9 +172,9 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and backoff parameters for calculating the exponential delay between retries.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and backoff parameters for calculating the exponential delay between retries.
         /// </summary>
-        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
+        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="minBackoff">The minimum backoff time.</param>
         /// <param name="maxBackoff">The maximum backoff time.</param>
@@ -184,9 +184,9 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
         /// </summary>
-        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
+        /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>

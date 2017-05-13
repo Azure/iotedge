@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
 {
     using System;
 
-    public class Preconditions
+    class Preconditions
     {
         /// <summary>
         /// Checks that a reference isn't null. Throws ArgumentNullException if null.

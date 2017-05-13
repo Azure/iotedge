@@ -3,24 +3,23 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
     using System;
+    using System.Linq;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
 
     class DeviceListener : IDeviceListener
-    {
-        const string ModuleIdPropertyName = "module-Id";
-        readonly IRouter router;
-        readonly IDispatcher dispatcher;
+    {        
+        readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
         readonly ICloudProxy cloudProxy;
 
-        public DeviceListener(IIdentity identity, IRouter router, IDispatcher dispatcher, IConnectionManager connectionManager, ICloudProxy cloudProxy)
+        public DeviceListener(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, ICloudProxy cloudProxy)
         {
             this.Identity = Preconditions.CheckNotNull(identity);
-            this.router = Preconditions.CheckNotNull(router);
-            this.dispatcher = Preconditions.CheckNotNull(dispatcher);
+            this.edgeHub = Preconditions.CheckNotNull(edgeHub);
             this.connectionManager = Preconditions.CheckNotNull(connectionManager);
             this.cloudProxy = Preconditions.CheckNotNull(cloudProxy);            
         }
@@ -29,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task<object> CallMethodAsync(string methodName, object parameters, string deviceId)
         {
-            return this.dispatcher.CallMethod(methodName, parameters, deviceId);
+            throw new NotImplementedException();
         }
 
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
@@ -56,15 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task ProcessMessageAsync(IMessage message)
         {
-            var moduleIdentity = this.Identity as IModuleIdentity;
-            if (moduleIdentity != null)
-            {
-                message.Properties[ModuleIdPropertyName] = moduleIdentity.ModuleId;
-            }
-            return this.router.RouteMessage(message, this.Identity.Id);
+           Preconditions.CheckNotNull(message);
+            return this.edgeHub.ProcessDeviceMessage(this.Identity, message);
         }
 
-        public Task ProcessMessageBatchAsync(IEnumerable<IMessage> messages) => this.router.RouteMessageBatch(messages, this.Identity.Id);
+        public Task ProcessMessageBatchAsync(IEnumerable<IMessage> messages)
+        {
+            List<IMessage> messagesList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
+            return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messagesList);
+        }        
 
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
         {

@@ -35,13 +35,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return TaskEx.Done;
         }
 
-        public Task SendMessageAsync(IMessage message)
+        public Task<bool> SendMessageAsync(IMessage message)
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
             
             this.channel.Handle(pgMessage);
-            return TaskEx.Done;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SendMessage(IMessage message, string endpoint)
+        {
+            throw new NotImplementedException();
         }
 
         // TODO - Need to figure out how to do this. Don't see the API on the channel

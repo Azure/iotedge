@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
     /// Represents a retry strategy that determines the number of retry attempts and the interval between retries.
@@ -79,7 +79,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a fixed retry interval configured with the <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" /> and <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultRetryInterval" /> parameters.
+        /// Returns a default policy that implements a fixed retry interval configured with the <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" /> and <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultRetryInterval" /> parameters.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryStrategy DefaultFixed
@@ -91,7 +91,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a progressive retry interval configured with the <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" />, <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultRetryInterval" />, and <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultRetryIncrement" /> parameters.
+        /// Returns a default policy that implements a progressive retry interval configured with the <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" />, <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultRetryInterval" />, and <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultRetryIncrement" /> parameters.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryStrategy DefaultProgressive
@@ -103,7 +103,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Returns a default policy that implements a random exponential retry interval configured with the <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" />, <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultMinBackoff" />, <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultMaxBackoff" />, and <see cref="F:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy.DefaultClientBackoff" /> parameters.
+        /// Returns a default policy that implements a random exponential retry interval configured with the <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultClientRetryCount" />, <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultMinBackoff" />, <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultMaxBackoff" />, and <see cref="F:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy.DefaultClientBackoff" /> parameters.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryStrategy DefaultExponential
@@ -134,7 +134,7 @@ namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling.RetryStrategy" /> class. 
+        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.RetryStrategy" /> class. 
         /// </summary>
         /// <param name="name">The name of the retry strategy.</param>
         /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>

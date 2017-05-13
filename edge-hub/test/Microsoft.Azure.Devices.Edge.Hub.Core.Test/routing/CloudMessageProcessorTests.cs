@@ -1,0 +1,106 @@
+﻿// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Moq;
+    using Xunit;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+    using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
+    using RoutingMessage = Microsoft.Azure.Devices.Routing.Core.Message;
+
+    public class CloudMessageProcessorTests
+    {
+        [Fact]
+        [Unit]
+        public void BasicTest()
+        {
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var cloudProxyMock = new Mock<ICloudProxy>();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            Option<ICloudProxy> GetCloudProxy(string id) => Option.Some(cloudProxyMock.Object);
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            Assert.Equal(cloudEndpoint, cloudMessageProcessor.Endpoint);
+            Assert.False(cloudMessageProcessor.ErrorDetectionStrategy.IsTransient(new Exception()));            
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ProcessAsyncTest()
+        {
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();            
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudProxyMock = new Mock<ICloudProxy>();
+            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))                
+                .ReturnsAsync(() => true);
+            cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
+
+            string device1Id = "device1";
+            string device2Id = "device2";
+
+            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
+            var properties = new Dictionary<string, string>()
+            {
+                { "Prop1", "Val1" },
+                { "Prop2", "Val2" },
+            };
+
+            var device1SystemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.DeviceId, device1Id }
+            };
+
+            var device2SystemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.DeviceId, device2Id }
+            };
+
+            var message1 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, device1SystemProperties);
+            var message2 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, device2SystemProperties);
+
+            Option<ICloudProxy> GetCloudProxy(string id)
+            {
+                return id.Equals(device1Id)
+                    ? Option.Some(cloudProxyMock.Object)
+                    : Option.None<ICloudProxy>();
+            }
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            ISinkResult<IRoutingMessage> result1 = await cloudMessageProcessor.ProcessAsync(message1, CancellationToken.None);
+            Assert.NotNull(result1);
+            Assert.NotEmpty(result1.Succeeded);
+            Assert.Empty(result1.Failed);
+            Assert.Empty(result1.InvalidDetailsList);
+            Assert.False(result1.SendFailureDetails.HasValue);
+
+            ISinkResult<IRoutingMessage> result2 = await cloudMessageProcessor.ProcessAsync(message2, CancellationToken.None);
+            Assert.NotNull(result2);
+            Assert.NotEmpty(result2.InvalidDetailsList);
+            Assert.Empty(result2.Failed);
+            Assert.Empty(result2.Succeeded);
+            Assert.False(result2.SendFailureDetails.HasValue);
+
+            ISinkResult<IRoutingMessage> resultBatch = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
+            Assert.NotNull(resultBatch);
+            Assert.NotEmpty(resultBatch.Succeeded);
+            Assert.Empty(resultBatch.Failed);
+            Assert.NotEmpty(resultBatch.InvalidDetailsList);
+            Assert.False(resultBatch.SendFailureDetails.HasValue);
+        }
+    }
+}

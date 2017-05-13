@@ -18,55 +18,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void ConnectionProviderConstructorTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            var dispatcher = Mock.Of<IDispatcher>();
-            var router = Mock.Of<IRouter>();
+            var edgeHub = Mock.Of<IEdgeHub>();
 
-            Assert.NotNull(new ConnectionProvider(connectionManager, router, dispatcher));
+            Assert.NotNull(new ConnectionProvider(connectionManager, edgeHub));
         }
 
         [Fact]
         [Unit]
         public void ConnectionProviderConstructor_NullConnectionManagerTest()
         {
-            var dispatcher = Mock.Of<IDispatcher>();
-            var router = Mock.Of<IRouter>();
+            var edgeHub = Mock.Of<IEdgeHub>();
 
-            Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(null, router, dispatcher));
+            Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(null, edgeHub));
         }
 
         [Fact]
         [Unit]
-        public void ConnectionProviderConstructor_NullRouterTest()
+        public void ConnectionProviderConstructor_NullEdgeHubTest()
         {
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var dispatcher = Mock.Of<IDispatcher>();
+            var connectionManager = Mock.Of<IConnectionManager>();            
 
-            Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(connectionManager, null, dispatcher));
+            Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(connectionManager, null));
         }
 
-        [Fact]
-        [Unit]
-        public void ConnectionProviderConstructor_NullDispatcherTest()
-        {
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var router = Mock.Of<IRouter>();
-
-            Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(connectionManager, router, null));
-        }
 
         [Fact]
         [Unit]
         public async Task GetDeviceListenerTest()
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var dispatcher = Mock.Of<IDispatcher>();
+            var connectionManager = Mock.Of<IConnectionManager>(); 
+            var edgeHub = Mock.Of<IEdgeHub>();
             var identity = Mock.Of<IIdentity>();
-            var router = Mock.Of<IRouter>();
 
             Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try.Success(cloudProxy));
 
-            var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
+            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(identity));
         }
 
@@ -75,10 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetDeviceListener_NullIdentityTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            var dispatcher = Mock.Of<IDispatcher>();
-            var router = Mock.Of<IRouter>();
+            var edgeHub = Mock.Of<IEdgeHub>();
 
-            var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
+            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             await Assert.ThrowsAsync<ArgumentNullException>(() => connectionProvider.GetDeviceListenerAsync(null));
         }
 
@@ -87,13 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetDeviceListener_ConnectionManagerThrowsTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            var dispatcher = Mock.Of<IDispatcher>();
-            var identity = Mock.Of<IIdentity>();
-            var router = Mock.Of<IRouter>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var identity = Mock.Of<IIdentity>();            
 
             Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
 
-            var connectionProvider = new ConnectionProvider(connectionManager, router, dispatcher);
+            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             await Assert.ThrowsAsync<IotHubConnectionException>(() => connectionProvider.GetDeviceListenerAsync(identity));
         }
     }

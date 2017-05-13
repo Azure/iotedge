@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
     using Microsoft.Azure.Devices.Routing.Core.Sinks;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
 

@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;

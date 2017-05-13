@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public Task RouteInternalAsync(IMessage message)
+        Task RouteInternalAsync(IMessage message)
         {
             ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
 

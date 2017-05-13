@@ -10,16 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class ConnectionProvider : IConnectionProvider
     {
         readonly IConnectionManager connectionManager;
-        readonly IRouter router;
-        readonly IDispatcher dispatcher;
+        readonly IEdgeHub edgeHub;
 
-        public ConnectionProvider(IConnectionManager connectionManager,
-            IRouter router,
-            IDispatcher dispatcher)
+        public ConnectionProvider(IConnectionManager connectionManager, IEdgeHub edgeHub)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.router = Preconditions.CheckNotNull(router, nameof(router));
-            this.dispatcher = Preconditions.CheckNotNull(dispatcher, nameof(dispatcher));
+            this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
         }
 
         public async Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity)
@@ -30,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 throw new IotHubConnectionException($"Unable to connect to IoTHub for device {identity.Id}", cloudProxy.Exception);
             }
-            IDeviceListener deviceListener = new DeviceListener(identity, this.router, this.dispatcher, this.connectionManager, cloudProxy.Value);
+            IDeviceListener deviceListener = new DeviceListener(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
             return deviceListener;
         }
     }

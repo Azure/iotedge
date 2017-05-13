@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
 
     public class RetryingSink<T> : ISink<T>
     {

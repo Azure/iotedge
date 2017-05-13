@@ -18,7 +18,7 @@
 
             IMessage sentMessage = null;
             deviceProxy.Setup(r => r.SendMessageAsync(It.IsAny<IMessage>()))
-                .Returns(TaskEx.Done)
+                .Returns(Task.FromResult(true))
                 .Callback<IMessage>(m => sentMessage = m);
 
 

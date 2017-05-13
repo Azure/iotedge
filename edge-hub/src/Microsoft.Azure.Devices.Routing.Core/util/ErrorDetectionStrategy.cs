@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Util
 {
     using System;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
 
     public class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
     {

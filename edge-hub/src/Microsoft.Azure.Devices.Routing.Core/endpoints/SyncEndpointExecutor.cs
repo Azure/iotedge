@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
 
     public class SyncEndpointExecutor : IEndpointExecutor
     {

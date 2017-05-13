@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
 {
     /// <summary>
     /// Defines a callback delegate that will be invoked whenever a retry condition is encountered.

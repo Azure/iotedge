@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Common.ErrorHandling
 {
     using System;
     using System.Diagnostics.Contracts;
-    using Microsoft.Practices.EnterpriseLibrary.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
 
     /// <summary>
     /// A retry strategy with back-off parameters for calculating the exponential delay between retries.
