@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         public int CurrentRetryCount
         {
             get;
-            private set;
+            set;
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         public TimeSpan Delay
         {
             get;
-            private set;
+            set;
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         public Exception LastException
         {
             get;
-            private set;
+            set;
         }
 
         /// <summary>

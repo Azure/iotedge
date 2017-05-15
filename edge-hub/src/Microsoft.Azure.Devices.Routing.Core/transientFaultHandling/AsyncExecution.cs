@@ -25,11 +25,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
     /// Provides a wrapper for a non-generic <see cref="T:System.Threading.Tasks.Task" /> and calls into the pipeline
     /// to retry only the generic version of the <see cref="T:System.Threading.Tasks.Task" />.
     /// </summary>
-    internal class AsyncExecution : AsyncExecution<bool>
+    class AsyncExecution : AsyncExecution<bool>
     {
-        private static Task<bool> cachedBoolTask;
+        static Task<bool> cachedBoolTask;
 
-        public AsyncExecution(Func<Task> taskAction, ShouldRetry shouldRetry, Func<Exception, bool> isTransient, Action<int, Exception, TimeSpan> onRetrying, bool fastFirstRetry, CancellationToken cancellationToken) : base(() => AsyncExecution.StartAsGenericTask(taskAction), shouldRetry, isTransient, onRetrying, fastFirstRetry, cancellationToken)
+        public AsyncExecution(Func<Task> taskAction, ShouldRetry shouldRetry, Func<Exception, bool> isTransient, Action<int, Exception, TimeSpan> onRetrying, bool fastFirstRetry, CancellationToken cancellationToken)
+            : base(() => StartAsGenericTask(taskAction), shouldRetry, isTransient, onRetrying, fastFirstRetry, cancellationToken)
         {
         }
 
@@ -38,7 +39,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// </summary>
         /// <param name="taskAction">The task to wrap.</param>
         /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> that wraps the non-generic <see cref="T:System.Threading.Tasks.Task" />.</returns>
-        private static Task<bool> StartAsGenericTask(Func<Task> taskAction)
+        static Task<bool> StartAsGenericTask(Func<Task> taskAction)
         {
             Task task = taskAction();
             if (task == null)
@@ -46,20 +47,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
                 throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} cannot be null", new object[]
                 {
                     "taskAction"
-                }), "taskAction");
+                }), nameof(taskAction));
             }
             if (task.Status == TaskStatus.RanToCompletion)
             {
-                return AsyncExecution.GetCachedTask();
+                return GetCachedTask();
             }
             if (task.Status == TaskStatus.Created)
             {
                 throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "{0} must be scheduled", new object[]
                 {
                     "taskAction"
-                }), "taskAction");
+                }), nameof(taskAction));
             }
-            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>();
             task.ContinueWith(delegate (Task t)
             {
                 if (t.IsFaulted)
@@ -77,15 +78,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
             return tcs.Task;
         }
 
-        private static Task<bool> GetCachedTask()
+        static Task<bool> GetCachedTask()
         {
-            if (AsyncExecution.cachedBoolTask == null)
+            if (cachedBoolTask == null)
             {
-                TaskCompletionSource<bool> taskCompletionSource = new TaskCompletionSource<bool>();
+                var taskCompletionSource = new TaskCompletionSource<bool>();
                 taskCompletionSource.TrySetResult(true);
-                AsyncExecution.cachedBoolTask = taskCompletionSource.Task;
+                cachedBoolTask = taskCompletionSource.Task;
             }
-            return AsyncExecution.cachedBoolTask;
+            return cachedBoolTask;
         }
     }
 }

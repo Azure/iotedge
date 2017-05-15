@@ -15,13 +15,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class FrontendRoutingService : IRoutingService
     {
-        const string PerfCounterOperationName = "FrontendRoutingService.RouteAsync";
-        const string PerfCounterOperationSuccessStatus = "success";
-        const string PerfCounterOperationFailureStatus = "failure";
-
         static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(1);
 
         readonly AtomicBoolean closed;
@@ -31,21 +28,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
         readonly ISinkFactory<IMessage> sinkFactory;
         readonly AtomicReference<ImmutableDictionary<string, ISink<IMessage>>> sinks;
         readonly AsyncLock sync = new AsyncLock();
-        readonly IRoutingPerfCounter routingPerformanceCounter;
 
         ImmutableDictionary<string, INotifier> Notifiers => this.notifiers;
 
         ImmutableDictionary<string, ISink<IMessage>> Sinks => this.sinks;
 
         public FrontendRoutingService(ISinkFactory<IMessage> sinkFactory, INotifierFactory notifierFactory)
-            : this(sinkFactory, notifierFactory, null)
-        { }
-
-        public FrontendRoutingService(ISinkFactory<IMessage> sinkFactory, INotifierFactory notifierFactory, IRoutingPerfCounter routingPerformanceCounter)
         {
             this.sinkFactory = Preconditions.CheckNotNull(sinkFactory, nameof(sinkFactory));
             this.notifierFactory = Preconditions.CheckNotNull(notifierFactory, nameof(notifierFactory));
-            this.routingPerformanceCounter = routingPerformanceCounter;
             this.closed = new AtomicBoolean(false);
             this.cts = new CancellationTokenSource();
             this.sinks = new AtomicReference<ImmutableDictionary<string, ISink<IMessage>>>(ImmutableDictionary<string, ISink<IMessage>>.Empty);
@@ -66,15 +57,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.PerformanceCounterLogFailure(hubName, messages.Count());
                 throw;
             }
 
-            this.PerformanceCounterLogSuccess(hubName, result.Succeeded?.Count() ?? 0);
-            this.PerformanceCounterLogFailure(hubName, result.Failed?.Count() ?? 0);
-
             // NOTE: we log succeeded however from the caller perspective all are failed (if any) due to next line
-            result.SendFailureDetails.ForEach(sfd => { throw sfd.RawException; });
+            result.SendFailureDetails.ForEach(sfd => throw sfd.RawException);
         }
 
         public Task<IEnumerable<EndpointHealthData>> GetEndpointHealthAsync(string hubName)
@@ -149,7 +136,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         async Task RemoveSinkAsync(string hubName)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 ISink<IMessage> sink;
@@ -192,7 +178,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
             catch (Exception ex)
             {
-                Events.SinkRemoveFailed(ex, stopwatch);
+                Events.SinkRemoveFailed(ex);
             }
         }
 
@@ -206,89 +192,53 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         static async Task CloseSinkAsync(ISink<IMessage> sink, CancellationToken token)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 await sink.CloseAsync(token);
             }
             catch (Exception ex)
             {
-                Events.SinkCloseFailed(ex, stopwatch);
+                Events.SinkCloseFailed(ex);
             }
         }
 
         static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 await notifier.CloseAsync(token);
             }
             catch (Exception ex)
             {
-                Events.NotifierCloseFailed(notifier, ex, stopwatch);
-            }
-        }
-
-        void PerformanceCounterLogFailure(string iotHubName, long count)
-        {
-            if (count == 0)
-            {
-                return;
-            }
-
-            string error;
-            if (this.routingPerformanceCounter?.LogOperationResult(
-                    iotHubName,
-                    PerfCounterOperationName,
-                    PerfCounterOperationFailureStatus,
-                    count,
-                    out error) == false)
-            {
-                // TODO: log perf counter failure
-            }
-        }
-
-        void PerformanceCounterLogSuccess(string iotHubName, long count)
-        {
-            if (count == 0)
-            {
-                return;
-            }
-
-            string error;
-            if (this.routingPerformanceCounter?.LogOperationResult(
-                    iotHubName,
-                    PerfCounterOperationName,
-                    PerfCounterOperationSuccessStatus,
-                    count,
-                    out error) == false)
-            {
-                // TODO: log perf counter failure
+                Events.NotifierCloseFailed(ex);
             }
         }
 
         static class Events
         {
-            const string Source = nameof(FrontendRoutingService);
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FrontendRoutingService>();
+            const int IdStart = Routing.EventIds.FrontendRoutingService;
 
-            public static void SinkCloseFailed(Exception exception, Stopwatch stopwatch)
+            enum EventIds
             {
-                string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(SinkCloseFailed), Source, m => m("Sink close failed."), exception, string.Empty, string.Empty, latencyMs);
+                SinkCloseFailed = IdStart,
+                SinkRemoveFailed,
+                NotifierCloseFailed,
             }
 
-            public static void SinkRemoveFailed(Exception exception, Stopwatch stopwatch)
+            public static void SinkCloseFailed(Exception exception)
             {
-                string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(SinkRemoveFailed), Source, m => m("Sink removal failed while processing hub deletion."), exception, string.Empty, string.Empty, latencyMs);
+                Log.LogWarning((int)EventIds.SinkCloseFailed, exception, "[SinkCloseFailed] Sink close failed.");
             }
 
-            public static void NotifierCloseFailed(INotifier notifier, Exception exception, Stopwatch stopwatch)
+            public static void SinkRemoveFailed(Exception exception)
             {
-                string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(NotifierCloseFailed), Source, m => m("Notifier close failed."), exception, notifier.IotHubName, string.Empty, latencyMs);
+                Log.LogWarning((int)EventIds.SinkRemoveFailed, exception, "[SinkRemoveFailed] Sink removal failed while processing hub deletion.");
+            }
+
+            public static void NotifierCloseFailed(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.NotifierCloseFailed, exception, "[NotifierCloseFailed] Notifier close failed.");
             }
         }
     }

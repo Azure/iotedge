@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
 
     public class TwinChangeIncludes : Builtin
     {
@@ -69,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             {
                 message.SystemProperties.TryGetValue(SystemProperties.DeviceId, out deviceId);
 
-                var queryValue = message.GetQueryValue(queryString);
+                QueryValue queryValue = message.GetQueryValue(queryString);
 
                 if (queryValue == QueryValue.Null)
                 {
@@ -93,15 +94,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         static class Events
         {
-            const string Source = nameof(TwinChangeIncludes);
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<TwinChangeIncludes>();
+            const int IdStart = Routing.EventIds.TwinChangeIncludes;
+
+            enum EventIds
+            {
+                RuntimeError = IdStart,
+            }
 
             public static void RuntimeError(Route route, IMessage message, string deviceId, Exception ex)
             {
-                //Routing.Log.Warning("TwinChangeIncludesRuntimeError", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "RouteId: '{0}', Condition: '{1}'", route.Id, route.Condition),
-                //    ex, route.IotHubName, deviceId);
-
-                //Routing.UserAnalyticsLogger.LogRouteEvaluationError(message, route, ex);
+                Log.LogWarning((int)EventIds.RuntimeError, ex, "[RuntimeError] RouteId: '{0}', Condition: '{1}' DeviceId: '{2}'", route.Id, route.Condition, deviceId);
+                Routing.UserAnalyticsLogger.LogRouteEvaluationError(message, route, ex);
             }
         }
     }

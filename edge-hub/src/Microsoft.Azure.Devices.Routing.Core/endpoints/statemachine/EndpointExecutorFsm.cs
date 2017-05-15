@@ -13,8 +13,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
     using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
 
     public class EndpointExecutorFsm : IDisposable
@@ -101,7 +102,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             { State.Sending,            new StateActions(EnterSendingAsync,           StateActions.NullAction) },
             { State.Checkpointing,      new StateActions(EnterCheckpointingAsync,     StateActions.NullAction) },
             { State.Failing,            new StateActions(EnterFailingAsync,           ExitFailingAsync) },
-            { State.DeadCheckpointing,  new StateActions(EnterDeadCheckpointingAsync, ExitDeadCheckpointingAsync) },            
+            { State.DeadCheckpointing,  new StateActions(EnterDeadCheckpointingAsync, ExitDeadCheckpointingAsync) },
             { State.DeadIdle,           new StateActions(StateActions.NullAction,     StateActions.NullAction) },
             { State.DeadProcess,        new StateActions(EnterProcessDeadAsync,       StateActions.NullAction) },
             { State.Closed,             new StateActions(EnterClosedAsync,            StateActions.NullAction) }
@@ -134,8 +135,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             { new StateCommandPair(State.Failing, CommandType.Close), new StateTransition(State.Closed) },
 
             // Idle Dead
-            { new StateCommandPair(State.DeadIdle, CommandType.SendMessage), new StateTransition(State.DeadProcess, PrepareForSendAsync) },            
-            { new StateCommandPair(State.DeadIdle, CommandType.UpdateEndpoint), new StateTransition(State.Idle, UpdateEndpointAsync) },            
+            { new StateCommandPair(State.DeadIdle, CommandType.SendMessage), new StateTransition(State.DeadProcess, PrepareForSendAsync) },
+            { new StateCommandPair(State.DeadIdle, CommandType.UpdateEndpoint), new StateTransition(State.Idle, UpdateEndpointAsync) },
             { new StateCommandPair(State.DeadIdle, CommandType.Close), new StateTransition(State.Closed) },
 
             // ProcessDead
@@ -225,7 +226,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             Preconditions.CheckArgument(command is UpdateEndpoint);
             thisPtr.retryAttempts = 0;
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.UpdateEndpoint(thisPtr);
 
             try
@@ -233,11 +233,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 var update = (UpdateEndpoint)command;
                 await thisPtr.processor.CloseAsync(CancellationToken.None);
                 thisPtr.processor = update.Endpoint.CreateProcessor();
-                Events.UpdateEndpointSuccess(thisPtr, stopwatch);
+                Events.UpdateEndpointSuccess(thisPtr);
             }
             catch (Exception ex)
             {
-                Events.UpdateEndpointFailure(thisPtr, ex, stopwatch);
+                Events.UpdateEndpointFailure(thisPtr, ex);
 
                 // TODO(manusr): If this throws, it will break the state machine
                 throw;
@@ -364,7 +364,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         static async Task EnterDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
         {
             ICommand next;
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
@@ -373,24 +372,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
                     Events.Checkpoint(thisPtr, result);
                     await thisPtr.Checkpointer.CommitAsync(result.Succeeded, EmptyMessages, thisPtr.lastFailedRevivalTime, thisPtr.unhealthySince, cts.Token);
-                    Events.CheckpointSuccess(thisPtr, result, stopwatch);
+                    Events.CheckpointSuccess(thisPtr, result);
                 }
 
                 next = Commands.DeadSucceed;
-                Events.DeadSuccess(thisPtr, thisPtr.currentCheckpointCommand.Result.Succeeded, stopwatch);
+                Events.DeadSuccess(thisPtr, thisPtr.currentCheckpointCommand.Result.Succeeded);
             }
             catch (Exception ex)
             {
-                Events.CheckpointFailure(thisPtr, ex, stopwatch);
-                if (thisPtr.config.ThrowOnDead)
-                {
-                    next = Commands.Throw(ex);
-                }
-                else
-                {
-                    // We wont retry to checkpoint again and hence succeed in this case too
-                    next = Commands.DeadSucceed;
-                }
+                Events.CheckpointFailure(thisPtr, ex);
+                next = thisPtr.config.ThrowOnDead
+                    ? (ICommand)Commands.Throw(ex)
+                    : Commands.DeadSucceed;
             }
 
             await RunInternalAsync(thisPtr, next);
@@ -399,7 +392,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         static async Task EnterCheckpointingAsync(EndpointExecutorFsm thisPtr)
         {
             ICommand next;
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
@@ -416,7 +408,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
                         Events.Checkpoint(thisPtr, result);
                         await thisPtr.Checkpointer.CommitAsync(toCheckpoint, remaining, Option.None<DateTime>(), thisPtr.unhealthySince, cts.Token);
-                        Events.CheckpointSuccess(thisPtr, result, stopwatch);
+                        Events.CheckpointSuccess(thisPtr, result);
                     }
                 }
 
@@ -424,15 +416,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             }
             catch (Exception ex)
             {
-                Events.CheckpointFailure(thisPtr, ex, stopwatch);
-                if (thisPtr.config.ThrowOnDead)
-                {
-                    next = Commands.Throw(ex);
-                }
-                else
-                {
-                    next = EnterCheckpointingHelper(thisPtr);
-                }
+                Events.CheckpointFailure(thisPtr, ex);
+                next = thisPtr.config.ThrowOnDead
+                    ? Commands.Throw(ex)
+                    : EnterCheckpointingHelper(thisPtr);
             }
             await RunInternalAsync(thisPtr, next);
         }
@@ -491,7 +478,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         {
             Preconditions.CheckArgument(thisPtr.lastFailedRevivalTime.HasValue);
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
             TimeSpan deadFor = DateTime.UtcNow - thisPtr.lastFailedRevivalTime.GetOrElse(DateTime.UtcNow);
 
             if (deadFor >= thisPtr.config.RevivePeriod)
@@ -512,7 +498,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 }
                 catch (Exception ex)
                 {
-                    Events.DeadFailure(thisPtr, ex, stopwatch);
+                    Events.DeadFailure(thisPtr, ex);
                 }
             }
         }
@@ -556,287 +542,245 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
         static class Events
         {
-            const string Source = nameof(EndpointExecutorFsm);
-            const string DeviceId = null;
             const string DateTimeFormat = "o";
             const string TimeSpanFormat = "c";
+            const int IdStart = Routing.EventIds.EndpointExecutorFsm;
 
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<EndpointExecutorFsm>();
+
+            enum EventIds
+            {
+                StateEnter = IdStart,
+                StateExit,
+                StateTransition,
+                Send,
+                SendSuccess,
+                SendFailureUnhandledException,
+                SendFailure,
+                SendNone,
+                CounterFailure,
+                Checkpoint,
+                CheckpointSuccess,
+                CheckpointFailure,
+                Retry,
+                RetryDelay,
+                RetryFailed,
+                Dead,
+                DeadSuccess,
+                DeadFailure,
+                Die,
+                PrepareForRevive,
+                Revived,
+                UpdateEndpoint,
+                UpdateEndpointSuccess,
+                UpdateEndpointFailure,
+            }
 
             public static void StateEnter(EndpointExecutorFsm fsm)
             {
-                //Log.Verbose(nameof(StateEnter), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Entered state <{0}>. {1}", fsm.state, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogTrace((int)EventIds.StateEnter, "[StateEnter] Entered state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
             public static void StateExit(EndpointExecutorFsm fsm)
             {
-                //Log.Verbose(nameof(StateExit), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Exited state <{0}>. {1}", fsm.state, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogTrace((int)EventIds.StateExit, "[StateExit] Exited state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
             public static void StateTransition(EndpointExecutorFsm fsm, State from, State to)
             {
-                //Log.Verbose(nameof(StateTransition), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogTrace((int)EventIds.StateTransition, "[StateTransition] Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm));
             }
 
             public static void Send(EndpointExecutorFsm fsm, ICollection<IMessage> messages, ICollection<IMessage> admitted)
             {
-                //Log.Informational(nameof(Send), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, {3}",
-                //        messages.Count, admitted.Count, admitted.Max(m => m.Offset), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.Send, "[Send Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, {3}",
+                    messages.Count, admitted.Count, admitted.Max(m => m.Offset), GetContextString(fsm));
             }
 
             public static void SendSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> admitted, ISinkResult<IMessage> result, Stopwatch stopwatch)
             {
                 long latencyInMs = stopwatch.ElapsedMilliseconds;
 
-                string error;
-                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName,
-                    fsm.Endpoint.Name,
-                    fsm.Endpoint.Type,
-                    true,
-                    latencyInMs,
-                    out error))
+                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, true, latencyInMs, out string error))
                 {
-                    //Log.Error("LogExternalWriteLatencyCounterFailed", Source, error);
+                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
                 }
 
-                //Log.Informational(nameof(SendSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, {4}",
-                //        admitted.Count, result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId, latencyInMs.ToString(CultureInfo.InvariantCulture));
+                Log.LogDebug((int)EventIds.SendSuccess, "[SendSuccess] Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, {4}",
+                    admitted.Count, result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm));
             }
 
-            public static void SendFailureUnhandledException(EndpointExecutorFsm fsm, ICollection<IMessage> messages, Stopwatch stopwatch, Exception unhandledException)
+            public static void SendFailureUnhandledException(EndpointExecutorFsm fsm, ICollection<IMessage> messages, Stopwatch stopwatch, Exception exception)
             {
-                //long latencyInMs = stopwatch.ElapsedMilliseconds;
+                long latencyInMs = stopwatch.ElapsedMilliseconds;
 
-                //string error;
-                //if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName,
-                //    fsm.Endpoint.Name,
-                //    fsm.Endpoint.Type,
-                //    false,
-                //    latencyInMs,
-                //    out error))
-                //{
-                //    Log.Error("LogExternalWriteLatencyCounterFailed", Source, error);
-                //}
+                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, false, latencyInMs, out string error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
+                }
 
-                //Log.Error(nameof(SendFailureUnhandledException), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Unhandled exception.  FailedSize: {0}, {1}", messages.Count, GetContextString(fsm)),
-                //    unhandledException, fsm.Endpoint.IotHubName, DeviceId, latencyInMs.ToString(CultureInfo.InvariantCulture));
-
-                //LogUnhealthyEndpointOpMonError(fsm, FailureKind.InternalError);
+                Log.LogError((int)EventIds.SendFailureUnhandledException, exception, "[SendFailureUnhandledException] Unhandled exception.  FailedSize: {0}, {1}", messages.Count, GetContextString(fsm));
+                LogUnhealthyEndpointOpMonError(fsm, FailureKind.InternalError);
             }
 
             public static void SendFailure(EndpointExecutorFsm fsm, ISinkResult<IMessage> result, Stopwatch stopwatch)
             {
-                //long latencyInMs = stopwatch.ElapsedMilliseconds;
+                long latencyInMs = stopwatch.ElapsedMilliseconds;
 
-                //string error;
-                //if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName,
-                //    fsm.Endpoint.Name,
-                //    fsm.Endpoint.Type,
-                //    false,
-                //    latencyInMs,
-                //    out error))
-                //{
-                //    Log.Error("LogExternalWriteLatencyCounterFailed", Source, error);
-                //}
+                if (!Routing.PerfCounter.LogExternalWriteLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, false, latencyInMs, out string error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
+                }
 
-                //SendFailureDetails failureDetails = result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails);
+                SendFailureDetails failureDetails = result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails);
 
-                //foreach (InvalidDetails<IMessage> invalidDetails in result.InvalidDetailsList)
-                //{
-                //    Routing.UserAnalyticsLogger.LogInvalidMessage(fsm.Endpoint.IotHubName, invalidDetails.Item, invalidDetails.FailureKind);
-                //}
+                foreach (InvalidDetails<IMessage> invalidDetails in result.InvalidDetailsList)
+                {
+                    Routing.UserAnalyticsLogger.LogInvalidMessage(fsm.Endpoint.IotHubName, invalidDetails.Item, invalidDetails.FailureKind);
+                }
 
-                //Log.Warning(nameof(SendFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Sending failed. SuccessfulSize: {0}, FailedSize: {1}, InvalidSize: {2}, {3}",
-                //        result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm)),
-                //    failureDetails.RawException, fsm.Endpoint.IotHubName, DeviceId, latencyInMs.ToString(CultureInfo.InvariantCulture));
+                Log.LogWarning((int)EventIds.SendFailure, failureDetails.RawException, "[SendFailure] Sending failed. SuccessfulSize: {0}, FailedSize: {1}, InvalidSize: {2}, {3}",
+                    result.Succeeded.Count, result.Failed.Count, result.InvalidDetailsList.Count, GetContextString(fsm));
 
-                //LogUnhealthyEndpointOpMonError(fsm, failureDetails.FailureKind);
+                LogUnhealthyEndpointOpMonError(fsm, failureDetails.FailureKind);
             }
 
             public static void SendNone(EndpointExecutorFsm fsm)
             {
-                //Log.Informational(nameof(SendNone), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Admitted no messages. {0}", GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.SendNone, "[SendNone] Admitted no messages. {0}", GetContextString(fsm));
             }
 
             public static void Checkpoint(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
             {
-                //Log.Informational(nameof(Checkpoint), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Checkpointing began. CheckpointOffset: {0}, SuccessfulSize: {1}, RemainingSize: {2}, {3}",
-                //        fsm.Status.CheckpointerStatus.Offset, result.Succeeded.Count + result.InvalidDetailsList.Count, result.Failed.Count, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.Checkpoint, "[Checkpoint] Checkpointing began. CheckpointOffset: {0}, SuccessfulSize: {1}, RemainingSize: {2}, {3}",
+                    fsm.Status.CheckpointerStatus.Offset, result.Succeeded.Count + result.InvalidDetailsList.Count, result.Failed.Count, GetContextString(fsm));
             }
 
-            public static void CheckpointSuccess(EndpointExecutorFsm fsm, ISinkResult<IMessage> result, Stopwatch stopwatch)
+            public static void CheckpointSuccess(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
             {
-                //Log.Informational(nameof(CheckpointSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Checkpointing succeeded. CheckpointOffset: {0}, {1}", fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.CheckpointSuccess, "[CheckpointSuccess] Checkpointing succeeded. CheckpointOffset: {0}, {1}",
+                    fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
 
-                //IList<IMessage> invalidMessages = result.InvalidDetailsList.Select(d => d.Item).ToList();
+                IList<IMessage> invalidMessages = result.InvalidDetailsList.Select(d => d.Item).ToList();
 
-                //SetProcessingInternalCounters(fsm, "Success", result.Succeeded);
-                //SetProcessingInternalCounters(fsm, "Failure", result.Failed);
-                //SetProcessingInternalCounters(fsm, "Invalid", invalidMessages);
+                SetProcessingInternalCounters(fsm, "Success", result.Succeeded);
+                SetProcessingInternalCounters(fsm, "Failure", result.Failed);
+                SetProcessingInternalCounters(fsm, "Invalid", invalidMessages);
 
-                //SetSuccessfulEgressUserMetricCounter(fsm, result.Succeeded);
-                //SetInvalidEgressUserMetricCounter(fsm, invalidMessages);
+                SetSuccessfulEgressUserMetricCounter(fsm, result.Succeeded);
+                SetInvalidEgressUserMetricCounter(fsm, invalidMessages);
             }
 
-            public static void CheckpointFailure(EndpointExecutorFsm fsm, Exception ex, Stopwatch stopwatch)
+            public static void CheckpointFailure(EndpointExecutorFsm fsm, Exception ex)
             {
-                //Log.Error(nameof(CheckpointFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Checkpointing failed. CheckpointOffset: {0}, {1}", fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm)),
-                //    ex, fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.CheckpointFailure, ex, "[CheckpointFailure] Checkpointing failed. CheckpointOffset: {0}, {1}",
+                    fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
             }
 
             public static void Retry(EndpointExecutorFsm fsm)
             {
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+                DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
-                //Log.Informational(nameof(Retry), Source,
-                //    string.Format(culture, "Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
-                //        fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat, culture), next.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.Retry, "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
             }
 
             public static void RetryDelay(EndpointExecutorFsm fsm)
             {
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+                DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
-                //Log.Informational(nameof(RetryDelay), Source,
-                //    string.Format(culture, "Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
-                //        fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat, culture), next.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.RetryDelay, "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
             }
 
             public static void RetryFailed(EndpointExecutorFsm fsm, Exception exception)
             {
-                //Log.Error(nameof(RetryFailed), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Failed to retry. {0}", GetContextString(fsm)),
-                //    exception, fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogError((int)EventIds.RetryFailed, exception, "[RetryFailed] Failed to retry. {0}", GetContextString(fsm));
             }
 
             public static void Dead(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
             {
-                //Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
-
-                //Log.Warning(nameof(Dead), Source,
-                //    string.Format(culture, "Dropping {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
-                //        messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogWarning((int)EventIds.Dead, "[Dead] Dropping {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
+                    messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat), reviveAt.ToString(DateTimeFormat), GetContextString(fsm));
             }
 
-            public static void DeadSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> messages, Stopwatch stopwatch)
+            public static void DeadSuccess(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
             {
-                //Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
 
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
-                //Log.Warning(nameof(DeadSuccess), Source,
-                //    string.Format(culture, "Dropped {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
-                //        messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(culture));
+                Log.LogWarning((int)EventIds.DeadSuccess, "[DeadSuccess] Dropped {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
+                    messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture),
+                    GetContextString(fsm));
 
-                //SetProcessingInternalCounters(fsm, "Dropped", messages);
-                //SetDroppedEgressUserMetricCounter(fsm, messages);
+                SetProcessingInternalCounters(fsm, "Dropped", messages);
+                SetDroppedEgressUserMetricCounter(fsm, messages);
 
-                //var failureKind = FailureKind.InternalError;
-                //if (fsm.currentCheckpointCommand?.Result?.SendFailureDetails != null)
-                //{
-                //    failureKind = fsm.currentCheckpointCommand.Result.SendFailureDetails.GetOrElse(DefaultFailureDetails).FailureKind;
-                //}
+                FailureKind failureKind = fsm.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(DefaultFailureDetails).FailureKind ?? FailureKind.InternalError;
 
-                //foreach (IMessage message in messages)
-                //{
-                //    Routing.UserAnalyticsLogger.LogDroppedMessage(fsm.Endpoint.IotHubName, message, fsm.Endpoint.Name, failureKind);
-                //}
+                foreach (IMessage message in messages)
+                {
+                    Routing.UserAnalyticsLogger.LogDroppedMessage(fsm.Endpoint.IotHubName, message, fsm.Endpoint.Name, failureKind);
+                }
             }
 
-            public static void DeadFailure(EndpointExecutorFsm fsm, Exception ex, Stopwatch stopwatch)
+            public static void DeadFailure(EndpointExecutorFsm fsm, Exception ex)
             {
-                //Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
 
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
-                //Log.Error(nameof(DeadFailure), Source,
-                //    string.Format(culture, "Dropping messages failed. LastFailedRevivalTime: {0}, UnhealthySince: {1}, DeadTime:{2}, ReviveAt: {3}, {4}",
-                //        fsm.Status.LastFailedRevivalTime.ToString(), fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    ex, fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(culture));
+                Log.LogError((int)EventIds.DeadFailure, ex, "[DeadFailure] Dropping messages failed. LastFailedRevivalTime: {0}, UnhealthySince: {1}, DeadTime:{2}, ReviveAt: {3}, {4}",
+                    fsm.Status.LastFailedRevivalTime.ToString(), fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture),
+                    GetContextString(fsm));
             }
 
             public static void Die(EndpointExecutorFsm fsm)
             {
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //Log.Informational(nameof(Die), Source,
-                //    string.Format(culture, "Endpoint died. {0}", GetContextString(fsm)),
-                //    null, fsm.Endpoint.IotHubName, DeviceId, null);
-
-                //Routing.UserAnalyticsLogger.LogDeadEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
+                Log.LogInformation((int)EventIds.Die, "[Die] Endpoint died. {0}", GetContextString(fsm));
+                Routing.UserAnalyticsLogger.LogDeadEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
             }
 
             public static void PrepareForRevive(EndpointExecutorFsm fsm)
             {
-                //Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-                //DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
+                CultureInfo culture = CultureInfo.InvariantCulture;
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
-                //Log.Informational(nameof(PrepareForRevive), Source,
-                //    string.Format(culture, "Attempting to bring endpoint back. LastFailedRevivalTime: {0}, UnhealthySince: {1},  ReviveAt: {2}, {3}",
-                //        fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture), reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.PrepareForRevive, "[PrepareForRevive] Attempting to bring endpoint back. LastFailedRevivalTime: {0}, UnhealthySince: {1},  ReviveAt: {2}, {3}",
+                    fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    fsm.Status.UnhealthySince.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
+                    reviveAt.ToString(DateTimeFormat, culture), GetContextString(fsm));
             }
 
             public static void Revived(EndpointExecutorFsm fsm)
             {
-                //CultureInfo culture = CultureInfo.InvariantCulture;
-
-                //Log.Informational(nameof(PrepareForRevive), Source,
-                //    string.Format(culture, "Endpoint revived, {0}", GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
-
-                //Routing.UserAnalyticsLogger.LogHealthyEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
+                Log.LogInformation((int)EventIds.Revived, "[Revived] Endpoint revived, {0}", GetContextString(fsm));
+                Routing.UserAnalyticsLogger.LogHealthyEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name);
             }
 
             public static void UpdateEndpoint(EndpointExecutorFsm fsm)
             {
-                //Log.Informational(nameof(UpdateEndpoint), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Updating endpoint began. {0}", GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.UpdateEndpoint, "[UpdateEndpoint] Updating endpoint began. {0}", GetContextString(fsm));
             }
 
-            public static void UpdateEndpointSuccess(EndpointExecutorFsm fsm, Stopwatch stopwatch)
+            public static void UpdateEndpointSuccess(EndpointExecutorFsm fsm)
             {
-                //Log.Informational(nameof(UpdateEndpointSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Updating endpoint succeeded. {0}", GetContextString(fsm)),
-                //    fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.UpdateEndpointSuccess, "[UpdateEndpointSuccess] Updating endpoint succeeded. {0}", GetContextString(fsm));
             }
 
-            public static void UpdateEndpointFailure(EndpointExecutorFsm fsm, Exception ex, Stopwatch stopwatch)
+            public static void UpdateEndpointFailure(EndpointExecutorFsm fsm, Exception ex)
             {
-                //Log.Error(nameof(UpdateEndpointFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Updating endpoint failed. {0}", GetContextString(fsm)),
-                //    ex, fsm.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.UpdateEndpointFailure, ex, "[UpdateEndpointFailure] Updating endpoint failed. {0}", GetContextString(fsm));
             }
 
             static void LogUnhealthyEndpointOpMonError(EndpointExecutorFsm fsm, FailureKind failureKind)
@@ -856,39 +800,31 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             static void SetProcessingInternalCounters(EndpointExecutorFsm fsm, string status, ICollection<IMessage> messages)
             {
-                //if (!messages.Any())
-                //{
-                //    return;
-                //}
+                if (!messages.Any())
+                {
+                    return;
+                }
 
-                //string error;
-                //if (!Routing.PerfCounter.LogEventsProcessed(
-                //    fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status,
-                //    messages.Count, out error))
-                //{
-                //    Log.Error("LogEventsProcessedCounterFailed", Source, error);
-                //}
+                if (!Routing.PerfCounter.LogEventsProcessed(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status, messages.Count, out string error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogEventsProcessedCounterFailed] {0}", error);
+                }
 
-                //TimeSpan totalTime = messages.Select(m => m.DequeuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
-                //long averageLatencyInMs = totalTime < TimeSpan.Zero ? 0L : (long)(totalTime.TotalMilliseconds / messages.Count);
+                TimeSpan totalTime = messages.Select(m => m.DequeuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
+                long averageLatencyInMs = totalTime < TimeSpan.Zero ? 0L : (long)(totalTime.TotalMilliseconds / messages.Count);
 
-                //if (!Routing.PerfCounter.LogEventProcessingLatency(
-                //    fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status,
-                //    averageLatencyInMs, out error))
-                //{
-                //    Log.Error("LogEventProcessingLatencyCounterFailed", Source, error);
-                //}
+                if (!Routing.PerfCounter.LogEventProcessingLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status, averageLatencyInMs, out error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogEventProcessingLatencyCounterFailed] {0}", error);
+                }
 
-                //TimeSpan messageE2EProcessingLatencyTotal = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
-                //long averageE2ELatencyInMs = messageE2EProcessingLatencyTotal < TimeSpan.Zero ? 0L : (long)(messageE2EProcessingLatencyTotal.TotalMilliseconds / messages.Count);
+                TimeSpan messageE2EProcessingLatencyTotal = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
+                long averageE2ELatencyInMs = messageE2EProcessingLatencyTotal < TimeSpan.Zero ? 0L : (long)(messageE2EProcessingLatencyTotal.TotalMilliseconds / messages.Count);
 
-                //if (!Routing.PerfCounter.LogE2EEventProcessingLatency(
-                //    fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status,
-                //    averageE2ELatencyInMs,
-                //    out error))
-                //{
-                //    Log.Error("LogE2EEventProcessingLatencyCounterFailed", Source, error);
-                //}
+                if (!Routing.PerfCounter.LogE2EEventProcessingLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status, averageE2ELatencyInMs, out error))
+                {
+                    Log.LogError((int)EventIds.CounterFailure, "[LogE2EEventProcessingLatencyCounterFailed] {0}", error);
+                }
             }
 
             static void SetSuccessfulEgressUserMetricCounter(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
@@ -898,7 +834,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     return;
                 }
 
-                foreach (var group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
                 {
                     Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Success, group.Key);
                 }
@@ -912,7 +848,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             static void SetInvalidEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
             {
-                foreach (var group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
                 {
                     Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, group.Key);
                 }
@@ -920,7 +856,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             static void SetDroppedEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
             {
-                foreach (var group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
                 {
                     Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, group.Key);
                 }

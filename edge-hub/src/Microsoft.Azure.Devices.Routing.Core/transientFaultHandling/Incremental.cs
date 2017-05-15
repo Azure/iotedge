@@ -23,16 +23,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
     /// </summary>
     public class Incremental : RetryStrategy
     {
-        private readonly int retryCount;
-
-        private readonly TimeSpan initialInterval;
-
-        private readonly TimeSpan increment;
+        readonly int retryCount;
+        readonly TimeSpan initialInterval;
+        readonly TimeSpan increment;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.Incremental" /> class. 
         /// </summary>
-        public Incremental() : this(RetryStrategy.DefaultClientRetryCount, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement)
+        public Incremental() : this(DefaultClientRetryCount, DefaultRetryInterval, DefaultRetryIncrement)
         {
         }
 
@@ -53,7 +51,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
-        public Incremental(string name, int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(name, retryCount, initialInterval, increment, RetryStrategy.DefaultFirstFastRetry)
+        public Incremental(string name, int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(name, retryCount, initialInterval, increment, DefaultFirstFastRetry)
         {
         }
 

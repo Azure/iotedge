@@ -60,6 +60,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             }
 
             return Bool.Undefined;
-        } 
+        }
     }
 }

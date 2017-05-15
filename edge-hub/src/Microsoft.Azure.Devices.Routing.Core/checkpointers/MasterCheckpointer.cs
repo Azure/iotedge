@@ -8,12 +8,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics;
-    using System.Globalization;
+    using static System.FormattableString;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
     using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
 
     public class MasterCheckpointer : ICheckpointer, ICheckpointerFactory
@@ -291,68 +292,70 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         static class Events
         {
-            const string Source = nameof(MasterCheckpointer);
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<MasterCheckpointer>();
+            const int IdStart = Routing.EventIds.MasterCheckpointer;
+
+            enum EventIds
+            {
+                CreateStart = IdStart,
+                CreateFinished,
+                CreateChildStart,
+                CreateChildFinished,
+                ProposeFailed,
+                Admit,
+                CommitStarted,
+                CommitFinished,
+                Close,
+            }
 
             public static void CreateStart(string id)
             {
-                //Log.Informational("MasterCheckpointerCreateStart", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "MasterCheckpointerId: {0}", id));
+                Log.LogDebug((int)EventIds.CreateStart, "[MasterCheckpointerCreateStart] MasterCheckpointerId: {0}", id);
             }
 
             public static void CreateFinished(MasterCheckpointer masterCheckpointer)
             {
-                //Log.Informational("MasterCheckpointerCreateFinished", Source,
-                //    GetContextString(masterCheckpointer));
+                Log.LogDebug((int)EventIds.CreateFinished, "[MasterCheckpointerCreateFinished] {0}", GetContextString(masterCheckpointer));
             }
 
             public static void CreateChildStart(MasterCheckpointer masterCheckpointer, string id)
             {
-                //Log.Informational("ChildCheckpointerCreateStart", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer)));
+                Log.LogDebug((int)EventIds.CreateChildStart, "[ChildCheckpointerCreateStart] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
             }
 
             public static void CreateChildFinished(MasterCheckpointer masterCheckpointer, string id)
             {
-                //Log.Informational("ChildCheckpointerCreateFinished", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer)));
+                Log.LogDebug((int)EventIds.CreateChildFinished, "[ChildCheckpointerCreateFinished] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
             }
 
             public static void ProposeFailed(MasterCheckpointer masterCheckpointer, string id, Exception exception)
             {
-                //Log.Error("ChildCheckpointerProposeFailed", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "ChildCheckpointId: {0}, {1}", id, GetContextString(masterCheckpointer)),
-                //    exception);
+                Log.LogError((int)EventIds.ProposeFailed, exception, "[ChildCheckpointerProposeFailed] ChildCheckpointId: {0}, {1}", id, GetContextString(masterCheckpointer));
             }
 
             public static void Admit(MasterCheckpointer masterCheckpointer, long messageOffset, bool isClosed)
             {
-                //Log.Informational("MasterCheckpointerAdmit", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "MessageOffset: {0}, IsClosed: {1}, {2}", messageOffset, isClosed, GetContextString(masterCheckpointer)));
+                Log.LogDebug((int)EventIds.Admit, "[MasterCheckpointerAdmit] jMessageOffset: {0}, IsClosed: {1}, {2}", messageOffset, isClosed, GetContextString(masterCheckpointer));
             }
 
             public static void CommitStarted(MasterCheckpointer masterCheckpointer, int successfulCount, int remainingCount)
             {
-                //Log.Informational("MasterCheckpointerCommitStarted", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer)));
+                Log.LogDebug((int)EventIds.CommitStarted, "[MasterCheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer));
             }
 
             public static void CommitFinished(MasterCheckpointer masterCheckpointer)
             {
-                //Log.Informational("MasterCheckpointerCommitFinished", Source,
-                //    GetContextString(masterCheckpointer));
+                Log.LogDebug((int)EventIds.CommitFinished, "[MasterCheckpointerCommitFinished] {0}", GetContextString(masterCheckpointer));
             }
 
             public static void Close(MasterCheckpointer masterCheckpointer)
             {
-                //Log.Informational("MasterCheckpointerClose", Source,
-                //    GetContextString(masterCheckpointer));
+                Log.LogInformation((int)EventIds.Close, "[MasterCheckpointerClose] {0}", GetContextString(masterCheckpointer));
             }
 
             static string GetContextString(MasterCheckpointer masterCheckpointer)
             {
-                return string.Format(CultureInfo.InvariantCulture, "MasterCheckpointerId: {0}, MasterCheckpointerOffset: {1}, ChildCheckpointersCount: {2}",
-                    masterCheckpointer.Id, masterCheckpointer.Offset, masterCheckpointer.ChildCheckpointers.Count);
+                return Invariant($"MasterCheckpointerId: {masterCheckpointer.Id}, MasterCheckpointerOffset: {masterCheckpointer.Offset}, ChildCheckpointersCount: {masterCheckpointer.ChildCheckpointers.Count}");
             }
         }
     }

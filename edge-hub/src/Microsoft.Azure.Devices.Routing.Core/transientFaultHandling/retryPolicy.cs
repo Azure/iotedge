@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <summary>
         /// Implements a strategy that ignores any transient errors.
         /// </summary>
-        private sealed class TransientErrorIgnoreStrategy : ITransientErrorDetectionStrategy
+        sealed class TransientErrorIgnoreStrategy : ITransientErrorDetectionStrategy
         {
             /// <summary>
             /// Always returns false.
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <summary>
         /// Implements a strategy that treats all exceptions as transient errors.
         /// </summary>
-        private sealed class TransientErrorCatchAllStrategy : ITransientErrorDetectionStrategy
+        sealed class TransientErrorCatchAllStrategy : ITransientErrorDetectionStrategy
         {
             /// <summary>
             /// Always returns true.
@@ -57,14 +57,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
             }
         }
 
-        private static RetryPolicy noRetry = new RetryPolicy(new RetryPolicy.TransientErrorIgnoreStrategy(), RetryStrategy.NoRetry);
-
-        private static RetryPolicy defaultFixed = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultFixed);
-
-        private static RetryPolicy defaultProgressive = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultProgressive);
-
-        private static RetryPolicy defaultExponential = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultExponential);
-
         /// <summary>
         /// An instance of a callback delegate that will be invoked whenever a retry condition is encountered.
         /// </summary>
@@ -73,49 +65,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <summary>
         /// Returns a default policy that performs no retries, but invokes the action only once.
         /// </summary>
-        public static RetryPolicy NoRetry
-        {
-            get
-            {
-                return RetryPolicy.noRetry;
-            }
-        }
+        public static RetryPolicy NoRetry { get; } = new RetryPolicy(new RetryPolicy.TransientErrorIgnoreStrategy(), RetryStrategy.NoRetry);
 
         /// <summary>
         /// Returns a default policy that implements a fixed retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
-        public static RetryPolicy DefaultFixed
-        {
-            get
-            {
-                return RetryPolicy.defaultFixed;
-            }
-        }
+        public static RetryPolicy DefaultFixed { get; } = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultFixed);
 
         /// <summary>
         /// Returns a default policy that implements a progressive retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.Incremental" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
-        public static RetryPolicy DefaultProgressive
-        {
-            get
-            {
-                return RetryPolicy.defaultProgressive;
-            }
-        }
+        public static RetryPolicy DefaultProgressive { get; } = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultProgressive);
 
         /// <summary>
         /// Returns a default policy that implements a random exponential retry interval configured with the default <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
-        public static RetryPolicy DefaultExponential
-        {
-            get
-            {
-                return RetryPolicy.defaultExponential;
-            }
-        }
+        public static RetryPolicy DefaultExponential { get; } = new RetryPolicy(new RetryPolicy.TransientErrorCatchAllStrategy(), RetryStrategy.DefaultExponential);
 
         /// <summary>
         /// Gets the retry strategy.
@@ -123,7 +91,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         public RetryStrategy RetryStrategy
         {
             get;
-            private set;
         }
 
         /// <summary>
@@ -132,7 +99,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         public ITransientErrorDetectionStrategy ErrorDetectionStrategy
         {
             get;
-            private set;
         }
 
         /// <summary>
@@ -218,12 +184,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         {
             Guard.ArgumentNotNull(func, "func");
             int num = 0;
-            TimeSpan zero = TimeSpan.Zero;
             ShouldRetry shouldRetry = this.RetryStrategy.GetShouldRetry();
             TResult result;
             while (true)
             {
-                Exception ex = null;
+                Exception ex;
+                TimeSpan zero;
                 try
                 {
                     result = func();
@@ -289,7 +255,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         {
             if (taskAction == null)
             {
-                throw new ArgumentNullException("taskAction");
+                throw new ArgumentNullException(nameof(taskAction));
             }
             return new AsyncExecution(taskAction, this.RetryStrategy.GetShouldRetry(), new Func<Exception, bool>(this.ErrorDetectionStrategy.IsTransient), new Action<int, Exception, TimeSpan>(this.OnRetrying), this.RetryStrategy.FastFirstRetry, cancellationToken).ExecuteAsync();
         }
@@ -305,7 +271,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// </returns>
         public Task<TResult> ExecuteAsync<TResult>(Func<Task<TResult>> taskFunc)
         {
-            return this.ExecuteAsync<TResult>(taskFunc, default(CancellationToken));
+            return this.ExecuteAsync(taskFunc, default(CancellationToken));
         }
 
         /// <summary>
@@ -322,7 +288,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         {
             if (taskFunc == null)
             {
-                throw new ArgumentNullException("taskFunc");
+                throw new ArgumentNullException(nameof(taskFunc));
             }
             return new AsyncExecution<TResult>(taskFunc, this.RetryStrategy.GetShouldRetry(), new Func<Exception, bool>(this.ErrorDetectionStrategy.IsTransient), new Action<int, Exception, TimeSpan>(this.OnRetrying), this.RetryStrategy.FastFirstRetry, cancellationToken).ExecuteAsync();
         }
@@ -335,10 +301,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <param name="delay">The delay that indicates how long the current thread will be suspended before the next iteration is invoked.</param>
         protected virtual void OnRetrying(int retryCount, Exception lastError, TimeSpan delay)
         {
-            if (this.Retrying != null)
-            {
-                this.Retrying(this, new RetryingEventArgs(retryCount, delay, lastError));
-            }
+            this.Retrying?.Invoke(this, new RetryingEventArgs(retryCount, delay, lastError));
         }
     }
 }

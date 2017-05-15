@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> class. 
         /// </summary>
-        public FixedInterval() : this(RetryStrategy.DefaultClientRetryCount)
+        public FixedInterval() : this(DefaultClientRetryCount)
         {
         }
 
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling.FixedInterval" /> class with the specified number of retry attempts. 
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
-        public FixedInterval(int retryCount) : this(retryCount, RetryStrategy.DefaultRetryInterval)
+        public FixedInterval(int retryCount) : this(retryCount, DefaultRetryInterval)
         {
         }
 
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// </summary>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="retryInterval">The time interval between retries.</param>
-        public FixedInterval(int retryCount, TimeSpan retryInterval) : this(null, retryCount, retryInterval, RetryStrategy.DefaultFirstFastRetry)
+        public FixedInterval(int retryCount, TimeSpan retryInterval) : this(null, retryCount, retryInterval, DefaultFirstFastRetry)
         {
         }
 
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <param name="name">The retry strategy name.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="retryInterval">The time interval between retries.</param>
-        public FixedInterval(string name, int retryCount, TimeSpan retryInterval) : this(name, retryCount, retryInterval, RetryStrategy.DefaultFirstFastRetry)
+        public FixedInterval(string name, int retryCount, TimeSpan retryInterval) : this(name, retryCount, retryInterval, DefaultFirstFastRetry)
         {
         }
 

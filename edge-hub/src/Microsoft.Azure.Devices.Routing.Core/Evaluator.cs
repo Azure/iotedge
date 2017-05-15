@@ -7,14 +7,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
-    using System.Globalization;
+    using static System.FormattableString;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class Evaluator
     {
@@ -54,13 +54,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public ISet<Endpoint> Evaluate(IMessage message)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             var endpoints = new HashSet<Endpoint>();
 
             ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
             foreach (CompiledRoute compiledRoute in snapshot.Values.Where(cr => cr.Route.Source == message.MessageSource))
             {
-                if (EvaluateInternal(compiledRoute, message, stopwatch))
+                if (EvaluateInternal(compiledRoute, message))
                 {
                     endpoints.UnionWith(compiledRoute.Route.Endpoints);
                 }
@@ -75,7 +74,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 // Handle fallback case
                 ISet<Endpoint> fallbackEndpoints = this.fallback
-                    .Filter(cr => EvaluateInternal(cr, message, stopwatch))
+                    .Filter(cr => EvaluateInternal(cr, message))
                     .Map(cr => cr.Route.Endpoints)
                     .GetOrElse(NoEndpoints);
 
@@ -88,7 +87,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static bool EvaluateInternal(CompiledRoute compiledRoute, IMessage message, Stopwatch stopwatch)
+        static bool EvaluateInternal(CompiledRoute compiledRoute, IMessage message)
         {
             try
             {
@@ -103,7 +102,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
             catch (Exception ex)
             {
-                Events.EvaluateFailure(compiledRoute.Route, ex, stopwatch);
+                Events.EvaluateFailure(compiledRoute.Route, ex);
                 throw;
             }
         }
@@ -140,7 +139,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         CompiledRoute Compile(Route route)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.Compile(route);
 
             try
@@ -148,12 +146,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 // Setting all flags for the compiler assuming this will only be invoked at runtime.
                 Func<IMessage, Bool> evaluate = this.compiler.Compile(route, RouteCompilerFlags.All);
                 var result = new CompiledRoute(route, evaluate);
-                Events.CompileSuccess(route, stopwatch);
+                Events.CompileSuccess(route);
                 return result;
             }
             catch (Exception ex)
             {
-                Events.CompileFailure(route, ex, stopwatch);
+                Events.CompileFailure(route, ex);
                 throw;
             }
         }
@@ -173,32 +171,35 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         static class Events
         {
-            const string Source = nameof(Evaluator);
-            const string DeviceId = "NotAvailable";
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Evaluator>();
+            const int IdStart = Routing.EventIds.Evaluator;
 
-            //static readonly ILog Log = Routing.Log;
+            enum EventIds
+            {
+                Compile = IdStart,
+                CompileSuccess,
+                CompileFailure,
+                EvaluatorFailure,
+            }
 
             public static void Compile(Route route)
             {
-                //Log.Informational(nameof(Compile), Source, GetMessage("Compile began.", route), route.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.Compile, "[Compile] {0}", GetMessage("Compile began.", route));
             }
 
-            public static void CompileSuccess(Route route, Stopwatch stopwatch)
+            public static void CompileSuccess(Route route)
             {
-                //Log.Informational(nameof(CompileSuccess), Source, GetMessage("Compile succeeded.", route),
-                //    route.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.CompileSuccess, "[CompileSuccess] {0}", GetMessage("Compile succeeded.", route));
             }
 
-            public static void CompileFailure(Route route, Exception ex, Stopwatch stopwatch)
+            public static void CompileFailure(Route route, Exception ex)
             {
-                //Log.Error(nameof(CompileFailure), Source, GetMessage("Compile failed.", route),
-                //    ex, route.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.CompileFailure, ex, "[CompileFailure] {0}", GetMessage("Compile failed.", route));
             }
 
-            public static void EvaluateFailure(Route route, Exception ex, Stopwatch stopwatch)
+            public static void EvaluateFailure(Route route, Exception ex)
             {
-                //Log.Error(nameof(EvaluateFailure), Source, GetMessage("Evaluate failed.", route),
-                //    ex, route.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.EvaluatorFailure, ex, "[EvaluateFailure] {0}", GetMessage("Evaluate failed.", route));
             }
 
             public static void EvaluateFallback(Endpoint endpoint)
@@ -208,7 +209,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             static string GetMessage(string message, Route route)
             {
-                return string.Format(CultureInfo.InvariantCulture, "{0} RouteId: \"{1}\" RouteCondition: \"{2}\"", message, route.Id, route.Condition);
+                return Invariant($"{message} RouteId: \"{route.Id}\" RouteCondition: \"{route.Condition}\"");
             }
         }
     }

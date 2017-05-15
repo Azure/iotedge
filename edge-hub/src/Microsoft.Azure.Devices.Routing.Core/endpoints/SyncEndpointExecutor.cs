@@ -6,13 +6,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
     using System.Diagnostics;
-    using System.Globalization;
+    using static System.FormattableString;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
+    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
 
     public class SyncEndpointExecutor : IEndpointExecutor
     {
@@ -50,7 +51,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public async Task Invoke(IMessage message)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.Invoke(this);
 
             try
@@ -70,21 +70,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     await this.machine.RunAsync(command);
                     await command.Completion;
                 }
-                Events.InvokeSuccess(this, stopwatch);
+                Events.InvokeSuccess(this);
             }
             catch (OperationCanceledException) when (this.cts.IsCancellationRequested)
             {
             }
             catch (Exception ex)
             {
-                Events.InvokeFailure(this, ex, stopwatch);
+                Events.InvokeFailure(this, ex);
                 throw;
             }
         }
 
         public async Task SetEndpoint(Endpoint newEndpoint)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.SetEndpoint(this);
 
             try
@@ -99,18 +98,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
                 UpdateEndpoint command = Commands.UpdateEndpoint(newEndpoint);
                 await this.machine.RunAsync(command);
-                Events.SetEndpointSuccess(this, stopwatch);
+                Events.SetEndpointSuccess(this);
             }
             catch (Exception ex)
             {
-                Events.SetEndpointFailure(this, ex, stopwatch);
+                Events.SetEndpointFailure(this, ex);
                 throw;
             }
         }
 
         public async Task CloseAsync()
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.Close(this);
 
             try
@@ -120,11 +118,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     this.cts.Cancel();
                     await this.machine.RunAsync(Commands.Close);
                 }
-                Events.CloseSuccess(this, stopwatch);
+                Events.CloseSuccess(this);
             }
             catch (Exception ex)
             {
-                Events.CloseFailure(this, ex, stopwatch);
+                Events.CloseFailure(this, ex);
                 throw;
             }
         }
@@ -144,77 +142,70 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         static class Events
         {
-            const string Source = nameof(SyncEndpointExecutor);
-            const string DeviceId = null;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<SyncEndpointExecutor>();
+            const int IdStart = Routing.EventIds.SyncEndpointExecutor;
 
-            //static readonly ILog Log = Routing.Log;
+            enum EventIds
+            {
+                Invoke = IdStart,
+                InvokeSuccess,
+                InvokeFailure,
+                SetEndpoint,
+                SetEndpointSuccess,
+                SetEndpointFailure,
+                Close,
+                CloseSuccess,
+                CloseFailure,
+            }
 
             public static void Invoke(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(Invoke), Source,
-                //    "Invoke began." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogDebug((int)EventIds.Invoke, "[Invoke] Invoke began." + GetContextString(executor.Endpoint));
             }
 
-            public static void InvokeSuccess(SyncEndpointExecutor executor, Stopwatch stopwatch)
+            public static void InvokeSuccess(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(InvokeSuccess), Source,
-                //    "Invoke succeeded." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogDebug((int)EventIds.InvokeSuccess, "[InvokeSuccess] Invoke succeeded." + GetContextString(executor.Endpoint));
             }
 
-            public static void InvokeFailure(SyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch)
+            public static void InvokeFailure(SyncEndpointExecutor executor, Exception ex)
             {
-                //Log.Error(nameof(InvokeFailure), Source,
-                //    "Invoke failed." + GetContextString(executor.Endpoint),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.InvokeFailure, ex, "[InvokeFailure] Invoke failed." + GetContextString(executor.Endpoint));
             }
 
             public static void SetEndpoint(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(SetEndpoint), Source,
-                //    "Set endpoint began." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.SetEndpoint, "[SetEndpoint] Set endpoint began." + GetContextString(executor.Endpoint));
             }
 
-            public static void SetEndpointSuccess(SyncEndpointExecutor executor, Stopwatch stopwatch)
+            public static void SetEndpointSuccess(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(SetEndpointSuccess), Source,
-                //    "Set endpoint succeeded." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.SetEndpointSuccess, "[SetEndpointSuccess] Set endpoint succeeded." + GetContextString(executor.Endpoint));
             }
 
-            public static void SetEndpointFailure(SyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch)
+            public static void SetEndpointFailure(SyncEndpointExecutor executor, Exception ex)
             {
-                //Log.Error(nameof(SetEndpointFailure), Source,
-                //    "Set endpoint failed." + GetContextString(executor.Endpoint),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.SetEndpointFailure, ex, "[SetEndpointFailure] Set endpoint failed." + GetContextString(executor.Endpoint));
             }
 
             public static void Close(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(Close), Source,
-                //    "Close began." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.Close, "[Close] Close began." + GetContextString(executor.Endpoint));
             }
 
-            public static void CloseSuccess(SyncEndpointExecutor executor, Stopwatch stopwatch)
+            public static void CloseSuccess(SyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(CloseSuccess), Source,
-                //    "Close succeeded." + GetContextString(executor.Endpoint),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.CloseSuccess, "[CloseSuccess] Close succeeded." + GetContextString(executor.Endpoint));
             }
 
-            public static void CloseFailure(SyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch)
+            public static void CloseFailure(SyncEndpointExecutor executor, Exception ex)
             {
-                //Log.Error(nameof(CloseFailure), Source,
-                //    "Close failed." + GetContextString(executor.Endpoint),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.CloseFailure, ex, "[CloseFailure] Close failed." + GetContextString(executor.Endpoint));
             }
 
             static string GetContextString(Endpoint endpoint)
             {
-                return string.Format(CultureInfo.InvariantCulture, " EndpointId: {0}, EndpointName: {1}", endpoint.Id, endpoint.Name);
+                return Invariant($" EndpointId: {endpoint.Id}, EndpointName: {endpoint.Name}");
             }
         }
     }

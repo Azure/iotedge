@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public abstract IProcessor CreateProcessor();
 
         public abstract void LogUserMetrics(long messageCount, long latencyInMs);
-        
+
         public bool Equals(Endpoint other)
         {
             if (ReferenceEquals(null, other))

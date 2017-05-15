@@ -36,10 +36,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
             // Check if prefixes match
             if (!TwinChangeJsonSupportedPrefixes.Any(s => jsonPath.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
             {
-                errorDetails = string.Format(CultureInfo.InvariantCulture,
-                    ErrorMessageFormat.Value,
-                    jsonPath);
-
+                errorDetails = string.Format(CultureInfo.InvariantCulture, ErrorMessageFormat.Value, jsonPath);
                 return false;
             }
 

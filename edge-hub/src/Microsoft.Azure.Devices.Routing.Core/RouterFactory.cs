@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
             return Router.CreateAsync(id, iotHubName, new RouterConfig(new HashSet<Endpoint>(), new HashSet<Route>(), Option.None<Route>()), this.endpointExecutorFactory);
         }
-        
+
         public Task<Router> CreateAsync(string id, string iotHubName, ISet<Endpoint> endpoints, ISet<Route> routes, Option<Route> fallback)
         {
             return Router.CreateAsync(id, iotHubName, new RouterConfig(endpoints, routes, fallback), this.endpointExecutorFactory);

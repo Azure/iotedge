@@ -7,12 +7,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using static System.FormattableString;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class Checkpointer : ICheckpointer
     {
@@ -142,38 +144,46 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         static class Events
         {
-            const string Source = nameof(Checkpointer);
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Checkpointer>();
+            const int IdStart = Routing.EventIds.Checkpointer;
+
+            enum EventIds
+            {
+                CreateStart = IdStart,
+                CreateFinished,
+                CommitStarted,
+                CommitFinished,
+                Close,
+            }
 
             public static void CreateStart(string id)
             {
-                //Log.Informational("CheckpointerCreateStart", Source, string.Format(CultureInfo.InvariantCulture, "CheckpointerId: {0}", id));
+                Log.LogInformation((int)EventIds.CreateStart, "[CheckpointerCreateStart] CheckpointerId: {id}", id);
             }
 
             public static void CreateFinished(Checkpointer checkpointer)
             {
-                //Log.Informational("CheckpointerCreateFinished", Source, GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.CreateFinished, "[CheckpointerCreateFinished] {context}", GetContextString(checkpointer));
             }
 
             public static void CommitStarted(Checkpointer checkpointer, int successfulCount, int remainingCount)
             {
-                //Log.Informational("CheckpointerCommitStarted", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(checkpointer)));
+                Log.LogInformation((int)EventIds.CommitStarted, "[CheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(checkpointer));
             }
 
             public static void CommitFinished(Checkpointer checkpointer)
             {
-                //Log.Informational("CheckpointerCommitFinished", Source, GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.CommitFinished, "[CheckpointerCommitFinishedo] {context}", GetContextString(checkpointer));
             }
 
             public static void Close(Checkpointer checkpointer)
             {
-                //Log.Informational("CheckpointerClose", Source, GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.Close, "[CheckpointerClose] {conetxt}", GetContextString(checkpointer));
             }
 
             static string GetContextString(Checkpointer checkpointer)
             {
-                return string.Format(CultureInfo.InvariantCulture, "CheckpointerId: {0}, Offset: {1}, Proposed: {2}" , checkpointer.Id, checkpointer.Offset, checkpointer.Proposed);
+                return Invariant($"CheckpointerId: {checkpointer.Id}, Offset: {checkpointer.Offset}, Proposed: {checkpointer.Proposed}");
             }
         }
     }

@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             { "contains", new Contains() },
 
             // body query
-            { Constants.Query.Builtins.twin_change_includes, new TwinChangeIncludes() },
+            { "twin_change_includes", new TwinChangeIncludes() },
         };
 
         public ConditionVisitor(ParameterExpression message, ErrorListener errors, Route route, RouteCompilerFlags routeCompilerFlags)

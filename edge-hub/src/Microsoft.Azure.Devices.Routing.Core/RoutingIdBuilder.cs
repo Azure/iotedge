@@ -62,8 +62,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 case 2:
 
                     string iotHubName = tokens[0];
-                    long routerNumber;
-                    if (long.TryParse(tokens[1], out routerNumber))
+                    if (long.TryParse(tokens[1], out long routerNumber))
                     {
                         return Option.Some(new RoutingIdBuilder(iotHubName, routerNumber, endpointId));
                     }

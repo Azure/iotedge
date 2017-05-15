@@ -4,9 +4,8 @@
 
 namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
 {
-    using System.Globalization;
+    using static System.FormattableString;
     using Antlr4.Runtime;
-    using Antlr4.Runtime.Tree;
     using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
 
     public static class JsonPathValidator
@@ -26,10 +25,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
             {
                 foreach (CompilationError err in ex.Errors)
                 {
-                    errorDetails += string.Format(
-                        CultureInfo.InvariantCulture,
-                        "Message:{0}, Location <start>:{1}, <end>:{2}, Severity:{3} \n",
-                        err.Message, err.Location?.Start, err.Location?.End, err.Severity);
+                    errorDetails += Invariant($"Message:{err.Message}, Location: ({err.Location.Start}, {err.Location.End}), Severity:{err.Severity} \n");
                 }
 
                 return false;
@@ -46,8 +42,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.JsonPath
             parser.RemoveErrorListeners();
             parser.AddErrorListener(errorListener);
 
-            IParseTree tree = parser.jsonpath();
-
+            parser.jsonpath();
             errorListener.Validate();
         }
     }

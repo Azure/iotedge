@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class FilteringRoutingService : IRoutingService
     {
@@ -113,14 +114,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         static async Task CloseEvaluatorAsync(Evaluator evaluator, CancellationToken token)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 await evaluator.CloseAsync(token);
             }
             catch (Exception ex)
             {
-                Events.EvaluatorCloseFailed(ex, stopwatch);
+                Events.EvaluatorCloseFailed(ex);
             }
         }
 
@@ -158,7 +158,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
 
         async Task UpdateEvaluatorAsync(string hubName)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 bool shouldClose;
@@ -183,13 +182,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                Events.EvaluatorUpdateFailed(hubName, ex, stopwatch);
+                Events.EvaluatorUpdateFailed(ex);
             }
         }
 
         async Task RemoveEvaluatorAsync(string hubName)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 Evaluator evaluator;
@@ -231,50 +229,53 @@ namespace Microsoft.Azure.Devices.Routing.Core.Services
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                Events.EvaluatorRemoveFailed(hubName, ex, stopwatch);
+                Events.EvaluatorRemoveFailed(ex);
             }
         }
 
         static async Task CloseNotifierAsync(INotifier notifier, CancellationToken token)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
                 await notifier.CloseAsync(token);
             }
             catch (Exception ex)
             {
-                Events.NotifierCloseFailed(notifier, ex, stopwatch);
+                Events.NotifierCloseFailed(ex);
             }
         }
 
         static class Events
         {
-            const string Source = nameof(FilteringRoutingService);
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<FilteringRoutingService>();
+            const int IdStart = Routing.EventIds.FilteringRoutingService;
 
-            public static void EvaluatorCloseFailed(Exception exception, Stopwatch stopwatch)
+            enum EventIds
             {
-                //string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(EvaluatorCloseFailed), Source, m => m("Evaluator close failed."), exception, string.Empty, string.Empty, latencyMs);
+                EvaluatorCloseFailed = IdStart,
+                EvaluatorUpdateFailed,
+                EvaluatorRemoveFailed,
+                NotifierCloseFailed,
             }
 
-            public static void EvaluatorUpdateFailed(string hubName, Exception exception, Stopwatch stopwatch)
+            public static void EvaluatorCloseFailed(Exception exception)
             {
-                //string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(EvaluatorUpdateFailed), Source, m => m("Evaluator update failed."), exception, hubName, string.Empty, latencyMs);
+                Log.LogWarning((int)EventIds.EvaluatorCloseFailed, exception, "[EvaluatorCloseFailed] Evaluator close failed.");
             }
 
-            public static void EvaluatorRemoveFailed(string hubName, Exception exception, Stopwatch stopwatch)
+            public static void EvaluatorUpdateFailed(Exception exception)
             {
-                //string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(EvaluatorRemoveFailed), Source, m => m("Evaluator remove failed."), exception, hubName, string.Empty, latencyMs);
+                Log.LogWarning((int)EventIds.EvaluatorUpdateFailed, exception, "[EvaluatorUpdateFailed] Evaluator update failed.");
             }
 
-            public static void NotifierCloseFailed(INotifier notifier, Exception exception, Stopwatch stopwatch)
+            public static void EvaluatorRemoveFailed(Exception exception)
             {
-                //string latencyMs = stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-                //Log.Warning(nameof(NotifierCloseFailed), Source, m => m("Notifier close failed."), exception, notifier.IotHubName, string.Empty, latencyMs);
+                Log.LogWarning((int)EventIds.EvaluatorRemoveFailed, exception, "[EvaluatorRemoveFailed] Evaluator remove failed.");
+            }
+
+            public static void NotifierCloseFailed(Exception exception)
+            {
+                Log.LogWarning((int)EventIds.NotifierCloseFailed, exception, "[NotifierCloseFailed] Notifier close failed.");
             }
         }
     }

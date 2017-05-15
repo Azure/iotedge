@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
         /// <returns>The return value should be ignored. It is intended to be used only when validating arguments during instance creation (for example, when calling the base constructor).</returns>
         public static bool ArgumentNotNullOrEmptyString(string argumentValue, string argumentName)
         {
-            Guard.ArgumentNotNull(argumentValue, argumentName);
+            ArgumentNotNull(argumentValue, argumentName);
             if (argumentValue.Length == 0)
             {
                 throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "String {0} cannot be empty", new object[]

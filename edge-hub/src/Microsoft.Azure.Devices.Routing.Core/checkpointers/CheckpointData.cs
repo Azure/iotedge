@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     public class CheckpointData
     {
         public CheckpointData(long offset) : this(offset, Option.None<DateTime>(), Option.None<DateTime>())
-        { 
+        {
         }
 
         public CheckpointData(long offset, Option<DateTime> lastFailedRevivalTime, Option<DateTime> unhealthySince)
@@ -20,10 +20,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.Offset = offset;
         }
 
-        public long Offset { get; private set; }
+        public long Offset { get; }
 
-        public Option<DateTime> LastFailedRevivalTime { get; private set; }
+        public Option<DateTime> LastFailedRevivalTime { get; }
 
-        public Option<DateTime> UnhealthySince { get; private set; }
+        public Option<DateTime> UnhealthySince { get; }
     }
 }

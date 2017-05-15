@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class Dispatcher : IDisposable
     {
@@ -268,28 +269,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public override string ToString() => string.Format(CultureInfo.InvariantCulture, "Dispatcher({0})", this.Id);
 
-        static class Events
-        {
-            const string Source = nameof(Dispatcher);
-            //static readonly ILog Log = Routing.Log;
-
-            public static void UnmatchedMessage(string iotHubName, IMessage message)
-            {
-                string error;
-                if (!Routing.PerfCounter.LogUnmatchedMessages(iotHubName, message.MessageSource.ToStringEx(), 1, out error))
-                {
-                    //Log.Error("LogMessageUnmatchedMessagesCounterFailed", Source, error);
-                }
-
-                // Only telemetry messages should be marked as orphaned for user logging / metric purposes.
-                if (message.MessageSource == MessageSource.Telemetry)
-                {
-                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, MessageSource.Telemetry);
-                    Routing.UserAnalyticsLogger.LogOrphanedMessage(iotHubName, message);
-                }
-            }
-        }
-
         class CheckpointerEndpointExecutorFactory : IEndpointExecutorFactory
         {
             readonly string idPrefix;
@@ -321,5 +300,32 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 return this.executorFactory.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
             }
         }
+
+        static class Events
+        {
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Dispatcher>();
+            const int IdStart = Routing.EventIds.Dispatcher;
+
+            enum EventIds
+            {
+                CounterFailed = IdStart,
+            }
+
+            public static void UnmatchedMessage(string iotHubName, IMessage message)
+            {
+                if (!Routing.PerfCounter.LogUnmatchedMessages(iotHubName, message.MessageSource.ToStringEx(), 1, out string error))
+                {
+                    Log.LogError((int)EventIds.CounterFailed, "[LogMessageUnmatchedMessagesCounterFailed] {0}", error);
+                }
+
+                // Only telemetry messages should be marked as orphaned for user logging / metric purposes.
+                if (message.MessageSource == MessageSource.Telemetry)
+                {
+                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, MessageSource.Telemetry);
+                    Routing.UserAnalyticsLogger.LogOrphanedMessage(iotHubName, message);
+                }
+            }
+        }
+
     }
 }

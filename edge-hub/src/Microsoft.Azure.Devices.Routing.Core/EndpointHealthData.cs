@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public sealed class EndpointHealthData
     {
-        public string EndpointId { get; private set; }
-        
-        public EndpointHealthStatus HealthStatus { get; private set; }
+        public string EndpointId { get; }
+
+        public EndpointHealthStatus HealthStatus { get; }
 
         public EndpointHealthData(string endpointId, EndpointHealthStatus healthStatus)
         {

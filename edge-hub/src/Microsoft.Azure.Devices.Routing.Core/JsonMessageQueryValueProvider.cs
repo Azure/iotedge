@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 return QueryValue.Null;
             }
-            else if (jsonTokens.Count() > 1)
+            else if (jsonTokens.Count > 1)
             {
                 return new QueryValue(jsonTokens, QueryValueType.Object);
             }

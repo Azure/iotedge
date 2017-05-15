@@ -24,13 +24,5 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 public const string Json = "application/json";
             }
         }
-
-        public static class Query
-        {
-            public static class Builtins
-            {
-                public const string twin_change_includes = "twin_change_includes";
-            }
-        }
     }
 }

@@ -5,6 +5,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// Delivers messages to endpoints asynchronously.
@@ -82,8 +84,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public async Task Invoke(IMessage message)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
             try
             {
                 Preconditions.CheckNotNull(message);
@@ -95,17 +95,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
                 await this.head.SendAsync(message, this.cts.Token);
-                Events.InvokeSuccess(this, stopwatch, message);
+                Events.InvokeSuccess(this, message);
             }
             catch (Exception ex)
             {
                 if (this.closed)
                 {
-                    Events.InvokeWarning(this, ex, stopwatch, message);
+                    Events.InvokeWarning(this, ex, message);
                 }
                 else
                 {
-                    Events.InvokeFailure(this, ex, stopwatch, message);
+                    Events.InvokeFailure(this, ex, message);
                     throw;
                 }
             }
@@ -113,7 +113,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public async Task SetEndpoint(Endpoint newEndpoint)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.SetEndpoint(this);
 
             try
@@ -126,18 +125,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
                 await this.machine.RunAsync(Commands.UpdateEndpoint(newEndpoint));
-                Events.SetEndpointSuccess(this, stopwatch);
+                Events.SetEndpointSuccess(this);
             }
             catch (Exception ex)
             {
-                Events.SetEndpointFailure(this, ex, stopwatch);
+                Events.SetEndpointFailure(this, ex);
                 throw;
             }
         }
 
         public async Task CloseAsync()
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
             Events.Close(this);
 
             try
@@ -148,11 +146,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     this.head.Complete();
                     await Task.WhenAll(this.tail.Completion, this.machine.RunAsync(Commands.Close));
                 }
-                Events.CloseSuccess(this, stopwatch);
+                Events.CloseSuccess(this);
             }
             catch (Exception ex)
             {
-                Events.CloseFailure(this, ex, stopwatch);
+                Events.CloseFailure(this, ex);
                 throw;
             }
         }
@@ -172,8 +170,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         async Task MessagesAction(IMessage[] messages)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
             try
             {
                 // Disable the timer while processing the batch
@@ -188,11 +184,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 {
                     this.batchTimer.Change(this.options.BatchTimeout, this.options.BatchTimeout);
                 }
-                Events.ProcessMessagesSuccess(this, messages, stopwatch);
+                Events.ProcessMessagesSuccess(this, messages);
             }
             catch (Exception ex)
             {
-                Events.ProcessMessagesFailure(this, messages, ex, stopwatch);
+                Events.ProcessMessagesFailure(this, messages, ex);
                 throw;
             }
         }
@@ -206,100 +202,89 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         /// <param name="block"></param>
         static void Trigger(object block)
         {
-
             ((BatchBlock<IMessage>)block).TriggerBatch();
         }
 
         static class Events
         {
-            const string Source = nameof(AsyncEndpointExecutor);
-            const string DeviceId = null;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<AsyncEndpointExecutor>();
+            const int IdStart = Routing.EventIds.AsyncEndpointExecutor;
 
-            //static readonly ILog Log = Routing.Log;
-
-            public static void InvokeSuccess(AsyncEndpointExecutor executor, Stopwatch stopwatch, IMessage message)
+            enum EventIds
             {
-                //Log.Informational(nameof(InvokeSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Invoke succeeded. EndpointId: {0}, EndpointName: {1}, Offset:{2}", executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                InvokeSuccess = IdStart,
+                InvokeFailure,
+                InvokeWarning,
+                ProcessMessages,
+                ProcessMessagesSuccess,
+                ProcessMessagesFailure,
+                SetEndpoint,
+                SetEndpointSuccess,
+                SetEndpointFailure,
+                Close,
+                CloseSuccess,
+                CloseFailure,
             }
 
-            public static void InvokeFailure(AsyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch, IMessage message)
+            public static void InvokeSuccess(AsyncEndpointExecutor executor, IMessage message)
             {
-                //Log.Critical(nameof(InvokeFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Invoke failed. EndpointId: {0}, EndpointName: {1}, Offset: {2}", executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogDebug((int)EventIds.InvokeSuccess, "[InvokeSuccess] Invoke succeeded. EndpointId: {0}, EndpointName: {1}, Offset:{2}", executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset);
             }
 
-            public static void InvokeWarning(AsyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch, IMessage message)
+            public static void InvokeFailure(AsyncEndpointExecutor executor, Exception ex, IMessage message)
             {
-                //Log.Warning(nameof(InvokeWarning), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Invoke failed. EndpointId: {0}, EndpointName: {1}, Offset: {2}",
-                //        executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogCritical((int)EventIds.InvokeFailure, ex, "[InvokeFailure] Invoke failed. EndpointId: {0}, EndpointName: {1}, Offset: {2}", executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset);
             }
 
-            public static void ProcessMessages(AsyncEndpointExecutor executor, IMessage[] messages)
+            public static void InvokeWarning(AsyncEndpointExecutor executor, Exception ex, IMessage message)
             {
-                //Log.Informational(nameof(ProcessMessages), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Process messages began. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Length),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogWarning((int)EventIds.InvokeWarning, ex, "[InvokeWarning] Invoke failed. EndpointId: {0}, EndpointName: {1}, Offset: {2}",
+                    executor.Endpoint.Id, executor.Endpoint.Name, message?.Offset);
             }
 
-            public static void ProcessMessagesSuccess(AsyncEndpointExecutor executor, IMessage[] messages, Stopwatch stopwatch)
+            public static void ProcessMessages(AsyncEndpointExecutor executor, ICollection<IMessage> messages)
             {
-                //Log.Informational(nameof(ProcessMessagesSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Process messages succeeded. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Length),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogDebug((int)EventIds.ProcessMessages, "[ProcessMessages] Process messages began. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Count);
             }
 
-            public static void ProcessMessagesFailure(AsyncEndpointExecutor executor, IMessage[] messages, Exception ex, Stopwatch stopwatch)
+            public static void ProcessMessagesSuccess(AsyncEndpointExecutor executor, ICollection<IMessage> messages)
             {
-                //Log.Critical(nameof(ProcessMessagesFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Process messages failed. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Length),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogDebug((int)EventIds.ProcessMessagesSuccess, "[ProcessMessagesSuccess] Process messages succeeded. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Count);
+            }
+
+            public static void ProcessMessagesFailure(AsyncEndpointExecutor executor, IMessage[] messages, Exception ex)
+            {
+                Log.LogCritical((int)EventIds.ProcessMessagesFailure, ex, "[ProcessMessagesFailure] Process messages failed. EndpointId: {0}, EndpointName: {1}, BatchSize: {2}", executor.Endpoint.Id, executor.Endpoint.Name, messages.Length);
             }
 
             public static void SetEndpoint(AsyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(SetEndpoint), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Set endpoint began. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.SetEndpoint, "[SetEndpoint] Set endpoint began. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
 
-            public static void SetEndpointSuccess(AsyncEndpointExecutor executor, Stopwatch stopwatch)
+            public static void SetEndpointSuccess(AsyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(SetEndpointSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Set endpoint succeeded. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.SetEndpointSuccess, "[SetEndpointSuccess] Set endpoint succeeded. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
 
-            public static void SetEndpointFailure(AsyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch)
+            public static void SetEndpointFailure(AsyncEndpointExecutor executor, Exception ex)
             {
-                //Log.Error(nameof(SetEndpointFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Set endpoint failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.SetEndpointFailure, ex, "[SetEndpointFailure] Set endpoint failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
 
             public static void Close(AsyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(Close), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Close began. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    executor.Endpoint.IotHubName, DeviceId);
+                Log.LogInformation((int)EventIds.Close, "[Close] Close began. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
 
-            public static void CloseSuccess(AsyncEndpointExecutor executor, Stopwatch stopwatch)
+            public static void CloseSuccess(AsyncEndpointExecutor executor)
             {
-                //Log.Informational(nameof(CloseSuccess), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Close succeeded. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogInformation((int)EventIds.CloseSuccess, "[CloseSuccess] Close succeeded. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
 
-            public static void CloseFailure(AsyncEndpointExecutor executor, Exception ex, Stopwatch stopwatch)
+            public static void CloseFailure(AsyncEndpointExecutor executor, Exception ex)
             {
-                //Log.Error(nameof(CloseFailure), Source,
-                //    string.Format(CultureInfo.InvariantCulture, "Close failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name),
-                //    ex, executor.Endpoint.IotHubName, DeviceId, stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+                Log.LogError((int)EventIds.CloseFailure, ex, "[CloseFailure] Close failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
             }
         }
     }

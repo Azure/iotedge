@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class Router : IDisposable
     {
@@ -209,15 +210,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         static class Events
         {
-            const string Source = nameof(Router);
-            //static readonly ILog Log = Routing.Log;
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<Router>();
+            const int IdStart = Routing.EventIds.Router;
+
+            enum EventIds
+            {
+                CounterFailed = IdStart,
+            }
 
             public static void MessageEvaluation(string iotHubName, IMessage message, ISet<Endpoint> endpoints)
             {
-                string error;
-                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToStringEx(), endpoints.LongCount(), out error))
+                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToStringEx(), endpoints.LongCount(), out string error))
                 {
-                    //Log.Error("LogMessageEndpointsMatchedCounterFailed", Source, error);
+                    Log.LogError((int)EventIds.CounterFailed, "[LogMessageEndpointsMatchedCounterFailed] {0}", error);
                 }
             }
         }

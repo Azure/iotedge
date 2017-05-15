@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
 
     public class BodyQuery : Builtin
     {
@@ -43,8 +44,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
             }
 
             // Validate input string as JsonPath
-            string errorDetails;
-            if (!JsonPathValidator.IsSupportedJsonPath(queryString, out errorDetails))
+            if (!JsonPathValidator.IsSupportedJsonPath(queryString, out string errorDetails))
             {
                 throw new ArgumentException(
                     string.Format(CultureInfo.InvariantCulture,
@@ -59,7 +59,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
         static QueryValue Runtime(string queryString, IMessage message, Route route)
         {
             string deviceId = null;
-
             try
             {
                 message.SystemProperties.TryGetValue(SystemProperties.DeviceId, out deviceId);
@@ -78,15 +77,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         static class Events
         {
-            const string Source = nameof(BodyQuery);
+            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<BodyQuery>();
+            const int IdStart = Routing.EventIds.BodyQuery;
+
+            enum EventIds
+            {
+                RuntimeError = IdStart,
+            }
 
             public static void RuntimeError(Route route, IMessage message, string deviceId, Exception ex)
             {
-                //Routing.Log.Warning("BodyQueryRuntimeError", Source,
-                //    string.Format(CultureInfo.InvariantCulture, "RouteId: '{0}', Condition: '{1}'", route.Id, route.Condition),
-                //    ex, route.IotHubName, deviceId);
-
-                //Routing.UserAnalyticsLogger.LogRouteEvaluationError(message, route, ex);
+                Log.LogWarning((int)EventIds.RuntimeError, ex, "[RuntimeError] RouteId: '{0}', Condition: '{1}' DeviceId: '{2}'", route.Id, route.Condition, deviceId);
+                Routing.UserAnalyticsLogger.LogRouteEvaluationError(message, route, ex);
             }
         }
     }

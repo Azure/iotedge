@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public Task<RouterConfig> GetRouterConfigAsync(string iotHubName, CancellationToken token) =>
             Task.FromResult(new RouterConfig(
-                this.endpoints.GetOrElse(iotHubName, EmptyEndpoints), 
+                this.endpoints.GetOrElse(iotHubName, EmptyEndpoints),
                 this.routes.GetOrElse(iotHubName, EmptyRoutes),
                 Option.None<Route>()
                 )
