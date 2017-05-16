@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         protected virtual void Dispose(bool disposing)
         {
-            Debug.Assert(this.closed);
+            //Debug.Assert(this.closed);
             if (disposing)
             {
                 ImmutableDictionary<string, IEndpointExecutor> snapshot = this.executors;

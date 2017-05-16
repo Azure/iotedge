@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         protected virtual void Dispose(bool disposing)
         {
-            Debug.Assert(this.closed);
+            //Debug.Assert(this.closed);
             if (disposing)
             {
                 this.cts.Dispose();

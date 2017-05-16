@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
         protected virtual void Dispose(bool disposing)
         {
-            Debug.Assert(this.state == State.Closed);
+            //Debug.Assert(this.state == State.Closed);
             if (disposing)
             {
                 this.Checkpointer.Dispose();
