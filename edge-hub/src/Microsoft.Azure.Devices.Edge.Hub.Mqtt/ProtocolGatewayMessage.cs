@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.CreatedTimeUtc = createdTimeUtc;
             this.DeliveryCount = deliveryCount;
             this.SequenceNumber = sequenceNumber;
-        }        
+        }
 
         public string Address { get; }
 

@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         readonly IList<UriPathTemplate> topicTemplateTable;
         readonly UriPathTemplate outboundTemplate;
-        readonly ILogger logger = EdgeLogging.LoggerFactory.CreateLogger<MessageAddressConverter>();
+        readonly ILogger logger = Logger.Factory.CreateLogger<MessageAddressConverter>();
 
         public MessageAddressConverter(MessageAddressConversionConfiguration configuration)
         {

@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IMessageConverter<Message> messageConverter;
         readonly ICloudListener cloudListener;
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        readonly ILogger logger = EdgeLogging.LoggerFactory.CreateLogger<CloudReceiver>();
+        readonly ILogger logger = Logger.Factory.CreateLogger<CloudReceiver>();
         Task receiveMessageTask;
 
         public CloudReceiver(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ICloudListener cloudListener)

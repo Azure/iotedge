@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using DotNetty.Codecs.Mqtt;
-    using DotNetty.Common.Concurrency;
     using DotNetty.Handlers.Tls;
     using DotNetty.Transport.Bootstrapping;
     using DotNetty.Transport.Channels;
@@ -20,42 +19,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
 
-    public class MqttBootstrapper
+    public class MqttProtocolHead : IProtocolHead
     {
-        readonly ILogger logger = EdgeLogging.LoggerFactory.CreateLogger<MqttBootstrapper>();
-        readonly TimeSpan defaultConnectionIdleTimeout = TimeSpan.FromSeconds(210); // IoT Hub default connection idle timeout
+        readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
         readonly ISessionStatePersistenceProvider sessionStateManager;
-        readonly IConnectionManager connectionManager;
-        readonly int DefaultThreadCount = 200;
-        readonly TaskCompletionSource closeCompletionSource;
+        readonly IAuthenticator authenticator;
         readonly IMqttConnectionProvider mqttConnectionProvider;
-   
+
         const int MqttsPort = 8883;
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
+        const int DefaultThreadCount = 200;
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
 
-        public Task CloseCompletion => this.closeCompletionSource.Task;
-
-        public MqttBootstrapper(ISettingsProvider settingsProvider,
+        public MqttProtocolHead(ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
-            IConnectionManager connectionManager)
+            IAuthenticator authenticator)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
-            this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider);
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager);
+            this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
 
-            this.closeCompletionSource = new TaskCompletionSource();
             this.sessionStateManager = new TransientSessionStatePersistenceProvider();
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync()
         {
             try
             {
@@ -67,29 +61,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 this.serverChannel = await bootstrap.BindAsync(IPAddress.Any, MqttsPort);
 
-                cancellationToken.Register(this.CloseAsync);
-
                 this.logger.LogInformation("Started");
             }
             catch (Exception e)
             {
                 this.logger.LogError("Failed to start MQTT server {0}", e);
-                this.CloseAsync();
+                await this.CloseAsync(CancellationToken.None);
             }
         }
 
-        private ServerBootstrap SetupServerBoostrap()
+
+        public async Task CloseAsync(CancellationToken token)
         {
-            int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);            
-            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", this.DefaultThreadCount);
+            try
+            {
+                this.logger.LogInformation("Stopping");
+
+                await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
+                await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+
+                this.logger.LogInformation("Stopped");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError("Failed to stop cleanly", ex);
+            }
+        }
+
+        public void Dispose()
+        {
+        }
+
+        ServerBootstrap SetupServerBoostrap()
+        {
+            int maxInboundMessageSize = this.settingsProvider.GetIntegerSetting("MaxInboundMessageSize", DefaultMaxInboundMessageSize);
+            int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             string iotHubHostName = this.settingsProvider.GetSetting("IotHubHostName");
-            string edgeDeviceId = this.settingsProvider.GetSetting("EdgeDeviceId");
 
-            var authenticator = new Authenticator(this.connectionManager, edgeDeviceId);
             var identityFactory = new IdentityFactory(iotHubHostName);
-            var authProvider = new SasTokenDeviceIdentityProvider(authenticator, identityFactory);
+            var authProvider = new SasTokenDeviceIdentityProvider(this.authenticator, identityFactory);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
@@ -123,33 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }));
 
             return boostrap;
-        }
-
-        async void CloseAsync()
-        {
-            try
-            {
-                this.logger.LogInformation("Stopping");
-
-                if (this.serverChannel != null)
-                {
-                    await this.serverChannel.CloseAsync();
-                }
-                if (this.eventLoopGroup != null)
-                {
-                    await this.eventLoopGroup.ShutdownGracefullyAsync();
-                }
-
-                this.logger.LogInformation("Stopped");
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError("Failed to stop cleanly", ex);
-            }
-            finally
-            {
-                this.closeCompletionSource.TryComplete();
-            }
         }
     }
 }

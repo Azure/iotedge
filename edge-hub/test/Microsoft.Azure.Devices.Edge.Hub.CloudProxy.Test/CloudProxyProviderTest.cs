@@ -4,9 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
@@ -15,21 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudProxyProviderTest
     {
-        readonly ILogger logger;
-
-        public CloudProxyProviderTest()
-        {
-            ILoggerFactory factory = new LoggerFactory()
-                .AddConsole();
-            this.logger = factory.CreateLogger<CloudProxyProviderTest>();
-        }
+        static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
 
         [Fact]
         [Integration]
         public async Task ConnectTest()
         {
             var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceConnectionString).Result;
             Assert.True(cloudProxy.Success);
@@ -42,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectWithInvalidConnectionStringTest()
         {
             var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
             await Assert.ThrowsAsync<ArgumentException>(() => cloudProxyProvider.Connect(""));
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");

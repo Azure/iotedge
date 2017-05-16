@@ -17,9 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
 
-        public CloudProxyProvider(ILogger logger, IMessageConverter<Message> messageConverter)
+        public CloudProxyProvider(IMessageConverter<Message> messageConverter, ILoggerFactory loggerFactory)
         {
-            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.logger = Preconditions.CheckNotNull(loggerFactory, nameof(loggerFactory)).CreateLogger<CloudProxyProvider>();
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.transportSettings = new ITransportSettings[] {
                 new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)

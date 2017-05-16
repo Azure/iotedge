@@ -289,3 +289,5 @@ FakesAssemblies/
 
 .vs/
 .vscode/
+
+launchSettings.json

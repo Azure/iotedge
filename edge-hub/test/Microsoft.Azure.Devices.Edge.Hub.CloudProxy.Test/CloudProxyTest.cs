@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.EventHubs;
@@ -18,15 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudProxyTest
     {
-        const int ConnectionPoolSize = 10;
-        readonly ILogger logger;
-
-        public CloudProxyTest()
-        {
-            ILoggerFactory factory = new LoggerFactory()
-                .AddConsole();
-            this.logger = factory.CreateLogger<CloudProxyTest>();
-        }
+        static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
 
         public static IEnumerable<object[]> GetTestMessages()
         {
@@ -61,10 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {
             DateTime startTime = DateTime.UtcNow;
-            var mockCloudListener = new Mock<ICloudListener>();
-
-            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
+            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
 
             string device1ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             Try<ICloudProxy> cloudProxy1 = await cloudProxyProvider.Connect(device1ConnectionString);
@@ -109,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
             var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(this.logger, messageConverter.Object);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString);
             return cloudProxy;
         }
