@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Moq;
     using Xunit;
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static readonly Mock<IConnectionManager> ConnectionManager = new Mock<IConnectionManager>();
         static readonly IList<string> Input = new List<string>() { "devices/{deviceId}/messages/events/" };
         static readonly IList<string> Output = new List<string>() { "devices/{deviceId}/messages/devicebound" };
+
         struct Messages
         {
             public readonly ProtocolGatewayMessage Source;
@@ -50,6 +52,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             listener.Setup(x => x.GetTwinAsync())
                 .Returns(Task.FromResult(new Twin()));
             return listener;
+        }
+
+        static ProtocolGatewayMessageConverter MakeProtocolGatewayMessageConverter()
+        {
+            var config = new MessageAddressConversionConfiguration(Input, Output);
+            var converter = new MessageAddressConverter(config);
+            return new ProtocolGatewayMessageConverter(converter);
         }
 
         [Fact]
@@ -89,8 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Messages m = MakeMessages();
             Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var client = new MessagingServiceClient(listener.Object, new ProtocolGatewayMessageConverter(messageAddressConverter));
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
             await client.SendAsync(m.Source);
 
             listener.Verify(
@@ -99,27 +107,72 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        public async Task CallsGetTwinOnTheDeviceListener()
+        public async Task RecognizesAGetTwinMessage()
         {
-            Messages m = MakeMessages("$iothub/whatever");
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/GET/?$rid=123");
             Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var client = new MessagingServiceClient(listener.Object, new ProtocolGatewayMessageConverter(messageAddressConverter));
-            await client.SendAsync(m.Source);
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+            await client.SendAsync(message);
 
             listener.Verify(x => x.ProcessMessageAsync(It.IsAny<IMessage>()), Times.Never);
             listener.Verify(x => x.GetTwinAsync(), Times.Once);
         }
 
         [Fact]
-        [Unit]
+        public async Task DoesNotProcessATwinMessageWithASubresource()
+        {
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/GET/something");
+            var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
+
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+
+            await Assert.ThrowsAsync(typeof(InvalidOperationException),
+                () => client.SendAsync(message));
+        }
+
+        [Fact]
+        public async Task DoesNotProcessATwinMessageWithoutACorrelationId()
+        {
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/GET/");
+            var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
+
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+
+            await Assert.ThrowsAsync(typeof(InvalidOperationException),
+                () => client.SendAsync(message));
+        }
+
+        [Fact]
+        public async Task DoesNotProcessAnUnsupportedTwinMessage()
+        {
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/PATCH/properties/reported/");
+            var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
+
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+
+            await Assert.ThrowsAsync(typeof(InvalidOperationException),
+                () => client.SendAsync(message));
+        }
+
+        [Fact]
+        public async Task DoesNotProcessAnInvalidTwinMessage()
+        {
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/unknown");
+            var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
+
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+
+            await Assert.ThrowsAsync(typeof(InvalidOperationException),
+                () => client.SendAsync(message));
+        }
+
+        [Fact]
         public async Task TestReceiveMessagingChannelComplete()
         {
             IProtocolGatewayMessage msg = null;
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var messageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
             var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
 
             var cloudProxy = new Mock<ICloudProxy>();
@@ -149,13 +202,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestReceiveMessagingChannelReject()
         {
             IProtocolGatewayMessage msg = null;
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var messageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
             var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<IFeedbackMessage>())).Callback<IFeedbackMessage>(
@@ -183,13 +234,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestReceiveMessagingChannelAbandon()
         {
             IProtocolGatewayMessage msg = null;
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var messageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
             var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<IFeedbackMessage>())).Callback<IFeedbackMessage>(
@@ -217,13 +266,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestReceiveMessagingChannelDispose()
         {
             IProtocolGatewayMessage msg = null;
 
-            var messageAddressConverter = new MessageAddressConverter(new MessageAddressConversionConfiguration(Input, Output));
-            var messageConverter = new ProtocolGatewayMessageConverter(messageAddressConverter);
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
             var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.CloseAsync()).Callback(

@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj" />
   </ItemGroup>

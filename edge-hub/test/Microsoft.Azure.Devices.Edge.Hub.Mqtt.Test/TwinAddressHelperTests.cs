@@ -2,17 +2,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ---------------------------------------------------------------
 
-namespace Microsoft.Azure.Devices.Gateway.UnitTests.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Gateway.Runtime.Mqtt;
-    using Microsoft.Azure.Devices.UnitTests.Framework;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Primitives;
     using Xunit;
 
+    [Unit]
     public class TwinAddressHelperTests
     {
-        [Theory, CIT, Owner("mgortman")]
+        [Theory]
         [InlineData("$iothub/twin/GET/?$rid=6f2c8", true, TwinAddressHelper.Operation.TwinGetState, "", new[] { "$rid", "6f2c8" })]
         [InlineData("$iothub/twin/PATCH/properties/reported/?$rid=5de34", true, TwinAddressHelper.Operation.TwinPatchReportedState, "", new[] { "$rid", "5de34" })]
         [InlineData("$iothub/twin/PATCH/properties/reported/?$rid=5de34&$version=1", true, TwinAddressHelper.Operation.TwinPatchReportedState, "", new[] { "$rid", "5de34", "$version", "1" })]
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Gateway.UnitTests.Mqtt
             Assert.Equal(expectedPropertyMap, properties);
         }
 
-        [Theory, CIT, Owner("mgortman")]
+        [Theory]
         [InlineData("123", "test", "$iothub/methods/POST/test/?$rid=123")]
         public void TwinFormatDirectRequestTopic(string correlationId, string methodName, string expectedResult)
         {

@@ -2,13 +2,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ---------------------------------------------------------------
 
-namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
     using System.Globalization;
-    using Microsoft.Azure.Devices.Common.Cloud;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Primitives;
 
     /// <summary>
     ///     Set of routines for twin and direct request/response message address parsing / formatting.
@@ -35,6 +35,13 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
         const string GetMethod = "GET";
         const string PostMethod = "POST";
 
+        static readonly StringSegment EmptyStringSegment = new StringSegment(string.Empty);
+
+        // `end` is the index of the last character in the range, inclusive
+        static StringSegment StringSegmentRange(string buffer, int start, int end) => new StringSegment(buffer, start, end + 1 - start);
+
+        static StringSegment StringSegmentAtOffset(string buffer, int offset) => StringSegmentRange(buffer, offset, buffer.Length - 1);
+
         public static bool CheckTwinAddress(string topicName) => topicName.StartsWith(ServicePrefix, StringComparison.Ordinal);
 
         public static string FormatNotificationAddress(string version)
@@ -55,7 +62,7 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
 
         public static bool TryParseOperation(string address, Dictionary<StringSegment, StringSegment> properties, out Operation operation, out StringSegment resource)
         {
-            Contract.Assert(CheckTwinAddress(address));
+            Preconditions.CheckArgument(CheckTwinAddress(address));
 
             int offset = ServicePrefix.Length;
 
@@ -99,12 +106,12 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
 
             if (offset == address.Length)
             {
-                resource = StringSegment.Empty;
+                resource = EmptyStringSegment;
                 return true;
             }
             if (address[offset] == PropertiesSegmentPrefixChar) // check if property bag follows parsed part immediately
             {
-                resource = StringSegment.Empty;
+                resource = EmptyStringSegment;
                 offset++;
             }
             else
@@ -116,12 +123,12 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
                     || (address[lastSegmentSeparatorIndex + 1] != PropertiesSegmentPrefixChar)) // last segment is not a property bag
                 {
                     // declare the rest of the address as resource
-                    resource = new StringSegment(address, offset);
+                    resource = StringSegmentAtOffset(address, offset);
                     return true;
                 }
                 else
                 {
-                    resource = StringSegment.Range(address, offset, lastSegmentSeparatorIndex - 1);
+                    resource = StringSegmentRange(address, offset, lastSegmentSeparatorIndex - 1);
                     offset = lastSegmentSeparatorIndex + 2;
                 }
             }
@@ -139,7 +146,7 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
         {
             foreach (KeyValuePair<StringSegment, StringSegment> property in sourcePropertyBag)
             {
-                if (property.Key[0] == TwinNames.SystemParameterPrefixChar)
+                if (property.Key.Value[0] == TwinNames.SystemParameterPrefixChar)
                 {
                     continue;
                 }
@@ -161,7 +168,7 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
                 }
                 else
                 {
-                    throw ExceptionFactory.CreateBadRequestException("Cannot parse supplied version. Please make sure you are using version value as provided by the service.");
+                    throw new InvalidOperationException("Cannot parse supplied version. Please make sure you are using version value as provided by the service.");
                 }
             }
             return version;
@@ -183,7 +190,7 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
                 {
                     if (ch == PropertySeparatorChar)
                     {
-                        StringSegment value = currentStartIndex == index ? StringSegment.Empty : StringSegment.Range(source, currentStartIndex, index - 1);
+                        StringSegment value = currentStartIndex == index ? EmptyStringSegment : StringSegmentRange(source, currentStartIndex, index - 1);
                         properties.Add(currentKey, value);
                         parsingValue = false;
                         currentStartIndex = index + 1;
@@ -194,21 +201,21 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
                     bool lastChar = index == source.Length - 1;
                     if (ch == PropertyValueSeparatorChar)
                     {
-                        currentKey = StringSegment.Range(source, currentStartIndex, index - 1);
+                        currentKey = StringSegmentRange(source, currentStartIndex, index - 1);
                         parsingValue = true;
                         currentStartIndex = index + 1;
                     }
                     else if (lastChar)
                     {
                         // if lastChar, our key should include it
-                        currentKey = StringSegment.Range(source, currentStartIndex, index);
+                        currentKey = StringSegmentRange(source, currentStartIndex, index);
                         parsingValue = true;
                         currentStartIndex = index + 1;
                     }
                     else if (ch == PropertySeparatorChar)
                     {
-                        StringSegment key = currentStartIndex == index ? StringSegment.Empty : StringSegment.Range(source, currentStartIndex, index - 1);
-                        properties.Add(key, StringSegment.Empty);
+                        StringSegment key = currentStartIndex == index ? EmptyStringSegment : StringSegmentRange(source, currentStartIndex, index - 1);
+                        properties.Add(key, EmptyStringSegment);
                         currentStartIndex = index + 1;
                     }
                 }
@@ -216,7 +223,7 @@ namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
 
             if (parsingValue)
             {
-                properties.Add(currentKey, new StringSegment(source, currentStartIndex));
+                properties.Add(currentKey, StringSegmentAtOffset(source, currentStartIndex));
             }
 
             return true;

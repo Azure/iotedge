@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ---------------------------------------------------------------
 
-namespace Microsoft.Azure.Devices.Gateway.Runtime.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     /// <summary>
     ///     Common names for concepts in device twin messages.

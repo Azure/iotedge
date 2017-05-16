@@ -2,16 +2,20 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Extensions.Primitives;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
+        static StringSegment requestId = new StringSegment(TwinNames.RequestId);
+
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
 
@@ -39,7 +43,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             if (IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
             {
-                await this.deviceListener.GetTwinAsync();
+                var properties = new Dictionary<StringSegment, StringSegment>();
+                TwinAddressHelper.Operation operation;
+                StringSegment subresource;
+                if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
+                {
+                    StringSegment correlationId;
+                    properties.TryGetValue(requestId, out correlationId);
+
+                    switch (operation)
+                    {
+                        case TwinAddressHelper.Operation.TwinGetState:
+                            if (subresource.Length != 0)
+                            {
+                                throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
+                            }
+
+                            if (correlationId.Length == 0)
+                            {
+                                throw new InvalidOperationException("Correlation id is missing or empty.");
+                            }
+
+                            await this.deviceListener.GetTwinAsync();
+                            break;
+
+                        default:
+                            throw new InvalidOperationException("Twin operation is not supported.");
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException("Failed to parse operation from message address.");
+                }
             }
             else
             {

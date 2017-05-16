@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Shared;
 
     public interface ICloudProxy
     {
