@@ -3,8 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
     using System;
-    using System.Linq;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return this.cloudProxy.SendFeedbackMessageAsync(feedbackMessage);
         }
 
-        public Task<Twin> GetTwinAsync()
+        public Task<IMessage> GetTwinAsync()
         {
             return this.cloudProxy.GetTwinAsync();
         }

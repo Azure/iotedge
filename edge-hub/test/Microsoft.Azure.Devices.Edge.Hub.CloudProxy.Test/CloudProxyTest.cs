@@ -8,11 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
-    using Moq;
     using Xunit;
 
     public class CloudProxyTest
@@ -52,15 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {
             DateTime startTime = DateTime.UtcNow;
-            var messageConverter = new Mock<IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
 
-            string device1ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            Try<ICloudProxy> cloudProxy1 = await cloudProxyProvider.Connect(device1ConnectionString);
+            Try<ICloudProxy> cloudProxy1 = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
             Assert.True(cloudProxy1.Success);
 
-            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey("device2ConnStrKey");
-            Try<ICloudProxy> cloudProxy2 = await cloudProxyProvider.Connect(device2ConnectionString);
+            Try<ICloudProxy> cloudProxy2 = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             Assert.True(cloudProxy2.Success);
 
             for (int i = 0; i < messages.Count; i = i + 2)
@@ -94,11 +90,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(messages, startTime);
         }
 
+        [Fact]
+        [Bvt]
+        public async Task CanGetTwin()
+        {
+            Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
+            Assert.True(cloudProxy.Success);
+            IMessage result = await cloudProxy.Value.GetTwinAsync();
+            string actualString = System.Text.Encoding.UTF8.GetString(result.Body);
+            Assert.StartsWith("{", actualString);
+            bool disconnectResult = await cloudProxy.Value.CloseAsync();
+            Assert.True(disconnectResult);
+        }
+
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            var messageConverter = new Mock<Core.IMessageConverter<Client.Message>>();
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(messageConverter.Object, LoggerFactory);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(new MqttMessageConverter(), new TwinMessageConverter(), LoggerFactory);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString);
             return cloudProxy;
         }

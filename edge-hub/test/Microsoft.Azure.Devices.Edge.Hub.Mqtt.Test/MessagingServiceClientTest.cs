@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Moq;
     using Xunit;
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             listener.Setup(x => x.ProcessMessageAsync(It.IsAny<IMessage>()))
                 .Returns(Task.CompletedTask);
             listener.Setup(x => x.GetTwinAsync())
-                .Returns(Task.FromResult(new Twin()));
+                .Returns(Task.FromResult((IMessage)new Message(new byte[0])));
             return listener;
         }
 

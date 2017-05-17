@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
 
-        Task<Twin> GetTwinAsync();
+        Task<IMessage> GetTwinAsync();
 
         Task<object> CallMethodAsync(string methodName, object parameters, string deviceId);
 

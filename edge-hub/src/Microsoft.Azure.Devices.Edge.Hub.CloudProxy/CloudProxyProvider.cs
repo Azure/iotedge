@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     public class CloudProxyProvider : ICloudProxyProvider
@@ -16,11 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ILogger logger;
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
+        readonly IMessageConverter<Twin> twinConverter;
 
-        public CloudProxyProvider(IMessageConverter<Message> messageConverter, ILoggerFactory loggerFactory)
+        public CloudProxyProvider(IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter, ILoggerFactory loggerFactory)
         {
             this.logger = Preconditions.CheckNotNull(loggerFactory, nameof(loggerFactory)).CreateLogger<CloudProxyProvider>();
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
             this.transportSettings = new ITransportSettings[] {
                 new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
             };
@@ -37,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             DeviceClient deviceClient = tryDeviceClient.Value;
-            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.logger);
+            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.twinConverter, this.logger);
             return Try.Success(cloudProxy);
         }
 

@@ -18,14 +18,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         const int ExceptionEventId = 0;
         readonly DeviceClient deviceClient;
         readonly IMessageConverter<Message> messageConverter;
+        readonly IMessageConverter<Twin> twinConverter;
         readonly ILogger logger;
         readonly AtomicBoolean isActive;
         CloudReceiver cloudReceiver;
 
-        public CloudProxy(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ILogger logger)
+        public CloudProxy(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter, ILogger logger)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.isActive = new AtomicBoolean(true);
         }
@@ -51,9 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Twin> GetTwinAsync()
+        public async Task<IMessage> GetTwinAsync()
         {
-            throw new NotImplementedException();
+            Twin twin = await this.deviceClient.GetTwinAsync();
+            return this.twinConverter.ToMessage(twin);
         }
 
         public async Task<bool> SendMessageAsync(IMessage inputMessage)

@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
 
-        Task<Twin> GetTwinAsync();
+        Task<IMessage> GetTwinAsync();
 
         void BindCloudListener(ICloudListener cloudListener);
 

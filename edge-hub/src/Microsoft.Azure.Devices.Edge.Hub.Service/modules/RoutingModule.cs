@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
@@ -54,8 +55,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Core.IMessageConverter<Message>>()
                 .SingleInstance();
 
+            // IMessageConverter<Twin>
+            builder.Register(c => new TwinMessageConverter())
+                .As<Core.IMessageConverter<Twin>>()
+                .SingleInstance();
+
             // ICloudProxyProvider
-            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverter<Message>>(), c.Resolve<ILoggerFactory>()))
+            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverter<Message>>(), c.Resolve<Core.IMessageConverter<Twin>>(), c.Resolve<ILoggerFactory>()))
                 .As<ICloudProxyProvider>()
                 .SingleInstance();
 
