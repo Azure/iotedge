@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Logging;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
@@ -20,12 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly X509Certificate certificate;
         readonly MessageAddressConversionConfiguration conversionConfiguration;
+        readonly string iothubHostname;
         readonly string deviceId;
 
-        public MqttModule(X509Certificate certificate, MessageAddressConversionConfiguration conversionConfiguration, string deviceId)
+        public MqttModule(X509Certificate certificate, MessageAddressConversionConfiguration conversionConfiguration, string iothubHostname, string deviceId)
         {
             this.certificate = Preconditions.CheckNotNull(certificate, nameof(certificate));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
+            this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
 
@@ -47,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<MessageAddressConverter>()
                 .SingleInstance();
 
-            // IMessageConverter<IProtocolGatewayMessage
+            // IMessageConverter<IProtocolGatewayMessage>
             builder.Register(c => new ProtocolGatewayMessageConverter(c.Resolve<MessageAddressConverter>()))
                 .As<IMessageConverter<IProtocolGatewayMessage>>()
                 .SingleInstance();
@@ -57,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ISettingsProvider>()
                 .SingleInstance();
 
-            // IMqttConnectionProvider
+            // Task<IMqttConnectionProvider>
             builder.Register(
                 async c =>
                 {
@@ -75,12 +78,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IAuthenticator>()
                 .SingleInstance();
 
+            // IIdentityProvider
+            builder.Register(
+                c =>
+                {
+                    var identityFactory = new IdentityFactory(this.iothubHostname);
+                    return new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), identityFactory);
+                })
+                .As<IDeviceIdentityProvider>()
+                .SingleInstance();
+
             // IProtocolHead
             builder.Register(
                 async c =>
                 {
                     IMqttConnectionProvider connectionProvider = await c.Resolve<Task<IMqttConnectionProvider>>();
-                    IProtocolHead head = new MqttProtocolHead(c.Resolve<ISettingsProvider>(), this.certificate, connectionProvider, c.Resolve<IAuthenticator>());
+                    IProtocolHead head = new MqttProtocolHead(c.Resolve<ISettingsProvider>(), this.certificate, connectionProvider, c.Resolve<IDeviceIdentityProvider>());
                     return head;
                 })
                 .As<Task<IProtocolHead>>()

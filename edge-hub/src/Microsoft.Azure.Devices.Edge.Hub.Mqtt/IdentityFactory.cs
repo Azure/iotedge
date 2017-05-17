@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         Try<Identity> GetIdentity(string username, string secret, AuthenticationScope scope, string policyName)
         {
-            Preconditions.CheckNonWhiteSpace(secret, nameof(secret));            
+            Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
 
             string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
             if (usernameSegments.Length < 2)
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 // depending on whether it is a module or a device.
                 string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
 
-                // The username is of the following format - 
+                // The username is of the following format -
                 // For Device identity - iothubHostName/deviceId/api-version=version/DeviceClientType=clientType
                 // For Module identity - iothubHostName/deviceId/moduleId/api-version=version/DeviceClientType=clientType
                 // So we use the hack below to identify if it is a module identity or a device identity
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         internal static string GetConnectionString(string iotHubHostName, string deviceId, AuthenticationScope scope, string policyName, string secret)
-        {            
+        {
             IAuthenticationMethod authenticationMethod = DeriveAuthenticationMethod(deviceId, scope, policyName, secret);
             IotHubConnectionStringBuilder csb = IotHubConnectionStringBuilder.Create(iotHubHostName, authenticationMethod);
             string connectionString = csb.ToString();
@@ -75,9 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         static IAuthenticationMethod DeriveAuthenticationMethod(
-            string id, 
-            AuthenticationScope scope, 
-            string policyName, 
+            string id,
+            AuthenticationScope scope,
+            string policyName,
             string secret)
         {
             switch (scope)
@@ -91,6 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 default:
                     throw new InvalidOperationException($"Unexpected AuthenticationScope username: {scope}");
             }
-        }        
+        }
     }
 }

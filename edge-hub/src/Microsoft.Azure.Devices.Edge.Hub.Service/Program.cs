@@ -34,24 +34,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
-            string iotHubName = configuration
-                .GetSection("appSettings")
-                .GetValue<string>("IotHubHostName");
-            string edgeDeviceId = configuration
-                .GetSection("appSettings")
-                .GetValue<string>("EdgeDeviceId");
+
+            string iothubHostname = configuration.GetValue<string>("IotHubHostName");
+            string edgeDeviceId = configuration.GetValue<string>("EdgeDeviceId");
             var topics = new MessageAddressConversionConfiguration(
                 configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<List<string>>());
 
             var builder = new ContainerBuilder();
             builder.RegisterModule(new LoggingModule());
-            builder.RegisterModule(new MqttModule(certificate, topics, edgeDeviceId));
-            builder.RegisterModule(new RoutingModule(iotHubName));
+            builder.RegisterModule(new MqttModule(certificate, topics, iothubHostname, edgeDeviceId));
+            builder.RegisterModule(new RoutingModule(iothubHostname));
             IContainer container = builder.Build();
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-            logger.LogInformation("Starting local IoT Hub.");
+            logger.LogInformation("Starting Edge Hub.");
 
             using (IProtocolHead protocolHead = await container.Resolve<Task<IProtocolHead>>())
             {

@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
@@ -25,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
         readonly ISessionStatePersistenceProvider sessionStateManager;
-        readonly IAuthenticator authenticator;
         readonly IMqttConnectionProvider mqttConnectionProvider;
+        readonly IDeviceIdentityProvider identityProvider;
 
         const int MqttsPort = 8883;
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
@@ -39,12 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public MqttProtocolHead(ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
-            IAuthenticator authenticator)
+            IDeviceIdentityProvider identityProvider)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
-            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
 
             this.sessionStateManager = new TransientSessionStatePersistenceProvider();
         }
@@ -98,10 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
-            string iotHubHostName = this.settingsProvider.GetSetting("IotHubHostName");
-
-            var identityFactory = new IdentityFactory(iotHubHostName);
-            var authProvider = new SasTokenDeviceIdentityProvider(this.authenticator, identityFactory);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
@@ -129,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         new MqttAdapter(
                             new Settings(this.settingsProvider),
                             this.sessionStateManager,
-                            authProvider,
+                            this.identityProvider,
                             null,
                             bridgeFactory));
                 }));
