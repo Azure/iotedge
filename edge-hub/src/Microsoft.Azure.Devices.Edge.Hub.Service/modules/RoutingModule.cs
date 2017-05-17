@@ -36,18 +36,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IRoutingPerfCounter
-            builder.Register(c => new NullRoutingPerfCounter())
+            builder.Register(
+                c =>
+                {
+                    Routing.PerfCounter = new NullRoutingPerfCounter();
+                    return Routing.PerfCounter;
+                })
                 .As<IRoutingPerfCounter>()
+                .AutoActivate()
                 .SingleInstance();
 
             // IRoutingUserAnalyticsLogger
-            builder.Register(c => new NullUserAnalyticsLogger())
+            builder.Register(
+                c =>
+                {
+                    Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
+                    return Routing.UserAnalyticsLogger;
+                })
                 .As<IRoutingUserAnalyticsLogger>()
+                .AutoActivate()
                 .SingleInstance();
 
             // IRoutingUserMetricLogger
-            builder.Register(c => new NullRoutingUserMetricLogger())
+            builder.Register(
+                c =>
+                {
+                    Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
+                    return Routing.UserMetricLogger;
+                })
                 .As<IRoutingUserMetricLogger>()
+                .AutoActivate()
                 .SingleInstance();
 
             // IMessageConverter<Message>
