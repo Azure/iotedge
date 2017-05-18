@@ -50,4 +50,14 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="kubernetes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\kubernetes\edge-hub.yaml" Link="kubernetes\edge-hub.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
