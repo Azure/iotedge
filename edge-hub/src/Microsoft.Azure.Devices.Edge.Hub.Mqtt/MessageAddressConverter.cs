@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class MessageAddressConverter
     {
-        readonly IList<UriPathTemplate> topicTemplateTable;
-        readonly UriPathTemplate outboundTemplate;
+        readonly IList<UriPathTemplate> inboundTable;
+        readonly IList<UriPathTemplate> outboundTable;
         readonly ILogger logger = Logger.Factory.CreateLogger<MessageAddressConverter>();
 
         public MessageAddressConverter(MessageAddressConversionConfiguration configuration)
@@ -21,30 +21,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Preconditions.CheckArgument(configuration.InboundTemplates.Count > 0);
             Preconditions.CheckArgument(configuration.OutboundTemplates.Count > 0);
 
-            this.topicTemplateTable = (from template in configuration.InboundTemplates
+            this.inboundTable = (from template in configuration.InboundTemplates
                 select new UriPathTemplate(template)).ToList();
 
-            this.outboundTemplate = configuration.OutboundTemplates.Select(x => new UriPathTemplate(x)).Single();
+            this.outboundTable = (from template in configuration.OutboundTemplates
+                select new UriPathTemplate(template)).ToList();
         }
 
         public bool TryDeriveAddress(IDictionary<string, string> properties, out string address)
         {
-            try
+            bool matched = false;
+            string addr = address = null;
+
+            foreach (UriPathTemplate uriPathTemplate in this.outboundTable)
             {
-                address = this.outboundTemplate.Bind(properties);
+                try
+                {
+                    addr = uriPathTemplate.Bind(properties);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+
+                if (string.IsNullOrEmpty(addr))
+                {
+                    continue;
+                }
+
+                if (matched)
+                {
+                    this.logger.LogDebug("Properties ({properties.Keys[0]}, ...) match more than one template.");
+                    break;
+                }
+
+                matched = true;
+                address = addr;
             }
-            catch (InvalidOperationException)
-            {
-                address = null;
-                return false;
-            }
-            return true;
+
+            return !string.IsNullOrEmpty(address);
         }
 
         public bool TryParseAddressIntoMessageProperties(string address, ProtocolGateway.Messaging.IMessage message)
         {
             bool matched = false;
-            foreach (UriPathTemplate uriPathTemplate in this.topicTemplateTable)
+            foreach (UriPathTemplate uriPathTemplate in this.inboundTable)
             {
                 IList<KeyValuePair<string, string>> matches = uriPathTemplate.Match(new Uri(address, UriKind.Relative));
 
