@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string noConfigImageJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{}}";
             string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
+            string invalidJsonStatus = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"<bad_status>\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
 
 
             ModuleSerde myModuleSerde = ModuleSerde.Instance;
@@ -111,6 +112,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noTypeJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noConfigJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noConfigImageJson));
+            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(invalidJsonStatus));
+        }
+
+        [Fact]
+        [Unit]
+        public void ModuleDeserializeMustSpecifyClass()
+        {
+            string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
+
+            ModuleSerde myModuleSerde = ModuleSerde.Instance;
+
+            Assert.ThrowsAny<JsonException>(() => myModuleSerde.Deserialize(validJson));
         }
 
         [Fact]

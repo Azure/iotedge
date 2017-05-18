@@ -13,8 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void TestPlanExecution()
         {
-            Option<TestPlanRecorder> recordKeeper = Option.Some<TestPlanRecorder>(new TestPlanRecorder());
-            List<TestRecordType> moduleExecutionList = new List<TestRecordType>
+            Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
+            var moduleExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"))),
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"))),
@@ -23,23 +23,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"))),
 
             };
-            List <ICommand> commandList = new List<ICommand>
+            var commandList = new List<ICommand>
             {
-                new TestCommand(moduleExecutionList[0].testType, moduleExecutionList[0].module, recordKeeper),
-                new TestCommand(moduleExecutionList[1].testType, moduleExecutionList[1].module, recordKeeper),
-                new TestCommand(moduleExecutionList[2].testType, moduleExecutionList[2].module, recordKeeper),
-                new TestCommand(moduleExecutionList[3].testType, moduleExecutionList[3].module, recordKeeper),
-                new TestCommand(moduleExecutionList[4].testType, moduleExecutionList[4].module, recordKeeper)
+                new TestCommand(moduleExecutionList[0].TestType, moduleExecutionList[0].Module, recordKeeper),
+                new TestCommand(moduleExecutionList[1].TestType, moduleExecutionList[1].Module, recordKeeper),
+                new TestCommand(moduleExecutionList[2].TestType, moduleExecutionList[2].Module, recordKeeper),
+                new TestCommand(moduleExecutionList[3].TestType, moduleExecutionList[3].Module, recordKeeper),
+                new TestCommand(moduleExecutionList[4].TestType, moduleExecutionList[4].Module, recordKeeper)
             };
 
-            Plan plan1 = new Plan(commandList);
-            Plan plan2 = new Plan(new List<ICommand>());
+            var plan1 = new Plan(commandList);
+            var plan2 = new Plan(new List<ICommand>());
 
             Assert.False(plan1.IsEmpty);
             Assert.True(Plan.Empty.IsEmpty);
             Assert.True(plan2.IsEmpty);
 
-            CancellationToken token = new CancellationToken();
+            var token = new CancellationToken();
 
             await plan1.ExecuteAsync(token);
             Assert.All(commandList,
@@ -56,8 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void TestPlanFactoryCommands()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            List<TestRecordType> moduleExecutionList = new List<TestRecordType>
+            var factory = new TestCommandFactory();
+            var moduleExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"))),
                 new TestRecordType(TestCommandType.TestPull, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"))),
@@ -66,17 +66,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"))),
                 new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"))),
             };
-            List<ICommand> commandList = new List<ICommand>
+            var commandList = new List<ICommand>
             {
-                factory.Create(moduleExecutionList[0].module),
-                factory.Pull(moduleExecutionList[1].module),
-                factory.Update(moduleExecutionList[0].module, moduleExecutionList[2].module),
-                factory.Remove(moduleExecutionList[3].module),
-                factory.Start(moduleExecutionList[4].module),
-                factory.Stop(moduleExecutionList[5].module),
+                factory.Create(moduleExecutionList[0].Module),
+                factory.Pull(moduleExecutionList[1].Module),
+                factory.Update(moduleExecutionList[0].Module, moduleExecutionList[2].Module),
+                factory.Remove(moduleExecutionList[3].Module),
+                factory.Start(moduleExecutionList[4].Module),
+                factory.Stop(moduleExecutionList[5].Module),
             };
-            Plan plan1 = new Plan(commandList);
-            CancellationToken token = new CancellationToken();
+            var plan1 = new Plan(commandList);
+            var token = new CancellationToken();
             await plan1.ExecuteAsync(token);
             Assert.All(commandList,
                 command =>

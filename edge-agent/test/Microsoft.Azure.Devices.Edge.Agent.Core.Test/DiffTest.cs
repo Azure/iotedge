@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             
             Diff nonEmptyUpdated = Diff.Create(Module1);
-            Diff nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string>{"module2"});
+            var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string>{"module2"});
             Diff alsoNonEmptyDiff = nonEmptyUpdated;
 
             Assert.False(nonEmptyUpdated.Equals(null));
             Assert.True(nonEmptyUpdated.Equals(alsoNonEmptyDiff));
-            Assert.False(nonEmptyUpdated.Equals(Config1));
+            Assert.False(nonEmptyUpdated.Equals(new object()));
 
             Assert.False(Diff.Empty.Equals(nonEmptyUpdated));
             Assert.False(Diff.Empty.Equals(nonEmptyRemoved));
@@ -39,8 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestDiffUnordered()
         {
-            Diff diff1 = new Diff(new List<IModule>{ Module1, Module2}, new List<string> {"mod3", "mod4"});
-            Diff diff2 = new Diff(new List<IModule>{ Module2, Module1}, new List<string> {"mod4", "mod3"});
+            var diff1 = new Diff(new List<IModule>{ Module1, Module2}, new List<string> {"mod3", "mod4"});
+            var diff2 = new Diff(new List<IModule>{ Module2, Module1}, new List<string> {"mod4", "mod3"});
 
             Assert.Equal(diff1, diff2);
         }
@@ -49,13 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestDiffHash()
         {
-            Diff diff1 = new Diff(new List<IModule>{ Module1, Module2}, new List<string> {"mod3", "mod4"});
-            Diff diff2 = new Diff(new List<IModule> { Module2, Module1 }, new List<string> { "mod4", "mod3" });
-            Diff diff3 = new Diff(new List<IModule> { Module1A, Module2 }, new List<string> { "mod3", "mod4" });
-            Diff diff4 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
-            Diff diff5 = new Diff(new List<IModule> { Module2 }, new List<string> { "mod3" });
-            Diff diff6 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
-            Diff diff7 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod4" });
+            var diff1 = new Diff(new List<IModule>{ Module1, Module2}, new List<string> {"mod3", "mod4"});
+            var diff2 = new Diff(new List<IModule> { Module2, Module1 }, new List<string> { "mod4", "mod3" });
+            var diff3 = new Diff(new List<IModule> { Module1A, Module2 }, new List<string> { "mod3", "mod4" });
+            var diff4 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
+            var diff5 = new Diff(new List<IModule> { Module2 }, new List<string> { "mod3" });
+            var diff6 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod3" });
+            var diff7 = new Diff(new List<IModule> { Module1 }, new List<string> { "mod4" });
 
             int hash1 = diff1.GetHashCode();
             int hash2 = diff2.GetHashCode();

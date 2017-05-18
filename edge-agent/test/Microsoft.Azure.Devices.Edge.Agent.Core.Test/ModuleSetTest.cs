@@ -134,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string noStatusJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Config\":{\"Image\":\"image1\"}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"config\":{\"image\":\"image1\"}}}}";
             string noConfigJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",}}}";
             string noConfigImageJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{}}}}";
+            string notATestType = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"not_a_test\",\"Status\":\"Running\",\"Config\":{}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{}}}}";
 
             var serializerInputTable = new Dictionary<string, Type>() { { "Test", typeof(TestModule) }};
             var myModuleSetSerde = new ModuleSetSerde(serializerInputTable);
@@ -162,6 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noTypeJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noConfigJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noConfigImageJson));
+            Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(notATestType));
+            Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(null));
         }
 
         [Fact]
@@ -189,5 +192,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(module3.Equals(module4));
             Assert.True(module5.Equals(module6));
         }
+
     }
 }

@@ -9,29 +9,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public struct TestRecordType
     {
-        public readonly TestCommandType testType;
-        public readonly IModule module;
+        public readonly TestCommandType TestType;
+        public readonly IModule Module;
 
         public TestRecordType(TestCommandType testType, IModule module)
         {
-            this.testType = testType;
-            this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.TestType = testType;
+            this.Module = Preconditions.CheckNotNull(module, nameof(module));
         }
 
-        public bool Equals(TestRecordType other) => this.testType == other.testType && Equals(this.module, other.module);
+        public bool Equals(TestRecordType other) => this.TestType == other.TestType && Equals(this.Module, other.Module);
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
                 return false;
-            return obj is TestRecordType && Equals((TestRecordType)obj);
+            return obj is TestRecordType && this.Equals((TestRecordType)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return ((int)this.testType * 397) ^ (this.module != null ? this.module.GetHashCode() : 0);
+                return ((int)this.TestType * 397) ^ (this.Module != null ? this.Module.GetHashCode() : 0);
             }
         }
     }
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public TestCommandFactory()
         {
-            this.Recorder = Option.Some<TestPlanRecorder>(new TestPlanRecorder());
+            this.Recorder = Option.Some(new TestPlanRecorder());
         }
 
         public ICommand Create(IModule module)
@@ -101,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestCommand : ICommand
     {
-        readonly Option<TestPlanRecorder> Recorder;
+        readonly Option<TestPlanRecorder> recorder;
         readonly TestCommandType type;
-        readonly IModule Module;
+        readonly IModule module;
         public bool CommandExecuted;
         public bool CommandUndone;
 
@@ -115,24 +115,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder)
         {
             this.type = type;
-            this.Module = Preconditions.CheckNotNull(module, nameof(module));
-            this.Recorder = recorder;
+            this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.recorder = recorder;
             this.CommandExecuted = false;
             this.CommandUndone = false;
         }
 
-        public string Show() => $"TestCommand {this.type.ToString()}:{this.Module.Name}";
+        public string Show() => $"TestCommand {this.type.ToString()}:{this.module.Name}";
 
         public Task ExecuteAsync(CancellationToken token)
         {
-            this.Recorder.ForEach(r => r.ModuleExecuted(this.type, this.Module));
+            foreach (TestPlanRecorder r in this.recorder)
+                r.ModuleExecuted(this.type, this.module);
             this.CommandExecuted = true;
             return TaskEx.Done;
         }
 
         public Task UndoAsync(CancellationToken token)
         {
-            this.Recorder.ForEach(r=> r.ModuleUndone(this.type, this.Module));
+            foreach (TestPlanRecorder r in this.recorder)
+                r.ModuleUndone(this.type, this.module);
             this.CommandUndone = true;
             return TaskEx.Done;
         }

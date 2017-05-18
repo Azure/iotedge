@@ -16,11 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerMinimalTest()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
-            List<TestRecordType> addExecutionList = new List<TestRecordType>();
+            var addExecutionList = new List<TestRecordType>();
             Plan addPlan = planner.Plan(ModuleSet.Empty, ModuleSet.Empty);
             await addPlan.ExecuteAsync(token);
 
@@ -31,13 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerAdd1RunningModule()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
             ModuleSet addRunning  =ModuleSet.Create(addModule);
-            List<TestRecordType> addExecutionList = new List<TestRecordType>
+            var addExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestPull, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule),
@@ -53,13 +53,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerAdd1StoppedModule()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
             IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2);
             ModuleSet addStopped = ModuleSet.Create(stoppedModule);
-            List<TestRecordType> addStoppedExecutionList = new List<TestRecordType>
+            var addStoppedExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestPull, stoppedModule),
                 new TestRecordType(TestCommandType.TestCreate, stoppedModule),
@@ -74,15 +74,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerUpdate1Module()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
             IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
             IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
             ModuleSet currentSet  =ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
-            List<TestRecordType> updateExecutionList = new List<TestRecordType>
+            var updateExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestStop, currentModule),
                 new TestRecordType(TestCommandType.TestPull, desiredModule),
@@ -99,13 +99,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerRemove1Module()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
             IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
             ModuleSet removeRunning = ModuleSet.Create(removeModule);
-            List<TestRecordType> removeExecutionList = new List<TestRecordType>
+            var removeExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestStop, removeModule),
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
@@ -120,18 +120,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
         [Unit]
         public async void RestartPlannerAddRemoveUpdate()
         {
-            TestCommandFactory factory = new TestCommandFactory();
-            RestartPlanner planner = new RestartPlanner(factory);
-            CancellationToken token = new CancellationToken();
+            var factory = new TestCommandFactory();
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
 
-            List<IModule> currentModules = new List<IModule>
+            var currentModules = new List<IModule>
             {
                 new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1),
                 new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1),
                 new TestModule("RemoveMod1", "version1", "test", ModuleStatus.Running, Config1),
                 new TestModule("RemoveMod2", "version1", "test", ModuleStatus.Stopped, Config1)
             };
-            List<IModule> desiredModules = new List<IModule>
+            var desiredModules = new List<IModule>
             {
                 new TestModule("NewMod1", "version1", "test", ModuleStatus.Running, Config1),
                 new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1),
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
             };
             ModuleSet currentSet = ModuleSet.Create(currentModules.ToArray());
             ModuleSet desiredSet = ModuleSet.Create(desiredModules.ToArray());
-            List<TestRecordType> updateExecutionList = new List<TestRecordType>
+            var updateExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestStop, currentModules[0]),
                 new TestRecordType(TestCommandType.TestStop, currentModules[1]),
