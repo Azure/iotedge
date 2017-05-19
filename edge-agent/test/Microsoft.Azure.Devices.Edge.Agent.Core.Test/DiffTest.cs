@@ -1,31 +1,35 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Newtonsoft.Json;
     using Xunit;
 
     public class DiffTest
     {
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module1A = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
+        static readonly IModule Module1A = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
         static readonly IModule Module2 = new TestModule("mod2", "version2", "type2", ModuleStatus.Running, Config2);
 
         [Fact]
         [Unit]
         public void TestEquals()
         {
-            
             Diff nonEmptyUpdated = Diff.Create(Module1);
             var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string>{"module2"});
             Diff alsoNonEmptyDiff = nonEmptyUpdated;
-
+            object nonEmptyUpdatedObjectSameReference = nonEmptyUpdated;
+            
             Assert.False(nonEmptyUpdated.Equals(null));
             Assert.True(nonEmptyUpdated.Equals(alsoNonEmptyDiff));
             Assert.False(nonEmptyUpdated.Equals(new object()));
+            Assert.True(nonEmptyUpdated.Equals(nonEmptyUpdatedObjectSameReference));
 
             Assert.False(Diff.Empty.Equals(nonEmptyUpdated));
             Assert.False(Diff.Empty.Equals(nonEmptyRemoved));
@@ -69,6 +73,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(hash1,hash3);
             Assert.NotEqual(hash4,hash5);
             Assert.NotEqual(hash6,hash7);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestDiffEmpty()
+        {
+            //arrange
+            var diff1 = new Diff(ImmutableList<IModule>.Empty, ImmutableList<string>.Empty);
+            //act
+            //assert
+            Assert.True(Diff.Empty.Equals(diff1));
+            Assert.True(diff1.IsEmpty);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestDiffSerialize()
+        {
+            //arrange
+            var serializerInputTable = new Dictionary<string, Type>() { { "test", typeof(TestModule) } };
+            var diffSerde = new DiffSerde(serializerInputTable);
+            Diff nonEmptyUpdated = Diff.Create(Module1);
+
+            //act
+            //assert
+            Assert.Throws<NotSupportedException>(() => diffSerde.Serialize(nonEmptyUpdated));
+        }
+        [Fact]
+        [Unit]
+        public void TestDiffDeserialize()
+        {
+            //"mod1", "version1", "type1", ModuleStatus.Running, Config1
+            //Config1 = new TestConfig("image1");
+            //arrange
+            Diff nonEmptyUpdated = Diff.Create(Module1);
+            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
+            string nonEmptyRemovedJson = "{\"modules\":{\"module2\": null },\"$version\":127}";
+            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"unkonwn\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
+            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
+
+            var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string> { "module2" });
+
+            var serializerInputTable = new Dictionary<string, Type>() { { "test", typeof(TestModule) } };
+            var diffSerde = new DiffSerde(serializerInputTable);
+
+            //act
+            Diff nonEmptyUpdatedDeserialized = diffSerde.Deserialize(nonEmptyUpdatedJson);
+            Diff nonEmptyRemovedDeserialized = diffSerde.Deserialize(nonEmptyRemovedJson);
+
+            //assert
+            Assert.Throws<JsonSerializationException>(() => diffSerde.Deserialize(nonSupportedTypeModuleJson));
+            Assert.Throws<NotSupportedException>(() => diffSerde.Deserialize<Diff>(nonEmptyUpdatedJson));
+            Assert.Throws<JsonSerializationException>(() => diffSerde.Deserialize(noTypeDiffJson));
+            Assert.True(nonEmptyUpdatedDeserialized.Equals(nonEmptyUpdated));
+            Assert.True(nonEmptyRemovedDeserialized.Equals(nonEmptyRemoved));
+
         }
     }
 }

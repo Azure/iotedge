@@ -217,7 +217,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
                 Diff configDiff = startingSet.Diff(configSourceSet);
                 Assert.True(configDiff.IsEmpty);
-
             }
         }
     }

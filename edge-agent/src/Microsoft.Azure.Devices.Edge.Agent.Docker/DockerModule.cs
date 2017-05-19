@@ -5,22 +5,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
 
     public class DockerModule : IModule<DockerConfig>
     {
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public string Name { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public string Version { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public string Type => "docker";
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public ModuleStatus Status { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public DockerConfig Config { get; }
 
         public DockerModule(string name, string version, ModuleStatus status, DockerConfig config)

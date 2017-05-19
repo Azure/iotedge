@@ -91,6 +91,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Rou
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core.Test", "edge-hub\test\Microsoft.Azure.Devices.Routing.Core.Test\Microsoft.Azure.Devices.Routing.Core.Test.csproj", "{5CCA3701-7090-47C7-A7FC-BD73C46F2F64}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj", "{09391D32-FC84-4532-A658-F2952AFD26AF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.csproj", "{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +177,14 @@ Global
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09391D32-FC84-4532-A658-F2952AFD26AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09391D32-FC84-4532-A658-F2952AFD26AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09391D32-FC84-4532-A658-F2952AFD26AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09391D32-FC84-4532-A658-F2952AFD26AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,5 +217,7 @@ Global
 		{DB969106-709B-428B-A6E5-B86E44ADFED2} = {372C8639-B8B6-4063-80A1-3064A452372B}
 		{9479C3D7-F565-4135-97C9-1B5D1199C259} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
+		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 	EndGlobalSection
 EndGlobal

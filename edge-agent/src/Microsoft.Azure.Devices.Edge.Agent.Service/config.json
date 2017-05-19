@@ -10,23 +10,6 @@
                 "tag": "3.4.4",
                 "portBindings": []
             }
-        },
-        "nginx-server": {
-            "name": "nginx-server",
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "config": {
-                "image": "nginx",
-                "tag": "latest",
-                "portBindings": [
-                    {
-                        "from": "80",
-                        "to": "8080",
-                        "type": "tcp"
-                    }
-                ]
-            }
         }
     }
 }

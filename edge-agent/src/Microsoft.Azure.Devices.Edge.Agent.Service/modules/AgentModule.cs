@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -37,16 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IPlanner
             builder.Register(c => new RestartPlanner(c.Resolve<ICommandFactory>()))
                 .As<IPlanner>()
-                .SingleInstance();
-
-            // ICommandFactory
-            builder.Register(
-                c =>
-                {
-                    var docker = new DockerCommandFactory(c.Resolve<IDockerClient>());
-                    return new LoggingCommandFactory(docker, c.Resolve<ILoggerFactory>());
-                })
-                .As<ICommandFactory>()
                 .SingleInstance();
 
             // Task<Agent>

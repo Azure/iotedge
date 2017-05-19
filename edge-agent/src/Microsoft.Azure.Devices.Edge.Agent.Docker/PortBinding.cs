@@ -5,10 +5,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+    using System.Runtime.Serialization;
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum PortBindingType
     {
+        [EnumMember(Value = "tcp")]
         Tcp,
+        [EnumMember(Value = "udp")]
         Udp
     }
 

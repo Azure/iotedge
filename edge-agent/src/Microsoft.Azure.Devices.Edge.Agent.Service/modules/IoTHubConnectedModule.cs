@@ -8,20 +8,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
-    /// Autofac module for stand-alone mode.
+    /// Autofac module for iothubConnected mode.
     /// There are no external dependencies required, except Docker
     /// and a config file to define the desired modules.
     /// </summary>
-    public class StandaloneModule : Module
+    public class IotHubConnectedModule : Module
     {
         readonly IModule agent;
         readonly IModule configSource;
         readonly IModule logging;
 
-        public StandaloneModule(Uri dockerHost, string configFilename)
+        public IotHubConnectedModule(Uri dockerHost, string connectionString)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
-            this.configSource = new FileConfigSourceModule(Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)));
+            this.configSource = new TwinConfigSourceModule(Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)));
             this.logging = new LoggingModule();
         }
 

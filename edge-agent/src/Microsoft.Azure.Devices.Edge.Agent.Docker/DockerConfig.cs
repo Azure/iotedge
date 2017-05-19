@@ -7,11 +7,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
 
     // TODO add PortBindings to equality check
     public class DockerConfig : IEquatable<DockerConfig>
     {
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(
+            Required = Required.Always,
+            NamingStrategyType = typeof(CamelCaseNamingStrategy)
+        )]
         public string Image { get; }
 
         [JsonIgnore]
@@ -25,13 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
         }
 
+        [JsonConstructor]
         public DockerConfig(string image, string tag)
             : this(image, tag, ImmutableList<PortBinding>.Empty)
         {
         }
 
-        [JsonConstructor]
-        public DockerConfig(string image, string tag, IList<PortBinding> portBindings)
+
+        public DockerConfig(string image, string tag, IEnumerable<PortBinding> portBindings)
         {
             this.Image = Preconditions.CheckNotNull(image, nameof(image));
             this.Tag = string.IsNullOrWhiteSpace(tag) ? "latest" : tag;

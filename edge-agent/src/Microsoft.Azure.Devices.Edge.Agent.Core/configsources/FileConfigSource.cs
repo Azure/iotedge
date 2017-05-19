@@ -83,7 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
             try
             {
-
                 ModuleSet newConfig = await this.GetConfigAsync();
                 Diff diff;
                 using (await this.sync.LockAsync())

@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         readonly IDockerClient client;
 
-        public DockerCommandFactory(IDockerClient client)
+        public DockerCommandFactory(IDockerClient dockerClient)
         {
-            this.client = Preconditions.CheckNotNull(client, nameof(client));
+            this.client = Preconditions.CheckNotNull(dockerClient, nameof(dockerClient));
         }
 
         public ICommand Create(IModule module) =>

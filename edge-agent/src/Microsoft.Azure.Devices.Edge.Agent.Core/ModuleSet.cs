@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonConstructor]
         public ModuleSet(IDictionary<string, IModule> modules)
         {
-            this.Modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToImmutableDictionary();
+            this.Modules = modules?.ToImmutableDictionary() ?? Empty.Modules;
         }
 
         public static ModuleSet Create(params IModule[] modules) => new ModuleSet(modules.ToDictionary(m => m.Name, m => m));

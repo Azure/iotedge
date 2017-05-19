@@ -11,16 +11,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 
     public class ModuleSetSerde : ISerde<ModuleSet>
     {
-        readonly IDictionary<string, Type> converters;
-
-        readonly JsonSerializerSettings jsonSerializerSettings= new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver()};
+        readonly JsonSerializerSettings jsonSerializerSettings;
 
         public ModuleSetSerde(IDictionary<string,Type> deserializerTypes)
         {
-            this.converters = new Dictionary<string, Type>(Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)), StringComparer.OrdinalIgnoreCase);
+            IDictionary<string, Type> converters = new Dictionary<string, Type>(
+                Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)),
+                StringComparer.OrdinalIgnoreCase
+            );
+            this.jsonSerializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                Converters = new List<JsonConverter>
+                {
+                    new ModuleJsonConverter(converters)
+                }
+            };
         }
 
-        public string Serialize(ModuleSet moduleSet) => JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
+        public string Serialize(ModuleSet moduleSet)
+        {
+            return JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
+        }
 
         public ModuleSet Deserialize(string json) => this.Deserialize<ModuleSet>(json);
 
@@ -28,8 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
         {
             try
             {
-                var moduleConverter = new ModuleJsonConverter(this.converters);
-                return JsonConvert.DeserializeObject<T>(json, moduleConverter);
+                return JsonConvert.DeserializeObject<T>(json, this.jsonSerializerSettings);
             }
             catch (ArgumentNullException e)
             {
