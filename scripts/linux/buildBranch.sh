@@ -5,10 +5,14 @@
 # This script expects that .Net Core is installed at $AGENT_WORKFOLDER\dotnet
 # by a previous step.
 
+# Get directory of running script
+DIR="`dirname \"$0\"`"
+DIR="`( cd \"$DIR\" && pwd )`"
+
 # Check if Environment variables are set.
-TMP=${BUILD_REPOSITORY_LOCALPATH:?Env variable BUILD_REPOSITORY_LOCALPATH needs to be set and be non-empty}
-TMP=${AGENT_WORKFOLDER:?Env variable AGENT_WORKFOLDER needs to be set and be non-empty}
-TMP=${BUILD_BINARIESDIRECTORY:?Env variable BUILD_BINARIESDIRECTORY needs to be set and be non-empty}
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
+AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
+BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 
 CSPROJ_SUFFIX='Microsoft.Azure.*.csproj'
 SLN_SUFFIX='Microsoft.Azure.*.sln'
@@ -44,7 +48,9 @@ echo Generate Antlr code files
 
 while read g4file; do
     echo Generating .cs files for - $g4file
-    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener
+    outputdir=$(dirname "$g4file")/generated
+    mkdir -p $outputdir
+    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o $outputdir
 done < <(find $ROOTFOLDER -type f -name $ANTLR_SUFFIX)
 
 echo Building all solutions in repo

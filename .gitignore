@@ -291,3 +291,5 @@ FakesAssemblies/
 .vscode/
 
 launchSettings.json
+target/
+**/generated/*
