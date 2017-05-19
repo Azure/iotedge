@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Gateway.Runtime.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Primitives;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
+        IMessagingChannel<IProtocolGatewayMessage> messagingChannel;
 
         public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter)
         {
@@ -33,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IProtocolGatewayMessage> channel)
         {
-            IDeviceProxy deviceProxy = new DeviceProxy(Preconditions.CheckNotNull(channel, nameof(channel)), this.deviceListener.Identity, this.messageConverter);
+            this.messagingChannel = Preconditions.CheckNotNull(channel, nameof(channel));
+            IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter);
             this.deviceListener.BindDeviceProxy(deviceProxy);
         }
 
@@ -41,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public async Task SendAsync(IProtocolGatewayMessage message)
         {
+            Preconditions.CheckNotNull(message, nameof(message));
+
             if (IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
             {
                 var properties = new Dictionary<StringSegment, StringSegment>();
@@ -64,7 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 throw new InvalidOperationException("Correlation id is missing or empty.");
                             }
 
-                            await this.deviceListener.GetTwinAsync();
+                            Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
+                            coreMessage.SystemProperties[Core.SystemProperties.LockToken] = "r";
+                            coreMessage.SystemProperties[Core.SystemProperties.StatusCode] = ResponseStatusCodes.OK;
+                            coreMessage.SystemProperties[Core.SystemProperties.CorrelationId] = correlationId.ToString();
+                            IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(coreMessage);
+                            this.messagingChannel.Handle(pgMessage);
                             break;
 
                         default:
@@ -78,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
             else
             {
-                Core.IMessage coreMessage = this.messageConverter.ToMessage(Preconditions.CheckNotNull(message, nameof(message)));
+                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
                 await this.deviceListener.ProcessMessageAsync(coreMessage);
             }
         }

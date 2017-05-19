@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -125,6 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody()).Build();
             IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
             Assert.Equal(expectedMessage, actualMessage);
+        }
+
+        [Fact]
+        public void ConvertedMessageHasAnEnqueuedTimeProperty()
+        {
+            IMessage actualMessage = new TwinMessageConverter().ToMessage(new Twin());
+            Assert.InRange(DateTime.Parse(actualMessage.SystemProperties[Core.SystemProperties.EnqueuedTime]),
+                DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
         }
     }
 }

@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -24,7 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             byte[] body = Encoding.UTF8.GetBytes(json.ToString());
-            return new MqttMessage.Builder(body).Build();
+            return new MqttMessage.Builder(body)
+                .SetSystemProperties(new Dictionary<string, string>()
+                {
+                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)
+                })
+                .Build();
         }
 
         public Twin FromMessage(IMessage message)
