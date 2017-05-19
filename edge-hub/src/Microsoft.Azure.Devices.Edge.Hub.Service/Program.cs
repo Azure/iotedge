@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
+    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -40,11 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var topics = new MessageAddressConversionConfiguration(
                 configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<List<string>>());
+            var routes = configuration.GetSection("routes").Get<List<string>>();
 
             var builder = new ContainerBuilder();
             builder.RegisterModule(new LoggingModule());
             builder.RegisterModule(new MqttModule(certificate, topics, iothubHostname, edgeDeviceId));
-            builder.RegisterModule(new RoutingModule(iothubHostname));
+            builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes));
             IContainer container = builder.Build();
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");

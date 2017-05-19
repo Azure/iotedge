@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, (id) => Option.Some(deviceProxyMock.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
 
             Assert.Equal(moduleId, moduleEndpoint.Id);
             Assert.Equal("ModuleEndpoint", moduleEndpoint.Type);

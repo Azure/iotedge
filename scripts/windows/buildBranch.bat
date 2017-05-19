@@ -57,7 +57,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 FOR /R %%f IN (%ANTLRSUFFIX%) DO (
     ECHO Generating .cs files for - %%f
-    %JAVACOMMAND% -jar %UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar %%f -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -no-listener
+    %JAVACOMMAND% -jar %UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar %%f -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener
 )
 
 ECHO Building all solutions in repo

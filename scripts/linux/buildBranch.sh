@@ -44,7 +44,7 @@ echo Generate Antlr code files
 
 while read g4file; do
     echo Generating .cs files for - $g4file
-    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -no-listener
+    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener
 done < <(find $ROOTFOLDER -type f -name $ANTLR_SUFFIX)
 
 echo Building all solutions in repo

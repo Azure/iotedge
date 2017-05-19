@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 ? Option.Some(deviceProxyMock.Object)
                 : Option.None<IDeviceProxy>();
             
-            var deviceEndpoint = new ModuleEndpoint(identity.Id, moduleEndpoint, GetDeviceProxy, routingMessageConverter);
+            var deviceEndpoint = new ModuleEndpoint(identity.Id, moduleEndpoint, () => GetDeviceProxy(identity.Id), routingMessageConverter);
             Router router = await SetupRouter(deviceEndpoint, iotHubName);
 
             IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);

@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             
             Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
 
-            var moduleEndpoint = new ModuleEndpoint(modId, moduleEndpointId, GetModuleProxy, routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint(modId, moduleEndpointId, () => GetModuleProxy(modId), routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             Assert.Equal(moduleEndpoint, moduleMessageProcessor.Endpoint);
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
 
-            var moduleEndpoint = new ModuleEndpoint(Mod1Id, ModEndpointId, GetModuleProxy, routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint(Mod1Id, ModEndpointId, () => GetModuleProxy(Mod1Id), routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);

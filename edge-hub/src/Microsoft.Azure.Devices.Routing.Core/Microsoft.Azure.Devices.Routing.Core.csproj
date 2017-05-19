@@ -24,12 +24,19 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
-    <Antlr4 Include="query\grammar\Condition.g4">
+    <Antlr4 Include="grammar\Condition.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core.Query</CustomToolNamespace>
       <TargetLanguage>CSharp</TargetLanguage>
       <Visitor>True</Visitor>
       <Listener>False</Listener>
+    </Antlr4>
+    <Antlr4 Include="grammar\Route.g4">
+      <Generator>MSBuild:Compile</Generator>
+      <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core</CustomToolNamespace>
+      <TargetLanguage>CSharp</TargetLanguage>
+      <Visitor>False</Visitor>
+      <Listener>True</Listener>
     </Antlr4>
     <Antlr4 Include="query\jsonpath\JsonPath.g4">
       <Generator>MSBuild:Compile</Generator>
@@ -39,11 +46,4 @@
       <Listener>False</Listener>
     </Antlr4>
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System.Diagnostics.Contracts">
-      <HintPath>..\..\..\..\..\..\Users\miyagley\.nuget\packages\system.diagnostics.contracts\4.0.1\ref\netstandard1.0\System.Diagnostics.Contracts.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

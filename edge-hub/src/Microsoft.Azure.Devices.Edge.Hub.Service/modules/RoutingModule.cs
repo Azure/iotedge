@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -22,10 +24,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     public class RoutingModule : Module
     {
         readonly string iotHubName;
+        readonly string edgeDeviceId;
+        readonly IEnumerable<string> routes;
 
-        public RoutingModule(string iotHubName)
+        public RoutingModule(string iotHubName, string edgeDeviceId, IEnumerable<string> routes)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -89,13 +95,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IEndpointFactory
-            builder.Register(c => new SimpleEndpointFactory(c.Resolve<IConnectionManager>(), c.Resolve<Core.IMessageConverter<IRoutingMessage>>()))
+            builder.Register(c => new EndpointFactory(c.Resolve<IConnectionManager>(), c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), this.edgeDeviceId))
                 .As<IEndpointFactory>()
                 .SingleInstance();
 
-            // IRouterFactory
-            builder.Register(c => new SimpleRouteFactory(c.Resolve<IEndpointFactory>()))
-                .As<IRouteFactory>()
+            // RouterFactory
+            builder.Register(c => new EdgeRouteFactory(c.Resolve<IEndpointFactory>()))
+                .As<RouteFactory>()
                 .SingleInstance();
 
             // EndpointExecutorConfig
@@ -119,8 +125,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        Route route = c.Resolve<IRouteFactory>().Create(string.Empty);
-                        return new RouterConfig(route.Endpoints, new[] { route });
+                        IEnumerable<Route> routesList = c.Resolve<RouteFactory>().Create(this.routes).ToList();
+                        IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
+                        return new RouterConfig(endpoints, routesList);
                     })
                 .As<RouterConfig>()
                 .SingleInstance();

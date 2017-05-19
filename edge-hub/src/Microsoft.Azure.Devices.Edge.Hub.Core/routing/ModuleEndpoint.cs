@@ -20,14 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class ModuleEndpoint : Endpoint
     {
-        readonly string address;
-        readonly Func<string, Util.Option<IDeviceProxy>> deviceProxyGetterFunc;
+        readonly Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
 
-        public ModuleEndpoint(string id, string address, Func<string, Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
+        public ModuleEndpoint(string id, string address, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
-            this.address = Preconditions.CheckNotNull(address);
+            this.EndpointAddress = Preconditions.CheckNotNull(address);
             this.deviceProxyGetterFunc = Preconditions.CheckNotNull(deviceProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
         }
@@ -35,6 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public override string Type => this.GetType().Name;
 
         public override IProcessor CreateProcessor() => new ModuleMessageProcessor(this);
+
+        public string EndpointAddress { get; }
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -72,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             foreach (IRoutingMessage routingMessage in routingMessages)
                             {
                                 IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                                bool res = await c.SendMessage(message, this.moduleEndpoint.address);
+                                bool res = await c.SendMessage(message, this.moduleEndpoint.EndpointAddress);
                                 if (res)
                                 {
                                     succeeded.Add(routingMessage);
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 this.devicePoxy = this.devicePoxy.Filter(d => d.IsActive).Match(
                     d => Option.Some(d),
-                    () => this.moduleEndpoint.deviceProxyGetterFunc(this.Endpoint.Id));
+                    () => this.moduleEndpoint.deviceProxyGetterFunc());
                 return this.devicePoxy;
             }
         }
