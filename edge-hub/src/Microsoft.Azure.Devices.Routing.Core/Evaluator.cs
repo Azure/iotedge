@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             var endpoints = new HashSet<Endpoint>();
 
             ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-            foreach (CompiledRoute compiledRoute in snapshot.Values.Where(cr => cr.Route.Source == message.MessageSource))
+            foreach (CompiledRoute compiledRoute in snapshot.Values.Where(cr => cr.Route.Source.Match(message.MessageSource)))
             {
                 if (EvaluateInternal(compiledRoute, message))
                 {
@@ -66,7 +67,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             // only use the fallback for telemetry messages
-            if (endpoints.Any() || message.MessageSource != MessageSource.Telemetry)
+            if (endpoints.Any() || !message.MessageSource.IsTelemetry())
             {
                 return endpoints;
             }

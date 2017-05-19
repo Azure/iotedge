@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -23,8 +24,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Endpoint endpoint1 = new NullEndpoint("endpoint1");
             Endpoint endpoint2 = new NullEndpoint("endpoint2");
             IEnumerable<Endpoint> allEndpoints = new List<Endpoint> {  endpoint1, endpoint2 };
-            var route1 = new Route("id1", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
+            var route1 = new Route("id1", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route2 = new Route("id2", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
             IEnumerable<Route> allRoutes = new List<Route> { route1, route2 };
             var store2 = new RouteStore(new Dictionary<string, RouterConfig>
             {

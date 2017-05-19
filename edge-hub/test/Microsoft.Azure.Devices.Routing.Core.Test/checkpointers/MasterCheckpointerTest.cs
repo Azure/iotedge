@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -155,7 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 
         static IMessage MessageWithOffset(long offset)
         {
-            return new Message(MessageSource.Telemetry, new byte[0], new Dictionary<string, string>(), offset);
+            return new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>(), offset);
         }
     }
 }

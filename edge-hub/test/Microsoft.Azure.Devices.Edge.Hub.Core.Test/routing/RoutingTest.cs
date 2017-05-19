@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -29,13 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public static IEnumerable<object[]> GetRoutingData()
         {
             string deviceId = "device1";
-            string moduleId = "module1";
-            string id = $"{deviceId}/{moduleId}";
-            var mockModuleIdentity = new Mock<IModuleIdentity>();
-            mockModuleIdentity.SetupGet(p => p.DeviceId).Returns(deviceId);
-            mockModuleIdentity.SetupGet(p => p.ModuleId).Returns(moduleId);
-            mockModuleIdentity.SetupGet(p => p.Id).Returns(id);
-
+            
             var mockDeviceIdentity = new Mock<IDeviceIdentity>();
             mockDeviceIdentity.SetupGet(p => p.DeviceId).Returns(deviceId);
             mockDeviceIdentity.SetupGet(p => p.Id).Returns(deviceId);
@@ -48,12 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             };
             var systemProperties = new Dictionary<string, string>
             {
-                { SystemProperties.DeviceId, deviceId }
+                { Core.SystemProperties.DeviceId, deviceId }                
             };
             var message = new Message(messageBody, properties, systemProperties);
 
             var routingData = new List<object[]>();
-            routingData.Add(new object[] { mockModuleIdentity.Object, message });
             routingData.Add(new object[] { mockDeviceIdentity.Object, message });
             return routingData;
         }
@@ -157,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Guid.NewGuid().ToString(),
                 "true",
                 iotHubName,
-                MessageSource.Telemetry,
+                TelemetryMessageSource.Instance,
                 new HashSet<Endpoint>
                 {
                     endpoint

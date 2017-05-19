@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -64,8 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.DeviceId, Mod1Id }
             };
 
-            var message1 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, systemProperties);
-            var message2 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, systemProperties);
+            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
+            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
 
             Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
 

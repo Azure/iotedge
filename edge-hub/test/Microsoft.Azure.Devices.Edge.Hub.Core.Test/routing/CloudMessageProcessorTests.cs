@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -68,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.DeviceId, device2Id }
             };
 
-            var message1 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, device1SystemProperties);
-            var message2 = new RoutingMessage(MessageSource.Telemetry, messageBody, properties, device2SystemProperties);
+            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device1SystemProperties);
+            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device2SystemProperties);
 
             Option<ICloudProxy> GetCloudProxy(string id)
             {

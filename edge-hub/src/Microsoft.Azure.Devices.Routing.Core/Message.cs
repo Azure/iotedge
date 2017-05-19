@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Globalization;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using SystemPropertiesList = Microsoft.Azure.Devices.Routing.Core.SystemProperties;
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     {
         readonly Lazy<IMessageQueryValueProvider> messageQueryProvider;
 
-        public MessageSource MessageSource { get; }
+        public IMessageSource MessageSource { get; }
 
         public byte[] Body { get; }
 
@@ -32,32 +33,32 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public DateTime DequeuedTime { get; }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties)
             : this(messageSource, body, properties, new Dictionary<string, string>())
         {
         }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties, long offset)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, long offset)
             : this(messageSource, body, properties, new Dictionary<string, string>(), offset)
         {
         }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
             : this(messageSource, body, properties, systemProperties, 0L)
         {
         }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, DateTime enqueuedTime, DateTime dequeuedTime)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, DateTime enqueuedTime, DateTime dequeuedTime)
             : this(messageSource, body, properties, systemProperties, 0L, enqueuedTime, dequeuedTime)
         {
         }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset)
             : this(messageSource, body, properties, systemProperties, offset, DateTime.MinValue, DateTime.UtcNow)
         {
         }
 
-        public Message(MessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
+        public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
         {
             this.MessageSource = messageSource;
             this.Body = Preconditions.CheckNotNull(body);
@@ -87,7 +88,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 return true;
             }
 
-            return this.MessageSource == other.MessageSource &&
+            return this.MessageSource.Equals(other.MessageSource) &&
                 this.Offset == other.Offset &&
                 this.Body.SequenceEqual(other.Body) &&
                 this.Properties.Keys.Count() == other.Properties.Keys.Count() &&

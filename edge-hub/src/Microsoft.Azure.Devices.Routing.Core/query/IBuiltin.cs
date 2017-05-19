@@ -6,12 +6,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     using System.Linq.Expressions;
     using Antlr4.Runtime;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
 
     public interface IBuiltin
     {
         bool IsBodyQuery { get; }
 
-        bool IsValidMessageSource(MessageSource messageSource);
+        bool IsValidMessageSource(IMessageSource messageSource);
 
         bool IsEnabled(RouteCompilerFlags routeCompilerFlags);
 

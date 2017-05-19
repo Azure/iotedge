@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     //using Microsoft.Azure.Devices.DeviceManagement.Model;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     public class BodyQueryTest: RoutingUnitTestBase
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                }
             }";
 
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry,
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>
             {
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body;@")]
         public void BodyQuery_RouteCompilation(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery));
         }
 
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.HistoricalData[0].Month = 'Feb'")]
         public void BodyQuery_Double_Success(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -115,7 +116,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.HistoricalData[0].Temperature + 10 = $body.message.Weather.HistoricalData[1].Temperature")]
         public void BodyQuery_Double_Failure(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.False);
         }
@@ -127,7 +128,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.Location.State <> $body.message.Weather.Location.City")]
         public void BodyQuery_String_Success(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -141,7 +142,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.Location.State = $body.message.Weather.Location.City")]
         public void BodyQuery_String_Failure(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.False);
         }
@@ -155,7 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.InvalidKey <> '100'")]
         public void BodyQuery_Bool(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -166,7 +167,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather.IsDisabled OR NOT($body.message.Weather.IsDisabled)")]
         public void BodyQuery_Logical(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -177,7 +178,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$City <> $body.message.Weather.InvalidKey")]
         public void BodyQuery_Undefined(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
             Assert.Equal(rule(Message1), Bool.Undefined);
         }
@@ -190,7 +191,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("{$body.message.Weather.Location.State} <> 'CA'")]
         public void BodyQuery_SysPropertyConflict(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 
             Bool result = rule(Message1);
@@ -202,7 +203,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         {
             string condition = "$BODY.message.Weather.Temperature >= 50";
 
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.None));
         }
 
@@ -211,7 +212,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("$body.message.Weather <> null")]
         public void BodyQuery_NotSupportedJTokenTime(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 
             Bool result = rule(Message1);
@@ -227,7 +228,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("NOT ($body.message.Weather.InvalidProperty != null)")]
         public void BodyQuery_Null(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 
             Bool result = rule(Message1);
@@ -258,7 +259,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("upper($body.message.Weather.Location.Street) = 'ONE MICROSOFT WAY'")]
         public void BodyQuery_Builtins(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 
             Bool result = rule(Message1);
@@ -270,7 +271,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         {
             string condition = "$BODY.State[0] != '40'";
 
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
 
             try
             {

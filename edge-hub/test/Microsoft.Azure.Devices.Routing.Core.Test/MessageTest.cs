@@ -5,24 +5,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class MessageTest : RoutingUnitTestBase
     {
-        static readonly Message Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly Message Message2 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly Message Message3 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly Message Message4 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key", "value"}, {"key2", "value2"} });
-        static readonly Message Message5 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key", "value"} });
-        static readonly Message Message6 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value1" } });
-        static readonly Message Message7 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value1" } });
-        static readonly Message Message8 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value2" } });
+        static readonly Message Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly Message Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly Message Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly Message Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key", "value"}, {"key2", "value2"} });
+        static readonly Message Message5 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key", "value"} });
+        static readonly Message Message6 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value1" } });
+        static readonly Message Message7 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value1" } });
+        static readonly Message Message8 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, new Dictionary<string, string> { { "sys1", "value2" } });
 
         [Fact, Unit]
         public void TestConstructor()
         {
-            Assert.Throws(typeof(ArgumentNullException), () => new Message(MessageSource.Telemetry, new byte[0], null));
+            Assert.Throws(typeof(ArgumentNullException), () => new Message(TelemetryMessageSource.Instance, new byte[0], null));
         }
 
         [Fact, Unit]
@@ -52,7 +53,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public void TestCaseSensitivity()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string>(StringComparer.InvariantCulture) { {"KEY1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string>(StringComparer.InvariantCulture) { {"KEY1", "value1"}, {"key2", "value2"} });
             Assert.Equal("value1", message1.Properties["key1"]);
             Assert.Equal("value2", message1.Properties["key2"]);
         }

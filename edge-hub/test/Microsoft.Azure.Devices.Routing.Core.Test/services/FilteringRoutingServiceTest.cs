@@ -13,19 +13,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Services
     using Microsoft.Azure.Devices.Routing.Core.Services;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class FilteringRoutingServiceTest
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
-        static readonly IMessage Message2 = new Message(MessageSource.Telemetry, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } });
-        static readonly IMessage Message3 = new Message(MessageSource.Telemetry, new byte[] { 3, 2, 1 }, new Dictionary<string, string> { { "key1", "value3" }, { "key2", "value2" } });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } });
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 2, 1 }, new Dictionary<string, string> { { "key1", "value3" }, { "key2", "value2" } });
         static readonly Endpoint Endpoint1 = new NullEndpoint("id1");
-        static readonly Route Route1 = new Route("id1", "key1 = 'value1'", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { Endpoint1 });
-        static readonly Route Route2 = new Route("id2", "key1 = 'value2'", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { Endpoint1 });
-        static readonly Route Route3 = new Route("id3", "key1 = 'value3'", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { Endpoint1 });
+        static readonly Route Route1 = new Route("id1", "key1 = 'value1'", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
+        static readonly Route Route2 = new Route("id2", "key1 = 'value2'", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
+        static readonly Route Route3 = new Route("id3", "key1 = 'value3'", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
         static readonly IEnumerable<Endpoint> AllEndpoints = new List<Endpoint> { Endpoint1 };
         static readonly IEnumerable<Route> AllRoutes = new List<Route> { Route1, Route2, Route3 };
         static readonly IRouteStore RouteStore;

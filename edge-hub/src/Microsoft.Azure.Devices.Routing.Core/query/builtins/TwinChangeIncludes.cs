@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
@@ -28,10 +29,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         public override bool IsBodyQuery => true;
 
-        public override bool IsValidMessageSource(MessageSource source)
-        {
-            return source == MessageSource.TwinChangeEvents;
-        }
+        public override bool IsValidMessageSource(IMessageSource source) => source is TwinChangeEventMessageSource;
 
         public override bool IsEnabled(RouteCompilerFlags routeCompilerFlags)
         {

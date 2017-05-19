@@ -3,9 +3,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Moq;
     using Xunit;
@@ -13,59 +14,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
     [Unit]
     public class RouteFactoryTest
     {
-        static IEnumerable<object[]> GetRouteFactoryData()
-        {
-            var testData = new List<object[]>();
-            testData.Add(new object[]
-            {
-                @"FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
-                MessageSource.Telemetry,
-                "true",
-                "FunctionEndpoint"
-            });
-
-            testData.Add(new object[]
-            {
-                "FROM /messages/modules/alertLogic/outputs/alerts INTO $upstream",
-                MessageSource.Telemetry,
-                "true",
-                "SystemEndpoint"
-            });
-
-            testData.Add(new object[]
-            {
-                @"FROM /messages/modules/alertLogic/outputs/commands WHERE alertType = ""shutdown"" INTO brokeredEndpoint(""/modules/adapter/inputs/write"")",
-                MessageSource.Telemetry,
-                @"alertType = ""shutdown""",
-                "FunctionEndpoint"
-            });
-
-            testData.Add(new object[]
-            {
-                @"FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"");",
-                MessageSource.Telemetry,
-                "true",
-                "FunctionEndpoint"
-            });
-
-            testData.Add(new object[]
-            {
-                @"FROM /messages/modules/AsaModule/outputs/aggregates WHERE messageType = ""alert"" INTO $upstream",
-                MessageSource.Telemetry,
-                @"messageType = ""alert""",
-                "SystemEndpoint"
-            });
-
-            return testData;
-        }
-
         static IEnumerable<object[]> GetFunctionEndpointParserData()
         {
             var testData = new List<object[]>();
             testData.Add(new object[]
             {
-                @"FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
-                "/messages/modules/adapter",
+                @"FROM /* INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
+                CustomMessageSource.Create("/"),
                 "true",
                 "brokeredEndpoint",
                 "/modules/alertLogic/inputs/in"
@@ -73,18 +28,72 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @"FROM /messages/modules/alertLogic/outputs/commands WHERE alertType = ""shutdown"" INTO brokeredEndpoint(""/modules/adapter/inputs/write"")",
-                "/messages/modules/alertLogic/outputs/commands",
-                @"alertType = ""shutdown""",
+                @"FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
+                CustomMessageSource.Create("/messages/modules/adapter"),
+                "true",
+                "brokeredEndpoint",
+                "/modules/alertLogic/inputs/in"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules/alertLogic/outputs/commands INTO brokeredEndpoint(""/modules/adapter/inputs/write"")",
+                CustomMessageSource.Create("/messages/modules/alertLogic/outputs/commands"),
+                @"true",
                 "brokeredEndpoint",
                 "/modules/adapter/inputs/write"
             });
 
             testData.Add(new object[]
             {
-                @"FROM /messages/events INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"");",
-                "/messages/events",
+                @"FROM /messages/events INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages/events"),
                 "true",
+                "brokeredEndpoint",
+                "/modules/alertLogic/inputs/in1"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules WHERE messageType = ""alert"" INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
+                CustomMessageSource.Create("/messages/modules/"),
+                @"messageType = ""alert""",
+                "brokeredEndpoint",
+                "/modules/alertLogic/inputs/in"
+            });
+
+            testData.Add(new object[]
+            {
+                @"   FROM /messages/modules/adapter WHERE messageType = ""alert"" AND alert = ""imp"" INTO brokeredEndpoint(""/a/b/c/d"")   ",
+                CustomMessageSource.Create("/messages/modules/adapter"),
+                @"messageType = ""alert"" AND alert = ""imp""",
+                "brokeredEndpoint",
+                "/a/b/c/d"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules/alertLogic/outputs/commands WHERE messageType = ""alert"" AND ( temp > 100 OR humidity = 50 OR place = ""basement"") INTO brokeredEndpoint(""/modules/adapter/inputs/write"")",
+                CustomMessageSource.Create("/messages/modules/alertLogic/outputs/commands"),
+                @"messageType = ""alert"" AND ( temp > 100 OR humidity = 50 OR place = ""basement"")",
+                "brokeredEndpoint",
+                "/modules/adapter/inputs/write"
+            });
+
+            testData.Add(new object[]
+            {
+                @"  FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages/events"),
+                @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
+                "brokeredEndpoint",
+                "/modules/alertLogic/inputs/in1"
+            });
+
+            testData.Add(new object[]
+            {
+                @" SELECT * FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages/events"),
+                @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "brokeredEndpoint",
                 "/modules/alertLogic/inputs/in1"
             });
@@ -98,46 +107,82 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                "FROM /messages/* INTO $upstream",
-                "/messages/*",
+                @"FROM /* INTO $upstream",
+                CustomMessageSource.Create("/"),
                 "true",
                 "$upstream"
             });
 
             testData.Add(new object[]
             {
-                @"FROM /messages/modules/AsaModule/outputs/aggregates WHERE messageType = ""alert"" INTO $upstream",
-                "/messages/modules/AsaModule/outputs/aggregates",
+                @"FROM /messages/modules/adapter INTO $upstream",
+                CustomMessageSource.Create("/messages/modules/adapter"),
+                "true",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules/alertLogic/outputs/commands INTO $upstream",
+                CustomMessageSource.Create("/messages/modules/alertLogic/outputs/commands"),
+                @"true",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/events INTO $upstream",
+                CustomMessageSource.Create("/messages/events"),
+                "true",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules WHERE messageType = ""alert"" INTO $upstream",
+                CustomMessageSource.Create("/messages/modules"),
                 @"messageType = ""alert""",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"   FROM /messages/modules/adapter WHERE messageType = ""alert"" AND alert = ""imp"" INTO $upstream   ",
+                CustomMessageSource.Create("/messages/modules/adapter"),
+                @"messageType = ""alert"" AND alert = ""imp""",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"FROM /messages/modules/alertLogic/outputs/commands WHERE messageType = ""alert"" AND ( temp > 100 OR humidity = 50 OR place = ""basement"") INTO $upstream",
+                CustomMessageSource.Create("/messages/modules/alertLogic/outputs/commands"),
+                @"messageType = ""alert"" AND ( temp > 100 OR humidity = 50 OR place = ""basement"")",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @"  FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
+                CustomMessageSource.Create("/messages/events"),
+                @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
+                "$upstream"
+            });
+
+            testData.Add(new object[]
+            {
+                @" SELECT * FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
+                CustomMessageSource.Create("/messages/events"),
+                @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "$upstream"
             });
 
             return testData;
         }
 
-        [MemberData(nameof(GetRouteFactoryData))]
-        [Theory]
-        public void TestCreate(string routeString, MessageSource messageSource, string condition, string endpointName)
-        {
-            var mockEndpointFactory = new Mock<IEndpointFactory>();
-            mockEndpointFactory.Setup(s => s.CreateSystemEndpoint(It.IsAny<string>())).Returns(new TestEndpoint("SystemEndpoint"));
-            mockEndpointFactory.Setup(s => s.CreateFunctionEndpoint(It.IsAny<string>(), It.IsAny<string>())).Returns(new TestEndpoint("FunctionEndpoint"));
-            var routeFactory = new TestRouteFactory(mockEndpointFactory.Object);
-
-            Route route = routeFactory.Create(routeString);
-            Assert.NotNull(route);
-
-            Assert.Equal(messageSource, route.Source);
-            Assert.Equal(condition, route.Condition);
-            Assert.Equal(1, route.Endpoints.Count);
-            Endpoint endpoint = route.Endpoints.First();
-            Assert.NotNull(endpoint);
-            Assert.Equal(endpointName, endpoint.Name);
-        }
-
         [MemberData(nameof(GetFunctionEndpointParserData))]
         [Theory]
-        public void TestParseRouteWithFunctionEndpoint(string routeString, string expectedSource, string expectedCondition, string function, string inputEndpoint)
+        public void TestParseRouteWithFunctionEndpoint(string routeString, IMessageSource expectedSource, string expectedCondition, string function, string inputEndpoint)
         {
             var mockEndpointFactory = new Mock<IEndpointFactory>();
             mockEndpointFactory.Setup(ef => ef.CreateFunctionEndpoint(
@@ -146,10 +191,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
                 .Returns(new TestEndpoint(function));
             var routeFactory = new TestRouteFactory(mockEndpointFactory.Object);
 
-            routeFactory.ParseRoute(routeString, out string messageSource, out string condition, out Endpoint endpoint);
+            routeFactory.ParseRoute(routeString, out IMessageSource messageSource, out string condition, out Endpoint endpoint);
 
             Assert.NotNull(messageSource);
-            Assert.Equal(expectedSource, messageSource);
+            Assert.True(expectedSource.Equals(messageSource));
 
             Assert.NotNull(condition);
             Assert.Equal(expectedCondition, condition);
@@ -160,7 +205,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
         [MemberData(nameof(GetSystemEndpointParserData))]
         [Theory]
-        public void TestParseRouteWithSystemEndpoint(string routeString, string expectedSource, string expectedCondition, string systemEndpoint)
+        public void TestParseRouteWithSystemEndpoint(string routeString, IMessageSource expectedSource, string expectedCondition, string systemEndpoint)
         {
             var mockEndpointFactory = new Mock<IEndpointFactory>();
             mockEndpointFactory.Setup(ef => ef.CreateSystemEndpoint(
@@ -168,16 +213,40 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
                 .Returns(new TestEndpoint(systemEndpoint));
             var routeFactory = new TestRouteFactory(mockEndpointFactory.Object);
 
-            routeFactory.ParseRoute(routeString, out string messageSource, out string condition, out Endpoint endpoint);
+            routeFactory.ParseRoute(routeString, out IMessageSource messageSource, out string condition, out Endpoint endpoint);
 
             Assert.NotNull(messageSource);
-            Assert.Equal(expectedSource, messageSource);
+            Assert.True(expectedSource.Equals(messageSource));
 
             Assert.NotNull(condition);
             Assert.Equal(expectedCondition, condition);
 
             Assert.NotNull(endpoint);
             Assert.Equal(systemEndpoint, endpoint.Name);
+        }
+        
+        [Theory]
+        [InlineData(@"FORM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"SELECT FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM /messages WHERE temp == 100 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM /messages WHERE INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM /messages WHERE temp = 'high' INTO")]        
+        [InlineData(@"FROM /messages INTO brokeredEndpoint(""/modules/alertLogic/inputs/in""")]
+        [InlineData(@"FROM /messages INTO brokeredEndpoint(""/modules/alertLogic/inputs/in)")]
+        [InlineData(@"FROM /messages INTO brokeredEndpoint ""/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM /messages INTO brokeredEndpoint(/modules/alertLogic/inputs/in"")")]
+        [InlineData(@"FROM /messages INTO ""/modules/alertLogic/inputs/in""")]
+        [InlineData(@"FROM /messages INTO /modules/alertLogic/inputs/in")]
+        [InlineData(@"FROM /messages INTO upstream")]
+        public void TestInvalidRoutes(string routeString)
+        {
+            var mockEndpointFactory = new Mock<IEndpointFactory>();
+            mockEndpointFactory.Setup(s => s.CreateSystemEndpoint(It.IsAny<string>())).Returns(new TestEndpoint("SystemEndpoint"));
+            mockEndpointFactory.Setup(s => s.CreateFunctionEndpoint(It.IsAny<string>(), It.IsAny<string>())).Returns(new TestEndpoint("FunctionEndpoint"));
+            var routeFactory = new TestRouteFactory(mockEndpointFactory.Object);
+
+            Assert.Throws(typeof(RouteCompilationException), () => routeFactory.Create(routeString));
         }
     }
 }

@@ -9,14 +9,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class EvaluatorTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage InvalidMessage = new Message(MessageSource.Invalid, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value3"}, {"key2", "value2"} });
-        static readonly IMessage Message4 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value4"}, {"key2", "value2"} });
+        static readonly IMessageSource InvalidMessageSource = CustomMessageSource.Create("/invalid/message/path");
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage InvalidMessage = new Message(InvalidMessageSource, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value3"}, {"key2", "value2"} });
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value4"}, {"key2", "value2"} });
 
         [Fact, Unit]
         public void SmokeTest()
@@ -24,8 +26,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> {  endpoint1, endpoint2 };
-            var route1 = new Route("id1", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
+            var route1 = new Route("id1", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route2 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
             var routes = new HashSet<Route> { route2, route1 };
 
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
@@ -40,9 +42,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route1 = new Route("id1", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
-            var route3 = new Route("id3", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
+            var route1 = new Route("id1", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route2 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
+            var route3 = new Route("id3", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
             var routes = new HashSet<Route> { route2, route1 };
 
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
@@ -62,7 +64,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             // Replace route2
             var endpoint3 = new TestEndpoint("id3");
-            var route4 = new Route("id2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3 });
+            var route4 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3 });
             evaluator.SetRoute(route4);
             endpoints = evaluator.Evaluate(Message1);
             Assert.Equal(2, endpoints.Count);
@@ -77,9 +79,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route1 = new Route("id1", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
-            var route3 = new Route("id3", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
+            var route1 = new Route("id1", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route2 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
+            var route3 = new Route("id3", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
             var routes = new HashSet<Route> { route2, route1, route3 };
 
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
@@ -118,9 +120,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route1 = new Route("id1", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
-            var route3 = new Route("id3", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
+            var route1 = new Route("id1", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route2 = new Route("id2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
+            var route3 = new Route("id3", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
             var routes = new HashSet<Route> { route2, route1 };
 
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
@@ -143,8 +145,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new NullEndpoint("id1");
             var endpoint3 = new NullEndpoint("id3");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint3 };
-            var route1 = new Route("id1", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var route3 = new Route("id3", "true", "hub", MessageSource.Invalid, new HashSet<Endpoint> { endpoint3 });
+            var route1 = new Route("id1", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var route3 = new Route("id3", "true", "hub", InvalidMessageSource, new HashSet<Endpoint> { endpoint3 });
             var routes = new HashSet<Route> { route1, route3 };
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
 
@@ -165,8 +167,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new NullEndpoint("id1");
             var endpoint2 = new NullEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route1 = new Route("id1", "key1 = 'value1'", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var fallback = new Route("$fallback", "true", "hub", MessageSource.Invalid, new HashSet<Endpoint> { endpoint2 });
+            var route1 = new Route("id1", "key1 = 'value1'", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var fallback = new Route("$fallback", "true", "hub", InvalidMessageSource, new HashSet<Endpoint> { endpoint2 });
             var routes = new HashSet<Route> { route1 };
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes, Option.Some(fallback)));
 
@@ -188,7 +190,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         {
             var endpoint1 = new NullEndpoint("id1");
             var allEndpoints = new HashSet<Endpoint> { endpoint1 };
-            var route1 = new Route("id1", "key1 = 'value1'", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
+            var route1 = new Route("id1", "key1 = 'value1'", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
             var routes = new HashSet<Route> { route1 };
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
 

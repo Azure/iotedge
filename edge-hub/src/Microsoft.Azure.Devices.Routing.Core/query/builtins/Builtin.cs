@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     using System.Linq;
     using System.Linq.Expressions;
     using Antlr4.Runtime;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 
         public virtual bool IsBodyQuery => false;
 
-        public virtual bool IsValidMessageSource(MessageSource source)
+        public virtual bool IsValidMessageSource(IMessageSource source)
         {
             return true;
         }

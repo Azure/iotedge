@@ -1,9 +1,11 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
+    using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using RoutingMessage = Microsoft.Azure.Devices.Routing.Core.Message;
@@ -44,8 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(edgeMessage.Properties, nameof(edgeMessage.Properties));
             Preconditions.CheckNotNull(edgeMessage.SystemProperties, nameof(edgeMessage.SystemProperties));
 
-            // TODO - Check how to derive message source
-            var routingMessage = new RoutingMessage(MessageSource.Telemetry, edgeMessage.Body, edgeMessage.Properties, edgeMessage.SystemProperties);
+            IMessageSource messageSource = edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.EndpointId, out string endpointId)
+                && edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.ModuleId, out string moduleId)
+                    ? ModuleMessageSource.Create(moduleId, endpointId) as IMessageSource
+                    : TelemetryMessageSource.Instance;
+
+            var routingMessage = new RoutingMessage(messageSource, edgeMessage.Body, edgeMessage.Properties, edgeMessage.SystemProperties);
             return routingMessage;
         }
 

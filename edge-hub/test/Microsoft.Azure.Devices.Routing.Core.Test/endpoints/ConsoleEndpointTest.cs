@@ -9,12 +9,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConsoleEndpointTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
 
         [Fact, Unit]
         public void TestConstructor()

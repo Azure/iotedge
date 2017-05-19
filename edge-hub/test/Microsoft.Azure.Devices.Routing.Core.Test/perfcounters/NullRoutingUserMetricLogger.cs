@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.PerfCounters
         {
         }
 
-        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, MessageSource messageSource)
+        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource)
         {
         }
 

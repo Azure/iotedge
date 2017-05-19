@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class NullRoutingUserMetricLogger : IRoutingUserMetricLogger
     {
-        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, MessageSource messageSource)
+        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource)
         {
         }
 

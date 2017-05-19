@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
     using Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -20,16 +21,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
     [ExcludeFromCodeCoverage]
     public class EndpointExecutorFsmTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
-        static readonly IMessage Message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
-        static readonly IMessage Message3 = new Message(MessageSource.Telemetry, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
-        static readonly IMessage Message4 = new Message(MessageSource.Telemetry, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4);
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4);
 
         static readonly RetryStrategy MaxRetryStrategy = new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(int.MaxValue));
         static readonly EndpointExecutorConfig MaxConfig = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, MaxRetryStrategy, TimeSpan.FromMinutes(5));
 
         static IMessage MessageWithOffset(long offset) =>
-            new Message(MessageSource.Telemetry, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
+            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
 
         [Fact, Unit]
         public async Task TestCheckpoint()

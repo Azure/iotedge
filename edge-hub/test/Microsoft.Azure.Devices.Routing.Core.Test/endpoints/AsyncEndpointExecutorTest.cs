@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -18,10 +19,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     [ExcludeFromCodeCoverage]
     public class AsyncEndpointExecutorTest : RoutingUnitTestBase
     {
-        static readonly IMessage Default = new Message(MessageSource.Telemetry, new byte[0], new Dictionary<string, string>());
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
-        static readonly IMessage Message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
-        static readonly IMessage Message3 = new Message(MessageSource.Telemetry, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
+        static readonly IMessage Default = new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>());
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3);
 
         static readonly RetryStrategy MaxRetryStrategy = new FixedInterval(int.MaxValue, TimeSpan.FromMilliseconds(int.MaxValue));
         static readonly EndpointExecutorConfig MaxConfig = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, MaxRetryStrategy, TimeSpan.FromMinutes(5));

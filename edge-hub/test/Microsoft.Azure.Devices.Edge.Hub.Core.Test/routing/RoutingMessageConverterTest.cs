@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
@@ -89,10 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.CorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };
-            var routingMessage1 = new RoutingMessage(MessageSource.Telemetry, messageBytes, properties, systemProperties);
+            var routingMessage1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, properties, systemProperties);
             routingMessages.Add(new object[] { routingMessage1 });
 
-            var routingMessage2 = new RoutingMessage(MessageSource.TwinChangeEvents, 
+            var routingMessage2 = new RoutingMessage(TwinChangeEventMessageSource.Instance, 
                 messageBytes, 
                 properties, 
                 systemProperties, 
@@ -103,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var emptyProperties = new Dictionary<string, string>();
             var emptySystemProperties = new Dictionary<string, string>();
-            var routingMessage3 = new RoutingMessage(MessageSource.Telemetry, messageBytes, emptyProperties, emptySystemProperties);
+            var routingMessage3 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, emptyProperties, emptySystemProperties);
             routingMessages.Add(new object[] { routingMessage3 });
 
             return routingMessages;
@@ -153,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Assert.Equal(DateTime.MinValue, routingMessage.EnqueuedTime);            
             Assert.Equal(routingMessage.Offset, 0);
-            Assert.Equal(routingMessage.MessageSource, MessageSource.Telemetry);
+            Assert.True(routingMessage.MessageSource.IsTelemetry());
         }
 
         [Theory]

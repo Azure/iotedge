@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     public class RouterTest : RoutingUnitTestBase
     {
         static IMessage MessageWithOffset(long offset) =>
-             new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, offset);
+             new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, offset);
 
         static readonly Option<Route> Fallback = Option.None<Route>();
         static readonly IEndpointExecutorFactory AsyncExecutorFactory = new AsyncEndpointExecutorFactory(TestConstants.DefaultConfig, TestConstants.DefaultOptions);
@@ -28,11 +29,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task SmokeTest()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route = new Route("id", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
             var routes = new HashSet<Route> { route };
 
             using (Router router = await Router.CreateAsync("router1", "SmokeTest", new RouterConfig(allEndpoints, routes, Fallback), new SyncEndpointExecutorFactory(TestConstants.DefaultConfig)))
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route = new Route("id", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
             var routes = new HashSet<Route> { route };
 
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), AsyncExecutorFactory))
@@ -72,7 +73,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route = new Route("id1", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route = new Route("id1", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
             var routes = new HashSet<Route> { route };
             Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), AsyncExecutorFactory);
             string expected = "Router(router1)";
@@ -83,15 +84,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task TestSetRoute()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] { 1, 2, 3 },
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 },
                 new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } },
                 new Dictionary<string, string> { { "systemkey1", "systemvalue1" }, { "systemkey2", "systemvalue2" } });
 
-            var message2 = new Message(MessageSource.Telemetry, new byte[] { 2, 3, 1 },
+            var message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 },
                 new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } },
                 new Dictionary<string, string> { { "systemkey1", "systemvalue2" }, { "systemkey2", "systemvalue2" } });
 
-            var message3 = new Message(MessageSource.Telemetry, new byte[] { 3, 1, 2 },
+            var message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 1, 2 },
                 new Dictionary<string, string> { { "key1", "value3" }, { "key2", "value2" } },
                 new Dictionary<string, string> { { "systemkey1", "systemvalue3" }, { "systemkey2", "systemvalue2" } });
 
@@ -102,9 +103,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2, endpoint3, endpoint4 };
 
-            var route1 = new Route("id1", "key1 = \"value1\" and $systemkey1 = \"systemvalue1\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
-            var route2 = new Route("id2", "key1 = \"value2\" and $systemkey1 = \"systemvalue2\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
-            var route3 = new Route("id1", "key1 = \"value3\" and $systemkey1 = \"systemvalue3\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route1 = new Route("id1", "key1 = \"value1\" and $systemkey1 = \"systemvalue1\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route2 = new Route("id2", "key1 = \"value2\" and $systemkey1 = \"systemvalue2\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route3 = new Route("id1", "key1 = \"value3\" and $systemkey1 = \"systemvalue3\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
 
             var routes = new HashSet<Route> { route1, route2 };
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), new SyncEndpointExecutorFactory(TestConstants.DefaultConfig)))
@@ -139,9 +140,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task TestRemoveRoute()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-            var message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value2"}, {"key2", "value2"} });
-            var message3 = new Message(MessageSource.Telemetry, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value2"}, {"key2", "value2"} });
+            var message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
 
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
@@ -150,9 +151,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2, endpoint3, endpoint4 };
 
-            var route1 = new Route("id1", "key1 = \"value1\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
-            var route2 = new Route("id2", "key1 = \"value2\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
-            var route3 = new Route("id3", "key1 = \"value1\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route1 = new Route("id1", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route2 = new Route("id2", "key1 = \"value2\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route3 = new Route("id3", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
 
             var routes = new HashSet<Route> { route1, route2, route3 };
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory))
@@ -194,9 +195,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task TestReplaceRoutes()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-            var message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value2"}, {"key2", "value2"} });
-            var message3 = new Message(MessageSource.Telemetry, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value2"}, {"key2", "value2"} });
+            var message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
 
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
@@ -205,9 +206,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2, endpoint3, endpoint4 };
 
-            var route1 = new Route("id1", "key1 = \"value1\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1, endpoint2 });
-            var route2 = new Route("id2", "key1 = \"value2\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
-            var route3 = new Route("id3", "key1 = \"value1\"", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route1 = new Route("id1", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1, endpoint2 });
+            var route2 = new Route("id2", "key1 = \"value2\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
+            var route3 = new Route("id3", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint3, endpoint4 });
 
             var routes = new HashSet<Route> { route1, route2 };
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory))
@@ -251,7 +252,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task TestFailedEndpoint()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
             var retryStrategy = new FixedInterval(10, TimeSpan.FromSeconds(1));
             TimeSpan revivePeriod = TimeSpan.FromHours(1);
             TimeSpan execTimeout = TimeSpan.FromSeconds(60);
@@ -260,7 +261,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var endpoint = new FailedEndpoint("endpoint1");
             var endpoints = new HashSet<Endpoint> { endpoint };
-            var route = new Route("route1", "true", "hub", MessageSource.Telemetry, endpoints);
+            var route = new Route("route1", "true", "hub", TelemetryMessageSource.Instance, endpoints);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(endpoints, new HashSet<Route> { route }, Fallback), factory))
@@ -270,7 +271,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 Task routing = router.RouteAsync(message1);
 
                 var endpoint2 = new TestEndpoint("endpoint1");
-                var newRoute = new Route("id", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
+                var newRoute = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
                 Task setting = router.SetRoute(newRoute);
 
                 Task timeout = Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
@@ -295,8 +296,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var routes = new HashSet<Route>
             {
-                new Route("route1", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 }),
-                new Route("route2", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 })
+                new Route("route1", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 }),
+                new Route("route2", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 })
             };
 
             Router router1 = await Router.CreateAsync("router.1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory, store.Object);
@@ -329,12 +330,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact, Unit]
         public async Task TestFallback()
         {
-            var message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var route = new Route("id", "false", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint1 });
-            var fallback = new Route("$fallback", "true", "hub", MessageSource.Telemetry, new HashSet<Endpoint> { endpoint2 });
+            var route = new Route("id", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
+            var fallback = new Route("$fallback", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
             var routes = new HashSet<Route> { route };
 
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Option.Some(fallback)), SyncExecutorFactory))

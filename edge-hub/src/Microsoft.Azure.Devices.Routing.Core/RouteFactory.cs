@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Antlr4.Runtime;
     using Antlr4.Runtime.Misc;
     using Antlr4.Runtime.Tree;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
@@ -27,9 +28,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
         public Route Create(string routeString)
         {
             // Parse route into constituents
-            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out string messageSource, out string condition, out Endpoint endpoint);
-            // TODO - Set right MessageSource, currently defaulting to Telemetry every time. 
-            var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, MessageSource.Telemetry, new HashSet<Endpoint> { endpoint });
+            this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);            
+            var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, messageSource, new HashSet<Endpoint> { endpoint });
             return route;
         }
 
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 .Select(r => this.Create(r));
         }
 
-        internal void ParseRoute(string routeString, out string messageSource, out string condition, out Endpoint endpoint)
+        internal void ParseRoute(string routeString, out IMessageSource messageSource, out string condition, out Endpoint endpoint)
         {
             var errorListener = new ErrorListener();
             var input = new AntlrInputStream(routeString);
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             walker.Walk(listener, tree);
 
             condition = listener.Condition ?? DefaultCondition;
-            messageSource = listener.Source;
+            messageSource = CustomMessageSource.Create(listener.Source);
             endpoint = listener.Endpoint;
         }
 
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 int endIndex = context.Stop.StopIndex;
 
                 var interval = new Interval(startIndex, endIndex);
-                this.Condition = stream.GetText(interval);                
+                this.Condition = stream.GetText(interval);
             }
 
             public override void ExitSystemEndpoint(RouteParser.SystemEndpointContext context)

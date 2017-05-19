@@ -60,7 +60,7 @@
 //            weather["Location"] = location;
 //            twinInfo.Tags["Weather"] = weather;
 
-//            IMessage twinMessage = new TwinMessage(MessageSource.TwinChangeEvents, twinInfo,
+//            IMessage twinMessage = new TwinMessage(TwinChangeEventMessageSource.Instance, twinInfo,
 //                new Dictionary<string, string>
 //            {
 //                { "City", "Redmond" },
@@ -97,7 +97,7 @@
 //        [InlineData("$body.tags.Weather.HistoricalData_0.Month = 'Feb'")]
 //        public void BodyQuery_Double_Success(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 //            Assert.Equal(rule(Message1), Bool.True);
 //        }
@@ -117,7 +117,7 @@
 //        [InlineData("$body.tags.Weather.HistoricalData_0.Temperature + 10 = $body.tags.Weather.HistoricalData_1.Temperature")]
 //        public void BodyQuery_Double_Failure(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 //            Assert.Equal(rule(Message1), Bool.False);
 //        }
@@ -129,7 +129,7 @@
 //        [InlineData("$body.tags.Weather.Location.State <> $body.tags.Weather.Location.City")]
 //        public void BodyQuery_String_Success(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 //            Assert.Equal(rule(Message1), Bool.True);
 //        }

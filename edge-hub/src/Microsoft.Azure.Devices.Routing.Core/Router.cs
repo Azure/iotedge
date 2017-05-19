@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             public static void MessageEvaluation(string iotHubName, IMessage message, ISet<Endpoint> endpoints)
             {
-                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToStringEx(), endpoints.LongCount(), out string error))
+                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToString(), endpoints.LongCount(), out string error))
                 {
                     Log.LogError((int)EventIds.CounterFailed, "[LogMessageEndpointsMatchedCounterFailed] {0}", error);
                 }

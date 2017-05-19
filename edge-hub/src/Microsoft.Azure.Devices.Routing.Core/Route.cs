@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Collections.Immutable;
     using System.Globalization;
     using System.Linq;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class Route : IEquatable<Route>
@@ -16,11 +17,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public string IotHubName { get; }
 
-        public MessageSource Source { get; }
+        public IMessageSource Source { get; }
 
         public ISet<Endpoint> Endpoints { get; }
 
-        public Route(string id, string condition, string iotHubName, MessageSource source, ISet<Endpoint> endpoints)
+        public Route(string id, string condition, string iotHubName, IMessageSource source, ISet<Endpoint> endpoints)
         {
             this.Id = Preconditions.CheckNotNull(id);
             this.Condition = Preconditions.CheckNotNull(condition);

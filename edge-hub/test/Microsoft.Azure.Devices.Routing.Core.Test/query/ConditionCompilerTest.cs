@@ -10,12 +10,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
     public class ConditionCompilerTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[0],
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[0],
             new Dictionary<string, string> { { "key1", "value1" }, { "key2", "3" }, { "key3", "VALUE3"}, { "null_value", null }, { "$sys4", "value4" } },
             new Dictionary<string, string> { { "sys1", "sysvalue1" }, { "sys2", "4" }, { "sys3", "SYSVALUE3"}, { "sysnull", null}, { "sys4", "sysvalue4" } });
 
@@ -515,7 +516,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [MemberData(nameof(TestSuccessDataSource.TestData), MemberType = typeof(TestSuccessDataSource))]
         public void TestSuccess(string condition, Bool expected)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
             Assert.Equal(expected, rule(Message1));
         }
@@ -526,7 +527,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             string condition = "as_number(key2) = 3";
             Bool expected = Bool.True;
 
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
             Assert.Equal(expected, rule(Message1));
         }
@@ -537,7 +538,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             for (int i = -10; i <= 10; i++)
             {
                 string condition = $"substring('hello', {i}) = 'he'";
-                var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+                var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
 
                 // assert doesn't throw
                 Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
@@ -549,7 +550,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 for (int j = -10; j <= 10; j++)
                 {
                     string condition = $"substring('hello', {i}, {j}) = 'he'";
-                    var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+                    var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
 
                     // assert doesn't throw
                     Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
@@ -844,7 +845,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [MemberData(nameof(TestCompilationFailureDataSource.TestData), MemberType = typeof(TestCompilationFailureDataSource))]
         public void TestCompilationFailure(string condition)
         {
-            var route = new Route("id", condition, "hub", MessageSource.Telemetry, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
         }
     }

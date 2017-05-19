@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -313,15 +314,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             public static void UnmatchedMessage(string iotHubName, IMessage message)
             {
-                if (!Routing.PerfCounter.LogUnmatchedMessages(iotHubName, message.MessageSource.ToStringEx(), 1, out string error))
+                if (!Routing.PerfCounter.LogUnmatchedMessages(iotHubName, message.MessageSource.ToString(), 1, out string error))
                 {
                     Log.LogError((int)EventIds.CounterFailed, "[LogMessageUnmatchedMessagesCounterFailed] {0}", error);
                 }
 
                 // Only telemetry messages should be marked as orphaned for user logging / metric purposes.
-                if (message.MessageSource == MessageSource.Telemetry)
+                if (message.MessageSource.IsTelemetry())
                 {
-                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, MessageSource.Telemetry);
+                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, message.MessageSource.ToString());
                     Routing.UserAnalyticsLogger.LogOrphanedMessage(iotHubName, message);
                 }
             }

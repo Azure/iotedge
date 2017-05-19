@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -20,15 +21,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     [ExcludeFromCodeCoverage]
     public class DispatcherTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage Message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
-        static readonly IMessage Message3 = new Message(MessageSource.Telemetry, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} });
 
         static readonly IEndpointExecutorFactory AsyncExecutorFactory = new AsyncEndpointExecutorFactory(TestConstants.DefaultConfig, TestConstants.DefaultOptions);
         static readonly IEndpointExecutorFactory SyncExecutorFactory = new SyncEndpointExecutorFactory(TestConstants.DefaultConfig);
 
         static IMessage MessageWithOffset(long offset) =>
-             new Message(MessageSource.Telemetry, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, offset);
+             new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, offset);
 
         [Fact, Unit]
         public async Task SmokeTest()
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id1");
             var endpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
-            var message = new Message(MessageSource.Telemetry, new byte[0], new Dictionary<string, string>());
+            var message = new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>());
 
             Assert.Equal(new List<IMessage>(), endpoint1.Processed);
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);

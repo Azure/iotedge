@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Moq;
     using Xunit;
@@ -16,7 +17,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     public class CheckpointerTest : RoutingUnitTestBase
     {
         static IMessage MessageWithOffset(long offset) =>
-            new Message(MessageSource.Telemetry, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
+            new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
 
         static class TestAdmitDataSource
         {

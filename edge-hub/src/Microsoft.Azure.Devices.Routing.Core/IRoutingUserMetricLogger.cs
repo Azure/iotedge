@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 {
     public interface IRoutingUserMetricLogger
     {
-        void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, MessageSource messageSource);
+        void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource);
 
         void LogEgressFallbackMetric(long metricValue, string iotHubName);
 

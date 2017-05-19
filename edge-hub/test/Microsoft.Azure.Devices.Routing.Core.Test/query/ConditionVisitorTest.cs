@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Route testRoute = new Route(Guid.NewGuid().ToString(),
                 "true",
                 nameof(ConditionVisitorTest),
-                MessageSource.Telemetry,
+                TelemetryMessageSource.Instance,
                 new HashSet<Endpoint>());
 
             var visitor = new ConditionVisitor(parameter, errorListener, testRoute, RouteCompilerFlags.All);

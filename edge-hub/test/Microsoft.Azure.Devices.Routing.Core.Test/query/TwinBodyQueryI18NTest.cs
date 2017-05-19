@@ -44,7 +44,7 @@
 //            twinInfo.Tags["I'm using spaces %1"] = a2;
 //            twinInfo.Tags["I'mnotusingspaces%1"] = a3;
 
-//            IMessage twinMessage = new TwinMessage(MessageSource.TwinChangeEvents, twinInfo);
+//            IMessage twinMessage = new TwinMessage(TwinChangeEventMessageSource.Instance, twinInfo);
 
 //            return twinMessage;
 //        }
@@ -54,7 +54,7 @@
 //        [InlineData("$body.tags.I'mnotusingspaces%1.es = 'Estoy usando %1'")]
 //        public void BodyQueryI18N_Success(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 //            Assert.Equal(rule(Message1), Bool.True);
 //        }
@@ -63,7 +63,7 @@
 //        [InlineData("$body.tags.Welcome!.I'mnotusingspaces%1.es = 'Estoy usando %1'")]
 //        public void BodyQueryI18N_Failure(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery);
 //            Assert.Equal(rule(Message1), Bool.False);
 //        }
@@ -72,7 +72,7 @@
 //        [InlineData("$body.tags.Welcome!['I'm using spaces %1'] = 'ברוכים הבאים!'")]
 //        public void BodyQueryI18N_RouteCompilation(string condition)
 //        {
-//            var route = new Route("id", condition, "hub", MessageSource.TwinChangeEvents, new HashSet<Endpoint>());
+//            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
 //            Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.BodyQuery));
 //        }
 //    }

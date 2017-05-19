@@ -25,7 +25,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             byte[] payloadBytes = sourceMessage.Payload.ToByteArray();
 
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
-            MqttMessage hubMessage = new MqttMessage.Builder(payloadBytes).SetProperties(sourceMessage.Properties).Build();
+
+            var systemProperties = new Dictionary<string, string>();
+            if (sourceMessage.Properties.TryGetValue(SystemProperties.DeviceId, out string deviceIdValue))
+            {
+                systemProperties[SystemProperties.DeviceId] = deviceIdValue;
+                sourceMessage.Properties.Remove(SystemProperties.DeviceId);
+            }
+
+            if (sourceMessage.Properties.TryGetValue(SystemProperties.ModuleId, out string moduleIdValue))
+            {
+                systemProperties[SystemProperties.ModuleId] = moduleIdValue;
+                sourceMessage.Properties.Remove(SystemProperties.ModuleId);
+            }
+
+            if (sourceMessage.Properties.TryGetValue(SystemProperties.EndpointId, out string endpointIdValue))
+            {
+                systemProperties[SystemProperties.EndpointId] = endpointIdValue;
+                sourceMessage.Properties.Remove(SystemProperties.EndpointId);
+            }
+
+            MqttMessage hubMessage = new MqttMessage.Builder(payloadBytes)
+                .SetProperties(sourceMessage.Properties)
+                .SetSystemProperties(systemProperties)
+                .Build();
             return hubMessage;
         }
 

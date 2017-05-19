@@ -6,11 +6,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
 
     public interface IMessage : IDisposable
     {
-        MessageSource MessageSource { get; }
+        IMessageSource MessageSource { get; }
 
         byte[] Body { get; }
 

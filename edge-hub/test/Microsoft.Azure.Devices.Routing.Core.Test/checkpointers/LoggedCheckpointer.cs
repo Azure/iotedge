@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     class LoggedCheckpointer : ICheckpointer
@@ -66,10 +67,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     [ExcludeFromCodeCoverage]
     public class LoggedCheckpointTest : RoutingUnitTestBase
     {
-        static readonly IMessage Message1 = new Message(MessageSource.Telemetry, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1L);
-        static readonly IMessage Message2 = new Message(MessageSource.Telemetry, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2L);
-        static readonly IMessage Message3 = new Message(MessageSource.Telemetry, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3L);
-        static readonly IMessage Message4 = new Message(MessageSource.Telemetry, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4L);
+        static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] {1, 2, 3, 4}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 1L);
+        static readonly IMessage Message2 = new Message(TelemetryMessageSource.Instance, new byte[] {2, 3, 4, 1}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 2L);
+        static readonly IMessage Message3 = new Message(TelemetryMessageSource.Instance, new byte[] {3, 4, 1, 2}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 3L);
+        static readonly IMessage Message4 = new Message(TelemetryMessageSource.Instance, new byte[] {4, 1, 2, 3}, new Dictionary<string, string> { {"key1", "value1"}, {"key2", "value2"} }, 4L);
 
         [Fact, Unit]
         public async Task SmokeTest()

@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string UserId = "userId";
         public const string Ack = "ack";
         public const string DeviceId = "connectionDeviceId";
+        public const string ModuleId = "moduleId";
+        public const string EndpointId = "endpointId";
         public const string DeviceGenerationId = "connectionDeviceGenerationId";
         public const string AuthMethod = "connectionAuthMethod";
         public const string ContentType = "contentType";

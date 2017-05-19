@@ -834,9 +834,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     return;
                 }
 
-                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
-                    Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Success, group.Key);
+                    int count = group.Count();
+                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Success, count > 0 ? group.First().ToString() : group.Key.Name);
                 }
 
                 // calculate average latency
@@ -848,17 +849,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             static void SetInvalidEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
             {
-                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
-                    Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, group.Key);
+                    int count = group.Count();
+                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, count > 0 ? group.First().ToString() : group.Key.Name);
                 }
             }
 
             static void SetDroppedEgressUserMetricCounter(EndpointExecutorFsm fsm, IEnumerable<IMessage> messages)
             {
-                foreach (IGrouping<MessageSource, IMessage> group in messages.GroupBy(m => m.MessageSource).Where(g => g.Any()))
+                foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
-                    Routing.UserMetricLogger.LogEgressMetric(group.Count(), fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, group.Key);
+                    int count = group.Count();
+                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, count > 0 ? group.First().ToString() : group.Key.Name);
                 }
             }
         }

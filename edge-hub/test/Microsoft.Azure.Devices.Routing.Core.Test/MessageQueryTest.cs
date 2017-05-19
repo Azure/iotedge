@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System.Text;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -28,7 +29,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                }
             }";
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf8_ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -37,7 +38,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf16_ValidJson = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf16_ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.Unicode.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf32_ValidJson = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf32_ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF32.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -55,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_InvalidJson = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf8_InvalidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes("Invalid Json"),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_InvalidEncoding = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_InvalidEncoding = new Message(TelemetryMessageSource.Instance,
             new byte[] { 1, 2, 3 },
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingEncodingProperty = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingEncodingProperty = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -81,7 +82,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingContentTypeProperty = new Message(MessageSource.Telemetry,
+        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingContentTypeProperty = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
