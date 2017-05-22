@@ -6,8 +6,7 @@
 # by a previous step.
 
 # Get directory of running script
-DIR="`dirname \"$0\"`"
-DIR="`( cd \"$DIR\" && pwd )`"
+DIR=$(cd "$(dirname "$0")" && pwd)
 
 # Check if Environment variables are set.
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
