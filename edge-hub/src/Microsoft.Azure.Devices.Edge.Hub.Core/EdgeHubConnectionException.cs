@@ -3,13 +3,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
 
-    public class IotHubConnectionException : Exception
+    public class EdgeHubConnectionException : Exception
     {
-        public IotHubConnectionException(string message)
+        public EdgeHubConnectionException(string message)
             : this(message, null)
         { }
 
-        public IotHubConnectionException(string message, Exception innerException)            
+        public EdgeHubConnectionException(string message, Exception innerException)            
         : base(message, innerException)
         { }
     }

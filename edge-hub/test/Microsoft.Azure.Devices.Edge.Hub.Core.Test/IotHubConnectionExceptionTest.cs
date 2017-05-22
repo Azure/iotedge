@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Unit]
         public void IotHubConnection_ExceptionConstructorTest()
         {
-            var iotX = new IotHubConnectionException("hello, error!");
+            var iotX = new EdgeHubConnectionException("hello, error!");
             Exception ex = iotX;
             Assert.Equal("hello, error!", ex.Message);
         }
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void IotHubConnection_LayeredExceptionConstructorTest()
         {
             var randomX = new ArgumentException();
-            var iotX = new IotHubConnectionException(null, randomX);
+            var iotX = new EdgeHubConnectionException(null, randomX);
             Exception ex = iotX;
             Assert.Equal(randomX, ex.InnerException);
         }

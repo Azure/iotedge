@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
 
             var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
-            await Assert.ThrowsAsync<IotHubConnectionException>(() => connectionProvider.GetDeviceListenerAsync(identity));
+            await Assert.ThrowsAsync<EdgeHubConnectionException>(() => connectionProvider.GetDeviceListenerAsync(identity));
         }
     }
 }

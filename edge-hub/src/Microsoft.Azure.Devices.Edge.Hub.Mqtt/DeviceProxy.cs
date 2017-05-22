@@ -30,9 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             if (this.isActive.GetAndSet(false))
             {
-                this.channel.Close(ex ?? new InvalidOperationException("Not able to start DeviceListener properly."));
+                this.channel.Close(ex ?? new EdgeHubConnectionException($"Connection closed for device {this.Identity.Id}."));
             }
             return TaskEx.Done;
+        }
+
+        public void SetInactive()
+        {
+            this.isActive.Set(false);
         }
 
         public Task<bool> SendMessageAsync(IMessage message)

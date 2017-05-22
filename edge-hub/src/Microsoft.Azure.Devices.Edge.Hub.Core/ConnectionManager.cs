@@ -26,7 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             currentDeviceProxy.Filter(dp => dp.IsActive)
                 .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
-        }        
+        }
+
+        public void RemoveDeviceConnection(string deviceId)
+        {
+            // TODO - Currently this doesn't close the cloud connection as other modules might be using it. 
+            // After IoTHub supports module identity, add code to close cloud connection.
+            this.GetDeviceConnection(deviceId)
+                .ForEach(deviceproxy => deviceproxy.SetInactive());
+        }
 
         public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
         {
@@ -50,12 +58,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {deviceId}")));
+                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {deviceId}.")));
 
             return await device.CloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));            
-        }
+        }        
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {

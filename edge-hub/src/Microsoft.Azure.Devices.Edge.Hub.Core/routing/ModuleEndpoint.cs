@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         () =>
                         {
                             // TODO - Check if this should be failed instead. 
-                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new IotHubConnectionException("No connection to IoTHub found"));
+                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException("No connection to IoTHub found"));
                             return TaskEx.Done;
                         });
 

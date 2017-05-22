@@ -41,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task CloseAsync()
         {
-            return this.connectionManager.CloseConnectionAsync(this.Identity.Id);
+            this.connectionManager.RemoveDeviceConnection(this.Identity.Id);
+            return TaskEx.Done;
         }
 
         public Task ProcessFeedbackMessageAsync(IFeedbackMessage feedbackMessage)

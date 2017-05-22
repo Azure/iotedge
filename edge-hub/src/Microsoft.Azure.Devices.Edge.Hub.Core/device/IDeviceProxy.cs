@@ -18,5 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         bool IsActive { get; }
 
         IIdentity Identity { get; }
+
+        void SetInactive();
     }
 }
