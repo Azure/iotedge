@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
     using Xunit;
 
     public class CloudProxyTest
@@ -99,6 +100,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IMessage result = await cloudProxy.Value.GetTwinAsync();
             string actualString = System.Text.Encoding.UTF8.GetString(result.Body);
             Assert.StartsWith("{", actualString);
+            bool disconnectResult = await cloudProxy.Value.CloseAsync();
+            Assert.True(disconnectResult);
+        }
+
+        [Fact]
+        [Bvt]
+        public async Task CanUpdateReportedProperties()
+        {
+            Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
+            Assert.True(cloudProxy.Success);
+            IMessage message = await cloudProxy.Value.GetTwinAsync();
+
+            JObject twin = JObject.Parse(System.Text.Encoding.UTF8.GetString(message.Body));
+            int version = (int)twin.SelectToken("reported.$version");
+            int counter = (int?)twin.SelectToken("reported.bvtCounter") ?? 0;
+
+            string updated = $"{{\"bvtCounter\":{counter + 1}}}";
+            await cloudProxy.Value.UpdateReportedPropertiesAsync(updated);
+
+            message = await cloudProxy.Value.GetTwinAsync();
+            twin = JObject.Parse(System.Text.Encoding.UTF8.GetString(message.Body));
+            int nextVersion = (int)twin.SelectToken("reported.$version");
+            var nextCounter = (int?)twin.SelectToken("reported.bvtCounter");
+            Assert.NotNull(nextCounter);
+            Assert.Equal(version + 1, nextVersion);
+            Assert.Equal(counter + 1, nextCounter);
+
             bool disconnectResult = await cloudProxy.Value.CloseAsync();
             Assert.True(disconnectResult);
         }

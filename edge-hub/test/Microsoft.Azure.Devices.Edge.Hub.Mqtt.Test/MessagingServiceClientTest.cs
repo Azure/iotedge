@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -149,9 +150,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        public async Task SendAsyncThrowsIfATwinMessageHasASubresource()
+        public async Task SendAsyncRecognizesAPatchTwinMessage()
         {
-            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/GET/something");
+            Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
+            var channel = Mock.Of<IMessagingChannel<IProtocolGatewayMessage>>();
+
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+            client.BindMessagingChannel(channel);
+
+            string patch = "{\"name\":\"value\"}";
+            var message = new ProtocolGatewayMessage(Encoding.UTF8.GetBytes(patch).ToByteBuffer(),
+                "$iothub/twin/PATCH/properties/reported/?$rid=123");
+            await client.SendAsync(message);
+
+            listener.Verify(x => x.UpdateReportedPropertiesAsync(It.Is<string>((string s) => s.Equals(patch))), Times.Once);
+        }
+
+        [Fact]
+        public async Task SendAsyncSendsAPatchResponseWhenGivenACorrelationId()
+        {
+            Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
+            var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
+            channel.Setup(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()))
+                .Callback<IProtocolGatewayMessage>(
+                    msg =>
+                    {
+                        Assert.Equal("$iothub/twin/res/204/?$rid=123", msg.Address);
+                        Assert.Equal("r", msg.Id);
+                    });
+
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/PATCH/properties/reported/?$rid=123");
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+            client.BindMessagingChannel(channel.Object);
+            await client.SendAsync(message);
+
+            channel.Verify(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SendAsyncDoesNotSendAPatchResponseWithoutACorrelationId()
+        {
+            Mock<IDeviceListener> listener = MakeDeviceListenerSpy();
+            var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/PATCH/properties/reported/");
+            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
+            client.BindMessagingChannel(channel.Object);
+            await client.SendAsync(message);
+
+            channel.Verify(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData("$iothub/twin/GET/something")]
+        [InlineData("$iothub/twin/PATCH/properties/reported/something")]
+        public async Task SendAsyncThrowsIfATwinMessageHasASubresource(string address)
+        {
+            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), address);
             var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
 
             var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
@@ -161,21 +215,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         }
 
         [Fact]
-        public async Task SendAsyncThrowsIfATwinMessageDoesNotHaveACorrelationId()
+        public async Task SendAsyncThrowsIfAGetTwinMessageDoesNotHaveACorrelationId()
         {
             var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/GET/");
-            var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
-
-            var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
-
-            await Assert.ThrowsAsync(typeof(InvalidOperationException),
-                () => client.SendAsync(message));
-        }
-
-        [Fact]
-        public async Task SendAsyncThrowsIfItDoesNotSupportTheTwinMessageOperation()
-        {
-            var message = new ProtocolGatewayMessage(new byte[0].ToByteBuffer(), "$iothub/twin/PATCH/properties/reported/");
             var listener = new Mock<IDeviceListener>(MockBehavior.Strict);
 
             var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());

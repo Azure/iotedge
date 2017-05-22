@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Primitives;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
+    using System.Globalization;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
@@ -54,17 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
                 {
                     StringSegment correlationId;
-                    properties.TryGetValue(requestId, out correlationId);
+                    bool hasCorrelationId = properties.TryGetValue(requestId, out correlationId);
 
                     switch (operation)
                     {
                         case TwinAddressHelper.Operation.TwinGetState:
-                            if (subresource.Length != 0)
-                            {
-                                throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
-                            }
+                            EnsureNoSubresource(subresource);
 
-                            if (correlationId.Length == 0)
+                            if (!hasCorrelationId || correlationId.Length == 0)
                             {
                                 throw new InvalidOperationException("Correlation id is missing or empty.");
                             }
@@ -73,8 +71,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             coreMessage.SystemProperties[Core.SystemProperties.LockToken] = "r";
                             coreMessage.SystemProperties[Core.SystemProperties.StatusCode] = ResponseStatusCodes.OK;
                             coreMessage.SystemProperties[Core.SystemProperties.CorrelationId] = correlationId.ToString();
-                            IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(coreMessage);
-                            this.messagingChannel.Handle(pgMessage);
+                            IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
+                            this.messagingChannel.Handle(twinGetMessage);
+                            break;
+
+                        case TwinAddressHelper.Operation.TwinPatchReportedState:
+                            EnsureNoSubresource(subresource);
+                            await this.deviceListener.UpdateReportedPropertiesAsync(message.Payload.ToString(System.Text.Encoding.UTF8));
+                            if (hasCorrelationId)
+                            {
+                                var mqttMessage = new MqttMessage.Builder(new byte[0])
+                                    .SetSystemProperties(new Dictionary<string, string>()
+                                    {
+                                        [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
+                                        [SystemProperties.LockToken] = "r",
+                                        [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
+                                        [SystemProperties.CorrelationId] = correlationId.ToString()
+                                    })
+                                    .Build();
+                                IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
+                                this.messagingChannel.Handle(twinPatchMessage);
+                            }
                             break;
 
                         default:
@@ -90,6 +107,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
                 await this.deviceListener.ProcessMessageAsync(coreMessage);
+            }
+        }
+
+        static void EnsureNoSubresource(StringSegment subresource)
+        {
+            if (subresource.Length != 0)
+            {
+                throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
             }
         }
 

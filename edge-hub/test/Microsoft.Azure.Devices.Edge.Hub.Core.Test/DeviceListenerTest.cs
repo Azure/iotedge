@@ -30,5 +30,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             cloudProxy.Verify(x => x.GetTwinAsync(), Times.Once);
             Assert.Same(expectedMessage, actualMessage);
         }
+
+        [Fact]
+        public async Task ForwardsTwinPatchOperationToTheCloudProxy()
+        {
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var connMgr = Mock.Of<IConnectionManager>();
+            var identity = Mock.Of<IDeviceIdentity>();
+
+            var cloudProxy = new Mock<ICloudProxy>();
+            var listener = new DeviceListener(identity, edgeHub, connMgr, cloudProxy.Object);
+            await listener.UpdateReportedPropertiesAsync("don't care");
+
+            cloudProxy.Verify(x => x.UpdateReportedPropertiesAsync(It.IsAny<string>()), Times.Once);
+        }
     }
 }

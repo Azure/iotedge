@@ -8,8 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
 
     class DeviceListener : IDeviceListener
     {        
@@ -67,9 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messagesList);
         }        
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+        public Task UpdateReportedPropertiesAsync(string reportedProperties)
         {
-            throw new NotImplementedException();
+            return this.cloudProxy.UpdateReportedPropertiesAsync(reportedProperties);
         }
     }
 }

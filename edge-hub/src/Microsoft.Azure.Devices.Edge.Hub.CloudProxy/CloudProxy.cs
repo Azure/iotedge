@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class CloudProxy : ICloudProxy
     {
@@ -92,9 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+        public async Task UpdateReportedPropertiesAsync(string reportedProperties)
         {
-            throw new NotImplementedException();
+            TwinCollection reported = JsonConvert.DeserializeObject<TwinCollection>(reportedProperties);
+            await this.deviceClient.UpdateReportedPropertiesAsync(reported);
         }
 
         public void BindCloudListener(ICloudListener cloudListener)

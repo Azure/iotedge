@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Shared;
 
     public interface ICloudProxy
     {
@@ -14,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);
 
-        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
+        Task UpdateReportedPropertiesAsync(string reportedProperties);
 
         Task<IMessage> GetTwinAsync();
 
