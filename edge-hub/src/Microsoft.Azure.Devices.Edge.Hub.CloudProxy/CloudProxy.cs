@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task UpdateReportedPropertiesAsync(string reportedProperties)
         {
-            TwinCollection reported = JsonConvert.DeserializeObject<TwinCollection>(reportedProperties);
+            var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedProperties);
             await this.deviceClient.UpdateReportedPropertiesAsync(reported);
         }
 

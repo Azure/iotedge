@@ -4,9 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using Xunit;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Xunit;
 
+    [Unit]
     public class MessageTest
     {
         static readonly DateTime Now = DateTime.Now;

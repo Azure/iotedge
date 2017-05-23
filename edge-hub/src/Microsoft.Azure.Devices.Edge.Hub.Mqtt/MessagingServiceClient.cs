@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             await this.deviceListener.UpdateReportedPropertiesAsync(message.Payload.ToString(System.Text.Encoding.UTF8));
                             if (hasCorrelationId)
                             {
-                                var mqttMessage = new MqttMessage.Builder(new byte[0])
+                                MqttMessage mqttMessage = new MqttMessage.Builder(new byte[0])
                                     .SetSystemProperties(new Dictionary<string, string>()
                                     {
                                         [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),

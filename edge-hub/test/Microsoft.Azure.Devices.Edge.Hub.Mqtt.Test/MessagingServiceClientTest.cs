@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -163,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "$iothub/twin/PATCH/properties/reported/?$rid=123");
             await client.SendAsync(message);
 
-            listener.Verify(x => x.UpdateReportedPropertiesAsync(It.Is<string>((string s) => s.Equals(patch))), Times.Once);
+            listener.Verify(x => x.UpdateReportedPropertiesAsync(It.Is((string s) => s.Equals(patch))), Times.Once);
         }
 
         [Fact]
