@@ -1,9 +1,11 @@
-﻿
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -62,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             return await device.CloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
-                .GetOrElse(Task.FromResult(true));            
+                .GetOrElse(Task.FromResult(true));
         }        
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
@@ -85,7 +87,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             return device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnectionAsync(identity));            
+                .Match(cp => Task.FromResult(Try.Success(cp)),
+                    () =>
+                    {
+                        // TODO - Temporary code to allow multiple modules to use same connection to the IoTHub.
+                        // Once IoTHub supports modules connecting to it, we should remove this. 
+                         Option<ICloudProxy> existingConnection = this.CheckExistingCloudConnection(identity);
+                         return existingConnection.Match(
+                             c =>
+                             {
+                                 device.UpdateCloudProxy(c);
+                                 return Task.FromResult(Try.Success(c));
+                             }, 
+                             () => this.CreateCloudConnectionAsync(identity));                        
+                    }
+            );
+        }
+
+        Option<ICloudProxy> CheckExistingCloudConnection(IIdentity identity)
+        {
+            KeyValuePair<string, ConnectedDevice> deviceWithActiveCloudConnection = this.devices.FirstOrDefault(
+                d => IsSameDevice(identity, d.Value.Identity) && d.Value.CloudProxy.Exists(cp => cp.IsActive));
+            return deviceWithActiveCloudConnection.Equals(default(KeyValuePair<string, ConnectedDevice>))
+                ? Option.None<ICloudProxy>()
+                : deviceWithActiveCloudConnection.Value.CloudProxy;
+        }
+
+        static bool IsSameDevice(IIdentity id1, IIdentity id2)
+        {
+            return GetDeviceId(id1).Equals(GetDeviceId(id2), StringComparison.OrdinalIgnoreCase);
+        }
+
+        static string GetDeviceId(IIdentity identity)
+        {
+            switch (identity)
+            {
+                case IModuleIdentity moduleIdentity: 
+                    return moduleIdentity.DeviceId;
+                case IDeviceIdentity deviceIdentity:
+                    return deviceIdentity.DeviceId;
+                default:
+                    throw new InvalidOperationException($"Unknown identity - {identity}");
+            }
         }
 
         ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)
@@ -106,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.DeviceProxy = Option.None<IDeviceProxy>();
             }
 
-            IIdentity Identity { get; }
+            public IIdentity Identity { get; }
 
             public Option<ICloudProxy> CloudProxy { get; private set; }
 
@@ -134,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     currentValue = this.CloudProxy;
                     this.CloudProxy = cloudProxyOption;
-                }                
+                }
                 return currentValue;
             }
         }

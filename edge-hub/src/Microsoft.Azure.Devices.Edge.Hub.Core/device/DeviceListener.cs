@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Util;
 
     class DeviceListener : IDeviceListener
-    {        
+    {
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
         readonly ICloudProxy cloudProxy;
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             this.Identity = Preconditions.CheckNotNull(identity);
             this.edgeHub = Preconditions.CheckNotNull(edgeHub);
             this.connectionManager = Preconditions.CheckNotNull(connectionManager);
-            this.cloudProxy = Preconditions.CheckNotNull(cloudProxy);            
+            this.cloudProxy = Preconditions.CheckNotNull(cloudProxy);
         }
 
         public IIdentity Identity { get; }
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task ProcessMessageAsync(IMessage message)
         {
-           Preconditions.CheckNotNull(message);
+            Preconditions.CheckNotNull(message);
             return this.edgeHub.ProcessDeviceMessage(this.Identity, message);
         }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             List<IMessage> messagesList = Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
             return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messagesList);
-        }        
+        }
 
         public Task UpdateReportedPropertiesAsync(string reportedProperties)
         {

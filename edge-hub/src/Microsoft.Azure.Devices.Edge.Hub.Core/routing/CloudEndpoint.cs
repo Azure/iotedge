@@ -107,9 +107,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => false);
 
-            Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage) => routingMessage.SystemProperties.TryGetValue(SystemProperties.DeviceId, out string id)
-                ? this.cloudEndpoint.cloudProxyGetterFunc(id)
-                : Option.None<ICloudProxy>();
+            Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
+            {
+                if (routingMessage.SystemProperties.TryGetValue(SystemProperties.DeviceId, out string deviceId))
+                {
+                    return routingMessage.SystemProperties.TryGetValue(SystemProperties.ModuleId, out string moduleId)
+                        ? this.cloudEndpoint.cloudProxyGetterFunc($"{deviceId}/{moduleId}")
+                        : this.cloudEndpoint.cloudProxyGetterFunc($"{deviceId}");
+                }
+                return Option.None<ICloudProxy>();
+            }
         }
     }
 }

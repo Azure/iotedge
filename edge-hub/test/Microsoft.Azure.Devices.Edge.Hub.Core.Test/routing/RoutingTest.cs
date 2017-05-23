@@ -3,165 +3,312 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-    using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
+    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class RoutingTest
     {
-        static readonly RetryStrategy DefaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
-        static readonly TimeSpan DefaultRevivePeriod = TimeSpan.FromHours(1);
-        static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
-        static readonly EndpointExecutorConfig DefaultConfig = new EndpointExecutorConfig(DefaultTimeout, DefaultRetryStrategy, DefaultRevivePeriod, true);
-
-        public static IEnumerable<object[]> GetRoutingData()
+        [Fact]
+        public async Task RouteToCloudTest()
         {
-            string deviceId = "device1";
-            
-            var mockDeviceIdentity = new Mock<IDeviceIdentity>();
-            mockDeviceIdentity.SetupGet(p => p.DeviceId).Returns(deviceId);
-            mockDeviceIdentity.SetupGet(p => p.Id).Returns(deviceId);
+            var routes = new List<string>
+            {
+                "FROM /messages/events INTO $upstream"
+            };
 
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();            
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+
+            IMessage message = GetMessage();
+            await device1.SendMessage(message);
+
+            Assert.True(iotHub.HasReceivedMessage(message));
+            Assert.False(module1.HasReceivedMessage(message));
+        }
+
+        [Fact]
+        public async Task RouteToModuleTest()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages/events INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+
+            IMessage message = GetMessage();
+            await device1.SendMessage(message);
+
+            Assert.False(iotHub.HasReceivedMessage(message));
+            Assert.True(module1.HasReceivedMessage(message));
+        }
+
+        [Fact]
+        public async Task MultipleRoutesTest()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages/events INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/modules/ml INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
+                @"FROM /messages/modules/asa/outputs/output1 INTO $upstream"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
+            TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
+
+            IMessage deviceMessage = GetMessage();
+            await device1.SendMessage(deviceMessage);
+            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
+            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+
+            IMessage mlMessage = GetMessage();
+            await moduleMl.SendMessage(mlMessage);
+            Assert.False(iotHub.HasReceivedMessage(mlMessage));
+            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
+            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+
+            IMessage asaMessage = GetMessage();
+            await moduleAsa.SendMessage(asaMessage);
+            Assert.True(iotHub.HasReceivedMessage(asaMessage));
+            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+        }
+
+        [Fact]
+        public async Task RoutesWithConditionsTest1()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages/events WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/modules/ml WHERE messageType = 'alert' INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
+                @"FROM /messages/modules/asa/outputs/output1 WHERE info = 'aggregate' INTO $upstream"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
+            TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
+
+            IMessage deviceMessage = GetMessage();
+            deviceMessage.Properties.Add("temp", "100");
+            await device1.SendMessage(deviceMessage);
+            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
+            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+
+            IMessage mlMessage = GetMessage();
+            mlMessage.Properties.Add("messageType", "alert");
+            await moduleMl.SendMessage(mlMessage);
+            Assert.False(iotHub.HasReceivedMessage(mlMessage));
+            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
+            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+
+            IMessage asaMessage = GetMessage();
+            asaMessage.Properties.Add("info", "aggregate");
+            await moduleAsa.SendMessage(asaMessage);
+            Assert.True(iotHub.HasReceivedMessage(asaMessage));
+            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+        }
+
+        [Fact]
+        public async Task RoutesWithConditionsTest2()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages/events WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")",
+                @"FROM /messages/events WHERE as_number(temp) < 50 INTO BrokeredEndpoint(""/modules/mod2/inputs/in2"")",
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+            TestModule module2 = await TestModule.Create(edgeDeviceId, "mod2", "op2", "in2", edgeHub, connectionManager);
+
+            IMessage message1 = GetMessage();
+            message1.Properties.Add("temp", "100");
+            await device1.SendMessage(message1);
+            Assert.False(iotHub.HasReceivedMessage(message1));
+            Assert.True(module1.HasReceivedMessage(message1));
+            Assert.False(module2.HasReceivedMessage(message1));
+
+            IMessage message2 = GetMessage();
+            message2.Properties.Add("temp", "20");
+            await device1.SendMessage(message2);
+            Assert.False(iotHub.HasReceivedMessage(message2));
+            Assert.False(module1.HasReceivedMessage(message2));
+            Assert.True(module2.HasReceivedMessage(message2));
+        }
+
+        static async Task<(IEdgeHub, IConnectionManager)> SetupEdgeHub(IEnumerable<string> routes, IoTHub iotHub, string edgeDeviceId)
+        {
+            string iotHubName = "testHub";
+
+            Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
+            Routing.PerfCounter = new NullRoutingPerfCounter();
+            Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
+
+            RetryStrategy defaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
+            TimeSpan defaultRevivePeriod = TimeSpan.FromHours(1);
+            TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
+            var endpointExecutorConfig = new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
+
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).ReturnsAsync(true);
+            cloudProxy.SetupGet(c => c.IsActive).Returns(true);
+
+            var cloudProxyProvider = new Mock<ICloudProxyProvider>();
+            cloudProxyProvider.Setup(c => c.Connect(It.IsAny<string>())).ReturnsAsync(Try.Success(cloudProxy.Object));
+            IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider.Object);
+            var routingMessageConverter = new RoutingMessageConverter();
+            RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
+            IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
+            IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
+            var routerConfig = new RouterConfig(endpoints, routesList);
+            Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, new SyncEndpointExecutorFactory(endpointExecutorConfig));
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);
+            return (edgeHub, connectionManager);
+        }
+
+        class TestModule
+        {
+            readonly IDeviceListener deviceListener;
+            readonly IModuleIdentity moduleIdentity;
+            readonly List<IMessage> receivedMessages;
+            readonly string endpointId;
+
+            TestModule(IModuleIdentity moduleIdentity, string endpointId, IDeviceListener deviceListener, List<IMessage> receivedMessages)
+            {
+                this.moduleIdentity = moduleIdentity;
+                this.endpointId = endpointId;
+                this.deviceListener = deviceListener;
+                this.receivedMessages = receivedMessages;
+            }
+
+            public static async Task<TestModule> Create(string deviceId, string moduleId, string outputEndpointId, string inputEndpointId, IEdgeHub edgeHub, IConnectionManager connectionManager)
+            {
+                IModuleIdentity moduleIdentity = SetupModuleIdentity(moduleId, deviceId);
+                Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(moduleIdentity);
+                Assert.True(cloudProxy.Success);
+                var deviceListener = new DeviceListener(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                var receivedMessages = new List<IMessage>();
+                var deviceProxy = new Mock<IDeviceProxy>();
+                deviceProxy.Setup(d => d.SendMessage(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase)))).Callback<IMessage, string>((m, e) => receivedMessages.Add(m)).ReturnsAsync(true);
+                deviceProxy.SetupGet(d => d.IsActive).Returns(true);
+                connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
+                return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
+            }
+
+            public Task SendMessage(IMessage message)
+            {
+                message.SystemProperties[SystemProperties.DeviceId] = this.moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ModuleId] = this.moduleIdentity.ModuleId;
+                message.SystemProperties[SystemProperties.EndpointId] = this.endpointId;
+                return this.deviceListener.ProcessMessageAsync(message);
+            }
+
+            public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(m =>
+                m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+        }
+
+        class TestDevice
+        {
+            readonly IDeviceListener deviceListener;
+            readonly IDeviceIdentity deviceIdentity;
+
+            TestDevice(IDeviceIdentity deviceIdentity, IDeviceListener deviceListener)
+            {
+                this.deviceIdentity = deviceIdentity;
+                this.deviceListener = deviceListener;
+            }
+
+            public static async Task<TestDevice> Create(string deviceId, IEdgeHub edgeHub, IConnectionManager connectionManager)
+            {
+                IDeviceIdentity deviceIdentity = SetupDeviceIdentity(deviceId);
+                Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(deviceIdentity);
+                Assert.True(cloudProxy.Success);
+                var deviceListener = new DeviceListener(deviceIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                return new TestDevice(deviceIdentity, deviceListener);
+            }
+
+            public Task SendMessage(IMessage message)
+            {
+                message.SystemProperties[SystemProperties.DeviceId] = this.deviceIdentity.DeviceId;
+                return this.deviceListener.ProcessMessageAsync(message);
+            }
+        }
+
+        class IoTHub
+        {
+            public List<IMessage> ReceivedMessages { get; } = new List<IMessage>();
+
+            public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m => 
+                m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+        }        
+
+        static IMessage GetMessage()
+        {
             byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
             var properties = new Dictionary<string, string>()
             {
                 { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
+                { "Prop2", "Val2" }
             };
+
             var systemProperties = new Dictionary<string, string>
             {
-                { Core.SystemProperties.DeviceId, deviceId }                
+                { SystemProperties.MessageId, Guid.NewGuid().ToString() }
             };
-            var message = new Message(messageBody, properties, systemProperties);
+            return new Message(messageBody, properties, systemProperties);            
+        }        
 
-            var routingData = new List<object[]>();
-            routingData.Add(new object[] { mockDeviceIdentity.Object, message });
-            return routingData;
-        }
+        static IDeviceIdentity SetupDeviceIdentity(string deviceId) => Mock.Of<IDeviceIdentity>(
+            m =>
+                m.DeviceId == deviceId &&
+                m.ConnectionString == Guid.NewGuid().ToString() &&
+                m.Id == deviceId
+        );
 
-        [Theory]
-        [Integration]
-        [MemberData(nameof(GetRoutingData))]
-        public async Task TestRoutingToCloud(IIdentity identity, Message message)
-        {
-            string iotHubName = "TestIotHub";
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
-
-            IMessage cloudMessage = null;
-            var cloudProxyMock = new Mock<ICloudProxy>();
-            cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
-                .Callback<IMessage>((m) => cloudMessage = m)
-                .ReturnsAsync(() => true);
-            cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
-
-            Util.Option<ICloudProxy> GetCloudProxy(string destId) => destId.Equals(identity.Id)
-                ? Option.Some(cloudProxyMock.Object)
-                : Option.None<ICloudProxy>();
-
-            var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), GetCloudProxy, routingMessageConverter);
-
-            Router router = await SetupRouter(cloudEndpoint, iotHubName);
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);
-
-            await edgeHub.ProcessDeviceMessage(identity, message);
-
-            CheckOutput(identity, message, cloudMessage);
-        }
-
-        [Theory]
-        [Integration]
-        [MemberData(nameof(GetRoutingData))]
-        public async Task TestRoutingToDevice(IIdentity identity, Message message)
-        {
-            string iotHubName = "TestIotHub";
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
-
-            string moduleEndpoint = "in1";
-            IMessage deviceMessage = null;
-            var deviceProxyMock = new Mock<IDeviceProxy>();
-            deviceProxyMock.Setup(c => c.SendMessage(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(moduleEndpoint, StringComparison.OrdinalIgnoreCase))))
-                .Callback<IMessage, string>((m, e) => deviceMessage = m)
-                .ReturnsAsync(() => true);
-
-            deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
-
-            Util.Option<IDeviceProxy> GetDeviceProxy(string destId) => destId.Equals(identity.Id)
-                ? Option.Some(deviceProxyMock.Object)
-                : Option.None<IDeviceProxy>();
-            
-            var deviceEndpoint = new ModuleEndpoint(identity.Id, moduleEndpoint, () => GetDeviceProxy(identity.Id), routingMessageConverter);
-            Router router = await SetupRouter(deviceEndpoint, iotHubName);
-
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);
-
-            await edgeHub.ProcessDeviceMessage(identity, message);
-
-            CheckOutput(identity, message, deviceMessage);
-        }
-
-        static void CheckOutput(IIdentity identity, Message message, IMessage dispatchedMessage)
-        {
-            Assert.NotNull(dispatchedMessage);
-
-            var moduleIdentity = identity as IModuleIdentity;
-            if (moduleIdentity != null)
-            {
-                Assert.Equal(moduleIdentity.ModuleId, dispatchedMessage.Properties["moduleId"]);
-            }
-            Assert.Equal(identity.Id, dispatchedMessage.SystemProperties[SystemProperties.DeviceId]);
-
-            foreach (KeyValuePair<string, string> property in message.SystemProperties)
-            {
-                Assert.True(dispatchedMessage.SystemProperties.ContainsKey(property.Key));
-                Assert.Equal(property.Value, dispatchedMessage.SystemProperties[property.Key]);
-            }
-
-            foreach (KeyValuePair<string, string> property in message.SystemProperties)
-            {
-                Assert.True(dispatchedMessage.SystemProperties.ContainsKey(property.Key));
-                Assert.Equal(property.Value, dispatchedMessage.SystemProperties[property.Key]);
-            }
-        }
-
-        static async Task<Router> SetupRouter(Endpoint endpoint, string iotHubName)
-        {
-            Routing.PerfCounter = new NullRoutingPerfCounter();
-            Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
-            Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
-
-            var endpoints = new HashSet<Endpoint>();
-            var routes = new List<Route>();
-
-            endpoints.Add(endpoint);
-
-            var route = new Route(
-                Guid.NewGuid().ToString(),
-                "true",
-                iotHubName,
-                TelemetryMessageSource.Instance,
-                new HashSet<Endpoint>
-                {
-                    endpoint
-                });
-
-            routes.Add(route);
-
-            var config = new RouterConfig(endpoints, routes);
-            Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, config, new SyncEndpointExecutorFactory(DefaultConfig));
-            return router;
-        }
+        static IModuleIdentity SetupModuleIdentity(string moduleId, string deviceId) => Mock.Of<IModuleIdentity>(
+            m =>
+                m.DeviceId == deviceId &&
+                m.ModuleId == moduleId &&
+                m.ConnectionString == Guid.NewGuid().ToString() &&
+                m.Id == $"{deviceId}/{moduleId}"
+        );
     }
 }
