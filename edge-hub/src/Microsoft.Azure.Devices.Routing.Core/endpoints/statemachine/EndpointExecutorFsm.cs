@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         static readonly SendFailureDetails DefaultSendFailureDetails = new SendFailureDetails(FailureKind.None, new Exception());
         static readonly SendFailureDetails DefaultFailureDetails = new SendFailureDetails(FailureKind.InternalError, new Exception());
         static readonly TimeSpan LogUserAnalyticsErrorOnUnhealthySince = TimeSpan.FromMinutes(10);
+        static readonly ICollection<IMessage> EmptyMessages = ImmutableList<IMessage>.Empty;
 
         volatile State state;
         volatile int retryAttempts;
@@ -35,7 +36,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         TimeSpan retryPeriod;
         readonly Timer retryTimer;
         readonly AsyncLock sync = new AsyncLock();
-        static readonly ICollection<IMessage> EmptyMessages = ImmutableList<IMessage>.Empty;
+        readonly ISystemTime systemTime;
 
         public Endpoint Endpoint => this.processor.Endpoint;
 
@@ -45,10 +46,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             new EndpointExecutorStatus(this.Endpoint.Id, this.state, this.retryAttempts, this.retryPeriod, this.lastFailedRevivalTime, this.unhealthySince, new CheckpointerStatus(this.Checkpointer.Id, this.Checkpointer.Offset, this.Checkpointer.Proposed));
 
         public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config)
+            : this(endpoint, checkpointer, config, SystemTime.Instance)
+        {
+        }
+
+        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, ISystemTime systemTime)
         {
             this.processor = Preconditions.CheckNotNull(endpoint).CreateProcessor();
             this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.config = Preconditions.CheckNotNull(config);
+            this.systemTime = Preconditions.CheckNotNull(systemTime);
             this.retryTimer = new Timer(this.RetryAsync, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             this.retryPeriod = Timeout.InfiniteTimeSpan;
             this.lastFailedRevivalTime = checkpointer.LastFailedRevivalTime;
@@ -284,7 +291,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             Preconditions.CheckNotNull(command);
             Preconditions.CheckArgument(command is Die);
 
-            thisPtr.lastFailedRevivalTime = Option.Some(DateTime.UtcNow);
+            thisPtr.lastFailedRevivalTime = Option.Some(thisPtr.systemTime.UtcNow);
             Events.Die(thisPtr);
             return TaskEx.Done;
         }
@@ -334,7 +341,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     else
                     {
                         thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue
-                            ? Option.Some(DateTime.UtcNow)
+                            ? Option.Some(thisPtr.systemTime.UtcNow)
                             : thisPtr.unhealthySince;
                         Events.SendFailure(thisPtr, result, stopwatch);
                     }
@@ -349,13 +356,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             catch (Exception ex) when (thisPtr.ShouldRetry(ex, out retryAfter))
             {
                 Events.SendFailureUnhandledException(thisPtr, messages, stopwatch, ex);
-                thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue ? Option.Some(DateTime.UtcNow) : thisPtr.unhealthySince;
+                thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue
+                    ? Option.Some(thisPtr.systemTime.UtcNow)
+                    : thisPtr.unhealthySince;
                 next = Commands.Fail(retryAfter);
             }
             catch (Exception ex)
             {
                 Events.SendFailureUnhandledException(thisPtr, messages, stopwatch, ex);
-                thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue ? Option.Some(DateTime.UtcNow) : thisPtr.unhealthySince;
+                thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue
+                    ? Option.Some(thisPtr.systemTime.UtcNow)
+                    : thisPtr.unhealthySince;
                 next = thisPtr.config.ThrowOnDead ? (ICommand)Commands.Throw(ex) : Commands.Die;
             }
             await RunInternalAsync(thisPtr, next);
@@ -478,7 +489,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         {
             Preconditions.CheckArgument(thisPtr.lastFailedRevivalTime.HasValue);
 
-            TimeSpan deadFor = DateTime.UtcNow - thisPtr.lastFailedRevivalTime.GetOrElse(DateTime.UtcNow);
+            TimeSpan deadFor = thisPtr.systemTime.UtcNow - thisPtr.lastFailedRevivalTime.GetOrElse(thisPtr.systemTime.UtcNow);
 
             if (deadFor >= thisPtr.config.RevivePeriod)
             {
@@ -679,7 +690,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             public static void Retry(EndpointExecutorFsm fsm)
             {
-                DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
                 Log.LogDebug((int)EventIds.Retry, "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
                     fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
@@ -687,7 +698,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             public static void RetryDelay(EndpointExecutorFsm fsm)
             {
-                DateTime next = DateTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
+                DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
                 Log.LogDebug((int)EventIds.RetryDelay, "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
                     fsm.Status.RetryAttempts, fsm.Status.RetryPeriod.ToString(TimeSpanFormat), next.ToString(DateTimeFormat), GetContextString(fsm));
@@ -701,7 +712,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             public static void Dead(EndpointExecutorFsm fsm, ICollection<IMessage> messages)
             {
                 Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
                 Log.LogWarning((int)EventIds.Dead, "[Dead] Dropping {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
                     messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat),
@@ -713,7 +724,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
 
                 CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
                 Log.LogWarning((int)EventIds.DeadSuccess, "[DeadSuccess] Dropped {0} messages. BatchSize: {1}, LastFailedRevivalTime: {2}, UnhealthySince: {3}, ReviveAt: {4}, {5}",
                     messages.Count, messages.Count, fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
@@ -736,7 +747,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
 
                 CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
                 Log.LogError((int)EventIds.DeadFailure, ex, "[DeadFailure] Dropping messages failed. LastFailedRevivalTime: {0}, UnhealthySince: {1}, DeadTime:{2}, ReviveAt: {3}, {4}",
                     fsm.Status.LastFailedRevivalTime.ToString(), fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
@@ -754,7 +765,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 Preconditions.CheckArgument(fsm.Status.LastFailedRevivalTime.HasValue);
                 CultureInfo culture = CultureInfo.InvariantCulture;
-                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(DateTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
+                DateTime reviveAt = fsm.Status.LastFailedRevivalTime.GetOrElse(fsm.systemTime.UtcNow).SafeAdd(fsm.config.RevivePeriod);
 
                 Log.LogInformation((int)EventIds.PrepareForRevive, "[PrepareForRevive] Attempting to bring endpoint back. LastFailedRevivalTime: {0}, UnhealthySince: {1},  ReviveAt: {2}, {3}",
                     fsm.Status.LastFailedRevivalTime.GetOrElse(Checkpointers.Checkpointer.DateTimeMinValue).ToString(DateTimeFormat, culture),
@@ -786,7 +797,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             static void LogUnhealthyEndpointOpMonError(EndpointExecutorFsm fsm, FailureKind failureKind)
             {
                 if (!fsm.lastFailedRevivalTime.HasValue &&
-                    fsm.unhealthySince.GetOrElse(DateTime.MaxValue) < DateTime.UtcNow.Subtract(LogUserAnalyticsErrorOnUnhealthySince))
+                    fsm.unhealthySince.GetOrElse(DateTime.MaxValue) < fsm.systemTime.UtcNow.Subtract(LogUserAnalyticsErrorOnUnhealthySince))
                 {
                     Routing.UserAnalyticsLogger.LogUnhealthyEndpoint(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, failureKind);
                 }
@@ -810,7 +821,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     Log.LogError((int)EventIds.CounterFailure, "[LogEventsProcessedCounterFailed] {0}", error);
                 }
 
-                TimeSpan totalTime = messages.Select(m => m.DequeuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
+                TimeSpan totalTime = messages.Select(m => m.DequeuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (fsm.systemTime.UtcNow - time));
                 long averageLatencyInMs = totalTime < TimeSpan.Zero ? 0L : (long)(totalTime.TotalMilliseconds / messages.Count);
 
                 if (!Routing.PerfCounter.LogEventProcessingLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status, averageLatencyInMs, out error))
@@ -818,7 +829,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     Log.LogError((int)EventIds.CounterFailure, "[LogEventProcessingLatencyCounterFailed] {0}", error);
                 }
 
-                TimeSpan messageE2EProcessingLatencyTotal = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
+                TimeSpan messageE2EProcessingLatencyTotal = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (fsm.systemTime.UtcNow - time));
                 long averageE2ELatencyInMs = messageE2EProcessingLatencyTotal < TimeSpan.Zero ? 0L : (long)(messageE2EProcessingLatencyTotal.TotalMilliseconds / messages.Count);
 
                 if (!Routing.PerfCounter.LogE2EEventProcessingLatency(fsm.Endpoint.IotHubName, fsm.Endpoint.Name, fsm.Endpoint.Type, status, averageE2ELatencyInMs, out error))
@@ -841,7 +852,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 }
 
                 // calculate average latency
-                TimeSpan totalTime = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (DateTime.UtcNow - time));
+                TimeSpan totalTime = messages.Select(m => m.EnqueuedTime).Aggregate(TimeSpan.Zero, (span, time) => span + (fsm.systemTime.UtcNow - time));
                 long averageLatencyInMs = totalTime < TimeSpan.Zero ? 0L : (long)(totalTime.TotalMilliseconds / messages.Count);
 
                 fsm.Endpoint.LogUserMetrics(messages.Count, averageLatencyInMs);

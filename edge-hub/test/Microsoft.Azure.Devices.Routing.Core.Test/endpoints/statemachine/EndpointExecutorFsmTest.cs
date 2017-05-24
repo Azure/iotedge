@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Test.Util;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Moq;
     using Xunit;
@@ -554,9 +555,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
         {
             var endpoint1 = new RevivableEndpoint("id1", new Exception("endpoint failed"));
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(int.MaxValue));
-            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMilliseconds(50));
+            var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(1));
+            var systemTime = new MockSystemTime();
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, systemTime))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -586,12 +588,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
                 Assert.Equal(State.DeadIdle, status.State);
                 Assert.Equal(5, status.RetryAttempts);
 
-                // Wait for the revive period to expire
-                await Task.Delay(100);
+                // Advance time past the revive period to expire
+                systemTime.Add(TimeSpan.FromMinutes(2));
 
                 // Bring the endpoint back in the dead state
                 endpoint1.Failing = false;
-                await machine.RunAsync(Commands.SendMessage(Message1));
+                SendMessage command = Commands.SendMessage(Message1);
+                await machine.RunAsync(command);
+                await command.Completion;
 
                 status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
