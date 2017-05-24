@@ -380,8 +380,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
         public async Task TestTimeoutIsFail()
         {
             var endpoint = new StalledEndpoint("id1");
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(1));
-            var config = new EndpointExecutorConfig(TimeSpan.FromMilliseconds(100), retryStrategy, TimeSpan.FromMinutes(5));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(1));
+            var config = new EndpointExecutorConfig(TimeSpan.FromMilliseconds(1), retryStrategy, TimeSpan.FromMinutes(5));
 
             using (var machine = new EndpointExecutorFsm(endpoint, new NullCheckpointer(), config))
             {
