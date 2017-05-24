@@ -1,13 +1,15 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
     using static System.FormattableString;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ModuleIdentity : Identity, IModuleIdentity
     {
-        string asString;
+        readonly Lazy<string> asString;
 
         public ModuleIdentity(string iotHubHostName, 
             string deviceId, 
@@ -21,6 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+
+            this.asString = new Lazy<string>(
+                () =>
+                {
+                    string policy = string.IsNullOrEmpty(this.PolicyName) ? "<none>" : this.PolicyName;
+                    return $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
+                });
         }
 
         public string DeviceId { get; }
@@ -29,14 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public override string Id => Invariant($"{this.DeviceId}/{this.ModuleId}");
 
-        public override string ToString()
-        {
-            if (this.asString == null)
-            {
-                string policy = string.IsNullOrEmpty(this.PolicyName) ? "<none>" : this.PolicyName;
-                this.asString = $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
-            }
-            return this.asString;
-        }
+        public override string ToString() => this.asString.Value;
     }
 }

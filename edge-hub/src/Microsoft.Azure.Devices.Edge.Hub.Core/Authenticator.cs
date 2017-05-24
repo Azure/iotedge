@@ -21,6 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<bool> AuthenticateAsync(IIdentity identity)
         {
+            // If 'identity' represents an Edge module then its device id MUST match the authenticator's
+            // 'edgeDeviceId'. In other words the authenticator for one edge device cannot authenticate
+            // modules belonging to a different edge device.
             var moduleIdentity = identity as IModuleIdentity;
             if (moduleIdentity != null && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
     {
         protected BaseMessageSource(string source)
         {
-            this.Source = AppendSingleTailingSlash(Preconditions.CheckNotNull(source));
+            this.Source = AppendSingleTrailingSlash(Preconditions.CheckNotNull(source));
         }
 
         protected string Source { get; }
@@ -18,16 +18,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
             Preconditions.CheckNotNull(messageSource, nameof(messageSource));
             var baseMessageSource = messageSource as BaseMessageSource;
             return baseMessageSource?.Source != null &&
-                AppendSingleTailingSlash(baseMessageSource.Source).StartsWith(this.Source, StringComparison.OrdinalIgnoreCase);
+                AppendSingleTrailingSlash(baseMessageSource.Source).StartsWith(this.Source, StringComparison.OrdinalIgnoreCase);
         }
 
-        static string AppendSingleTailingSlash(string value) => value.Trim().TrimEnd('/') + "/";
+        static string AppendSingleTrailingSlash(string value) => value.Trim().TrimEnd('/') + "/";
 
         public override bool Equals(object obj)
         {
             var baseMessageSource = obj as BaseMessageSource;
             return baseMessageSource?.Source != null &&
-                AppendSingleTailingSlash(baseMessageSource.Source).Equals(this.Source, StringComparison.OrdinalIgnoreCase);
+                AppendSingleTrailingSlash(baseMessageSource.Source).Equals(this.Source, StringComparison.OrdinalIgnoreCase);
         }
 
         public override int GetHashCode()

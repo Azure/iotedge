@@ -30,32 +30,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool TryDeriveAddress(IDictionary<string, string> properties, out string address)
         {
-            bool matched = false;
-            string addr = address = null;
+            address = null;
 
-            foreach (UriPathTemplate uriPathTemplate in this.outboundTable)
+            IList<string> matchedAddresses = this.outboundTable
+                .Select(template => template.Bind(properties))
+                // An InvalidOperationException exception means that one of the required
+                // template fields was not supplied in the "properties" dictionary. We
+                // ignore the failing template and move on to the next one.
+                .IgnoreExceptions<string, InvalidOperationException>()
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+            if (matchedAddresses.Count > 1)
             {
-                try
-                {
-                    addr = uriPathTemplate.Bind(properties);
-                }
-                catch (InvalidOperationException)
-                {
-                }
+                this.logger.LogDebug($"Properties [{string.Join(", ", properties.Select(kvp => $"({kvp.Key}, {kvp.Value})"))}] match more than one template.");
+            }
 
-                if (string.IsNullOrEmpty(addr))
-                {
-                    continue;
-                }
-
-                if (matched)
-                {
-                    this.logger.LogDebug("Properties ({properties.Keys[0]}, ...) match more than one template.");
-                    break;
-                }
-
-                matched = true;
-                address = addr;
+            if (matchedAddresses.Count > 0)
+            {
+                address = matchedAddresses[0];
             }
 
             return !string.IsNullOrEmpty(address);
@@ -63,31 +56,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool TryParseAddressIntoMessageProperties(string address, ProtocolGateway.Messaging.IMessage message)
         {
-            bool matched = false;
-            foreach (UriPathTemplate uriPathTemplate in this.inboundTable)
+            var uri = new Uri(address, UriKind.Relative);
+            IList<IList<KeyValuePair<string, string>>> matches = this.inboundTable
+                .Select(template => template.Match(uri))
+                .Where(match => match.Count > 0)
+                .ToList();
+
+            if (matches.Count > 1)
             {
-                IList<KeyValuePair<string, string>> matches = uriPathTemplate.Match(new Uri(address, UriKind.Relative));
+                this.logger.LogDebug($"Topic name {address} matches more than one route.");
+            }
 
-                if (matches.Count == 0)
-                {
-                    continue;
-                }
-
-                if (matched)
-                {
-                    this.logger.LogDebug("Topic {0} name matches more than one route.", address);
-                    break;
-                }
-                matched = true;
-
-                int variableCount = matches.Count;
-                for (int i = 0; i < variableCount; i++)
+            if (matches.Count > 0)
+            {
+                foreach (KeyValuePair<string, string> match in matches[0])
                 {
                     // todo: this will unconditionally set property values - is it acceptable to overwrite existing value?
-                    message.Properties.Add(matches[i].Key, matches[i].Value);
+                    message.Properties.Add(match.Key, match.Value);
                 }
             }
-            return matched;
+
+            return matches.Count > 0;
         }
     }
 }

@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(Preconditions.CheckNotNull(identity, nameof(identity)));
             Option<IDeviceProxy> currentDeviceProxy = device.UpdateDeviceProxy(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
 
-            currentDeviceProxy.Filter(dp => dp.IsActive)
+            currentDeviceProxy
+                .Filter(dp => dp.IsActive)
                 .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
         }
 

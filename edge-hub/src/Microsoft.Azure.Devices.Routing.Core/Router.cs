@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Threading;

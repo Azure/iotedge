@@ -122,13 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // RouterConfig
-            builder.Register(
-                    c =>
-                    {
-                        IEnumerable<Route> routesList = c.Resolve<RouteFactory>().Create(this.routes).ToList();
-                        IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
-                        return new RouterConfig(endpoints, routesList);
-                    })
+            builder.Register(c => new RouterConfig(c.Resolve<RouteFactory>().Create(this.routes)))
                 .As<RouterConfig>()
                 .SingleInstance();
 
