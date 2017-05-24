@@ -8,7 +8,7 @@ Try {
   }
 }
 
-Set-AzureRmContext -SubscriptionName IOT_EDGE_DEV_1
+Set-AzureRmContext -SubscriptionName IOT_EDGE_DEV1
 
 $vaultName = 'edgebuildkv'
 $secret = Get-AzureKeyVaultSecret -VaultName $vaultName -Name $SecretName
