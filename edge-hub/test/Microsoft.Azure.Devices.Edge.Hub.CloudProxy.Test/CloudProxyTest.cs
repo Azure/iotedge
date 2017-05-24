@@ -11,11 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using Newtonsoft.Json;
 
+    [Bvt]
     public class CloudProxyTest
     {
         static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
@@ -33,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
-        [Bvt]
         [MemberData(nameof(GetTestMessage))]
         public async Task SendMessageTest(IMessage message)
         {
@@ -48,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
-        [Bvt]
         [MemberData(nameof(GetTestMessages))]
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {
@@ -77,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
-        [Bvt]
         [MemberData(nameof(GetTestMessages))]
         public async Task SendMessageBatchTest(IList<IMessage> messages)
         {
@@ -92,7 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
-        [Bvt]
         public async Task CanGetTwin()
         {
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
@@ -105,7 +105,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
-        [Bvt]
         public async Task CanUpdateReportedProperties()
         {
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
@@ -131,6 +130,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(disconnectResult);
         }
 
+        [Fact]
+        public async Task CanListenForDesiredPropertyUpdates()
+        {
+            Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
+            Assert.True(cloudProxy.Success);
+
+            var received = new TaskCompletionSource<string>();
+            var cloudListener = new Mock<ICloudListener>();
+            cloudListener.Setup(x => x.OnDesiredPropertyUpdates(It.IsAny<string>()))
+                .Callback((string s) => received.TrySetResult(s))
+                .Returns(TaskEx.Done);
+
+            cloudProxy.Value.BindCloudListener(cloudListener.Object);
+            await cloudProxy.Value.SetupDesiredPropertyUpdatesAsync();
+
+            var desired = new TwinCollection()
+            {
+                ["desiredPropertyTest"] = Guid.NewGuid().ToString()
+            };
+
+            await UpdateDesiredProperty("device1", desired);
+            await received.Task;
+            await cloudProxy.Value.RemoveDesiredPropertyUpdatesAsync();
+
+            var actual = JsonConvert.DeserializeObject<TwinCollection>(received.Task.Result);
+            Assert.Equal(desired, actual);
+        }
+
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
@@ -148,6 +175,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.NotNull(cloudMessages);
             Assert.NotEmpty(cloudMessages);
             Assert.True(MessageHelper.CompareMessagesAndEventData(sentMessages, cloudMessages));
+        }
+
+        static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
+        {
+            string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(connectionString);
+            Twin twin = await registryManager.GetTwinAsync(deviceId);
+            twin.Properties.Desired = desired;
+            await registryManager.UpdateTwinAsync(deviceId, twin, twin.ETag);
         }
     }
 }

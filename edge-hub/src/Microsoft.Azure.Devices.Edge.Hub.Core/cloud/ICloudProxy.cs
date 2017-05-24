@@ -37,5 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         Task SetupCallMethodAsync();
 
         Task RemoveCallMethodAsync();
+
+        Task SetupDesiredPropertyUpdatesAsync();
+
+        Task RemoveDesiredPropertyUpdatesAsync();
     }
 }

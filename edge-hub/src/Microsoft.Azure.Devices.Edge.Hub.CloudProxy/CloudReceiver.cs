@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class CloudReceiver
@@ -86,6 +87,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             // TODO - to be implemented
             return Task.FromResult(new MethodResponse(200));
+        }
+
+        public Task SetupDesiredPropertyUpdatesAsync()
+        {
+            return this.deviceClient.SetDesiredPropertyUpdateCallback(OnDesiredPropertyUpdates, this.cloudListener);
+        }
+
+        public Task RemoveDesiredPropertyUpdatesAsync()
+        {
+            //return this.deviceClient.SetDesiredPropertyUpdateCallback(null, null);
+            // TODO: update device SDK to unregister callback for desired properties by passing null
+            return Task.CompletedTask;
+        }
+
+        static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
+        {
+            var cloudListener = (ICloudListener)userContext;
+            return cloudListener.OnDesiredPropertyUpdates(desiredProperties.ToJson());
         }
     }
 }
