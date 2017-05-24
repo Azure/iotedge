@@ -12,10 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttConnectionProvider : IMqttConnectionProvider
-    {        
+    {
         readonly IConnectionProvider connectionProvider;
         readonly IMessageConverter<IProtocolGatewayMessage> pgMessageConverter;
-        
+
         public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<IProtocolGatewayMessage> pgMessageConverter)
         {
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
@@ -25,14 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public async Task<IMessagingBridge> Connect(IDeviceIdentity deviceidentity)
         {
             var iotHubDeviceIdentity = deviceidentity as Identity;
-            if(iotHubDeviceIdentity == null)
+            if (iotHubDeviceIdentity == null)
             {
                 throw new AuthenticationException("Invalid identity object received");
             }
 
             IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(iotHubDeviceIdentity);
             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter);
-            IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient); 
+            var messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient);
+
             return messagingBridge;
         }
     }

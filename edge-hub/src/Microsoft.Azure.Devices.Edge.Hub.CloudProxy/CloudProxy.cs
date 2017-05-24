@@ -42,7 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     if (this.cloudReceiver != null)
                     {
                         await this.cloudReceiver.CloseAsync();
+                        await this.RemoveCallMethodAsync();
                     }
+                    // remove direct method subscription
                     await this.deviceClient.CloseAsync();
                 }
                 return true;
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void BindCloudListener(ICloudListener cloudListener)
         {
             this.cloudReceiver = new CloudReceiver(this.deviceClient, this.messageConverter, cloudListener);
-            this.cloudReceiver.StarListening();
+            this.cloudReceiver.StartListening();
         }
 
         public bool IsActive => this.isActive.Get();
@@ -117,10 +119,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 case FeedbackStatus.Abandon:
                     return this.deviceClient.AbandonAsync(messageId);
                 case FeedbackStatus.Reject:
-                    return this.deviceClient.ReceiveAsync();
+                    return this.deviceClient.RejectAsync(messageId);
                 default:
                     throw new InvalidOperationException("Feedback status type is not supported");
             }
+        }
+
+        public Task SetupCallMethodAsync()
+        {
+            return this.cloudReceiver.SetupCallMethodAsync();
+        }
+
+        public Task RemoveCallMethodAsync()
+        {
+            return this.cloudReceiver.RemoveCallMethodAsync();
         }
     }
 }

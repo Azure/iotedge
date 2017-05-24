@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ICloudListener cloudListener;
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         readonly ILogger logger = Logger.Factory.CreateLogger<CloudReceiver>();
+        // This is temporary, replace with default method handler when available in Client SDK
+        const string MethodName = "*";
         Task receiveMessageTask;
 
         public CloudReceiver(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ICloudListener cloudListener)
@@ -27,9 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
         }
 
-        public void StarListening()
+        public void StartListening()
         {
-            this.SetupCallMethod();
             this.receiveMessageTask = this.SetupMessageListening();
         }
 
@@ -71,9 +72,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return this.receiveMessageTask ?? TaskEx.Done;
         }
 
-        void SetupCallMethod()
+        public Task SetupCallMethodAsync()
+        {
+            return this.deviceClient.SetMethodHandlerAsync(MethodName, this.CloudMethodCall, null);
+        }
+
+        public Task RemoveCallMethodAsync()
+        {
+            return this.deviceClient.SetMethodHandlerAsync(MethodName, null, null);
+        }
+
+        Task<MethodResponse> CloudMethodCall(MethodRequest methodrequest, object usercontext)
         {
             // TODO - to be implemented
+            return Task.FromResult(new MethodResponse(200));
         }
     }
 }

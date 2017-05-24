@@ -22,6 +22,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Option<ICloudProxy> GetCloudConnection(string deviceId);
 
         Task<bool> CloseConnectionAsync(string deviceId);
-
     }
 }

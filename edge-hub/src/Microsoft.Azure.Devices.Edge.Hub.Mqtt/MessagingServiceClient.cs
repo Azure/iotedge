@@ -136,10 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task RejectAsync(string messageId)
         {
-            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
-            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
-            var feedbackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Reject);
-            return this.deviceListener.ProcessFeedbackMessageAsync(feedbackMessage);
+            //Reject is not supported by IoTHub on MQTT
+            return TaskEx.Done;
         }
 
         public Task DisposeAsync(Exception cause)

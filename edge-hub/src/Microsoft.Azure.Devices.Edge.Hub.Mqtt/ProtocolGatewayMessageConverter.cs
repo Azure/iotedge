@@ -64,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             this.addressConvertor.TryDeriveAddress(message.SystemProperties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), out string address);
-
             IByteBuffer payload = message.Body.ToByteBuffer();
             var pgMessage = new ProtocolGatewayMessage(payload, address, new Dictionary<string, string>(), lockToken, createdTimeUtc, 0, 0);
             foreach (KeyValuePair<string, string> property in message.Properties)

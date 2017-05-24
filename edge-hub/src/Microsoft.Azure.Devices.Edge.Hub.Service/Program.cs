@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string iothubHostname = configuration.GetValue<string>("IotHubHostName");
             string edgeDeviceId = configuration.GetValue<string>("EdgeDeviceId");
+
             var topics = new MessageAddressConversionConfiguration(
                 configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<List<string>>());

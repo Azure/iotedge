@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
-            
+
             this.channel.Handle(pgMessage);
             return Task.FromResult(true);
         }
@@ -55,9 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         // TODO - Need to figure out how to do this. Don't see the API on the channel
-        public Task<object> CallMethodAsync(string method, object parameters)
+        public Task<object> CallMethodAsync(string method, byte[] data)
         {
-            throw new System.NotImplementedException();
+            return Task.FromResult(new object());
         }
 
         public bool IsActive => this.isActive.Get();

@@ -22,5 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         bool IsActive { get; }
 
         Task SendFeedbackMessageAsync(IFeedbackMessage message);
+
+        Task SetupCallMethodAsync();
+
+        Task RemoveCallMethodAsync();
     }
 }

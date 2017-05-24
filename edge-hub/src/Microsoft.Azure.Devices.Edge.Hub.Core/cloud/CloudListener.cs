@@ -13,10 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         {
             this.deviceProxy = deviceProxy;
         }
-
-        public Task<object> CallMethodAsync(string methodName, object parameters, string deviceId)
+        public Task<object> CallMethodAsync(string methodName, byte[] data)
         {
-            return this.deviceProxy.CallMethodAsync(methodName, parameters);
+            return this.deviceProxy.CallMethodAsync(methodName, data);
         }
 
         public Task ProcessMessageAsync(IMessage message)

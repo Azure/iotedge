@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using DotNetty.Codecs.Mqtt;
+    using DotNetty.Codecs.Mqtt.Packets;
     using DotNetty.Handlers.Tls;
     using DotNetty.Transport.Bootstrapping;
     using DotNetty.Transport.Channels;
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ILogger logger = Logger.Factory.CreateLogger<MqttProtocolHead>();
         readonly ISettingsProvider settingsProvider;
         readonly X509Certificate tlsCertificate;
-        readonly ISessionStatePersistenceProvider sessionStateManager;
+        readonly ISessionStatePersistenceProvider sessionProvider;
         readonly IMqttConnectionProvider mqttConnectionProvider;
         readonly IDeviceIdentityProvider identityProvider;
 
@@ -40,14 +41,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public MqttProtocolHead(ISettingsProvider settingsProvider,
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
-            IDeviceIdentityProvider identityProvider)
+            IDeviceIdentityProvider identityProvider,
+            ISessionStatePersistenceProvider sessionProvider)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
-            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
-
-            this.sessionStateManager = new TransientSessionStatePersistenceProvider();
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));            
+            this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
         }
 
         public async Task StartAsync()
@@ -125,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         new MqttDecoder(true, maxInboundMessageSize),
                         new MqttAdapter(
                             new Settings(this.settingsProvider),
-                            this.sessionStateManager,
+                            this.sessionProvider,
                             this.identityProvider,
                             null,
                             bridgeFactory));

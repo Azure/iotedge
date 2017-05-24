@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
@@ -88,12 +89,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
 
+            // ISessionStatePersistenceProvider
+            builder.Register(c => new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>()))
+                .As<ISessionStatePersistenceProvider>()
+                .SingleInstance();
+
             // IProtocolHead
             builder.Register(
                 async c =>
                 {
                     IMqttConnectionProvider connectionProvider = await c.Resolve<Task<IMqttConnectionProvider>>();
-                    IProtocolHead head = new MqttProtocolHead(c.Resolve<ISettingsProvider>(), this.certificate, connectionProvider, c.Resolve<IDeviceIdentityProvider>());
+                    IProtocolHead head = new MqttProtocolHead(c.Resolve<ISettingsProvider>(), this.certificate, connectionProvider, c.Resolve<IDeviceIdentityProvider>(), c.Resolve<ISessionStatePersistenceProvider>());
                     return head;
                 })
                 .As<Task<IProtocolHead>>()
