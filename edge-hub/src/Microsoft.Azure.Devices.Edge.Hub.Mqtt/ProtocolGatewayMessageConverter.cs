@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Linq;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
 
             var systemProperties = new Dictionary<string, string>();
-            if (sourceMessage.Properties.TryGetValue(SystemProperties.DeviceId, out string deviceIdValue))
+            if (sourceMessage.Properties.TryGetValue(TemplateParameters.DeviceIdTemplateParam, out string deviceIdValue))
             {
                 systemProperties[SystemProperties.DeviceId] = deviceIdValue;
                 sourceMessage.Properties.Remove(SystemProperties.DeviceId);

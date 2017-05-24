@@ -8,12 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
-    using Microsoft.Extensions.Logging;
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -22,8 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Bvt]
     public class CloudProxyTest
     {
-        static readonly ILoggerFactory LoggerFactory = new LoggerFactory().AddConsole();
-
         public static IEnumerable<object[]> GetTestMessages()
         {
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
@@ -161,8 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(new MqttMessageConverter(), new TwinMessageConverter(), LoggerFactory);
-            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceConnectionString);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(new MqttMessageConverter(), new TwinMessageConverter());
+            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
+            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity);
             return cloudProxy;
         }
 

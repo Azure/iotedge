@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
     using Endpoint = Microsoft.Azure.Devices.Routing.Core.Endpoint;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProcessor = Microsoft.Azure.Devices.Routing.Core.IProcessor;
@@ -111,11 +113,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 if (routingMessage.SystemProperties.TryGetValue(SystemProperties.DeviceId, out string deviceId))
                 {
-                    return routingMessage.SystemProperties.TryGetValue(SystemProperties.ModuleId, out string moduleId)
-                        ? this.cloudEndpoint.cloudProxyGetterFunc($"{deviceId}/{moduleId}")
-                        : this.cloudEndpoint.cloudProxyGetterFunc($"{deviceId}");
+                    string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ModuleId, out string moduleId)
+                        ? $"{deviceId}/{moduleId}"
+                        : deviceId;
+                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);
+                    if (!cloudProxy.Exists(c => c.IsActive))
+                    {
+                        Events.CloudProxyNotFound(id);
+                    }
+                    return cloudProxy;
                 }
+                Events.DeviceIdNotFound(routingMessage);
                 return Option.None<ICloudProxy>();
+            }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudEndpoint>();
+            const int IdStart = HubCoreEventIds.CloudEndpoint;
+
+            enum EventIds
+            {
+                CloudProxyNotFound = IdStart,
+                DeviceIdNotFound
+            }
+
+            public static void DeviceIdNotFound(IRoutingMessage routingMessage)
+            {
+                string message = routingMessage.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId)
+                    ? Invariant($"Message with MessageId {messageId} does not contain a device Id.")
+                    : "Received message does not contain a device Id";
+                Log.LogError((int)EventIds.DeviceIdNotFound, message);
+            }
+
+            public static void CloudProxyNotFound(string id)
+            {
+                Log.LogError((int)EventIds.CloudProxyNotFound, Invariant($"Cloud proxy not found for Id {id}"));
             }
         }
     }

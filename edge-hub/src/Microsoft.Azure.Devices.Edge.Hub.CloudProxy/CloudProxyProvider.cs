@@ -8,20 +8,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class CloudProxyProvider : ICloudProxyProvider
     {
-        readonly ILogger logger;
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverter<Message> messageConverter;
         readonly IMessageConverter<Twin> twinConverter;
 
-        public CloudProxyProvider(IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter, ILoggerFactory loggerFactory)
+        public CloudProxyProvider(IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter)
         {
-            this.logger = Preconditions.CheckNotNull(loggerFactory, nameof(loggerFactory)).CreateLogger<CloudProxyProvider>();
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
             this.transportSettings = new ITransportSettings[] {
@@ -29,23 +29,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             };
         }
 
-        public async Task<Try<ICloudProxy>> Connect(string connectionString)
+        public async Task<Try<ICloudProxy>> Connect(IIdentity identity)
         {
-            Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            Preconditions.CheckNotNull(identity, nameof(identity));
 
-            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(connectionString);
+            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.ConnectionString);
             if (!tryDeviceClient.Success)
             {
+                Events.ConnectError(identity.Id, tryDeviceClient.Exception);
                 return Try<ICloudProxy>.Failure(tryDeviceClient.Exception);
             }
 
+            Events.ConnectSuccess(identity.Id);
             DeviceClient deviceClient = tryDeviceClient.Value;
-            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.twinConverter, this.logger);
+            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.twinConverter, identity);
             return Try.Success(cloudProxy);
         }
 
         async Task<Try<DeviceClient>> ConnectToIoTHub(string connectionString)
         {
+            Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
             {
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, this.transportSettings);
@@ -55,9 +58,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                // TODO - Check if it is okay to emit connection string in logs
-                this.logger.LogError(0, ex, $"Error connecting to IoTHub with connection string {connectionString}");
                 return Try<DeviceClient>.Failure(ex);
+            }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudProxyProvider>();
+            const int IdStart = CloudProxyEventIds.CloudProxyProvider;
+
+            enum EventIds
+            {
+                CloudConnectError = IdStart,
+                CloudConnect
+            }
+
+            public static void ConnectError(string id, Exception ex)
+            {
+                Log.LogError((int)EventIds.CloudConnectError, ex, Invariant($"Error opening cloud connection for device {id}"));
+            }
+
+            public static void ConnectSuccess(string id)
+            {
+                Log.LogInformation((int)EventIds.CloudConnect, Invariant($"Opened new cloud connection for device {id}"));
             }
         }
     }

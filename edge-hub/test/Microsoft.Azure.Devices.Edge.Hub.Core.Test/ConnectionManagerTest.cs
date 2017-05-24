@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
 
             var cloudProviderMock = new Mock<ICloudProxyProvider>();
-            cloudProviderMock.Setup(p => p.Connect(It.IsAny<string>())).ReturnsAsync(() => Try.Success(GetCloudProxyMock().Object));
+            cloudProviderMock.Setup(p => p.Connect(It.IsAny<IIdentity>())).ReturnsAsync(() => Try.Success(GetCloudProxyMock().Object));
 
             var deviceIdentityMock = new Mock<IIdentity>();
             deviceIdentityMock.SetupGet(di => di.Id).Returns("Device1");
@@ -138,15 +138,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     d.ConnectionString == "Device1ConnStr"
             );
 
-            Try<ICloudProxy> GetCloudProxy() => Try.Success(Mock.Of<ICloudProxy>(c => c.IsActive == true));
+            Try<ICloudProxy> GetCloudProxy() => Try.Success(Mock.Of<ICloudProxy>(c => c.IsActive));
             var cloudProxyProvider = Mock.Of<ICloudProxyProvider>();
-            Mock.Get(cloudProxyProvider).Setup(c => c.Connect(It.IsAny<string>())).ReturnsAsync(() => GetCloudProxy());
+            Mock.Get(cloudProxyProvider).Setup(c => c.Connect(It.IsAny<IIdentity>())).ReturnsAsync(() => GetCloudProxy());
 
-            ICloudProxy edgeCloudProxy = null;
             var connectionManager = new ConnectionManager(cloudProxyProvider);
             Try<ICloudProxy> module1CloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(module1Identity);
             Assert.True(module1CloudProxy.Success);
-            edgeCloudProxy = module1CloudProxy.Value;
+            ICloudProxy edgeCloudProxy = module1CloudProxy.Value;
             Assert.NotNull(edgeCloudProxy);
 
             Try<ICloudProxy> module2CloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(module2Identity);
@@ -191,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             cloudProxyMock.Setup(c => c.CloseAsync()).Callback(() => cloudProxyMock.SetupGet(c => c.IsActive).Returns(false));
 
             var cloudProviderMock = new Mock<ICloudProxyProvider>();
-            cloudProviderMock.Setup(c => c.Connect(It.IsAny<string>())).ReturnsAsync(() => Try.Success(cloudProxyMock.Object));
+            cloudProviderMock.Setup(c => c.Connect(It.IsAny<IIdentity>())).ReturnsAsync(() => Try.Success(cloudProxyMock.Object));
 
             IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object);
 

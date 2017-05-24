@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class SasTokenDeviceIdentityProvider : IDeviceIdentityProvider
     {
@@ -26,10 +28,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
                 || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
             {
+                Events.Error(clientId, username);
                 return UnauthenticatedDeviceIdentity.Instance;
             }
-           
+            Events.Success(clientId, username);
             return deviceIdentity.Value;
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<SasTokenDeviceIdentityProvider>();
+            const int IdStart = MqttEventIds.SasTokenDeviceIdentityProvider;
+
+            enum EventIds
+            {
+                CreateSuccess = IdStart,
+                CreateFailure
+            }
+
+            public static void Success(string clientId, string username)
+            {
+                Log.LogInformation((int)EventIds.CreateSuccess, Invariant($"Successfully generated identity for clientId {clientId} and username {username}"));
+            }
+
+            public static void Error(string clientId, string username)
+            {
+                Log.LogError((int)EventIds.CreateFailure, Invariant($"Unable to generate identity for clientId {clientId} and username {username}"));
+            }
         }
     }
 }

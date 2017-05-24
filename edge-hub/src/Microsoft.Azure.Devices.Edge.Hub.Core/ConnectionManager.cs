@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class ConnectionManager : IConnectionManager
     {
@@ -25,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             ConnectedDevice device = this.GetOrCreateConnectedDevice(Preconditions.CheckNotNull(identity, nameof(identity)));
             Option<IDeviceProxy> currentDeviceProxy = device.UpdateDeviceProxy(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
+            Events.NewDeviceConnection(identity);
 
             currentDeviceProxy
                 .Filter(dp => dp.IsActive)
@@ -37,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // After IoTHub supports module identity, add code to close cloud connection.
             this.GetDeviceConnection(deviceId)
                 .ForEach(deviceproxy => deviceproxy.SetInactive());
+            Events.RemoveDeviceConnection(deviceId);
         }
 
         public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
@@ -63,15 +67,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceProxy.Filter(dp => dp.IsActive)
                 .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {deviceId}.")));
 
-            return await device.CloudProxy.Filter(cp => cp.IsActive)
+            bool returnVal = await device.CloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));
+
+            Events.CloseConnection(deviceId);
+
+            return returnVal;
         }        
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
-            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity.ConnectionString);
+            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity);
             if (cloudProxy.Success)
             {
                 ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
@@ -79,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await currentCloudProxy.Filter(cp => cp.IsActive)
                     .Map(cp => cp.CloseAsync())
                     .GetOrElse(Task.FromResult(true));
+                Events.NewCloudConnection(identity);
             }
             return cloudProxy;
         }
@@ -180,6 +189,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.CloudProxy = cloudProxyOption;
                 }
                 return currentValue;
+            }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
+            const int IdStart = HubCoreEventIds.ConnectionManager;
+
+            enum EventIds
+            {
+                CreateNewCloudConnection = IdStart,
+                NewDeviceConnection,
+                RemoveDeviceConnection,
+                CloseDeviceConnection
+            }                        
+
+            public static void NewCloudConnection(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.CreateNewCloudConnection, Invariant($"New cloud connection created for device {identity.Id}"));
+            }
+
+            public static void NewDeviceConnection(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));
+            }
+
+            public static void RemoveDeviceConnection(string id)
+            {
+                Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
+            }
+
+            public static void CloseConnection(string id)
+            {
+                Log.LogInformation((int)EventIds.CloseDeviceConnection, Invariant($"Connection closed for device {id}"));
             }
         }
     }

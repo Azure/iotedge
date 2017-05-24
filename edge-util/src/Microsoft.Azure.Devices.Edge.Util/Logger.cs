@@ -25,6 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .AddSerilog(loggerConfig);
 
             return factory;
-        }
+        }        
     }
-}
+}    

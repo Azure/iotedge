@@ -8,26 +8,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     class CloudReceiver
     {
+        readonly IIdentity identity;
         readonly DeviceClient deviceClient;
         readonly IMessageConverter<Message> messageConverter;
         readonly ICloudListener cloudListener;
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        readonly ILogger logger = Logger.Factory.CreateLogger<CloudReceiver>();
         // This is temporary, replace with default method handler when available in Client SDK
         const string MethodName = "*";
         Task receiveMessageTask;
 
-        public CloudReceiver(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ICloudListener cloudListener)
+        public CloudReceiver(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ICloudListener cloudListener, IIdentity identity)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
+            this.identity = Preconditions.CheckNotNull(identity);
         }
 
         public void StartListening()
@@ -47,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         clientMessage = await this.deviceClient.ReceiveAsync();
                         if (clientMessage != null)
                         {
+                            Events.MessageReceived(this);
                             IMessage message = this.messageConverter.ToMessage(clientMessage);
                             // TODO: check if message delivery count exceeds the limit?
                             await this.cloudListener.ProcessMessageAsync(message);
@@ -56,10 +60,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         // continue when the client times out
                         // TODO: should limit the timeout?
-                        this.logger.LogError("Error receiving message from the cloud: {0}", e);
+                        Events.ErrorReceivingMessage(this, e);
                     }
                 }
-                this.logger.LogInformation("Cloud receiver stopped");
+                
+                Events.ReceiverStopped(this);
             }
             finally
             {
@@ -69,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task CloseAsync()
         {
+            Events.Closing(this);
             this.cancellationTokenSource.Cancel();
             return this.receiveMessageTask ?? TaskEx.Done;
         }
@@ -105,6 +111,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             var cloudListener = (ICloudListener)userContext;
             return cloudListener.OnDesiredPropertyUpdates(desiredProperties.ToJson());
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<CloudReceiver>();
+            const int IdStart = CloudProxyEventIds.CloudReceiver;
+
+            enum EventIds
+            {
+                Closing = IdStart,
+                MessageReceived,
+                ReceiveError,
+                ReceiverStopped
+            }
+
+            public static void MessageReceived(CloudReceiver cloudReceiver)
+            {
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void Closing(CloudReceiver cloudReceiver)
+            {
+                Log.LogInformation((int)EventIds.Closing, Invariant($"Closing receiver for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void ErrorReceivingMessage(CloudReceiver cloudReceiver, Exception ex)
+            {
+                Log.LogError((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void ReceiverStopped(CloudReceiver cloudReceiver)
+            {
+                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudReceiver.identity.Id}"));
+            }
         }
     }
 }

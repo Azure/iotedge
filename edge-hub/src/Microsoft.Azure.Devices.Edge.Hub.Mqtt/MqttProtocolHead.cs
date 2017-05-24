@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using DotNetty.Codecs.Mqtt;
-    using DotNetty.Codecs.Mqtt.Packets;
     using DotNetty.Handlers.Tls;
     using DotNetty.Transport.Bootstrapping;
     using DotNetty.Transport.Channels;

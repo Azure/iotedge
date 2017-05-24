@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -10,13 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Gateway.Runtime.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
+    using static System.FormattableString;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
-    using System.Globalization;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
-        static StringSegment requestId = new StringSegment(TwinNames.RequestId);
+        static readonly StringSegment RequestId = new StringSegment(TwinNames.RequestId);
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
@@ -39,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.messagingChannel = Preconditions.CheckNotNull(channel, nameof(channel));
             IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter);
             this.deviceListener.BindDeviceProxy(deviceProxy);
+            Events.BindMessageChannel(this.deviceListener.Identity);
         }
 
         static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.ServicePrefix, StringComparison.Ordinal);
@@ -55,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
                 {
                     StringSegment correlationId;
-                    bool hasCorrelationId = properties.TryGetValue(requestId, out correlationId);
+                    bool hasCorrelationId = properties.TryGetValue(RequestId, out correlationId);
 
                     switch (operation)
                     {
@@ -73,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             coreMessage.SystemProperties[Core.SystemProperties.CorrelationId] = correlationId.ToString();
                             IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
                             this.messagingChannel.Handle(twinGetMessage);
+                            Events.GetTwin(this.deviceListener.Identity);
                             break;
 
                         case TwinAddressHelper.Operation.TwinPatchReportedState:
@@ -91,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                     .Build();
                                 IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
                                 this.messagingChannel.Handle(twinPatchMessage);
+                                Events.UpdateReportedProperties(this.deviceListener.Identity);
                             }
                             break;
 
@@ -107,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
                 await this.deviceListener.ProcessMessageAsync(coreMessage);
+                Events.SendMessage(this.deviceListener.Identity);
             }
         }
 
@@ -142,10 +148,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task DisposeAsync(Exception cause)
         {
+            Events.Disposing(this.deviceListener.Identity, cause);
             return this.deviceListener.CloseAsync();
         }
 
         // TODO - Check what value should be set here.
         public int MaxPendingMessages => 100; // From IotHub codebase. 
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MessagingServiceClient>();
+            const int IdStart = MqttEventIds.MessagingServiceClient;
+
+            enum EventIds
+            {
+                BindMessageChannel = IdStart,
+                GetTwin,
+                UpdateReportedProperties,
+                SendMessage,
+                Dispose
+            }
+            
+            public static void BindMessageChannel(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.BindMessageChannel, Invariant($"Binding message channel for device Id {identity.Id}"));
+            }
+
+            public static void GetTwin(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device Id {identity.Id}"));
+            }
+
+            public static void UpdateReportedProperties(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device Id {identity.Id}"));
+            }
+
+            public static void SendMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device Id {identity.Id}"));
+            }
+
+            public static void Disposing(IIdentity identity, Exception cause)
+            {
+                Log.LogInformation((int)EventIds.Dispose, Invariant($"Disposing MessagingServiceClient for device Id {identity.Id} because of exception - {cause?.ToString() ?? string.Empty}"));
+            }
+        }
     }
 }

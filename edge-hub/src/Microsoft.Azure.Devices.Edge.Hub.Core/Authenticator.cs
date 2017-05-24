@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class Authenticator : IAuthenticator
     {
@@ -27,13 +29,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             var moduleIdentity = identity as IModuleIdentity;
             if (moduleIdentity != null && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
+                Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
                 return false;
             }
 
             // Initially we will have many modules connecting with same device ID, so this is a GetOrCreate. 
             // When we have module identity implemented, this should be CreateCloudConnectionAsync.
             Try<ICloudProxy> cloudProxyTry = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity, nameof(identity)));
+            Events.AuthResult(cloudProxyTry, identity.Id);
             return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Authenticator>();
+            const int IdStart = HubCoreEventIds.Authenticator;
+
+            enum EventIds
+            {
+                AuthSuccess = IdStart,
+                AuthError,
+                InvalidDeviceError
+            }
+
+            public static void InvalidDeviceId(IModuleIdentity moduleIdentity, string edgeDeviceId)
+            {
+                Log.LogError((int)EventIds.InvalidDeviceError, Invariant($"Device Id {moduleIdentity.DeviceId} of module {moduleIdentity.ModuleId} is different from the edge device Id {edgeDeviceId}"));
+            }
+
+            public static void AuthResult(Try<ICloudProxy> cloudProxyTry, string id)
+            {
+                if (cloudProxyTry.Success)
+                {
+                    if (cloudProxyTry.Value.IsActive)
+                    {
+                        Log.LogInformation((int)EventIds.AuthSuccess, Invariant($"Successfully authenticated device {id}"));
+                    }
+                    else
+                    {
+                        Log.LogError((int)EventIds.AuthError, Invariant($"Unable to authenticate device {id} because the cloud proxy is not active"));
+                    }
+                }
+                else
+                {
+                    Log.LogError((int)EventIds.AuthError, cloudProxyTry.Exception, Invariant($"Unable to authenticate device {id}"));
+                }
+            }
         }
     }
 }

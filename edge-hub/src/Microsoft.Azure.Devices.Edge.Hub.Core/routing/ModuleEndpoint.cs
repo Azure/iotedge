@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
     using Endpoint = Microsoft.Azure.Devices.Routing.Core.Endpoint;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProcessor = Microsoft.Azure.Devices.Routing.Core.IProcessor;
@@ -48,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             readonly ModuleEndpoint moduleEndpoint;
 
             public ModuleMessageProcessor(ModuleEndpoint endpoint)
-            {                
+            {
                 this.moduleEndpoint = Preconditions.CheckNotNull(endpoint);
             }
 
@@ -68,12 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 await this.GetDeviceProxy()
                     .Match(
-                        async (c) =>
+                        async d =>
                         {
                             foreach (IRoutingMessage routingMessage in routingMessages)
                             {
                                 IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                                bool res = await c.SendMessage(message, this.moduleEndpoint.EndpointAddress);
+                                bool res = await d.SendMessage(message, this.moduleEndpoint.EndpointAddress);
                                 if (res)
                                 {
                                     succeeded.Add(routingMessage);
@@ -88,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         {
                             // TODO - Check if this should be failed instead. 
                             sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException("No connection to IoTHub found"));
+                            Events.NoDeviceProxy(this.moduleEndpoint);
                             return TaskEx.Done;
                         });
 
@@ -110,6 +113,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     d => Option.Some(d),
                     () => this.moduleEndpoint.deviceProxyGetterFunc());
                 return this.devicePoxy;
+            }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleEndpoint>();
+            const int IdStart = HubCoreEventIds.ModuleEndpoint;
+
+            enum EventIds
+            {
+                NoDeviceProxy = IdStart
+            }
+
+            public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
+            {
+                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Device proxy not found for device {moduleEndpoint.Id}"));
             }
         }
     }

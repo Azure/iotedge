@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public interface ICloudProxyProvider
@@ -10,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         /// <summary>
         /// Connect sets up the CloudProxy
         /// </summary>
-        Task<Try<ICloudProxy>> Connect(string connectionString);
+        Task<Try<ICloudProxy>> Connect(IIdentity identity);
     }
 }

@@ -9,8 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
+    using Microsoft.Extensions.Logging;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
+    using static System.FormattableString;
 
     public class DeviceProxy : IDeviceProxy
     {
@@ -26,11 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.Identity = Preconditions.CheckNotNull(identity, nameof(this.Identity));
         }
 
+        public IIdentity Identity { get; }
+
         public Task CloseAsync(Exception ex)
         {
             if (this.isActive.GetAndSet(false))
             {
                 this.channel.Close(ex ?? new EdgeHubConnectionException($"Connection closed for device {this.Identity.Id}."));
+                Events.Close(this.Identity);
             }
             return TaskEx.Done;
         }
@@ -38,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public void SetInactive()
         {
             this.isActive.Set(false);
+            Events.SetInactive(this.Identity);
         }
 
         public Task<bool> SendMessageAsync(IMessage message)
@@ -46,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
 
             this.channel.Handle(pgMessage);
+            Events.SendMessage(this.Identity);
             return Task.FromResult(true);
         }
 
@@ -62,6 +69,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool IsActive => this.isActive.Get();
 
-        public IIdentity Identity { get; }
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceProxy>();
+            const int IdStart = MqttEventIds.DeviceProxy;
+
+            enum EventIds
+            {
+                Close = IdStart,
+                SetInactive,
+                SendMessage
+            }
+
+            public static void Close(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.Close, Invariant($"Closing device proxy for device Id {identity.Id}"));
+            }
+
+            public static void SetInactive(IIdentity identity)
+            {
+                Log.LogInformation((int)EventIds.SetInactive, Invariant($"Setting device proxy inactive for device Id {identity.Id}"));
+            }
+
+            public static void SendMessage(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message to device for device Id {identity.Id}"));
+            }
+        }
     }
 }
