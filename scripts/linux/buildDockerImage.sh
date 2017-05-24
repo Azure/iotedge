@@ -17,6 +17,7 @@ SCRIPT_NAME=$(basename $0)
 PUBLISH_DIR=
 DOTNET_DOWNLOAD_URL=
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
+SKIP_RUNTIME=0
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -46,6 +47,8 @@ usage()
     echo " -u, --username       Docker Registry Username"
     echo " -p, --password       Docker Username's password"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
+    echo " -t, --target-arch    Target architecture (default: uname -m)"
+    echo " --skip-runtime       Do not build dotnet runtime"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--dotnet-url          Dotnet Runtime Download (tar.gz) URL"
     exit 1;
@@ -83,6 +86,10 @@ process_args()
         elif [ $save_next_arg -eq 6 ]; then
             DOTNET_DOWNLOAD_URL="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 7 ]; then
+            ARCH="$arg"
+            check_arch
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -92,6 +99,8 @@ process_args()
                 "-v" | "--image-version" ) save_next_arg=4;;
                 "--bin-dir" ) save_next_arg=5;;
                 "--dotnet-url" ) save_next_arg=6;;
+                "-t" | "--target-arch" ) save_next_arg=7;;
+                "--skip-runtime" ) SKIP_RUNTIME=1;;
                 * ) usage;;
             esac
         fi
@@ -205,14 +214,16 @@ if [ $? -ne 0 ]; then
 fi
 
 # push edge-runtime dotnet image
-EXE_DIR="dotnet-runtime"
-EXE_DOCKER_DIR=$PUBLISH_DIR/docker/$EXE_DIR/latest
-DOTNET_BUILD_ARG=""
-if [[ ! -z ${DOTNET_DOWNLOAD_URL} ]]; then
-    DOTNET_BUILD_ARG="--build-arg DOTNET_DOWNLOAD_URL=$DOTNET_DOWNLOAD_URL"
+if [ $SKIP_RUNTIME -eq 0 ]; then
+    EXE_DIR="dotnet-runtime"
+    EXE_DOCKER_DIR=$PUBLISH_DIR/docker/$EXE_DIR/latest
+    DOTNET_BUILD_ARG=""
+    if [[ ! -z ${DOTNET_DOWNLOAD_URL} ]]; then
+        DOTNET_BUILD_ARG="--build-arg DOTNET_DOWNLOAD_URL=$DOTNET_DOWNLOAD_URL"
+    fi
+    docker_build_and_tag_and_push $EXE_DIR "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$EXE_DOCKER_DIR" "$DOTNET_BUILD_ARG"
+    [ $? -eq 0 ] || exit $?
 fi
-docker_build_and_tag_and_push $EXE_DIR "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$EXE_DOCKER_DIR" "$DOTNET_BUILD_ARG"
-[ $? -eq 0 ] || exit $?
 
 # push edge-agent image
 EXE_DIR="Microsoft.Azure.Devices.Edge.Agent.Service"
