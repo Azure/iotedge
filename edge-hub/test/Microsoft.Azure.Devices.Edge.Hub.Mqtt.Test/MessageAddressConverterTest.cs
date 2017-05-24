@@ -8,27 +8,32 @@
     [Unit]
     public class MessageAddressConverterTest
     {
-        static readonly IList<string> Input = new List<string>() { "devices/{deviceId}/messages/events/"};
-        static readonly IList<string> MultipleAddress = new List<string>() { "devices/{deviceId}/messages/events/", "devices/{deviceId}/messages/events/" };
-        static readonly IList<string> Output = new List<string>() { "devices/{deviceId}/messages/devicebound", "$iothub/twin/res/{statusCode}/?$rid={correlationId}" };
-        static readonly MessageAddressConversionConfiguration ConversionConfig = new MessageAddressConversionConfiguration(Input, Output);
-        static readonly MessageAddressConversionConfiguration EmptyConversionConfig = new MessageAddressConversionConfiguration();
-        static readonly MessageAddressConversionConfiguration MultipleInputConversionConfig = new MessageAddressConversionConfiguration(MultipleAddress, Output);
-        static readonly string[] DontCare = new[] { "" };
+        static readonly string[] DontCareInput = new[] { "" };
+
+        static readonly IDictionary<string, string> DontCareOutput = new Dictionary<string, string>
+        {
+            ["DontCare"] = ""
+        };
+        static readonly DotNetty.Buffers.IByteBuffer Payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
 
         [Fact]
         public void TestMessageAddressConverterWithEmptyConversionConfig()
         {
-            Assert.Throws(typeof(ArgumentException), () => new MessageAddressConverter(EmptyConversionConfig));
+            var emptyConversionConfig = new MessageAddressConversionConfiguration();
+            Assert.Throws(typeof(ArgumentException), () => new MessageAddressConverter(emptyConversionConfig));
         }
 
         [Fact]
         public void TryDeriveAddressWorksWithOneTemplate()
         {
             string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c"
+            };
             var config = new MessageAddressConversionConfiguration(
-                DontCare,
-                new[] { "a/{b}/c" }
+                DontCareInput,
+                testTemplate
             );
             var properties = new Dictionary<string, string>()
             {
@@ -36,7 +41,7 @@
             };
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress(properties, out address);
+            bool result = converter.TryDeriveAddress("Test", properties, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
@@ -48,9 +53,15 @@
         public void TryDeriveAddressWorksWithMoreThanOneTemplate()
         {
             string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test1"] = "a/{b}/c",
+                ["Test2"] = "d/{e}/f",
+                ["Test3"] = "x/{y}/z"
+            };
             var config = new MessageAddressConversionConfiguration(
-                DontCare,
-                new[] { "a/{b}/c", "d/{e}/f", "x/{y}/z" }
+                DontCareInput,
+                testTemplate
             );
             var properties = new Dictionary<string, string>()
             {
@@ -58,7 +69,7 @@
             };
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress(properties, out address);
+            bool result = converter.TryDeriveAddress("Test2", properties, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
@@ -67,12 +78,44 @@
         }
 
         [Fact]
-        public void TryDeriveAddressUsesTheFirstMatch()
+        public void TryDeriveAddressWorksWithMultipleVariableTemplate()
         {
             string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c/{d}/e/{f}/",
+            };
             var config = new MessageAddressConversionConfiguration(
-                DontCare,
-                new[] { "a/{b}/c", "{b}/c/d" }
+                DontCareInput,
+                testTemplate
+            );
+            var properties = new Dictionary<string, string>()
+            {
+                ["b"] = "123",
+                ["d"] = "456",
+                ["f"] = "789"
+            };
+
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryDeriveAddress("Test", properties, out address);
+
+            Assert.True(result);
+            Assert.NotNull(address);
+            Assert.NotEmpty(address);
+            Assert.Equal<string>("a/123/c/456/e/789/", address);
+        }
+
+        [Fact]
+        public void TryDeriveAddressFailsWithInvalidTemplate()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c",
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
             );
             var properties = new Dictionary<string, string>()
             {
@@ -80,68 +123,157 @@
             };
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress(properties, out address);
+            bool result = converter.TryDeriveAddress("BadTest", properties, out address);
 
-            Assert.True(result);
-            Assert.NotNull(address);
-            Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c", address);
+            Assert.False(result);
+            Assert.Null(address);
         }
 
         [Fact]
-        public void TestTryDeriveAddressWithoutDeviceId()
+        public void TestTryDeriveAddressFailsWithEmptyProperties()
         {
-            var converter = new MessageAddressConverter(ConversionConfig);
-
-            IDictionary<string, string> properties = new Dictionary<string, string>()
-            {
-                { "model", "temperature" }
-            };
             string address;
-            converter.TryDeriveAddress(properties, out address);
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c",
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+            var properties = new Dictionary<string, string>();
 
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryDeriveAddress("Test", properties, out address);
+
+            Assert.False(result);
+            Assert.Null(address);
+        }
+
+        [Fact]
+        public void TestTryDeriveAddressFailsWithNoValidProperties()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c",
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+            var properties = new Dictionary<string, string>()
+            {
+                ["a"] = "123"
+            };
+
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryDeriveAddress("Test", properties, out address);
+
+            Assert.False(result);
+            Assert.Null(address);
+        }
+
+        [Fact]
+        public void TestTryDeriveAddressFailsWithPartiallyMissingProperties()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c/{d}/e/{f}/",
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+            var properties = new Dictionary<string, string>()
+            {
+                ["b"] = "123",
+                ["f"] = "789",
+            };
+
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryDeriveAddress("Test", properties, out address);
+
+            Assert.False(result);
             Assert.Null(address);
         }
 
         [Fact]
         public void TestTryParseAddressIntoMessageProperties()
         {
-            var converter = new MessageAddressConverter(ConversionConfig);
+            IList<string> input = new List<string>() { "a/{b}/c/{d}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
 
-            string address = "devices/{deviceId}/messages/events/";
-            DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3}.ToByteBuffer();
-            var message = new ProtocolGatewayMessage(payload, address);
+            string address = "a/bee/c/dee/";
+            var message = new ProtocolGatewayMessage(Payload, address);
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
-
             Assert.True(status);
+            string value;
+            Assert.True(message.Properties.TryGetValue("b", out value));
+            Assert.Equal<string>("bee", value);
+            Assert.True(message.Properties.TryGetValue("d", out value));
+            Assert.Equal<string>("dee", value);
         }
 
         [Fact]
-        public void TestTryParseAddressIntoMessagePropertiesNoMatch()
+        public void TestTryParseAddressIntoMessagePropertiesMultipleInput()
         {
-            var converter = new MessageAddressConverter(ConversionConfig);
+            IList<string> input = new List<string>() { "a/{b}/c/{d}/", "e/{f}/g/{h}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
 
-            string address = "devices/{deviceId}/messages/";
-            DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
-            var message = new ProtocolGatewayMessage(payload, address + "events/");
+            string address = "a/bee/c/dee/";
+            var message = new ProtocolGatewayMessage(Payload, address);
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
+            Assert.True(status);
+            string value;
+            Assert.True(message.Properties.TryGetValue("b", out value));
+            Assert.Equal<string>("bee", value);
+            Assert.True(message.Properties.TryGetValue("d", out value));
+            Assert.Equal<string>("dee", value);
+            Assert.Equal<int>(2, message.Properties.Count);
+        }
 
+        [Fact]
+        public void TestTryParseAddressIntoMessagePropertiesFailsNoMatch()
+        {
+            IList<string> input = new List<string>() { "a/{b}/c/{d}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/c/";
+            var message = new ProtocolGatewayMessage(Payload, address);
+            bool status = converter.TryParseAddressIntoMessageProperties(address, message);
             Assert.False(status);
+            Assert.Equal<int>(0, message.Properties.Count);
         }
 
         [Fact]
-        public void TestTryParseAddressIntoMessagePropertiesMultipleMatch()
+        public void TestTryParseAddressIntoMessagePropertiesFailsNoMatchMultiple()
         {
-            var converter = new MessageAddressConverter(MultipleInputConversionConfig);
+            IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{d}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
 
-            string address = "devices/{deviceId}/messages/events/";
-            DotNetty.Buffers.IByteBuffer payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
-            var message = new ProtocolGatewayMessage(payload, address + "events/");
+            string address = "a/bee/c/";
+            var message = new ProtocolGatewayMessage(Payload, address);
             bool status = converter.TryParseAddressIntoMessageProperties(address, message);
-
-            Assert.True(status);
-
-            
+            Assert.False(status);
+            Assert.Equal<int>(0, message.Properties.Count);
         }
     }
 }

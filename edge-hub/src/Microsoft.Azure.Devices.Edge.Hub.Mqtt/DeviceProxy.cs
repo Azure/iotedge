@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Task<bool> SendMessageAsync(IMessage message)
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
+            message.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriC2D;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
 
             this.channel.Handle(pgMessage);
@@ -56,9 +57,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(true);
         }
 
-        public Task<bool> SendMessage(IMessage message, string endpoint)
+        public Task<bool> SendMessageAsync(IMessage message, string endpoint)
         {
-            throw new NotImplementedException();
+            bool result = false;
+            var moduleIdentity = this.Identity as IModuleIdentity;
+            if (moduleIdentity != null)
+            {
+                message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ModuleId] = moduleIdentity.ModuleId;
+                message.SystemProperties[SystemProperties.EndpointId] = endpoint;
+                message.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriModuleEndpoint;
+                IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
+                this.channel.Handle(pgMessage);
+                result = true;
+            }
+            return Task.FromResult(result);
         }
 
         // TODO - Need to figure out how to do this. Don't see the API on the channel

@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             var topics = new MessageAddressConversionConfiguration(
                 configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
-                configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<List<string>>());
+                configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string,string>>());
             var routes = configuration.GetSection("routes").Get<List<string>>();
 
             var builder = new ContainerBuilder();

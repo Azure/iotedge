@@ -20,5 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string LockToken = "lockToken";
         public const string DeliveryCount = "deliveryCount";
         public const string StatusCode = "statusCode";
+        public const string OutboundURI = "outBoundURI";
     }
 }

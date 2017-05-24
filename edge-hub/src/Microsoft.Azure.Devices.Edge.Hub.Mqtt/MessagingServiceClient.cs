@@ -46,67 +46,73 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.ServicePrefix, StringComparison.Ordinal);
 
+        async Task SendTwinAsync(IProtocolGatewayMessage message)
+        {
+            var properties = new Dictionary<StringSegment, StringSegment>();
+            TwinAddressHelper.Operation operation;
+            StringSegment subresource;
+            if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
+            {
+                StringSegment correlationId;
+                bool hasCorrelationId = properties.TryGetValue(RequestId, out correlationId);
+
+                switch (operation)
+                {
+                    case TwinAddressHelper.Operation.TwinGetState:
+                        EnsureNoSubresource(subresource);
+
+                        if (!hasCorrelationId || correlationId.Length == 0)
+                        {
+                            throw new InvalidOperationException("Correlation id is missing or empty.");
+                        }
+
+                        Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
+                        coreMessage.SystemProperties[SystemProperties.LockToken] = "r";
+                        coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.OK;
+                        coreMessage.SystemProperties[SystemProperties.CorrelationId] = correlationId.ToString();
+                        coreMessage.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriTwinEndpoint;
+                        IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
+                        this.messagingChannel.Handle(twinGetMessage);
+                        break;
+
+                    case TwinAddressHelper.Operation.TwinPatchReportedState:
+                        EnsureNoSubresource(subresource);
+                        await this.deviceListener.UpdateReportedPropertiesAsync(message.Payload.ToString(System.Text.Encoding.UTF8));
+                        if (hasCorrelationId)
+                        {
+                            MqttMessage mqttMessage = new MqttMessage.Builder(new byte[0])
+                                .SetSystemProperties(new Dictionary<string, string>()
+                                {
+                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
+                                    [SystemProperties.LockToken] = "r",
+                                    [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
+                                    [SystemProperties.CorrelationId] = correlationId.ToString(),
+                                    [SystemProperties.OutboundURI] = Constants.OutboundUriTwinEndpoint
+                                })
+                                .Build();
+                            IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
+                            this.messagingChannel.Handle(twinPatchMessage);
+                        }
+                        break;
+
+                    default:
+                        throw new InvalidOperationException("Twin operation is not supported.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Failed to parse operation from message address.");
+            }
+        }
+
         public async Task SendAsync(IProtocolGatewayMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
+            Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address));
 
-            if (IsTwinAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
+            if (IsTwinAddress(message.Address))
             {
-                var properties = new Dictionary<StringSegment, StringSegment>();
-                TwinAddressHelper.Operation operation;
-                StringSegment subresource;
-                if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
-                {
-                    StringSegment correlationId;
-                    bool hasCorrelationId = properties.TryGetValue(RequestId, out correlationId);
-
-                    switch (operation)
-                    {
-                        case TwinAddressHelper.Operation.TwinGetState:
-                            EnsureNoSubresource(subresource);
-
-                            if (!hasCorrelationId || correlationId.Length == 0)
-                            {
-                                throw new InvalidOperationException("Correlation id is missing or empty.");
-                            }
-
-                            Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
-                            coreMessage.SystemProperties[Core.SystemProperties.LockToken] = "r";
-                            coreMessage.SystemProperties[Core.SystemProperties.StatusCode] = ResponseStatusCodes.OK;
-                            coreMessage.SystemProperties[Core.SystemProperties.CorrelationId] = correlationId.ToString();
-                            IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
-                            this.messagingChannel.Handle(twinGetMessage);
-                            Events.GetTwin(this.deviceListener.Identity);
-                            break;
-
-                        case TwinAddressHelper.Operation.TwinPatchReportedState:
-                            EnsureNoSubresource(subresource);
-                            await this.deviceListener.UpdateReportedPropertiesAsync(message.Payload.ToString(System.Text.Encoding.UTF8));
-                            if (hasCorrelationId)
-                            {
-                                MqttMessage mqttMessage = new MqttMessage.Builder(new byte[0])
-                                    .SetSystemProperties(new Dictionary<string, string>()
-                                    {
-                                        [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
-                                        [SystemProperties.LockToken] = "r",
-                                        [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
-                                        [SystemProperties.CorrelationId] = correlationId.ToString()
-                                    })
-                                    .Build();
-                                IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
-                                this.messagingChannel.Handle(twinPatchMessage);
-                                Events.UpdateReportedProperties(this.deviceListener.Identity);
-                            }
-                            break;
-
-                        default:
-                            throw new InvalidOperationException("Twin operation is not supported.");
-                    }
-                }
-                else
-                {
-                    throw new InvalidOperationException("Failed to parse operation from message address.");
-                }
+                await this.SendTwinAsync(message);
             }
             else
             {
@@ -126,18 +132,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task AbandonAsync(string messageId)
         {
-            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
-            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
-            var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Abandon);
-            return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
+            if (messageId != null)
+            {
+                MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
+                message.SystemProperties.Add(SystemProperties.MessageId, messageId);
+                var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Abandon);
+                return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
+            }
+            return TaskEx.Done;
         }
 
         public Task CompleteAsync(string messageId)
         {
-            MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
-            message.SystemProperties.Add(SystemProperties.MessageId, messageId);
-            var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Complete);
-            return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
+            if (messageId != null)
+            {
+                MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
+                message.SystemProperties.Add(SystemProperties.MessageId, messageId);
+                var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Complete);
+                return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
+            }
+            return TaskEx.Done;
         }
 
         public Task RejectAsync(string messageId)
@@ -153,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         // TODO - Check what value should be set here.
-        public int MaxPendingMessages => 100; // From IotHub codebase. 
+        public int MaxPendingMessages => 100; // From IotHub codebase.
 
         static class Events
         {
@@ -168,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 SendMessage,
                 Dispose
             }
-            
+
             public static void BindMessageChannel(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.BindMessageChannel, Invariant($"Binding message channel for device Id {identity.Id}"));

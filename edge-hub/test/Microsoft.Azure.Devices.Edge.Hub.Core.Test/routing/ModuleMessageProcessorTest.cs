@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var deviceProxyMock = new Mock<IDeviceProxy>();
             string modId = "device1/module1";
             string moduleEndpointId = "in1";
-            
+
             Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
 
             var moduleEndpoint = new ModuleEndpoint(modId, moduleEndpointId, () => GetModuleProxy(modId), routingMessageConverter);
@@ -43,14 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public async Task ProcessAsyncTest()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
-            
+
             const string Mod1Id = "device1/module1";
             const string ModEndpointId = "in1";
 
             var deviceProxyMock = new Mock<IDeviceProxy>();
-            deviceProxyMock.Setup(c => c.SendMessage(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))                
+            deviceProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))
                 .ReturnsAsync(() => true);
-            
+
             deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
             byte[] messageBody = Encoding.UTF8.GetBytes("Message body");

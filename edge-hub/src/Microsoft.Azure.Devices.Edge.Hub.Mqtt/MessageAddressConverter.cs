@@ -4,15 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.ProtocolGateway;
 
     public class MessageAddressConverter
     {
         readonly IList<UriPathTemplate> inboundTable;
-        readonly IList<UriPathTemplate> outboundTable;
+        readonly IDictionary<string, UriPathTemplate> outboundTemplateMap;
         readonly ILogger logger = Logger.Factory.CreateLogger<MessageAddressConverter>();
 
         public MessageAddressConverter(MessageAddressConversionConfiguration configuration)
@@ -24,34 +25,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.inboundTable = (from template in configuration.InboundTemplates
                 select new UriPathTemplate(template)).ToList();
 
-            this.outboundTable = (from template in configuration.OutboundTemplates
-                select new UriPathTemplate(template)).ToList();
+            this.outboundTemplateMap = new Dictionary<string, UriPathTemplate>();
+            foreach (KeyValuePair<string, string> kvp in configuration.OutboundTemplates)
+            {
+                this.outboundTemplateMap.Add(kvp.Key, new UriPathTemplate(kvp.Value));
+            }
         }
 
-        public bool TryDeriveAddress(IDictionary<string, string> properties, out string address)
+        public bool TryDeriveAddress(string endPointUri, IDictionary<string, string> properties, out string address)
         {
+            UriPathTemplate template;
+            if (this.outboundTemplateMap.TryGetValue(endPointUri, out template))
+            {
+                try
+                {
+                    address = template.Bind(properties);
+                    if (!string.IsNullOrEmpty(address))
+                    {
+                        return true;
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+
+                }
+            }
             address = null;
-
-            IList<string> matchedAddresses = this.outboundTable
-                .Select(template => template.Bind(properties))
-                // An InvalidOperationException exception means that one of the required
-                // template fields was not supplied in the "properties" dictionary. We
-                // ignore the failing template and move on to the next one.
-                .IgnoreExceptions<string, InvalidOperationException>()
-                .Where(s => !string.IsNullOrEmpty(s))
-                .ToList();
-
-            if (matchedAddresses.Count > 1)
-            {
-                this.logger.LogDebug($"Properties [{string.Join(", ", properties.Select(kvp => $"({kvp.Key}, {kvp.Value})"))}] match more than one template.");
-            }
-
-            if (matchedAddresses.Count > 0)
-            {
-                address = matchedAddresses[0];
-            }
-
-            return !string.IsNullOrEmpty(address);
+            return false;
         }
 
         public bool TryParseAddressIntoMessageProperties(string address, ProtocolGateway.Messaging.IMessage message)

@@ -93,10 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routingMessage1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, properties, systemProperties);
             routingMessages.Add(new object[] { routingMessage1 });
 
-            var routingMessage2 = new RoutingMessage(TwinChangeEventMessageSource.Instance, 
-                messageBytes, 
-                properties, 
-                systemProperties, 
+            var routingMessage2 = new RoutingMessage(TwinChangeEventMessageSource.Instance,
+                messageBytes,
+                properties,
+                systemProperties,
                 100,
                 DateTime.Today.Subtract(TimeSpan.FromDays(1)),
                 DateTime.Today);
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Assert.Equal(property.Value, routingMessage.SystemProperties[property.Key]);
             }
 
-            Assert.Equal(DateTime.MinValue, routingMessage.EnqueuedTime);            
+            Assert.Equal(DateTime.MinValue, routingMessage.EnqueuedTime);
             Assert.Equal(routingMessage.Offset, 0);
             Assert.True(routingMessage.MessageSource.IsTelemetry());
         }
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             {
                 Assert.True(message.SystemProperties.ContainsKey(property.Key));
                 Assert.Equal(property.Value, message.SystemProperties[property.Key]);
-            }            
+            }
         }
     }
 }

@@ -24,7 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static readonly Mock<IEdgeHub> EdgeHub = new Mock<IEdgeHub>();
         static readonly Mock<IConnectionManager> ConnectionManager = new Mock<IConnectionManager>();
         static readonly IList<string> Input = new List<string>() { "devices/{deviceId}/messages/events/" };
-        static readonly IList<string> Output = new List<string>() { "devices/{deviceId}/messages/devicebound", "$iothub/twin/res/{statusCode}/?$rid={correlationId}" };
+        static readonly IDictionary<string, string> Output = new Dictionary<string, string>
+        {
+            [Constants.OutboundUriC2D] = "devices/{deviceId}/messages/devicebound",
+            [Constants.OutboundUriTwinEndpoint] = "$iothub/twin/res/{statusCode}/?$rid={correlationId}",
+            [Constants.OutboundUriModuleEndpoint] = "devices/{deviceId}/module/{moduleId}/endpoint/{endpointId}"
+        };
 
         struct Messages
         {

@@ -8,14 +8,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class MessageAddressConversionConfiguration
     {
         public IList<string> InboundTemplates { get; }
-        public IList<string> OutboundTemplates { get; }
+        public IDictionary<string, string> OutboundTemplates { get; }
 
         public MessageAddressConversionConfiguration() :
-           this(new List<string>(), new List<string>())
+           this(new List<string>(), new Dictionary<string, string>())
         {
         }
 
-        public MessageAddressConversionConfiguration(IList<string> inboundTemplates, IList<string> outboundTemplates)
+        public MessageAddressConversionConfiguration(IList<string> inboundTemplates, IDictionary<string, string> outboundTemplates)
         {
             Preconditions.CheckNotNull(inboundTemplates, nameof(inboundTemplates));
             Preconditions.CheckNotNull(outboundTemplates, nameof(outboundTemplates));

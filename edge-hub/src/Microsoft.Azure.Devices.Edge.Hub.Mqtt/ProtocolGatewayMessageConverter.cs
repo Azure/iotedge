@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
@@ -15,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public ProtocolGatewayMessageConverter(MessageAddressConverter addressConvertor)
         {
-            this.addressConvertor = addressConvertor;
+            this.addressConvertor = Preconditions.CheckNotNull(addressConvertor, nameof(addressConvertor));
         }
 
         public Core.IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
@@ -57,21 +58,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             string lockToken;
             string createdTime;
-            DateTime createdTimeUtc = DateTime.MinValue;
+
             message.SystemProperties.TryGetValue(Core.SystemProperties.LockToken, out lockToken);
+
+            DateTime createdTimeUtc = DateTime.UtcNow;
             if (message.SystemProperties.TryGetValue(Core.SystemProperties.EnqueuedTime, out createdTime))
             {
                 createdTimeUtc = DateTime.Parse(createdTime);
             }
 
-            this.addressConvertor.TryDeriveAddress(message.SystemProperties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), out string address);
+            if (!message.SystemProperties.TryGetValue(Core.SystemProperties.OutboundURI, out string uriTemplateKey))
+            {
+                throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundURI + " in message system properties.");
+            }
+
+            if (!this.addressConvertor.TryDeriveAddress(uriTemplateKey, message.SystemProperties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), out string address))
+            {
+                throw new InvalidOperationException("Could not derive destination address using message system properties");
+            }
+
             IByteBuffer payload = message.Body.ToByteBuffer();
+
             var pgMessage = new ProtocolGatewayMessage(payload, address, new Dictionary<string, string>(), lockToken, createdTimeUtc, 0, 0);
             foreach (KeyValuePair<string, string> property in message.Properties)
             {
                 pgMessage.Properties.Add(property);
             }
-
             return pgMessage;
         }
     }

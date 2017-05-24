@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             };
 
             string edgeDeviceId = "edge";
-            var iotHub = new IoTHub();            
+            var iotHub = new IoTHub();
             (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
 
             TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 var deviceListener = new DeviceListener(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
-                deviceProxy.Setup(d => d.SendMessage(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase)))).Callback<IMessage, string>((m, e) => receivedMessages.Add(m)).ReturnsAsync(true);
+                deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase)))).Callback<IMessage, string>((m, e) => receivedMessages.Add(m)).ReturnsAsync(true);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
                 connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
                 return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
@@ -278,9 +278,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             public List<IMessage> ReceivedMessages { get; } = new List<IMessage>();
 
-            public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m => 
+            public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
-        }        
+        }
 
         static IMessage GetMessage()
         {
@@ -295,8 +295,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             {
                 { SystemProperties.MessageId, Guid.NewGuid().ToString() }
             };
-            return new Message(messageBody, properties, systemProperties);            
-        }        
+            return new Message(messageBody, properties, systemProperties);
+        }
 
         static IDeviceIdentity SetupDeviceIdentity(string deviceId) => Mock.Of<IDeviceIdentity>(
             m =>

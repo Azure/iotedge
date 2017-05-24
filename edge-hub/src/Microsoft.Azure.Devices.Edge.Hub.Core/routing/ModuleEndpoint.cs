@@ -75,7 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             foreach (IRoutingMessage routingMessage in routingMessages)
                             {
                                 IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                                bool res = await d.SendMessage(message, this.moduleEndpoint.EndpointAddress);
+
+                                bool res = await d.SendMessageAsync(message, this.moduleEndpoint.EndpointAddress);
+
                                 if (res)
                                 {
                                     succeeded.Add(routingMessage);
@@ -88,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         },
                         () =>
                         {
-                            // TODO - Check if this should be failed instead. 
+                            // TODO - Check if this should be failed instead.
                             sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException("No connection to IoTHub found"));
                             Events.NoDeviceProxy(this.moduleEndpoint);
                             return TaskEx.Done;
