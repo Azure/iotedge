@@ -118,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SendFeedbackMessageAsync(IFeedbackMessage message)
         {
+            Preconditions.CheckNotNull(message, nameof(message));
             message.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId);
             Events.SendFeedbackMessage(this);
             switch (message.FeedbackStatus)

@@ -47,11 +47,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return TaskEx.Done;
         }
 
-        public Task ProcessFeedbackMessageAsync(IFeedbackMessage feedbackMessage) => this.cloudProxy.SendFeedbackMessageAsync(feedbackMessage);
+        public Task ProcessFeedbackMessageAsync(IFeedbackMessage feedbackMessage)
+        {
+            Preconditions.CheckNotNull(feedbackMessage, nameof(feedbackMessage));
+            return this.cloudProxy.SendFeedbackMessageAsync(feedbackMessage);
+        }
 
         public Task<IMessage> GetTwinAsync() => this.cloudProxy.GetTwinAsync();
 
-        public Task ProcessMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        public Task ProcessMessageAsync(IMessage message)
+        {
+            Preconditions.CheckNotNull(message, nameof(message));
+            return this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        }
 
         public Task ProcessMessageBatchAsync(IEnumerable<IMessage> messages)
         {
