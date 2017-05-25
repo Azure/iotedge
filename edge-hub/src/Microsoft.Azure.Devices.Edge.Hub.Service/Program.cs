@@ -4,15 +4,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
-    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Edge.Util.Logging;
+    using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -46,6 +49,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             var builder = new ContainerBuilder();
             builder.RegisterModule(new LoggingModule());
+
+            builder.RegisterBuildCallback(
+                c =>
+                {
+                    // set up loggers for dotnetty
+                    var loggerFactory = c.Resolve<ILoggerFactory>();
+                    InternalLoggerFactory.DefaultFactory = loggerFactory;
+
+                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
+                    eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
+                });
+
             builder.RegisterModule(new MqttModule(certificate, topics, iothubHostname, edgeDeviceId));
             builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes));
             IContainer container = builder.Build();

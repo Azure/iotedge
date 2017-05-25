@@ -2,20 +2,15 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
-    using System.Diagnostics.Tracing;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
-    using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
-    using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
-    using Microsoft.Extensions.Logging;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttModule : Module
@@ -35,17 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterBuildCallback(
-                c =>
-                {
-                    // set up loggers for dotnetty
-                    var loggerFactory = c.Resolve<ILoggerFactory>();
-                    InternalLoggerFactory.DefaultFactory = loggerFactory;
-
-                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
-                    eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
-                });
-
             // MessageAddressConverter
             builder.Register(c => new MessageAddressConverter(this.conversionConfiguration))
                 .As<MessageAddressConverter>()
