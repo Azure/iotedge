@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         public Task OnDesiredPropertyUpdates(string desiredProperties)
         {
-            return Task.FromException(new NotImplementedException());
+            return this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
         }
 
     }

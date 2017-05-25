@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task<object> CallMethodAsync(string method, byte[] data);
 
+        Task OnDesiredPropertyUpdates(string desiredProperties);
+
         bool IsActive { get; }
 
         IIdentity Identity { get; }

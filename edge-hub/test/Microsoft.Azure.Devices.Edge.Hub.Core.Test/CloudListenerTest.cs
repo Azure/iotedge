@@ -8,10 +8,10 @@
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
+    [Unit]
     public class CloudListenerTest
     {
         [Fact]
-        [Unit]
         public async Task TestProcessMessage()
         {
             var deviceProxy = new Mock<IDeviceProxy>();
@@ -29,6 +29,22 @@
             await cloudListener.ProcessMessageAsync(message);
 
             Assert.NotNull(sentMessage);
+        }
+
+        [Fact]
+        public async Task OnDesiredPropertyUpdatesForwardsToDeviceProxy()
+        {
+            string actual = null;
+            var deviceProxy = new Mock<IDeviceProxy>();
+            deviceProxy.Setup(r => r.OnDesiredPropertyUpdates(It.IsAny<string>()))
+                .Callback<string>(s => actual = s)
+                .Returns(Task.FromResult(true));
+
+            string expected = "{\"abc\":\"xyz\"}";
+            var cloudListener = new CloudListener(deviceProxy.Object);
+            await cloudListener.OnDesiredPropertyUpdates(expected);
+
+            Assert.Equal(expected, actual);
         }
     }
 }

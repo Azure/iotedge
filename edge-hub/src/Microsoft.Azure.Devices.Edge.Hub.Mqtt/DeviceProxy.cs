@@ -80,6 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(new object());
         }
 
+        public Task OnDesiredPropertyUpdates(string desiredProperties)
+        {
+            return Task.FromException(new NotImplementedException());
+        }
+
         public bool IsActive => this.isActive.Get();
 
         static class Events
