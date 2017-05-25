@@ -491,7 +491,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
         public async Task TestDieToThrow()
         {
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5), true);
 
             using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
@@ -688,7 +688,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
             checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
-            var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
+            var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
             var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config);
