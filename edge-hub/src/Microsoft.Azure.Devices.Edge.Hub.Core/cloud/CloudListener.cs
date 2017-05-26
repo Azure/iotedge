@@ -14,20 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         {
             this.deviceProxy = deviceProxy;
         }
-        public Task<object> CallMethodAsync(string methodName, byte[] data)
-        {
-            return this.deviceProxy.CallMethodAsync(methodName, data);
-        }
 
-        public Task ProcessMessageAsync(IMessage message)
-        {
-            return this.deviceProxy.SendMessageAsync(message);
-        }
+        public Task<object> CallMethodAsync(string methodName, byte[] data) => this.deviceProxy.CallMethodAsync(methodName, data);
 
-        public Task OnDesiredPropertyUpdates(string desiredProperties)
-        {
-            return this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
-        }
+        public Task OnDesiredPropertyUpdates(string desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
 
+        public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendMessageAsync(message);
     }
 }

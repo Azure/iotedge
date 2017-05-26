@@ -1,11 +1,11 @@
 ﻿namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Moq;
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Unit]
@@ -45,6 +45,18 @@
             await cloudListener.OnDesiredPropertyUpdates(expected);
 
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public async Task CallMethodAsync_InvokesDeviceProxy()
+        {
+            var deviceProxy = Mock.Of<IDeviceProxy>();
+            string testMethod = "testMethod";
+            var testByteArray = new byte[] { 0x00, 0x01, 0x02 };
+
+            var cloudListener = new CloudListener(deviceProxy);
+            await cloudListener.CallMethodAsync(testMethod, testByteArray);
+            Mock.Get(deviceProxy).Verify(dp => dp.CallMethodAsync(testMethod, testByteArray), Times.Once);
         }
     }
 }
