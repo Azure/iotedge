@@ -38,6 +38,13 @@
       <Visitor>False</Visitor>
       <Listener>True</Listener>
     </Antlr4>
+    <Antlr4 Include="grammar\GrammarLexer.g4">
+      <Generator>MSBuild:Compile</Generator>
+      <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core</CustomToolNamespace>
+      <TargetLanguage>CSharp</TargetLanguage>
+      <Visitor>False</Visitor>
+      <Listener>True</Listener>
+    </Antlr4>
     <Antlr4 Include="query\jsonpath\JsonPath.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core.Query.JsonPath</CustomToolNamespace>

@@ -1,4 +1,4 @@
-lexer grammar RouteLexer;
+lexer grammar GrammarLexer;
 
 SELECT :  S E L E C T;
 

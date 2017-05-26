@@ -1,5 +1,5 @@
 grammar Condition;
-import RouteLexer;
+import GrammarLexer;
 
 /*
  * Parser Rules
