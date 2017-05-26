@@ -22,12 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IModule : IEquatable<IModule>
     {
+        [JsonProperty(PropertyName = "name")]
         string Name { get; }
 
+        [JsonProperty(PropertyName = "version")]
         string Version { get; }
 
+        [JsonProperty(PropertyName = "type")]
         string Type { get; }
 
+        [JsonProperty(PropertyName = "status")]
         ModuleStatus Status { get; }
     }
 

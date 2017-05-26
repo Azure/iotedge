@@ -19,10 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class PortBinding : IEquatable<PortBinding>
     {
+        [JsonProperty(PropertyName = "from")]
         public string From { get; }
 
+        [JsonProperty(PropertyName = "to")]
         public string To { get; }
 
+        [JsonProperty(PropertyName = "type")]
         public PortBindingType Type { get; }
 
         public PortBinding(string to, string from)

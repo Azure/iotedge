@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestConfig : IEquatable<TestConfig>
     {
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
 
         public TestConfig(string image)
@@ -38,19 +38,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModule : IModule<TestConfig>
     {
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "name")]
         public string Name { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "version")]
         public string Version { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public string Type { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "status")]
         public ModuleStatus Status { get; }
 
-        [JsonProperty(Required = Required.Always)]
+        [JsonProperty(Required = Required.Always, PropertyName = "config")]
         public TestConfig Config { get; }
 
         [JsonConstructor]

@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -13,8 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [ExcludeFromCodeCoverage]
     public class DockerModuleTest
     {
-        static readonly DockerConfig Config1 = new DockerConfig("image1");
-        static readonly DockerConfig Config2 = new DockerConfig("image2");
+        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
+        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
 
         static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
         static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
         static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, Config1);
 
-        const string SerializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
+        const string SerializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\",\"tag\":\"42\",\"portbindings\":{\"43/udp\":{\"from\":\"43\",\"to\":\"43\",\"type\":\"udp\"},\"42/tcp\":{\"from\":\"42\",\"to\":\"42\",\"type\":\"tcp\"}}}}";
 
         [Fact]
         [Unit]
@@ -72,9 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestDeserialize()
         {
-            string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
-            string validJsonAllLower = "{\"name\":\"<module_name>\",\"version\":\"<semantic_version_number>\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
-            string validJsonAllCap = "{\"NAME\":\"<module_name>\",\"VERSION\":\"<semantic_version_number>\",\"TYPE\":\"docker\",\"STATUS\":\"RUNNING\",\"CONFIG\":{\"IMAGE\":\"image1\"}}";
+            string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\", \"tag\":\"42\",\"portbindings\": {\"43/udp\": {\"from\": \"43\",\"to\": \"43\",\"type\":\"udp\"}, \"42/tcp\": {\"from\": \"42\",\"to\": \"42\",\"type\":\"tcp\"}}}}";
+            string validJsonAllLower = "{\"name\":\"<module_name>\",\"version\":\"<semantic_version_number>\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\",\"tag\":\"42\", \"portbindings\": {\"43/udp\": {\"from\": \"43\",\"to\": \"43\",\"type\":\"udp\"}, \"42/tcp\": {\"from\": \"42\",\"to\": \"42\",\"type\":\"tcp\"}}}}";
+            string validJsonAllCap = "{\"NAME\":\"<module_name>\",\"VERSION\":\"<semantic_version_number>\",\"TYPE\":\"docker\",\"STATUS\":\"RUNNING\",\"CONFIG\":{\"IMAGE\":\"image1\", \"TAG\":\"42\",\"PORTBINDINGS\": {\"43/udp\": {\"FROM\": \"43\",\"TO\": \"43\",\"TYPE\":\"udp\"}, \"42/tcp\": {\"FROM\": \"42\",\"TO\": \"42\",\"TYPE\":\"tcp\"}}}}";
 
             string noNameson = "{\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string noVersionJson = "{\"Name\":\"<module_name>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
@@ -82,8 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string noStatusJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
             string noConfigJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\"}";
             string noConfigImageJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{}}";
-            string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
+            string noConfigTagJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{}}";
+            string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\", \"TAG\":\"42\"}}";
+            string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\", \"TAG\":\"42\"}}";
 
 
             ModuleSerde myModuleSerde = ModuleSerde.Instance;
@@ -105,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<DockerModule>(noTypeJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<DockerModule>(noConfigJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<DockerModule>(noConfigImageJson));
+            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<DockerModule>(noConfigTagJson));
         }
 
         [Fact]
@@ -114,11 +117,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             ModuleSerde myModuleSerde = ModuleSerde.Instance;
             string jsonFromDockerModule = myModuleSerde.Serialize(Module8);
             IModule myModule = myModuleSerde.Deserialize<DockerModule>(jsonFromDockerModule);
+            IModule moduleFromSerializedModule = myModuleSerde.Deserialize<DockerModule>(SerializedModule);
 
-            string jsonFromIModule = myModuleSerde.Serialize(Module1);
             Assert.True(Module8.Equals(myModule));
-            Assert.Equal(SerializedModule, jsonFromDockerModule);
-            Assert.Equal(SerializedModule, jsonFromIModule);
+            Assert.True(moduleFromSerializedModule.Equals(Module8));
+            Assert.True(moduleFromSerializedModule.Equals(Module1));
         }
     }
 }

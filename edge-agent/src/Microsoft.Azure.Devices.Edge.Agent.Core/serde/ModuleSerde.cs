@@ -14,9 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
         {
         }
 
-        readonly JsonSerializerSettings jsonSerializerSetting = new JsonSerializerSettings{ContractResolver = new CamelCasePropertyNamesContractResolver()};
-
-        public string Serialize(IModule module) => JsonConvert.SerializeObject(module, this.jsonSerializerSetting);
+        public string Serialize(IModule module) => JsonConvert.SerializeObject(module);
 
         public IModule Deserialize(string json) => this.Deserialize<IModule>(json);
 

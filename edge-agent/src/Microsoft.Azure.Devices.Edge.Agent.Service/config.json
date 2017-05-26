@@ -1,15 +1,32 @@
 ﻿{
-    "modules": {
-        "mongo-server": {
-            "name": "mongo-server",
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "config": {
-                "image": "mongo",
-                "tag": "3.4.4",
-                "portBindings": []
-            }
+  "modules": {
+    "mongo-server": {
+      "name": "mongo-server",
+      "version": "1.0",
+      "type": "docker",
+      "status": "running",
+      "config": {
+        "image": "mongo",
+        "tag": "3.4.4",
+        "portBindings": {}
+      }
+    },
+    "nginx-server": {
+      "name": "nginx-server",
+      "version": "1.3",
+      "type": "docker",
+      "status": "running",
+      "config": {
+        "image": "nginx",
+        "tag": "latest",
+        "portbindings": {
+          "80/tcp": {
+            "from": "80",
+            "to": "8080",
+            "type": "tcp"
+          }
         }
+      }
     }
+  }
 }

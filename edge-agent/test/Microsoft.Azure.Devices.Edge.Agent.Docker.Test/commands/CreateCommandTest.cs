@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
@@ -48,6 +49,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
                     Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                }
+            }
+            finally
+            {
+                await Client.CleanupContainerAsync(Name, Image);
+            }
+        }
+
+        [Fact]
+        [Integration]
+        public async Task TestUdpModuleConfig()
+        {
+            const string Image = "hello-world";
+            const string Tag = "latest";
+            const string Name = "test-helloworld";
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                {
+                    await Client.CleanupContainerAsync(Name, Image);
+
+                    // ensure image has been pulled
+                    await Client.PullImageAsync(Image, Tag, cts.Token);
+
+                    var config = new DockerConfig(Image, Tag, new List<Docker.PortBinding> { new Docker.PortBinding("42", "42", PortBindingType.Udp)});
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+                    var command = new CreateCommand(Client, module);
+
+                    // run the command
+                    await command.ExecuteAsync(cts.Token);
+
+                    // verify container is created
+                    ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
+                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                    Assert.Equal(1, container.HostConfig.PortBindings.Count);
                 }
             }
             finally

@@ -49,8 +49,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string[] imageParts = (response.Image ?? "unknown").Split(':');
             string image = imageParts[0];
             string tag = imageParts.Length > 1 ? imageParts[1] : "latest";
-            var config = new DockerConfig(image, tag);
+            IEnumerable<PortBinding> portBindings = response.Ports.Select(p => ToPortBinding(p));
+            
+            var config = new DockerConfig(image, tag, portBindings);
             return new DockerModule(name, version, status, config);
+        }
+
+        static PortBinding ToPortBinding(Port port)
+        {
+            PortBindingType type;
+            switch (port.Type.ToLowerInvariant())
+            {
+                case "tcp":
+                    type = PortBindingType.Tcp;
+                    break;
+                case "udp":
+                    type = PortBindingType.Udp;
+                    break;
+                default:
+                    type = PortBindingType.Tcp;
+                    break;
+            }
+            return new PortBinding(port.PublicPort.ToString(), port.PrivatePort.ToString(), type);
         }
 
         static ModuleStatus ToStatus(string state)

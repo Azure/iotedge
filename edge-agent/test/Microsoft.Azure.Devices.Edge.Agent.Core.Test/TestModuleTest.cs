@@ -133,11 +133,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleSerde myModuleSerde = ModuleSerde.Instance;
             string jsonFromTestModule = myModuleSerde.Serialize(Module8);
             var myModule = myModuleSerde.Deserialize<TestModule>(jsonFromTestModule);
+            IModule moduleFromSerializedModule = myModuleSerde.Deserialize<TestModule>(serializedModule);
 
-            string jsonFromIModule = myModuleSerde.Serialize(Module1);
+
             Assert.True(Module8.Equals(myModule));
-            Assert.Equal(serializedModule, jsonFromTestModule);
-            Assert.Equal(serializedModule, jsonFromIModule);
+            Assert.True(moduleFromSerializedModule.Equals(Module8));
+            Assert.True(moduleFromSerializedModule.Equals(Module1));
         }
     }
 }
