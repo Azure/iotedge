@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
+namespace Microsoft.Azure.Devices.Routing.Core
 {
-    using Microsoft.Azure.Devices.Routing.Core;
-
     public class NullRoutingUserMetricLogger : IRoutingUserMetricLogger
     {
+        public static NullRoutingUserMetricLogger Instance { get; } = new NullRoutingUserMetricLogger();
+
         public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource)
         {
         }

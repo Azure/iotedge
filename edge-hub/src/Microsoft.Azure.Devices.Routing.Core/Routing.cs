@@ -4,7 +4,6 @@
 
 namespace Microsoft.Azure.Devices.Routing.Core
 {
-    using System;
     using Microsoft.Extensions.Logging;
 
     public static class Routing
@@ -45,19 +44,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public static IRoutingPerfCounter PerfCounter
         {
-            get => perfCounter ?? throw new InvalidOperationException("PerfCounter is not initialized.");
+            get => perfCounter ?? NullRoutingPerfCounter.Instance;
             set => perfCounter = value;
         }
 
         public static IRoutingUserMetricLogger UserMetricLogger
         {
-            get => userMetricLogger ?? throw new InvalidOperationException("UserMetricLogger is not initialized.");
+            get => userMetricLogger ?? NullRoutingUserMetricLogger.Instance;
             set => userMetricLogger = value;
         }
 
         public static IRoutingUserAnalyticsLogger UserAnalyticsLogger
         {
-            get => userAnalyticsLogger ?? throw new InvalidOperationException("UserAnalyticsLogger is not initialized.");
+            get => userAnalyticsLogger ?? NullUserAnalyticsLogger.Instance;
             set => userAnalyticsLogger = value;
         }
     }

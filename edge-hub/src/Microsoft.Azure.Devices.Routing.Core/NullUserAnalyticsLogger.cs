@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
+namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
-    using Microsoft.Azure.Devices.Routing.Core;
+
     public class NullUserAnalyticsLogger : IRoutingUserAnalyticsLogger
     {
+        public static NullUserAnalyticsLogger Instance { get; } = new NullUserAnalyticsLogger();
+
         public void LogOrphanedMessage(string iotHubName, IMessage message)
         {            
         }
