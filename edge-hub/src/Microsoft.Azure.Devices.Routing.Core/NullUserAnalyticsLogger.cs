@@ -7,6 +7,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
     {
         public static NullUserAnalyticsLogger Instance { get; } = new NullUserAnalyticsLogger();
 
+        NullUserAnalyticsLogger()
+        {
+        }
+
         public void LogOrphanedMessage(string iotHubName, IMessage message)
         {            
         }

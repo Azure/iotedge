@@ -5,6 +5,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
     {
         public static NullRoutingPerfCounter Instance { get; } = new NullRoutingPerfCounter();
 
+        NullRoutingPerfCounter()
+        {
+        }
+
         public bool LogEventProcessingLatency(string iotHubName, string endpointName, string endpointType, string status, long latencyInMs, out string errorString)
         {
             errorString = string.Empty;

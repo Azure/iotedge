@@ -180,9 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             string iotHubName = "testHub";
 
-            Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
-            Routing.PerfCounter = new NullRoutingPerfCounter();
-            Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
+            Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
+            Routing.PerfCounter = NullRoutingPerfCounter.Instance;
+            Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
 
             RetryStrategy defaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
             TimeSpan defaultRevivePeriod = TimeSpan.FromHours(1);

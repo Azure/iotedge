@@ -5,6 +5,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
     {
         public static NullRoutingUserMetricLogger Instance { get; } = new NullRoutingUserMetricLogger();
 
+        NullRoutingUserMetricLogger()
+        {
+        }
+
         public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource)
         {
         }

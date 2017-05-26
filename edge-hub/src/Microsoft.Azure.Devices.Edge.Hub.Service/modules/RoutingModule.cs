@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    Routing.PerfCounter = new NullRoutingPerfCounter();
+                    Routing.PerfCounter = NullRoutingPerfCounter.Instance;
                     return Routing.PerfCounter;
                 })
                 .As<IRoutingPerfCounter>()
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    Routing.UserAnalyticsLogger = new NullUserAnalyticsLogger();
+                    Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
                     return Routing.UserAnalyticsLogger;
                 })
                 .As<IRoutingUserAnalyticsLogger>()
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    Routing.UserMetricLogger = new NullRoutingUserMetricLogger();
+                    Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
                     return Routing.UserMetricLogger;
                 })
                 .As<IRoutingUserMetricLogger>()
