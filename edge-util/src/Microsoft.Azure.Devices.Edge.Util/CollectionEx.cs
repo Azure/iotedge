@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     public static class CollectionEx
     {
@@ -45,5 +46,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
             return Option.None<T>();
         }
+
+        /// <summary>
+        /// Produces a string representation of an <see cref="IDictionary{TKey,TValue}"/> in the form
+        /// <c>(key1, value1), (key2, value2)...</c>. The idea is to use this representation when you
+        /// wish to log a dictionary object into a stream.
+        /// </summary>
+        public static string ToLogString<TKey, TValue>(this IDictionary<TKey, TValue> dictionary) =>
+            string.Join(", ", dictionary.Select(kvp => $"({kvp.Key}, {kvp.Value})"));
     }
 }

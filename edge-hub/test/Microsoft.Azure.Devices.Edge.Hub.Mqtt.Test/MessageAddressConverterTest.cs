@@ -2,7 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     [Unit]
@@ -23,6 +25,13 @@
             Assert.Throws(typeof(ArgumentException), () => new MessageAddressConverter(emptyConversionConfig));
         }
 
+        static Mock<IMessage> CreateMessageWithSystemProps(IDictionary<string, string> props)
+        {
+            var message = new Mock<IMessage>();
+            message.SetupGet(msg => msg.SystemProperties).Returns(props);
+            return message;
+        }
+
         [Fact]
         public void TryDeriveAddressWorksWithOneTemplate()
         {
@@ -35,18 +44,19 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["b"] = "123"
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
             Assert.Equal<string>("a/123/c", address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -63,18 +73,19 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["e"] = "123"
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test2", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test2", message.Object, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
             Assert.Equal<string>("d/123/f", address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -89,20 +100,21 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["b"] = "123",
                 ["d"] = "456",
                 ["f"] = "789"
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
             Assert.Equal<string>("a/123/c/456/e/789/", address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -117,13 +129,13 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["b"] = "123"
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("BadTest", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("BadTest", message.Object, out address);
 
             Assert.False(result);
             Assert.Null(address);
@@ -141,13 +153,14 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>();
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>());
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
 
             Assert.False(result);
             Assert.Null(address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -162,16 +175,17 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["a"] = "123"
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
 
             Assert.False(result);
             Assert.Null(address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -186,17 +200,18 @@
                 DontCareInput,
                 testTemplate
             );
-            var properties = new Dictionary<string, string>()
+            Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>()
             {
                 ["b"] = "123",
                 ["f"] = "789",
-            };
+            });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryDeriveAddress("Test", properties, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
 
             Assert.False(result);
             Assert.Null(address);
+            message.VerifyAll();
         }
 
         [Fact]
@@ -211,7 +226,7 @@
 
             string address = "a/bee/c/dee/";
             var message = new ProtocolGatewayMessage(Payload, address);
-            bool status = converter.TryParseAddressIntoMessageProperties(address, message);
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             string value;
             Assert.True(message.Properties.TryGetValue("b", out value));
@@ -232,14 +247,14 @@
 
             string address = "a/bee/c/dee/";
             var message = new ProtocolGatewayMessage(Payload, address);
-            bool status = converter.TryParseAddressIntoMessageProperties(address, message);
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             string value;
             Assert.True(message.Properties.TryGetValue("b", out value));
             Assert.Equal<string>("bee", value);
             Assert.True(message.Properties.TryGetValue("d", out value));
             Assert.Equal<string>("dee", value);
-            Assert.Equal<int>(2, message.Properties.Count);
+            Assert.Equal(2, message.Properties.Count);
         }
 
         [Fact]
@@ -254,9 +269,9 @@
 
             string address = "a/bee/c/";
             var message = new ProtocolGatewayMessage(Payload, address);
-            bool status = converter.TryParseAddressIntoMessageProperties(address, message);
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.False(status);
-            Assert.Equal<int>(0, message.Properties.Count);
+            Assert.Equal(0, message.Properties.Count);
         }
 
         [Fact]
@@ -271,9 +286,9 @@
 
             string address = "a/bee/c/";
             var message = new ProtocolGatewayMessage(Payload, address);
-            bool status = converter.TryParseAddressIntoMessageProperties(address, message);
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.False(status);
-            Assert.Equal<int>(0, message.Properties.Count);
+            Assert.Equal(0, message.Properties.Count);
         }
     }
 }

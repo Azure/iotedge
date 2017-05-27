@@ -8,10 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class CollectionExTest
     {
         [Fact]
-        [Unit]
         public void TestGetOrElse()
         {
             var dict = new Dictionary<int, string>
@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        [Unit]
         public void TestHeadOption()
         {
             IEnumerable<int> list1 = new[] { 1, 2, 3 };
@@ -41,12 +40,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        [Unit]
         public void TestGet()
         {
             var dict = new Dictionary<string, string> { { "key", "value" } };
             Assert.Equal(Option.Some("value"), dict.Get("key"));
             Assert.Equal(Option.None<string>(), dict.Get("not-there"));
+        }
+
+        [Fact]
+        public void TestToLogString()
+        {
+            var dictionary = new Dictionary<string, string>()
+            {
+                { "k1", "v1" },
+                { "k2", "v2" }
+            };
+
+            string str = dictionary.ToLogString();
+            Assert.Equal("(k1, v1), (k2, v2)", str);
         }
     }
 }

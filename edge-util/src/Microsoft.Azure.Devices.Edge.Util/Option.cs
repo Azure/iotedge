@@ -74,14 +74,29 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return false;
         }
 
+        /// <summary>
+        /// Evaluates to true if and only if the option has a value and <paramref name="predicate"/>
+        /// returns <c>true</c>.
+        /// </summary>
         public bool Exists(Func<T, bool> predicate) => this.HasValue && predicate(this.Value);
 
+        /// <summary>
+        /// If this option has a value then returns that. If there is no value then returns
+        /// <paramref name="alternative"/>.
+        /// </summary>
+        /// <param name="alternative"></param>
+        /// <returns></returns>
         public T GetOrElse(T alternative) => this.HasValue ? this.Value : alternative;
 
         public Option<T> Else(Option<T> alternativeOption) => this.HasValue ? this : alternativeOption;
 
         public T OrDefault() => this.HasValue ? this.Value : default(T);
 
+        /// <summary>
+        /// If the option has a value then it invokes <paramref name="some"/>. If there is no value
+        /// then it invokes <paramref name="none"/>.
+        /// </summary>
+        /// <returns>The value returned by either <paramref name="some"/> or <paramref name="none"/>.</returns>
         public TResult Match<TResult>(Func<T, TResult> some, Func<TResult> none) => this.HasValue ? some(this.Value) : none();
 
         /// <summary>
@@ -97,6 +112,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        /// <summary>
+        /// If this option has a value then it transforms it into a new option instance by
+        /// calling the <paramref name="mapping"/> callback. Returns <see cref="Option.None{T}"/>
+        /// if there is no value.
+        /// </summary>
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
         {
             return this.Match(
@@ -112,11 +132,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         /// <summary>
         /// This method returns <c>this</c> if <paramref name="predicate"/> returns <c>true</c> and
-        /// <c>Option.None&lt;T&gt;()</c> if it returns <c>false</c>.
+        /// <c>Option.None&lt;T&gt;()</c> if it returns <c>false</c>. If the <c>Option&lt;T&gt;</c>
+        /// does not have a value then it returns <c>this</c> instance as is.
         /// </summary>
         /// <param name="predicate">The callback function defining the filter condition.</param>
         /// <returns><c>this</c> if <paramref name="predicate"/> returns <c>true</c> and
-        /// <c>Option.None&lt;T&gt;()</c> if it returns <c>false</c></returns>
+        /// <c>Option.None&lt;T&gt;()</c> if it returns <c>false</c>. If the option has no
+        /// value then it returns <c>this</c> instance as is.</returns>
         /// <remarks>
         /// Think of this like a standard C# "if" statement. For e.g., the following code:
         /// 

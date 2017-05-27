@@ -79,11 +79,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
+
+            // Open a connection to Azure IoT Hub for this device/module.
             Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity);
             if (cloudProxy.Success)
             {
+                // Update the cloud proxy stored in this.devices with this new cloud proxy
+                // instance.
                 ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
                 Option<ICloudProxy> currentCloudProxy = device.UpdateCloudProxy(cloudProxy.Value);
+
+                // If the existing cloud proxy had an active connection then close it since we
+                // now have a new connected cloud proxy.
                 await currentCloudProxy.Filter(cp => cp.IsActive)
                     .Map(cp => cp.CloseAsync())
                     .GetOrElse(Task.FromResult(true));
@@ -94,8 +101,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity)
         {
+            // Get an existing ConnectedDevice from this.devices or add a new non-connected
+            // instance to this.devices and return that.
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
+            // Read this code as: if the cloud proxy instance has a value and it is connected
+            // already (evidenced by the fact that its 'IsActive' property is 'true') then return
+            // that instance as is. Otherwise, open a new connection.
             return device.CloudProxy.Filter(cp => cp.IsActive)
                 .Match(cp => Task.FromResult(Try.Success(cp)),
                     () =>
@@ -144,8 +156,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)
         {
             string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
-            ConnectedDevice device = this.devices.GetOrAdd(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), new ConnectedDevice(identity));
-            return device;
+            return this.devices.GetOrAdd(
+                Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)),
+                id => new ConnectedDevice(identity));
         }
 
         class ConnectedDevice

@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Core.IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
             // TODO: should reject messages which are not matched ( PassThroughUnmatchedMessages)
-            this.addressConvertor.TryParseAddressIntoMessageProperties(sourceMessage.Address, sourceMessage);
+            this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage);
 
             byte[] payloadBytes = sourceMessage.Payload.ToByteArray();
 
@@ -72,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundURI + " in message system properties.");
             }
 
-            if (!this.addressConvertor.TryDeriveAddress(uriTemplateKey, message.SystemProperties.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), out string address))
+            if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, out string address))
             {
                 throw new InvalidOperationException("Could not derive destination address using message system properties");
             }
