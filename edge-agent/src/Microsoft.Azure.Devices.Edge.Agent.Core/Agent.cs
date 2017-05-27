@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     public class Agent
     {
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
             this.sync = new AsyncLock();
+            Events.AgentCreated();
         }
 
         public static async Task<Agent> CreateAsync(IConfigSource config, IEnvironment environment, IPlanner planner)
@@ -36,7 +38,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             if (!plan.IsEmpty)
             {
-                await plan.ExecuteAsync(token);
+                try
+                {
+                    await plan.ExecuteAsync(token);
+                }
+                catch (Exception ex)
+                {
+                    Events.PlanExecutionFailed(ex);
+                    throw;
+                }
             }
         }
 
@@ -48,9 +58,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 ModuleSet updated = snapshot.ApplyDiff(diff);
                 if (!this.desired.CompareAndSet(snapshot, updated))
                 {
+                    Events.UpdateDesiredStateFailed();
                     throw new InvalidOperationException("Invalid update desired moduleset operation.");
                 }
             }
         }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+            const int IdStart = AgentEventIds.Agent;
+
+            enum EventIds
+            {
+                AgentCreated = IdStart,
+                UpdateDesiredStateFailed,
+                PlanExecutionFailed
+            }
+
+            public static void AgentCreated()
+            {
+                Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
+            }
+
+            public static void UpdateDesiredStateFailed()
+            {
+                Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
+            }
+
+            public static void PlanExecutionFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
+            }
+        }
+
     }
 }

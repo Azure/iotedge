@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// This is a simple deployment strategy. All of the current modules are stopped,
@@ -50,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Concat(pull)
                 .Concat(update)
                 .Concat(start).ToList();
+
+            Events.PlanCreated(commands);
             return new Plan(commands);
         }
 
@@ -57,5 +60,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             current.TryGetModule(desiredMod.Name, out IModule currentMod)
                 ? this.commandFactory.Update(currentMod, desiredMod)
                 : this.commandFactory.Create(desiredMod);
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RestartPlanner>();
+            const int IdStart = AgentEventIds.RestartPlanner;
+
+            enum EventIds
+            {
+                PlanCreated = IdStart,
+            }
+
+            public static void PlanCreated(IList<ICommand> commands)
+            {
+                Log.LogDebug((int)EventIds.PlanCreated, $"RestartPlanner created Plan, with {commands.Count} commands.");
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class Plan
     {
@@ -23,11 +24,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ExecuteAsync(CancellationToken token)
         {
+            Events.PlanExecStarted();
             foreach (ICommand command in this.commands)
             {
                 // TODO add rollback on failure?
                 await command.ExecuteAsync(token);
             }
+            Events.PlanExecEnded();
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Plan>();
+            const int IdStart = AgentEventIds.Plan;
+
+            enum EventIds
+            {
+                PlanExecStarted = IdStart,
+                PlanExecEnded
+            }
+
+            public static void PlanExecStarted()
+            {
+                Log.LogInformation((int)EventIds.PlanExecStarted, "Plan execution started");
+            }
+
+            public static void PlanExecEnded()
+            {
+                Log.LogInformation((int)EventIds.PlanExecEnded, "Plan execution ended");
+            }
         }
     }
+
+
+
 }

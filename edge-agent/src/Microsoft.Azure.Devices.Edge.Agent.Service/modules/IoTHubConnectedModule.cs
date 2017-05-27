@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     /// <summary>
     /// Autofac module for iothubConnected mode.
     /// There are no external dependencies required, except Docker
-    /// and a config file to define the desired modules.
+    /// and a connection string to connect to the twin.
     /// </summary>
     public class IotHubConnectedModule : Module
     {

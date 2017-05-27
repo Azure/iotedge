@@ -73,8 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         IConfigSource config = await TwinConfigSource.Create(
                             c.Resolve<IDeviceClient>(),
                             c.Resolve<ISerde<ModuleSet>>(),
-                            c.Resolve<ISerde<Diff>>(),
-                            c.Resolve<ILoggerFactory>()
+                            c.Resolve<ISerde<Diff>>()
                         );
                         return config;
                     })

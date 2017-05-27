@@ -18,8 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
         readonly IDeviceClient deviceClient;
 
-        readonly ILogger logger;
-
         Task OnDesiredPropertyChanged(TwinCollection desiredProperties, object userContext)
         {
             try
@@ -30,20 +28,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.logger.LogError(0, ex, $"Error getting twin desired property.");
+                Events.DesiredPropertiesFailed(ex);
                 this.OnFailed(ex);
                 return Task.FromException(ex);
             }
             
         }
 
-        TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, ILoggerFactory loggingFactory)
+        TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde)
         {
-            this.logger = Preconditions.CheckNotNull(loggingFactory, nameof(loggingFactory))
-                .CreateLogger<TwinConfigSource>();
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.ModuleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
             this.DiffSerde = Preconditions.CheckNotNull(diffSerde, nameof(diffSerde));
+            Events.Created();
         }
 
         public void Dispose()
@@ -61,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.logger.LogError(0, ex, $"Error getting MMA twin configuration.");
                 this.OnFailed(ex);
                 throw;
             }
@@ -81,11 +77,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             this.Failed?.Invoke(this, ex);
         }
 
-        public static async Task<TwinConfigSource> Create(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, ILoggerFactory loggingFactory)
+        public static async Task<TwinConfigSource> Create(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde)
         {
-            var configSource = new TwinConfigSource(deviceClient, moduleSetSerde, diffSerde, loggingFactory);
+            var configSource = new TwinConfigSource(deviceClient, moduleSetSerde, diffSerde);
             await configSource.deviceClient.SetDesiredPropertyUpdateCallback(configSource.OnDesiredPropertyChanged, null);
             return configSource;
         }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
+            const int IdStart = AgentEventIds.TwinConfigSource;
+
+            enum EventIds
+            {
+                Created = IdStart,
+                DesiredPropertiesFailed,
+                GetConfigurationFailed
+            }
+
+            public static void Created()
+            {
+                Log.LogDebug((int)EventIds.Created, "TwinConfigSource Created");
+            }
+
+            public static void DesiredPropertiesFailed(Exception exception)
+            {
+                Log.LogError((int)EventIds.DesiredPropertiesFailed, exception, "TwinConfigSource failed processing desired configuration ");
+            }
+
+        }
+
     }
 }

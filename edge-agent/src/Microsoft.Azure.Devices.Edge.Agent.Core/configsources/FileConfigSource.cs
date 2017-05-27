@@ -24,12 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly IDisposable watcherSubscription;
         readonly AtomicReference<ModuleSet> current;
         readonly AsyncLock sync;
-        readonly ILogger logger;
 
-        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde, ILoggerFactory loggingFactory)
+        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde)
         {
-            this.logger = Preconditions.CheckNotNull(loggingFactory, nameof(loggingFactory))
-                .CreateLogger<FileConfigSource>();
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
             this.current = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
             this.moduleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
@@ -43,9 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
                 .Throttle(TimeSpan.FromMilliseconds(FileChangeWatcherDebounceInterval))
                 .Subscribe(this.WatcherOnChanged);
             this.watcher.EnableRaisingEvents = true;
+            Events.Created(this.configFilePath);
         }
 
-        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde, ILoggerFactory loggingFactory)
+        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde)
         {
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
             Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
@@ -64,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, moduleSetSerde, loggingFactory);
+            return new FileConfigSource(watcher, initial, moduleSetSerde);
         }
 
         void AssignCurrentModuleSet(ModuleSet updated)
@@ -97,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                this.logger.LogError(0, ex, $"Error reading new configuration file, {this.configFilePath}");
+                Events.NewConfigurationFailed(ex, this.configFilePath);
                 this.OnFailed(ex);
             }
         }
@@ -134,6 +132,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         {
             this.watcherSubscription.Dispose();
             this.watcher.Dispose();
+        }
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<FileConfigSource>();
+            const int IdStart = AgentEventIds.FileConfigSource;
+
+            enum EventIds
+            {
+                Created = IdStart,
+                NewConfigurationFailed
+            }
+
+            public static void Created(string filename)
+            {
+                Log.LogDebug((int)EventIds.Created, $"FileConfigSource created with filename {filename}");
+            }
+
+            public static void NewConfigurationFailed(Exception exception, string filename)
+            {
+                Log.LogError((int)EventIds.NewConfigurationFailed, exception, $"FileConfigSource failed reading new configuration file, {filename}");
+            }
+        
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             File.WriteAllText(this.tempFileName, validJson1);
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory))
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde))
             {
                 Assert.NotNull(configSource);
                 ModuleSet configSourceSet = await configSource.GetConfigAsync();
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             File.WriteAllText(this.tempFileName, validJson1);
             Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory))
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde))
             {
                 Assert.NotNull(configSource);
 
@@ -124,13 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             File.Delete(this.tempFileName);
 
-            await Assert.ThrowsAsync<ArgumentNullException>( () => FileConfigSource.Create(null, this.moduleSetSerde, this.loggerFactory));
-            await Assert.ThrowsAsync<FileNotFoundException>( () => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory));
+            await Assert.ThrowsAsync<ArgumentNullException>( () => FileConfigSource.Create(null, this.moduleSetSerde));
+            await Assert.ThrowsAsync<FileNotFoundException>( () => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde));
 
             File.WriteAllText(this.tempFileName, validJson1);
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, null));
-            await Assert.ThrowsAsync<ArgumentNullException>( () => FileConfigSource.Create(this.tempFileName, null, this.loggerFactory));
+            await Assert.ThrowsAsync<ArgumentNullException>( () => FileConfigSource.Create(this.tempFileName, null));
         }
 
         [Fact]
@@ -139,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             File.WriteAllText(this.tempFileName, InvalidJson1);
 
-            await Assert.ThrowsAnyAsync<JsonException>( () => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory));
+            await Assert.ThrowsAnyAsync<JsonException>( () => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde));
         }
 
         [Fact]
@@ -149,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             // Set up initial config file and create `FileConfigSource`
             File.WriteAllText(this.tempFileName, validJson1);
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory))
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde))
             {
                 Assert.NotNull(configSource);
 
@@ -179,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 Assert.True(eventFailedCalled);
 
                 // Assert that a read from invalid JSON will fail.
-                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory));
+                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde));
 
             }
         }
@@ -190,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             File.WriteAllText(this.tempFileName, validJson1);
 
-            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory))
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde))
             {
                 Assert.NotNull(configSource);
 
@@ -206,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 File.WriteAllText(this.tempFileName, InvalidJson1);
 
                 watcher.WaitForChanged(WatcherChangeTypes.Changed, 1000);
-                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.loggerFactory));
+                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde));
 
                 File.WriteAllText(this.tempFileName, validJson1);
 

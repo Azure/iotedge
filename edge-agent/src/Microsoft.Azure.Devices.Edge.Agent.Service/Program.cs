@@ -66,6 +66,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         await agent.ApplyDiffAsync(diff, CancellationToken.None);
                     };
 
+                    configSource.Failed += (sender, ex) =>
+                    {
+                        logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
+                    };
+
                     for (int i = 0; i < 1000; i++)
                     {
                         Thread.Sleep(TimeSpan.FromSeconds(5));
