@@ -1,26 +1,14 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Xunit;
-
-    public static class StringEx
-    {
-        public static string RemoveWhitespace(this string input) =>
-            new string(input.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
-
-        public static string SingleToDoubleQuotes(this string input) => input.Replace('\'', '"');
-
-        public static byte[] ToBody(this string input) =>
-            Encoding.UTF8.GetBytes(input.RemoveWhitespace().SingleToDoubleQuotes());
-    }
 
     [Unit]
     public class TwinMessageConverterTest
@@ -123,16 +111,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetTwinData))]
         public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
         {
-            MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody()).Build();
+            MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody())
+                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.EnqueuedTime] = "" })
+                .Build();
             IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
-            Assert.Equal(expectedMessage, actualMessage);
+            Assert.Equal(expectedMessage.Body, actualMessage.Body);
+            Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
+            Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
         }
 
         [Fact]
         public void ConvertedMessageHasAnEnqueuedTimeProperty()
         {
             IMessage actualMessage = new TwinMessageConverter().ToMessage(new Twin());
-            Assert.InRange(DateTime.Parse(actualMessage.SystemProperties[Core.SystemProperties.EnqueuedTime]),
+            Assert.InRange(DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime]),
                 DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
         }
     }

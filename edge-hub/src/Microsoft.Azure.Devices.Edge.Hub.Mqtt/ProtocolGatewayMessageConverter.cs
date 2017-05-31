@@ -66,9 +66,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 createdTimeUtc = DateTime.Parse(createdTime);
             }
 
-            if (!message.SystemProperties.TryGetValue(Core.SystemProperties.OutboundURI, out string uriTemplateKey))
+            if (!message.SystemProperties.TryGetValue(Core.SystemProperties.OutboundUri, out string uriTemplateKey))
             {
-                throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundURI + " in message system properties.");
+                throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundUri + " in message system properties.");
             }
 
             if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, out string address))

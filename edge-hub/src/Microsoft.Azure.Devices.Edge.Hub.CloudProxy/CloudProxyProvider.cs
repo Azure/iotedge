@@ -17,13 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     public class CloudProxyProvider : ICloudProxyProvider
     {
         readonly ITransportSettings[] transportSettings;
-        readonly IMessageConverter<Message> messageConverter;
-        readonly IMessageConverter<Twin> twinConverter;
+        readonly IMessageConverterProvider messageConverterProvider;
 
-        public CloudProxyProvider(IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter)
+        public CloudProxyProvider(IMessageConverterProvider messageConverterProvider)
         {
-            this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
-            this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
+            this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.transportSettings = new ITransportSettings[] {
                 new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
             };
@@ -42,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             Events.ConnectSuccess(identity.Id);
             DeviceClient deviceClient = tryDeviceClient.Value;
-            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverter, this.twinConverter, identity);
+            ICloudProxy cloudProxy = new CloudProxy(deviceClient, this.messageConverterProvider, identity);
             return Try.Success(cloudProxy);
         }
 

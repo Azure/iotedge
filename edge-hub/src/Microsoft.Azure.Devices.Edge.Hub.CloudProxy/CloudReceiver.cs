@@ -18,19 +18,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         readonly IIdentity identity;
         readonly DeviceClient deviceClient;
-        readonly IMessageConverter<Message> messageConverter;
         readonly ICloudListener cloudListener;
+        readonly IMessageConverterProvider messageConverterProvider;
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
         // This is temporary, replace with default method handler when available in Client SDK
         const string MethodName = "*";
         Task receiveMessageTask;
 
-        public CloudReceiver(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, ICloudListener cloudListener, IIdentity identity)
+        public CloudReceiver(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider,
+            ICloudListener cloudListener, IIdentity identity)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
-            this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
+            this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.identity = Preconditions.CheckNotNull(identity);
+            var converter = this.messageConverterProvider.Get<TwinCollection>();
+            this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter);
         }
 
         public void StartListening()
@@ -51,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         if (clientMessage != null)
                         {
                             Events.MessageReceived(this);
-                            IMessage message = this.messageConverter.ToMessage(clientMessage);
+                            var converter = this.messageConverterProvider.Get<Message>();
+                            IMessage message = converter.ToMessage(clientMessage);
                             // TODO: check if message delivery count exceeds the limit?
                             await this.cloudListener.ProcessMessageAsync(message);
                         }
@@ -97,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SetupDesiredPropertyUpdatesAsync()
         {
-            return this.deviceClient.SetDesiredPropertyUpdateCallback(OnDesiredPropertyUpdates, this.cloudListener);
+            return this.deviceClient.SetDesiredPropertyUpdateCallback(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
         }
 
         public Task RemoveDesiredPropertyUpdatesAsync()
@@ -109,8 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
         {
-            var cloudListener = (ICloudListener)userContext;
-            return cloudListener.OnDesiredPropertyUpdates(desiredProperties.ToJson());
+            var handler = (DesiredPropertyUpdateHandler)userContext;
+            return handler.OnDesiredPropertyUpdates(desiredProperties);
         }
 
         static class Events
@@ -144,6 +149,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ReceiverStopped(CloudReceiver cloudReceiver)
             {
                 Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudReceiver.identity.Id}"));
+            }
+        }
+
+        class DesiredPropertyUpdateHandler
+        {
+            readonly ICloudListener listener;
+            readonly IMessageConverter<TwinCollection> converter;
+
+            public DesiredPropertyUpdateHandler(ICloudListener listener, IMessageConverter<TwinCollection> converter)
+            {
+                this.listener = listener;
+                this.converter = converter;
+            }
+
+            public Task OnDesiredPropertyUpdates(TwinCollection desiredProperties)
+            {
+                return this.listener.OnDesiredPropertyUpdates(this.converter.ToMessage(desiredProperties));
             }
         }
     }

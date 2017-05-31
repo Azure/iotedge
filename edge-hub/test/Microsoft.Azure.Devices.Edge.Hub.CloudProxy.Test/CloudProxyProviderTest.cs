@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,14 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class CloudProxyProviderTest
     {
-        static readonly Core.IMessageConverter<Client.Message> MessageConverter = Mock.Of<Core.IMessageConverter<Client.Message>>();
-        static readonly Core.IMessageConverter<Twin> TwinConverter = Mock.Of<Core.IMessageConverter<Twin>>();
+        static readonly Core.IMessageConverterProvider MessageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
         [Fact]
         [Integration]
         public async Task ConnectTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(MessageConverter, TwinConverter);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(MessageConverterProvider);
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceIdentity).Result;
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Integration]
         public async Task ConnectWithInvalidConnectionStringTest()
         {
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(MessageConverter, TwinConverter);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(MessageConverterProvider);
             var deviceIdentity1 = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == string.Empty);
             await Assert.ThrowsAsync<ArgumentException>(() => cloudProxyProvider.Connect(deviceIdentity1));
 

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Subscription
     {
         public Task ProcessSubscriptionAsync(ICloudProxy cp)
         {
-            throw new NotImplementedException();
+            return cp.RemoveDesiredPropertyUpdatesAsync();
         }
     }
 }

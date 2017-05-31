@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -17,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using Newtonsoft.Json;
 
     [Bvt]
     public class CloudProxyTest
@@ -131,14 +131,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public async Task CanListenForDesiredPropertyUpdates()
         {
+            var update = new TaskCompletionSource<IMessage>();
+            var cloudListener = new Mock<ICloudListener>();
+            cloudListener.Setup(x => x.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
+                .Callback((IMessage m) => update.TrySetResult(m))
+                .Returns(TaskEx.Done);
+
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device1ConnStrKey");
             Assert.True(cloudProxy.Success);
-
-            var received = new TaskCompletionSource<string>();
-            var cloudListener = new Mock<ICloudListener>();
-            cloudListener.Setup(x => x.OnDesiredPropertyUpdates(It.IsAny<string>()))
-                .Callback((string s) => received.TrySetResult(s))
-                .Returns(TaskEx.Done);
 
             cloudProxy.Value.BindCloudListener(cloudListener.Object);
             await cloudProxy.Value.SetupDesiredPropertyUpdatesAsync();
@@ -149,17 +149,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             };
 
             await UpdateDesiredProperty("device1", desired);
-            await received.Task;
+            await update.Task;
             await cloudProxy.Value.RemoveDesiredPropertyUpdatesAsync();
 
-            var actual = JsonConvert.DeserializeObject<TwinCollection>(received.Task.Result);
-            Assert.Equal(desired, actual);
+            var expected = new Core.Test.Message(Encoding.UTF8.GetBytes(desired.ToJson()));
+            expected.SystemProperties[SystemProperties.EnqueuedTime] = "";
+            expected.SystemProperties[SystemProperties.Version] = desired.Version.ToString();
+            IMessage actual = update.Task.Result;
+
+            Assert.Equal(expected.Body, actual.Body);
+            Assert.Equal(expected.Properties, actual.Properties);
+            Assert.Equal(expected.SystemProperties.Keys, actual.SystemProperties.Keys);
         }
 
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(new MqttMessageConverter(), new TwinMessageConverter());
+            var converters = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
+            {
+                { typeof(Client.Message), new MqttMessageConverter() },
+                { typeof(Twin), new TwinMessageConverter() },
+                { typeof(TwinCollection), new TwinCollectionMessageConverter() }
+            });
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters);
             var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity);
             return cloudProxy;
@@ -182,7 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(connectionString);
             Twin twin = await registryManager.GetTwinAsync(deviceId);
             twin.Properties.Desired = desired;
-            await registryManager.UpdateTwinAsync(deviceId, twin, twin.ETag);
+            twin = await registryManager.UpdateTwinAsync(deviceId, twin, twin.ETag);
+            desired["$version"] = twin.Properties.Desired.Version;
         }
     }
 }

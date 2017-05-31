@@ -1,12 +1,12 @@
 ﻿namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
-    using System;
+    using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Unit]
     public class CloudListenerTest
@@ -34,13 +34,13 @@
         [Fact]
         public async Task OnDesiredPropertyUpdatesForwardsToDeviceProxy()
         {
-            string actual = null;
+            IMessage actual = null;
             var deviceProxy = new Mock<IDeviceProxy>();
-            deviceProxy.Setup(r => r.OnDesiredPropertyUpdates(It.IsAny<string>()))
-                .Callback<string>(s => actual = s)
+            deviceProxy.Setup(r => r.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => actual = m)
                 .Returns(Task.FromResult(true));
 
-            string expected = "{\"abc\":\"xyz\"}";
+            var expected = new Message(Encoding.UTF8.GetBytes("{\"abc\":\"xyz\"}"));
             var cloudListener = new CloudListener(deviceProxy.Object);
             await cloudListener.OnDesiredPropertyUpdates(expected);
 

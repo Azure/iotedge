@@ -20,16 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         readonly IIdentity identity;
         readonly DeviceClient deviceClient;
-        readonly IMessageConverter<Message> messageConverter;
-        readonly IMessageConverter<Twin> twinConverter;
+        readonly IMessageConverterProvider messageConverterProvider;
         readonly AtomicBoolean isActive;
         CloudReceiver cloudReceiver;
 
-        public CloudProxy(DeviceClient deviceClient, IMessageConverter<Message> messageConverter, IMessageConverter<Twin> twinConverter, IIdentity identity)
+        public CloudProxy(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, IIdentity identity)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
-            this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
-            this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
+            this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.isActive = new AtomicBoolean(true);
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
         }
@@ -62,13 +60,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Twin twin = await this.deviceClient.GetTwinAsync();
             Events.GetTwin(this);
-            return this.twinConverter.ToMessage(twin);
+            IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
+            return converter.ToMessage(twin);
         }
 
         public async Task<bool> SendMessageAsync(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
-            Message message = this.messageConverter.FromMessage(inputMessage);
+            IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
+            Message message = converter.FromMessage(inputMessage);
 
             try
             {
@@ -85,8 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
+            IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             IEnumerable<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
-                .Select(inputMessage => this.messageConverter.FromMessage(inputMessage));
+                .Select(inputMessage => converter.FromMessage(inputMessage));
             try
             {
                 await this.deviceClient.SendEventBatchAsync(messages);
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void BindCloudListener(ICloudListener cloudListener)
         {
-            this.cloudReceiver = new CloudReceiver(this.deviceClient, this.messageConverter, cloudListener, this.identity);
+            this.cloudReceiver = new CloudReceiver(this.deviceClient, this.messageConverterProvider, cloudListener, this.identity);
             this.cloudReceiver.StartListening();
             Events.BindCloudListener(this);
         }

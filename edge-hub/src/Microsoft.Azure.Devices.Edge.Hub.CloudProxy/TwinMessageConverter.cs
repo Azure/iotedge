@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.IO;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 

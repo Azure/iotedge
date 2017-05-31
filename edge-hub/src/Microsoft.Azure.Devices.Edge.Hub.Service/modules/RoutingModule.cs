@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -83,8 +82,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Core.IMessageConverter<Twin>>()
                 .SingleInstance();
 
+            // IMessageConverter<TwinCollection>
+            builder.Register(c => new TwinCollectionMessageConverter())
+                .As<Core.IMessageConverter<TwinCollection>>()
+                .SingleInstance();
+
+            // IMessageConverterProvider
+            builder.Register(c => new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
+            {
+                { typeof(Message), c.Resolve<Core.IMessageConverter<Message>>() },
+                { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
+                { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
+            }))
+                .As<Core.IMessageConverterProvider>()
+                .SingleInstance();
+
             // ICloudProxyProvider
-            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverter<Message>>(), c.Resolve<Core.IMessageConverter<Twin>>()))
+            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverterProvider>()))
                 .As<ICloudProxyProvider>()
                 .SingleInstance();
 

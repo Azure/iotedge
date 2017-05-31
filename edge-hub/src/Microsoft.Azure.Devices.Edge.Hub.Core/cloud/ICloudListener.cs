@@ -10,6 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<object> CallMethodAsync(string methodName, byte[] data);
 
-        Task OnDesiredPropertyUpdates(string desiredProperties);
+        Task OnDesiredPropertyUpdates(IMessage desiredProperties);
     }
 }

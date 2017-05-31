@@ -1,7 +1,11 @@
 ﻿
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    public interface IMessageConverter<T>
+    public interface IMessageConverter
+    {
+    }
+
+    public interface IMessageConverter<T> : IMessageConverter
     {
         IMessage ToMessage(T sourceMessage);
 

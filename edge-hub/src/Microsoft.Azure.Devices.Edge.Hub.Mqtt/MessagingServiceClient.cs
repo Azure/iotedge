@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         coreMessage.SystemProperties[SystemProperties.LockToken] = "r";
                         coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.OK;
                         coreMessage.SystemProperties[SystemProperties.CorrelationId] = correlationId.ToString();
-                        coreMessage.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriTwinEndpoint;
+                        coreMessage.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
                         IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
                         this.messagingChannel.Handle(twinGetMessage);
                         break;
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                     [SystemProperties.LockToken] = "r",
                                     [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
                                     [SystemProperties.CorrelationId] = correlationId.ToString(),
-                                    [SystemProperties.OutboundURI] = Constants.OutboundUriTwinEndpoint
+                                    [SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint
                                 })
                                 .Build();
                             IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);

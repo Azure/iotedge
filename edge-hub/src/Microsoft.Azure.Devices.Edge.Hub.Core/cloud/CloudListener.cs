@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         public Task<object> CallMethodAsync(string methodName, byte[] data) => this.deviceProxy.CallMethodAsync(methodName, data);
 
-        public Task OnDesiredPropertyUpdates(string desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
+        public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
 
         public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendMessageAsync(message);
     }

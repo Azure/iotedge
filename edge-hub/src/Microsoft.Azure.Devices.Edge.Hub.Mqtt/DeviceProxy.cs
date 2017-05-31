@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Task<bool> SendMessageAsync(IMessage message)
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
-            message.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriC2D;
+            message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriC2D;
             IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
 
             this.channel.Handle(pgMessage);
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ModuleId] = moduleIdentity.ModuleId;
                 message.SystemProperties[SystemProperties.EndpointId] = endpoint;
-                message.SystemProperties[SystemProperties.OutboundURI] = Constants.OutboundUriModuleEndpoint;
+                message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint;
                 IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
                 this.channel.Handle(pgMessage);
                 result = true;
@@ -80,9 +80,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(new object());
         }
 
-        public Task OnDesiredPropertyUpdates(string desiredProperties)
+        public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
         {
-            return Task.FromException(new NotImplementedException());
+            desiredProperties.SystemProperties[SystemProperties.OutboundUri] =
+                Constants.OutboundUriTwinDesiredPropertyUpdate;
+
+            this.channel.Handle(this.messageConverter.FromMessage(desiredProperties));
+
+            return Task.FromResult(true);
         }
 
         public bool IsActive => this.isActive.Get();
