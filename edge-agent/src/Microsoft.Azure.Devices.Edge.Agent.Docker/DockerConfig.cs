@@ -37,6 +37,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
 
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = (this.Image != null ? this.Image.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Tag != null ? this.Tag.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.PortBindings != null ? this.PortBindings.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
         public bool Equals(DockerConfig other)
         {
             if (ReferenceEquals(null, other))
@@ -51,16 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return string.Equals(this.Image, other.Image) &&
                    string.Equals(this.Tag, other.Tag) && 
                    this.PortBindings.SetEquals(other.PortBindings);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hashCode = (this.Image?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.Tag?.GetHashCode() ?? 0);
-                return hashCode;
-            }
         }
 
         class DockerConfigJsonConverter : JsonConverter
