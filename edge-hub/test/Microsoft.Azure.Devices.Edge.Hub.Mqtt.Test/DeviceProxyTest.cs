@@ -31,8 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     })
                     .Build();
 
-                this.PgMessage = new ProtocolGatewayMessage(Encoding.UTF8.GetBytes(desiredJson).ToByteBuffer(),
-                    "$iothub/twin/PATCH/properties/desired/?$version=1");
+                this.PgMessage = new ProtocolGatewayMessage.Builder(Encoding.UTF8.GetBytes(desiredJson).ToByteBuffer(),
+                    "$iothub/twin/PATCH/properties/desired/?$version=1").Build();
             }
         }
 

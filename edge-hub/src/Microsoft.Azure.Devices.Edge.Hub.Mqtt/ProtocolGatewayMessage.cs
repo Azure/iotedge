@@ -11,17 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class ProtocolGatewayMessage : IMessage
     {
-        public ProtocolGatewayMessage(IByteBuffer payload, string address)
-            : this(payload,
-                  address,
-                  new Dictionary<string, string>(),
-                  null,
-                  DateTime.MinValue,
-                  0,
-                  0)
-        { }
 
-        public ProtocolGatewayMessage(
+        ProtocolGatewayMessage(
             IByteBuffer payload,
             string address,
             IDictionary<string, string> properties,
@@ -74,5 +65,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Dispose(true);
         }
         #endregion
+
+        public class Builder
+        {
+            readonly IByteBuffer payload;
+            string address;
+            IDictionary<string, string> properties;
+            string id;
+            DateTime createdTimeUtc;
+            uint deliveryCount;
+            ulong sequenceNumber;
+
+            public Builder(IByteBuffer payload, string address)
+            {
+                this.payload = payload;
+                this.address = address;
+                this.properties = new Dictionary<string, string>();
+            }
+
+            public Builder WithAddress(string address)
+            {
+                this.address = address;
+                return this;
+            }
+
+            public Builder WithProperties(IDictionary<string, string> properties)
+            {
+                this.properties = Preconditions.CheckNotNull(properties);
+                return this;
+            }
+
+            public Builder WithId(string id)
+            {
+                this.id = id;
+                return this;
+            }
+
+            public Builder WithCreatedTimeUtc(DateTime createdTime)
+            {
+                this.createdTimeUtc = createdTime;
+                return this;
+            }
+
+            public Builder WithDeliveryCount(uint deliveryCount)
+            {
+                this.deliveryCount = deliveryCount;
+                return this;
+            }
+
+            public Builder WithSequenceNumber(ulong sequenceNumber)
+            {
+                this.sequenceNumber = sequenceNumber;
+                return this;
+            }
+
+            public ProtocolGatewayMessage Build()
+            {
+                return new ProtocolGatewayMessage(this.payload, this.address, this.properties, this.id, this.createdTimeUtc, this.deliveryCount, this.sequenceNumber);
+            }
+        }
     }
 }

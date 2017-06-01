@@ -145,6 +145,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return this.cloudReceiver.RemoveCallMethodAsync();
         }
 
+        public Task SendMethodResponseAsync(DirectMethodResponse response)
+        {
+            return this.cloudReceiver.SendMethodResponseAsync(response);
+        }
+
         public Task SetupDesiredPropertyUpdatesAsync()
         {
             return this.cloudReceiver.SetupDesiredPropertyUpdatesAsync();

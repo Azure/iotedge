@@ -225,7 +225,8 @@
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/dee/";
-            var message = new ProtocolGatewayMessage(Payload, address);
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             string value;
@@ -246,7 +247,8 @@
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/dee/";
-            var message = new ProtocolGatewayMessage(Payload, address);
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.True(status);
             string value;
@@ -268,7 +270,8 @@
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
-            var message = new ProtocolGatewayMessage(Payload, address);
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.False(status);
             Assert.Equal(0, message.Properties.Count);
@@ -285,7 +288,8 @@
             var converter = new MessageAddressConverter(config);
 
             string address = "a/bee/c/";
-            var message = new ProtocolGatewayMessage(Payload, address);
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
             Assert.False(status);
             Assert.Equal(0, message.Properties.Count);

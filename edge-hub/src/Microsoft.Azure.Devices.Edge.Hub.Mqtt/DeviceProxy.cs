@@ -10,9 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
-    using static System.FormattableString;
 
     public class DeviceProxy : IDeviceProxy
     {
@@ -74,10 +74,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(result);
         }
 
-        // TODO - Need to figure out how to do this. Don't see the API on the channel
-        public Task<object> CallMethodAsync(string method, byte[] data)
+        public Task CallMethodAsync(DirectMethodRequest request)
         {
-            return Task.FromResult(new object());
+            string address = TwinAddressHelper.FormatDeviceMethodRequestAddress(request.Id, request.Name);
+            IProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(request.Data.ToByteBuffer(), address)
+                .WithCreatedTimeUtc(DateTime.UtcNow)
+                .Build();
+
+            this.channel.Handle(pgMessage);
+            return TaskEx.Done;
         }
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties)

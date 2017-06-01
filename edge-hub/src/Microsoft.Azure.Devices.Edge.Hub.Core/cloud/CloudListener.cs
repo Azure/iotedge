@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             this.deviceProxy = deviceProxy;
         }
 
-        public Task<object> CallMethodAsync(string methodName, byte[] data) => this.deviceProxy.CallMethodAsync(methodName, data);
+        public Task CallMethodAsync(DirectMethodRequest request) => this.deviceProxy.CallMethodAsync(request);
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
 

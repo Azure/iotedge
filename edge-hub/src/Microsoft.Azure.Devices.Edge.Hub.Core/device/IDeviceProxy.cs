@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task<bool> SendMessageAsync(IMessage message, string endpoint);
 
-        Task<object> CallMethodAsync(string method, byte[] data);
+        Task CallMethodAsync(DirectMethodRequest request);
 
         Task OnDesiredPropertyUpdates(IMessage desiredProperties);
 

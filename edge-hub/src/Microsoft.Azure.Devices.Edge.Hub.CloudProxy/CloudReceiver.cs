@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -10,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -22,9 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IMessageConverterProvider messageConverterProvider;
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
+        readonly ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>> methodCalls;
+        readonly AtomicLong correlationId = new AtomicLong();
+
+        Task receiveMessageTask;
+
+        // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
+        static readonly TimeSpan DeviceMethodMaxResponseTimeout = TimeSpan.FromSeconds(5 * 60 + 30);
+        // Error code used by IotHub when response times out
+        const int GatewayTimeoutErrorCode = 504101;
+
         // This is temporary, replace with default method handler when available in Client SDK
         const string MethodName = "*";
-        Task receiveMessageTask;
 
         public CloudReceiver(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider,
             ICloudListener cloudListener, IIdentity identity)
@@ -35,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.identity = Preconditions.CheckNotNull(identity);
             var converter = this.messageConverterProvider.Get<TwinCollection>();
             this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter);
+            this.methodCalls = new ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>>();
         }
 
         public void StartListening()
@@ -86,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SetupCallMethodAsync()
         {
-            return this.deviceClient.SetMethodHandlerAsync(MethodName, this.CloudMethodCall, null);
+            return this.deviceClient.SetMethodHandlerAsync(MethodName, this.MethodCallHandler, null);
         }
 
         public Task RemoveCallMethodAsync()
@@ -94,10 +106,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return this.deviceClient.SetMethodHandlerAsync(MethodName, null, null);
         }
 
-        Task<MethodResponse> CloudMethodCall(MethodRequest methodrequest, object usercontext)
+        public Task SendMethodResponseAsync(DirectMethodResponse response)
         {
-            // TODO - to be implemented
-            return Task.FromResult(new MethodResponse(200));
+            Preconditions.CheckNotNull(response, nameof(response));
+
+            var deviceClientResponse = new MethodResponse(response.Data, response.Status);
+
+            if (this.methodCalls.TryRemove(response.RequestId.ToLowerInvariant(), out TaskCompletionSource<MethodResponse> taskCompletion))
+            {
+                Events.MethodResponseReceived(this, response.RequestId);
+                taskCompletion.SetResult(deviceClientResponse);
+            }
+            else
+            {
+                Events.MethodResponseNotMapped(this, response.RequestId);
+            }
+
+            return TaskEx.Done;
+        }
+
+        internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
+        {
+            Preconditions.CheckNotNull(methodrequest, nameof(methodrequest));
+
+            Events.MethodCallReceived(this);
+
+            string id = this.correlationId.Increment().ToString();
+            var taskCompletion = new TaskCompletionSource<MethodResponse>();
+
+            this.methodCalls.TryAdd(id.ToLowerInvariant(), taskCompletion);
+            await this.cloudListener.CallMethodAsync(new DirectMethodRequest(id, methodrequest.Name, methodrequest.Data));
+            Events.MethodCallSentToClient(this, id);
+
+            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(DeviceMethodMaxResponseTimeout));
+            if (completedTask != taskCompletion.Task)
+            {
+                Events.MethodResponseTimedout(this, id);
+                taskCompletion.TrySetResult(new MethodResponse(GatewayTimeoutErrorCode));
+                this.methodCalls.TryRemove(id.ToLowerInvariant(), out taskCompletion);
+            }
+
+            return await taskCompletion.Task;
         }
 
         public Task SetupDesiredPropertyUpdatesAsync()
@@ -128,7 +177,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Closing = IdStart,
                 MessageReceived,
                 ReceiveError,
-                ReceiverStopped
+                ReceiverStopped,
+                MethodReceived,
+                MethodSentToClient,
+                MethodResponseReceived,
+                MethodRequestIdNotMatched,
+                MethodResponseTimedout
             }
 
             public static void MessageReceived(CloudReceiver cloudReceiver)
@@ -149,6 +203,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ReceiverStopped(CloudReceiver cloudReceiver)
             {
                 Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void MethodCallReceived(CloudReceiver cloudReceiver)
+            {
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void MethodCallSentToClient(CloudReceiver cloudReceiver, string requestId)
+            {
+                Log.LogDebug((int)EventIds.MethodSentToClient, Invariant($"Sent call method from cloud for device {cloudReceiver.identity.Id} with requestId {requestId}"));
+            }
+
+            public static void MethodResponseReceived(CloudReceiver cloudReceiver, string requestId)
+            {
+                Log.LogDebug((int)EventIds.MethodResponseReceived, Invariant($"Received response for call with requestId {requestId} method from device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void MethodResponseNotMapped(CloudReceiver cloudReceiver, string requestId)
+            {
+                Log.LogError((int)EventIds.MethodRequestIdNotMatched, Invariant($"No Request found for received response for call with requestId {requestId} for device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void MethodResponseTimedout(CloudReceiver cloudReceiver, string requestId)
+            {
+                Log.LogDebug((int)EventIds.MethodResponseTimedout, Invariant($"Didn't receive response for call with requestId {requestId} method from device {cloudReceiver.identity.Id}"));
             }
         }
 

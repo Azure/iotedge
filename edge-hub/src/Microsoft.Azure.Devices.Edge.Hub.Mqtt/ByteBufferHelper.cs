@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             if (!byteBuffer.IsReadable())
             {
-                return null;
+                return new byte[0];
             }
 
             using (var stream = new ReadOnlyByteBufferStream(byteBuffer, false))

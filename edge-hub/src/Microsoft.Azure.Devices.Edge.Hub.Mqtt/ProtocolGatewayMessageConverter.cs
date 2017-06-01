@@ -78,7 +78,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             IByteBuffer payload = message.Body.ToByteBuffer();
 
-            var pgMessage = new ProtocolGatewayMessage(payload, address, new Dictionary<string, string>(), lockToken, createdTimeUtc, 0, 0);
+            ProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(payload, address)
+                .WithId(lockToken)
+                .WithCreatedTimeUtc(createdTimeUtc)
+                .Build();
             foreach (KeyValuePair<string, string> property in message.Properties)
             {
                 pgMessage.Properties.Add(property);

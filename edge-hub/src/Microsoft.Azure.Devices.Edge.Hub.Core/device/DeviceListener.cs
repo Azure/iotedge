@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -27,10 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
-        public Task<object> CallMethodAsync(string methodName, object parameters, string deviceId)
-        {
-            throw new NotImplementedException();
-        }
+        public Task ProcessMethodResponseAsync(DirectMethodResponse response) => this.cloudProxy.SendMethodResponseAsync(response);
 
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {

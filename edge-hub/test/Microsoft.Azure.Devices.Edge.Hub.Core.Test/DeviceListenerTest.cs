@@ -35,18 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async Task CallMethodAsync_ThrowsNotImplementedException()
-        {
-            var cloudProxy = Mock.Of<ICloudProxy>();
-            var connectionManager = Mock.Of<IConnectionManager>();
-            var edgeHub = Mock.Of<IEdgeHub>();
-            var identity = Mock.Of<IDeviceIdentity>();
-
-            var deviceListener = new DeviceListener(identity, edgeHub, connectionManager, cloudProxy);
-            await Assert.ThrowsAsync<NotImplementedException>(() => deviceListener.CallMethodAsync(null, null, null));
-        }
-
-        [Fact]
         public async Task ProcessMessageBatchAsync_NullMessages()
         {
             var cloudProxy = Mock.Of<ICloudProxy>();

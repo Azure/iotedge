@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task<IMessage> GetTwinAsync();
 
-        Task<object> CallMethodAsync(string methodName, object parameters, string deviceId);
+        Task ProcessMethodResponseAsync(DirectMethodResponse response);
 
         void BindDeviceProxy(IDeviceProxy deviceProxy);
 
