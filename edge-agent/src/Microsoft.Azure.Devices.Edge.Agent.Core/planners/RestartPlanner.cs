@@ -42,8 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Select(m => this.commandFactory.Pull(m.Value))
                 .ToList();
 
-            IList<ICommand> update = desired.Modules
-                .Select(m => this.CreateOrUpdate(current, m.Value))
+            // Only update changed modules
+            IList<ICommand> update = diff.Updated
+                .Select(m => this.CreateOrUpdate(current, m))
                 .ToList();
 
             IList<ICommand> commands = stop

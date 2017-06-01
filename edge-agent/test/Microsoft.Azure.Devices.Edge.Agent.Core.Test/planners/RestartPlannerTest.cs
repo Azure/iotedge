@@ -138,7 +138,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
                 new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1),
                 new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1),
                 new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1)
-
             };
             ModuleSet currentSet = ModuleSet.Create(currentModules.ToArray());
             ModuleSet desiredSet = ModuleSet.Create(desiredModules.ToArray());
@@ -156,8 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
                 new TestRecordType(TestCommandType.TestPull, desiredModules[3]),
                 new TestRecordType(TestCommandType.TestCreate, desiredModules[0]),
                 new TestRecordType(TestCommandType.TestCreate, desiredModules[1]),
-                new TestRecordType(TestCommandType.TestUpdate, desiredModules[2]),
-                new TestRecordType(TestCommandType.TestUpdate, desiredModules[3]),
                 new TestRecordType(TestCommandType.TestStart, desiredModules[0]),
                 new TestRecordType(TestCommandType.TestStart, desiredModules[2]),
             };
@@ -166,26 +163,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.planners
 
             //Weak confirmation: no assumed order.
             factory.Recorder.ForEach(recorder => Assert.All(updateExecutionList, r => Assert.True(recorder.ExecutionList.Contains(r))));
-            factory.Recorder.ForEach((recorder) =>
-               {
-                    // One way to validate order
-                    // UpdateMod1
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
-                   Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])));
-                   Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[15])));
-                    // UpdateMod2
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[1])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
-                   Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[13])));
-                    // RemoveMod1
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[3])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[5])));
-                    // RemoveMod2
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[4])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
-                    // AddMod1
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
-                   Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[14])));
-                    // AddModTrue2
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[11])));
-               });
+            factory.Recorder.ForEach(recorder =>
+            {
+                // One way to validate order
+                // UpdateMod1
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[13])));
+                // UpdateMod2
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[1])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                // RemoveMod1
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[3])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[5])));
+                // RemoveMod2
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[4])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
+                // AddMod1
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])));
+                // AddModTrue2
+                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+            });
         }
     }
 }

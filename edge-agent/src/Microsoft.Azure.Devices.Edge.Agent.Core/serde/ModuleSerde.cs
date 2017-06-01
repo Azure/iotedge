@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
     using System;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
     public class ModuleSerde : ISerde<IModule>
     {

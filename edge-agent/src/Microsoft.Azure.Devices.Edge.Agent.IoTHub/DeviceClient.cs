@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class DeviceClient : IDeviceClient
     {
-        readonly Client.DeviceClient deviceClient; 
+        readonly Client.DeviceClient deviceClient;
 
         public DeviceClient(string connectionString) :
             this(connectionString, TransportType.Mqtt)

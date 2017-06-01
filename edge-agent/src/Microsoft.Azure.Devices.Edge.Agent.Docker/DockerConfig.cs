@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Image, other.Image) &&
-                   string.Equals(this.Tag, other.Tag) && 
+                   string.Equals(this.Tag, other.Tag) &&
                    this.PortBindings.SetEquals(other.PortBindings);
         }
 
@@ -97,10 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
                 JObject obj = JObject.Load(reader);
-
-                string dockerImage = JsonEx.Get<string>(obj, "image");
-
-                string dockerTag = JsonEx.Get<string>(obj, "tag");
+                string dockerImage = obj.Get<string>("image");
+                string dockerTag = obj.Get<string>("tag");
 
                 var portBindings = new List<PortBinding>();
                 //portbindings is option in our JSON. So, just fill portBindings List if there are values.
@@ -112,10 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     }
                 }
 
-                return new DockerConfig(dockerImage, dockerTag, portBindings); 
+                return new DockerConfig(dockerImage, dockerTag, portBindings);
             }
-
-       
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);
         }

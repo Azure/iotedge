@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,9 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using Binding = global::Docker.DotNet.Models.PortBinding;
 
     public class DockerEnvironment : IEnvironment
     {
+        static readonly ILogger Logger = Util.Logger.Factory.CreateLogger<DockerEnvironment>();
+
         static readonly IDictionary<string, bool> Labels = new Dictionary<string, bool>
         {
             { $"owner={Constants.Owner}", true }
@@ -36,11 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 }
             };
             IList<ContainerListResponse> containers = await this.client.Containers.ListContainersAsync(parameters);
-            IDictionary<string, IModule> modules = containers.Select(c => ContainerToModule(c)).ToDictionary(m => m.Name, m => m);
-            return new ModuleSet(modules);
+            IModule[] modules = await Task.WhenAll(containers.Select(c => this.ContainerToModule(c)));
+            return new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
         }
 
-        static IModule ContainerToModule(ContainerListResponse response)
+        async Task<IModule> ContainerToModule(ContainerListResponse response)
         {
             string name = response.Names.FirstOrDefault()?.Substring(1) ?? "unknown";
             string version = response.Labels.GetOrElse("version", "unknown");
@@ -49,16 +54,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string[] imageParts = (response.Image ?? "unknown").Split(':');
             string image = imageParts[0];
             string tag = imageParts.Length > 1 ? imageParts[1] : "latest";
-            IEnumerable<PortBinding> portBindings = response.Ports.Select(p => ToPortBinding(p));
-            
+
+            ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
+            IEnumerable<PortBinding> portBindings = inspected?.HostConfig?.PortBindings?.SelectMany(p => ToPortBinding(p.Key, p.Value)) ?? ImmutableList<PortBinding>.Empty;
+
             var config = new DockerConfig(image, tag, portBindings);
             return new DockerModule(name, version, status, config);
         }
 
-        static PortBinding ToPortBinding(Port port)
+        static IEnumerable<PortBinding> ToPortBinding(string key, IList<Binding> binding)
         {
+            string[] splits = key.Split('/');
+            string fromStr = splits[0];
+            string typeStr = splits.Length > 1 ? splits[1] : "tcp";
+
+            if (splits.Length < 1)
+            {
+                Logger.LogWarning("Using default PortBinding type of 'tcp' for key '{0}'", key);
+            }
+
             PortBindingType type;
-            switch (port.Type.ToLowerInvariant())
+            switch (typeStr.ToLowerInvariant())
             {
                 case "tcp":
                     type = PortBindingType.Tcp;
@@ -70,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     type = PortBindingType.Tcp;
                     break;
             }
-            return new PortBinding(port.PublicPort.ToString(), port.PrivatePort.ToString(), type);
+            return binding.Select(b => new PortBinding(b.HostPort, fromStr, type));
         }
 
         static ModuleStatus ToStatus(string state)

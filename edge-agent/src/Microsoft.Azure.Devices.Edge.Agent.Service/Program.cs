@@ -48,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             IContainer container = builder.Build();
             var loggerFactory = container.Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
-            
             logger.LogInformation("Starting module management agent.");
 
             try
@@ -80,9 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 }
                 return 0;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                logger.LogError($"ERROR: {e}");
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting Agent.");
                 return 1;
             }
         }

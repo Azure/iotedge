@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static T Get<T>(this JObject obj, string key)
         {
-            if (!obj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken jTokenValue))
+            if (!obj.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out JToken token))
             {
                 throw new JsonSerializationException($"Could not find {key} in JObject.");
             }
-            return jTokenValue.Value<T>();
+            return token.Value<T>();
         }
     }
 }
