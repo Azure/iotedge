@@ -51,38 +51,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             var updateList = new List<IModule>();
             var removeList = new List<string>();
 
-            if (!obj.TryGetValue("modules", StringComparison.OrdinalIgnoreCase, out JToken modules))
+            var modules = obj.Get<JToken>("modules");
+
+            foreach (JToken xtoken in modules.Children())
             {
-                throw new JsonSerializationException("Json doesn't contain modules.");
-            }
-            else
-            {
-                foreach (JToken xtoken in modules.Children())
+                JToken xtokenFirst = xtoken.First;
+
+                if (xtokenFirst.HasValues)
                 {
-                    JToken xtokenFirst = xtoken.First;
+                    JObject obj2 = JObject.Parse(xtokenFirst.ToString());
 
-                    if (xtokenFirst.HasValues)
+                    var converterType = obj2.Get<JToken>("type");
+
+                    if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
                     {
-                        JObject obj2 = JObject.Parse(xtokenFirst.ToString());
-
-                        if (!obj2.TryGetValue("type", StringComparison.OrdinalIgnoreCase, out JToken converterType))
-                        {
-                            throw new JsonSerializationException("Could not find right converter type.");
-                        }
-
-                        if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
-                        {
-                            throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
-                        }
-
-                        updateList.Add(ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType));
+                        throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
                     }
-                    else
-                    {
-                        removeList.Add(xtokenFirst.Path.Split('.')[1]);
-                    }
+
+                    updateList.Add(ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType));
+                }
+                else
+                {
+                    removeList.Add(xtokenFirst.Path.Split('.')[1]);
                 }
             }
+
             return new Diff(updateList, removeList);
         }
 

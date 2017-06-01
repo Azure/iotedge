@@ -61,17 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
                 JObject obj = JObject.Load(reader);
 
-                if (!obj.TryGetValue("type", StringComparison.OrdinalIgnoreCase, out JToken converterType))
-                {
-                    throw new JsonSerializationException("Could not find right converter type.");
-                }
+                var converterType = obj.Get<JToken>("type");
 
                 if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
                 {
