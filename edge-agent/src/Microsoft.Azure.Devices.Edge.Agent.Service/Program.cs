@@ -3,9 +3,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
+    using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Extensions.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
@@ -49,6 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             var loggerFactory = container.Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
             logger.LogInformation("Starting module management agent.");
+            var cts = new CancellationTokenSource();
+
+            void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
+
+            AssemblyLoadContext.Default.Unloading += OnUnload;
+            Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
 
             try
             {
@@ -70,13 +78,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
                     };
 
-                    for (int i = 0; i < 1000; i++)
+                    int i = 1;
+                    while (!cts.Token.IsCancellationRequested)
                     {
-                        Thread.Sleep(TimeSpan.FromSeconds(5));
                         logger.LogInformation($"Reconciling [scheduled]... [{i}]");
-                        await agent.ReconcileAsync(CancellationToken.None);
+                        await agent.ReconcileAsync(cts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                        i++;
                     }
+                    AssemblyLoadContext.Default.Unloading -= OnUnload;
+                    logger.LogInformation("Closing module management agent.");
+
                 }
+                return 0;
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogInformation("Main thread terminated");
+                AssemblyLoadContext.Default.Unloading -= OnUnload;
                 return 0;
             }
             catch (Exception ex)
@@ -84,6 +103,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting Agent.");
                 return 1;
             }
+        }
+
+        static void CancelProgram(CancellationTokenSource cts, ILogger logger)
+        {
+            logger.LogInformation("Termination requested, closing.");
+            cts.Cancel();
         }
     }
 }

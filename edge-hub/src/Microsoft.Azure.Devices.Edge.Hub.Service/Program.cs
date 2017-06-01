@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
@@ -67,24 +69,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub.");
+            var cts = new CancellationTokenSource();
+
+            void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
+            AssemblyLoadContext.Default.Unloading += OnUnload;
+            Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
 
             using (IProtocolHead protocolHead = await container.Resolve<Task<IProtocolHead>>())
             {
                 await protocolHead.StartAsync();
 
-                while (true)
-                {
-                    string input = Console.ReadLine();
-                    if (input != null && input.ToLowerInvariant() == "exit")
-                    {
-                        break;
-                    }
-                }
+                await cts.Token.WhenCanceled();
 
-                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(20)));
+                logger.LogInformation("Closing protocol Head.");
+
+                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10)));
+
+                AssemblyLoadContext.Default.Unloading -= OnUnload;
             }
 
             return 0;
+        }
+
+        static void CancelProgram(CancellationTokenSource cts, ILogger logger)
+        {
+            logger.LogInformation("Termination requested, closing.");
+            cts.Cancel();
         }
     }
 }
