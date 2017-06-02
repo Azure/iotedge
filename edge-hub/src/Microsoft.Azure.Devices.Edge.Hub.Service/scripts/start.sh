@@ -6,6 +6,4 @@
 ./scripts/generate-cert.sh
 
 # start service
-dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
-
-
+exec dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll

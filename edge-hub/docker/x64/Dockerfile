@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD /bin/sh scripts/start.sh
+CMD ["scripts/start.sh"]
