@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Logging
 {
     using System.Diagnostics.Tracing;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -20,8 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Logging
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
-            this.logger.Log<object>(GetLogLevel(eventData.Level), eventData.EventId, null, null, (state, ex) => eventData.Message);
+            this.logger.Log(GetLogLevel(eventData.Level), eventData.EventId, eventData, null, (ev, ex) => Formatter(ev));
         }
+
+        static string Formatter(EventWrittenEventArgs args) =>
+             args?.Payload != null
+                ? string.Join(", ", args.Payload.Select(e => e.ToString()))
+                : "<null>";
 
         static LogLevel GetLogLevel(EventLevel level)
         {
