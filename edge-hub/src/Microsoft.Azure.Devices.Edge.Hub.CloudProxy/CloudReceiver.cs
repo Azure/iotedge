@@ -34,9 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         // Error code used by IotHub when response times out
         const int GatewayTimeoutErrorCode = 504101;
 
-        // This is temporary, replace with default method handler when available in Client SDK
-        const string MethodName = "*";
-
         public CloudReceiver(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider,
             ICloudListener cloudListener, IIdentity identity)
         {
@@ -98,12 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SetupCallMethodAsync()
         {
-            return this.deviceClient.SetMethodHandlerAsync(MethodName, this.MethodCallHandler, null);
+            return this.deviceClient.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
         }
 
         public Task RemoveCallMethodAsync()
         {
-            return this.deviceClient.SetMethodHandlerAsync(MethodName, null, null);
+            return this.deviceClient.SetMethodDefaultHandlerAsync(null, null);
         }
 
         public Task SendMethodResponseAsync(DirectMethodResponse response)
