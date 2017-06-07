@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
-    <AssemblyName>Microsoft.Azure.Devices.Edge.Hub.CloudProxy</AssemblyName>
-    <RootNamespace>Microsoft.Azure.Devices.Edge.Hub.CloudProxy</RootNamespace>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
