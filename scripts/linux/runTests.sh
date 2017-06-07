@@ -13,6 +13,9 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 
+# Process script arguments
+TEST_FILTER=${1:-"--filter Category=Unit"}
+
 SUFFIX='Microsoft.Azure*test.csproj'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
@@ -20,32 +23,33 @@ OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 ENVIRONMENT=${TESTENVIRONMENT:="linux"}
 
 if [ ! -d "$ROOTFOLDER" ]; then
-  echo Folder $ROOTFOLDER does not exist 1>&2
+  echo "Folder $ROOTFOLDER does not exist" 1>&2
   exit 1
 fi
 
 if [ ! -f "$DOTNET_ROOT_PATH/dotnet" ]; then
-  echo Path $DOTNET_ROOT_PATH/dotnet does not exist 1>&2
+  echo "Path $DOTNET_ROOT_PATH/dotnet does not exist" 1>&2
   exit 1
 fi
 
 if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
-  echo Path $BUILD_BINARIESDIRECTORY does not exist 1>&2
+  echo "Path $BUILD_BINARIESDIRECTORY does not exist" 1>&2
   exit 1
 fi
 
-echo Running tests in all Test Projects in repo
+echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
+
 RES=0
 while read line; do
-    echo Running tests for project - $line
-  TESTENVIRONMENT=$ENVIRONMENT && $DOTNET_ROOT_PATH/dotnet test --filter Category!=Bvt --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
+  echo "Running tests for project - $line"
+  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
   if [ $? -gt 0 ]
   then
     RES=1
-    echo Error running test $line, RES = $RES
+    echo "Error running test $line, RES = $RES"
   fi
 done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
 
-echo RES = $RES
+echo "RES = $RES"
 
 exit $RES

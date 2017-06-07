@@ -18,7 +18,27 @@ IF NOT DEFINED BUILD_BINARIESDIRECTORY (
     SET BUILD_BINARIESDIRECTORY=%BUILD_REPOSITORY_LOCALPATH%\target
 )
 
-SET TEST_PROJ_PATTERN=Microsoft.Azure*test*.csproj
+REM Process script arguments
+IF NOT [%1] == [] (
+    SET "TEST_FILTER=%~1"
+
+    IF "!TEST_FILTER:--filter =!" == "!TEST_FILTER!" (
+        REM We don't understand arguments unless they look like this:
+        REM  --filter <expr>
+        SET TEST_FILTER=
+    ) ELSE (
+        REM If we find a filter argument, enclose <expr> in quotes to prevent
+        REM the shell from interpreting any of <expr>'s characters (e.g., '|')
+        SET TEST_FILTER=--filter "!TEST_FILTER:--filter =!"
+    )
+)
+
+IF NOT DEFINED TEST_FILTER (
+    REM Default is to run only unit tests
+    SET TEST_FILTER=--filter "Category=Unit"
+)
+
+SET TEST_PROJ_PATTERN=Microsoft.Azure*test.csproj
 SET ROOTFOLDER=%BUILD_REPOSITORY_LOCALPATH%
 SET DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 SET OUTPUT_FOLDER=%BUILD_BINARIESDIRECTORY%
@@ -38,15 +58,15 @@ IF NOT EXIST "%OUTPUT_FOLDER%" (
 )
 
 SET opencover=%ROOTFOLDER%\OpenCover.4.6.519\tools\OpenCover.Console.exe
-SET targetargs=test %1 --logger trx;LogFileName=result.trx
+SET targetargs=test %TEST_FILTER% --logger trx;LogFileName=result.trx
 
-ECHO Running tests in all Test Projects in repo
+ECHO Running tests in all test projects with filter: %TEST_FILTER:--filter =%
 FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
     ECHO Running tests for project - %%f
     IF EXIST "%opencover%" (
         "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml
     ) ELSE (
-        "%DOTNET_ROOT_PATH%\dotnet" test %%f --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build --filter Category!=Bvt
+        "%DOTNET_ROOT_PATH%\dotnet" test %%f --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build %TEST_FILTER%
     )
 )
 

@@ -2,40 +2,89 @@
 
 This repository consists of two projects: the Module Management Agent (edge-agent) and the Edge Hub (edge-hub).
 
-## How to Build
+## Build
 
-### Linux (Ubuntu 14.04 Trusty)
+Make sure the following dependencies are installed in your environment before you build IoT Edge code:
 
-#### Dependencies
+| Dependency        | Notes                |
+|-------------------|----------------------|
+| .NET Core 2.0     | Installation instructions [here](https://www.microsoft.com/net/core/preview). |
+| Java              | JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
 
-##### .NET Core 2.0
-The Azure IoT Edge projects uses .NET Core 2.0. This is currently in preview, but can still be installed via apt-get.
-Please follow the [official instructions](https://www.microsoft.com/net/core/preview#linuxubuntu). However, the basic gist is as
-follows:
-
-```
-sudo sh -c 'echo "deb [arch=amd64] https://apt-mo.trafficmanager.net/repos/dotnet-release/ trusty main" > /etc/apt/sources.list.d/dotnetdev.list'
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 417A0893
-sudo apt-get update
-
-sudo apt-get install dotnet-dev-2.0.0-preview1-005977
-```
-
-##### Java
-Java (JRE) is required to compile the Antlr4 grammar files into C# classes. A JRE is required and `java` must be
-on your path.
-
-#### Build
 You can build by running the build script:
 
+### Linux
 ```
-./scripts/linux/buildBranch.sh
+scripts/linux/buildBranch.sh
 ```
 
-This will publish to `./target/publish`.
-
-You can run the tests with:
-
+### Windows
 ```
-./scripts/linux/runTests.sh
+scripts\windows\buildBranch.bat
 ```
+
+Binaries are published to `target/publish`.
+
+## Run unit tests
+
+You can run the unit tests with:
+
+### Linux
+```
+scripts/linux/runTests.sh
+```
+
+### Windows
+```
+scripts\windows\runTests.bat
+```
+
+## Run integration tests & BVTs
+
+To run integration tests and/or BVTs, make sure the following dependencies are installed in your environment:
+
+| Dependency        | Notes                |
+|-------------------|----------------------|
+| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) |
+| Powershell        | Installation instructions [here](https://github.com/PowerShell/PowerShell/tree/master/docs/installation) |
+| Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/) |
+| Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
+
+Our integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
+
+### Linux
+```
+scripts/linux/downloadAndInstallCert.sh <SpUsername> <SpPassword> <AadTenant> <CertName> <VaultName>
+```
+
+| Argument    | Description                |
+|-------------|----------------------------|
+| SpUsername  | Service principal username. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
+| SpPassword  | Service principal password. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
+| AadTenant   | Azure Active Directory tenant. See `az login` [help](https://docs.microsoft.com/en-us/cli/azure/#login). |
+| CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
+| VaultName   | KeyVault name. See `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
+
+### Windows
+```
+powershell scripts\windows\DownloadAndInstallCertificate.ps1 <VaultName> <CertificateName>
+```
+
+| Argument    | Description                |
+|-------------|----------------------------|
+| VaultName   | KeyVault name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
+| CertName    | Certificate name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
+
+Then run the tests with:
+
+### Linux
+```
+scripts/linux/runTests.sh "--filter Category=Integration|Category=Bvt"
+```
+
+### Windows
+```
+scripts\windows\runTests.bat "--filter Category=Integration|Category=Bvt"
+```
+
+The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.

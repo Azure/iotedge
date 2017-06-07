@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class KeyVaultHelperTest
     {
         [Fact]
-        [Unit]
+        [Integration]
         public async Task GetSecretTest()
         {
             string secret = await SecretsHelper.GetSecret(/* Dummy secret I added for testing */ "DummySecret1");
