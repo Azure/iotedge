@@ -11,9 +11,7 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Extensions.Configuration;
-
-
-
+    
     class Program
     {
         static readonly Random Rnd = new Random();
@@ -55,7 +53,7 @@ namespace SimulatedTemperatureSensor
             return 0;
         }
 
-        static async Task SendEvent(ModuleClient moduleClient,TimeSpan messageDelay,int temperatureThreshold, string moduleId, CancellationTokenSource cts)
+        static async Task SendEvent(ModuleClient moduleClient, TimeSpan messageDelay, int temperatureThreshold, string moduleId, CancellationTokenSource cts)
         {
             int count=0;
             while (!cts.Token.IsCancellationRequested)
@@ -71,6 +69,7 @@ namespace SimulatedTemperatureSensor
                 count++;
             }
         }
+
         static void CancelProgram(CancellationTokenSource cts)
         {
 
