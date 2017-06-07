@@ -5,7 +5,6 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using System.Diagnostics;
     using static System.FormattableString;
     using System.Threading;
     using System.Threading.Tasks;

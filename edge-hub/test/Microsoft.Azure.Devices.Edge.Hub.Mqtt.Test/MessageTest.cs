@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     [Unit]
     public class MessageTest
     {
-        static readonly DateTime Now = DateTime.Now;
         static readonly MqttMessage Message1 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
         static readonly MqttMessage Message2 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
         static readonly MqttMessage Message3 = new MqttMessage.Builder(new byte[] { 2, 3, 1 }).SetProperties( new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();

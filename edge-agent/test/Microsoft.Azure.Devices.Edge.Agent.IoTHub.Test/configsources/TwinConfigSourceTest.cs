@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
 
@@ -21,14 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
         readonly ModuleSetSerde moduleSetSerde;
         readonly DiffSerde diffSerde;
         DesiredPropertyUpdateCallback desiredPropertyCallback;
-        readonly ILoggerFactory loggerFactory;
 
         public TwinConfigSourceTest()
         {
             var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
             this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
             this.diffSerde = new DiffSerde(serializerInputTable);
-            this.loggerFactory = new LoggerFactory();
         }
 
         [Fact]

@@ -84,15 +84,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.body = Preconditions.CheckNotNull(body);
             }
 
-            public Builder SetProperties(IDictionary<string, string> properties)
+            public Builder SetProperties(IDictionary<string, string> props)
             {
-                this.properties = new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase);
+                this.properties = new Dictionary<string, string>(Preconditions.CheckNotNull(props), StringComparer.OrdinalIgnoreCase);
                 return this;
             }
 
-            public Builder SetSystemProperties(IDictionary<string, string> systemProperties)
+            public Builder SetSystemProperties(IDictionary<string, string> sysProps)
             {
-                this.systemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase);
+                this.systemProperties = new Dictionary<string, string>(Preconditions.CheckNotNull(sysProps), StringComparer.OrdinalIgnoreCase);
                 return this;
             }
 

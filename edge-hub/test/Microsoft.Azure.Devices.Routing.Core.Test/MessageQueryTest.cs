@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                }
             }";
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf8ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf16_ValidJson = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf16ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.Unicode.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf32_ValidJson = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf32ValidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF32.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_InvalidJson = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf8InvalidJson = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes("Invalid Json"),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_InvalidEncoding = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageInvalidEncoding = new Message(TelemetryMessageSource.Instance,
             new byte[] { 1, 2, 3 },
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingEncodingProperty = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf8ValidJsonMissingEncodingProperty = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 { SystemProperties.ContentType, Constants.SystemPropertyValues.ContentType.Json },
             });
 
-        static readonly IMessage BodyQueryMessage_Utf8_ValidJson_MissingContentTypeProperty = new Message(TelemetryMessageSource.Instance,
+        static readonly IMessage BodyQueryMessageUtf8ValidJsonMissingContentTypeProperty = new Message(TelemetryMessageSource.Instance,
             Encoding.UTF8.GetBytes(MessageBody),
             new Dictionary<string, string>(),
             new Dictionary<string, string>
@@ -94,25 +94,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         public void TestMessageQuery()
         {
             Assert.Equal(new QueryValue(50, QueryValueType.Double),
-                BodyQueryMessage_Utf8_ValidJson.GetQueryValue("message.Weather.Temperature"));
+                BodyQueryMessageUtf8ValidJson.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Equal(new QueryValue(50, QueryValueType.Double),
-                BodyQueryMessage_Utf16_ValidJson.GetQueryValue("message.Weather.Temperature"));
+                BodyQueryMessageUtf16ValidJson.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Equal(new QueryValue(50, QueryValueType.Double),
-                BodyQueryMessage_Utf32_ValidJson.GetQueryValue("message.Weather.Temperature"));
+                BodyQueryMessageUtf32ValidJson.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Throws(typeof(JsonReaderException),
-                () => BodyQueryMessage_Utf8_InvalidJson.GetQueryValue("message.Weather.Temperature"));
+                () => BodyQueryMessageUtf8InvalidJson.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Throws(typeof(JsonReaderException),
-                () => BodyQueryMessage_InvalidEncoding.GetQueryValue("message.Weather.Temperature"));
+                () => BodyQueryMessageInvalidEncoding.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Throws(typeof(InvalidOperationException),
-                () => BodyQueryMessage_Utf8_ValidJson_MissingEncodingProperty.GetQueryValue("message.Weather.Temperature"));
+                () => BodyQueryMessageUtf8ValidJsonMissingEncodingProperty.GetQueryValue("message.Weather.Temperature"));
 
             Assert.Throws(typeof(InvalidOperationException),
-                () => BodyQueryMessage_Utf8_ValidJson_MissingContentTypeProperty.GetQueryValue("message.Weather.Temperature"));
+                () => BodyQueryMessageUtf8ValidJsonMissingContentTypeProperty.GetQueryValue("message.Weather.Temperature"));
         }
     }
 }

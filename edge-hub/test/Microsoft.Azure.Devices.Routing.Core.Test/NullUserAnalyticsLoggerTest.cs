@@ -11,57 +11,49 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact]
         public void LogOrphanedMessage()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogOrphanedMessage(null, null);
+            NullUserAnalyticsLogger.Instance.LogOrphanedMessage(null, null);
         }
 
         [Fact]
         public void LogDroppedMessage()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogDroppedMessage(null, null, null, FailureKind.None);
+            NullUserAnalyticsLogger.Instance.LogDroppedMessage(null, null, null, FailureKind.None);
         }
 
         [Fact]
         public void LogInvalidMessage()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogInvalidMessage(null, null, FailureKind.None);
+            NullUserAnalyticsLogger.Instance.LogInvalidMessage(null, null, FailureKind.None);
         }
 
         [Fact]
         public void LogUnhealthyEndpoint()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogUnhealthyEndpoint(null, null, FailureKind.None);
+            NullUserAnalyticsLogger.Instance.LogUnhealthyEndpoint(null, null, FailureKind.None);
         }
 
         [Fact]
         public void LogDeadEndpoint()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogDeadEndpoint(null, null);
+            NullUserAnalyticsLogger.Instance.LogDeadEndpoint(null, null);
         }
 
         [Fact]
         public void LogHealthyEndpoint()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogHealthyEndpoint(null, null);
+            NullUserAnalyticsLogger.Instance.LogHealthyEndpoint(null, null);
         }
 
         [Fact]
         public void LogUndefinedRouteEvaluation()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogUndefinedRouteEvaluation(null, null);
+            NullUserAnalyticsLogger.Instance.LogUndefinedRouteEvaluation(null, null);
         }
 
         [Fact]
         public void LogRouteEvaluationError()
         {
-            var nullUserAnalyticsLogger = new NullUserAnalyticsLogger();
-            nullUserAnalyticsLogger.LogRouteEvaluationError(null, null, null);
+            NullUserAnalyticsLogger.Instance.LogRouteEvaluationError(null, null, null);
         }
     }
 }

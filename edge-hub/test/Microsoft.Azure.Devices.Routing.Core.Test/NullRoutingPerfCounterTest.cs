@@ -11,110 +11,77 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Fact]
         public void LogEventProcessingLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogEventProcessingLatency(null, null, null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogEventProcessingLatency(null, null, null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogE2EEventProcessingLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogE2EEventProcessingLatency(null, null, null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogE2EEventProcessingLatency(null, null, null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogEventsProcessed()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogEventsProcessed(null, null, null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogEventsProcessed(null, null, null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogInternalEventHubReadLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogInternalEventHubReadLatency(null, 0, false, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogInternalEventHubReadLatency(null, 0, false, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogInternalEventHubEventsRead()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogInternalEventHubEventsRead(null, 0, false, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogInternalEventHubEventsRead(null, 0, false, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogInternalProcessingLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogInternalProcessingLatency(null, 0, false, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogInternalProcessingLatency(null, 0, false, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogExternalWriteLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogExternalWriteLatency(null, null, null, false, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogExternalWriteLatency(null, null, null, false, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogMessageEndpointsMatched()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogMessageEndpointsMatched(null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogMessageEndpointsMatched(null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogUnmatchedMessages()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogUnmatchedMessages(null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogUnmatchedMessages(null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogCheckpointStoreLatency()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogCheckpointStoreLatency(null, null, null, null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogCheckpointStoreLatency(null, null, null, null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
 
         [Fact]
         public void LogOperationResult()
         {
-            var nullRoutingPerfCounter = NullRoutingPerfCounter.Instance;
-            string resultString;
-
-            Assert.True(nullRoutingPerfCounter.LogOperationResult(null, null, null, 0, out resultString));
+            Assert.True(NullRoutingPerfCounter.Instance.LogOperationResult(null, null, null, 0, out string resultString));
             Assert.Equal(string.Empty, resultString);
         }
     }

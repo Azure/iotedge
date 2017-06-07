@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Gateway.Runtime.Mqtt;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
@@ -71,11 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                         Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
                         coreMessage.SystemProperties[SystemProperties.LockToken] = "r";
-                        coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.OK;
+                        coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.Ok;
                         coreMessage.SystemProperties[SystemProperties.CorrelationId] = correlationId.ToString();
                         coreMessage.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
                         IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
                         this.messagingChannel.Handle(twinGetMessage);
+                        Events.GetTwin(this.deviceListener.Identity);
                         break;
 
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
@@ -95,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 .Build();
                             IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
                             this.messagingChannel.Handle(twinPatchMessage);
+                            Events.UpdateReportedProperties(this.deviceListener.Identity);
                         }
                         break;
 

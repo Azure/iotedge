@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
-    using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Extensions.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;

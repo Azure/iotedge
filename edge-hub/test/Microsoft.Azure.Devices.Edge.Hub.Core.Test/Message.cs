@@ -46,10 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
 
             return this.Body.SequenceEqual(other.Body) &&
-                this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
+                this.Properties.Keys.Count == other.Properties.Keys.Count &&
                 this.Properties.Keys.All(
                     key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
-                        this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
+                        this.SystemProperties.Keys.Count == other.SystemProperties.Keys.Count &&
                         this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
         }
 

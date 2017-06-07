@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -57,10 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var cloudProxy = new Mock<ICloudProxy>();
             Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
 
-            var currentSubs = new List<ISubscription>()
-            {
-                new TransientSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce)
-            };
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
 
@@ -78,8 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public void TestGetAsync_NoSessionFound_ShouldReturnNull()
         {
-            var currentSubs = new List<ISubscription>();
-            
             var connectionManager = new Mock<IConnectionManager>();
             var identity = new Mock<IProtocolgatewayDeviceIdentity>();
             identity.Setup(p => p.Id).Returns("device-id");

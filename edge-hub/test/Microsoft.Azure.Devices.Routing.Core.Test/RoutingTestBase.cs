@@ -6,9 +6,5 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     public abstract class RoutingTestBase : RoutingUnitTestBase
     {
-        protected RoutingTestBase()
-        {
-            
-        }
     }
 }

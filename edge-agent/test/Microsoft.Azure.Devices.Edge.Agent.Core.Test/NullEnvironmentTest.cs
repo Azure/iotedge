@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Threading;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -15,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             NullEnvironment testNullEnvironment = NullEnvironment.Instance;
             Assert.NotNull(testNullEnvironment);
 
-            CancellationToken token = new CancellationToken();
+            var token = new CancellationToken();
             ModuleSet testModuleSet = await testNullEnvironment.GetModulesAsync(token);
 
             Assert.NotNull(testModuleSet);

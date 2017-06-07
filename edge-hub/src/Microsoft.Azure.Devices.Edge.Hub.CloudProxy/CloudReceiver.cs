@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.identity = Preconditions.CheckNotNull(identity);
-            var converter = this.messageConverterProvider.Get<TwinCollection>();
+            IMessageConverter<TwinCollection> converter = this.messageConverterProvider.Get<TwinCollection>();
             this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter);
             this.methodCalls = new ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>>();
         }
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task SetupMessageListening()
         {
-            Client.Message clientMessage = null;
+            Message clientMessage = null;
             try
             {
                 while (!this.cancellationTokenSource.Token.IsCancellationRequested)
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         if (clientMessage != null)
                         {
                             Events.MessageReceived(this);
-                            var converter = this.messageConverterProvider.Get<Message>();
+                            IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
                             IMessage message = converter.ToMessage(clientMessage);
                             // TODO: check if message delivery count exceeds the limit?
                             await this.cloudListener.ProcessMessageAsync(message);
@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         Events.ErrorReceivingMessage(this, e);
                     }
                 }
-                
                 Events.ReceiverStopped(this);
             }
             finally

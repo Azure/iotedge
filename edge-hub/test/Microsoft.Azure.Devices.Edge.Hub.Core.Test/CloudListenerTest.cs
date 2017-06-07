@@ -53,7 +53,7 @@
             var deviceProxy = Mock.Of<IDeviceProxy>();
             string testMethod = "testMethod";
             var testByteArray = new byte[] { 0x00, 0x01, 0x02 };
-            var id = "1";
+            string id = "1";
             var request = new DirectMethodRequest(id, testMethod, testByteArray);
 
             var cloudListener = new CloudListener(deviceProxy);

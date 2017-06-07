@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
 
             ParameterExpression parameter = Expression.Parameter(typeof(IMessage), "message");
 
-            Route testRoute = new Route(Guid.NewGuid().ToString(),
+            var testRoute = new Route(Guid.NewGuid().ToString(),
                 "true",
                 nameof(ConditionVisitorTest),
                 TelemetryMessageSource.Instance,

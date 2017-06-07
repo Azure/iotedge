@@ -93,7 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             {
                 Created = IdStart,
                 DesiredPropertiesFailed,
-                GetConfigurationFailed
             }
 
             public static void Created()
@@ -105,8 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             {
                 Log.LogError((int)EventIds.DesiredPropertiesFailed, exception, "TwinConfigSource failed processing desired configuration ");
             }
-
         }
-
     }
 }

@@ -7,10 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Buffers;
     using DotNetty.Common.Utilities;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
 
     public class ProtocolGatewayMessage : IMessage
     {
+        readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
 
         ProtocolGatewayMessage(
             IByteBuffer payload,
@@ -45,24 +47,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public ulong SequenceNumber { get; }
 
         #region IDisposable Support
-        private bool disposedValue = false;
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposedValue)
+            if (!this.isDisposed.GetAndSet(true))
             {
                 if (disposing)
                 {
                     this.Payload?.SafeRelease();
                 }
-
-                this.disposedValue = true;
             }
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
         }
         #endregion
 
@@ -83,21 +82,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 this.properties = new Dictionary<string, string>();
             }
 
-            public Builder WithAddress(string address)
+            public Builder WithAddress(string addr)
             {
-                this.address = address;
+                this.address = addr;
                 return this;
             }
 
-            public Builder WithProperties(IDictionary<string, string> properties)
+            public Builder WithProperties(IDictionary<string, string> props)
             {
-                this.properties = Preconditions.CheckNotNull(properties);
+                this.properties = Preconditions.CheckNotNull(props);
                 return this;
             }
 
-            public Builder WithId(string id)
+            public Builder WithId(string identifier)
             {
-                this.id = id;
+                this.id = identifier;
                 return this;
             }
 
@@ -107,15 +106,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return this;
             }
 
-            public Builder WithDeliveryCount(uint deliveryCount)
+            public Builder WithDeliveryCount(uint count)
             {
-                this.deliveryCount = deliveryCount;
+                this.deliveryCount = count;
                 return this;
             }
 
-            public Builder WithSequenceNumber(ulong sequenceNumber)
+            public Builder WithSequenceNumber(ulong sequenceNum)
             {
-                this.sequenceNumber = sequenceNumber;
+                this.sequenceNumber = sequenceNum;
                 return this;
             }
 

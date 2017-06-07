@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.Security.Authentication;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;

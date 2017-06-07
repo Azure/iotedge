@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
             AssemblyLoadContext.Default.Unloading += OnUnload;
-            Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
+            Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
 
             using (IProtocolHead protocolHead = await container.Resolve<Task<IProtocolHead>>())
             {
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 logger.LogInformation("Closing protocol Head.");
 
-                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10)));
+                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
 
                 AssemblyLoadContext.Default.Unloading -= OnUnload;
             }

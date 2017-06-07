@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             IMessageConverter<Message> messageConverter = new MqttMessageConverter();
             var inputMessage = new Message(messageBytes);
-            var mqttMessage = messageConverter.ToMessage(inputMessage);
+            IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
 
             Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
         }

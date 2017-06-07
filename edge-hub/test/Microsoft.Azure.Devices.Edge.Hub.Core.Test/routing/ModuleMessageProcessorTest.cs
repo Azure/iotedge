@@ -29,9 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string modId = "device1/module1";
             string moduleEndpointId = "in1";
 
-            Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
-
-            var moduleEndpoint = new ModuleEndpoint(modId, moduleEndpointId, () => GetModuleProxy(modId), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint(modId, moduleEndpointId, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             Assert.Equal(moduleEndpoint, moduleMessageProcessor.Endpoint);
@@ -68,9 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
             var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
 
-            Option<IDeviceProxy> GetModuleProxy(string id) => Option.Some(deviceProxyMock.Object);
-
-            var moduleEndpoint = new ModuleEndpoint(Mod1Id, ModEndpointId, () => GetModuleProxy(Mod1Id), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint(Mod1Id, ModEndpointId, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);

@@ -10,10 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Xunit;
-    using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Newtonsoft.Json;
+    using Xunit;
 
     public class FileConfigSourceTest : IDisposable
     {
@@ -30,10 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         static readonly ModuleSet ValidSet2 = ModuleSet.Create(UpdatedModule1, ValidModule3);
 
         static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
-            
+
         readonly string tempFileName;
         readonly ModuleSetSerde moduleSetSerde;
-        readonly ILoggerFactory loggerFactory;
 
         public FileConfigSourceTest()
         {
@@ -41,7 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             this.tempFileName = Path.GetTempFileName();
             var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
             this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
-            this.loggerFactory = new LoggerFactory();
         }
 
         public void Dispose()

@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             // Create a mock endpoint capable of returning a mock processor
             var processor = Mock.Of<IProcessor>();
-            var endpoint = new Mock<Endpoint>(new object[] {"myId"});
+            var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
             endpoint.SetupGet(ep => ep.Id).Returns("myId");
 

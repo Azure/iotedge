@@ -12,8 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         public void NullCommandFactoryAllTest()
         {
             NullCommandFactory nf = NullCommandFactory.Instance;
-            TestModule nm = new TestModule("null","version_null","null",ModuleStatus.Running, new TestConfig("null"));
-            TestModule nmn = new TestModule("next","version_null","null",ModuleStatus.Running, new TestConfig("null"));
+            var nm = new TestModule("null","version_null","null",ModuleStatus.Running, new TestConfig("null"));
+            var nmn = new TestModule("next","version_null","null",ModuleStatus.Running, new TestConfig("null"));
             ICommand createCommand = nf.Create(nm);
             ICommand pullCommand = nf.Pull(nm);
             ICommand updateCommand = nf.Update(nm,nmn);
