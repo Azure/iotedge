@@ -294,5 +294,87 @@
             Assert.False(status);
             Assert.Equal(0, message.Properties.Count);
         }
+
+        [Fact]
+        public void TestTryParseAddressWithParamsIntoMessageProperties()
+        {
+            IList<string> input = new List<string>() { "a/{b}/{c}/d/{params}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/cee/d/p1=v1&p2=v2&$.mid=mv1/";
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
+            Assert.True(status);
+            Assert.Equal(5, message.Properties.Count);
+            Assert.Equal<string>("bee", message.Properties["b"]);
+            Assert.Equal<string>("cee", message.Properties["c"]);
+            Assert.Equal("v1", message.Properties["p1"]);
+            Assert.Equal("v2", message.Properties["p2"]);
+            Assert.Equal("mv1", message.Properties["$.mid"]);
+        }
+
+        [Fact]
+        public void TestTryParseAddressWithParamsIntoMessagePropertiesMultipleInput()
+        {
+            IList<string> input = new List<string>() { "a/{b}/c/{params}/", "a/{b}/{c}/d/{params}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/cee/d/p1=v1&p2=v2&$.mid=mv1/";
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
+            Assert.True(status);
+            Assert.Equal(5, message.Properties.Count);
+            Assert.Equal<string>("bee", message.Properties["b"]);
+            Assert.Equal<string>("cee", message.Properties["c"]);            
+            Assert.Equal("v1", message.Properties["p1"]);
+            Assert.Equal("v2", message.Properties["p2"]);
+            Assert.Equal("mv1", message.Properties["$.mid"]);
+        }
+
+        [Fact]
+        public void TestTryParseAddressWithParamsIntoMessagePropertiesFailsNoMatch()
+        {
+            IList<string> input = new List<string>() { "a/{b}/c/{params}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/c/";
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
+            Assert.False(status);
+            Assert.Equal(0, message.Properties.Count);
+        }
+
+        [Fact]
+        public void TestTryParseAddressWithParamsIntoMessagePropertiesFailsNoMatchMultiple()
+        {
+            IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{params}/" };
+            var config = new MessageAddressConversionConfiguration(
+                input,
+                DontCareOutput
+            );
+            var converter = new MessageAddressConverter(config);
+
+            string address = "a/bee/p1=v1&p2=v2/";
+            ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
+                .Build();
+            bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
+            Assert.False(status);
+            Assert.Equal(0, message.Properties.Count);
+        }
     }
 }

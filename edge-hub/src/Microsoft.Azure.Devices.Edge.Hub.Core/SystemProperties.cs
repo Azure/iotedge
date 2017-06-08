@@ -1,6 +1,8 @@
 ﻿
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System.Collections.Generic;
+
     public static class SystemProperties
     {
         public const string MessageId = "messageId";
@@ -22,5 +24,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string StatusCode = "statusCode";
         public const string OutboundUri = "outBoundURI";
         public const string Version = "version";
+        public const string ExpiryTimeUtc = "absolute-expiry-time";
+        
+        public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
+        {
+            { "$.exp", ExpiryTimeUtc },
+            { "$.cid", CorrelationId },
+            { "$.mid", MessageId },
+            { "$.to", To },
+            { "$.uid", UserId },
+            { "ack", Ack }
+        };
     }
 }

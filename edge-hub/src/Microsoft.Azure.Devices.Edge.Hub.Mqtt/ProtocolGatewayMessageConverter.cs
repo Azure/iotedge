@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
-    using System;
-    using System.Collections.Generic;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
+    using System;
+    using System.Collections.Generic;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
@@ -28,10 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
 
             var systemProperties = new Dictionary<string, string>();
+            var properties = new Dictionary<string, string>();
             if (sourceMessage.Properties.TryGetValue(TemplateParameters.DeviceIdTemplateParam, out string deviceIdValue))
             {
                 systemProperties[SystemProperties.DeviceId] = deviceIdValue;
-                sourceMessage.Properties.Remove(SystemProperties.DeviceId);
+                sourceMessage.Properties.Remove(TemplateParameters.DeviceIdTemplateParam);
             }
 
             if (sourceMessage.Properties.TryGetValue(SystemProperties.ModuleId, out string moduleIdValue))
@@ -46,8 +47,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 sourceMessage.Properties.Remove(SystemProperties.EndpointId);
             }
 
+            foreach (KeyValuePair<string, string> property in sourceMessage.Properties)
+            {
+                if (SystemProperties.IncomingSystemPropertiesMap.TryGetValue(property.Key, out string systemPropertyName))
+                {
+                    systemProperties.Add(systemPropertyName, property.Value);
+                }
+                else
+                {
+                    properties.Add(property.Key, property.Value);
+                }
+            }
+
             MqttMessage hubMessage = new MqttMessage.Builder(payloadBytes)
-                .SetProperties(sourceMessage.Properties)
+                .SetProperties(properties)
                 .SetSystemProperties(systemProperties)
                 .Build();
             return hubMessage;

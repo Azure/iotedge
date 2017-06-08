@@ -2,13 +2,15 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using Microsoft.Azure.Devices.Client.Common;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.ProtocolGateway;
+    using static System.FormattableString;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     /// <summary>
@@ -37,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Preconditions.CheckArgument(configuration.OutboundTemplates.Count > 0);
 
             this.inboundTable = (from template in configuration.InboundTemplates
-                select new UriPathTemplate(template)).ToList();
+                                 select new UriPathTemplate(template)).ToList();
 
             this.outboundTemplateMap = new Dictionary<string, UriPathTemplate>();
             foreach (KeyValuePair<string, string> kvp in configuration.OutboundTemplates)
@@ -62,6 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 try
                 {
                     address = template.Bind(message.SystemProperties);
+                    if (message.Properties != null && message.Properties.Count > 0)
+                    {
+                        address = Invariant($"{address}/{UrlEncodedDictionarySerializer.Serialize(message.Properties)}/");
+                    }
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -93,13 +99,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 this.logger.LogWarning($"Topic name {message.Address} matches more than one route. Picking first matching route.");
             }
-
-            if (matches.Count > 0)
+            else if (matches.Count == 1)
             {
                 foreach (KeyValuePair<string, string> match in matches[0])
                 {
-                    // todo: this will unconditionally set property values - is it acceptable to overwrite existing value?
-                    message.Properties.Add(match.Key, match.Value);
+                    // If the template has a key called "params" then it contains all the properties set by the user on 
+                    // the sent message in query string format. So get the value and parse it. 
+                    if (match.Key == "params")
+                    {
+                        UrlEncodedDictionarySerializer.Deserialize(match.Value, 0, message.Properties);
+                    }
+                    else
+                    {
+                        message.Properties.Add(match.Key, match.Value);
+                    }
                 }
             }
 
