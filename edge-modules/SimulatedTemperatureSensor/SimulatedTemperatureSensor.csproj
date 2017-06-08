@@ -2,10 +2,22 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <TreatSpecificWarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="docker\x64\Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.ModuleClient" Version="1.2.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0-preview1-final" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.0.0-preview1-final" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.0.0-preview1-final" />
@@ -16,8 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\azure-iot-sdk-csharp-edge\device\Microsoft.Azure.Devices.ModuleClient.NetStandard\Microsoft.Azure.Devices.ModuleClient.NetStandard.csproj" />
-    <ProjectReference Include="..\..\..\azure-iot-sdk-csharp-edge\shared\Microsoft.Azure.Devices.Shared.NetStandard\Microsoft.Azure.Devices.Shared.NetStandard.csproj" />
+    <None Update="config/appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

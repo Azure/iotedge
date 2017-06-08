@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26510.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -71,11 +71,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Util.Test.Common", "edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj", "{840816E2-D691-45B4-9995-0291FB5AADDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Docker", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj", "{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj", "{3B5A4C63-7B33-4E37-9602-29FC8FC7C9C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test.csproj", "{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.Test.csproj", "{6EDCED3D-F7E4-4830-872B-E4D1C24EC591}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{7F52F459-7B00-452B-96AD-D85BA05C3DDC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{7F52F459-7B00-452B-96AD-D85BA05C3DDC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test\Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test.csproj", "{A03ECC50-84E7-49FE-9190-840F8DD64A1B}"
 EndProject
@@ -94,6 +94,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj", "{09391D32-FC84-4532-A658-F2952AFD26AF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.csproj", "{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{578D5330-2F72-44C6-9DB5-C93B3F42C473}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimulatedTemperatureSensor", "edge-modules\SimulatedTemperatureSensor\SimulatedTemperatureSensor.csproj", "{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -185,6 +189,10 @@ Global
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -219,5 +227,6 @@ Global
 		{5CCA3701-7090-47C7-A7FC-BD73C46F2F64} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection
 EndGlobal

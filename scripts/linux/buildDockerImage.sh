@@ -237,6 +237,12 @@ EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
 docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
 [ $? -eq 0 ] || exit $?
 
+# push SimulatedTemperatureSensor image
+EXE_DIR="SimulatedTemperatureSensor"
+EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
+docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+[ $? -eq 0 ] || exit $?
+
 echo "Done Building And Pushing Docker Images"
 
 [ $? -eq 0 ] || exit $?
