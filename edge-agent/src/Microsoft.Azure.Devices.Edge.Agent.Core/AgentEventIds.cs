@@ -10,4 +10,4 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int RestartPlanner = EventIdStart + 300;
         public const int Plan = EventIdStart + 400;
     }
-} 
+}

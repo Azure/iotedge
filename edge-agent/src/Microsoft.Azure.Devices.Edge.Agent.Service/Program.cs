@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Extensions.Configuration;
@@ -81,7 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     while (!cts.Token.IsCancellationRequested)
                     {
                         logger.LogInformation($"Reconciling [scheduled]... [{i}]");
-                        await agent.ReconcileAsync(cts.Token);
+
+                        try
+                        {
+                            await agent.ReconcileAsync(cts.Token);
+                            logger.LogInformation($"Reconciling finished [scheduled]... [{i}]");
+                        }
+                        catch (Exception ex) when (!ex.IsFatal())
+                        {
+                            logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile failed.");
+                        }
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                         i++;
                     }
