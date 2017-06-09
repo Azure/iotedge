@@ -1,82 +1,90 @@
 @echo off
 @setlocal EnableExtensions EnableDelayedExpansion
 
-REM This Script builds all .Net Core Solutions in the repo by recursing through
-REM the repo and finding any *.sln files
-REM This script expects that .Net Core is installed at %AGENT_WORKFOLDER%\dotnet
-REM by a previous step.
+REM This script finds and builds all .NET Core solutions in the repo, and
+REM publishes .NET Core apps to target/publish/.
 
-IF NOT DEFINED BUILD_REPOSITORY_LOCALPATH (
-    SET BUILD_REPOSITORY_LOCALPATH=%~dp0..\..
+if not defined BUILD_REPOSITORY_LOCALPATH (
+    set BUILD_REPOSITORY_LOCALPATH=%~dp0..\..
 )
 
-IF NOT DEFINED AGENT_WORKFOLDER (
-    SET AGENT_WORKFOLDER=%ProgramFiles%
+if not defined AGENT_WORKFOLDER (
+    set AGENT_WORKFOLDER=%ProgramFiles%
 )
 
-IF NOT DEFINED BUILD_BINARIESDIRECTORY (
-    SET BUILD_BINARIESDIRECTORY=%BUILD_REPOSITORY_LOCALPATH%\target
+if not defined BUILD_BINARIESDIRECTORY (
+    set BUILD_BINARIESDIRECTORY=%BUILD_REPOSITORY_LOCALPATH%\target
 )
 
-SET SUFFIX=Microsoft.Azure.*.sln
-SET ANTLRSUFFIX=*.g4
-SET ROOTFOLDER=%BUILD_REPOSITORY_LOCALPATH%
-SET DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
-SET OUTPUT_FOLDER=%BUILD_BINARIESDIRECTORY%
+set SLN_PATTERN=Microsoft.Azure.*.sln
+set CSPROJ_PATTERN=Microsoft.Azure.*.csproj
+set ANTLR_PATTERN=*.g4
+set DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
+set PUBLISH_FOLDER=%BUILD_BINARIESDIRECTORY%\publish
+set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
 
-IF NOT EXIST "%ROOTFOLDER%" (
-    ECHO Error: %ROOTFOLDER% not found
-    EXIT /B 1
+
+if not exist "%BUILD_REPOSITORY_LOCALPATH%" (
+    echo Error: %BUILD_REPOSITORY_LOCALPATH% not found
+    exit /B 1
 )
 
-IF NOT EXIST "%DOTNET_ROOT_PATH%\dotnet.exe" (
-    ECHO Error: %DOTNET_ROOT_PATH%\dotnet.exe not found
-    EXIT /B 1
+if not exist "%DOTNET_ROOT_PATH%\dotnet.exe" (
+    echo Error: %DOTNET_ROOT_PATH%\dotnet.exe not found
+    exit /B 1
 )
 
-IF NOT EXIST "%OUTPUT_FOLDER%" (
-    MKDIR "%OUTPUT_FOLDER%"
-)
+if exist "%BUILD_BINARIESDIRECTORY%" rd /q /s "%BUILD_BINARIESDIRECTORY%"
 
-ECHO Cleaning and restoring all solutions in repo
+echo.
+echo Cleaning and restoring all solutions in repo
+echo.
 
-FOR /R %%f IN (%SUFFIX%) DO (
-    ECHO Cleaning and Restoring packages for solution - %%f
+for /r %%f in (%SLN_PATTERN%) do (
+    echo Cleaning and Restoring packages for solution - %%f
     "%DOTNET_ROOT_PATH%\dotnet" clean %%f
     "%DOTNET_ROOT_PATH%\dotnet" restore %%f
 )
 
-ECHO Generate Antlr code files
-SET JAVACOMMAND=java
-where %JAVACOMMAND%
-if %ERRORLEVEL% NEQ 0 (
-    SET JAVACOMMAND=%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/ikvm.exe
+echo.
+echo Generating Antlr code files
+echo.
+
+set JAVA_COMMAND=java
+where %JAVA_COMMAND% >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    REM Fallback to using IKVM if Java isn't installed. Java is preferred for Antlr codegen
+    REM because it's a lot faster.
+    set "JAVA_COMMAND=%UserProfile%\.nuget\packages\Antlr4.CodeGenerator\4.6.1-beta002\tools\ikvm.exe"
 )
 
-FOR /R %%A IN (%ANTLRSUFFIX%) DO (
-    SET Folder=%%~dpAgenerated
-    ECHO Generating .cs files for - %%A
-
-    IF NOT EXIST "!Folder!" (
-        MKDIR "!Folder!"
-    )
-
-    "%JAVACOMMAND%" -jar "%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar" %%A -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o "!Folder!"
+for /r %%a in (%ANTLR_PATTERN%) do (
+    set GENERATED_PATH=%%~dpagenerated
+    echo Generating .cs files for - %%a
+    if not exist "!GENERATED_PATH!" mkdir "!GENERATED_PATH!"
+    "%JAVA_COMMAND%" -jar "%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar" %%a -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o "!GENERATED_PATH!"
 )
 
-ECHO Building all solutions in repo
+echo.
+echo Building all solutions in repo
+echo.
 
-SET RES=0
-IF EXIST %OUTPUT_FOLDER% RD /q /s %OUTPUT_FOLDER%
-FOR /R %%f IN (%SUFFIX%) DO (
-    ECHO Building Solution - %%f
-    "%DOTNET_ROOT_PATH%\dotnet" build %%f -o "%OUTPUT_FOLDER%"
-    IF %ERRORLEVEL% NEQ 0 (
-        SET RES=1
-    )
+for /r %%f in (%SLN_PATTERN%) do (
+    echo Building Solution - %%f
+    "%DOTNET_ROOT_PATH%\dotnet" build -o "%BUILD_BINARIESDIRECTORY%" %%f
+    if !ERRORLEVEL! neq 0 exit /b 1
 )
 
-EXIT /B %RES%
+echo.
+echo Publishing .NET Core apps
+echo.
 
-:echoError
-ECHO %*
+for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_PATTERN%`) do (
+    echo Publishing Solution - %%f
+    for %%i in ("%%f") do set PROJ_NAME=%%~ni
+    "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
+    if !ERRORLEVEL! neq 0 exit /b 1
+)
+
+echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker"
+xcopy /s %SRC_DOCKER_DIR% %PUBLISH_FOLDER%

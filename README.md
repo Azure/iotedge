@@ -9,9 +9,9 @@ Make sure the following dependencies are installed in your environment before yo
 | Dependency        | Notes                |
 |-------------------|----------------------|
 | .NET Core 2.0     | Installation instructions [here](https://www.microsoft.com/net/core/preview). |
-| Java              | JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
+| Java              | Not needed if building in VS IDE (Windows). Otherwise, JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
 
-You can build by running the build script:
+Besides using Visual Studio IDE in Windows, you can build by running the build script:
 
 ### Linux
 ```
@@ -23,11 +23,11 @@ scripts/linux/buildBranch.sh
 scripts\windows\buildBranch.bat
 ```
 
-Binaries are published to `target/publish`.
+Binaries are published to `target/publish/`.
 
 ## Run unit tests
 
-You can run the unit tests with:
+Besides using Test Explorer in Visual Studio IDE, you can run the unit tests with:
 
 ### Linux
 ```
@@ -50,7 +50,7 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 | Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/) |
 | Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
 
-Our integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
+The integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
 
 ### Linux
 ```
@@ -75,7 +75,7 @@ powershell scripts\windows\DownloadAndInstallCertificate.ps1 <VaultName> <Certif
 | VaultName   | KeyVault name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
 | CertName    | Certificate name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
 
-Then run the tests with:
+Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
 ### Linux
 ```
