@@ -129,7 +129,7 @@ process_args()
             print_help_and_exit
         fi
     fi
-    
+
     if [[ -z ${BUILD_BINARIESDIRECTORY} ]] || [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
         echo "Bin directory does not exist or is invalid"
         print_help_and_exit
@@ -216,7 +216,7 @@ fi
 # push edge-runtime dotnet image
 if [ $SKIP_RUNTIME -eq 0 ]; then
     EXE_DIR="dotnet-runtime"
-    EXE_DOCKER_DIR=$PUBLISH_DIR/docker/$EXE_DIR/latest
+    EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
     DOTNET_BUILD_ARG=""
     if [[ ! -z ${DOTNET_DOWNLOAD_URL} ]]; then
         DOTNET_BUILD_ARG="--build-arg DOTNET_DOWNLOAD_URL=$DOTNET_DOWNLOAD_URL"
@@ -228,19 +228,22 @@ fi
 # push edge-agent image
 EXE_DIR="Microsoft.Azure.Devices.Edge.Agent.Service"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
-docker_build_and_tag_and_push edge-agent "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+DOTNET_BUILD_ARG="--build-arg EXE_DIR=."
+docker_build_and_tag_and_push edge-agent "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "$DOTNET_BUILD_ARG"
 [ $? -eq 0 ] || exit $?
 
 # push edge-hub image
 EXE_DIR="Microsoft.Azure.Devices.Edge.Hub.Service"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
-docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+DOTNET_BUILD_ARG="--build-arg EXE_DIR=."
+docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "$DOTNET_BUILD_ARG"
 [ $? -eq 0 ] || exit $?
 
 # push SimulatedTemperatureSensor image
 EXE_DIR="SimulatedTemperatureSensor"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
-docker_build_and_tag_and_push simulated-temperature-sensor "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+DOTNET_BUILD_ARG="--build-arg EXE_DIR=."
+docker_build_and_tag_and_push simulated-temperature-sensor "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "$DOTNET_BUILD_ARG"
 [ $? -eq 0 ] || exit $?
 
 echo "Done Building And Pushing Docker Images"
