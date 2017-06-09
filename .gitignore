@@ -106,7 +106,6 @@ Commit: 5130d9a5060fcaed8f7458a8717b5573f5562774
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-x64/
 x86/
 bld/
 _logs/
