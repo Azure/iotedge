@@ -82,6 +82,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{DB969106-709B-428B-A6E5-B86E44ADFED2}"
 	ProjectSection(SolutionItems) = preProject
 		scripts\windows\buildBranch.bat = scripts\windows\buildBranch.bat
+		scripts\windows\buildDockerImage.ps1 = scripts\windows\buildDockerImage.ps1
 		scripts\windows\DownloadAndInstallCertificate.ps1 = scripts\windows\DownloadAndInstallCertificate.ps1
 		scripts\windows\installPrereqs.ps1 = scripts\windows\installPrereqs.ps1
 		scripts\windows\runTests.bat = scripts\windows\runTests.bat

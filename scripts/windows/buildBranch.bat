@@ -17,12 +17,11 @@ if not defined BUILD_BINARIESDIRECTORY (
 )
 
 set SLN_PATTERN=Microsoft.Azure.*.sln
-set CSPROJ_PATTERN=Microsoft.Azure.*.csproj
+set CSPROJ_PATTERN=*.csproj
 set ANTLR_PATTERN=*.g4
 set DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 set PUBLISH_FOLDER=%BUILD_BINARIESDIRECTORY%\publish
 set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
-
 
 if not exist "%BUILD_REPOSITORY_LOCALPATH%" (
     echo Error: %BUILD_REPOSITORY_LOCALPATH% not found
@@ -86,5 +85,5 @@ for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_
     if !ERRORLEVEL! neq 0 exit /b 1
 )
 
-echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker"
+echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker
 xcopy /s %SRC_DOCKER_DIR% %PUBLISH_FOLDER%

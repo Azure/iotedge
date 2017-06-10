@@ -11,14 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="docker\x64\Dockerfile">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="docker\armv7hf\Dockerfile">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always">
+        <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
   </ItemGroup>
 
