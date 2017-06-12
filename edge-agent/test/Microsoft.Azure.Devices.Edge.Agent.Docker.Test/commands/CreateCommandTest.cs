@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using Binding = Microsoft.Azure.Devices.Edge.Agent.Docker.PortBinding;
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -39,7 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // ensure image has been pulled
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
-                    var config = new DockerConfig(Image, Tag, new[] { new Binding("80", "8080", PortBindingType.Tcp) } );
+                    var config = new DockerConfig(Image, Tag,
+                        new[] { new Binding("80", "8080", PortBindingType.Tcp) },
+                        new Dictionary<string, string>()
+                        {
+                            { "k1", "v1" },
+                            { "k2", "v2" }
+                        });
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
                     var command = new CreateCommand(Client, module);
 
@@ -51,6 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
                     Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);
+
+                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=')[0], s => s.Split('=')[1]);
+                    Assert.Equal("v1", envMap["k1"]);
+                    Assert.Equal("v2", envMap["k2"]);
                 }
             }
             finally

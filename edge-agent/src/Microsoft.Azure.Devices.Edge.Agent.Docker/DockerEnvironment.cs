@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Binding = global::Docker.DotNet.Models.PortBinding;
+    using System;
 
     public class DockerEnvironment : IEnvironment
     {
@@ -56,9 +57,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string tag = imageParts.Length > 1 ? imageParts[1] : "latest";
 
             ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
-            IEnumerable<PortBinding> portBindings = inspected?.HostConfig?.PortBindings?.SelectMany(p => ToPortBinding(p.Key, p.Value)) ?? ImmutableList<PortBinding>.Empty;
+            IEnumerable<PortBinding> portBindings = inspected
+                ?.HostConfig
+                ?.PortBindings
+                ?.SelectMany(p => ToPortBinding(p.Key, p.Value)) ?? ImmutableList<PortBinding>.Empty;
 
-            var config = new DockerConfig(image, tag, portBindings);
+            IDictionary<string, string> env = inspected
+                ?.Config
+                ?.Env
+                ?.ToDictionary('=') ?? ImmutableDictionary<string, string>.Empty;
+
+            var config = new DockerConfig(image, tag, portBindings, env);
             return new DockerModule(name, version, status, config);
         }
 

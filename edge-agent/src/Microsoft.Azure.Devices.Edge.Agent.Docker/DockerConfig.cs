@@ -74,6 +74,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
         }
 
+        bool EnvEquals(DockerConfig other)
+        {
+            // we consider this configuration as equal to the other one in terms
+            // of environment variables if all of the env vars included in this
+            // config match wih the env vars in the other; i.e., it is ok for the
+            // list of env vars included in this instance to be a subset of the
+            // env vars in the other instance
+
+            // we get the list of elements in one set that are NOT in the other set;
+            // if that list has any elements then set1 is not a subset of set2
+            return this.Env.Except(other.Env).Any() == false;
+        }
+
         public bool Equals(DockerConfig other)
         {
             if (ReferenceEquals(null, other))
@@ -88,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return string.Equals(this.Image, other.Image) &&
                    string.Equals(this.Tag, other.Tag) &&
                    this.PortBindings.SetEquals(other.PortBindings) &&
-                   this.Env.Equals(other.Env);
+                   this.EnvEquals(other);
         }
 
         class DockerConfigJsonConverter : JsonConverter

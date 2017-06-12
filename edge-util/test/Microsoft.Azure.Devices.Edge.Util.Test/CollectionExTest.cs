@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using System;
 
     [Unit]
     public class CollectionExTest
@@ -58,6 +59,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             string str = dictionary.ToLogString();
             Assert.Equal("(k1, v1), (k2, v2)", str);
+        }
+
+        [Fact]
+        public void TestToDictionaryFromStrings()
+        {
+            var stringsList = new List<string>()
+            {
+                "k1=v1",
+                "k2=v2",
+                "key 3  =  this is a value"
+            };
+
+            var dictionary = stringsList.ToDictionary('=');
+
+            Assert.NotNull(dictionary);
+            Assert.Equal(3, dictionary.Count);
+            Assert.Equal(dictionary["k1"], "v1");
+            Assert.Equal(dictionary["k2"], "v2");
+            Assert.Equal(dictionary["key 3  "], "  this is a value");
+        }
+
+        [Fact]
+        public void TestToDictionaryFromStringsThrows()
+        {
+            var stringsList = new List<string>()
+            {
+                "k1=v1",
+                "key 3 this is a value"
+            };
+
+            Assert.Throws<FormatException>(() => stringsList.ToDictionary('='));
         }
     }
 }

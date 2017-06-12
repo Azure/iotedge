@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using System.Collections.Generic;
 
     [Collection("Docker")]
     public class DockerEnvironmentTest
@@ -68,6 +69,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.Equal(1, modules.Modules.Count);
                     Assert.Equal(module.Name, modules.Modules.First().Value.Name);
+                }
+            }
+            finally
+            {
+                await Client.CleanupContainerAsync(Name, Image);
+                await Client.CleanupContainerAsync("test-filters-external", Image);
+            }
+        }
+
+        [Fact]
+        [Integration]
+        public async Task TestEnvVars()
+        {
+            const string Image = "hello-world";
+            const string Tag = "latest";
+            const string Name = "test-env";
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(Timeout))
+                {
+                    await Client.CleanupContainerAsync(Name, Image);
+
+                    var config = new DockerConfig(Image, Tag, new Dictionary<string, string>()
+                    {
+                        { "k1", "v1" },
+                        { "k2", "v2" }
+                    });
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+                    var create = new CreateCommand(Client, module);
+
+                    await Client.PullImageAsync(Image, Tag, cts.Token);
+
+                    // create module using command
+                    await create.ExecuteAsync(cts.Token);
+
+                    // check that the environment variables are being returned
+                    var environment = new DockerEnvironment(Client);
+                    ModuleSet modules = await environment.GetModulesAsync(cts.Token);
+                    Assert.NotNull(modules.Modules[Name]);
+                    Assert.Equal(((DockerModule)modules.Modules[Name]).Config.Env["k1"], "v1");
+                    Assert.Equal(((DockerModule)modules.Modules[Name]).Config.Env["k2"], "v2");
                 }
             }
             finally

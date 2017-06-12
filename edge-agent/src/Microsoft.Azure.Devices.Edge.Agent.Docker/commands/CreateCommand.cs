@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                     { "owner", Constants.Owner },
                 },
                 Image = this.module.Config.Image + ":" + this.module.Config.Tag,
+                Env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList()
             };
             ApplyPortBindings(parameters, this.module);
             await this.client.Containers.CreateContainerAsync(parameters);
@@ -40,7 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker create {ShowPortBindings(this.module.Config.PortBindings)} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
+        public string Show() => $"docker create {ShowPortBindings(this.module.Config.PortBindings)} {ShowEnvVars(this.module.Config.Env)} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
+
+        static string ShowEnvVars(IDictionary<string, string> env) => string.Join(" ", env.Select(kvp => $"--env \"{kvp.Key}={kvp.Value}\""));
 
         static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
 

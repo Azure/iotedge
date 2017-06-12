@@ -54,5 +54,32 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         public static string ToLogString<TKey, TValue>(this IDictionary<TKey, TValue> dictionary) =>
             string.Join(", ", dictionary.Select(kvp => $"({kvp.Key}, {kvp.Value})"));
+
+        /// <summary>
+        /// Transforms a list of strings into a dictionary by using the provided list of separators
+        /// as delimiters for each string in the source list to split it into keys and values.
+        /// </summary>
+        /// <param name="strings">The source list of strings.</param>
+        /// <param name="separators">Collection of separator characters to use as string delimiters.</param>
+        /// <returns>An <see cref="IDictionary{string, string}"/> containing the keys/values parsed
+        /// using the list of separators as delimiters.</returns>
+        public static IDictionary<string, string> ToDictionary(this IEnumerable<string> strings, params char[] separators)
+        {
+            var dictionary = new Dictionary<string, string>();
+            foreach (string str in strings)
+            {
+                string[] tokens = str.Split(separators);
+                if (tokens.Length == 2)
+                {
+                    dictionary.Add(tokens[0], tokens[1]);
+                }
+                else
+                {
+                    throw new FormatException($"Invalid string format found: {str}");
+                }
+            }
+
+            return dictionary;
+        }
     }
 }
