@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task SetupDesiredPropertyUpdatesAsync()
         {
-            return this.deviceClient.SetDesiredPropertyUpdateCallback(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
+            return this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
         }
 
         public Task RemoveDesiredPropertyUpdatesAsync()

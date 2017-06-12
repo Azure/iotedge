@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.2.12" />
+    <PackageReference Include="Microsoft.Azure.Devices.ModuleClient" Version="1.2.11" />
   </ItemGroup>
 
   <ItemGroup>
