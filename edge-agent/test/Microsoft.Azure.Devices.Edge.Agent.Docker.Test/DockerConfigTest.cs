@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [ExcludeFromCodeCoverage]
     public class DockerConfigTest
     {
-
         static readonly DockerConfig Config1 = new DockerConfig("image1", "42");
         static readonly DockerConfig Config2 = new DockerConfig("image2", "42");
         static readonly DockerConfig Config3 = new DockerConfig("image1", "42");
@@ -22,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config7 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp) });
         static readonly DockerConfig Config8 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
         static readonly DockerConfig Config9 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("42", "42", PortBindingType.Tcp), new PortBinding("43", "43", PortBindingType.Udp) });
-
 
         [Fact]
         [Unit]

@@ -60,7 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-
                 using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
                 {
                     Agent agent = await container.Resolve<Task<Agent>>();

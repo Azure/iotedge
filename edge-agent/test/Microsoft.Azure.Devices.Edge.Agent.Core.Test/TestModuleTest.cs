@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+    using Newtonsoft.Json.Linq;
+    using System.Linq;
+    using System.Collections.Generic;
 
     [ExcludeFromCodeCoverage]
     public class TestModuleTest
@@ -27,6 +30,115 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
         static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
+
+        static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
+{
+  ""validJson"": [
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""running"",
+      ""Config"": {
+        ""Image"": ""image1""
+      }
+    },
+    {
+      ""name"": ""<module_name>"",
+      ""version"": ""<semantic_version_number>"",
+      ""type"": ""docker"",
+      ""status"": ""running"",
+      ""config"": {
+        ""image"": ""image1""
+      }
+    },
+    {
+      ""NAME"": ""<module_name>"",
+      ""VERSION"": ""<semantic_version_number>"",
+      ""TYPE"": ""docker"",
+      ""STATUS"": ""RUNNING"",
+      ""CONFIG"": {
+        ""IMAGE"": ""image1""
+      }
+    }
+  ],
+  ""statusJson"": [
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""stopped"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""Unknown"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    }
+  ],
+  ""throwsException"": [
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""running"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Type"": ""docker"",
+      ""Status"": ""running"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Status"": ""running"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""running""
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""running"",
+      ""Config"": {}
+    },
+    {
+      ""Name"": ""<module_name>"",
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""<bad_status>"",
+      ""Config"": {
+        ""Image"": ""<docker_image_name>""
+      }
+    }
+  ]
+}");
 
         [Fact]
         [Unit]
@@ -74,45 +186,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.False(Config1.Equals(null));
         }
 
+        static IEnumerable<string> GetJsonTestCases(string subset)
+        {
+            JArray val = (JArray)TestJsonInputs.GetValue(subset);
+            return val.Children().Select(token => token.ToString());
+        }
+
+        static IEnumerable<object[]> GetValidJsonInputs()
+        {
+            return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        static IEnumerable<object[]> GetExceptionJsonInputs()
+        {
+            return GetJsonTestCases("throwsException").Select(s => new object[] { s });
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidJsonInputs))]
+        public void TestDeserializeValidJson(string inputJson)
+        {
+            TestModule module = ModuleSerde.Instance.Deserialize<TestModule>(inputJson);
+            Assert.True(ValidJsonModule.Equals(module));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetExceptionJsonInputs))]
+        public void TestDeserializeExceptionJson(string inputJson)
+        {
+            Assert.Throws<JsonSerializationException>(() => ModuleSerde.Instance.Deserialize<TestModule>(inputJson));
+        }
+
         [Fact]
         [Unit]
-        public void TestDeserialize()
+        public void TestDeserializeStatusJson()
         {
-            string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
-            string validJsonAllLower = "{\"name\":\"<module_name>\",\"version\":\"<semantic_version_number>\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
-            string validJsonAllCap = "{\"NAME\":\"<module_name>\",\"VERSION\":\"<semantic_version_number>\",\"TYPE\":\"docker\",\"STATUS\":\"RUNNING\",\"CONFIG\":{\"IMAGE\":\"image1\"}}";
-
-            string noNameson = "{\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string noVersionJson = "{\"Name\":\"<module_name>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string noTypeJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Status\":\"running\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string noStatusJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string noConfigJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\"}";
-            string noConfigImageJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{}}";
-            string validJsonStatusStopped = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"stopped\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string validJsonStatusUnknown = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"Unknown\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-            string invalidJsonStatus = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"<bad_status>\",\"Config\":{\"Image\":\"<docker_image_name>\"}}";
-
-
-            ModuleSerde myModuleSerde = ModuleSerde.Instance;
-
-            var myModule1 = myModuleSerde.Deserialize<TestModule>(validJson);
-            var myModule2 = myModuleSerde.Deserialize<TestModule>(validJsonAllLower);
-            var myModule3 = myModuleSerde.Deserialize<TestModule>(validJsonAllCap);
-
-            Assert.True(ValidJsonModule.Equals(myModule1));
-            Assert.True(ValidJsonModule.Equals(myModule2));
-            Assert.True(ValidJsonModule.Equals(myModule3));
-
-            Assert.Equal(ModuleStatus.Stopped, myModuleSerde.Deserialize<TestModule>(validJsonStatusStopped).Status);
-            Assert.Equal(ModuleStatus.Unknown, myModuleSerde.Deserialize<TestModule>(validJsonStatusUnknown).Status);
-
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noStatusJson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noNameson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noVersionJson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noTypeJson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noConfigJson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(noConfigImageJson));
-            Assert.Throws<JsonSerializationException>(() => myModuleSerde.Deserialize<TestModule>(invalidJsonStatus));
+            string[] statusJsons = GetJsonTestCases("statusJson").ToArray();
+            Assert.Equal(ModuleStatus.Stopped, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[0]).Status);
+            Assert.Equal(ModuleStatus.Unknown, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[1]).Status);
         }
 
         [Fact]
@@ -121,20 +234,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             string validJson = "{\"Name\":\"<module_name>\",\"Version\":\"<semantic_version_number>\",\"Type\":\"docker\",\"Status\":\"running\",\"Config\":{\"Image\":\"image1\"}}";
 
-            ModuleSerde myModuleSerde = ModuleSerde.Instance;
-
-            Assert.ThrowsAny<JsonException>(() => myModuleSerde.Deserialize(validJson));
+            Assert.ThrowsAny<JsonException>(() => ModuleSerde.Instance.Deserialize(validJson));
         }
 
         [Fact]
         [Unit]
         public void TestSerialize()
         {
-            ModuleSerde myModuleSerde = ModuleSerde.Instance;
-            string jsonFromTestModule = myModuleSerde.Serialize(Module8);
-            var myModule = myModuleSerde.Deserialize<TestModule>(jsonFromTestModule);
-            IModule moduleFromSerializedModule = myModuleSerde.Deserialize<TestModule>(serializedModule);
-
+            string jsonFromTestModule = ModuleSerde.Instance.Serialize(Module8);
+            var myModule = ModuleSerde.Instance.Deserialize<TestModule>(jsonFromTestModule);
+            IModule moduleFromSerializedModule = ModuleSerde.Instance.Deserialize<TestModule>(serializedModule);
 
             Assert.True(Module8.Equals(myModule));
             Assert.True(moduleFromSerializedModule.Equals(Module8));

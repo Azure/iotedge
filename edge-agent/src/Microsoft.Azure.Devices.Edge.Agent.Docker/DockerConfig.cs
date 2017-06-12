@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using System.Linq;
 
     [JsonConverter(typeof(DockerConfigJsonConverter))]
-    // TODO add PortBindings to equality check
     public class DockerConfig : IEquatable<DockerConfig>
     {
         [JsonProperty(Required = Required.Always, PropertyName = "image")]
@@ -22,17 +22,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required =  Required.AllowNull, PropertyName = "portbindings")]
         public ISet<PortBinding> PortBindings { get; }
 
+        [JsonProperty(Required =  Required.AllowNull, PropertyName = "env")]
+        public IDictionary<string, string> Env { get; }
+
         public DockerConfig(string image, string tag)
-            : this(image, tag, ImmutableHashSet<PortBinding>.Empty)
+            : this(image, tag, ImmutableHashSet<PortBinding>.Empty,
+                ImmutableDictionary<string, string>.Empty)
+        {
+        }
+
+        public DockerConfig(
+            string image,
+            string tag,
+            IEnumerable<PortBinding> portBindings)
+            : this(image, tag, portBindings, ImmutableDictionary<string, string>.Empty)
+        {
+        }
+
+        public DockerConfig(
+            string image,
+            string tag,
+            IDictionary<string, string> environmentVariables)
+            : this(image, tag, ImmutableHashSet<PortBinding>.Empty, environmentVariables)
         {
         }
 
         [JsonConstructor]
-        public DockerConfig(string image, string tag, IEnumerable<PortBinding> portBindings)
+        public DockerConfig(
+            string image,
+            string tag,
+            IEnumerable<PortBinding> portBindings,
+            IDictionary<string, string> environmentVariables)
         {
             this.Image = Preconditions.CheckNotNull(image, nameof(image));
             this.Tag = Preconditions.CheckNotNull(tag, nameof(tag));
             this.PortBindings = portBindings?.ToImmutableHashSet() ?? ImmutableHashSet<PortBinding>.Empty;
+            this.Env = environmentVariables?.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
@@ -42,8 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             unchecked
             {
                 int hashCode = (this.Image != null ? this.Image.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Tag != null ? this.Tag.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.PortBindings != null ? this.PortBindings.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.Tag.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.PortBindings?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.Env?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }
@@ -61,7 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             return string.Equals(this.Image, other.Image) &&
                    string.Equals(this.Tag, other.Tag) &&
-                   this.PortBindings.SetEquals(other.PortBindings);
+                   this.PortBindings.SetEquals(other.PortBindings) &&
+                   this.Env.Equals(other.Env);
         }
 
         class DockerConfigJsonConverter : JsonConverter
@@ -78,17 +105,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("tag");
                 serializer.Serialize(writer, dockerconfig.Tag);
 
-                var portBindings = new Dictionary<string, PortBinding>();
+                writer.WritePropertyName("env");
+                serializer.Serialize(writer, dockerconfig.Env);
 
-                foreach (PortBinding portBinding in dockerconfig.PortBindings)
-                {
-                    portBindings.Add($"{portBinding.From}/{portBinding.Type.ToString().ToLower()}", portBinding);
-                }
-
-                if (portBindings.Count != 0)
+                if(dockerconfig.PortBindings.Count > 0)
                 {
                     writer.WritePropertyName("portbindings");
-                    serializer.Serialize(writer, portBindings);
+                    IDictionary<string, PortBinding> portBindingsMap = dockerconfig
+                        .PortBindings.ToImmutableDictionary(pb => $"{pb.From}/{pb.Type.ToString().ToLower()}");
+                    serializer.Serialize(writer, portBindingsMap);
                 }
 
                 writer.WriteEndObject();
@@ -97,20 +122,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
                 JObject obj = JObject.Load(reader);
-                string dockerImage = obj.Get<string>("image");
-                string dockerTag = obj.Get<string>("tag");
+                string image = obj.Get<string>("image");
+                string tag = obj.Get<string>("tag");
 
-                var portBindings = new List<PortBinding>();
-                //portbindings is option in our JSON. So, just fill portBindings List if there are values.
+                // De-serialize optional port maps.
+                IList<PortBinding> portBindings = null;
                 if (obj.TryGetValue("portbindings", StringComparison.OrdinalIgnoreCase, out JToken dockerPortbindings))
                 {
+                    portBindings = new List<PortBinding>();
                     foreach (JToken portBindingValue in dockerPortbindings.Values())
                     {
-                        portBindings.Add(JsonConvert.DeserializeObject<PortBinding>(portBindingValue.ToString()));
+                        portBindings.Add(portBindingValue.ToObject<PortBinding>());
                     }
                 }
 
-                return new DockerConfig(dockerImage, dockerTag, portBindings);
+                // De-serialize optional environment variables.
+                IDictionary<string, string> env = null;
+                if (obj.TryGetValue("env", StringComparison.OrdinalIgnoreCase, out JToken envMap))
+                {
+                    env = envMap.ToObject<IDictionary<string, string>>();
+                }
+
+                return new DockerConfig(image, tag, portBindings, env);
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);

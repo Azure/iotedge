@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public override int GetHashCode() => this.Image?.GetHashCode() ?? 0;
     }
 
-    public class TestModule : IModule<TestConfig>
+    public class TestModuleBase<TConfig> : IModule<TConfig>
     {
         [JsonProperty(Required = Required.Always, PropertyName = "name")]
         public string Name { get; }
@@ -51,10 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public ModuleStatus Status { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "config")]
-        public TestConfig Config { get; }
+        public TConfig Config { get; }
 
         [JsonConstructor]
-        public TestModule(string name, string version, string type, ModuleStatus status, TestConfig config)
+        public TestModuleBase(string name, string version, string type, ModuleStatus status, TConfig config)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
@@ -63,11 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
         }
 
-        public override bool Equals(object obj) => this.Equals(obj as TestModule);
+        public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
 
-        public bool Equals(IModule other) => this.Equals(other as TestModule);
+        public bool Equals(IModule other) => this.Equals(other as TestModuleBase<TConfig>);
 
-        public bool Equals(IModule<TestConfig> other)
+        public bool Equals(IModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
@@ -91,6 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 return hashCode;
             }
+        }
+    }
+
+    public class TestModule : TestModuleBase<TestConfig>
+    {
+        public TestModule(string name, string version, string type, ModuleStatus status, TestConfig config) : base(name, version, type, status, config)
+        {
         }
     }
 }
