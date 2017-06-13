@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        public void TestToDictionaryFromStrings()
+        public void TestToDictionary()
         {
             var stringsList = new List<string>()
             {
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        public void TestToDictionaryFromStringsThrows()
+        public void TestToDictionaryThrows()
         {
             var stringsList = new List<string>()
             {

@@ -14,19 +14,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Extensions.Configuration;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-    class Program
+    public class Program
     {
         const string ConfigFileName = "appsettings.json";
 
-        public static int Main(string[] args) => MainAsync().Result;
-
-        static async Task<int> MainAsync()
+        public static int Main()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 
+            return MainAsync(configuration).Result;
+        }
+
+        public static async Task<int> MainAsync(IConfigurationRoot configuration)
+        {
             string connectionString = configuration.GetValue<string>("MMAConnectionString");
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
             string configSourceConfig = configuration.GetValue<string>("ConfigSource");

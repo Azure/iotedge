@@ -22,22 +22,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-    class Program
+    public class Program
     {
         const string ConfigFileName = "appsettings.json";
         const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
         const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
 
-        public static int Main() => MainAsync().Result;
-
-        static async Task<int> MainAsync()
+        public static int Main()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddJsonFile(ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 
+            return MainAsync(configuration).Result;
+        }
+
+        public static async Task<int> MainAsync(IConfigurationRoot configuration)
+        {
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
 

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26510.0
+VisualStudioVersion = 15.0.26606.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -96,9 +96,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test\Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.csproj", "{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{578D5330-2F72-44C6-9DB5-C93B3F42C473}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{578D5330-2F72-44C6-9DB5-C93B3F42C473}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimulatedTemperatureSensor", "edge-modules\SimulatedTemperatureSensor\SimulatedTemperatureSensor.csproj", "{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "service", "service", "{024364A6-77BA-4812-A061-5D95016EDCD7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E0809CFF-5FBD-4B0A-B778-8B32C3B470BE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Device.Edge.Service", "edge-service\src\Microsoft.Azure.Device.Edge.Service\Microsoft.Azure.Device.Edge.Service.csproj", "{BCB8B740-A654-46A9-A016-0A91C847778F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -194,6 +200,10 @@ Global
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCB8B740-A654-46A9-A016-0A91C847778F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCB8B740-A654-46A9-A016-0A91C847778F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCB8B740-A654-46A9-A016-0A91C847778F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCB8B740-A654-46A9-A016-0A91C847778F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -229,5 +239,7 @@ Global
 		{09391D32-FC84-4532-A658-F2952AFD26AF} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{F43E5511-49F1-4EF2-8ACB-B38CFB45F4CB} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{592F8A5A-B1C7-4011-9879-B2AEE118DD3F} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{E0809CFF-5FBD-4B0A-B778-8B32C3B470BE} = {024364A6-77BA-4812-A061-5D95016EDCD7}
+		{BCB8B740-A654-46A9-A016-0A91C847778F} = {E0809CFF-5FBD-4B0A-B778-8B32C3B470BE}
 	EndGlobalSection
 EndGlobal
