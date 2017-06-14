@@ -104,7 +104,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "service", "service", "{0243
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E0809CFF-5FBD-4B0A-B778-8B32C3B470BE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Device.Edge.Service", "edge-service\src\Microsoft.Azure.Device.Edge.Service\Microsoft.Azure.Device.Edge.Service.csproj", "{BCB8B740-A654-46A9-A016-0A91C847778F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Service", "edge-service\src\Microsoft.Azure.Devices.Edge.Service\Microsoft.Azure.Devices.Edge.Service.csproj", "{BCB8B740-A654-46A9-A016-0A91C847778F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

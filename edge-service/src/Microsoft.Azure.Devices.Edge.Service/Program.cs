@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.Device.Edge.Service
+﻿namespace Microsoft.Azure.Devices.Edge.Service
 {
     using Microsoft.Extensions.Configuration;
     using System;
