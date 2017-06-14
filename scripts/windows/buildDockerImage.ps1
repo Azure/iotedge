@@ -73,18 +73,24 @@ Function docker_build_and_tag_and_push(
 $EXE_DIR = "Microsoft.Azure.Devices.Edge.Agent.Service"
 $EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
 $DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push edge-agent "$ARCH" "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" "$DOTNET_BUILD_ARG"
+docker_build_and_tag_and_push edge-agent $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
 
 # push edge-hub image
 $EXE_DIR = "Microsoft.Azure.Devices.Edge.Hub.Service"
 $EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
 $DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push edge-hub "$ARCH" "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" "$DOTNET_BUILD_ARG"
+docker_build_and_tag_and_push edge-hub $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
+
+# push edge-service image
+$EXE_DIR = "Microsoft.Azure.Devices.Edge.Service"
+$EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
+$DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
+docker_build_and_tag_and_push edge-service $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
 
 # push SimulatedTemperatureSensor image
 $EXE_DIR = "SimulatedTemperatureSensor"
 $EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
 $DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push simulated-temperature-sensor "$ARCH" "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" "$DOTNET_BUILD_ARG"
+docker_build_and_tag_and_push simulated-temperature-sensor $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
 
 echo "Done Building And Pushing Docker Images"
