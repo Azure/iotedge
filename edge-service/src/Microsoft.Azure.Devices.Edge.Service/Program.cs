@@ -1,7 +1,6 @@
 ﻿namespace Microsoft.Azure.Devices.Edge.Service
 {
     using Microsoft.Extensions.Configuration;
-    using System;
     using System.Linq;
     using System.Threading.Tasks;
     using AgentService = Microsoft.Azure.Devices.Edge.Agent.Service.Program;

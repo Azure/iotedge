@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
+namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
     using System.Security.Cryptography;
@@ -8,10 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     public static class TokenHelper
     {
-        public static string CreateSasToken(string resourceUri, string key = null)
+        public static string CreateSasToken(string resourceUri, string key = null, bool expired = false)
         {
-            key = key ?? GetRandomKey();
-            TimeSpan sinceEpoch = new DateTime(2020, 1, 1) - new DateTime(1970, 1, 1);
+            key = key ?? GetRandomKey();            
+            TimeSpan sinceEpoch = (expired ? new DateTime(2010, 1, 1) : new DateTime(2020, 1, 1)) - new DateTime(1970, 1, 1);
             string expiry = Convert.ToString((int)sinceEpoch.TotalSeconds);
             string stringToSign = HttpUtility.UrlEncode(resourceUri) + "\n" + expiry;
             var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));

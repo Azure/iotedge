@@ -16,5 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task ProcessDeviceMessage(IIdentity identity, IMessage message);
 
         Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> message);
+
+        Task<DirectMethodResponse> InvokeMethodAsync(IIdentity identity, DirectMethodRequest methodRequest);
+
+        Task SendMethodResponseAsync(DirectMethodResponse response);
     }
 }

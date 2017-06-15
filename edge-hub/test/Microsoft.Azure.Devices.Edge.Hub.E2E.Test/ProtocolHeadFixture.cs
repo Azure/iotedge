@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
+    using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
 
     public class ProtocolHeadFixture : IDisposable
     {
@@ -77,7 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
-            builder.RegisterModule(new MqttModule(certificate, topics, iothubHostname, DeviceId));
+            builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
+            builder.RegisterModule(new MqttModule(topics));
             builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, this.routes));
 
             // Register ISessionStatePersistenceProvider to capture connectionManager
@@ -110,13 +113,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                             id =>
                             {
                                 deviceidentity = id;
-                                var identity = deviceidentity as Identity;
+                                var identity = (deviceidentity as ProtocolGatewayIdentity).Identity;
                                 deviceListener.Setup(p => p.Identity).Returns(identity);
                                 deviceListener.Setup(p => p.BindDeviceProxy(It.IsAny<IDeviceProxy>())).Callback<IDeviceProxy>(
                                     async deviceProxy =>
                                     {
                                         Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(identity);
-                                        ICloudListener cloudListener = new CloudListener(deviceProxy);
+                                        ICloudListener cloudListener = new CloudListener(deviceProxy, edgeHub, identity);
                                         cloudProxy.Value.BindCloudListener(cloudListener);
                                         connectionManager.AddDeviceConnection(identity, deviceProxy);
                                     });
@@ -134,8 +137,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             IContainer container = builder.Build();
 
-            using (IProtocolHead protocolHead = await container.Resolve<Task<IProtocolHead>>())
-            {
+            IMqttConnectionProvider mqttConnectionProvider = await container.Resolve<Task<IMqttConnectionProvider>>();
+            using (IProtocolHead protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>()))
+            {                
                 await protocolHead.StartAsync();
             }
 

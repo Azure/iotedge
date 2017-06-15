@@ -1,0 +1,57 @@
+﻿// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Hub.Http
+{
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.Mvc.Filters;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using System;
+    using System.Net;
+
+    public class ExceptionFilter : IExceptionFilter
+    {
+        public void OnException(ExceptionContext context)
+        {
+            switch (context.Exception)
+            {
+                case ArgumentException argEx:
+                    Events.ArgumentException(context);
+                    context.Result = new ObjectResult(argEx.Message)
+                    {
+                        StatusCode = (int)HttpStatusCode.BadRequest
+                    };
+                    break;
+
+                default:
+                    Events.UnknownException(context);
+                    context.Result = new ObjectResult(context.Exception)
+                    {
+                        StatusCode = (int)HttpStatusCode.InternalServerError
+                    };
+                    break;
+            }
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ExceptionFilter>();
+            const int IdStart = HttpEventIds.ExceptionFilter;
+
+            enum EventIds
+            {
+                ArgumentException = IdStart,
+                UnknownException
+            }
+
+            public static void ArgumentException(ExceptionContext context)
+            {
+                Log.LogInformation((int)EventIds.ArgumentException, $"Exception filter got ArgumentException - {context.Exception}");
+            }
+
+            public static void UnknownException(ExceptionContext context)
+            {
+                Log.LogInformation((int)EventIds.UnknownException, $"Exception filter got unknown exception - {context.Exception}");
+            }
+        }
+    }
+}

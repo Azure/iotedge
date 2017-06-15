@@ -10,6 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task OnDesiredPropertyUpdates(IMessage desiredProperties);
 
-        Task CallMethodAsync(DirectMethodRequest request);
+        Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request);
     }
 }

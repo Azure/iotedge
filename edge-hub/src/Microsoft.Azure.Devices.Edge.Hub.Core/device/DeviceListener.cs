@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
-        public Task ProcessMethodResponseAsync(DirectMethodResponse response) => this.cloudProxy.SendMethodResponseAsync(response);
+        public Task ProcessMethodResponseAsync(DirectMethodResponse response) => this.edgeHub.SendMethodResponseAsync(response);
 
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
-            ICloudListener cloudListener = new CloudListener(deviceProxy);
+            ICloudListener cloudListener = new CloudListener(deviceProxy, this.edgeHub, this.Identity);
             this.cloudProxy.BindCloudListener(cloudListener);
             this.connectionManager.AddDeviceConnection(this.Identity, deviceProxy);
             Events.BindDeviceProxy(this.Identity);

@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
             var routerConfig = new RouterConfig(endpoints, routesList);
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, new SyncEndpointExecutorFactory(endpointExecutorConfig));
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager);
             return (edgeHub, connectionManager);
         }
 
@@ -298,19 +298,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             return new Message(messageBody, properties, systemProperties);
         }
 
-        static IDeviceIdentity SetupDeviceIdentity(string deviceId) => Mock.Of<IDeviceIdentity>(
-            m =>
-                m.DeviceId == deviceId &&
-                m.ConnectionString == Guid.NewGuid().ToString() &&
-                m.Id == deviceId
-        );
+        static IDeviceIdentity SetupDeviceIdentity(string deviceId) => new DeviceIdentity(
+            "",
+            deviceId,
+            Guid.NewGuid().ToString(),
+            AuthenticationScope.SasToken,
+            null,
+            "");
 
-        static IModuleIdentity SetupModuleIdentity(string moduleId, string deviceId) => Mock.Of<IModuleIdentity>(
-            m =>
-                m.DeviceId == deviceId &&
-                m.ModuleId == moduleId &&
-                m.ConnectionString == Guid.NewGuid().ToString() &&
-                m.Id == $"{deviceId}/{moduleId}"
-        );
+        static IModuleIdentity SetupModuleIdentity(string moduleId, string deviceId) => new ModuleIdentity(
+            "",
+            deviceId,
+            moduleId,
+            "",
+            AuthenticationScope.SasToken,
+            null,
+            "");
     }
 }

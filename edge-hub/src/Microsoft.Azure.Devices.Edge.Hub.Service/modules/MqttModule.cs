@@ -15,17 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     public class MqttModule : Module
     {
-        readonly X509Certificate certificate;
         readonly MessageAddressConversionConfiguration conversionConfiguration;
-        readonly string iothubHostname;
-        readonly string deviceId;
-
-        public MqttModule(X509Certificate certificate, MessageAddressConversionConfiguration conversionConfiguration, string iothubHostname, string deviceId)
+        
+        public MqttModule(MessageAddressConversionConfiguration conversionConfiguration)
         {
-            this.certificate = Preconditions.CheckNotNull(certificate, nameof(certificate));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
-            this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -57,18 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 })
                 .As<Task<IMqttConnectionProvider>>()
                 .SingleInstance();
-
-            // IAuthenticator
-            builder.Register(c => new Authenticator(c.Resolve<IConnectionManager>(), this.deviceId))
-                .As<IAuthenticator>()
-                .SingleInstance();
-
+            
             // IIdentityProvider
             builder.Register(
                 c =>
                 {
-                    var identityFactory = new IdentityFactory(this.iothubHostname);
-                    return new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), identityFactory);
+                    return new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>());
                 })
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
@@ -76,17 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // ISessionStatePersistenceProvider
             builder.Register(c => new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>()))
                 .As<ISessionStatePersistenceProvider>()
-                .SingleInstance();
-
-            // IProtocolHead
-            builder.Register(
-                async c =>
-                {
-                    IMqttConnectionProvider connectionProvider = await c.Resolve<Task<IMqttConnectionProvider>>();
-                    IProtocolHead head = new MqttProtocolHead(c.Resolve<ISettingsProvider>(), this.certificate, connectionProvider, c.Resolve<IDeviceIdentityProvider>(), c.Resolve<ISessionStatePersistenceProvider>());
-                    return head;
-                })
-                .As<Task<IProtocolHead>>()
                 .SingleInstance();
 
             base.Load(builder);

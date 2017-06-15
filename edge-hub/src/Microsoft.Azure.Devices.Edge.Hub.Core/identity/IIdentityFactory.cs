@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
@@ -11,10 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     /// </summary>
     public interface IIdentityFactory
     {
-        Try<Identity> GetWithSasToken(string username, string password);
+        Try<IIdentity> GetWithSasToken(string username, string password);
 
-        Try<Identity> GetWithHubKey(string username, string keyName, string keyValue);
+        Try<IIdentity> GetWithHubKey(string username, string keyName, string keyValue);
 
-        Try<Identity> GetWithDeviceKey(string username, string keyValue);
+        Try<IIdentity> GetWithDeviceKey(string username, string keyValue);
     }
 }

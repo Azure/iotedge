@@ -4,17 +4,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class CloudListener : ICloudListener
     {
         readonly IDeviceProxy deviceProxy;
+        readonly IEdgeHub edgeHub;
+        readonly IIdentity identity;
 
-        public CloudListener(IDeviceProxy deviceProxy)
+        public CloudListener(IDeviceProxy deviceProxy, IEdgeHub edgeHub, IIdentity identity)
         {
-            this.deviceProxy = deviceProxy;
+            this.deviceProxy = Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
+            this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
+            this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
         }
 
-        public Task CallMethodAsync(DirectMethodRequest request) => this.deviceProxy.CallMethodAsync(request);
+        public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.edgeHub.InvokeMethodAsync(this.identity, request);
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
 

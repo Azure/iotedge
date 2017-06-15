@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public DirectMethodResponse(string rid, byte[] data, int statusCode)
         {
-            this.RequestId = rid;
+            this.CorrelationId = rid;
             this.Data = data;
             this.Status = statusCode;
         }
@@ -15,6 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public int Status { get; }
 
-        public string RequestId { get; }
+        public string CorrelationId { get; }
     }
 }

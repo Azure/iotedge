@@ -52,6 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Option<ICloudProxy> GetCloudConnection(string deviceId)
         {
+            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
+            deviceId = GetDeviceId(deviceId);
+
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), out ConnectedDevice device)
                 ? device.CloudProxy.Filter(cp => cp.IsActive)
                 : Option.None<ICloudProxy>();
@@ -80,13 +83,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
+            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
+            IIdentity deviceIdentity = GetDeviceIdentity(identity);
+
             // Open a connection to Azure IoT Hub for this device/module.
-            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(identity);
+            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(deviceIdentity);
             if (cloudProxy.Success)
             {
                 // Update the cloud proxy stored in this.devices with this new cloud proxy
                 // instance.
-                ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
+                ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
                 Option<ICloudProxy> currentCloudProxy = device.UpdateCloudProxy(cloudProxy.Value);
 
                 // If the existing cloud proxy had an active connection then close it since we
@@ -94,50 +100,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await currentCloudProxy.Filter(cp => cp.IsActive)
                     .Map(cp => cp.CloseAsync())
                     .GetOrElse(Task.FromResult(true));
-                Events.NewCloudConnection(identity);
+                Events.NewCloudConnection(deviceIdentity);
             }
             return cloudProxy;
         }
 
         public Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity)
         {
+            Preconditions.CheckNotNull(identity, nameof(identity));
+
+            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
+            IIdentity deviceIdentity = GetDeviceIdentity(identity);
+
             // Get an existing ConnectedDevice from this.devices or add a new non-connected
             // instance to this.devices and return that.
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
 
-            // Read this code as: if the cloud proxy instance has a value and it is connected
-            // already (evidenced by the fact that its 'IsActive' property is 'true') then return
-            // that instance as is. Otherwise, open a new connection.
             return device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => Task.FromResult(Try.Success(cp)),
-                    () =>
-                    {
-                        // TODO - Temporary code to allow multiple modules to use same connection to the IoTHub.
-                        // Once IoTHub supports modules connecting to it, we should remove this. 
-                         Option<ICloudProxy> existingConnection = this.CheckExistingCloudConnection(identity);
-                         return existingConnection.Match(
-                             c =>
-                             {
-                                 device.UpdateCloudProxy(c);
-                                 return Task.FromResult(Try.Success(c));
-                             }, 
-                             () => this.CreateCloudConnectionAsync(identity));                        
-                    }
-            );
+                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnectionAsync(deviceIdentity));
         }
 
-        Option<ICloudProxy> CheckExistingCloudConnection(IIdentity identity)
+        /// <summary>
+        /// If the identity is a moduleIdentity, it creates an identity for the underlying device. 
+        /// TODO: This is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
+        /// </summary>
+        static IIdentity GetDeviceIdentity(IIdentity identity)
         {
-            KeyValuePair<string, ConnectedDevice> deviceWithActiveCloudConnection = this.devices.FirstOrDefault(
-                d => IsSameDevice(identity, d.Value.Identity) && d.Value.CloudProxy.Exists(cp => cp.IsActive));
-            return deviceWithActiveCloudConnection.Equals(default(KeyValuePair<string, ConnectedDevice>))
-                ? Option.None<ICloudProxy>()
-                : deviceWithActiveCloudConnection.Value.CloudProxy;
+            var moduleIdentity = identity as ModuleIdentity;
+            return moduleIdentity != null ? new DeviceIdentity(moduleIdentity, moduleIdentity.DeviceId) : identity;
         }
 
-        static bool IsSameDevice(IIdentity id1, IIdentity id2)
+        /// <summary>
+        /// If the id is deviceId/moduleId, then it gets the deviceId from it
+        /// TODO: This is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
+        /// </summary>
+        static string GetDeviceId(string id)
         {
-            return GetDeviceId(id1).Equals(GetDeviceId(id2), StringComparison.OrdinalIgnoreCase);
+            int seperatorIndex = id.IndexOf('/');
+            return seperatorIndex > 0 ? id.Substring(0, seperatorIndex) : id;
         }
 
         static string GetDeviceId(IIdentity identity)

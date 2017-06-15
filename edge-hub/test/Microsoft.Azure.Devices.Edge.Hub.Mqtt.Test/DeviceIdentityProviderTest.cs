@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",                
                 sasToken,
                 true,
-                typeof(Identity)
+                typeof(ProtocolGatewayIdentity)
             };
 
             yield return new object[]

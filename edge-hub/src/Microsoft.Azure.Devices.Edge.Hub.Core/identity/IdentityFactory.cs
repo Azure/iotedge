@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
-    using System.Security.Authentication;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using System;
 
     public class IdentityFactory : IIdentityFactory
     {
@@ -16,21 +17,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.iotHubHostName = iotHubHostName;
         }
 
-        public Try<Identity> GetWithSasToken(string username, string password) => this.GetIdentity(username, password, AuthenticationScope.SasToken, null);
+        public Try<IIdentity> GetWithSasToken(string username, string password) => this.GetIdentity(username, password, AuthenticationScope.SasToken, null);
 
-        public Try<Identity> GetWithHubKey(string username, string keyName, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.HubKey, keyName);
+        public Try<IIdentity> GetWithHubKey(string username, string keyName, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.HubKey, keyName);
 
-        public Try<Identity> GetWithDeviceKey(string username, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.DeviceKey, null);
+        public Try<IIdentity> GetWithDeviceKey(string username, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.DeviceKey, null);
 
-        Try<Identity> GetIdentity(string username, string secret, AuthenticationScope scope, string policyName)
+        Try<IIdentity> GetIdentity(string username, string secret, AuthenticationScope scope, string policyName)
         {
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
 
             string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
             if (usernameSegments.Length < 2)
             {
-                var ex = new InvalidCredentialException("Username does not contain valid values");
-                return Try<Identity>.Failure(ex);
+                var ex = new EdgeHubConnectionException("Username does not contain valid values");
+                return Try<IIdentity>.Failure(ex);
             }
 
             try
@@ -51,19 +52,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 {
                     string moduleId = usernameSegments[2];
                     // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
-                    var hubDeviceIdentity = new ModuleIdentity(deviceHubHostName, deviceId, moduleId, true, connectionString, scope, policyName, secret);
+                    var hubDeviceIdentity = new ModuleIdentity(deviceHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret);
                     return hubDeviceIdentity;
                 }
                 else
                 {
                     // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
-                    var hubDeviceIdentity = new DeviceIdentity(deviceHubHostName, deviceId, true, connectionString, scope, policyName, secret);
+                    var hubDeviceIdentity = new DeviceIdentity(deviceHubHostName, deviceId, connectionString, scope, policyName, secret);
                     return hubDeviceIdentity;
                 }
             }
             catch (Exception ex)
             {
-                return Try<Identity>.Failure(ex);
+                return Try<IIdentity>.Failure(ex);
             }
         }
 

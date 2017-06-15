@@ -8,11 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
+    using System;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Xunit;
 
+    [Bvt]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
         readonly IConnectionManager connectionManager;
@@ -24,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         const string Device2Id = "device2";
         const string Device3Id = "device3";
         const string Device4Id = "device4";
-        const string MethodName = "WriteToConsole";
-        const string RequestId = "1";
+        const string MethodName = "WriteToConsole";        
         const string DataAsJson = "{\"MethodPayload\": \"Payload\" }";
         const int MethodNotFoundStatus = 501;
         const int MethodOkStatus = 200;
+        static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(60);
 
         public EdgeToDeviceMethodTest(ProtocolHeadFixture fixture)
         {
@@ -36,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.deviceListener = fixture.DeviceListener;
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Module_WhenRegistered_ShouldCallHandler()
         {
@@ -49,20 +50,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.SetMethodDefaultHandlerAsync(callback.Object, null);
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(ModuleId, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
             this.connectionManager.GetDeviceConnection(ModuleId).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
             // needs delay to get the response from the client
             await Task.Delay(1000);
 
             callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Once());
-            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodOkStatus && r.RequestId == RequestId)), Times.Once());
+            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodOkStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
             resetEvent.Set();
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Module_WhenOtherMethodRegistered_ShouldNotCallHandler()
         {
@@ -73,20 +73,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(ModuleId, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
             this.connectionManager.GetDeviceConnection(ModuleId).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
             // needs delay to get the response from the client
             await Task.Delay(1000);
 
             callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
-            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodNotFoundStatus && r.RequestId == RequestId)), Times.Once());
+            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodNotFoundStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
             resetEvent.Set();
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Module_WhenNoMethodRegistered_ShouldNotCallHandler()
         {
@@ -96,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var callback = new Mock<MethodCallback>();
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(ModuleId, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
             this.connectionManager.GetDeviceConnection(ModuleId).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
             // needs delay to get the response from the client
@@ -109,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             resetEvent.Set();
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenRegistered_ShouldCallHandler()
         {
@@ -120,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.SetMethodHandlerAsync(MethodName, callback.Object, null);
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(Device2Id, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
 
             this.connectionManager.GetDeviceConnection(Device2Id).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
@@ -128,12 +126,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(1000);
 
             callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Once());
-            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodOkStatus && r.RequestId == RequestId)), Times.Once());
+            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodOkStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenOtherMethodRegistered_ShouldNotCallHandler()
         {
@@ -142,19 +139,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(Device3Id, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
             this.connectionManager.GetDeviceConnection(Device3Id).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
             // needs delay to get the response from the client
             await Task.Delay(1000);
 
             callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
-            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodNotFoundStatus && r.RequestId == RequestId)), Times.Once());
+            this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodNotFoundStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
         }
 
-        [Integration]
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenNoMethodRegistered_ShouldNotCallHandler()
         {
@@ -162,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var callback = new Mock<MethodCallback>();
 
             this.deviceListener.ResetCalls();
-            var methodRequest = new DirectMethodRequest(RequestId, MethodName, Encoding.UTF8.GetBytes(DataAsJson));
+            var methodRequest = new DirectMethodRequest(Device4Id, MethodName, Encoding.UTF8.GetBytes(DataAsJson), ResponseTimeout);
             this.connectionManager.GetDeviceConnection(Device4Id).Map(async dp => await dp.CallMethodAsync(methodRequest));
 
             // needs delay to get the response from the client

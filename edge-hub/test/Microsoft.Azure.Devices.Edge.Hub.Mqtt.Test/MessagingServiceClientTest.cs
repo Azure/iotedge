@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var client = new MessagingServiceClient(listener.Object, MakeProtocolGatewayMessageConverter());
             await client.SendAsync(message);
 
-            listener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(x => x.Status == 200 && x.RequestId == "123")), Times.Once);
+            listener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(x => x.Status == 200 && x.CorrelationId == "123")), Times.Once);
         }
 
         [Fact]

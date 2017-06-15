@@ -1,21 +1,18 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
-    public abstract class Identity : IDeviceIdentity, IIdentity
+    public abstract class Identity : IIdentity
     {
         protected Identity(
             string iotHubHostName,
-            bool isAuthenticated,
             string connectionString,
             AuthenticationScope scope,
             string policyName,
             string secret)
         {
             this.IotHubHostName = iotHubHostName;
-            this.IsAuthenticated = isAuthenticated;
             this.ConnectionString = connectionString;
             this.Scope = scope;
             this.PolicyName = policyName;
@@ -23,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         }
 
         public string IotHubHostName { get; }
-
-        public bool IsAuthenticated { get; }
 
         public string ConnectionString { get; }
 

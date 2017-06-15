@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -13,12 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public DeviceIdentity(
             string iotHubHostName,
             string deviceId,
-            bool isAuthenticated,
             string connectionString,
             AuthenticationScope scope,
             string policyName,
             string secret)
-            : base(iotHubHostName, isAuthenticated, connectionString, scope, policyName, secret)
+            : base(iotHubHostName, connectionString, scope, policyName, secret)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.asString = new Lazy<string>(
@@ -28,6 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return $"DeviceId: {this.DeviceId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
                 });
         }
+
+        internal DeviceIdentity(Identity identity, string deviceId)
+            : this(identity.IotHubHostName, deviceId, identity.ConnectionString, identity.Scope, identity.PolicyName, identity.Secret)
+        { }
 
         public string DeviceId { get; }
 

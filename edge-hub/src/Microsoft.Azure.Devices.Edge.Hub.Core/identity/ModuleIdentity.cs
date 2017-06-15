@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using static System.FormattableString;
@@ -14,12 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public ModuleIdentity(string iotHubHostName, 
             string deviceId, 
             string moduleId, 
-            bool isAuthenticated, 
             string connectionString, 
             AuthenticationScope scope, 
             string policyName, 
             string secret)
-            : base(iotHubHostName, isAuthenticated, connectionString, scope, policyName, secret)
+            : base(iotHubHostName, connectionString, scope, policyName, secret)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));

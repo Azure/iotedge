@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
 
     public class IdentityTest
     {
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 "TestHub.azure-devices.net",
                 SasToken,
                 false,
-                typeof(InvalidCredentialException)
+                typeof(EdgeHubConnectionException)
             };
 
             yield return new object[]
@@ -115,14 +116,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Type expectedType)
         {
             IIdentityFactory factory = new IdentityFactory(iotHubHostName);
-            Try<Identity> identity = factory.GetWithSasToken(value, token);
+            Try<IIdentity> identity = factory.GetWithSasToken(value, token);
             Assert.NotNull(identity);
             Assert.Equal(success, identity.Success);
             if (identity.Success)
             {
                 Assert.NotNull(identity.Value);
                 Assert.IsType(expectedType, identity.Value);
-                Assert.Equal(iotHubHostName, identity.Value.IotHubHostName);
+                Assert.Equal(iotHubHostName, (identity.Value as Identity).IotHubHostName);
             }
             else
             {
@@ -140,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string moduleId)
         {
             IIdentityFactory factory = new IdentityFactory(iotHubHostName);
-            Try<Identity> identity = factory.GetWithSasToken(value, token);
+            Try<IIdentity> identity = factory.GetWithSasToken(value, token);
             Assert.NotNull(identity);
             Assert.Equal(true, identity.Success);
             Assert.NotNull(identity.Value);

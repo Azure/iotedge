@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class Program
     {
-        const string ConfigFileName = "appsettings.json";
+        const string ConfigFileName = "appsettings_agent.json";
 
         public static int Main()
         {

@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task CallMethodAsync(DirectMethodRequest request)
         {
-            string address = TwinAddressHelper.FormatDeviceMethodRequestAddress(request.Id, request.Name);
+            string address = TwinAddressHelper.FormatDeviceMethodRequestAddress(request.CorrelationId, request.Name);
             IProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(request.Data.ToByteBuffer(), address)
                 .WithCreatedTimeUtc(DateTime.UtcNow)
                 .Build();

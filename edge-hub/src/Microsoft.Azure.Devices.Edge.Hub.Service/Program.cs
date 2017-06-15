@@ -2,37 +2,33 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using Autofac;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
-    using Autofac;
-    using DotNetty.Common.Internal.Logging;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Logging;
-    using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class Program
     {
-        const string ConfigFileName = "appsettings.json";
-        const string TopicNameConversionSectionName = "mqttTopicNameConversion";
+        const string HostingConfigFileName = "hosting.json";
         const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
         const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
 
         public static int Main()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(ConfigFileName)
+                .AddJsonFile(HostingConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 
@@ -43,32 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
+            var hosting = new Hosting();
+            hosting.Initialize(certificate, configuration.GetValue<string>("httpHostUrl"));
 
-            string iothubHostname = configuration.GetValue<string>("IotHubHostName");
-            string edgeDeviceId = configuration.GetValue<string>("EdgeDeviceId");
-
-            var topics = new MessageAddressConversionConfiguration(
-                configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
-                configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string,string>>());
-            var routes = configuration.GetSection("routes").Get<List<string>>();
-
-            var builder = new ContainerBuilder();
-            builder.RegisterModule(new LoggingModule());
-
-            builder.RegisterBuildCallback(
-                c =>
-                {
-                    // set up loggers for dotnetty
-                    var loggerFactory = c.Resolve<ILoggerFactory>();
-                    InternalLoggerFactory.DefaultFactory = loggerFactory;
-
-                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
-                    eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
-                });
-
-            builder.RegisterModule(new MqttModule(certificate, topics, iothubHostname, edgeDeviceId));
-            builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes));
-            IContainer container = builder.Build();
+            IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub.");
@@ -78,7 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
 
-            using (IProtocolHead protocolHead = await container.Resolve<Task<IProtocolHead>>())
+            logger.LogInformation("Starting Http Server");
+            hosting.Start();
+
+            logger.LogInformation("Starting MQTT Server");
+            IMqttConnectionProvider connectionProvider = await container.Resolve<Task<IMqttConnectionProvider>>();
+            using (IProtocolHead protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, connectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>()))
             {
                 await protocolHead.StartAsync();
 
@@ -89,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
 
                 AssemblyLoadContext.Default.Unloading -= OnUnload;
-            }
+            }            
 
             return 0;
         }

@@ -108,23 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Integration]
         public async Task MutipleModulesConnectionTest()
         {
+            string iotHubHostName = "iotHubName";
             string edgeDeviceId = "edge";
             string edgeDeviceConnStr = "dummyConnStr";
-            var module1Identity = Mock.Of<IModuleIdentity>(
-                m =>
-                    m.DeviceId == edgeDeviceId &&
-                    m.ModuleId == "module1" &&
-                    m.Id == $"{m.DeviceId}/{m.ModuleId}" &&
-                    m.ConnectionString == edgeDeviceConnStr
-                );
+            var module1Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module1", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz");
 
-            var module2Identity = Mock.Of<IModuleIdentity>(
-                m =>
-                    m.DeviceId == edgeDeviceId &&
-                    m.ModuleId == "module2" &&
-                    m.Id == $"{m.DeviceId}/{m.ModuleId}" &&
-                    m.ConnectionString == edgeDeviceConnStr
-            );
+            var module2Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz"); 
 
             var edgeDeviceIdentity = Mock.Of<IDeviceIdentity>(
                 d => d.DeviceId == edgeDeviceId &&
