@@ -68,16 +68,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             {
                 "k1=v1",
                 "k2=v2",
-                "key 3  =  this is a value"
+                "key 3  =  this is a value",
+                "connstring=hostname=foo"
             };
 
             var dictionary = stringsList.ToDictionary('=');
 
             Assert.NotNull(dictionary);
-            Assert.Equal(3, dictionary.Count);
+            Assert.Equal(4, dictionary.Count);
             Assert.Equal(dictionary["k1"], "v1");
             Assert.Equal(dictionary["k2"], "v2");
             Assert.Equal(dictionary["key 3  "], "  this is a value");
+            Assert.Equal(dictionary["connstring"], "hostname=foo");
         }
 
         [Fact]

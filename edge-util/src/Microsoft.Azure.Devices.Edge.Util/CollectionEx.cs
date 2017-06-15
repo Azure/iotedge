@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             var dictionary = new Dictionary<string, string>();
             foreach (string str in strings)
             {
-                string[] tokens = str.Split(separators);
+                string[] tokens = str.Split(separators, 2);
                 if (tokens.Length == 2)
                 {
                     dictionary.Add(tokens[0], tokens[1]);
