@@ -19,11 +19,11 @@
                 .AddEnvironmentVariables()
                 .Build();
 
-            // start up the edge agent
-            var agentTask = AgentService.MainAsync(configuration);
-
             // start up the hub
             var hubTask = HubService.MainAsync(configuration);
+
+            // start up the edge agent
+            var agentTask = AgentService.MainAsync(configuration);
 
             // wait for both to terminate
             var results = await Task.WhenAll(agentTask, hubTask);
