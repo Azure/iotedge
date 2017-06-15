@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["scripts/start.sh"]
+CMD ["scripts/start-edge-service.sh"]
