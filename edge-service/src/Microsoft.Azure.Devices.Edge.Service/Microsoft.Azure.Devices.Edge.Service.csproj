@@ -17,6 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="../../../edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.Service/scripts/generate-cert.sh" CopyToPublishDirectory="Always">
+        <Link>scripts/generate-cert.sh</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
