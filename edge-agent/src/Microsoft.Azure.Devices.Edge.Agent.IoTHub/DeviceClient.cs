@@ -6,20 +6,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
     public class DeviceClient : IDeviceClient
     {
         readonly Client.DeviceClient deviceClient;
 
-        public DeviceClient(string connectionString) :
-            this(connectionString, TransportType.Mqtt)
-        {
-        }
-
-        public DeviceClient(string connectionString, TransportType transportType)
+        public DeviceClient(string connectionString)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
-            this.deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, transportType);
+
+            // TODO: REMOVE!! -->
+            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            // TODO: <-- REMOVE!!
+
+            ITransportSettings[] settings = { mqttSetting };
+            this.deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, settings);
         }
 
         public void Dispose() => this.deviceClient.Dispose();
