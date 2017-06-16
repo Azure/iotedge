@@ -18,11 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public StandaloneModule(Uri dockerHost, string configFilename)
+        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, string configFilename)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
             this.configSource = new FileConfigSourceModule(Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)));
-            this.logging = new LoggingModule();
+            this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
         }
 
         protected override void Load(ContainerBuilder builder)

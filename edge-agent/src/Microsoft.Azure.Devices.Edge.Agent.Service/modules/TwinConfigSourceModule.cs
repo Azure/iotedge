@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c =>
                     {
                         var dockerFactory = new TwinReportStateCommandFactory(
-                            new DockerCommandFactory(c.Resolve<IDockerClient>()),
+                            new DockerCommandFactory(c.Resolve<IDockerClient>(), c.Resolve<DockerLoggingConfig>()),
                             c.Resolve<IDeviceClient>(),
                             c.Resolve<IEnvironment>()
                         );

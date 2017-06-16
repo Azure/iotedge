@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string connectionString = configuration.GetValue<string>("MMAConnectionString");
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
             string configSourceConfig = configuration.GetValue<string>("ConfigSource");
+            string dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
 
             var dockerUri = new Uri(dockerUriConfig);
 
@@ -41,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch(configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, connectionString));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, "config.json"));
+                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, "config.json"));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");

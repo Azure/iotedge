@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
-                        var dockerFactory = new DockerCommandFactory(c.Resolve<IDockerClient>());
+                        var dockerFactory = new DockerCommandFactory(c.Resolve<IDockerClient>(), c.Resolve<DockerLoggingConfig>());
                         return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>());
                     })
                 .As<ICommandFactory>()

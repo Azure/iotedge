@@ -13,14 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         readonly ICommand remove;
         readonly ICommand create;
 
-        public UpdateCommand(IDockerClient client, DockerModule current, DockerModule next)
+        public UpdateCommand(IDockerClient client, DockerModule current, DockerModule next, DockerLoggingConfig dockerLoggerConfig)
         {
             Preconditions.CheckNotNull(client, nameof(client));
             Preconditions.CheckNotNull(current, nameof(current));
             Preconditions.CheckNotNull(next, nameof(next));
+            Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
 
             this.remove = new RemoveCommand(client, current);
-            this.create = new CreateCommand(client, next);
+            this.create = new CreateCommand(client, next, dockerLoggerConfig);
         }
 
         public async Task ExecuteAsync(CancellationToken token)

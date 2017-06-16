@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // ensure image has been pulled
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
+                    var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag,
                         new[] { new Binding("80", "8080", PortBindingType.Tcp) },
                         new Dictionary<string, string>()
@@ -49,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             { "k2", "v2" }
                         });
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var command = new CreateCommand(Client, module);
+                    var command = new CreateCommand(Client, module, loggingConfig);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);
@@ -88,9 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // ensure image has been pulled
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
+                    var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag, new[] { new Binding("42", "42", PortBindingType.Udp)});
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var command = new CreateCommand(Client, module);
+                    var command = new CreateCommand(Client, module, loggingConfig);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);

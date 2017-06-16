@@ -1,6 +1,7 @@
 FROM edgebuilds.azurecr.io/azedge-dotnet-runtime-armv7hf:latest
 
 ARG EXE_DIR=.
+ENV DockerLoggingDriver=journald
 
 WORKDIR /app
 

@@ -54,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 ModuleSet moduleSet = ModuleSet.Create(dockerModule);
 
                 // Start up the agent and run a "reconcile".
-                var dockerCommandFactory = new DockerCommandFactory(client);
+                var loggingConfig = new DockerLoggingConfig("json-file");
+                var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig);
                 var environment = new DockerEnvironment(client);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
                 var agent = new Agent(moduleSet, environment, new RestartPlanner(commandFactory));

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -15,11 +16,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     {
         readonly IDockerClient client;
         readonly DockerModule module;
+        readonly DockerLoggingConfig dockerLoggerConfig;
+        readonly Lazy<string> loggerOptionsLazy;
+        readonly Lazy<string> envLazy;
+        readonly Lazy<string> portBindingsLazy;
 
-        public CreateCommand(IDockerClient client, DockerModule module)
+        public CreateCommand(IDockerClient client, DockerModule module, DockerLoggingConfig dockerLoggerConfig)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.dockerLoggerConfig = Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
+            this.loggerOptionsLazy = new Lazy<string>(() => ShowLoggingOptions(this.dockerLoggerConfig));
+            this.envLazy = new Lazy<string>(() => ShowEnvVars(module.Config.Env));
+            this.portBindingsLazy = new Lazy<string>(() => ShowPortBindings(module.Config.PortBindings));
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -36,12 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 Env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList()
             };
             ApplyPortBindings(parameters, this.module);
+            ApplyLoggingOptions(parameters, this.dockerLoggerConfig);
             await this.client.Containers.CreateContainerAsync(parameters);
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker create {ShowPortBindings(this.module.Config.PortBindings)} {ShowEnvVars(this.module.Config.Env)} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
+        public string Show() => $"docker create {this.portBindingsLazy.Value} {this.envLazy.Value} {this.loggerOptionsLazy.Value} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
 
         static string ShowEnvVars(IDictionary<string, string> env) => string.Join(" ", env.Select(kvp => $"--env \"{kvp.Key}={kvp.Value}\""));
 
@@ -63,6 +73,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
             parameters.HostConfig = parameters.HostConfig ?? new HostConfig();
             parameters.HostConfig.PortBindings = bindings;
+        }
+
+        static string ShowLoggingOptions(DockerLoggingConfig dockerLoggerConfig) => 
+            string.Join(" ", "--logdriver", dockerLoggerConfig.Type, string.Join(" ", dockerLoggerConfig.Config.Select(kvp => $"--log-opt \"{kvp.Key}={kvp.Value}\"")));
+
+
+        static void ApplyLoggingOptions(CreateContainerParameters parameters, DockerLoggingConfig dockerLoggerConfig)
+        {
+            parameters.HostConfig = parameters.HostConfig ?? new HostConfig();
+            parameters.HostConfig.LogConfig = parameters.HostConfig.LogConfig ?? new LogConfig();
+            parameters.HostConfig.LogConfig.Type = dockerLoggerConfig.Type;
         }
 
         static string TypeString(PortBindingType type)

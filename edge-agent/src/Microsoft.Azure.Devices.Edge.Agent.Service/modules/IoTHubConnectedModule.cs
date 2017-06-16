@@ -18,11 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public IotHubConnectedModule(Uri dockerHost, string connectionString)
+        public IotHubConnectedModule(Uri dockerHost, string dockerLoggingDriver, string connectionString)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
             this.configSource = new TwinConfigSourceModule(Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)));
-            this.logging = new LoggingModule();
+            this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
         }
 
         protected override void Load(ContainerBuilder builder)

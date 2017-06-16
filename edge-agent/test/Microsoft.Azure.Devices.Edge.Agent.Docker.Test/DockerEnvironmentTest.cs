@@ -47,9 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync(Name, Image);
                     await Client.CleanupContainerAsync("test-filters-external", Image);
 
+                    var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag);
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var create = new CreateCommand(Client, module);
+                    var create = new CreateCommand(Client, module, loggingConfig);
 
                     // pull the image for both containers
                     await Client.PullImageAsync(Image, Tag, cts.Token);
@@ -97,8 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         { "k1", "v1" },
                         { "k2", "v2" }
                     });
+                    var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var create = new CreateCommand(Client, module);
+                    var create = new CreateCommand(Client, module, loggingConfig);
 
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
