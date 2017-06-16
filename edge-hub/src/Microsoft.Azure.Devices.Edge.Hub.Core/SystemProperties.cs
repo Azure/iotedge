@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { "$.mid", MessageId },
             { "$.to", To },
             { "$.uid", UserId },
-            { "ack", Ack }
+            { "ack", Ack },
+            { "$.mop", EndpointId }
         };
     }
 }
