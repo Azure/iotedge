@@ -1,7 +1,9 @@
 Param(
     $DOTNET_DOWNLOAD_URL,
     $DOCKER_REGISTRY = "edgebuilds.azurecr.io",
-    $DOCKER_IMAGEVERSION = "1000"
+    $DOCKER_IMAGEVERSION = "1000",
+    $DOCKER_USERNAME,
+    $DOCKER_PASSWORD
 )
 
 $BUILD_BINARIESDIRECTORY = "target"
@@ -11,6 +13,16 @@ switch ($Env:PROCESSOR_ARCHITECTURE)
 {
     "AMD64" { $arch = "x64" }
     default { throw "Unsupported arch" }
+}
+
+Function docker_login()
+{
+    #echo Logging in to Docker registry
+    docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    if ($LastExitCode)
+    {
+        Throw "Docker Login Failed With Exit Code $LastExitCode"
+    }
 }
 
 ###############################################################################
@@ -31,15 +43,16 @@ Function docker_build_and_tag_and_push(
     [Parameter(Mandatory = $true)]$context_path, 
     $build_args)
 {
+    $FullVersionTag = "$DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:$DOCKER_IMAGEVERSION"
+    $LatestVersionTag = "$DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:latest"
+
     echo "Building and Pushing Docker image $imagename for $arch"
-    $docker_build_cmd="docker build"
-    $docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:$DOCKER_IMAGEVERSION"
-    $docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:latest"
+    $docker_build_cmd = "docker build -t $FullVersionTag -t $LatestVersionTag"
     if ($dockerfile)
     {
-        $docker_build_cmd+=" --file $dockerfile"
+        $docker_build_cmd += " --file $dockerfile"
     }
-    $docker_build_cmd+=" $context_path $build_args"
+    $docker_build_cmd += " $context_path $build_args"
 
     echo "Running... $docker_build_cmd"
 
@@ -51,22 +64,29 @@ Function docker_build_and_tag_and_push(
     }
     else
     {
-        <#
-        docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:$DOCKER_IMAGEVERSION
-        if [ $? -ne 0 ]; then
-            echo "Docker Build Failed With Exit Code $?"
-            exit 1
-        else
-            docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:latest
-            if [ $? -ne 0 ]; then
-                echo "Docker Push Latest Image Failed: $?"
-                exit 1
-            fi
-        fi
-        #>
+        if ($PUSH)
+        {
+            docker push $FullVersionTag
+            if ($LastExitCode)
+            {
+                Throw "Docker Push Failed With Exit Code $LastExitCode"
+            }
+            else
+            {
+                docker push $LatestVersionTag
+                if ($LastExitCode)
+                {
+                    Throw "Docker Push Failed With Exit Code $LastExitCode"
+                }
+            }
+        }
     }
+}
 
-    return $?
+if ($DOCKER_USERNAME -and $DOCKER_PASSWORD)
+{
+    docker_login
+    $PUSH = $true
 }
 
 # push edge-agent image
