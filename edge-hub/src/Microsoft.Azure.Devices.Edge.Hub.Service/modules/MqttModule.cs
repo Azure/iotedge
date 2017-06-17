@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -11,14 +10,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Configuration;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class MqttModule : Module
     {
         readonly MessageAddressConversionConfiguration conversionConfiguration;
+        readonly IConfiguration mqttSettingsConfiguration;
         
-        public MqttModule(MessageAddressConversionConfiguration conversionConfiguration)
+        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration)
         {
+            this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
         }
 
@@ -35,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ISettingsProvider
-            builder.Register(c => new AppConfigSettingsProvider())
+            builder.Register(c => new MqttSettingsProvider(this.mqttSettingsConfiguration))
                 .As<ISettingsProvider>()
                 .SingleInstance();
 

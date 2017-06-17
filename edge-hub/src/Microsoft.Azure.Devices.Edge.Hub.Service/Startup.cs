@@ -58,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
             var routes = this.Configuration.GetSection("routes").Get<List<string>>();
 
+            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
+
             var builder = new ContainerBuilder();
             builder.Populate(services);
 
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             builder.RegisterModule(new CommonModule(iothubHostname, edgeDeviceId));            
-            builder.RegisterModule(new MqttModule(topics));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics));
             builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Extensions.Configuration;
 
     public class ProtocolHeadFixture : IDisposable
     {
@@ -68,6 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var builder = new ContainerBuilder();
             builder.RegisterModule(new LoggingModule());
 
+            var mqttSettingsConfiguration = new Mock<IConfiguration>();
+            mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
+
             builder.RegisterBuildCallback(
                 c =>
                 {
@@ -80,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
-            builder.RegisterModule(new MqttModule(topics));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics));
             builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, this.routes));
 
             // Register ISessionStatePersistenceProvider to capture connectionManager
