@@ -25,12 +25,12 @@ set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
 
 if not exist "%BUILD_REPOSITORY_LOCALPATH%" (
     echo Error: %BUILD_REPOSITORY_LOCALPATH% not found
-    exit /B 1
+    exit /b 1
 )
 
 if not exist "%DOTNET_ROOT_PATH%\dotnet.exe" (
     echo Error: %DOTNET_ROOT_PATH%\dotnet.exe not found
-    exit /B 1
+    exit /b 1
 )
 
 if exist "%BUILD_BINARIESDIRECTORY%" rd /q /s "%BUILD_BINARIESDIRECTORY%"
@@ -43,6 +43,7 @@ for /r %%f in (%SLN_PATTERN%) do (
     echo Cleaning and Restoring packages for solution - %%f
     "%DOTNET_ROOT_PATH%\dotnet" clean %%f
     "%DOTNET_ROOT_PATH%\dotnet" restore %%f
+    if !ERRORLEVEL! neq 0 exit /b 1
 )
 
 echo.
@@ -62,6 +63,7 @@ for /r %%a in (%ANTLR_PATTERN%) do (
     echo Generating .cs files for - %%a
     if not exist "!GENERATED_PATH!" mkdir "!GENERATED_PATH!"
     "%JAVA_COMMAND%" -jar "%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar" %%a -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o "!GENERATED_PATH!"
+    if !ERRORLEVEL! neq 0 exit /b 1
 )
 
 echo.
@@ -86,4 +88,4 @@ for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_
 )
 
 echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker
-xcopy /s %SRC_DOCKER_DIR% %PUBLISH_FOLDER%
+xcopy /si %SRC_DOCKER_DIR% %PUBLISH_FOLDER%\docker
