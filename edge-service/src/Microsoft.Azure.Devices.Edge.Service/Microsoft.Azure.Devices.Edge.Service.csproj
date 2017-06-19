@@ -26,8 +26,13 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="scripts\start-edge-service.sh">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+
+    <None Update="scripts\deploy.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
