@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(methodResponse, responseTask.Result);
         }
 
-        [Fact(Skip = "Need to stabilize")]        
+        [Fact]        
         public async Task InvokeMethodAsyncTimeoutTest()
         {
             // Create a mock endpoint capable of returning a mock processor
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity, methodRequest);
             Assert.False(responseTask.IsCompleted);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            await Task.Delay(TimeSpan.FromSeconds(5));
             Assert.True(responseTask.IsCompleted);
             Assert.NotNull(responseTask.Result);
             Assert.Null(responseTask.Result.Data);
