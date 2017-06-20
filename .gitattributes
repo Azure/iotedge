@@ -1,6 +1,9 @@
 # Auto detect text files and perform LF normalization
 *        text=auto
 
+# Declare files that will always have LF line endings on checkout
+*.sh text eol=lf
+
 # Binary files to ignore and not modify
 *.pfx binary
 *.ico binary
