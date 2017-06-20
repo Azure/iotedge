@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new MqttMessage.Builder(body)
                 .SetSystemProperties(new Dictionary<string, string>()
                 {
-                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
+                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
                     [SystemProperties.Version] = sourceMessage.Version.ToString()
                 })
                 .Build();

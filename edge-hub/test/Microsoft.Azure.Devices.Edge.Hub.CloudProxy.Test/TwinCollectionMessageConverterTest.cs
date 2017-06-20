@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -93,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void ConvertedMessageHasAnEnqueuedTimeProperty()
         {
             IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(new TwinCollection());
-            Assert.InRange(DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime]),
+            Assert.InRange(
+                DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
                 DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)), DateTime.UtcNow);
         }
     }

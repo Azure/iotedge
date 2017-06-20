@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -86,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             MqttMessage mqttMessage = new MqttMessage.Builder(new byte[0])
                                 .SetSystemProperties(new Dictionary<string, string>()
                                 {
-                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString(CultureInfo.InvariantCulture),
+                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
                                     [SystemProperties.LockToken] = "r",
                                     [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
                                     [SystemProperties.CorrelationId] = correlationId.ToString(),

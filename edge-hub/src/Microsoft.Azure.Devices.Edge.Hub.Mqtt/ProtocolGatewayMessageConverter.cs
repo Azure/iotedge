@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             DateTime createdTimeUtc = DateTime.UtcNow;
             if (message.SystemProperties.TryGetValue(Core.SystemProperties.EnqueuedTime, out createdTime))
             {
-                createdTimeUtc = DateTime.Parse(createdTime);
+                createdTimeUtc = DateTime.Parse(createdTime, null, System.Globalization.DateTimeStyles.RoundtripKind);
             }
 
             if (!message.SystemProperties.TryGetValue(Core.SystemProperties.OutboundUri, out string uriTemplateKey))

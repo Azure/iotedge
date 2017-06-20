@@ -27,7 +27,7 @@ namespace SimulatedTemperatureSensor
                 .Build();
 
             string connectionString = configuration.GetValue<string>("ConnectionString");
-            TimeSpan messageDelay = configuration.GetValue<TimeSpan>("MessageDelay");
+            var messageDelay = configuration.GetValue<TimeSpan>("MessageDelay");
             int temperatureThreshold = configuration.GetValue<int>("TemperatureThreshold");
 
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
@@ -37,7 +37,7 @@ namespace SimulatedTemperatureSensor
             };
             ITransportSettings[] settings = { mqttSetting };
 
-            var moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
+            ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
             await moduleClient.OpenAsync();
 
             var cts = new CancellationTokenSource();
@@ -58,8 +58,8 @@ namespace SimulatedTemperatureSensor
             int count = 0;
             while (!cts.Token.IsCancellationRequested)
             {
-                var temperature = Rnd.Next(20, 35);
-                var dataBuffer = $"{{\"messageId\":{count},\"temperature\":{temperature}}}";
+                int temperature = Rnd.Next(20, 35);
+                string dataBuffer = $"{{\"messageId\":{count},\"temperature\":{temperature}}}";
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 eventMessage.Properties.Add("temperatureAlert", (temperature > temperatureThreshold) ? "true" : "false");
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Data: [{dataBuffer}]");
