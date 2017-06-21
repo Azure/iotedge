@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void StartListening()
         {
+            Events.StartListening(this);
             this.receiveMessageTask = this.SetupMessageListening();
         }
 
@@ -146,7 +147,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 MethodReceived,
                 MethodResponseReceived,
                 MethodRequestIdNotMatched,
-                MethodResponseTimedout
+                MethodResponseTimedout,
+                StartListening
             }
 
             public static void MessageReceived(CloudReceiver cloudReceiver)
@@ -187,6 +189,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void MethodResponseTimedout(CloudReceiver cloudReceiver, string requestId)
             {
                 Log.LogDebug((int)EventIds.MethodResponseTimedout, Invariant($"Didn't receive response for call with requestId {requestId} method from device {cloudReceiver.identity.Id}"));
+            }
+
+            public static void StartListening(CloudReceiver cloudReceiver)
+            {
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for device {cloudReceiver.identity.Id}"));
             }
         }
 

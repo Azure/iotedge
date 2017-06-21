@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Subscription
     {
         static readonly string MethodPostTopicPrefix = "$iothub/methods/POST/";
         static readonly string TwinPatchTopicPrefix = "$iothub/twin/PATCH/properties/desired/";
+        static readonly string MessagesTopicSuffix = "messages/devicebound/#";
 
         public static ISubscriptionRegistration GetRemoveSubscriptionRegistration(string topicFilter)
         {
@@ -29,6 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Subscription
             else if (topicFilter.StartsWith(TwinPatchTopicPrefix))
             {
                 return new TwinSubscriptionRegistration();
+            }
+            else if (topicFilter.EndsWith(MessagesTopicSuffix))
+            {
+                return new MessagesSubscriptionRegistration();
             }
             return new NullSubscriptionRegistration();
         }

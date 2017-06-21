@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
@@ -111,7 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void BindCloudListener(ICloudListener cloudListener)
         {
             this.cloudReceiver = new CloudReceiver(this.deviceClient, this.messageConverterProvider, cloudListener, this.identity);
-            this.cloudReceiver.StartListening();
             Events.BindCloudListener(this);
         }
 
@@ -135,25 +133,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }            
         }
 
-        public Task SetupCallMethodAsync()
-        {
-            return this.cloudReceiver.SetupCallMethodAsync();
-        }
+        public Task SetupCallMethodAsync() => this.cloudReceiver.SetupCallMethodAsync();
 
-        public Task RemoveCallMethodAsync()
-        {
-            return this.cloudReceiver.RemoveCallMethodAsync();
-        }
+        public Task RemoveCallMethodAsync() => this.cloudReceiver.RemoveCallMethodAsync();
 
-        public Task SetupDesiredPropertyUpdatesAsync()
-        {
-            return this.cloudReceiver.SetupDesiredPropertyUpdatesAsync();
-        }
+        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudReceiver.SetupDesiredPropertyUpdatesAsync();
 
-        public Task RemoveDesiredPropertyUpdatesAsync()
-        {
-            return this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync();
-        }
+        public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync();
+
+        public void StartListening() => this.cloudReceiver.StartListening();   
 
         static class Events
         {

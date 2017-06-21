@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // TODO: Should remove this code when there is a solution for Mqtt messages which don't have the EnqueuedTimeUtc set from IoTHub
             DateTime createTime = sourceMessage.EnqueuedTimeUtc == DateTime.MinValue ? DateTime.UtcNow : sourceMessage.EnqueuedTimeUtc;
 
-            message.SystemProperties.Add(SystemProperties.EnqueuedTime, createTime.ToString(CultureInfo.InvariantCulture));
+            message.SystemProperties.Add(SystemProperties.EnqueuedTime, createTime.ToString("o"));
             message.SystemProperties.Add(SystemProperties.LockToken, sourceMessage.LockToken);
             message.SystemProperties.Add(SystemProperties.DeliveryCount, sourceMessage.DeliveryCount.ToString());
 
