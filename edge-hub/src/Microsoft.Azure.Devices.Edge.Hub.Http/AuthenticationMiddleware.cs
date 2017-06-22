@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -11,11 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
     using static System.FormattableString;
-    using Microsoft.Extensions.Caching.Memory;
 
     public class AuthenticationMiddleware
     {
@@ -102,15 +101,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return LogAndReturnFailure($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}");
             }
 
-            if (!this.memoryCache.TryGetValue(authHeader, out IIdentity identity))
+            if (!context.Request.Headers.TryGetValue(HttpConstants.ModuleIdHeaderKey, out StringValues moduleIds) || moduleIds.Count == 0)
             {
-                if (!context.Request.Headers.TryGetValue(HttpConstants.ModuleIdHeaderKey, out StringValues deviceIds))
-                {
-                    return LogAndReturnFailure("Request header does not contain ModuleId");
-                }
+                return LogAndReturnFailure("Request header does not contain ModuleId");
+            }
+            string moduleId = moduleIds.First();
 
-                string deviceId = deviceIds.First();
-                string userName = $"{this.iotHubName}/{deviceId}";
+            // TODO - Cache using the module Id. This causes subsequent Http calls to go unauthenticated.
+            // Instead of this, the Client needs to cache the token, or accept a cookie and send it back. 
+            if (!this.memoryCache.TryGetValue(moduleId, out IIdentity identity))
+            {                              
+                string userName = $"{this.iotHubName}/{moduleId}";
                 Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(userName, authHeader);
                 if (!identityTry.Success)
                 {
@@ -124,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 }
 
                 // Add identity to cache.
-                this.memoryCache.Set(authHeader, identity, sharedAccessSignature.ExpiryTime() - DateTime.UtcNow);                              
+                this.memoryCache.Set(moduleId, identity, sharedAccessSignature.ExpiryTime() - DateTime.UtcNow);                              
             }
 
             context.Items.Add(HttpConstants.IdentityKey, identity);

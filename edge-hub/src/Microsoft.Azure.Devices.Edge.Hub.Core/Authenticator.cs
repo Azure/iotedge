@@ -36,7 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // Authentication here happens against the cloud, i.e., Azure IoT Hub. We consider a device/module
             // as having authenticated successfully if we are able to acquire a valid ICloudProxy object from
             // the connection manager.
-            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(Preconditions.CheckNotNull(identity, nameof(identity)));
+
+            // TODO - Currently we call GetOrCreateCloudConnectionAsync, even though we are using the cloud connection to authenticate devices/modules.
+            // When IotHub supports Module Identity, this should be replaced with CreateCloudConnectionAsync, so that a new connection is created when a device/module connects
+            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity, nameof(identity)));
             Events.AuthResult(cloudProxyTry, identity.Id);
             return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
         }
