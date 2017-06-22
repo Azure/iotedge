@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
@@ -31,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
         static readonly TimeSpan DeviceMethodMaxResponseTimeout = TimeSpan.FromSeconds(5 * 60 + 30);
-        // Error code used by IotHub when response times out
-        const int GatewayTimeoutErrorCode = 504101;
+        // Timeout for receive message because the default timeout is too long (4 minutes) for the case when the connection is closed
+        static readonly TimeSpan ReceiveMessageTimeout = TimeSpan.FromSeconds(20);
 
         public CloudReceiver(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider,
             ICloudListener cloudListener, IIdentity identity)
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     try
                     {
-                        clientMessage = await this.deviceClient.ReceiveAsync();
+                        clientMessage = await this.deviceClient.ReceiveAsync(ReceiveMessageTimeout);
                         if (clientMessage != null)
                         {
                             Events.MessageReceived(this);
@@ -101,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task RemoveCallMethodAsync()
         {
             return this.deviceClient.SetMethodDefaultHandlerAsync(null, null);
-        }        
+        }
 
         internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
         {
@@ -111,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             var direceMethodRequest = new DirectMethodRequest(this.identity.Id, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
             DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
-            var methodResponse = new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
+            MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
             return methodResponse;
         }
 

@@ -40,9 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     if (this.cloudReceiver != null)
                     {
                         await this.cloudReceiver.CloseAsync();
-                        await this.RemoveCallMethodAsync();
                     }
-                    // remove direct method subscription
                     await this.deviceClient.CloseAsync();
                 }
                 Events.Closed(this);
