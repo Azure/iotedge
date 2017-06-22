@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public static async Task<Agent> CreateAsync(IConfigSource config, IEnvironment environment, IPlanner planner)
         {
-            ModuleSet initial = await config.GetConfigAsync();
+            ModuleSet initial = await config.GetModuleSetAsync();
             return new Agent(initial, environment, planner);
         }
 

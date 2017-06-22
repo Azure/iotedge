@@ -10,7 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
     using System.Collections.Generic;
 
@@ -39,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-filters";
+            const string FakeConnectionString = "FakeConnectionString";
 
             try
             {
@@ -50,7 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag);
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var create = new CreateCommand(Client, module, loggingConfig);
+                    var configSource = new Mock<IConfigSource>();
+                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
+                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    var create = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     // pull the image for both containers
                     await Client.PullImageAsync(Image, Tag, cts.Token);
@@ -86,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-env";
+            const string FakeConnectionString = "FakeConnectionString";
 
             try
             {
@@ -100,7 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     });
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var create = new CreateCommand(Client, module, loggingConfig);
+                    var configSource = new Mock<IConfigSource>();
+                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
+                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    var create = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
@@ -111,8 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var environment = new DockerEnvironment(Client);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.NotNull(modules.Modules[Name]);
-                    Assert.Equal(((DockerModule)modules.Modules[Name]).Config.Env["k1"], "v1");
-                    Assert.Equal(((DockerModule)modules.Modules[Name]).Config.Env["k2"], "v2");
+                    Assert.Equal("v1", ((DockerModule)modules.Modules[Name]).Config.Env["k1"]);
+                    Assert.Equal("v2", ((DockerModule)modules.Modules[Name]).Config.Env["k2"]);
+                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerModule)modules.Modules[Name]).Config.Env["EdgeHubConnectionString"]);
                 }
             }
             finally

@@ -20,15 +20,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         readonly Lazy<string> loggerOptionsLazy;
         readonly Lazy<string> envLazy;
         readonly Lazy<string> portBindingsLazy;
+        readonly IConfigSource configSource;
 
-        public CreateCommand(IDockerClient client, DockerModule module, DockerLoggingConfig dockerLoggerConfig)
+        public CreateCommand(IDockerClient client, DockerModule module, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.module = Preconditions.CheckNotNull(module, nameof(module));
             this.dockerLoggerConfig = Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
             this.loggerOptionsLazy = new Lazy<string>(() => ShowLoggingOptions(this.dockerLoggerConfig));
-            this.envLazy = new Lazy<string>(() => ShowEnvVars(module.Config.Env));
+            this.envLazy = new Lazy<string>(() => ShowEnvVars(this.GetContainerEnv()));
             this.portBindingsLazy = new Lazy<string>(() => ShowPortBindings(module.Config.PortBindings));
+            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -42,18 +44,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                     { "owner", Constants.Owner },
                 },
                 Image = this.module.Config.Image + ":" + this.module.Config.Tag,
-                Env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList()
+                Env = this.GetContainerEnv().ToList()
             };
             ApplyPortBindings(parameters, this.module);
             ApplyLoggingOptions(parameters, this.dockerLoggerConfig);
             await this.client.Containers.CreateContainerAsync(parameters);
         }
 
+        IEnumerable<string> GetContainerEnv()
+        {
+            IEnumerable<string> env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}");
+            if (this.configSource.ContainsKey(Constants.EdgeHubConnectionStringKey))
+            {
+                string edgeHubConnectionString = this.configSource.GetValue<string>(Constants.EdgeHubConnectionStringKey).OrDefault();
+
+                // append the module ID to this string
+                edgeHubConnectionString = $"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
+
+                env = env.Concat(new string[] { edgeHubConnectionString });
+            }
+
+            return env;
+        }
+
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
         public string Show() => $"docker create {this.portBindingsLazy.Value} {this.envLazy.Value} {this.loggerOptionsLazy.Value} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
 
-        static string ShowEnvVars(IDictionary<string, string> env) => string.Join(" ", env.Select(kvp => $"--env \"{kvp.Key}={kvp.Value}\""));
+        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => $"--env \"{val}\""));
 
         static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
 

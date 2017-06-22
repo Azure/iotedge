@@ -18,19 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class TwinConfigSourceModule : Module
     {
-        readonly DeviceClientModule deviceClientModule;
+        readonly string connectionString;
         const string DockerType = "docker";
 
         public TwinConfigSourceModule(string connectionString)
         {
-            this.deviceClientModule = new DeviceClientModule(
-                Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString))
-            );
+            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(this.deviceClientModule);
+            builder.RegisterModule(new DeviceClientModule(this.connectionString));
 
             // ISerde<Diff>
             builder.Register(c => new DiffSerde(
@@ -44,16 +42,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // ICommandFactory
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         var dockerFactory = new TwinReportStateCommandFactory(
-                            new DockerCommandFactory(c.Resolve<IDockerClient>(), c.Resolve<DockerLoggingConfig>()),
+                            new DockerCommandFactory(
+                                c.Resolve<IDockerClient>(),
+                                c.Resolve<DockerLoggingConfig>(),
+                                await c.Resolve<Task<IConfigSource>>()),
                             c.Resolve<IDeviceClient>(),
                             c.Resolve<IEnvironment>()
                         );
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>());
+                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
-                .As<ICommandFactory>()
+                .As<Task<ICommandFactory>>()
                 .SingleInstance();
 
             // ISerde<ModuleSet>
@@ -73,7 +74,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         IConfigSource config = await TwinConfigSource.Create(
                             c.Resolve<IDeviceClient>(),
                             c.Resolve<ISerde<ModuleSet>>(),
-                            c.Resolve<ISerde<Diff>>()
+                            c.Resolve<ISerde<Diff>>(),
+                            new Dictionary<string, object>()
+                            {
+                                { "EdgeHubConnectionString", this.connectionString }
+                            }
                         );
                         return config;
                     })

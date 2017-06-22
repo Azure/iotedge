@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
 
-            mockConfigSource.Setup(cs => cs.GetConfigAsync())
+            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(testSet);
 
             Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
 
-            mockConfigSource.Setup(cs => cs.GetConfigAsync())
+            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(desiredSet);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
 
-            mockConfigSource.Setup(cs => cs.GetConfigAsync())
+            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(desiredSet);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
 
-            mockConfigSource.Setup(cs => cs.GetConfigAsync())
+            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(desiredSet);
 
             Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);

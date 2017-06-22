@@ -19,10 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     {
         const string DockerType = "docker";
         readonly string configFilename;
+        readonly string connectionString;
 
-        public FileConfigSourceModule(string configFilename)
+        public FileConfigSourceModule(string configFilename, string connectionString)
         {
             this.configFilename = Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename));
+            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -39,19 +41,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // ICommandFactory
             builder.Register(
-                    c =>
+                    async c =>
                     {
-                        var dockerFactory = new DockerCommandFactory(c.Resolve<IDockerClient>(), c.Resolve<DockerLoggingConfig>());
+                        var dockerFactory = new DockerCommandFactory(
+                            c.Resolve<IDockerClient>(),
+                            c.Resolve<DockerLoggingConfig>(),
+                            await c.Resolve<Task<IConfigSource>>());
                         return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>());
                     })
-                .As<ICommandFactory>()
+                .As<Task<ICommandFactory>>()
                 .SingleInstance();
 
             // Task<IConfigSource>
             builder.Register(
                 async c =>
                 {
-                    IConfigSource config = await FileConfigSource.Create(this.configFilename, c.Resolve<ISerde<ModuleSet>>());
+                    IConfigSource config = await FileConfigSource.Create(this.configFilename, c.Resolve<ISerde<ModuleSet>>(), new Dictionary<string, object>()
+                    {
+                        { "EdgeHubConnectionString", this.connectionString }
+                    });
                     return config;
                 })
                 .As<Task<IConfigSource>>()

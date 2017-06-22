@@ -8,14 +8,16 @@
 
     class Program
     {
-        const string ConfigFileName = "appsettings.json";
+        const string AgentConfigFileName = "appsettings_agent.json";
+        const string HubHostingConfigFileName = "hosting.json";
 
         public static int Main() => MainAsync().Result;
 
         static async Task<int> MainAsync()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(ConfigFileName)
+                .AddJsonFile(AgentConfigFileName)
+                .AddJsonFile(HubHostingConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 

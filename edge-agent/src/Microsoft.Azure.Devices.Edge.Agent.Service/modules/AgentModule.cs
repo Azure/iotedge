@@ -33,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IPlanner
-            builder.Register(c => new RestartPlanner(c.Resolve<ICommandFactory>()))
-                .As<IPlanner>()
+            builder.Register(async c => new RestartPlanner(await c.Resolve<Task<ICommandFactory>>()) as IPlanner)
+                .As<Task<IPlanner>>()
                 .SingleInstance();
 
             // Task<Agent>
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c => await Agent.CreateAsync(
                     await c.Resolve<Task<IConfigSource>>(),
                     c.Resolve<IEnvironment>(),
-                    c.Resolve<IPlanner>())
+                    await c.Resolve<Task<IPlanner>>())
                 )
                 .As<Task<Agent>>()
                 .SingleInstance();

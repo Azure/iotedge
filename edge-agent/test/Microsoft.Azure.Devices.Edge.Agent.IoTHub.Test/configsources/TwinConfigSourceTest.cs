@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde))
             {
                 // Act
-                ModuleSet startingSet = await twinConfig.GetConfigAsync();
+                ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
 
                 IModule returnedModule1 = startingSet.Modules["mod1"];
                 // Assert  
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
                 // Act
                 // Assert  
-                await Assert.ThrowsAsync<Exception>(() => twinConfig.GetConfigAsync());
+                await Assert.ThrowsAsync<Exception>(() => twinConfig.GetModuleSetAsync());
                 Assert.True(failEventCalled);
             }
         }

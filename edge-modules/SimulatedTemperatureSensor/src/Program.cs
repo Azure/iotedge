@@ -26,7 +26,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            string connectionString = configuration.GetValue<string>("ConnectionString");
+            string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
             var messageDelay = configuration.GetValue<TimeSpan>("MessageDelay");
             int temperatureThreshold = configuration.GetValue<int>("TemperatureThreshold");
 

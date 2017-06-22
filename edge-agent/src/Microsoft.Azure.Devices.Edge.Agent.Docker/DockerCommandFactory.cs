@@ -12,16 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         readonly IDockerClient client;
         readonly DockerLoggingConfig dockerLoggerConfig;
+        readonly IConfigSource configSource;
 
-        public DockerCommandFactory(IDockerClient dockerClient, DockerLoggingConfig dockerLoggingConfig)
+        public DockerCommandFactory(IDockerClient dockerClient, DockerLoggingConfig dockerLoggingConfig, IConfigSource configSource)
         {
             this.client = Preconditions.CheckNotNull(dockerClient, nameof(dockerClient));
             this.dockerLoggerConfig = Preconditions.CheckNotNull(dockerLoggingConfig, nameof(dockerLoggingConfig));
+            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
 
         public ICommand Create(IModule module) =>
             module is DockerModule
-                ? new CreateCommand(this.client, (DockerModule)module, this.dockerLoggerConfig)
+                ? new CreateCommand(this.client, (DockerModule)module, this.dockerLoggerConfig, this.configSource)
                 : (ICommand)NullCommand.Instance;
 
         public ICommand Pull(IModule module) =>
@@ -31,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public ICommand Update(IModule current, IModule next) =>
             current is DockerModule && next is DockerModule
-                ? new UpdateCommand(this.client, (DockerModule)current, (DockerModule)next, this.dockerLoggerConfig)
+                ? new UpdateCommand(this.client, (DockerModule)current, (DockerModule)next, this.dockerLoggerConfig, this.configSource)
                 : (ICommand)NullCommand.Instance;
 
         public ICommand Remove(IModule module) =>

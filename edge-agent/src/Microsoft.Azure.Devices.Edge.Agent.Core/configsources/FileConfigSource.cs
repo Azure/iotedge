@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Reactive;
@@ -14,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
-    public class FileConfigSource : IConfigSource
+    public class FileConfigSource : BaseConfigSource
     {
         const double FileChangeWatcherDebounceInterval = 500;
 
@@ -25,7 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly AtomicReference<ModuleSet> current;
         readonly AsyncLock sync;
 
-        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde)
+        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde, IDictionary<string, object> configurationMap)
+            : base(configurationMap)
         {
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
             this.current = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
@@ -43,8 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             Events.Created(this.configFilePath);
         }
 
-        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde)
+        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde, IDictionary<string, object> configurationMap = null)
         {
+            configurationMap = configurationMap ?? ImmutableDictionary<string, object>.Empty;
+
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
             Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
             if (!File.Exists(path))
@@ -62,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, moduleSetSerde);
+            return new FileConfigSource(watcher, initial, moduleSetSerde, configurationMap);
         }
 
         void AssignCurrentModuleSet(ModuleSet updated)
@@ -81,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
             try
             {
-                ModuleSet newConfig = await this.GetConfigAsync();
+                ModuleSet newConfig = await this.GetModuleSetAsync();
                 Diff diff;
                 using (await this.sync.LockAsync())
                 {
@@ -100,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        public async Task<ModuleSet> GetConfigAsync()
+        public override async Task<ModuleSet> GetModuleSetAsync()
         {
             string json = await ReadFileAsync(this.configFilePath);
             return this.moduleSetSerde.Deserialize(json);
@@ -114,21 +119,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        public event EventHandler<Diff> Changed;
+        public override event EventHandler<Diff> Changed;
 
         protected virtual void OnChanged(Diff diff)
         {
             this.Changed?.Invoke(this, diff);
         }
 
-        public event EventHandler<Exception> Failed;
+        public override event EventHandler<Exception> Failed;
 
         protected virtual void OnFailed(Exception ex)
         {
             this.Failed?.Invoke(this, ex);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             this.watcherSubscription.Dispose();
             this.watcher.Dispose();

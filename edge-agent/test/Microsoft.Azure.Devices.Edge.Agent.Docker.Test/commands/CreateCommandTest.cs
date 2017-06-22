@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
     using Binding = Microsoft.Azure.Devices.Edge.Agent.Docker.PortBinding;
     using System.Collections.Generic;
@@ -31,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-helloworld";
+            const string FakeConnectionString = "FakeConnectionString";
 
             try
             {
@@ -50,7 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             { "k2", "v2" }
                         });
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var command = new CreateCommand(Client, module, loggingConfig);
+                    var configSource = new Mock<IConfigSource>();
+                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
+                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    var command = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);
@@ -61,9 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
                     Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);
 
-                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=')[0], s => s.Split('=')[1]);
+                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
+                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", envMap["EdgeHubConnectionString"]);
                 }
             }
             finally
@@ -79,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-helloworld";
+            const string FakeConnectionString = "FakeConnectionString";
 
             try
             {
@@ -92,7 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag, new[] { new Binding("42", "42", PortBindingType.Udp)});
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
-                    var command = new CreateCommand(Client, module, loggingConfig);
+                    var configSource = new Mock<IConfigSource>();
+                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
+                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    var command = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);

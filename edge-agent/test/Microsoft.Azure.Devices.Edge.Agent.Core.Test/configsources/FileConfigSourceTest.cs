@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde))
             {
                 Assert.NotNull(configSource);
-                ModuleSet configSourceSet = await configSource.GetConfigAsync();
+                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
                 Assert.NotNull(configSourceSet);
                 Diff emptyDiff = ValidSet1.Diff(configSourceSet);
                 Assert.True(emptyDiff.IsEmpty);
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                     eventFailedCalled = true;
                 };
 
-                ModuleSet startingSet = await configSource.GetConfigAsync();
+                ModuleSet startingSet = await configSource.GetModuleSetAsync();
 
                 // Modify the config file by writing new content.
                 File.WriteAllText(this.tempFileName, validJson2);
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 Assert.Equal(eventDiff, validDiff1To2);
 
                 // Assert new read from config file is as expected.
-                ModuleSet configSourceSet = await configSource.GetConfigAsync();
+                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
                 Assert.NotNull(configSourceSet);
                 Diff configDiff = configSourceSet.Diff(startingSet);
                 Assert.Equal(configDiff, validDiff1To2); 
@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             {
                 Assert.NotNull(configSource);
 
-                ModuleSet startingSet = await configSource.GetConfigAsync();
+                ModuleSet startingSet = await configSource.GetModuleSetAsync();
 
                 // watching the file in this test to cover the case where no events are invoked.
                 var watcher = new FileSystemWatcher(Path.GetDirectoryName(this.tempFileName), Path.GetFileName(this.tempFileName))
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
                 watcher.WaitForChanged(WatcherChangeTypes.Changed, 1000);
 
-                ModuleSet configSourceSet = await configSource.GetConfigAsync();
+                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
                 Assert.NotNull(configSourceSet);
 
                 Diff configDiff = startingSet.Diff(configSourceSet);
