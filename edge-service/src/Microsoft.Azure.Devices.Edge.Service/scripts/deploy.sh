@@ -21,7 +21,6 @@ usage()
     echo " --iothub-hostname    IoTHub hostname"
     echo " --device-id          Edge device ID"
     echo " --access-key         Shared access key used to authenticate the device with IoTHub"
-    echo " --edge-hostname      Edge hostname"
     exit 1;
 }
 
@@ -60,9 +59,6 @@ process_args()
         elif [ $save_next_arg -eq 7 ]; then
             SHARED_ACCESS_KEY="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 8 ]; then
-            EDGE_HOSTNAME="$arg"
-            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -73,7 +69,6 @@ process_args()
                 "--iothub-hostname" ) save_next_arg=5;;
                 "--device-id" ) save_next_arg=6;;
                 "--access-key" ) save_next_arg=7;;
-                "--edge-hostname" ) save_next_arg=8;;
                 * ) usage;;
             esac
         fi
@@ -117,11 +112,6 @@ process_args()
         echo "Shared access key Parameter Invalid"
         print_help_and_exit
     fi
-
-    if [ -z ${EDGE_HOSTNAME} ]; then
-        echo "Edge hostname Parameter Invalid"
-        print_help_and_exit
-    fi
 }
 
 ###############################################################################
@@ -130,7 +120,7 @@ process_args()
 process_args $@
 
 image_name="edge-service"
-mma_connection="HostName=$IOTHUB_HOSTNAME;GatewayHostname=$EDGE_HOSTNAME;DeviceId=$DEVICEID;SharedAccessKey=$SHARED_ACCESS_KEY"
+mma_connection="HostName=$IOTHUB_HOSTNAME;DeviceId=$DEVICEID;SharedAccessKey=$SHARED_ACCESS_KEY"
 
 #echo Logging in to Docker registry
 sudo docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
