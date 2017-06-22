@@ -116,22 +116,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
                     };
 
-                    int i = 1;
                     while (!cts.Token.IsCancellationRequested)
                     {
-                        logger.LogInformation($"Reconciling [scheduled]... [{i}]");
-
                         try
                         {
                             await agent.ReconcileAsync(cts.Token);
-                            logger.LogInformation($"Reconciling finished [scheduled]... [{i}]");
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
                             logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile failed.");
                         }
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
-                        i++;
                     }
                     AssemblyLoadContext.Default.Unloading -= OnUnload;
                     logger.LogInformation("Closing module management agent.");
