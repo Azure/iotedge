@@ -154,9 +154,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
+        // We are only interested in non-NULL message IDs which are GUIDs. A twin
+        // message sent out via PG for example will cause a feedback to be generated
+        // with a non-GUID message ID which is redundant.
+        static bool IsValidMessageId(string messageId) => messageId != null && Guid.TryParse(messageId, out _) == true;
+
         public Task AbandonAsync(string messageId)
         {
-            if (messageId != null)
+            if (IsValidMessageId(messageId))
             {
                 MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
                 message.SystemProperties.Add(SystemProperties.MessageId, messageId);
@@ -168,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task CompleteAsync(string messageId)
         {
-            if (messageId != null)
+            if (IsValidMessageId(messageId))
             {
                 MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
                 message.SystemProperties.Add(SystemProperties.MessageId, messageId);

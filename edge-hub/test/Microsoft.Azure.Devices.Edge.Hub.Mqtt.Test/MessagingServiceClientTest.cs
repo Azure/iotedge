@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     [Unit]
     public class MessagingServiceClientTest
@@ -263,6 +264,85 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             await client.SendAsync(message);
 
             listener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(x => x.Status == 200 && x.CorrelationId == "123")), Times.Once);
+        }
+
+        static IEnumerable<object> GenerateInvalidMessageIdData()
+        {
+            return new object[]
+            {
+                new object[] { null },
+                new object[] { "NotAGuid" }
+            };
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GenerateInvalidMessageIdData))]
+        public async Task TestCompleteAsyncDoesNothingWhenMessageIdIsInvalid(string messageId)
+        {
+            // Arrange
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
+            var deviceListener = new Mock<IDeviceListener>();
+
+            // Act
+            var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
+            await messagingServiceClient.CompleteAsync(messageId);
+
+            // Assert
+            deviceListener.VerifyAll();
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GenerateInvalidMessageIdData))]
+        public async Task TestAbandonAsyncDoesNothingWhenMessageIdIsInvalid(string messageId)
+        {
+            // Arrange
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
+            var deviceListener = new Mock<IDeviceListener>();
+
+            // Act
+            var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
+            await messagingServiceClient.AbandonAsync(messageId);
+
+            // Assert
+            deviceListener.VerifyAll();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestCompleteAsyncCallsDeviceListener()
+        {
+            // Arrange
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
+            var deviceListener = new Mock<IDeviceListener>();
+            deviceListener.Setup(d => d.ProcessFeedbackMessageAsync(It.IsAny<IFeedbackMessage>()))
+                .Returns(TaskEx.Done);
+
+            // Act
+            var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
+            await messagingServiceClient.CompleteAsync(Guid.NewGuid().ToString());
+
+            // Assert
+            deviceListener.VerifyAll();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestAbandonAsyncCallsDeviceListener()
+        {
+            // Arrange
+            ProtocolGatewayMessageConverter messageConverter = MakeProtocolGatewayMessageConverter();
+            var deviceListener = new Mock<IDeviceListener>();
+            deviceListener.Setup(d => d.ProcessFeedbackMessageAsync(It.IsAny<IFeedbackMessage>()))
+                .Returns(TaskEx.Done);
+
+            // Act
+            var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
+            await messagingServiceClient.AbandonAsync(Guid.NewGuid().ToString());
+
+            // Assert
+            deviceListener.VerifyAll();
         }
 
         [Fact]
