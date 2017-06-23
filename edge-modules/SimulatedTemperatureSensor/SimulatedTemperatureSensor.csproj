@@ -11,9 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always">
-        <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
+    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
   </ItemGroup>
 
   <ItemGroup>
