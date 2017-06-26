@@ -37,6 +37,10 @@ if [ ! -d "${BUILD_BINARIESDIRECTORY}" ]; then
     mkdir $BUILD_BINARIESDIRECTORY
 fi
 
+if [ ! -d "${CONFIGURATION}" ]; then
+    CONFIGURATION="Debug"
+fi
+
 echo "Cleaning and restoring all solutions in repo"
 
 while read soln; do
@@ -58,7 +62,7 @@ echo "Building all solutions in repo"
 RES=0
 while read soln; do
     echo "Building Solution - $soln"
-    $DOTNET_ROOT_PATH/dotnet build --output $BUILD_BINARIESDIRECTORY $soln
+    $DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION --output $BUILD_BINARIESDIRECTORY $soln
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -75,7 +79,7 @@ while read proj; do
     echo "Publishing Solution - $proj"
     PROJ_FILE=$(basename "$proj")
     PROJ_NAME="${PROJ_FILE%.*}"
-    $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -o $PUBLISH_FOLDER/$PROJ_NAME $proj
+    $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
     if [ $? -gt 0 ]; then
         RES=1
     fi
