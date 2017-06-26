@@ -1,116 +1,151 @@
+###############################################################################
+# This Script builds all Edge application in their respective docker containers
+# This script expects that buildBranch.bat was invoked earlier and all the
+# necessary application files and their Dockerfile be published in
+# directory identified by environement variable BUILD_BINARIESDIRECTORY
+###############################################################################
+
 Param(
-    $DOTNET_DOWNLOAD_URL,
-    $DOCKER_REGISTRY = "edgebuilds.azurecr.io",
-    $DOCKER_IMAGEVERSION = "1000",
-    $DOCKER_USERNAME,
-    $DOCKER_PASSWORD
+    # Docker registry required to build, tag and run the module
+    [Parameter(Mandatory=$true)]
+    [String]$Registry,
+
+    # Docker Registry Username
+    [Parameter(Mandatory=$true)]
+    [String]$Username,
+
+    # Docker Username's password
+    [Parameter(Mandatory=$true)]
+    [String]$Password,
+
+    # Docker Image Version
+    [ValidateNotNullOrEmpty()]
+    [String]$ImageVersion = $Env:BUILD_BUILDNUMBER,
+
+    # Target architecture
+    [ValidateNotNullOrEmpty()]
+    [String]$TargetArch = $Env:PROCESSOR_ARCHITECTURE,
+
+    # Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY
+    [ValidateNotNullOrEmpty()]
+    [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
+
+    # Do not push images to the registry
+    [Switch]$SkipPush
 )
 
-$BUILD_BINARIESDIRECTORY = "target"
-$PUBLISH_DIR = Join-Path $BUILD_BINARIESDIRECTORY "publish"
-
-switch ($Env:PROCESSOR_ARCHITECTURE)
+if (-not $ImageVersion)
 {
-    "AMD64" { $arch = "x64" }
-    default { throw "Unsupported arch" }
+    Throw "Docker image version '$ImageVersion' not found"
+}
+
+if (-not $BinDir -or -not (Test-Path $BinDir))
+{
+    Throw "Bin directory '$BinDir' does not exist or is invalid"
+}
+
+$PublishDir = Join-Path $BinDir "publish"
+
+if (-not (Test-Path $PublishDir))
+{
+    Throw "Publish directory '$PublishDir' does not exist or is invalid"
+}
+
+switch ($TargetArch)
+{
+    "AMD64" { $TargetArch = "x64" }
+    default { throw "Unsupported arch '$TargetArch'" }
 }
 
 Function docker_login()
 {
     #echo Logging in to Docker registry
-    docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    docker login $Registry -u $Username -p $Password
     if ($LastExitCode)
     {
         Throw "Docker Login Failed With Exit Code $LastExitCode"
     }
 }
 
-###############################################################################
-# Build docker image and push it to private repo
-#
-#   @param[1] - imagename; Name of the docker edge image to publish; Required;
-#   @param[2] - arch; Arch of base image; Required;
-#   @param[3] - dockerfile; Path to the dockerfile; Optional;
-#               Leave as "" and defaults will be chosen.
-#   @param[4] - context_path; docker context path; Required;
-#   @param[5] - build_args; docker context path; Optional;
-#               Leave as "" and no build args will be supplied.
-###############################################################################
 Function docker_build_and_tag_and_push(
-    [Parameter(Mandatory = $true)]$imagename, 
-    [Parameter(Mandatory = $true)]$arch, 
-    $dockerfile, 
-    [Parameter(Mandatory = $true)]$context_path, 
-    $build_args)
-{
-    $FullVersionTag = "$DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:$DOCKER_IMAGEVERSION"
-    $LatestVersionTag = "$DOCKER_REGISTRY/azedge-$imagename-windows-${arch}:latest"
+    # Name of the docker edge image to publish
+    [Parameter(Mandatory = $true)]
+    [String]$ImageName, 
 
-    echo "Building and Pushing Docker image $imagename for $arch"
+    # Arch of base image
+    [Parameter(Mandatory = $true)]
+    [String]$Arch, 
+
+    # Path to the dockerfile
+    [ValidateNotNullOrEmpty()]
+    [String]$Dockerfile, 
+
+    # Docker context path
+    [Parameter(Mandatory = $true)]
+    [String]$ContextPath, 
+
+    # Build args
+    [String]$BuildArgs
+)
+{
+    $TagPrefix = "$Registry/azedge-$ImageName-windows-${Arch}"
+    $FullVersionTag = "${TagPrefix}:$ImageVersion"
+    $LatestVersionTag = "${TagPrefix}:latest"
+
+    echo "Building and Pushing Docker image $ImageName for $Arch"
     $docker_build_cmd = "docker build -t $FullVersionTag -t $LatestVersionTag"
-    if ($dockerfile)
+    if ($Dockerfile)
     {
-        $docker_build_cmd += " --file $dockerfile"
+        $docker_build_cmd += " --file $Dockerfile"
     }
-    $docker_build_cmd += " $context_path $build_args"
+    $docker_build_cmd += " $ContextPath $BuildArgs"
 
     echo "Running... $docker_build_cmd"
 
     Invoke-Expression $docker_build_cmd
-
     if ($LastExitCode)
     {
         Throw "Docker Build Failed With Exit Code $LastExitCode"
     }
-    else
+
+    if (-not $SkipPush)
     {
-        if ($PUSH)
+        docker push $FullVersionTag
+        if ($LastExitCode)
         {
-            docker push $FullVersionTag
-            if ($LastExitCode)
-            {
-                Throw "Docker Push Failed With Exit Code $LastExitCode"
-            }
-            else
-            {
-                docker push $LatestVersionTag
-                if ($LastExitCode)
-                {
-                    Throw "Docker Push Failed With Exit Code $LastExitCode"
-                }
-            }
+            Throw "Docker Push Failed With Exit Code $LastExitCode"
+        }
+
+        docker push $LatestVersionTag
+        if ($LastExitCode)
+        {
+            Throw "Docker Push Failed With Exit Code $LastExitCode"
         }
     }
 }
 
-if ($DOCKER_USERNAME -and $DOCKER_PASSWORD)
+Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
 {
-    docker_login
-    $PUSH = $true
+    $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
+    docker_build_and_tag_and_push `
+        -ImageName $ProjectName `
+        -Arch $TargetArch `
+        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile" `
+        -ContextPath $FullProjectPath `
+        -BuildArgs "--build-arg EXE_DIR=."
 }
 
-# push edge-agent image
-$EXE_DIR = "Microsoft.Azure.Devices.Edge.Agent.Service"
-$EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
-$DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push edge-agent $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
+if (-not $SkipPush)
+{
+    docker_login
+}
 
-# push edge-hub image
-$EXE_DIR = "Microsoft.Azure.Devices.Edge.Hub.Service"
-$EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
-$DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push edge-hub $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
+BuildTagPush "edge-agent" "Microsoft.Azure.Devices.Edge.Agent.Service"
 
-# push edge-service image
-$EXE_DIR = "Microsoft.Azure.Devices.Edge.Service"
-$EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
-$DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push edge-service $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
+BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"
 
-# push SimulatedTemperatureSensor image
-$EXE_DIR = "SimulatedTemperatureSensor"
-$EXE_DOCKER_DIR = "$PUBLISH_DIR\$EXE_DIR\docker"
-$DOTNET_BUILD_ARG = "--build-arg EXE_DIR=."
-docker_build_and_tag_and_push simulated-temperature-sensor $ARCH "$EXE_DOCKER_DIR\windows\$ARCH\Dockerfile" "$PUBLISH_DIR\$EXE_DIR" $DOTNET_BUILD_ARG
+BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service"
+
+BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
 
 echo "Done Building And Pushing Docker Images"
