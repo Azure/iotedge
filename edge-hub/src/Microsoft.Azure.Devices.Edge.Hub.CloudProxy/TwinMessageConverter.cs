@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.IO;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 
@@ -27,17 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             byte[] body = Encoding.UTF8.GetBytes(json.ToString());
-            return new MqttMessage.Builder(body)
-                .SetSystemProperties(new Dictionary<string, string>()
-                {
-                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o")
-                })
-                .Build();
+            return new CloudEdgeMessage(body, null, new Dictionary<string, string>
+            {
+                [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o")
+            });
         }
 
         public Twin FromMessage(IMessage message)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }
