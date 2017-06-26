@@ -8,14 +8,12 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 
 # Check if environment variables are set
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
-AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 
 SLN_PATTERN='Microsoft.Azure.*.sln'
 CSPROJ_PATTERN='*.csproj'
 ANTLR_PATTERN='*.g4'
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
-DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 
@@ -24,8 +22,14 @@ if [ ! -d "${ROOT_FOLDER}" ]; then
     exit 1
 fi
 
-if [ ! -f "${DOTNET_ROOT_PATH}/dotnet" ]; then
-    echo "Path $DOTNET_ROOT_PATH/dotnet does not exist" 1>&2
+if [ -f "${AGENT_WORKFOLDER}/dotnet/dotnet" ]; then # VSTS Linux
+    DOTNET_ROOT_PATH="$AGENT_WORKFOLDER/dotnet"
+elif [ -f "/usr/share/dotnet/dotnet" ]; then        # default Linux
+    DOTNET_ROOT_PATH="/usr/share/dotnet"
+elif [ -f "/usr/local/share/dotnet/dotnet" ]; then   # default macOS
+    DOTNET_ROOT_PATH="/usr/local/share/dotnet"
+else
+    echo "dotnet not found" 1>&2
     exit 1
 fi
 
