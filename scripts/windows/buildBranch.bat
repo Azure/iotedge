@@ -17,7 +17,7 @@ if not defined BUILD_BINARIESDIRECTORY (
 )
 
 if not defined CONFIGURATION (
-    set CONFIGURATION="Debug"
+    set CONFIGURATION=Debug
 )
 
 set SLN_PATTERN=Microsoft.Azure.*.sln
@@ -76,7 +76,7 @@ echo.
 
 for /r %%f in (%SLN_PATTERN%) do (
     echo Building Solution - %%f
-    "%DOTNET_ROOT_PATH%\dotnet" build -c $CONFIGURATION -o "%BUILD_BINARIESDIRECTORY%" %%f
+    "%DOTNET_ROOT_PATH%\dotnet" build -c %CONFIGURATION% -o "%BUILD_BINARIESDIRECTORY%" %%f
     if !ERRORLEVEL! neq 0 exit /b 1
 )
 
@@ -87,7 +87,7 @@ echo.
 for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_PATTERN%`) do (
     echo Publishing Solution - %%f
     for %%i in ("%%f") do set PROJ_NAME=%%~ni
-    "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c $CONFIGURATION -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
+    "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
     if !ERRORLEVEL! neq 0 exit /b 1
 )
 
