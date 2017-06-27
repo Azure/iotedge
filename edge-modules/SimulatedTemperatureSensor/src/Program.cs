@@ -64,7 +64,7 @@ namespace SimulatedTemperatureSensor
                 eventMessage.Properties.Add("temperatureAlert", (temperature > temperatureThreshold) ? "true" : "false");
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Data: [{dataBuffer}]");
 
-                await moduleClient.SendMessageAsync(eventMessage);
+                await moduleClient.SendEventAsync(eventMessage);
                 await Task.Delay(messageDelay, cts.Token);
                 count++;
             }

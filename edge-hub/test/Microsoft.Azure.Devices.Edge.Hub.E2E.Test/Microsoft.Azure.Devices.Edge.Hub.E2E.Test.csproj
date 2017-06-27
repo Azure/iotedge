@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.6.0" />
-    <PackageReference Include="Microsoft.Azure.Devices.ModuleClient" Version="1.2.11" />
+    <PackageReference Include="Microsoft.Azure.Devices.ModuleClient" Version="1.2.13" />
 
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="1.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.1" />
