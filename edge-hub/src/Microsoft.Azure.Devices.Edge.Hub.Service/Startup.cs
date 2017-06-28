@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using DotNetty.Common.Internal.Logging;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
@@ -41,6 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             services.AddMemoryCache();
             services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+
+            services.Configure<MvcOptions>(options =>
+            {
+                options.Filters.Add(new RequireHttpsAttribute());
+            });
 
             services.AddSingleton<IStartup>(sp => this);
             this.Container = this.BuildContainer(services);

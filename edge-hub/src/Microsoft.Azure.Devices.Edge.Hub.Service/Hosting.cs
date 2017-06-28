@@ -2,22 +2,30 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
-    using System.Security.Cryptography.X509Certificates;
 
     public class Hosting
     {
+        const int SslPortNumber = 443;
+
         IWebHost webHost;
         Startup startup;
 
         public IContainer Container => this.startup.Container;
         
-        public void Initialize(X509Certificate2 sslCert, string url)
+        public void Initialize(X509Certificate2 sslCert)
         {
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
-                .UseKestrel(options => options.UseHttps(sslCert))
-                .UseUrls(url)
+                .UseKestrel(options =>
+                {
+                    options.Listen(IPAddress.Any, SslPortNumber, listenOptions =>
+                    {
+                        listenOptions.UseHttps(sslCert);
+                    });
+                })
                 .UseStartup<Startup>();
             this.webHost = webHostBuilder.Build();
 

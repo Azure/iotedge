@@ -21,14 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Program
     {
-        const string HostingConfigFileName = "hosting.json";
         const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
         const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
 
         public static int Main()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(HostingConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 
@@ -40,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
             var hosting = new Hosting();
-            hosting.Initialize(certificate, configuration.GetValue<string>("httpHostUrl"));
+            hosting.Initialize(certificate);
 
             IContainer container = hosting.Container;
 
