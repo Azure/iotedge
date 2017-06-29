@@ -1,0 +1,20 @@
+{
+  "name": "edge-ble",
+  "version": "1.0.0",
+  "description": "A sample BLE Azure Edge Module",
+  "main": "main.js",
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^7.0.31",
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-typescript": "^3.1.7",
+    "gulp-watch": "^4.3.11",
+    "typescript": "^2.3.4",
+    "async-file": "^2.0.2"
+  },
+  "dependencies": {
+
+  }
+}

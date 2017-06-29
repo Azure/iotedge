@@ -1,0 +1,75 @@
+{
+    "sensors": {
+        "sensorTag": {
+            "name": "TI CC2650 Sensor Tag",
+            "devices": {
+                "temperature": {
+                    "name": "IR Temperature TMP007",
+                    "commands": {
+                        "powerOn": {
+                            "type": "write_at_init",
+                            "characteristic_uuid": "F000AA02-0451-4000-B000-000000000000",
+                            "data": "AQ=="
+                        },
+                        "powerOff": {
+                            "type": "write_at_exit",
+                            "characteristic_uuid": "F000AA02-0451-4000-B000-000000000000",
+                            "data": "AA=="
+                        },
+                        "reportInterval": {
+                            "type": "read_periodic",
+                            "characteristic_uuid": "F000AA01-0451-4000-B000-000000000000",
+                            "interval_in_ms": 1000
+                        }
+                    }
+                },
+                "accelerometer3D": {
+                    "name": "Movement MPU9250",
+                    "commands": {
+                        "powerOn": {
+                            "type": "write_at_init",
+                            "characteristic_uuid": "F000AA12-0451-4000-B000-000000000000",
+                            "data": "AQ=="
+                        },
+                        "powerOff": {
+                            "type": "write_at_exit",
+                            "characteristic_uuid": "F000AA12-0451-4000-B000-000000000000",
+                            "data": "AA=="
+                        },
+                        "reportInterval": {
+                            "type": "read_periodic",
+                            "characteristic_uuid": "F000AA11-0451-4000-B000-000000000000",
+                            "interval_in_ms": 1000
+                        }
+                    }
+                }
+            },
+            "commands": {
+                "modelNumber": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A24-0000-1000-8000-00805F9B34FB"
+                },
+                "serialNumber": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A25-0000-1000-8000-00805F9B34FB"
+                },
+                "firmwareRevision": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A26-0000-1000-8000-00805F9B34FB"
+                },
+                "hardwareRevision": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A27-0000-1000-8000-00805F9B34FB"
+                },
+                "softwareRevision": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A28-0000-1000-8000-00805F9B34FB"
+                },
+                "manufacturerName": {
+                    "type": "read_once",
+                    "characteristic_uuid": "00002A29-0000-1000-8000-00805F9B34FB"
+                }
+            }
+        }
+    }
+}

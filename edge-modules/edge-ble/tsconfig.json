@@ -1,0 +1,17 @@
+{
+    "files": [
+        "src/main.ts",
+        "src/deviceconfiguration.ts",
+        "src/sensorconfiguration.ts"
+    ],
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "preserveConstEnums": true,
+        "target": "es2016",
+        "sourceMap": true,
+        "typeRoots": [
+            "./node_modules/@types"
+        ]
+    }
+}
