@@ -445,7 +445,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 // PartialFailures should always have an exception object filled out
                 Exception innerException = thisPtr.currentCheckpointCommand.Result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails).RawException;
-                Debug.Assert(!innerException.Equals(DefaultSendFailureDetails.RawException));
 
                 // 1. Change Messages to be sent to failedMessages
                 // 2. Change the Command type to Fail or Dead depending on retry

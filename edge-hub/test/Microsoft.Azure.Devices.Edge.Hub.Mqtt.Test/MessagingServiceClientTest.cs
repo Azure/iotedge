@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             return new object[]
             {
                 new object[] { null },
-                new object[] { "NotAGuid" }
+                new object[] { "r" }
             };
         }
 

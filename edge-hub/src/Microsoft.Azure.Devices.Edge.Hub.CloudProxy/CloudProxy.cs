@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync();
 
-        public void StartListening() => this.cloudReceiver.StartListening();   
+        public void StartListening() => this.cloudReceiver.StartListening();
 
         static class Events
         {

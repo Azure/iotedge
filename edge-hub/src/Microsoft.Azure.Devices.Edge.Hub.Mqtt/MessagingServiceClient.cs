@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class MessagingServiceClient : IMessagingServiceClient
     {
         static readonly StringSegment RequestId = new StringSegment(TwinNames.RequestId);
+        static readonly string TwinLockToken = "r";
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
@@ -68,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         }
 
                         Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
-                        coreMessage.SystemProperties[SystemProperties.LockToken] = "r";
+                        coreMessage.SystemProperties[SystemProperties.LockToken] = TwinLockToken;
                         coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.Ok;
                         coreMessage.SystemProperties[SystemProperties.CorrelationId] = correlationId.ToString();
                         coreMessage.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 .SetSystemProperties(new Dictionary<string, string>()
                                 {
                                     [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                                    [SystemProperties.LockToken] = "r",
+                                    [SystemProperties.LockToken] = TwinLockToken,
                                     [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
                                     [SystemProperties.CorrelationId] = correlationId.ToString(),
                                     [SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint
@@ -110,19 +111,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         Task SendMethodResponse(IProtocolGatewayMessage message)
         {
-            Events.SendMethodResponse(this.deviceListener.Identity, message.Address);
-            Core.IMessage msg = this.messageConverter.ToMessage(message);
-
-            if (!msg.Properties.TryGetValue(SystemProperties.CorrelationId, out string correlationId)
-                || !msg.Properties.TryGetValue(SystemProperties.StatusCode, out string statusCode)
-                || !int.TryParse(statusCode, out int statusCodeValue))
+            try
             {
-                Events.SendMethodResponseInvalid(this.deviceListener.Identity, message.Address);
+                Events.SendMethodResponse(this.deviceListener.Identity, message.Address);
+                Core.IMessage msg = this.messageConverter.ToMessage(message);
+
+                if (!msg.Properties.TryGetValue(SystemProperties.CorrelationId, out string correlationId)
+                    || !msg.Properties.TryGetValue(SystemProperties.StatusCode, out string statusCode)
+                    || !int.TryParse(statusCode, out int statusCodeValue))
+                {
+                    Events.SendMethodResponseInvalid(this.deviceListener.Identity, message.Address);
+                    return TaskEx.Done;
+                }
+
+                message.Payload.ResetReaderIndex();
+                return this.deviceListener.ProcessMethodResponseAsync(new DirectMethodResponse(correlationId, message.Payload.ToByteArray(), statusCodeValue));
+            }
+            catch (Exception e)
+            {
+                Events.SendMethodResponseFailed(this.deviceListener.Identity, e);
                 return TaskEx.Done;
             }
+        }
 
-            message.Payload.ResetReaderIndex();
-            return this.deviceListener.ProcessMethodResponseAsync(new DirectMethodResponse(correlationId, message.Payload.ToByteArray(), statusCodeValue));
+        Task SendMessageAsync(IProtocolGatewayMessage message)
+        {
+            try
+            {
+                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
+                Events.SendMessage(this.deviceListener.Identity);
+                return this.deviceListener.ProcessMessageAsync(coreMessage);
+            }
+            catch (Exception e)
+            {
+                Events.SendMessageFailed(this.deviceListener.Identity, e);
+                return TaskEx.Done;
+            }
         }
 
         public async Task SendAsync(IProtocolGatewayMessage message)
@@ -140,9 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
             else
             {
-                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
-                await this.deviceListener.ProcessMessageAsync(coreMessage);
-                Events.SendMessage(this.deviceListener.Identity);
+                await this.SendMessageAsync(message);
             }
         }
 
@@ -154,10 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        // We are only interested in non-NULL message IDs which are GUIDs. A twin
+        // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
         // message sent out via PG for example will cause a feedback to be generated
-        // with a non-GUID message ID which is redundant.
-        static bool IsValidMessageId(string messageId) => messageId != null && Guid.TryParse(messageId, out _) == true;
+        // with TwinLockToken as message ID which is redundant.
+        static bool IsValidMessageId(string messageId) => messageId != null && messageId != TwinLockToken;
 
         public Task AbandonAsync(string messageId)
         {
@@ -211,7 +233,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 SendMessage,
                 Dispose,
                 SendMethodResponse,
-                InvalidMethodResponse
+                InvalidMethodResponse,
+                SendMessageFailure,
+                SendMethodResponseFailure
             }
 
             public static void BindMessageChannel(IIdentity identity)
@@ -247,6 +271,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void Disposing(IIdentity identity, Exception cause)
             {
                 Log.LogInformation((int)EventIds.Dispose, Invariant($"Disposing MessagingServiceClient for device Id {identity.Id} because of exception - {cause?.ToString() ?? string.Empty}"));
+            }
+
+            public static void SendMessageFailed(IIdentity identity, Exception exception)
+            {
+                Log.LogError((int)EventIds.SendMessageFailure, Invariant($"Message was not sent for device Id {identity.Id} exception {exception}"));
+            }
+
+            public static void SendMethodResponseFailed(IIdentity identity, Exception exception)
+            {
+                Log.LogError((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
             }
         }
     }

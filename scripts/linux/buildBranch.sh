@@ -37,7 +37,7 @@ if [ ! -d "${BUILD_BINARIESDIRECTORY}" ]; then
     mkdir $BUILD_BINARIESDIRECTORY
 fi
 
-if [ ! -d "${CONFIGURATION}" ]; then
+if [ -z "${CONFIGURATION}" ]; then
     CONFIGURATION="Debug"
 fi
 
