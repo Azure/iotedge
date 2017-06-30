@@ -34,8 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public EdgeToDeviceMethodTest(ProtocolHeadFixture fixture)
         {
-            this.connectionManager = fixture.ConnectionManager;
-            this.deviceListener = fixture.DeviceListener;
+            (this.connectionManager, this.deviceListener) = fixture.StartMqttHeadWithMocks().Result;
         }
 
         [Fact]
