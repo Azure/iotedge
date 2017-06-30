@@ -6,7 +6,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 RUN New-SelfSignedCertificate -Subject ('CN={0}' -f $Env:ComputerName) | `
     Export-PfxCertificate -FilePath \edge-server.pfx -Password (ConvertTo-SecureString -String "pass" -AsPlainText -Force)
 
-FROM microsoft/dotnet:2.0.0-preview1-runtime
+FROM microsoft/dotnet:2.0.0-preview2-runtime-nanoserver
 
 ENV SSL_CERTIFICATE_PATH \certs
 ENV SSL_CERTIFICATE_NAME edge-server.pfx

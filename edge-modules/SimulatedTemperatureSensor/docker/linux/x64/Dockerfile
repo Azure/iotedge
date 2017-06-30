@@ -1,4 +1,4 @@
-FROM edgebuilds.azurecr.io/azedge-dotnet-runtime-x64:latest
+FROM microsoft/dotnet:2.0.0-preview2-runtime-stretch
 
 ARG EXE_DIR=.
 
