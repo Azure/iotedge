@@ -14,9 +14,9 @@
 
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.0-preview2-final" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.0.0-preview2-final" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="System.Collections.Immutable" Version="1.3.1" />
     <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
@@ -52,5 +52,9 @@
       <Visitor>False</Visitor>
       <Listener>False</Listener>
     </Antlr4>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="grammar\generated\" />
   </ItemGroup>
 </Project>
