@@ -32,13 +32,12 @@ Param(
     [Parameter(Mandatory=$true)]
     [String]$AccessKey,
 
-    # Edge hostname
-    [Parameter(Mandatory=$true)]
-    [String]$EdgeHostname,
-
     # Docker Engine host address
     [Parameter(Mandatory=$true)]
-    [String]$DockerAddress
+    [String]$DockerAddress,
+
+    # Do not detach after the service starts
+    [Switch]$Foreground
 )
 
 if (-not $ImageVersion)
@@ -54,7 +53,7 @@ if (-not $ImageVersion)
 }
 
 $image_name = "edge-service"
-$mma_connection = "HostName=$IoTHubHostname;GatewayHostname=$EdgeHostname;DeviceId=$DeviceId;SharedAccessKey=$AccessKey"
+$mma_connection = "HostName=$IoTHubHostname;DeviceId=$DeviceId;SharedAccessKey=$AccessKey"
 $tag = "edgebuilds.azurecr.io/azedge-edge-service-windows-x64:$ImageVersion"
 
 docker login $Registry -u $Username -p $Password
@@ -73,7 +72,17 @@ docker stop $image_name
 
 docker rm $image_name
 
-docker run -d --name $image_name -p 8883:8883 -p 443:443 -e IPInterfaceName=Ethernet -e DockerUri=http://${DockerAddress}:2375 -e MMAConnectionString=$mma_connection -e IotHubHostName=$IoTHubHostname -e EdgeDeviceId=$DeviceId $tag
+$run_command = "docker run "
+if (-not $Foreground)
+{
+    $run_command += "-d "
+}
+$run_command += "--name $image_name -p 8883:8883 -p 443:443 " + 
+    "-e IPInterfaceName=Ethernet -e DockerUri=http://${DockerAddress}:2375 " + 
+    "-e MMAConnectionString='$mma_connection' -e IotHubHostName=$IoTHubHostname " + 
+    "-e EdgeDeviceId=$DeviceId $tag"
+
+Invoke-Expression $run_command
 if ($LastExitCode)
 {
     Throw "Docker Run Failed With Exit Code $LastExitCode"
