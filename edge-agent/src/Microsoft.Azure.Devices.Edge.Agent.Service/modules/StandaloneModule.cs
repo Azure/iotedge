@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using Autofac.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
 
     /// <summary>
     /// Autofac module for stand-alone mode.
@@ -18,12 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, string configFilename, string connectionString)
+        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, string configFilename, IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
             this.configSource = new FileConfigSourceModule(
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
-                Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)));
+                Preconditions.CheckNotNull(configuration, nameof(configuration)));
             this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
         }
 

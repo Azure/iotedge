@@ -14,16 +14,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class TwinConfigSourceModule : Module
     {
         readonly string connectionString;
+        readonly IConfiguration configuration;
         const string DockerType = "docker";
 
-        public TwinConfigSourceModule(string connectionString)
+        public TwinConfigSourceModule(string connectionString, IConfiguration configuration)
         {
-            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            this.connectionString = Preconditions.CheckNotNull(connectionString);
+            this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -75,10 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             c.Resolve<IDeviceClient>(),
                             c.Resolve<ISerde<ModuleSet>>(),
                             c.Resolve<ISerde<Diff>>(),
-                            new Dictionary<string, object>()
-                            {
-                                { "EdgeHubConnectionString", this.connectionString }
-                            }
+                            this.configuration
                         );
                         return config;
                     })

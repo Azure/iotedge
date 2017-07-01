@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
     using Binding = global::Docker.DotNet.Models.PortBinding;
 
     public class CreateCommand : ICommand
@@ -54,10 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         IEnumerable<string> GetContainerEnv()
         {
             IEnumerable<string> env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}");
-            if (this.configSource.ContainsKey(Constants.EdgeHubConnectionStringKey))
-            {
-                string edgeHubConnectionString = this.configSource.GetValue<string>(Constants.EdgeHubConnectionStringKey).OrDefault();
 
+            string edgeHubConnectionString = this.configSource.Configuration.GetValue<string>(Constants.EdgeHubConnectionStringKey, string.Empty);
+            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
+            {
                 // append the module ID to this string
                 edgeHubConnectionString = $"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
 

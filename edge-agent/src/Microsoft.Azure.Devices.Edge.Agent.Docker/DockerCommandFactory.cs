@@ -2,11 +2,14 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Collections.Generic;
     using global::Docker.DotNet;
+    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
 
     public class DockerCommandFactory : ICommandFactory
     {
@@ -28,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public ICommand Pull(IModule module) =>
             module is DockerModule
-                ? new PullCommand(this.client, (DockerModule)module)
+                ? new PullCommand(this.client, (DockerModule)module, this.FirstAuthConfigOrDefault((DockerModule)module))
                 : (ICommand)NullCommand.Instance;
 
         public ICommand Update(IModule current, IModule next) =>
@@ -50,5 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             module is DockerModule
                 ? new StopCommand(this.client, (DockerModule)module)
                 : (ICommand)NullCommand.Instance;
+
+        AuthConfig FirstAuthConfigOrDefault(DockerModule module)
+        {
+            var authConfigs = this.configSource.Configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>();
+            return DockerUtil.FirstAuthConfigOrDefault(module.Config.Image, authConfigs);
+        }
+
     }
 }

@@ -2,21 +2,17 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Microsoft.Azure.Devices.Edge.Util;
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Configuration;
 
     public interface IConfigSource : IDisposable
     {
         Task<ModuleSet> GetModuleSetAsync();
 
-        bool ContainsKey(string key);
+        event EventHandler<Diff> ModuleSetChanged;
+        event EventHandler<Exception> ModuleSetFailed;
 
-        Option<T> GetValue<T>(string key);
-
-        Option<object> GetValue(string key, Type type);
-
-        event EventHandler<Diff> Changed;
-        event EventHandler<Exception> Failed;
+        IConfiguration Configuration { get; }
     }
 }

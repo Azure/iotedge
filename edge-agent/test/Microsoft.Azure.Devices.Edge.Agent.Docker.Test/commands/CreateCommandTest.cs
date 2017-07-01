@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
@@ -13,11 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
     using Binding = Microsoft.Azure.Devices.Edge.Agent.Docker.PortBinding;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -52,9 +53,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             { "k2", "v2" }
                         });
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+
+                    IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+                    {
+                        { "EdgeHubConnectionString", FakeConnectionString }
+                    }).Build();
+
                     var configSource = new Mock<IConfigSource>();
-                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
-                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+
                     var command = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     // run the command
@@ -99,9 +106,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag, new[] { new Binding("42", "42", PortBindingType.Udp)});
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+
+                    IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+                    {
+                        { "EdgeHubConnectionString", FakeConnectionString }
+                    }).Build();
+
                     var configSource = new Mock<IConfigSource>();
-                    configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
-                    configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>(FakeConnectionString));
+                    configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+
                     var command = new CreateCommand(Client, module, loggingConfig, configSource.Object);
 
                     // run the command

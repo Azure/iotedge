@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using Autofac.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
 
     /// <summary>
     /// Autofac module for iothubConnected mode.
@@ -18,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public IotHubConnectedModule(Uri dockerHost, string dockerLoggingDriver, string connectionString)
+        public IotHubConnectedModule(Uri dockerHost, string dockerLoggingDriver, string connectionString, IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
-            this.configSource = new TwinConfigSourceModule(Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)));
+            this.configSource = new TwinConfigSourceModule(connectionString, Preconditions.CheckNotNull(configuration, nameof(configuration)));
             this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
         }
 

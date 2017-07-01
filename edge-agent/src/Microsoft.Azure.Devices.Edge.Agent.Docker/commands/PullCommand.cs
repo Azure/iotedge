@@ -15,11 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         const int BufferSize = 1 << 19; // 0.5 MB
         readonly IDockerClient client;
         readonly DockerModule module;
+        readonly AuthConfig authConfig;
 
-        public PullCommand(IDockerClient client, DockerModule module)
+        public PullCommand(IDockerClient client, DockerModule module, AuthConfig authConfig)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.module = Preconditions.CheckNotNull(module, nameof(module));
+            this.authConfig = authConfig;
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -29,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 Parent = this.module.Config.Image,
                 Tag = this.module.Config.Tag
             };
-            Stream stream = await this.client.Images.PullImageAsync(pullParameters, null);
+            Stream stream = await this.client.Images.PullImageAsync(pullParameters, this.authConfig);
 
             // We need to read the entire contents of the stream to ensure the image is fully downloaded
             await stream.CopyToAsync(Stream.Null, BufferSize, token);

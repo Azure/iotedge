@@ -12,10 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class Program
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return MainAsync(configuration).Result;
         }
 
-        static string GetEdgeHubConnectionString(IConfigurationRoot configuration, ILogger logger)
+        static string GetEdgeHubConnectionString(IConfiguration configuration, ILogger logger)
         {
             string connectionString = configuration.GetValue<string>("MMAConnectionString");
             string edgeHubIpInterfaceName = configuration.GetValue<string>("IPInterfaceName");
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return connectionString;
         }
 
-        public static async Task<int> MainAsync(IConfigurationRoot configuration)
+        public static async Task<int> MainAsync(IConfiguration configuration)
         {
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
             string configSourceConfig = configuration.GetValue<string>("ConfigSource");
@@ -71,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             ILogger logger = loggerFactory.CreateLogger<Program>();
 
             string connectionString = GetEdgeHubConnectionString(configuration, logger);
+            configuration["EdgeHubConnectionString"] = connectionString;
 
             var dockerUri = new Uri(dockerUriConfig);
             var builder = new ContainerBuilder();
@@ -78,10 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString, configuration));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, "config.json", connectionString));
+                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, "config.json", configuration));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");
@@ -105,13 +106,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     // Do another reconcile whenever the config source reports that the desired
                     // configuration has changed.
-                    configSource.Changed += async (sender, diff) =>
+                    configSource.ModuleSetChanged += async (sender, diff) =>
                     {
                         logger.LogInformation("Applying config change...");
                         await agent.ApplyDiffAsync(diff, CancellationToken.None);
                     };
 
-                    configSource.Failed += (sender, ex) =>
+                    configSource.ModuleSetFailed += (sender, ex) =>
                     {
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
                     };

@@ -12,19 +12,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class FileConfigSourceModule : Module
     {
         const string DockerType = "docker";
         readonly string configFilename;
-        readonly string connectionString;
+        readonly IConfiguration configuration;
 
-        public FileConfigSourceModule(string configFilename, string connectionString)
+        public FileConfigSourceModule(string configFilename, IConfiguration configuration)
         {
-            this.configFilename = Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename));
-            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            this.configFilename = configFilename;
+            this.configuration = configuration;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -56,10 +56,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IConfigSource config = await FileConfigSource.Create(this.configFilename, c.Resolve<ISerde<ModuleSet>>(), new Dictionary<string, object>()
-                    {
-                        { "EdgeHubConnectionString", this.connectionString }
-                    });
+                    IConfigSource config = await FileConfigSource.Create(
+                        this.configFilename,
+                        c.Resolve<ISerde<ModuleSet>>(),
+                        this.configuration);
                     return config;
                 })
                 .As<Task<IConfigSource>>()

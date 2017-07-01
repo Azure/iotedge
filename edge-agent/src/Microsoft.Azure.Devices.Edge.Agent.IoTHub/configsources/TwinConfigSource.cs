@@ -3,15 +3,14 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 {
     using System;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
 
     public class TwinConfigSource : BaseConfigSource
     {
@@ -37,8 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             }
         }
 
-        TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IDictionary<string, object> configurationMap)
-            : base(configurationMap)
+        TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
+            : base(configuration)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.ModuleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
@@ -66,24 +65,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
             }
         }
 
-        public override event EventHandler<Diff> Changed;
+        public override event EventHandler<Diff> ModuleSetChanged;
 
         protected void OnChanged(Diff diff)
         {
-            this.Changed?.Invoke(this, diff);
+            this.ModuleSetChanged?.Invoke(this, diff);
         }
 
-        public override event EventHandler<Exception> Failed;
+        public override event EventHandler<Exception> ModuleSetFailed;
 
         protected void OnFailed(Exception ex)
         {
-            this.Failed?.Invoke(this, ex);
+            this.ModuleSetFailed?.Invoke(this, ex);
         }
 
-        public static async Task<TwinConfigSource> Create(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IDictionary<string, object> configurationMap = null)
+        public static async Task<TwinConfigSource> Create(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
         {
-            configurationMap = configurationMap ?? ImmutableDictionary<string, object>.Empty;
-            var configSource = new TwinConfigSource(deviceClient, moduleSetSerde, diffSerde, configurationMap);
+            var configSource = new TwinConfigSource(deviceClient, moduleSetSerde, diffSerde, configuration);
             await configSource.deviceClient.SetDesiredPropertyUpdateCallback(configSource.OnDesiredPropertyChanged, null);
             return configSource;
         }

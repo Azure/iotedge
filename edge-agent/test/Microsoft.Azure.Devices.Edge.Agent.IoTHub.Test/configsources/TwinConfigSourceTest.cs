@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
@@ -20,12 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
         readonly ModuleSetSerde moduleSetSerde;
         readonly DiffSerde diffSerde;
         DesiredPropertyUpdateCallback desiredPropertyCallback;
+        readonly IConfigurationRoot config;
 
         public TwinConfigSourceTest()
         {
             var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
             this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
             this.diffSerde = new DiffSerde(serializerInputTable);
+            this.config = new ConfigurationBuilder().Build();
         }
 
         [Fact]
@@ -37,9 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
             // Act
             // Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(null, this.moduleSetSerde, this.diffSerde));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, null, this.diffSerde));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, null));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(null, this.moduleSetSerde, this.diffSerde, this.config));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, null, this.diffSerde, this.config));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, null, this.config));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, null));
         }
 
         [Fact]
@@ -50,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             var deviceClient = new Mock<IDeviceClient>();
 
             // Act
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde))
+            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
             {
                 // Assert
                 Assert.NotNull(twinConfig);
@@ -75,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             var deviceClient = new Mock<IDeviceClient>();
             deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde))
+            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
             {
                 // Act
                 ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
@@ -107,11 +111,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             var moduleSetSerdeMocked = new Mock<ISerde<ModuleSet>>();
             moduleSetSerdeMocked.Setup(t => t.Deserialize(It.IsAny<string>())).Throws(new Exception("Any Exception"));
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde))
+            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde, this.config))
             {
                 bool failEventCalled = false;
 
-                twinConfig.Failed += (sender, ex) =>
+                twinConfig.ModuleSetFailed += (sender, ex) =>
                 {
                     failEventCalled = true;
                 };
@@ -163,12 +167,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
                     })
                 .Returns(Task.FromResult(0));
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde))
+            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
             {
                 // Act
                 bool changeEventCalled = false;
                 Diff receivedDiff = null;
-                twinConfig.Changed += (sender, diff) =>
+                twinConfig.ModuleSetChanged += (sender, diff) =>
                 {
                     changeEventCalled = true;
                     receivedDiff = diff;

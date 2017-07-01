@@ -3,8 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
     using System;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Reactive;
@@ -14,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     public class FileConfigSource : BaseConfigSource
@@ -27,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly AtomicReference<ModuleSet> current;
         readonly AsyncLock sync;
 
-        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde, IDictionary<string, object> configurationMap)
-            : base(configurationMap)
+        FileConfigSource(FileSystemWatcher watcher, ModuleSet initial, ISerde<ModuleSet> moduleSetSerde, IConfiguration configuration)
+            : base(configuration)
         {
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
             this.current = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
@@ -46,10 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             Events.Created(this.configFilePath);
         }
 
-        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde, IDictionary<string, object> configurationMap = null)
+        public static async Task<FileConfigSource> Create(string configFilePath, ISerde<ModuleSet> moduleSetSerde, IConfiguration configuration)
         {
-            configurationMap = configurationMap ?? ImmutableDictionary<string, object>.Empty;
-
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
             Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
             if (!File.Exists(path))
@@ -67,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, moduleSetSerde, configurationMap);
+            return new FileConfigSource(watcher, initial, moduleSetSerde, configuration);
         }
 
         void AssignCurrentModuleSet(ModuleSet updated)
@@ -119,18 +116,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        public override event EventHandler<Diff> Changed;
+        public override event EventHandler<Diff> ModuleSetChanged;
 
         protected virtual void OnChanged(Diff diff)
         {
-            this.Changed?.Invoke(this, diff);
+            this.ModuleSetChanged?.Invoke(this, diff);
         }
 
-        public override event EventHandler<Exception> Failed;
+        public override event EventHandler<Exception> ModuleSetFailed;
 
         protected virtual void OnFailed(Exception ex)
         {
-            this.Failed?.Invoke(this, ex);
+            this.ModuleSetFailed?.Invoke(this, ex);
         }
 
         public override void Dispose()

@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -57,9 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // Start up the agent and run a "reconcile".
                 var loggingConfig = new DockerLoggingConfig("json-file");
+
+                IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    { "EdgeHubConnectionString", "FakeConnectionString" }
+                }).Build();
+
                 var configSource = new Mock<IConfigSource>();
-                configSource.Setup(cs => cs.ContainsKey("EdgeHubConnectionString")).Returns(true);
-                configSource.Setup(cs => cs.GetValue<string>("EdgeHubConnectionString")).Returns(Option.Some<string>("FakeConnectionString"));
+                configSource.Setup(cs => cs.Configuration).Returns(configRoot);
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
                 var environment = new DockerEnvironment(client);
