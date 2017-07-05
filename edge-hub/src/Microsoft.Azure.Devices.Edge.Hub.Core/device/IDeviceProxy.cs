@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task<bool> SendMessageAsync(IMessage message);
 
-        Task<bool> SendMessageAsync(IMessage message, string endpoint);
+        Task<bool> SendMessageAsync(IMessage message, string input);
 
         Task CallMethodAsync(DirectMethodRequest request);
 

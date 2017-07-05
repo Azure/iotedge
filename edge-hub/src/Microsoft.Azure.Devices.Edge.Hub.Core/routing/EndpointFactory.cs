@@ -61,9 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
 
                 string moduleId = items[1];
-                string address = items[3];
+                string input = items[3];
                 string id = $"{this.edgeDeviceId}/{moduleId}";
-                return new ModuleEndpoint(id, address, () => this.connectionManager.GetDeviceConnection(id), this.messageConverter);
+                return new ModuleEndpoint(id, input, () => this.connectionManager.GetDeviceConnection(id), this.messageConverter);
             }
             else
             {

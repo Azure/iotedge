@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             {
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },
-                { SystemProperties.DeviceId, "Device10" },
+                { SystemProperties.ConnectionDeviceId, "Device10" },
                 { SystemProperties.CorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             {
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },
-                { SystemProperties.DeviceId, "Device10" },
+                { SystemProperties.ConnectionDeviceId, "Device10" },
                 { SystemProperties.CorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };

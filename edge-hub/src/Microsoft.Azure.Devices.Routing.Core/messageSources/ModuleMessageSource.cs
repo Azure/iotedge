@@ -13,12 +13,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
         {
         }
 
-        public static ModuleMessageSource Create(string moduleId, string outputEndpoint)
+        public static ModuleMessageSource Create(string moduleId, string outputName)
         {
             Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(moduleId), "ModuleId cannot be null or empty");
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(outputEndpoint), "OutputEndpoint cannot be null or empty");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(outputName), "OutputEndpoint cannot be null or empty");
 
-            return new ModuleMessageSource(string.Format(CultureInfo.InvariantCulture, SourcePattern, moduleId, outputEndpoint));
+            return new ModuleMessageSource(string.Format(CultureInfo.InvariantCulture, SourcePattern, moduleId, outputName));
         }
     }
 }

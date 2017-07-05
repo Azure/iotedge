@@ -11,5 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const string OutboundUriTwinDesiredPropertyUpdate = "TwinDesiredPropertyUpdate";
         public const string TwinPrefix = ServicePrefix + "twin" + SegmentSeparator;
         public const string MethodPrefix = ServicePrefix + "methods" + SegmentSeparator + "res" + SegmentSeparator;
+        public const string ModuleIdTemplateParameter = "moduleId";
     }
 }

@@ -111,9 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
             {
-                if (routingMessage.SystemProperties.TryGetValue(SystemProperties.DeviceId, out string deviceId))
+                if (routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
                 {
-                    string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ModuleId, out string moduleId)
+                    string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                         ? $"{deviceId}/{moduleId}"
                         : deviceId;
                     Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);

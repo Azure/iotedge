@@ -44,9 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(edgeMessage.Properties, nameof(edgeMessage.Properties));
             Preconditions.CheckNotNull(edgeMessage.SystemProperties, nameof(edgeMessage.SystemProperties));
 
-            IMessageSource messageSource = edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.EndpointId, out string endpointId)
-                && edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.ModuleId, out string moduleId)
-                    ? ModuleMessageSource.Create(moduleId, endpointId) as IMessageSource
+            IMessageSource messageSource = edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.OutputName, out string outputName)
+                && edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.ConnectionModuleId, out string moduleId)
+                    ? ModuleMessageSource.Create(moduleId, outputName) as IMessageSource
                     : TelemetryMessageSource.Instance;
 
             var routingMessage = new RoutingMessage(messageSource, edgeMessage.Body, edgeMessage.Properties, edgeMessage.SystemProperties);

@@ -57,15 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(true);
         }
 
-        public Task<bool> SendMessageAsync(IMessage message, string endpoint)
+        public Task<bool> SendMessageAsync(IMessage message, string input)
         {
             bool result = false;
             var moduleIdentity = this.Identity as IModuleIdentity;
             if (moduleIdentity != null)
             {
                 message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = moduleIdentity.DeviceId;
-                message.SystemProperties[SystemProperties.ModuleId] = moduleIdentity.ModuleId;
-                message.SystemProperties[SystemProperties.EndpointId] = endpoint;
+                message.SystemProperties[Constants.ModuleIdTemplateParameter] = moduleIdentity.ModuleId;
+                message.SystemProperties[SystemProperties.InputName] = input;
                 message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriModuleEndpoint;
                 IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(message);
                 this.channel.Handle(pgMessage);

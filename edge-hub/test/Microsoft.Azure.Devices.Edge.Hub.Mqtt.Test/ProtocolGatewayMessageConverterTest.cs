@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(3, message.SystemProperties.Count);
             Assert.Equal("Corrid1", message.SystemProperties[SystemProperties.CorrelationId]);
             Assert.Equal("MessageId1", message.SystemProperties[SystemProperties.MessageId]);
-            Assert.Equal("Device_6", message.SystemProperties[SystemProperties.DeviceId]);
+            Assert.Equal("Device_6", message.SystemProperties[SystemProperties.ConnectionDeviceId]);
 
             Assert.Equal(3, message.Properties.Count);
             Assert.Equal("Bar", message.Properties["Foo"]);

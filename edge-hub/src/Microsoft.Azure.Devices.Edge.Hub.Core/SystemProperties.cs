@@ -1,4 +1,5 @@
-﻿
+﻿// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Collections.Generic;
@@ -11,9 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string CorrelationId = "correlationId";
         public const string UserId = "userId";
         public const string Ack = "ack";
-        public const string DeviceId = "connectionDeviceId";
-        public const string ModuleId = "moduleId";
-        public const string EndpointId = "endpointId";
+        public const string ConnectionDeviceId = "connectionDeviceId";
+        public const string ConnectionModuleId = "connectionModuleId";
+        public const string InputName = "inputName";
+        public const string OutputName = "outputName";
         public const string DeviceGenerationId = "connectionDeviceGenerationId";
         public const string AuthMethod = "connectionAuthMethod";
         public const string ContentType = "contentType";
@@ -26,15 +28,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string Version = "version";
         public const string ExpiryTimeUtc = "absolute-expiry-time";
         
+        private class OnTheWireSystemPropertyNames
+        {
+            public const string ExpiryTimeUtc = "$.exp";
+            public const string CorrelationId = "$.cid";
+            public const string MessageId = "$.mid";
+            public const string To = "$.to";
+            public const string UserId = "$.uid";
+            public const string Ack = "ack";
+            public const string OutputName = "$.on";
+            public const string ConnectionDeviceId = "$.cdid";
+            public const string ConnectionModuleId = "$.cmid";
+        }
+
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
-            { "$.exp", ExpiryTimeUtc },
-            { "$.cid", CorrelationId },
-            { "$.mid", MessageId },
-            { "$.to", To },
-            { "$.uid", UserId },
-            { "ack", Ack },
-            { "$.mop", EndpointId }
+            { OnTheWireSystemPropertyNames.ExpiryTimeUtc, ExpiryTimeUtc },
+            { OnTheWireSystemPropertyNames.CorrelationId, CorrelationId },
+            { OnTheWireSystemPropertyNames.MessageId, MessageId },
+            { OnTheWireSystemPropertyNames.To, To },
+            { OnTheWireSystemPropertyNames.UserId, UserId },
+            { OnTheWireSystemPropertyNames.Ack, Ack },
+            { OnTheWireSystemPropertyNames.OutputName, OutputName }
+        };
+
+        public static readonly Dictionary<string, string> OutgoingSystemPropertiesMap = new Dictionary<string, string>
+        {
+            { MessageId, OnTheWireSystemPropertyNames.MessageId },
+            { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceId  },
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleId }
         };
     }
 }

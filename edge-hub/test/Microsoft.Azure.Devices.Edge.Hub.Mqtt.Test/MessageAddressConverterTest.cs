@@ -11,7 +11,7 @@
     public class MessageAddressConverterTest
     {
         static readonly string[] DontCareInput = new[] { "" };
-
+        static readonly IDictionary<string, string> EmptyProperties = new Dictionary<string, string>();
         static readonly IDictionary<string, string> DontCareOutput = new Dictionary<string, string>
         {
             ["DontCare"] = ""
@@ -50,7 +50,7 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
@@ -79,7 +79,7 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test2", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test2", message.Object, EmptyProperties, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
@@ -108,7 +108,7 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
 
             Assert.True(result);
             Assert.NotNull(address);
@@ -135,7 +135,7 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("BadTest", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("BadTest", message.Object, EmptyProperties, out address);
 
             Assert.False(result);
             Assert.Null(address);
@@ -156,7 +156,7 @@
             Mock<IMessage> message = CreateMessageWithSystemProps(new Dictionary<string, string>());
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
 
             Assert.False(result);
             Assert.Null(address);
@@ -181,7 +181,7 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
 
             Assert.False(result);
             Assert.Null(address);
@@ -207,10 +207,132 @@
             });
 
             var converter = new MessageAddressConverter(config);
-            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, out address);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, EmptyProperties, out address);
 
             Assert.False(result);
             Assert.Null(address);
+            message.VerifyAll();
+        }
+
+        [Fact]
+        public void TryDeriveAddressWorksWithOneTemplateWithParameters()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+
+            var systemProperties = new Dictionary<string, string>()
+            {
+                ["b"] = "123",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionModuleId]] = "Module1"
+            };
+
+            var properties = new Dictionary<string, string>()
+            {
+                ["Prop1"] = "Val1",
+                ["Prop2"] = "Val2",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionModuleId]] = "Module1"
+            };            
+
+            Mock<IMessage> message = CreateMessageWithSystemProps(systemProperties);
+
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, properties, out address);
+
+            Assert.True(result);
+            Assert.NotNull(address);
+            Assert.NotEmpty(address);
+            Assert.Equal<string>("a/123/c/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1/", address);
+            message.VerifyAll();
+        }
+
+        [Fact]
+        public void TryDeriveAddressWorksWithMoreThanOneTemplateWithParameters()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test1"] = "a/{b}/c",
+                ["Test2"] = "d/{e}/f",
+                ["Test3"] = "x/{y}/z"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+
+            var systemProperties = new Dictionary<string, string>()
+            {
+                ["e"] = "123",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1"
+            };
+
+            var properties = new Dictionary<string, string>()
+            {
+                ["Prop1"] = "Val1",
+                ["Prop2"] = "Val2",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1"
+            };
+
+            Mock<IMessage> message = CreateMessageWithSystemProps(systemProperties);
+
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test2", message.Object, properties, out address);
+
+            Assert.True(result);
+            Assert.NotNull(address);
+            Assert.NotEmpty(address);
+            Assert.Equal<string>("d/123/f/Prop1=Val1&Prop2=Val2&%24.cdid=Device1/", address);
+            message.VerifyAll();
+        }
+
+        [Fact]
+        public void TryDeriveAddressWorksWithMultipleVariableTemplateWithParameters()
+        {
+            string address;
+            var testTemplate = new Dictionary<string, string>()
+            {
+                ["Test"] = "a/{b}/c/{d}/e/{f}/",
+            };
+            var config = new MessageAddressConversionConfiguration(
+                DontCareInput,
+                testTemplate
+            );
+
+            var systemProperties = new Dictionary<string, string>()
+            {
+                ["b"] = "123",
+                ["d"] = "456",
+                ["f"] = "789",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionModuleId]] = "Module1"
+            };
+
+            var properties = new Dictionary<string, string>()
+            {
+                ["Prop1"] = "Val1",
+                ["Prop2"] = "Val2",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionDeviceId]] = "Device1",
+                [SystemProperties.OutgoingSystemPropertiesMap[SystemProperties.ConnectionModuleId]] = "Module1"
+            };
+
+            Mock<IMessage> message = CreateMessageWithSystemProps(systemProperties);
+            
+            var converter = new MessageAddressConverter(config);
+            bool result = converter.TryBuildProtocolAddressFromEdgeHubMessage("Test", message.Object, properties, out address);
+
+            Assert.True(result);
+            Assert.NotNull(address);
+            Assert.NotEmpty(address);
+            Assert.Equal<string>("a/123/c/456/e/789/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1/", address);
             message.VerifyAll();
         }
 

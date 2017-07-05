@@ -211,12 +211,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             readonly IDeviceListener deviceListener;
             readonly IModuleIdentity moduleIdentity;
             readonly List<IMessage> receivedMessages;
-            readonly string endpointId;
+            readonly string outputName;
 
             TestModule(IModuleIdentity moduleIdentity, string endpointId, IDeviceListener deviceListener, List<IMessage> receivedMessages)
             {
                 this.moduleIdentity = moduleIdentity;
-                this.endpointId = endpointId;
+                this.outputName = endpointId;
                 this.deviceListener = deviceListener;
                 this.receivedMessages = receivedMessages;
             }
@@ -237,9 +237,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public Task SendMessage(IMessage message)
             {
-                message.SystemProperties[SystemProperties.DeviceId] = this.moduleIdentity.DeviceId;
-                message.SystemProperties[SystemProperties.ModuleId] = this.moduleIdentity.ModuleId;
-                message.SystemProperties[SystemProperties.EndpointId] = this.endpointId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
+                message.SystemProperties[SystemProperties.OutputName] = this.outputName;
                 return this.deviceListener.ProcessMessageAsync(message);
             }
 
@@ -269,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public Task SendMessage(IMessage message)
             {
-                message.SystemProperties[SystemProperties.DeviceId] = this.deviceIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
                 return this.deviceListener.ProcessMessageAsync(message);
             }
         }

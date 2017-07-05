@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
+    using System.Collections.Generic;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
-    using System;
-    using System.Collections.Generic;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
-    {
+    {        
         readonly MessageAddressConverter addressConvertor;
 
         public ProtocolGatewayMessageConverter(MessageAddressConverter addressConvertor)
@@ -31,14 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             var properties = new Dictionary<string, string>();
             if (sourceMessage.Properties.TryGetValue(TemplateParameters.DeviceIdTemplateParam, out string deviceIdValue))
             {
-                systemProperties[SystemProperties.DeviceId] = deviceIdValue;
+                systemProperties[SystemProperties.ConnectionDeviceId] = deviceIdValue;
                 sourceMessage.Properties.Remove(TemplateParameters.DeviceIdTemplateParam);
             }
 
-            if (sourceMessage.Properties.TryGetValue(SystemProperties.ModuleId, out string moduleIdValue))
+            if (sourceMessage.Properties.TryGetValue(Constants.ModuleIdTemplateParameter, out string moduleIdValue))
             {
-                systemProperties[SystemProperties.ModuleId] = moduleIdValue;
-                sourceMessage.Properties.Remove(SystemProperties.ModuleId);
+                systemProperties[SystemProperties.ConnectionModuleId] = moduleIdValue;
+                sourceMessage.Properties.Remove(SystemProperties.ConnectionModuleId);
             }
 
             foreach (KeyValuePair<string, string> property in sourceMessage.Properties)
@@ -78,21 +78,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundUri + " in message system properties.");
             }
 
-            if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, out string address))
+            IDictionary<string, string> properties = new Dictionary<string, string>();
+            foreach (KeyValuePair<string, string> property in message.Properties)
+            {
+                properties.Add(property);
+            }
+
+            foreach(KeyValuePair<string, string> systemProperty in message.SystemProperties)
+            {
+                if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
+                {
+                    properties.Add(onWirePropertyName, systemProperty.Value);
+                }
+            }
+
+            if (!this.addressConvertor.TryBuildProtocolAddressFromEdgeHubMessage(uriTemplateKey, message, properties, out string address))
             {
                 throw new InvalidOperationException("Could not derive destination address using message system properties");
             }
 
             IByteBuffer payload = message.Body.ToByteBuffer();
-
             ProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(payload, address)
                 .WithId(lockToken)
                 .WithCreatedTimeUtc(createdTimeUtc)
+                .WithProperties(properties)
                 .Build();
-            foreach (KeyValuePair<string, string> property in message.Properties)
-            {
-                pgMessage.Properties.Add(property);
-            }
+
             return pgMessage;
         }
     }

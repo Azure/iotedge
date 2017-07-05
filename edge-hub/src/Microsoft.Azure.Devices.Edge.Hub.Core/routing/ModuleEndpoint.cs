@@ -25,10 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
 
-        public ModuleEndpoint(string id, string address, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
+        public ModuleEndpoint(string id, string input, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
-            this.EndpointAddress = Preconditions.CheckNotNull(address);
+            this.Input = Preconditions.CheckNotNull(input);
             this.deviceProxyGetterFunc = Preconditions.CheckNotNull(deviceProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
         }
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public override IProcessor CreateProcessor() => new ModuleMessageProcessor(this);
 
-        public string EndpointAddress { get; }
+        public string Input { get; }
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             {
                                 IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
 
-                                bool res = await d.SendMessageAsync(message, this.moduleEndpoint.EndpointAddress);
+                                bool res = await d.SendMessageAsync(message, this.moduleEndpoint.Input);
 
                                 if (res)
                                 {

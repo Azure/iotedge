@@ -56,17 +56,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         /// <c>devices/{deviceId}/messages/devicebound</c> where <c>{deviceId}</c> is a place
         /// holder for the identifier of the device that is receiving the C2D message.
         /// </summary>
-        public bool TryBuildProtocolAddressFromEdgeHubMessage(string endPointUri, IMessage message, out string address)
+        public bool TryBuildProtocolAddressFromEdgeHubMessage(string endPointUri, IMessage message, IDictionary<string, string> messagePropertiesToSend, out string address)
         {
             address = null;
             if (this.outboundTemplateMap.TryGetValue(endPointUri, out UriPathTemplate template))
             {
                 try
                 {
-                    address = template.Bind(message.SystemProperties);
-                    if (message.Properties != null && message.Properties.Count > 0)
+                    address = template.Bind(message.SystemProperties);                    
+                    if (!string.IsNullOrWhiteSpace(address) && messagePropertiesToSend != null && messagePropertiesToSend.Count > 0)
                     {
-                        address = Invariant($"{address}/{UrlEncodedDictionarySerializer.Serialize(message.Properties)}/");
+                        address = Invariant($"{address.TrimEnd('/')}/{UrlEncodedDictionarySerializer.Serialize(messagePropertiesToSend)}/");
                     }
                 }
                 catch (InvalidOperationException ex)
