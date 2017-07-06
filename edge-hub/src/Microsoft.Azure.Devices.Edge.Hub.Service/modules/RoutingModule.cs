@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IConnectionManager
-            builder.Register(c => new ConnectionManager(c.Resolve<ICloudProxyProvider>()))
+            builder.Register(c => new ConnectionManager(c.Resolve<ICloudProxyProvider>(), this.edgeDeviceId))
                 .As<IConnectionManager>()
                 .SingleInstance();
 

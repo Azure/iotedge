@@ -4,8 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -17,10 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudProxyProvider cloudProxyProvider;
+        readonly string edgeDeviceId;
 
-        public ConnectionManager(ICloudProxyProvider cloudProxyProvider)
+        public ConnectionManager(ICloudProxyProvider cloudProxyProvider, string edgeDeviceId)
         {
-            this.cloudProxyProvider = cloudProxyProvider;
+            this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
+            // TODO: edgeDeviceId is only used to check if device connection should not be removed (see method RemoveDeviceConnection)
+            // Remove it when module identity is supported in IoTHub 
+            this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId, nameof(this.edgeDeviceId));
         }
 
         public void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
@@ -36,12 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public void RemoveDeviceConnection(string deviceId)
         {
-            // TODO - Currently this doesn't close the cloud connection as other modules might be using it. 
-            // After IoTHub supports module identity, add code to close cloud connection.
             this.GetDeviceConnection(deviceId)
                 .ForEach(deviceproxy => deviceproxy.SetInactive());
+            // TODO - Currently this doesn't close the cloud connection for device that has same id as Edge deviceId as other modules might be using it. 
+            // After IoTHub supports module identity, add code to close all cloud connections.
+            if (!this.IsEdgeDevice(deviceId))
+            {
+                this.GetCloudConnection(deviceId).ForEach(cp => cp.CloseAsync());
+            }
             Events.RemoveDeviceConnection(deviceId);
         }
+
+        bool IsEdgeDevice(string deviceId) => this.edgeDeviceId.Equals(deviceId, StringComparison.OrdinalIgnoreCase);
 
         public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
         {
@@ -77,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.CloseConnection(deviceId);
 
             return returnVal;
-        }        
+        }
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {
@@ -144,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             switch (identity)
             {
-                case IModuleIdentity moduleIdentity: 
+                case IModuleIdentity moduleIdentity:
                     return moduleIdentity.DeviceId;
                 case IDeviceIdentity deviceIdentity:
                     return deviceIdentity.DeviceId;
@@ -216,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 NewDeviceConnection,
                 RemoveDeviceConnection,
                 CloseDeviceConnection
-            }                        
+            }
 
             public static void NewCloudConnection(IIdentity identity)
             {
