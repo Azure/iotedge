@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public IotHubConnectedModule(Uri dockerHost, string dockerLoggingDriver, string connectionString, IConfiguration configuration)
+        public IotHubConnectedModule(Uri dockerHost, string dockerLoggingDriver, string connectionString, string backupConfigFilePath, IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
-            this.configSource = new TwinConfigSourceModule(connectionString, Preconditions.CheckNotNull(configuration, nameof(configuration)));
+            this.configSource = new FileBackupConfigSourceModule(Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)), Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath)), Preconditions.CheckNotNull(configuration, nameof(configuration)));
             this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
         }
 

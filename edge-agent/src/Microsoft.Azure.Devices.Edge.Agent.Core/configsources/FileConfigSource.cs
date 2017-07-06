@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             string directoryName = Path.GetDirectoryName(path);
             string fileName = Path.GetFileName(path);
 
-            string json = await ReadFileAsync(path);
+            string json = await DiskFile.ReadAllAsync(path);
             ModuleSet initial = moduleSetSerde.Deserialize(json);
 
             var watcher = new FileSystemWatcher(directoryName, fileName)
@@ -85,15 +85,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 ModuleSet newConfig = await this.GetModuleSetAsync();
                 Diff diff;
-                using (await this.sync.LockAsync())
-                {
-                    ModuleSet snapshot = this.current.Value;
-                    diff = snapshot == null
-                        ? Diff.Create(newConfig.Modules.Values.ToArray())
-                        : newConfig.Diff(snapshot);
-                    this.AssignCurrentModuleSet(newConfig);
-                }
-                this.OnChanged(diff);
+				using (await this.sync.LockAsync())
+				{
+					ModuleSet snapshot = this.current.Value;
+					diff = snapshot == null
+						? Diff.Create(newConfig.Modules.Values.ToArray())
+						: newConfig.Diff(snapshot);
+					this.AssignCurrentModuleSet(newConfig);
+				}
+				this.OnModuleSetChanged(new ModuleSetChangedArgs(diff, newConfig));
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -104,23 +104,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
         public override async Task<ModuleSet> GetModuleSetAsync()
         {
-            string json = await ReadFileAsync(this.configFilePath);
+            string json = await DiskFile.ReadAllAsync(this.configFilePath);
             return this.moduleSetSerde.Deserialize(json);
         }
 
-        static async Task<string> ReadFileAsync(string configFilePath)
-        {
-            using (var reader = new StreamReader(File.OpenRead(configFilePath)))
-            {
-                return await reader.ReadToEndAsync();
-            }
-        }
+        public override event EventHandler<ModuleSetChangedArgs> ModuleSetChanged;
 
-        public override event EventHandler<Diff> ModuleSetChanged;
-
-        protected virtual void OnChanged(Diff diff)
+        protected void OnModuleSetChanged(ModuleSetChangedArgs updated)
         {
-            this.ModuleSetChanged?.Invoke(this, diff);
+            this.ModuleSetChanged?.Invoke(this, updated);
         }
 
         public override event EventHandler<Exception> ModuleSetFailed;

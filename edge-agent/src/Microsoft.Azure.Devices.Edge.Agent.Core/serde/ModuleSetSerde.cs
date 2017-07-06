@@ -2,83 +2,89 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
-    using System;
-    using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json.Serialization;
+	using System;
+	using System.Collections.Generic;
+	using Microsoft.Azure.Devices.Edge.Util;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Linq;
+	using Newtonsoft.Json.Serialization;
 
-    public class ModuleSetSerde : ISerde<ModuleSet>
-    {
-        readonly JsonSerializerSettings jsonSerializerSettings;
+	public class ModuleSetSerde : ISerde<ModuleSet>
+	{
+		readonly JsonSerializerSettings jsonSerializerSettings;
 
-        public ModuleSetSerde(IDictionary<string,Type> deserializerTypes)
-        {
-            IDictionary<string, Type> converters = new Dictionary<string, Type>(
-                Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)),
-                StringComparer.OrdinalIgnoreCase
-            );
-            this.jsonSerializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                Converters = new List<JsonConverter>
-                {
-                    new ModuleJsonConverter(converters)
-                }
-            };
-        }
+		public ModuleSetSerde(IDictionary<string, Type> deserializerTypes)
+		{
+			IDictionary<string, Type> converters = new Dictionary<string, Type>(
+				Preconditions.CheckNotNull(deserializerTypes, nameof(deserializerTypes)),
+				StringComparer.OrdinalIgnoreCase
+			);
 
-        public string Serialize(ModuleSet moduleSet)
-        {
-            return JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
-        }
+			this.jsonSerializerSettings = new JsonSerializerSettings
+			{
+				ContractResolver = new CamelCasePropertyNamesContractResolver(),
+				Converters = new List<JsonConverter>
+				{
+					new ModuleJsonConverter(converters)
+				},
+			};
+		}
 
-        public ModuleSet Deserialize(string json) => this.Deserialize<ModuleSet>(json);
+		public string Serialize(ModuleSet moduleSet)
+		{
+			return JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
+		}
 
-        public T Deserialize<T>(string json) where T : ModuleSet
-        {
-            try
-            {
-                return JsonConvert.DeserializeObject<T>(json, this.jsonSerializerSettings);
-            }
-            catch (ArgumentNullException e)
-            {
-                throw new JsonSerializationException(e.Message);
-            }
-        }
+		public ModuleSet Deserialize(string json) => this.Deserialize<ModuleSet>(json);
 
-        class ModuleJsonConverter : JsonConverter
-        {
-            readonly IDictionary<string, Type> converters;
+		public T Deserialize<T>(string json) where T : ModuleSet
+		{
+			try
+			{
+				return JsonConvert.DeserializeObject<T>(json, this.jsonSerializerSettings);
+			}
+			catch (ArgumentNullException e)
+			{
+				throw new JsonSerializationException(e.Message);
+			}
+		}
 
-            readonly ModuleSerde moduleSerde = ModuleSerde.Instance;
+		class ModuleJsonConverter : JsonConverter
+		{
+			readonly IDictionary<string, Type> converters;
 
-            public ModuleJsonConverter(IDictionary<string, System.Type> deserializerTypes)
-            {
-                this.converters = new Dictionary<string, Type>(deserializerTypes, StringComparer.OrdinalIgnoreCase);
-            }
+			readonly ModuleSerde moduleSerde = ModuleSerde.Instance;
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-            {
-                throw new NotSupportedException();
-            }
+			public ModuleJsonConverter(IDictionary<string, System.Type> deserializerTypes)
+			{
+				this.converters = new Dictionary<string, Type>(deserializerTypes, StringComparer.OrdinalIgnoreCase);
+			}
 
-            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-            {
-                JObject obj = JObject.Load(reader);
+			public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+			{
+				throw new NotSupportedException();
+			}
 
-                var converterType = obj.Get<JToken>("type");
+			public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+			{
+				// The null check is required to gracefully handle a null object
+				if (reader.TokenType == JsonToken.Null)
+				{
+					return null;
+				}
 
-                if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
-                {
-                    throw new JsonSerializationException($"Could not find right converter given a type {converterType.Value<string>()}");
-                }
+				JObject obj = JObject.Load(reader);
+				var converterType = obj.Get<JToken>("type");
 
-                return this.moduleSerde.Deserialize(obj.ToString(), serializeType);
-            }
+				if (!this.converters.TryGetValue(converterType.Value<string>(), out Type serializeType))
+				{
+					throw new JsonSerializationException($"Could not find right converter given a type {converterType.Value<string>()}");
+				}
 
-            public override bool CanConvert(Type objectType) => objectType == typeof(IModule);
-        }
-    }
+				return this.moduleSerde.Deserialize(obj.ToString(), serializeType);
+			}
+
+			public override bool CanConvert(Type objectType) => objectType == typeof(IModule);
+		}
+	}
 }

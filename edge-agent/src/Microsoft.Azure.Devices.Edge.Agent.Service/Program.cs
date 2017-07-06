@@ -63,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
             string configSourceConfig = configuration.GetValue<string>("ConfigSource");
             string dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
+            string backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString, backupConfigFilePath, configuration));
                     break;
                 case "standalone":
                     builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, "config.json", configuration));
@@ -106,15 +107,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     // Do another reconcile whenever the config source reports that the desired
                     // configuration has changed.
-                    configSource.ModuleSetChanged += async (sender, diff) =>
+                    configSource.ModuleSetChanged += async (sender, updated) =>
                     {
                         logger.LogInformation("Applying config change...");
-                        await agent.ApplyDiffAsync(diff, CancellationToken.None);
+                        await agent.ApplyDiffAsync(updated.Diff, CancellationToken.None);
                     };
 
                     configSource.ModuleSetFailed += (sender, ex) =>
                     {
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
+                    };
+
+                    configSource.ModuleSetChanged += (sender, updated) =>
+                    {
+                        logger.LogInformation("Backing up new module set change...");
                     };
 
                     while (!cts.Token.IsCancellationRequested)

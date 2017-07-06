@@ -14,20 +14,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+	using Microsoft.Extensions.Configuration;
 
-    public class TwinConfigSourceModule : Module
+	public class FileBackupConfigSourceModule : Module
     {
         readonly string connectionString;
-        readonly IConfiguration configuration;
+        readonly string backupConfigFilePath;
         const string DockerType = "docker";
+		readonly IConfiguration configuration;
 
-        public TwinConfigSourceModule(string connectionString, IConfiguration configuration)
+        public FileBackupConfigSourceModule(string connectionString, string backupConfigFilePath, IConfiguration config)
         {
-            this.connectionString = Preconditions.CheckNotNull(connectionString);
-            this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+			this.configuration = Preconditions.CheckNotNull(config, nameof(config));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -75,13 +77,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        IConfigSource config = await TwinConfigSource.Create(
+						ISerde<ModuleSet> moduleSetSerde = c.Resolve<ISerde<ModuleSet>>();
+                        IConfigSource twinConfigSource = await TwinConfigSource.Create(
                             c.Resolve<IDeviceClient>(),
-                            c.Resolve<ISerde<ModuleSet>>(),
+                            moduleSetSerde,
                             c.Resolve<ISerde<Diff>>(),
-                            this.configuration
+							this.configuration
                         );
-                        return config;
+                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, moduleSetSerde, twinConfigSource, this.configuration);
+                        return backupConfigSource;
                     })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();

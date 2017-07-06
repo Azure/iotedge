@@ -16,12 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
     using Moq;
     using Xunit;
 
-    public class TwinConfigSourceTest
-    {
-        readonly ModuleSetSerde moduleSetSerde;
-        readonly DiffSerde diffSerde;
-        DesiredPropertyUpdateCallback desiredPropertyCallback;
-        readonly IConfigurationRoot config;
+	public class TwinConfigSourceTest
+	{
+		readonly ModuleSetSerde moduleSetSerde;
+		readonly DiffSerde diffSerde;
+		DesiredPropertyUpdateCallback desiredPropertyCallback;
+		readonly IConfigurationRoot config;
 
         public TwinConfigSourceTest()
         {
@@ -31,12 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             this.config = new ConfigurationBuilder().Build();
         }
 
-        [Fact]
-        [Unit]
-        public async void CreateInvalidInputs()
-        {
-            // Arrange
-            var deviceClient = new Mock<IDeviceClient>();
+		[Fact]
+		[Unit]
+		public async void CreateInvalidInputs()
+		{
+			// Arrange
+			var deviceClient = new Mock<IDeviceClient>();
 
             // Act
             // Assert
@@ -46,12 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, null));
         }
 
-        [Fact]
-        [Unit]
-        public async void CreateSuccess()
-        {
-            // Arrange
-            var deviceClient = new Mock<IDeviceClient>();
+		[Fact]
+		[Unit]
+		public async void CreateSuccess()
+		{
+			// Arrange
+			var deviceClient = new Mock<IDeviceClient>();
 
             // Act
             using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
@@ -61,55 +61,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             }
         }
 
-        [Fact]
-        [Unit]
-        public async void GetConfigAsyncSuccess()
-        {
-            // Arrange
-            var twin = new Twin();
-            var config1 = new TestConfig("image1");
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
-            ModuleSet moduleSet1 = ModuleSet.Create(module1);
+		[Fact]
+		[Unit]
+		public async void GetConfigAsyncSuccess()
+		{
+			// Arrange
+			var twin = new Twin();
+			var config1 = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
 
-            var desiredreportedProperties = new TwinCollection();
-            desiredreportedProperties["modules"] = moduleSet1.Modules;
-            desiredreportedProperties["$version"] = 123;
-            twin.Properties.Desired = desiredreportedProperties;
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
 
-            var deviceClient = new Mock<IDeviceClient>();
-            deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+			var deviceClient = new Mock<IDeviceClient>();
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
             using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
             {
                 // Act
                 ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
 
-                IModule returnedModule1 = startingSet.Modules["mod1"];
-                // Assert  
-                Assert.True(module1.Equals(returnedModule1));
-            }
-        }
+				IModule returnedModule1 = startingSet.Modules["mod1"];
+				// Assert  
+				Assert.True(module1.Equals(returnedModule1));
+			}
+		}
 
-        [Fact]
-        [Unit]
-        public async void GetConfigAsyncThrows()
-        {
-            // Arrange
-            var twin = new Twin();
-            var config1 = new TestConfig("image1");
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
-            ModuleSet moduleSet1 = ModuleSet.Create(module1);
+		[Fact]
+		[Unit]
+		public async void GetConfigAsyncThrows()
+		{
+			// Arrange
+			var twin = new Twin();
+			var config1 = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
 
-            var desiredreportedProperties = new TwinCollection();
-            desiredreportedProperties["modules"] = moduleSet1.Modules;
-            desiredreportedProperties["$version"] = 123;
-            twin.Properties.Desired = desiredreportedProperties;
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
 
-            var deviceClient = new Mock<IDeviceClient>();
-            deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+			var deviceClient = new Mock<IDeviceClient>();
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
-            var moduleSetSerdeMocked = new Mock<ISerde<ModuleSet>>();
-            moduleSetSerdeMocked.Setup(t => t.Deserialize(It.IsAny<string>())).Throws(new Exception("Any Exception"));
+			var moduleSetSerdeMocked = new Mock<ISerde<ModuleSet>>();
+			moduleSetSerdeMocked.Setup(t => t.Deserialize(It.IsAny<string>())).Throws(new Exception("Any Exception"));
 
             using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde, this.config))
             {
@@ -120,87 +120,89 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
                     failEventCalled = true;
                 };
 
-                // Act
-                // Assert  
-                await Assert.ThrowsAsync<Exception>(() => twinConfig.GetModuleSetAsync());
-                Assert.True(failEventCalled);
-            }
-        }
+				// Act
+				// Assert  
+				await Assert.ThrowsAsync<Exception>(() => twinConfig.GetModuleSetAsync());
+				Assert.True(failEventCalled);
+			}
+		}
 
 
-        [Fact]
-        [Unit]
-        public async void OnDesiredPropertyChangedSuccess()
-        {
-            // Arrange
-            var twin = new Twin();
-            var config1 = new TestConfig("image1");
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
-            ModuleSet moduleSet1 = ModuleSet.Create(module1);
-            var moduleWithRemove = new Dictionary<string, IModule>()
-            {
-                {
-                    "Module2",
-                    null
-                }
-            };
+		[Fact]
+		[Unit]
+		public async void OnDesiredPropertyChangedSuccess()
+		{
+			// Arrange
+			var twin = new Twin();
+			var config1 = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
+			var moduleWithRemove = new Dictionary<string, IModule>()
+			{
+				{
+					"Module2",
+					null
+				}
+			};
 
 
-            var desiredreportedProperties = new TwinCollection();
-            desiredreportedProperties["modules"] = moduleSet1.Modules;
-            desiredreportedProperties["$version"] = 123;
-            twin.Properties.Desired = desiredreportedProperties;
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
 
-            var desiredPropertiesWithRemove = new TwinCollection();
-            desiredPropertiesWithRemove["modules"] = moduleWithRemove;
-            desiredPropertiesWithRemove["$version"] = 123;
+			var desiredPropertiesWithRemove = new TwinCollection();
+			desiredPropertiesWithRemove["modules"] = moduleWithRemove;
+			desiredPropertiesWithRemove["$version"] = 123;
 
-            var deviceClient = new Mock<IDeviceClient>();
-            deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+			var deviceClient = new Mock<IDeviceClient>();
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
-            deviceClient
-                .Setup(t => t.SetDesiredPropertyUpdateCallback(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<DesiredPropertyUpdateCallback, object>(
-                    (i, j) =>
-                    {
-                        this.desiredPropertyCallback = i;
-                    })
-                .Returns(Task.FromResult(0));
+			deviceClient
+				.Setup(t => t.SetDesiredPropertyUpdateCallback(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
+				.Callback<DesiredPropertyUpdateCallback, object>(
+					(i, j) =>
+					{
+						this.desiredPropertyCallback = i;
+					})
+				.Returns(Task.FromResult(0));
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
-            {
-                // Act
-                bool changeEventCalled = false;
-                Diff receivedDiff = null;
-                twinConfig.ModuleSetChanged += (sender, diff) =>
-                {
-                    changeEventCalled = true;
-                    receivedDiff = diff;
-                };
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				// Act
+				bool changeEventCalled = false;
+				Diff receivedDiff = null;
+				ModuleSet receivedModuleSet = null;
 
-                await this.desiredPropertyCallback(desiredreportedProperties, null);
+				twinConfig.ModuleSetChanged += (sender, updated) =>
+				{
+					changeEventCalled = true;
+					receivedDiff = updated.Diff;
+					receivedModuleSet = updated.ModuleSet;
+				};
 
-                // Assert
-                Assert.True(changeEventCalled);
-                Assert.False(receivedDiff.IsEmpty);
-                Assert.True(receivedDiff.Updated.Count == 1);
-                Assert.True(receivedDiff.Removed.Count == 0);
+				await this.desiredPropertyCallback(desiredreportedProperties, null);
 
-                // Arrange
-                changeEventCalled = false;
-                receivedDiff = null;
+				// Assert
+				Assert.True(changeEventCalled);
+				Assert.False(receivedDiff.IsEmpty);
+				Assert.True(receivedDiff.Updated.Count == 1);
+				Assert.True(receivedDiff.Removed.Count == 0);
+				Assert.False(receivedModuleSet == null);
 
-                // Act
-                await this.desiredPropertyCallback(desiredPropertiesWithRemove, null);
+				// Arrange
+				changeEventCalled = false;
+				receivedDiff = null;
 
-                // Assert
-                Assert.True(changeEventCalled);
-                Assert.False(receivedDiff.IsEmpty);
-                Assert.True(receivedDiff.Updated.Count == 0);
-                Assert.True(receivedDiff.Removed.Count == 1);
-            }
-        }
+				// Act
+				await this.desiredPropertyCallback(desiredPropertiesWithRemove, null);
 
-
-    }
+				// Assert
+				Assert.True(changeEventCalled);
+				Assert.False(receivedDiff.IsEmpty);
+				Assert.True(receivedDiff.Updated.Count == 0);
+				Assert.True(receivedDiff.Removed.Count == 1);
+			}
+		}
+	}
 }

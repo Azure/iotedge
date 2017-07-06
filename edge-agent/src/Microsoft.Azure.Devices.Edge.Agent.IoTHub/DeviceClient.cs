@@ -2,7 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
-    using System.Threading.Tasks;
+	using System;
+	using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
@@ -11,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     public class DeviceClient : IDeviceClient
     {
         readonly Client.DeviceClient deviceClient;
+        private const uint deviceClientTimeout = 30000; // ms
 
         public DeviceClient(string connectionString)
         {
@@ -23,15 +25,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             ITransportSettings[] settings = { mqttSetting };
             this.deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, settings);
+            this.deviceClient.OperationTimeoutInMilliseconds = deviceClientTimeout;
         }
 
         public void Dispose() => this.deviceClient.Dispose();
 
-        public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
-            this.deviceClient.SetDesiredPropertyUpdateCallback(onDesiredPropertyChanged, userContext);
+		public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
+			this.deviceClient.SetDesiredPropertyUpdateCallback(onDesiredPropertyChanged, userContext);
 
-        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+		public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+		public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
     }
 }

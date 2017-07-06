@@ -23,7 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// </summary>
         public IImmutableSet<string> Removed { get; }
 
-        public Diff(IList<IModule> updated, IList<string> removed)
+		public Diff()
+		{
+		}
+
+		public Diff(IList<IModule> updated, IList<string> removed)
         {
             this.Updated = Preconditions.CheckNotNull(updated, nameof(updated)).ToImmutableHashSet();
             this.Removed = Preconditions.CheckNotNull(removed, nameof(removed)).ToImmutableHashSet();

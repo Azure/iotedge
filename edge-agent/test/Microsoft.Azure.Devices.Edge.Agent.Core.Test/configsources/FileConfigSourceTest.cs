@@ -84,9 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 bool eventChangeCalled = false;
                 Diff eventDiff = Diff.Empty;
 
-                configSource.ModuleSetChanged += (sender, diff) =>
+                configSource.ModuleSetChanged += (sender, updated) =>
                 {
-                    eventDiff = diff;
+                    eventDiff = updated.Diff;
                     eventChangeCalled = true;
                     taskComplete.SetResult(true);
                 };
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
                 await Task.WhenAny(taskComplete.Task, cts.Token.WhenCanceled());
 
-                // Assert change event is invoked, and the diff from the event is expected.
+                // Assert change event is invoked, and the Diff from the event is expected.
                 Assert.True(eventChangeCalled);
                 Assert.False(eventFailedCalled);
                 Assert.Equal(eventDiff, validDiff1To2);

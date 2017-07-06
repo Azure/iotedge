@@ -9,5 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int TwinConfigSource = EventIdStart + 200;
         public const int RestartPlanner = EventIdStart + 300;
         public const int Plan = EventIdStart + 400;
+        public const int FileBackupConfigSource = EventIdStart + 500;
     }
 }

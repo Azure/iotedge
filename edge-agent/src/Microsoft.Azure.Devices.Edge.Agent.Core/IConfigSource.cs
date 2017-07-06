@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         Task<ModuleSet> GetModuleSetAsync();
 
-        event EventHandler<Diff> ModuleSetChanged;
+        event EventHandler<ModuleSetChangedArgs> ModuleSetChanged;
         event EventHandler<Exception> ModuleSetFailed;
 
         IConfiguration Configuration { get; }

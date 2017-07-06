@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             this.Configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
         }
 
-        public abstract event EventHandler<Diff> ModuleSetChanged;
+        public abstract event EventHandler<ModuleSetChangedArgs> ModuleSetChanged;
         public abstract event EventHandler<Exception> ModuleSetFailed;
 
         public abstract void Dispose();
