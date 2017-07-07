@@ -107,20 +107,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     // Do another reconcile whenever the config source reports that the desired
                     // configuration has changed.
-                    configSource.ModuleSetChanged += async (sender, updated) =>
+                    configSource.ModuleSetChanged += async (sender, diff) =>
                     {
                         logger.LogInformation("Applying config change...");
-                        await agent.ApplyDiffAsync(updated.Diff, CancellationToken.None);
+                        await agent.ApplyDiffAsync(diff, CancellationToken.None);
                     };
 
                     configSource.ModuleSetFailed += (sender, ex) =>
                     {
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
-                    };
-
-                    configSource.ModuleSetChanged += (sender, updated) =>
-                    {
-                        logger.LogInformation("Backing up new module set change...");
                     };
 
                     while (!cts.Token.IsCancellationRequested)

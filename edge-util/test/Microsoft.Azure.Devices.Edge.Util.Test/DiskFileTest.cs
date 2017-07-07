@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
 		[Fact]
 		[Unit]
-		public async Task ReadWriteVerifyContent()
+		public async Task ReadMatchesWrite()
 		{
 			string tempFileName = Path.GetTempFileName();
 			string written = "edge hub content";
@@ -29,6 +29,26 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 			string content = await DiskFile.ReadAllAsync(tempFileName);
 			File.Delete(tempFileName);
 			Assert.True(written == content);
+		}
+
+		[Fact]
+		[Unit]
+		public async Task OverwriteSuccess()
+		{
+			string tempFileName = Path.GetTempFileName();
+			string written = "edge hub content";
+			await DiskFile.WriteAllAsync(tempFileName, written);
+			string content = await DiskFile.ReadAllAsync(tempFileName);
+			Assert.True(content.Length == written.Length);
+			Assert.True(written == content);
+
+			written = "edge hub";
+			await DiskFile.WriteAllAsync(tempFileName, written);
+			content = await DiskFile.ReadAllAsync(tempFileName);
+			Assert.True(content.Length == written.Length);
+			Assert.True(written == content);
+
+			File.Delete(tempFileName);
 		}
     }
 }

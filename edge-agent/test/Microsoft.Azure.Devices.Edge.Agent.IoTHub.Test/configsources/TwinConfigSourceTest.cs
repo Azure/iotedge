@@ -127,7 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			}
 		}
 
-
 		[Fact]
 		[Unit]
 		public async void OnDesiredPropertyChangedSuccess()
@@ -144,7 +143,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 					null
 				}
 			};
-
 
 			var desiredreportedProperties = new TwinCollection();
 			desiredreportedProperties["modules"] = moduleSet1.Modules;
@@ -172,13 +170,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 				// Act
 				bool changeEventCalled = false;
 				Diff receivedDiff = null;
-				ModuleSet receivedModuleSet = null;
 
-				twinConfig.ModuleSetChanged += (sender, updated) =>
+				twinConfig.ModuleSetChanged += (sender, diff) =>
 				{
 					changeEventCalled = true;
-					receivedDiff = updated.Diff;
-					receivedModuleSet = updated.ModuleSet;
+					receivedDiff = diff;
 				};
 
 				await this.desiredPropertyCallback(desiredreportedProperties, null);
@@ -188,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 				Assert.False(receivedDiff.IsEmpty);
 				Assert.True(receivedDiff.Updated.Count == 1);
 				Assert.True(receivedDiff.Removed.Count == 0);
-				Assert.False(receivedModuleSet == null);
 
 				// Arrange
 				changeEventCalled = false;

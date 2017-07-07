@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			{
 				Diff diff = this.DiffSerde.Deserialize(desiredProperties.ToJson());
 				ModuleSet updated = this.ModuleSetSerde.Deserialize(desiredProperties.ToJson());
-				this.OnModuleSetChanged(new ModuleSetChangedArgs(diff, updated));
+				this.OnModuleSetChanged(diff);
 				return Task.CompletedTask;
 			}
 			catch (Exception ex) when (!ex.IsFatal())
@@ -65,11 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			}
 		}
 
-		public override event EventHandler<ModuleSetChangedArgs> ModuleSetChanged;
+		public override event EventHandler<Diff> ModuleSetChanged;
 
-		public void OnModuleSetChanged(ModuleSetChangedArgs updated)
+		public void OnModuleSetChanged(Diff diff)
 		{
-			this.ModuleSetChanged?.Invoke(this, updated);
+			this.ModuleSetChanged?.Invoke(this, diff);
 		}
 
         public override event EventHandler<Exception> ModuleSetFailed;

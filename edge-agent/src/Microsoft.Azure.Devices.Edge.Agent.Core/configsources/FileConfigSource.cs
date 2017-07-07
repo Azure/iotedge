@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 						: newConfig.Diff(snapshot);
 					this.AssignCurrentModuleSet(newConfig);
 				}
-				this.OnModuleSetChanged(new ModuleSetChangedArgs(diff, newConfig));
+				this.OnModuleSetChanged(diff);
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -108,11 +108,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             return this.moduleSetSerde.Deserialize(json);
         }
 
-        public override event EventHandler<ModuleSetChangedArgs> ModuleSetChanged;
+        public override event EventHandler<Diff> ModuleSetChanged;
 
-        protected void OnModuleSetChanged(ModuleSetChangedArgs updated)
+        protected void OnModuleSetChanged(Diff diff)
         {
-            this.ModuleSetChanged?.Invoke(this, updated);
+            this.ModuleSetChanged?.Invoke(this, diff);
         }
 
         public override event EventHandler<Exception> ModuleSetFailed;

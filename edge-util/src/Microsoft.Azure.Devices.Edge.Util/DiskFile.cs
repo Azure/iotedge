@@ -21,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 		{
 			Preconditions.CheckNonWhiteSpace(path, nameof(path));
 			Preconditions.CheckNonWhiteSpace(content, nameof(content));
-			using (var writer = new StreamWriter(File.OpenWrite(path)))
+
+			using (var writer = new StreamWriter(File.Open(path, FileMode.Create)))
 			{
 				await writer.WriteAsync(content);
 				await writer.FlushAsync();

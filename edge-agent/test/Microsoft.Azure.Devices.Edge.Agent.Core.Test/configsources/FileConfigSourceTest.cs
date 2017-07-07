@@ -84,9 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 bool eventChangeCalled = false;
                 Diff eventDiff = Diff.Empty;
 
-                configSource.ModuleSetChanged += (sender, updated) =>
+                configSource.ModuleSetChanged += (sender, diff) =>
                 {
-                    eventDiff = updated.Diff;
+                    eventDiff = diff;
                     eventChangeCalled = true;
                     taskComplete.SetResult(true);
                 };
