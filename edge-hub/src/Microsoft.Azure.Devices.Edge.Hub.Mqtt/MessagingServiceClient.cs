@@ -151,20 +151,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public async Task SendAsync(IProtocolGatewayMessage message)
         {
-            Preconditions.CheckNotNull(message, nameof(message));
-            Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address));
+            Preconditions.CheckNotNull(message, nameof(message));           
 
-            if (IsTwinAddress(message.Address))
+            using (message)
             {
-                await this.SendTwinAsync(message);
-            }
-            else if (IsMethodResponseAddress(Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address))))
-            {
-                await this.SendMethodResponse(message);
-            }
-            else
-            {
-                await this.SendMessageAsync(message);
+                Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address));
+                if (IsTwinAddress(message.Address))
+                {
+                    await this.SendTwinAsync(message);
+                }
+                else if (IsMethodResponseAddress(message.Address))
+                {
+                    await this.SendMethodResponse(message);
+                }
+                else
+                {
+                    await this.SendMessageAsync(message);
+                }
             }
         }
 
