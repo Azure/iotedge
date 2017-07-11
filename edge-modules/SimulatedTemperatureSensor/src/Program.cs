@@ -37,7 +37,7 @@ namespace SimulatedTemperatureSensor
             };
             ITransportSettings[] settings = { mqttSetting };
 
-            ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
+            DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await moduleClient.OpenAsync();
 
             var cts = new CancellationTokenSource();
@@ -50,7 +50,7 @@ namespace SimulatedTemperatureSensor
         }
 
         static async Task SendEvent(
-            ModuleClient moduleClient,
+            DeviceClient moduleClient,
             TimeSpan messageDelay,
             int temperatureThreshold,
             CancellationTokenSource cts)

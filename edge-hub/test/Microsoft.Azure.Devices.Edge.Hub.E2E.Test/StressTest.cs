@@ -155,11 +155,11 @@
 
         class Module
         {
-            ModuleClient moduleClient;
+            DeviceClient moduleClient;
             readonly Random rand = new Random();
             ISet<int> received;
 
-            Module(ModuleClient moduleClient)
+            Module(DeviceClient moduleClient)
             {
                 this.moduleClient = moduleClient;
             }
@@ -171,7 +171,7 @@
                     new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) { RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true }
                 };
 
-                var moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
+                var moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
                 await moduleClient.OpenAsync();
                 return new Module(moduleClient);
             }

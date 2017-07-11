@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             resetEvent.WaitOne();
 
-            BaseClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1", true);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
             callback.Setup(f => f(It.IsAny<MethodRequest>(), It.IsAny<object>()))
                 .Returns(Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(DataAsJson), MethodOkStatus)));
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             resetEvent.WaitOne();
 
-            BaseClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1", true);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
             await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
 
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             resetEvent.WaitOne();
 
-            BaseClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1", true);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
 
             this.deviceListener.ResetCalls();
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenRegistered_ShouldCallHandler()
         {
-            BaseClient client = await this.ConnectToEdge("IotEdgeDevice2ConnStr1", false);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeDevice2ConnStr1");
             var callback = new Mock<MethodCallback>();
             callback.Setup(f => f(It.IsAny<MethodRequest>(), It.IsAny<object>()))
                 .Returns(Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(DataAsJson), MethodOkStatus)));
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenOtherMethodRegistered_ShouldNotCallHandler()
         {
-            BaseClient client = await this.ConnectToEdge("IotEdgeDevice3ConnStr1", false);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeDevice3ConnStr1");
             var callback = new Mock<MethodCallback>();
             await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
 
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact]
         public async Task Receive_DirectMethodCall_Device_WhenNoMethodRegistered_ShouldNotCallHandler()
         {
-            BaseClient client = await this.ConnectToEdge("IotEdgeDevice4ConnStr1", false);
+            DeviceClient client = await this.ConnectToEdge("IotEdgeDevice4ConnStr1");
             var callback = new Mock<MethodCallback>();
 
             this.deviceListener.ResetCalls();
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.CloseAsync();
         }
 
-        async Task<BaseClient> ConnectToEdge(string connectionStringSecretName, bool isModule)
+        async Task<DeviceClient> ConnectToEdge(string connectionStringSecretName)
         {
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
@@ -178,16 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             settings[0] = mqttSetting;
 
             string connectionString = await SecretsHelper.GetSecret(connectionStringSecretName);
-            BaseClient client;
-            if (isModule)
-            {
-                client = ModuleClient.CreateFromConnectionString(connectionString, settings);
-            }
-            else
-            {
-                client = DeviceClient.CreateFromConnectionString(connectionString, settings);
-            }
-
+            DeviceClient client = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await client.OpenAsync();
 
             return client;
