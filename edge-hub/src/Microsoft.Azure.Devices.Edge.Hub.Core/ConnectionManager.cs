@@ -36,53 +36,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
         }
 
-        public void RemoveDeviceConnection(string deviceId)
+        public void RemoveDeviceConnection(string id)
         {
-            this.GetDeviceConnection(deviceId)
+            this.GetDeviceConnection(id)
                 .ForEach(deviceproxy => deviceproxy.SetInactive());
-            // TODO - Currently this doesn't close the cloud connection for device that has same id as Edge deviceId as other modules might be using it. 
+            // TODO - Currently this doesn't close the cloud connection for device that has same id as Edge id as other modules might be using it. 
             // After IoTHub supports module identity, add code to close all cloud connections.
-            if (!this.IsEdgeDevice(deviceId))
+            if (!this.IsEdgeDevice(id))
             {
-                this.GetCloudConnection(deviceId).ForEach(cp => cp.CloseAsync());
+                this.GetCloudConnection(id).ForEach(cp => cp.CloseAsync());
             }
-            Events.RemoveDeviceConnection(deviceId);
+            Events.RemoveDeviceConnection(id);
         }
 
-        bool IsEdgeDevice(string deviceId) => this.edgeDeviceId.Equals(deviceId, StringComparison.OrdinalIgnoreCase);
+        internal bool IsEdgeDevice(string id) => this.edgeDeviceId.Equals(GetDeviceId(id), StringComparison.OrdinalIgnoreCase);
 
-        public Option<IDeviceProxy> GetDeviceConnection(string deviceId)
+        public Option<IDeviceProxy> GetDeviceConnection(string id)
         {
-            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), out ConnectedDevice device)
+            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? device.DeviceProxy.Filter(dp => dp.IsActive)
                 : Option.None<IDeviceProxy>();
         }
 
-        public Option<ICloudProxy> GetCloudConnection(string deviceId)
+        public Option<ICloudProxy> GetCloudConnection(string id)
         {
             // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-            deviceId = GetDeviceId(deviceId);
+            id = GetDeviceId(id);
 
-            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), out ConnectedDevice device)
+            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? device.CloudProxy.Filter(cp => cp.IsActive)
                 : Option.None<ICloudProxy>();
         }
 
-        public async Task<bool> CloseConnectionAsync(string deviceId)
+        public async Task<bool> CloseConnectionAsync(string id)
         {
-            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)), out ConnectedDevice device))
+            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
             {
                 return false;
             }
 
             device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {deviceId}.")));
+                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {id}.")));
 
             bool returnVal = await device.CloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));
 
-            Events.CloseConnection(deviceId);
+            Events.CloseConnection(id);
 
             return returnVal;
         }

@@ -21,16 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
 
-        void RemoveDeviceConnection(string deviceId);
+        void RemoveDeviceConnection(string id);
 
         Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity);
 
         Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity);
 
-        Option<IDeviceProxy> GetDeviceConnection(string deviceId);
+        Option<IDeviceProxy> GetDeviceConnection(string id);
 
-        Option<ICloudProxy> GetCloudConnection(string deviceId);
+        Option<ICloudProxy> GetCloudConnection(string id);
 
-        Task<bool> CloseConnectionAsync(string deviceId);
+        Task<bool> CloseConnectionAsync(string id);
     }
 }

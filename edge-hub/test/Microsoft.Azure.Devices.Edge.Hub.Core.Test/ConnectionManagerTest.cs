@@ -215,5 +215,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(cloudProxy.HasValue);
             Assert.False(cloudProxyMock.Object.IsActive);
         }
+
+        [Theory]
+        [InlineData("device1/foo")]
+        [InlineData("device1/")]
+        [InlineData("device1")]
+        public void IsEdgeDeviceTest_PositiveCase(string edgeDeviceId)
+        {
+            var cloudProviderMock = Mock.Of<ICloudProxyProvider>();
+            ConnectionManager connectionManager = new ConnectionManager(cloudProviderMock, EdgeDeviceId);
+            Assert.True(connectionManager.IsEdgeDevice(edgeDeviceId));
+        }
+
+        [Theory]
+        [InlineData("foo")]
+        [InlineData("device2/bar")]
+        [InlineData("/device1")]
+        [InlineData("")]
+        public void IsEdgeDeviceTest_NegativeCase(string edgeDeviceId)
+        {
+            var cloudProviderMock = Mock.Of<ICloudProxyProvider>();
+            ConnectionManager connectionManager = new ConnectionManager(cloudProviderMock, EdgeDeviceId);
+            Assert.False(connectionManager.IsEdgeDevice(edgeDeviceId));
+        }
     }
 }
