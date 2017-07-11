@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public void Dispose() => this.deviceClient.Dispose();
 
 		public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
-			this.deviceClient.SetDesiredPropertyUpdateCallback(onDesiredPropertyChanged, userContext);
+			this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, userContext);
 
 		public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
 
