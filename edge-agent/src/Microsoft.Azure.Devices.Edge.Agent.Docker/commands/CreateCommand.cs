@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public string Show() => $"docker create {this.portBindingsLazy.Value} {this.envLazy.Value} {this.loggerOptionsLazy.Value} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
 
-        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => $"--env \"{val}\""));
+        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => val.Contains(Constants.EdgeHubConnectionStringKey)? $"--env {Constants.EdgeHubConnectionStringKey}=[connection string]": $"--env \"{val}\""));
 
         static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
 

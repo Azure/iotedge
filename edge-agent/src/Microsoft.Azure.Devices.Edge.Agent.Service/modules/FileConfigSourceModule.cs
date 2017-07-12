@@ -47,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             c.Resolve<IDockerClient>(),
                             c.Resolve<DockerLoggingConfig>(),
                             await c.Resolve<Task<IConfigSource>>());
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>());
+                        // Task<Interface> cannot be assigned to with Task<DerivedType>, so return as ICommandFactory.
+                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
