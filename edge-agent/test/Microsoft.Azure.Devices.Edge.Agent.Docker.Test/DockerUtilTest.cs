@@ -52,19 +52,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Fact]
-        public void ThrowsWhenAuthConfigListArgumentIsNull()
+        public void ReturnsNullWhenAuthConfigListArgumentIsNull()
         {
             var authConfigs = new List<AuthConfig>();
-            Assert.Throws<ArgumentNullException>(
-                () => DockerUtil.FirstAuthConfigOrDefault("dontcare", null));
+            Assert.Null(DockerUtil.FirstAuthConfigOrDefault("dontcare", null));
         }
 
         [Fact]
-        public void ReturnsEmptyAuthConfigWhenListIsEmpty()
+        public void ReturnsNullWhenListIsEmpty()
         {
             var authConfigs = new List<AuthConfig>();
             AuthConfig found = DockerUtil.FirstAuthConfigOrDefault("hostname/imagename", authConfigs);
-            Assert.Equal(null, found);
+            Assert.Null(found);
         }
 
         [Fact]

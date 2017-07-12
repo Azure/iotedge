@@ -25,14 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public static AuthConfig FirstAuthConfigOrDefault(string image, IEnumerable<AuthConfig> authConfigs)
         {
             Preconditions.CheckNotNull<string>(image);
-            return authConfigs.FirstOrDefault(
-                auth =>
-                {
-                    string hostname;
-                    return TryParseHostnameFromImage(image, out hostname) ?
-                        string.Compare(hostname, auth.ServerAddress, StringComparison.OrdinalIgnoreCase) == 0 :
-                        false;
-                });
+            return authConfigs?.FirstOrDefault(
+                auth => TryParseHostnameFromImage(image, out string hostname) ?
+                    string.Compare(hostname, auth.ServerAddress, StringComparison.OrdinalIgnoreCase) == 0 :
+                    false);
 
         }
     }
