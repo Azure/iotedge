@@ -11,7 +11,8 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Extensions.Configuration;
-    
+    using Newtonsoft.Json;
+
     class Program
     {
         static readonly Random Rnd = new Random();
@@ -27,8 +28,9 @@ namespace SimulatedTemperatureSensor
                 .Build();
 
             string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
-            var messageDelay = configuration.GetValue<TimeSpan>("MessageDelay");
-            int temperatureThreshold = configuration.GetValue<int>("TemperatureThreshold");
+            var messageDelay = configuration.GetValue<TimeSpan>("MessageDelay", TimeSpan.FromSeconds(5));
+            var minTemp = configuration.GetValue<int>("MinTemp", -10);
+            var maxTemp = configuration.GetValue<int>("MaxTemp", 40);
 
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
             {
@@ -37,32 +39,36 @@ namespace SimulatedTemperatureSensor
             };
             ITransportSettings[] settings = { mqttSetting };
 
-            DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
-            await moduleClient.OpenAsync();
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+            await deviceClient.OpenAsync();
 
             var cts = new CancellationTokenSource();
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts); };
 
-            await SendEvent(moduleClient, messageDelay, temperatureThreshold, cts);
+            await SendEvent(deviceClient, messageDelay, minTemp, maxTemp, cts);
             return 0;
         }
 
         static async Task SendEvent(
             DeviceClient moduleClient,
             TimeSpan messageDelay,
-            int temperatureThreshold,
+            int minTemp,
+            int maxTemp,
             CancellationTokenSource cts)
         {
-            int count = 0;
+            int count = 1;
             while (!cts.Token.IsCancellationRequested)
             {
-                int temperature = Rnd.Next(20, 35);
-                string dataBuffer = $"{{\"messageId\":{count},\"temperature\":{temperature}}}";
+                var tempData = new MessageBody
+                {
+                    Temperature = Rnd.Next(minTemp, maxTemp)
+                };
+
+                string dataBuffer = JsonConvert.SerializeObject(tempData);
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
-                eventMessage.Properties.Add("temperatureAlert", (temperature > temperatureThreshold) ? "true" : "false");
-                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Data: [{dataBuffer}]");
+                Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
                 await moduleClient.SendEventAsync(eventMessage);
                 await Task.Delay(messageDelay, cts.Token);
@@ -74,6 +80,11 @@ namespace SimulatedTemperatureSensor
         {
             Console.WriteLine("Termination requested, closing.");
             cts.Cancel();
+        }
+
+        class MessageBody
+        {
+            public int Temperature { get; set; }
         }
     }
 }

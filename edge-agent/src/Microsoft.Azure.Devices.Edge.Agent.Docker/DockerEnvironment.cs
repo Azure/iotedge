@@ -46,15 +46,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
         }
 
-        async Task<IModule> ContainerToModule(ContainerListResponse response)
+        internal async Task<IModule> ContainerToModule(ContainerListResponse response)
         {
             string name = response.Names.FirstOrDefault()?.Substring(1) ?? "unknown";
             string version = response.Labels.GetOrElse("version", "unknown");
             ModuleStatus status = ToStatus(response.State);
 
-            string[] imageParts = (response.Image ?? "unknown").Split(':');
-            string image = imageParts[0];
-            string tag = imageParts.Length > 1 ? imageParts[1] : "latest";
+            string image = "unknown";
+            string tag = string.Empty;
+            if (response.Image != null)
+            {
+                // In case of local registries, the image name is something like localhost:5000/foo:latest
+                // In that case, image = localhost:5000/foo and tag = latest
+                int tagSplitterIndex = response.Image.LastIndexOf(':');
+                if (tagSplitterIndex > 0)
+                {
+                    image = response.Image.Substring(0, tagSplitterIndex);
+                    tag = response.Image.Substring(tagSplitterIndex + 1);
+                }
+                else
+                {
+                    image = response.Image;
+                    // If the response.Image has no tag, then leave it as empty String, instead of defaulting to latest.
+                }
+            }
 
             ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
             IEnumerable<PortBinding> portBindings = inspected

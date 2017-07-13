@@ -144,5 +144,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 await Client.CleanupContainerAsync("test-filters-external", Image);
             }
         }
+
+        [Fact]
+        [Unit]
+        public async Task ContainerToModuleTest()
+        {
+            // Arrange
+            var id = Guid.NewGuid().ToString();
+            var containerListResponse = new ContainerListResponse
+            {
+                Image = "localhost:5000/sensor:v2",
+                Names = new List<string> { "/sensor" },
+                ID = id,
+                State = "running",
+                Labels = new Dictionary<string, string> { { "version", "v2" } }
+            };
+
+            var dockerClient = Mock.Of<IDockerClient>(dc => 
+                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id) == Task.FromResult(new ContainerInspectResponse())));
+
+            // Act
+            var dockerEnvironment = new DockerEnvironment(dockerClient);
+            IModule module = await dockerEnvironment.ContainerToModule(containerListResponse);
+
+            // Assert
+            Assert.NotNull(module);
+            var dockerModule = module as DockerModule;
+            Assert.NotNull(dockerModule);
+            Assert.Equal("localhost:5000/sensor", dockerModule.Config.Image);
+            Assert.Equal("v2", dockerModule.Config.Tag);
+            Assert.Equal(0, dockerModule.Config.PortBindings.Count);
+            Assert.Equal(0, dockerModule.Config.Env.Count);
+
+            Assert.Equal("sensor", dockerModule.Name);
+            Assert.Equal("v2", dockerModule.Version);
+            Assert.Equal(ModuleStatus.Running, dockerModule.Status);
+        }
     }
 }
