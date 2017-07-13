@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task TestInvokeMethod()
         {
-            var identity = Mock.Of<IIdentity>(i => i.Id == "module1");
+            var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
             ActionExecutingContext actionExecutingContext = GetActionExecutingContextMock(identity);
 
             var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
@@ -45,6 +46,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.NotNull(actionResult);
+            var jsonResult = actionResult as JsonResult;
+            Assert.NotNull(jsonResult);
+            var methodResult = jsonResult.Value as MethodResult;
+            Assert.NotNull(methodResult);
+            Assert.Equal(200, methodResult.Status);
+            Assert.Equal(string.Empty, methodResult.Payload);
+        }
+
+        [Fact]
+        public async Task TestInvokeMethodOnModule()
+        {
+            var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
+            ActionExecutingContext actionExecutingContext = GetActionExecutingContextMock(identity);
+
+            var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
+            DirectMethodRequest receiveDirectMethodRequest;
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<IIdentity>(i => i == identity), It.IsAny<DirectMethodRequest>()))
+                .Callback<IIdentity, DirectMethodRequest>((i, d) => receiveDirectMethodRequest = d)
+                .ReturnsAsync(directMethodResponse);
+
+            var validator = new Mock<IValidator<Http.MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<Http.MethodRequest>()));
+
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
+            testController.OnActionExecuting(actionExecutingContext);
+
+            string toModuleId = "edgedevice/module2";
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            IActionResult actionResult = await testController.InvokeDeviceMethodAsync(WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
             var jsonResult = actionResult as JsonResult;

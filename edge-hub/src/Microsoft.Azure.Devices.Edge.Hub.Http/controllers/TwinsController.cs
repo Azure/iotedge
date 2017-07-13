@@ -1,13 +1,14 @@
 ﻿
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
+    using System.Net;
+    using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using System.Text;
-    using System.Threading.Tasks;
 
     public class TwinsController : Controller
     {
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         [Route("twins/{id}/methods")]
         public async Task<IActionResult> InvokeDeviceMethodAsync([FromRoute] string id, [FromBody] MethodRequest methodRequest)
         {
-            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            id = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             this.validator.Validate(methodRequest);
 
             Events.ReceivedMethodCall(id, methodRequest, this.identity);
