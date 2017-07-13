@@ -2,15 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 {
-    using System;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
+	using System;
+	using System.Threading.Tasks;
+	using Microsoft.Azure.Devices.Edge.Agent.Core;
+	using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+	using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+	using Microsoft.Azure.Devices.Edge.Util;
+	using Microsoft.Azure.Devices.Shared;
+	using Microsoft.Extensions.Configuration;
+	using Microsoft.Extensions.Logging;
+	using Microsoft.Azure.Devices.Client;
 
 	public class TwinConfigSource : BaseConfigSource
 	{
@@ -19,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 		ISerde<Diff> DiffSerde { get; }
 
 		readonly IDeviceClient deviceClient;
+
+		public ConnectionStatus ConnectionStatus;
 
 		Task OnDesiredPropertyChanged(TwinCollection desiredProperties, object userContext)
 		{
@@ -37,14 +40,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			}
 		}
 
-        TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
-            : base(configuration)
-        {
-            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
-            this.ModuleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
-            this.DiffSerde = Preconditions.CheckNotNull(diffSerde, nameof(diffSerde));
-            Events.Created();
-        }
+		void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+		{
+			Events.ConnectionStatusChanged(this.ConnectionStatus.ToString(), status.ToString(), reason.ToString());
+			this.ConnectionStatus = status;
+		}
+
+		TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
+			: base(configuration)
+		{
+			this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
+			this.ModuleSetSerde = Preconditions.CheckNotNull(moduleSetSerde, nameof(moduleSetSerde));
+			this.DiffSerde = Preconditions.CheckNotNull(diffSerde, nameof(diffSerde));
+			this.ConnectionStatus = ConnectionStatus.Disabled;
+			Events.Created();
+		}
 
 		public override void Dispose()
 		{
@@ -72,18 +82,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			this.ModuleSetChanged?.Invoke(this, diff);
 		}
 
-        public override event EventHandler<Exception> ModuleSetFailed;
+		public override event EventHandler<Exception> ModuleSetFailed;
 
-        protected void OnFailed(Exception ex)
-        {
-            this.ModuleSetFailed?.Invoke(this, ex);
-        }
+		protected void OnFailed(Exception ex)
+		{
+			this.ModuleSetFailed?.Invoke(this, ex);
+		}
 
 		public static async Task<TwinConfigSource> Create(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
 		{
 			var configSource = new TwinConfigSource(deviceClient, moduleSetSerde, diffSerde, configuration);
 			try
 			{
+				// SetConnectionStatusChangedHandler needs to be the very first thing we do here in order to get
+				// a callback when the connection is established. If not, the ConnectionStatus variable will not
+				// be updated from it's default Disabled state.
+				configSource.deviceClient.SetConnectionStatusChangedHandler(configSource.OnConnectionStatusChanged);
 				await configSource.deviceClient.SetDesiredPropertyUpdateCallback(configSource.OnDesiredPropertyChanged, null);
 			}
 			catch (Exception e)
@@ -103,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 				Created = IdStart,
 				DesiredPropertiesFailed,
 				DeviceClientTimeout,
+				ConnectionStatusChanged
 			}
 
 			public static void Created()
@@ -118,6 +133,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			public static void DeviceClientException(Exception exception)
 			{
 				Log.LogError((int)EventIds.DeviceClientTimeout, exception, "TwinConfigSource got an exception from device client");
+			}
+
+			public static void ConnectionStatusChanged(string old, string updated, string reason)
+			{
+				Log.LogInformation((int)EventIds.ConnectionStatusChanged, $"Connection status changed from {old} to {updated} with reason {reason}");
 			}
 		}
 	}

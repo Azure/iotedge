@@ -2,34 +2,35 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Extensions.Configuration;
-    using Moq;
-    using Xunit;
+	using System;
+	using System.Collections.Generic;
+	using System.Threading.Tasks;
+	using Microsoft.Azure.Devices.Client;
+	using Microsoft.Azure.Devices.Edge.Agent.Core;
+	using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+	using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
+	using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
+	using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+	using Microsoft.Azure.Devices.Shared;
+	using Microsoft.Extensions.Configuration;
+	using Moq;
+	using Xunit;
 
 	public class TwinConfigSourceTest
 	{
 		readonly ModuleSetSerde moduleSetSerde;
 		readonly DiffSerde diffSerde;
 		DesiredPropertyUpdateCallback desiredPropertyCallback;
+		ConnectionStatusChangesHandler connectionStatusChangedHandler;
 		readonly IConfigurationRoot config;
 
-        public TwinConfigSourceTest()
-        {
-            var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
-            this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
-            this.diffSerde = new DiffSerde(serializerInputTable);
-            this.config = new ConfigurationBuilder().Build();
-        }
+		public TwinConfigSourceTest()
+		{
+			var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
+			this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
+			this.diffSerde = new DiffSerde(serializerInputTable);
+			this.config = new ConfigurationBuilder().Build();
+		}
 
 		[Fact]
 		[Unit]
@@ -38,13 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			// Arrange
 			var deviceClient = new Mock<IDeviceClient>();
 
-            // Act
-            // Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(null, this.moduleSetSerde, this.diffSerde, this.config));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, null, this.diffSerde, this.config));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, null, this.config));
-            await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, null));
-        }
+			// Act
+			// Assert
+			await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(null, this.moduleSetSerde, this.diffSerde, this.config));
+			await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, null, this.diffSerde, this.config));
+			await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, null, this.config));
+			await Assert.ThrowsAsync<ArgumentNullException>(() => TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, null));
+		}
 
 		[Fact]
 		[Unit]
@@ -53,13 +54,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			// Arrange
 			var deviceClient = new Mock<IDeviceClient>();
 
-            // Act
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
-            {
-                // Assert
-                Assert.NotNull(twinConfig);
-            }
-        }
+			// Act
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				// Assert
+				Assert.NotNull(twinConfig);
+				Assert.True(twinConfig.ConnectionStatus == ConnectionStatus.Disabled);
+			}
+		}
 
 		[Fact]
 		[Unit]
@@ -79,10 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			var deviceClient = new Mock<IDeviceClient>();
 			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
-            {
-                // Act
-                ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				// Act
+				ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
 
 				IModule returnedModule1 = startingSet.Modules["mod1"];
 				// Assert  
@@ -111,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			var moduleSetSerdeMocked = new Mock<ISerde<ModuleSet>>();
 			moduleSetSerdeMocked.Setup(t => t.Deserialize(It.IsAny<string>())).Throws(new Exception("Any Exception"));
 
-            using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde, this.config))
-            {
-                bool failEventCalled = false;
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde, this.config))
+			{
+				bool failEventCalled = false;
 
-                twinConfig.ModuleSetFailed += (sender, ex) =>
-                {
-                    failEventCalled = true;
-                };
+				twinConfig.ModuleSetFailed += (sender, ex) =>
+				{
+					failEventCalled = true;
+				};
 
 				// Act
 				// Assert  
@@ -197,6 +199,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 				Assert.False(receivedDiff.IsEmpty);
 				Assert.True(receivedDiff.Updated.Count == 0);
 				Assert.True(receivedDiff.Removed.Count == 1);
+			}
+		}
+
+		[Fact]
+		[Unit]
+		public async void OnConnectionStatusChangedSuccess()
+		{
+			var deviceClient = new Mock<IDeviceClient>();
+			deviceClient
+				.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+				.Callback<ConnectionStatusChangesHandler>(
+					(i) =>
+					{
+						this.connectionStatusChangedHandler = i;
+					});
+
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				this.connectionStatusChangedHandler(ConnectionStatus.Connected, ConnectionStatusChangeReason.No_Network);
+				Assert.True(twinConfig.ConnectionStatus == ConnectionStatus.Connected);
 			}
 		}
 	}
