@@ -1,6 +1,6 @@
 {
     "schema": "1",
-    "version": "1",
+    "version": "2",
     "sensorHub_sensorTag": {
         "name": "CC2650 SensorTag",
         "device_info": {
@@ -55,6 +55,33 @@
             "cmd_reportInterval": {
                 "type": "read",
                 "characteristicUUID": "F000AA0104514000B000000000000000",
+                "defaultIntervalInMs": 1000
+            }
+        },
+        "device_optical": {
+            "name": "Opt 3000",
+            "serviceUUID": "f000aa7004514000b000000000000000",
+            "cmd_powerOn": {
+                "type": "write",
+                "characteristicUUID": "f000aa7204514000b000000000000000",
+                "data": "01"
+            },
+            "cmd_powerStatus": {
+                "type": "read",
+                "characteristicUUID": "f000aa7204514000b000000000000000"
+            },
+            "cmd_powerOff": {
+                "type": "write",
+                "characteristicUUID": "f000aa7204514000b000000000000000",
+                "data": "00"
+            },
+            "cmd_readData": {
+                "type": "read",
+                "characteristicUUID": "f000aa7104514000b000000000000000"
+            },
+            "cmd_reportInterval": {
+                "type": "read",
+                "characteristicUUID": "f000aa7104514000b000000000000000",
                 "defaultIntervalInMs": 1000
             }
         }

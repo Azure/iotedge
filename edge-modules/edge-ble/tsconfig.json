@@ -1,14 +1,16 @@
 {
     "files": [
+        "src/blemodule.ts",
+        "src/bleedgemodule.ts",
         "src/main.ts",
-        "src/deviceconfiguration.ts",
-        "src/sensorconfiguration.ts"
+        "src/sensorconfiguration.ts",
+        "src/sensormanager.ts"
     ],
     "compilerOptions": {
         "module": "commonjs",
         "noImplicitAny": true,
         "preserveConstEnums": true,
-        "target": "es2016",
+        "target": "es2015",
         "sourceMap": true,
         "typeRoots": [
             "./node_modules/@types"
