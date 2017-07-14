@@ -53,5 +53,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("Value2", message.Properties["Prop2"]);
             Assert.Equal("Value3", message.Properties["Prop3"]);
         }
+
+        [Fact]
+        public void TestToMessage_Module()
+        {
+            var outputTemplates = new Dictionary<string, string>
+            {
+                ["Dummy"] = ""
+            };
+            var inputTemplates = new List<string>
+            {
+                "devices/{deviceId}/messages/events/{params}/",
+                "devices/{deviceId}/messages/events/",
+                "devices/{deviceId}/modules/{moduleId}/messages/events/{params}/",
+                "devices/{deviceId}/modules/{moduleId}/messages/events/"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                inputTemplates,
+                outputTemplates
+            );
+            var converter = new MessageAddressConverter(config);
+            var properties = new Dictionary<string, string>();
+            var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
+                m =>
+                    m.Address == @"devices/Device_6/modules/SensorModule/messages/events/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
+                    m.Payload == Payload &&
+                    m.Properties == properties
+                );
+
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter);
+            IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
+            Assert.NotNull(message);
+
+            Assert.Equal(4, message.SystemProperties.Count);
+            Assert.Equal("Corrid1", message.SystemProperties[SystemProperties.CorrelationId]);
+            Assert.Equal("MessageId1", message.SystemProperties[SystemProperties.MessageId]);
+            Assert.Equal("Device_6", message.SystemProperties[SystemProperties.ConnectionDeviceId]);
+            Assert.Equal("SensorModule", message.SystemProperties[SystemProperties.ConnectionModuleId]);
+
+            Assert.Equal(3, message.Properties.Count);
+            Assert.Equal("Bar", message.Properties["Foo"]);
+            Assert.Equal("Value2", message.Properties["Prop2"]);
+            Assert.Equal("Value3", message.Properties["Prop3"]);
+        }
     }
 }

@@ -52,7 +52,7 @@ namespace SimulatedTemperatureSensor
         }
 
         static async Task SendEvent(
-            DeviceClient moduleClient,
+            DeviceClient deviceClient,
             TimeSpan messageDelay,
             int minTemp,
             int maxTemp,
@@ -70,7 +70,7 @@ namespace SimulatedTemperatureSensor
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await moduleClient.SendEventAsync(eventMessage);
+                await deviceClient.SendEventAsync(eventMessage);
                 await Task.Delay(messageDelay, cts.Token);
                 count++;
             }

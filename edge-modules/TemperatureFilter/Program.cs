@@ -15,12 +15,14 @@ namespace TemperatureFilter
     class Program
     {
         const string TemperatureThresholdKey = "TemperatureThreshold";
+        const int DefaultTemperatureThreshold = 25;
         static int counter;
 
         static void Main(string[] args)
         {
             // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
-            string connectionString = Environment.GetEnvironmentVariable("EdgeHubConnectionString");
+            string connectionString =
+                Environment.GetEnvironmentVariable("EdgeHubConnectionString");
             Init(connectionString).Wait();
 
             // Wait until the app unloads or is cancelled
@@ -38,25 +40,36 @@ namespace TemperatureFilter
         }
 
         /// <summary>
-        /// Initializes the DeviceClient and sets up the callback to receive messages containing temperature information
+        /// Initializes the DeviceClient and sets up the callback to receive 
+        /// messages containing temperature information
         /// </summary>
         static async Task Init(string connectionString)
         {
-            // Open a connection to the runtime
+            // Use Mqtt transport settings. 
+            // The RemoteCertificateValidationCallback needs to be set
+            // since the Edge Hub currently uses a self signed SSL certificate.
             ITransportSettings[] settings =
             {
                 new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                 { RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true }
             };
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+
+            // Open a connection to the Edge runtime
+            DeviceClient deviceClient =
+                DeviceClient.CreateFromConnectionString(connectionString, settings);
             await deviceClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 
-            ModuleConfig moduleModuleConfig = await GetConfiguration(deviceClient);
+            ModuleConfig moduleConfig = await GetConfiguration(deviceClient);
+            Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
-            var userContext = new Tuple<DeviceClient, ModuleConfig>(deviceClient, moduleModuleConfig);
+            var userContext = new Tuple<DeviceClient, ModuleConfig>(deviceClient, moduleConfig);
+
             // Register callback to be called when a message is sent to "input1"
-            await deviceClient.SetEventHandlerAsync("input1", PrintAndFilterMessages, userContext);
+            await deviceClient.SetEventHandlerAsync(
+                "input1",
+                PrintAndFilterMessages,
+                userContext);
         }
 
         /// <summary>
@@ -72,7 +85,8 @@ namespace TemperatureFilter
             var userContextValues = userContext as Tuple<DeviceClient, ModuleConfig>;
             if (userContextValues == null)
             {
-                throw new InvalidOperationException("UserContext doesn't contain expected values");
+                throw new InvalidOperationException("UserContext doesn't contain " +
+                    "expected values");
             }
             DeviceClient deviceClient = userContextValues.Item1;
             ModuleConfig moduleModuleConfig = userContextValues.Item2;
@@ -84,9 +98,11 @@ namespace TemperatureFilter
             // Get message body, containing the Temperature data
             var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
 
-            if (messageBody != null && messageBody.Temperature > moduleModuleConfig.TemperatureThreshold)
+            if (messageBody != null
+                && messageBody.Temperature > moduleModuleConfig.TemperatureThreshold)
             {
-                Console.WriteLine($"Temperature {messageBody.Temperature} exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
+                Console.WriteLine($"Temperature {messageBody.Temperature} " +
+                    $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
                 var filteredMessage = new Message(messageBytes);
                 foreach (KeyValuePair<string, string> prop in message.Properties)
                 {
@@ -105,27 +121,23 @@ namespace TemperatureFilter
         {
             // First try to get the config from the Module twin
             Twin twin = await deviceClient.GetTwinAsync();
-            int tempThreshold = 0;
             if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
             {
-                tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];
+                int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];
+                return new ModuleConfig(tempThreshold);
             }
             // Else try to get it from the environment variables.
             else
             {
                 string tempThresholdEnvVar = Environment.GetEnvironmentVariable(TemperatureThresholdKey);
-                if (!string.IsNullOrWhiteSpace(tempThresholdEnvVar))
+                if (!string.IsNullOrWhiteSpace(tempThresholdEnvVar) && int.TryParse(tempThresholdEnvVar, out int tempThreshold))
                 {
-                    int.TryParse(tempThresholdEnvVar, out tempThreshold);
+                    return new ModuleConfig(tempThreshold);
                 }
             }
 
-            // If everything else fails, set it to default.
-            if (tempThreshold == 0)
-            {
-                tempThreshold = 25; // Default value
-            }
-            return new ModuleConfig(tempThreshold);
+            // If config wasn't set in either Twin or Environment variables, use default.
+            return new ModuleConfig(DefaultTemperatureThreshold);
         }
 
         /// <summary>

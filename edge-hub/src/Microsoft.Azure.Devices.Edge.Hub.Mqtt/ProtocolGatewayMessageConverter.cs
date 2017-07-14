@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             if (sourceMessage.Properties.TryGetValue(Constants.ModuleIdTemplateParameter, out string moduleIdValue))
             {
                 systemProperties[SystemProperties.ConnectionModuleId] = moduleIdValue;
-                sourceMessage.Properties.Remove(SystemProperties.ConnectionModuleId);
+                sourceMessage.Properties.Remove(Constants.ModuleIdTemplateParameter);
             }
 
             foreach (KeyValuePair<string, string> property in sourceMessage.Properties)
