@@ -70,7 +70,7 @@ namespace SimulatedTemperatureSensor
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await deviceClient.SendEventAsync(eventMessage);
+                await deviceClient.SendEventAsync("temperatureOutput", eventMessage);
                 await Task.Delay(messageDelay, cts.Token);
                 count++;
             }
