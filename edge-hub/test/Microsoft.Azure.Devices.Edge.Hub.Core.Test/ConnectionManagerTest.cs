@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string edgeDeviceConnStr = "dummyConnStr";
             var module1Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module1", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz");
 
-            var module2Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz"); 
+            var module2Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz");
 
             var edgeDeviceIdentity = Mock.Of<IDeviceIdentity>(
                 d => d.DeviceId == edgeDeviceId &&
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(edgeCloudProxy);
 
             Try<ICloudProxy> module2CloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(module2Identity);
-            Assert.True(module2CloudProxy.Success);            
+            Assert.True(module2CloudProxy.Success);
             Assert.Equal(edgeCloudProxy, module2CloudProxy.Value);
 
             Try<ICloudProxy> edgeDeviceCloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(edgeDeviceIdentity);
@@ -220,6 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [InlineData("device1/foo")]
         [InlineData("device1/")]
         [InlineData("device1")]
+        [Unit]
         public void IsEdgeDeviceTest_PositiveCase(string edgeDeviceId)
         {
             var cloudProviderMock = Mock.Of<ICloudProxyProvider>();
@@ -232,11 +233,109 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [InlineData("device2/bar")]
         [InlineData("/device1")]
         [InlineData("")]
+        [Unit]
         public void IsEdgeDeviceTest_NegativeCase(string edgeDeviceId)
         {
             var cloudProviderMock = Mock.Of<ICloudProxyProvider>();
             ConnectionManager connectionManager = new ConnectionManager(cloudProviderMock, EdgeDeviceId);
             Assert.False(connectionManager.IsEdgeDevice(edgeDeviceId));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetOrCreateCloudProxyTest()
+        {
+            string edgeDeviceId = "edgeDevice";
+            string module1Id = "module1";
+            string module2Id = "module2";
+
+            var module1Identity = new ModuleIdentity(string.Empty,
+                edgeDeviceId,
+                module1Id,
+                string.Empty,
+                AuthenticationScope.SasToken,
+                string.Empty,
+                string.Empty);
+
+            var module2Identity = new ModuleIdentity(string.Empty,
+                edgeDeviceId,
+                module2Id,
+                string.Empty,
+                AuthenticationScope.SasToken,
+                string.Empty,
+                string.Empty);
+
+            var cloudProxy = Mock.Of<ICloudProxy>(cp => cp.IsActive == true);
+            var cloudProxyProviderMock = new Mock<ICloudProxyProvider>();
+            cloudProxyProviderMock.Setup(c => c.Connect(It.IsAny<IIdentity>())).ReturnsAsync(() => Try.Success(cloudProxy));
+
+            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, edgeDeviceId);
+
+            Task<Try<ICloudProxy>> getCloudProxyTask1 = connectionManager.GetOrCreateCloudConnectionAsync(module1Identity);
+            Task<Try<ICloudProxy>> getCloudProxyTask2 = connectionManager.GetOrCreateCloudConnectionAsync(module2Identity);
+            Try<ICloudProxy>[] cloudProxies = await Task.WhenAll(getCloudProxyTask1, getCloudProxyTask2);
+
+            Assert.Equal(cloudProxies[0].Value, cloudProxies[1].Value);
+            Assert.Equal(cloudProxy, cloudProxies[0].Value);
+            cloudProxyProviderMock.Verify(c => c.Connect(It.IsAny<IIdentity>()), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task CreateCloudProxyTest()
+        {
+            string edgeDeviceId = "edgeDevice";
+            string module1Id = "module1";
+            string module2Id = "module2";
+
+            var module1Identity = new ModuleIdentity(string.Empty,
+                edgeDeviceId,
+                module1Id,
+                string.Empty,
+                AuthenticationScope.SasToken,
+                string.Empty,
+                string.Empty);
+
+            var module2Identity = new ModuleIdentity(string.Empty,
+                edgeDeviceId,
+                module2Id,
+                string.Empty,
+                AuthenticationScope.SasToken,
+                string.Empty,
+                string.Empty);
+
+            var cloudProxy1 = Mock.Of<ICloudProxy>(cp => cp.IsActive == true && cp.CloseAsync() == Task.FromResult(true));
+            var cloudProxy2 = Mock.Of<ICloudProxy>(cp => cp.IsActive == true && cp.CloseAsync() == Task.FromResult(true));
+            var cloudProxyProviderMock = new Mock<ICloudProxyProvider>();
+            cloudProxyProviderMock.SetupSequence(c => c.Connect(It.IsAny<IIdentity>()))
+                .ReturnsAsync(Try.Success(cloudProxy1))
+                .ReturnsAsync(Try.Success(cloudProxy2));
+            cloudProxyProviderMock.Setup(c => c.Connect(It.Is<IIdentity>(i => i == module2Identity))).ReturnsAsync(() => Try.Success(cloudProxy2));
+
+            var connectionManager = new ConnectionManager(cloudProxyProviderMock.Object, edgeDeviceId);
+
+            Task<Try<ICloudProxy>> getCloudProxyTask1 = connectionManager.CreateCloudConnectionAsync(module1Identity);
+            Task<Try<ICloudProxy>> getCloudProxyTask2 = connectionManager.CreateCloudConnectionAsync(module2Identity);
+            Try<ICloudProxy>[] cloudProxies = await Task.WhenAll(getCloudProxyTask1, getCloudProxyTask2);
+
+            Assert.NotEqual(cloudProxies[0].Value, cloudProxies[1].Value);
+            cloudProxyProviderMock.Verify(c => c.Connect(It.IsAny<IIdentity>()), Times.Exactly(2));
+
+            Option<ICloudProxy> currentCloudProxyId1 = connectionManager.GetCloudConnection(module1Identity.Id);
+            Option<ICloudProxy> currentCloudProxyId2 = connectionManager.GetCloudConnection(module2Identity.Id);
+            Assert.Equal(currentCloudProxyId1, currentCloudProxyId2);
+            ICloudProxy currentCloudProxy = currentCloudProxyId1.OrDefault();
+            Assert.True(currentCloudProxy == cloudProxy1 || currentCloudProxy == cloudProxy2);
+            if (currentCloudProxy == cloudProxy1)
+            {
+                Mock.Get(cloudProxy2).Verify(cp => cp.CloseAsync(), Times.Once);
+                Mock.Get(cloudProxy1).Verify(cp => cp.CloseAsync(), Times.Never);
+            }
+            else
+            {
+                Mock.Get(cloudProxy1).Verify(cp => cp.CloseAsync(), Times.Once);
+                Mock.Get(cloudProxy2).Verify(cp => cp.CloseAsync(), Times.Never);
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -94,26 +95,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
             IIdentity deviceIdentity = GetDeviceIdentity(identity);
 
-            // Open a connection to Azure IoT Hub for this device/module.
-            Try<ICloudProxy> cloudProxy = await this.cloudProxyProvider.Connect(deviceIdentity);
-            if (cloudProxy.Success)
-            {
-                // Update the cloud proxy stored in this.devices with this new cloud proxy
-                // instance.
-                ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
-                Option<ICloudProxy> currentCloudProxy = device.UpdateCloudProxy(cloudProxy.Value);
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
+            (Try<ICloudProxy> newCloudProxy, Option<ICloudProxy> existingCloudProxy) = await device.UpdateCloudProxy(() => this.cloudProxyProvider.Connect(deviceIdentity));
 
-                // If the existing cloud proxy had an active connection then close it since we
-                // now have a new connected cloud proxy.
-                await currentCloudProxy.Filter(cp => cp.IsActive)
-                    .Map(cp => cp.CloseAsync())
-                    .GetOrElse(Task.FromResult(true));
-                Events.NewCloudConnection(deviceIdentity);
-            }
-            return cloudProxy;
+            // If the existing cloud proxy had an active connection then close it since we
+            // now have a new connected cloud proxy.
+            await existingCloudProxy.Filter(cp => cp.IsActive)
+                .Map(cp => cp.CloseAsync())
+                .GetOrElse(Task.FromResult(true));
+            Events.NewCloudConnection(deviceIdentity);
+
+            return newCloudProxy;
         }
 
-        public Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity)
+        public async Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
@@ -124,8 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // instance to this.devices and return that.
             ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
 
-            return device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => Task.FromResult(Try.Success(cp)), () => this.CreateCloudConnectionAsync(deviceIdentity));
+            return await device.GetOrSetCloudProxy(() => this.cloudProxyProvider.Connect(deviceIdentity));
         }
 
         /// <summary>
@@ -171,7 +165,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class ConnectedDevice
         {
-            readonly object lockObject = new object();
+            // Device Proxy methods are sync coming from the Protocol gateway, 
+            // so using traditional locking mechanism for those.
+            readonly object deviceProxyLock = new object();
+            readonly AsyncLock cloudProxyLock = new AsyncLock();
 
             public ConnectedDevice(IIdentity identity)
             {
@@ -190,8 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Option<IDeviceProxy> deviceProxyOption = Option.Some(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
                 Option<IDeviceProxy> currentValue;
-                // TODO - Interlocked.Exchange doesn't work on structs. Figure out if another locking method could be faster
-                lock (this.lockObject)
+                lock(this.deviceProxyLock)
                 {
                     currentValue = this.DeviceProxy;
                     this.DeviceProxy = deviceProxyOption;
@@ -199,17 +195,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return currentValue;
             }
 
-            public Option<ICloudProxy> UpdateCloudProxy(ICloudProxy cloudProxy)
+            public async Task<(Try<ICloudProxy>, Option<ICloudProxy>)> UpdateCloudProxy(Func<Task<Try<ICloudProxy>>> cloudProxyGetter)
             {
-                Option<ICloudProxy> cloudProxyOption = Option.Some(Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy)));
-                Option<ICloudProxy> currentValue;
-                // TODO - Interlocked.Exchange doesn't work on structs. Figure out if another locking method could be faster
-                lock (this.lockObject)
+                Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
+                // Lock in case multiple connections are created to the cloud for the same device at the same time
+                using (await this.cloudProxyLock.LockAsync())
                 {
-                    currentValue = this.CloudProxy;
-                    this.CloudProxy = cloudProxyOption;
+                    var existingCloudProxy = this.CloudProxy;
+                    var newCloudProxy = await cloudProxyGetter();
+                    if (newCloudProxy.Success)
+                    {
+                        this.CloudProxy = Option.Some(newCloudProxy.Value);
+                    }
+                    return (newCloudProxy, existingCloudProxy);
                 }
-                return currentValue;
+            }
+
+            public async Task<Try<ICloudProxy>> GetOrSetCloudProxy(Func<Task<Try<ICloudProxy>>> cloudProxyGetter)
+            {
+                Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
+                // Lock in case multiple connections are created to the cloud for the same device at the same time
+                using (await this.cloudProxyLock.LockAsync())
+                {
+                    return await this.CloudProxy.Filter(cp => cp.IsActive)
+                        .Match(cp => Task.FromResult(Try.Success(cp)),
+                        async () =>
+                        {
+                            var cloudProxy = await cloudProxyGetter();
+                            if (cloudProxy.Success)
+                            {
+                                this.CloudProxy = Option.Some(cloudProxy.Value);
+                            }
+                            return cloudProxy;
+                        });
+                }
             }
         }
 
