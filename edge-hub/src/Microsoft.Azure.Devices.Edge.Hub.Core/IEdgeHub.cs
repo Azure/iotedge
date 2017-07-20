@@ -20,5 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task<DirectMethodResponse> InvokeMethodAsync(IIdentity identity, DirectMethodRequest methodRequest);
 
         Task SendMethodResponseAsync(DirectMethodResponse response);
+
+        Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage);
     }
 }

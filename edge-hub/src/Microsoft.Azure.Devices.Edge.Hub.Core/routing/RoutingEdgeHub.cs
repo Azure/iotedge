@@ -2,16 +2,17 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Extensions.Logging;
     using static System.FormattableString;
     using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.IIdentity;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
@@ -112,6 +113,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
 
             return TaskEx.Done;
+        }
+
+        public Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage)
+        {
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            Preconditions.CheckNotNull(reportedPropertiesMessage, nameof(reportedPropertiesMessage));
+
+            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
+            Task cloudSendMessageTask = cloudProxy.Match(cp => cp.UpdateReportedPropertiesAsync(reportedPropertiesMessage), () => Task.CompletedTask);
+
+            IRoutingMessage routingMessage = this.messageConverter.FromMessage(reportedPropertiesMessage);
+            Task routingSendMessageTask = this.router.RouteAsync(routingMessage);
+
+            return Task.WhenAll(cloudSendMessageTask, routingSendMessageTask);
         }
 
         static class Events

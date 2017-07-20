@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static readonly IList<string> Input = new List<string>() { "devices/{deviceId}/messages/events/", "$iothub/methods/res/{statusCode}/?$rid={correlationId}" };
         static readonly IDictionary<string, string> Output = new Dictionary<string, string>
         {
-            [Constants.OutboundUriC2D] = "devices/{deviceId}/messages/devicebound",
-            [Constants.OutboundUriTwinEndpoint] = "$iothub/twin/res/{statusCode}/?$rid={correlationId}",
-            [Constants.OutboundUriModuleEndpoint] = "devices/{deviceId}/module/{moduleId}/endpoint/{endpointId}"
+            [Mqtt.Constants.OutboundUriC2D] = "devices/{deviceId}/messages/devicebound",
+            [Mqtt.Constants.OutboundUriTwinEndpoint] = "$iothub/twin/res/{statusCode}/?$rid={correlationId}",
+            [Mqtt.Constants.OutboundUriModuleEndpoint] = "devices/{deviceId}/module/{moduleId}/endpoint/{endpointId}"
         };
 
         static readonly Lazy<IMessageConverter<IProtocolGatewayMessage>> ProtocolGatewayMessageConverter = new Lazy<IMessageConverter<IProtocolGatewayMessage>>(MakeProtocolGatewayMessageConverter, true);
@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 .Build();
             await client.SendAsync(message);
 
-            listener.Verify(x => x.UpdateReportedPropertiesAsync(It.Is((string s) => s.Equals(patch))), Times.Once);
+            listener.Verify(x => x.UpdateReportedPropertiesAsync(It.Is((IMessage m) => Encoding.UTF8.GetString(m.Body).Equals(patch))), Times.Once);
         }
 
         [Fact]

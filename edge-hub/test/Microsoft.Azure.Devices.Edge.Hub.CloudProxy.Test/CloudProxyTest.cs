@@ -113,8 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int version = (int)twin.SelectToken("reported.$version");
             int counter = (int?)twin.SelectToken("reported.bvtCounter") ?? 0;
 
-            string updated = $"{{\"bvtCounter\":{counter + 1}}}";
-            await cloudProxy.Value.UpdateReportedPropertiesAsync(updated);
+            IMessage updateReportedPropertiesMessage = new Message(Encoding.UTF8.GetBytes($"{{\"bvtCounter\":{counter + 1}}}"));
+            await cloudProxy.Value.UpdateReportedPropertiesAsync(updateReportedPropertiesMessage);
 
             message = await cloudProxy.Value.GetTwinAsync();
             twin = JObject.Parse(System.Text.Encoding.UTF8.GetString(message.Body));

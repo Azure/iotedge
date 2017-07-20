@@ -109,6 +109,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             return routingMessages;
         }
 
+        public static IEnumerable<object[]> GetMessageSourceSystemProperties()
+        {
+            var theoryData = new List<object[]>();
+
+            theoryData.Add(new object[] {
+                new Dictionary<string, string>
+                {
+                    [SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType
+                },
+                TwinChangeEventMessageSource.Instance});
+
+            theoryData.Add(new object[] {
+                new Dictionary<string, string>
+                {
+                    [SystemProperties.ConnectionModuleId] = "module1",
+                    [SystemProperties.OutputName] = "output1"
+                },
+                ModuleMessageSource.Create("module1", "output1")});
+
+            theoryData.Add(new object[] {
+                new Dictionary<string, string>
+                {
+                    [SystemProperties.ConnectionModuleId] = "module1",
+                    [SystemProperties.OutputName] = "output1"
+                },
+                ModuleMessageSource.Create("module1", "output1")});
+
+            theoryData.Add(new object[] {
+                new Dictionary<string, string>
+                {
+                    [SystemProperties.ConnectionModuleId] = "module1",
+                },
+                TelemetryMessageSource.Instance});
+
+            theoryData.Add(new object[] {
+                new Dictionary<string, string>(),
+                TelemetryMessageSource.Instance});
+
+            return theoryData;
+        }
+
         [Theory]
         [Unit]
         [MemberData(nameof(GetInvalidHubMessages))]
@@ -178,6 +219,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Assert.True(message.SystemProperties.ContainsKey(property.Key));
                 Assert.Equal(property.Value, message.SystemProperties[property.Key]);
             }
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetMessageSourceSystemProperties))]
+        public void TestGetMessageSource(IDictionary<string, string> systemProperties, BaseMessageSource expectedMessageSource)
+        {
+            var routingMessageConverter = new RoutingMessageConverter();
+            IMessageSource messageSource = routingMessageConverter.GetMessageSource(systemProperties);
+            Assert.NotNull(messageSource);
+            Assert.IsType(expectedMessageSource.GetType(), messageSource);
+            var baseMessageSource = messageSource as BaseMessageSource;
+            Assert.True(expectedMessageSource.Equals(baseMessageSource));
         }
     }
 }

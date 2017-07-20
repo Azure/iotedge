@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -92,16 +93,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         public async Task ForwardsTwinPatchOperationToTheCloudProxy()
-        {
-            var edgeHub = Mock.Of<IEdgeHub>();
+        {            
             var connMgr = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IDeviceIdentity>();
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var cloudProxy = Mock.Of<ICloudProxy>();
 
-            var cloudProxy = new Mock<ICloudProxy>();
-            var listener = new DeviceListener(identity, edgeHub, connMgr, cloudProxy.Object);
-            await listener.UpdateReportedPropertiesAsync("don't care");
+            IMessage receivedMessage = null;
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.UpdateReportedPropertiesAsync(It.IsAny<IIdentity>(), It.IsAny<IMessage>()))
+                .Callback<IIdentity, IMessage>((id, m) => receivedMessage = m)
+                .Returns(Task.CompletedTask);
 
-            cloudProxy.Verify(x => x.UpdateReportedPropertiesAsync(It.IsAny<string>()), Times.Once);
+            var listener = new DeviceListener(identity, edgeHub.Object, connMgr, cloudProxy);
+            IMessage message = new Message(Encoding.UTF8.GetBytes("don't care"));
+            await listener.UpdateReportedPropertiesAsync(message);
+
+            edgeHub.VerifyAll();
+            Assert.NotNull(receivedMessage);
+            Assert.Equal(Constants.TwinChangeNotificationMessageSchema, receivedMessage.SystemProperties[SystemProperties.MessageSchema]);
+            Assert.Equal(Constants.TwinChangeNotificationMessageType, receivedMessage.SystemProperties[SystemProperties.MessageType]);
+            Assert.Equal("device1", receivedMessage.SystemProperties[SystemProperties.ConnectionDeviceId]);
+            Assert.Equal("module1", receivedMessage.SystemProperties[SystemProperties.ConnectionModuleId]);
+            Assert.True(receivedMessage.SystemProperties.ContainsKey(SystemProperties.EnqueuedTime));
         }
     }
 }

@@ -48,15 +48,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static bool IsMethodResponseAddress(string topicName) => topicName.StartsWith(Constants.MethodPrefix, StringComparison.Ordinal);
 
-        async Task SendTwinAsync(IProtocolGatewayMessage message)
+        async Task SendTwinAsync(IProtocolGatewayMessage protocolGatewayMessage)
         {
             var properties = new Dictionary<StringSegment, StringSegment>();
-            TwinAddressHelper.Operation operation;
-            StringSegment subresource;
-            if (TwinAddressHelper.TryParseOperation(message.Address, properties, out operation, out subresource))
+            if (TwinAddressHelper.TryParseOperation(protocolGatewayMessage.Address, properties, out TwinAddressHelper.Operation operation, out StringSegment subresource))
             {
-                StringSegment correlationId;
-                bool hasCorrelationId = properties.TryGetValue(RequestId, out correlationId);
+                bool hasCorrelationId = properties.TryGetValue(RequestId, out StringSegment correlationId);
 
                 switch (operation)
                 {
@@ -79,11 +76,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         break;
 
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
-                        EnsureNoSubresource(subresource);
-                        await this.deviceListener.UpdateReportedPropertiesAsync(message.Payload.ToString(System.Text.Encoding.UTF8));
+                        EnsureNoSubresource(subresource);                        
+
+                        Core.IMessage forwardMessage = new MqttMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
+                            .Build();
+                        await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage);
+
                         if (hasCorrelationId)
                         {
-                            MqttMessage mqttMessage = new MqttMessage.Builder(new byte[0])
+                            MqttMessage deviceResponseMessage = new MqttMessage.Builder(new byte[0])
                                 .SetSystemProperties(new Dictionary<string, string>()
                                 {
                                     [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
@@ -93,10 +94,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                     [SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint
                                 })
                                 .Build();
-                            IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(mqttMessage);
-                            this.messagingChannel.Handle(twinPatchMessage);
-                            Events.UpdateReportedProperties(this.deviceListener.Identity);
+                            IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(deviceResponseMessage);
+                            this.messagingChannel.Handle(twinPatchMessage);                            
                         }
+                        Events.UpdateReportedProperties(this.deviceListener.Identity);
                         break;
 
                     default:

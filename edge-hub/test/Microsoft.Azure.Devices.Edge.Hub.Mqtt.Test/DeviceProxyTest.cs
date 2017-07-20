@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 this.CoreMessage = new MqttMessage.Builder(Encoding.UTF8.GetBytes(desiredJson))
                     .SetSystemProperties(new Dictionary<string, string>()
                     {
-                        [SystemProperties.OutboundUri] = Constants.OutboundUriTwinDesiredPropertyUpdate,
+                        [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriTwinDesiredPropertyUpdate,
                         [SystemProperties.Version] = 1.ToString()
                     })
                     .Build();

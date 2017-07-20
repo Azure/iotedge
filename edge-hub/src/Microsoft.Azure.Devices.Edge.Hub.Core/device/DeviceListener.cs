@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -63,7 +64,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messagesList);
         }
 
-        public Task UpdateReportedPropertiesAsync(string reportedProperties) => this.cloudProxy.UpdateReportedPropertiesAsync(reportedProperties);
+        public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
+        {
+            reportedPropertiesMessage.SystemProperties[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o");
+            reportedPropertiesMessage.SystemProperties[SystemProperties.MessageSchema] = Constants.TwinChangeNotificationMessageSchema;
+            reportedPropertiesMessage.SystemProperties[SystemProperties.MessageType] = Constants.TwinChangeNotificationMessageType;
+
+            switch (this.Identity)
+            {
+                case IModuleIdentity moduleIdentity:
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
+                    break;
+                case IDeviceIdentity deviceIdentity:
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
+                    break;
+            }
+            return this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+        }
 
         static class Events
         {

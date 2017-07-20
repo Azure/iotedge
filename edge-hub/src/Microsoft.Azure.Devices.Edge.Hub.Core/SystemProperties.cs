@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string OutboundUri = "outBoundURI";
         public const string Version = "version";
         public const string ExpiryTimeUtc = "absolute-expiry-time";
+        public const string MessageType = "messageType";
         
         private class OnTheWireSystemPropertyNames
         {
@@ -39,6 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public const string OutputName = "$.on";
             public const string ConnectionDeviceId = "$.cdid";
             public const string ConnectionModuleId = "$.cmid";
+            public const string ContentType = "$.ct";
+            public const string ContentEncoding = "$.ce";
+            public const string MessageSchema = "$.schema";
         }
 
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
@@ -49,14 +53,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { OnTheWireSystemPropertyNames.To, To },
             { OnTheWireSystemPropertyNames.UserId, UserId },
             { OnTheWireSystemPropertyNames.Ack, Ack },
-            { OnTheWireSystemPropertyNames.OutputName, OutputName }
+            { OnTheWireSystemPropertyNames.OutputName, OutputName },
+            { OnTheWireSystemPropertyNames.ContentType, ContentType },
+            { OnTheWireSystemPropertyNames.ContentEncoding, ContentEncoding },
+            { OnTheWireSystemPropertyNames.MessageSchema, MessageSchema }
         };
 
         public static readonly Dictionary<string, string> OutgoingSystemPropertiesMap = new Dictionary<string, string>
         {
             { MessageId, OnTheWireSystemPropertyNames.MessageId },
             { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceId  },
-            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleId }
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleId },
+            { ContentType, OnTheWireSystemPropertyNames.ContentType },
+            { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncoding },
+            { MessageSchema, OnTheWireSystemPropertyNames.MessageSchema }
         };
     }
 }

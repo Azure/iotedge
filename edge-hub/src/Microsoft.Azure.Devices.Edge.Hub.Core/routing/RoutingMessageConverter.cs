@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
+    using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
@@ -43,14 +44,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(edgeMessage.Body, nameof(edgeMessage.Body));
             Preconditions.CheckNotNull(edgeMessage.Properties, nameof(edgeMessage.Properties));
             Preconditions.CheckNotNull(edgeMessage.SystemProperties, nameof(edgeMessage.SystemProperties));
-
-            IMessageSource messageSource = edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.OutputName, out string outputName)
-                && edgeMessage.SystemProperties.TryGetValue(Core.SystemProperties.ConnectionModuleId, out string moduleId)
-                    ? ModuleMessageSource.Create(moduleId, outputName) as IMessageSource
-                    : TelemetryMessageSource.Instance;
-
+            
+            IMessageSource messageSource = this.GetMessageSource(edgeMessage.SystemProperties);
             var routingMessage = new RoutingMessage(messageSource, edgeMessage.Body, edgeMessage.Properties, edgeMessage.SystemProperties);
             return routingMessage;
+        }
+
+        internal IMessageSource GetMessageSource(IDictionary<string, string> systemProperties)
+        {
+            if (systemProperties.TryGetValue(Core.SystemProperties.MessageType, out string messageType)
+                && messageType.Equals(Constants.TwinChangeNotificationMessageType, StringComparison.OrdinalIgnoreCase))
+            {
+                return TwinChangeEventMessageSource.Instance;
+            }
+            else if (systemProperties.TryGetValue(Core.SystemProperties.OutputName, out string outputName)
+                && systemProperties.TryGetValue(Core.SystemProperties.ConnectionModuleId, out string moduleId))
+            {
+                return ModuleMessageSource.Create(moduleId, outputName);
+            }
+            else
+            {
+                return TelemetryMessageSource.Instance;
+            }
         }
 
         class EdgeMessage : IMessage

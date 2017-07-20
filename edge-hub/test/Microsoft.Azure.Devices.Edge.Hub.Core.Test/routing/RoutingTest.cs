@@ -14,7 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Shared;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
@@ -176,6 +178,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(module2.HasReceivedMessage(message2));
         }
 
+        [Fact]
+        public async Task TestRoutingTwinChangeNotificationFromDevice()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /twinChangeNotifications INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+
+            IMessage message = GetReportedPropertiesMessage();
+            await device1.UpdateReportedProperties(message);
+            Assert.True(iotHub.HasReceivedTwinChangeNotification());
+            Assert.True(module1.HasReceivedTwinChangeNotification());
+        }
+
+        [Fact]
+        public async Task TestRoutingTwinChangeNotificationFromModule()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /twinChangeNotifications INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+            TestModule module2 = await TestModule.Create(edgeDeviceId, "mod2", "op2", "in2", edgeHub, connectionManager);
+
+            IMessage message = GetReportedPropertiesMessage();
+            await module2.UpdateReportedProperties(message);
+            Assert.True(iotHub.HasReceivedTwinChangeNotification());
+            Assert.True(module1.HasReceivedTwinChangeNotification());
+        }
+
         static async Task<(IEdgeHub, IConnectionManager)> SetupEdgeHub(IEnumerable<string> routes, IoTHub iotHub, string edgeDeviceId)
         {
             string iotHubName = "testHub";
@@ -191,6 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).ReturnsAsync(true);
+            cloudProxy.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.SetupGet(c => c.IsActive).Returns(true);
 
             var cloudProxyProvider = new Mock<ICloudProxyProvider>();
@@ -245,6 +290,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+
+            public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) => 
+                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage);
+
+            public bool HasReceivedTwinChangeNotification() => this.receivedMessages.Any(m =>
+                m.SystemProperties[SystemProperties.MessageType] == Core.Constants.TwinChangeNotificationMessageType);
         }
 
         class TestDevice
@@ -272,6 +323,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
                 return this.deviceListener.ProcessMessageAsync(message);
             }
+
+            public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) => 
+                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage);
         }
 
         class IoTHub
@@ -280,6 +334,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
+
+            public bool HasReceivedTwinChangeNotification() => this.ReceivedMessages.Any(m =>
+                m.SystemProperties[SystemProperties.MessageType] == Core.Constants.TwinChangeNotificationMessageType);
         }
 
         static IMessage GetMessage()
@@ -296,6 +353,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.MessageId, Guid.NewGuid().ToString() }
             };
             return new Message(messageBody, properties, systemProperties);
+        }
+
+        static IMessage GetReportedPropertiesMessage()
+        {
+            var twinCollection = new TwinCollection();
+            twinCollection["Status"] = "running";
+            twinCollection["ElapsedTime"] = "0.5";
+            byte[] messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(twinCollection));            
+            return new Message(messageBody);
         }
 
         static IDeviceIdentity SetupDeviceIdentity(string deviceId) => new DeviceIdentity(

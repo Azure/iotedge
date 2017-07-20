@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -98,9 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task UpdateReportedPropertiesAsync(string reportedProperties)
+        public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
         {
-            var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedProperties);
+            string reportedPropertiesString = Encoding.UTF8.GetString(reportedPropertiesMessage.Body);
+            var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
             await this.deviceClient.UpdateReportedPropertiesAsync(reported);
             Events.UpdateReportedProperties(this);
         }

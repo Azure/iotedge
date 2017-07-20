@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);
 
-        Task UpdateReportedPropertiesAsync(string reportedProperties);
+        Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage);
 
         Task<IMessage> GetTwinAsync();
 
