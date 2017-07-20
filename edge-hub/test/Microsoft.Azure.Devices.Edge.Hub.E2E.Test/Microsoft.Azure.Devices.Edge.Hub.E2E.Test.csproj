@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
+    <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test\Microsoft.Azure.Devices.Edge.Util.Test.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test.csproj" />

@@ -42,7 +42,7 @@ echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
 RES=0
 while read line; do
   echo "Running tests for project - $line"
-  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER --logger "trx;LogFileName=result.trx" -o $OUTPUT_FOLDER --no-build $line
+  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER --logger "trx;LogFileName=result.trx" -o "$OUTPUT_FOLDER" --no-build $line
   if [ $? -gt 0 ]
   then
     RES=1

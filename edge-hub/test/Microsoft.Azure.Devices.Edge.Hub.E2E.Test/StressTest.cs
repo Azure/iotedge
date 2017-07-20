@@ -8,114 +8,170 @@
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
 
     [Bvt]
-    public class StressTest : IClassFixture<ProtocolHeadFixture>
+    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
+    public class StressTest : IClassFixture<MqttHeadFixture>
     {
-        readonly IList<string> routes = new List<string>() {
-            "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
-            "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
-            "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
-            "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
-            "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
-            "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
-            "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
-            "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
-            "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
-            "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
-        };
-
         string edgeDeviceConnectionString;
 
-        public StressTest(ProtocolHeadFixture protocolHeadFixture)
-        {
-            protocolHeadFixture.StartMqttHead(routes).Wait();
-        }
-
-        [Fact]
+        [Fact, TestPriority(1)]
         public async Task SingleSenderSingleReceiverTest()
         {
-            int messagesCount = 10000;
-            Module sender = await this.GetModule("sender1", false);
-            Module receiver = await this.GetModule("receiver1", true);
-            await receiver.SetupReceiveMessageHandler();
+            int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_SingleSender"], out int messagesCount);
+            Module sender = null;
+            Module receiver = null;
+            try
+            {
+                sender = await this.GetModule("sender1", false);
+                receiver = await this.GetModule("receiver1", true);
+                await receiver.SetupReceiveMessageHandler();
 
-            var task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
+                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
 
-            int sentMessagesCount = await task1;
-            Assert.Equal(messagesCount, sentMessagesCount);
+                int sentMessagesCount = await task1;
+                Assert.Equal(messagesCount, sentMessagesCount);
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            var receivedMessages = receiver.GetReceivedMessageIndices();
-            Assert.Equal(messagesCount, receivedMessages.Count);
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+
+                Assert.Equal(messagesCount, receivedMessages.Count);
+            }
+            finally
+            {
+                if (sender != null)
+                {
+                    await sender.Disconnect();
+                }
+                if (receiver != null)
+                {
+                    await receiver.Disconnect();
+                }
+            }
         }
 
-        [Fact]
+        [Fact, TestPriority(2)]
         public async Task MultipleSendersSingleReceiverTest()
         {
-            int messagesCount = 5000;
-            var sender1 = await this.GetModule("senderA", false);
-            var sender2 = await this.GetModule("senderB", false);
+            int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSenders"], out int messagesCount);
+            Module sender1 = null;
+            Module sender2 = null;
+            Module receiver = null;
 
-            var receiver = await this.GetModule("receiverA", true);
+            try
+            {
+                sender1 = await this.GetModule("senderA", false);
+                sender2 = await this.GetModule("senderB", false);
+                receiver = await this.GetModule("receiverA", true);
 
-            var task1 = sender1.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(8));
-            var task2 = sender2.SendMessagesByCountAsync("output1", messagesCount, messagesCount, TimeSpan.FromMinutes(8));
+                Task<int> task1 = sender1.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(8));
+                Task<int> task2 = sender2.SendMessagesByCountAsync("output1", messagesCount, messagesCount, TimeSpan.FromMinutes(8));
 
-            int[] results = await Task.WhenAll(task1, task2);
-            int sentMessagesCount = results.Sum();
-            Assert.Equal(messagesCount * 2, sentMessagesCount);
+                int[] results = await Task.WhenAll(task1, task2);
+                int sentMessagesCount = results.Sum();
+                Assert.Equal(messagesCount * 2, sentMessagesCount);
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            var receivedMessages = receiver.GetReceivedMessageIndices();
-            Assert.Equal(sentMessagesCount, receivedMessages.Count);
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+
+                Assert.Equal(sentMessagesCount, receivedMessages.Count);
+            }
+            finally
+            {
+                if (sender1 != null)
+                {
+                    await sender1.Disconnect();
+                }
+                if (sender2 != null)
+                {
+                    await sender2.Disconnect();
+                }
+                if (receiver != null)
+                {
+                    await receiver.Disconnect();
+                }
+            }
         }
 
-        [Fact]
+        [Fact, TestPriority(3)]
         public async Task MultipleSendersMultipleReceivers_Count_Test()
         {
-            int messagesCount = 5000;
+            int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSendersMultipleReceivers"], out int messagesCount);
+            List<Module> senders = null;
+            List<Module> receivers = null;
 
-            List<Module> senders = await this.GetModules("sender", 10, false);
-            List<Module> receivers = await this.GetModules("receiver", 10, true);
-            
-            TimeSpan timeout = TimeSpan.FromMinutes(2);
-            IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesByCountAsync("output1", 0, messagesCount, timeout));
+            try
+            {
+                senders = await this.GetModules("sender", 10, false);
+                receivers = await this.GetModules("receiver", 10, true);
 
-            int[] results = await Task.WhenAll(tasks);
-            int sentMessagesCount = results.Sum();
-            Assert.Equal(messagesCount * 10, sentMessagesCount);
+                TimeSpan timeout = TimeSpan.FromMinutes(2);
+                IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesByCountAsync("output1", 0, messagesCount, timeout));
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            int receivedMessagesCount = 0;
-            receivers.ForEach(r => receivedMessagesCount += r.GetReceivedMessageIndices().Count);
-            Assert.Equal(sentMessagesCount, receivedMessagesCount);
+                int[] results = await Task.WhenAll(tasks);
+                int sentMessagesCount = results.Sum();
+                Assert.Equal(messagesCount * 10, sentMessagesCount);
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                int receivedMessagesCount = 0;
+                receivers.ForEach(r => receivedMessagesCount += r.GetReceivedMessageIndices().Count);
+
+                Assert.Equal(sentMessagesCount, receivedMessagesCount);
+            }
+            finally
+            {
+                if (senders != null)
+                {
+                    await Task.WhenAll(senders.Select(s => s.Disconnect()));
+                }
+                if (receivers != null)
+                {
+                    await Task.WhenAll(receivers.Select(r => r.Disconnect()));
+                }
+            }
         }
 
-        [Fact]
+        [Fact, TestPriority(4)]
         public async Task MultipleSendersMultipleReceivers_Duration_Test()
         {
-            List<Module> senders = await this.GetModules("sender", 10, false);
-            List<Module> receivers = await this.GetModules("receiver", 10, true);
+            List<Module> senders = null;
+            List<Module> receivers = null;
 
-            var sendDuration = TimeSpan.FromMinutes(2);
-            IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesForDurationAsync("output1", sendDuration));
+            try
+            {
+                senders = await this.GetModules("sender", 10, false);
+                receivers = await this.GetModules("receiver", 10, true);
 
-            int[] results = await Task.WhenAll(tasks);
-            int sentMessagesCount = results.Sum();
+                TimeSpan sendDuration = TimeSpan.FromMinutes(2);
+                IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesForDurationAsync("output1", sendDuration));
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            int receivedMessagesCount = 0;
-            receivers.ForEach(r => receivedMessagesCount += r.GetReceivedMessageIndices().Count);
-            Assert.Equal(sentMessagesCount, receivedMessagesCount);
+                int[] results = await Task.WhenAll(tasks);
+                int sentMessagesCount = results.Sum();
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                int receivedMessagesCount = 0;
+                receivers.ForEach(r => receivedMessagesCount += r.GetReceivedMessageIndices().Count);
+
+                Assert.Equal(sentMessagesCount, receivedMessagesCount);
+            }
+            finally
+            {
+                if (senders != null)
+                {
+                    await Task.WhenAll(senders.Select(s => s.Disconnect()));
+                }
+                if (receivers != null)
+                {
+                    await Task.WhenAll(receivers.Select(r => r.Disconnect()));
+                }
+            }
         }
 
-        private async Task<List<Module>> GetModules(string moduleNamePrefix, int count, bool isReceiver)
+        async Task<List<Module>> GetModules(string moduleNamePrefix, int count, bool isReceiver)
         {
             var modules = new List<Module>();
             for (int i = 1; i <= count; i++)
@@ -127,10 +183,10 @@
             return modules;
         }
 
-        private async Task<Module> GetModule(string moduleId, bool isReceiver)
+        async Task<Module> GetModule(string moduleId, bool isReceiver)
         {
             string connStr = await this.GetModuleConnectionString(moduleId);
-            var module = await Module.CreateAndConnect(connStr);
+            Module module = await Module.CreateAndConnect(connStr);
             if (isReceiver)
             {
                 await module.SetupReceiveMessageHandler();
@@ -138,13 +194,14 @@
             return module;
         }
 
-        private async Task<string> GetModuleConnectionString(string moduleId)
+        async Task<string> GetModuleConnectionString(string moduleId)
         {
+            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
             string edgeDeviceConnectionString = await this.GetEdgeDeviceConnectionString();
-            return $"{edgeDeviceConnectionString};GatewayHostName=127.0.0.1;ModuleId={moduleId}";
+            return $"{edgeDeviceConnectionString};GatewayHostName={gatewayHostname};ModuleId={moduleId}";
         }
 
-        private async Task<string> GetEdgeDeviceConnectionString()
+        async Task<string> GetEdgeDeviceConnectionString()
         {
             if (this.edgeDeviceConnectionString == null)
             {
@@ -155,13 +212,13 @@
 
         class Module
         {
-            DeviceClient moduleClient;
+            readonly DeviceClient deviceClient;
             readonly Random rand = new Random();
             ISet<int> received;
 
-            Module(DeviceClient moduleClient)
+            Module(DeviceClient deviceClient)
             {
-                this.moduleClient = moduleClient;
+                this.deviceClient = deviceClient;
             }
 
             public static async Task<Module> CreateAndConnect(string connectionString)
@@ -171,7 +228,7 @@
                     new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) { RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true }
                 };
 
-                var moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+                DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
                 await moduleClient.OpenAsync();
                 return new Module(moduleClient);
             }
@@ -179,7 +236,7 @@
             public Task SetupReceiveMessageHandler()
             {
                 this.received = new HashSet<int>();
-                return this.moduleClient.SetEventDefaultHandlerAsync(this.MessageHandler, null);
+                return this.deviceClient.SetEventDefaultHandlerAsync(this.MessageHandler, null);
             }
 
             Task MessageHandler(Message message, object userContext)
@@ -203,31 +260,33 @@
 
             public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration);
 
-            private async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration)
+            async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration)
             {
-                Stopwatch s = new Stopwatch();
+                var s = new Stopwatch();
                 s.Start();
                 int i = startIndex;
                 for (; i < startIndex + count && s.Elapsed < duration; i++)
                 {
-                    await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+                    await this.deviceClient.SendEventAsync(output, this.GetMessage(i.ToString()));
                 }
 
                 s.Stop();
                 return i - startIndex;
             }
 
-            private Message GetMessage(string id)
+            Message GetMessage(string id)
             {
                 var temp = new Temperature(-10 + rand.Next(40), rand.Next(0, 50) > 40 ? "Invalid" : "F");
-                var payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(temp));
+                byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(temp));
                 var message = new Message(payloadBytes);
                 message.Properties.Add("testId", id);
                 message.Properties.Add("Model", "Temperature");
                 return message;
             }
 
-            private class Temperature
+            public Task Disconnect() => this.deviceClient.CloseAsync();
+
+            class Temperature
             {
                 public Temperature(double value, string unit)
                 {

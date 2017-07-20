@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ###############################################################################
 # This script pulls Edge service docker image from the repository, stops the 
@@ -21,6 +21,7 @@ usage()
     echo " --iothub-hostname    IoTHub hostname"
     echo " --device-id          Edge device ID"
     echo " --access-key         Shared access key used to authenticate the device with IoTHub"
+    echo " --routes             Edge routes separated by , (comma)"
     exit 1;
 }
 
@@ -30,13 +31,30 @@ print_help_and_exit()
     exit 1
 }
 
+process_routes() {
+    if [ ! -z "$ROUTES" ]; then
+        echo "Process routes"
+        OIFS=$IFS
+        IFS=','
+        routes2=$ROUTES
+        i=0
+        docker_routes=()
+        for element in $routes2
+        do
+            docker_routes+=(-e routes__$i=$element)
+            i=$((i + 1))
+        done
+        IFS=$OIFS                              
+    fi    
+}
+
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
             DOCKER_REGISTRY="$arg"
@@ -59,6 +77,10 @@ process_args()
         elif [ $save_next_arg -eq 7 ]; then
             SHARED_ACCESS_KEY="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 8 ]; then
+            ROUTES="$arg"
+            process_routes
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -69,6 +91,7 @@ process_args()
                 "--iothub-hostname" ) save_next_arg=5;;
                 "--device-id" ) save_next_arg=6;;
                 "--access-key" ) save_next_arg=7;;
+                "--routes" ) save_next_arg=8;;
                 * ) usage;;
             esac
         fi
@@ -117,7 +140,7 @@ process_args()
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-process_args $@
+process_args "$@"
 
 image_name="edge-service"
 mma_connection="HostName=$IOTHUB_HOSTNAME;DeviceId=$DEVICEID;SharedAccessKey=$SHARED_ACCESS_KEY"
@@ -139,7 +162,8 @@ sudo docker stop $image_name
 
 sudo docker rm $image_name
 
-sudo docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name $image_name -p 8883:8883 -p 443:443 -e DockerUri=unix:///var/run/docker.sock -e MMAConnectionString=$mma_connection -e IotHubHostName=$IOTHUB_HOSTNAME -e EdgeDeviceId=$DEVICEID edgebuilds.azurecr.io/azedge-edge-service-x64:$DOCKER_IMAGEVERSION
+sudo docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name $image_name -p 8883:8883 -p 443:443 -e DockerUri=unix:///var/run/docker.sock -e MMAConnectionString=$mma_connection -e IotHubHostName=$IOTHUB_HOSTNAME -e EdgeDeviceId=$DEVICEID "${docker_routes[@]}" edgebuilds.azurecr.io/azedge-edge-service-x64:$DOCKER_IMAGEVERSION 
+
 if [ $? -ne 0 ]; then
     echo "Docker run Failed!"
     exit 1

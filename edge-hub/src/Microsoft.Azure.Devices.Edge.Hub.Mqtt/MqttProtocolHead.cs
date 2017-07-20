@@ -91,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void Dispose()
         {
+            this.CloseAsync(CancellationToken.None).Wait();
         }
 
         ServerBootstrap SetupServerBoostrap()

@@ -4,6 +4,11 @@
 REM This script finds and builds all .NET Core solutions in the repo, and
 REM publishes .NET Core apps to target/publish/.
 
+REM Process script arguments
+IF NOT [%1] == [] (
+    SET "PUBLISH_TESTS=%~1"
+)
+
 if not defined BUILD_REPOSITORY_LOCALPATH (
     set BUILD_REPOSITORY_LOCALPATH=%~dp0..\..
 )
@@ -26,6 +31,9 @@ set ANTLR_PATTERN=*.g4
 set DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 set PUBLISH_FOLDER=%BUILD_BINARIESDIRECTORY%\publish
 set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
+set RELEASE_TESTS_FOLDER=%BUILD_BINARIESDIRECTORY%\release-tests
+set SRC_SCRIPTS_DIR=%BUILD_REPOSITORY_LOCALPATH%\scripts
+set TEST_CSPROJ_PATTERN=Microsoft.Azure*Test.csproj
 
 if not exist "%BUILD_REPOSITORY_LOCALPATH%" (
     echo Error: %BUILD_REPOSITORY_LOCALPATH% not found
@@ -93,3 +101,23 @@ for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_
 
 echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker
 xcopy /si %SRC_DOCKER_DIR% %PUBLISH_FOLDER%\docker
+
+echo Publish tests - %PUBLISH_TESTS%
+if "!PUBLISH_TESTS!" == "--publish-tests"  (
+    echo.
+    echo Publishing .NET Core Tests
+    echo.
+
+    for /r %BUILD_REPOSITORY_LOCALPATH% %%f in (%TEST_CSPROJ_PATTERN%) do (
+        echo Publishing - %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!
+        for %%i in ("%%f") do set PROJ_NAME=%%~ni
+        "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %RELEASE_TESTS_FOLDER%\!PROJ_NAME! %%f
+        if !ERRORLEVEL! neq 0 exit /b 1
+
+        echo "Copying %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!"
+        xcopy %%f "%RELEASE_TESTS_FOLDER%\!PROJ_NAME!"
+    )
+
+    echo Copying %SRC_SCRIPTS_DIR% to %RELEASE_TESTS_FOLDER%
+    xcopy /si %SRC_SCRIPTS_DIR% %RELEASE_TESTS_FOLDER%\scripts
+)

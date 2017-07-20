@@ -2,46 +2,44 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
+    using System;
+    using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
-    using System;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
     using Xunit;
 
     [Bvt]
-    public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
+    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
+    public class EdgeToDeviceMethodTest : IClassFixture<MockedMqttHeadFixture>
     {
         readonly IConnectionManager connectionManager;
         readonly Mock<IDeviceListener> deviceListener;
-        // use it to run module test sequentially becuase they all use the same deviceId 
-        private static AutoResetEvent resetEvent = new AutoResetEvent(true);
 
         const string ModuleId = "device1/module1";
         const string Device2Id = "device2";
         const string Device3Id = "device3";
         const string Device4Id = "device4";
-        const string MethodName = "WriteToConsole";        
+        const string MethodName = "WriteToConsole";
         const string DataAsJson = "{\"MethodPayload\": \"Payload\" }";
         const int MethodNotFoundStatus = 501;
         const int MethodOkStatus = 200;
         static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(60);
 
-        public EdgeToDeviceMethodTest(ProtocolHeadFixture fixture)
+        public EdgeToDeviceMethodTest(MockedMqttHeadFixture fixture)
         {
-            (this.connectionManager, this.deviceListener) = fixture.StartMqttHeadWithMocks().Result;
+            this.connectionManager = fixture.ConnectionManager;
+            this.deviceListener = fixture.DeviceListener;
         }
 
-        [Fact]
+        [Fact, TestPriority(1)]
         public async Task Receive_DirectMethodCall_Module_WhenRegistered_ShouldCallHandler()
         {
-            resetEvent.WaitOne();
-
             DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
             callback.Setup(f => f(It.IsAny<MethodRequest>(), It.IsAny<object>()))
@@ -59,14 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodOkStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
-            resetEvent.Set();
         }
 
-        [Fact]
+        [Fact, TestPriority(2)]
         public async Task Receive_DirectMethodCall_Module_WhenOtherMethodRegistered_ShouldNotCallHandler()
         {
-            resetEvent.WaitOne();
-
             DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
             await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
@@ -82,14 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.Is<DirectMethodResponse>(r => r.Status == MethodNotFoundStatus && r.CorrelationId == methodRequest.CorrelationId)), Times.Once());
 
             await client.CloseAsync();
-            resetEvent.Set();
         }
 
-        [Fact]
+        [Fact, TestPriority(3)]
         public async Task Receive_DirectMethodCall_Module_WhenNoMethodRegistered_ShouldNotCallHandler()
         {
-            resetEvent.WaitOne();
-
             DeviceClient client = await this.ConnectToEdge("IotEdgeModuleConnStr1");
             var callback = new Mock<MethodCallback>();
 
@@ -104,10 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.deviceListener.Verify(p => p.ProcessMethodResponseAsync(It.IsAny<DirectMethodResponse>()), Times.Never);
 
             await client.CloseAsync();
-            resetEvent.Set();
         }
 
-        [Fact]
+        [Fact, TestPriority(4)]
         public async Task Receive_DirectMethodCall_Device_WhenRegistered_ShouldCallHandler()
         {
             DeviceClient client = await this.ConnectToEdge("IotEdgeDevice2ConnStr1");
@@ -130,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.CloseAsync();
         }
 
-        [Fact]
+        [Fact, TestPriority(5)]
         public async Task Receive_DirectMethodCall_Device_WhenOtherMethodRegistered_ShouldNotCallHandler()
         {
             DeviceClient client = await this.ConnectToEdge("IotEdgeDevice3ConnStr1");
@@ -150,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.CloseAsync();
         }
 
-        [Fact]
+        [Fact, TestPriority(6)]
         public async Task Receive_DirectMethodCall_Device_WhenNoMethodRegistered_ShouldNotCallHandler()
         {
             DeviceClient client = await this.ConnectToEdge("IotEdgeDevice4ConnStr1");

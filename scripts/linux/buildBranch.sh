@@ -12,10 +12,16 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/t
 
 SLN_PATTERN='Microsoft.Azure.*.sln'
 CSPROJ_PATTERN='*.csproj'
+TEST_CSPROJ_PATTERN='*Test.csproj'
 ANTLR_PATTERN='*.g4'
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
+RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
+SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
+
+# Process script arguments
+PUBLISH_TESTS=${1:-""}
 
 if [ ! -d "${ROOT_FOLDER}" ]; then
     echo "Folder $ROOT_FOLDER does not exist" 1>&2
@@ -88,5 +94,27 @@ done < <(find $ROOT_FOLDER -type f -name $CSPROJ_PATTERN -exec grep -l "<OutputT
 echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
 rm -fr $PUBLISH_FOLDER/docker
 cp -r $SRC_DOCKER_DIR $PUBLISH_FOLDER
+
+if [ "$PUBLISH_TESTS" == "--publish-tests" ]; then
+
+    echo "Publishing tests"
+    while read proj; do
+        echo "Publishing Tests from solution - $proj"
+        PROJ_FILE=$(basename "$proj")
+        PROJ_NAME="${PROJ_FILE%.*}"
+        $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -c $CONFIGURATION -o $RELEASE_TESTS_FOLDER/target $proj
+        if [ $? -gt 0 ]; then
+            RES=1
+        fi
+
+        echo "Copying $proj to $RELEASE_TESTS_FOLDER/$PROJ_NAME"
+        mkdir -p $RELEASE_TESTS_FOLDER/$PROJ_NAME
+        cp $proj "$RELEASE_TESTS_FOLDER/$PROJ_NAME"
+    done < <(find $ROOT_FOLDER -type f -name $TEST_CSPROJ_PATTERN)
+
+    echo "Copying $SRC_SCRIPTS_DIR to $RELEASE_TESTS_FOLDER/scripts"
+    rm -fr $RELEASE_TESTS_FOLDER/scripts
+    cp -r $SRC_SCRIPTS_DIR $RELEASE_TESTS_FOLDER
+fi
 
 exit $RES

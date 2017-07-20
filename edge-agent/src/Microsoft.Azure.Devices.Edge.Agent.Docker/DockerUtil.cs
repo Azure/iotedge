@@ -29,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 auth => TryParseHostnameFromImage(image, out string hostname) ?
                     string.Compare(hostname, auth.ServerAddress, StringComparison.OrdinalIgnoreCase) == 0 :
                     false);
-
         }
     }
 }

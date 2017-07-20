@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
@@ -17,16 +18,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
     using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
-    using Microsoft.Azure.Devices.ProtocolGateway;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
-    using Microsoft.Extensions.Configuration;
 
     public class ProtocolHeadFixture : IDisposable
     {
@@ -37,18 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             "devices/{deviceId}/messages/events/{params}/",
             "devices/{deviceId}/messages/events/",
-            "devices/{deviceId}/{moduleId}/messages/events/{params}/",
-            "devices/{deviceId}/{moduleId}/messages/events/",
+            "devices/{deviceId}/modules/{moduleId}/messages/events/{params}/",
+            "devices/{deviceId}/modules/{moduleId}/messages/events/",
             "$iothub/methods/res/{statusCode}/?$rid={correlationId}",
             "$iothub/methods/res/{statusCode}/?$rid={correlationId}&foo={bar}"
         };
 
         readonly IDictionary<string, string> outboundTemplates = new Dictionary<string, string>()
         {
-            { "C2D", "devices/{deviceId}/messages/devicebound" },
-            { "TwinEndpoint", "$iothub/twin/res/{statusCode}/?$rid={correlationId}" },
-            { "TwinDesiredPropertyUpdate", "$iothub/twin/PATCH/properties/desired/?$version={version}" },
-            { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/endpoints/{endpointId}" }
+            { "C2D", "devices/{deviceId}/messages/devicebound"},
+            { "TwinEndpoint", "$iothub/twin/res/{statusCode}/?$rid={correlationId}"},
+            { "TwinDesiredPropertyUpdate", "$iothub/twin/PATCH/properties/desired/?$version={version}"},
+            { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
         readonly IList<string> defaultRoutes = new List<string>() { "FROM /messages/events INTO $upstream" };
@@ -56,16 +57,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
-            if(this.protocolHead != null)
+            if (this.protocolHead != null)
             {
                 this.protocolHead.Dispose();
             }
         }
 
-        public Task StartMqttHead(IList<string> routes = null) => this.StartMqttHead(routes, null);        
-
         public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IList<string> routes = null)
-        {            
+        {
             var deviceListener = new Mock<IDeviceListener>();
             IConnectionManager connectionManager = null;
 

@@ -36,9 +36,23 @@ Param(
     [Parameter(Mandatory=$true)]
     [String]$DockerAddress,
 
+     # Edge Routes
+    [Parameter(Mandatory=$false)]
+    [String]$Routes,
+
     # Do not detach after the service starts
     [Switch]$Foreground
 )
+
+$docker_routes=""
+if ($Routes)
+{
+    $array = $Routes.Split(",")
+    for ($i=0; $i -lt $array.length; $i++) {
+        $docker_routes += " -e routes__$i=" + $array[$i]
+    }
+    Write-Host "Docker routes $docker_routes"
+}
 
 if (-not $ImageVersion)
 {
@@ -80,7 +94,8 @@ if (-not $Foreground)
 $run_command += "--name $image_name -p 8883:8883 -p 443:443 " + 
     "-e DockerUri=http://${DockerAddress}:2375 " + 
     "-e MMAConnectionString='$mma_connection' -e IotHubHostName=$IoTHubHostname " + 
-    "-e EdgeDeviceId=$DeviceId $tag"
+    "-e EdgeDeviceId=$DeviceId" +
+    "$docker_routes $tag"
 
 Invoke-Expression $run_command
 if ($LastExitCode)
