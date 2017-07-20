@@ -41,14 +41,4 @@ $rootFolder = $env:BUILD_REPOSITORY_LOCALPATH
 Write-Host "Cleaning up."
 Remove-Item $packageZip
 
-Write-Host "Installing Docker"
-# Needs elevation
-$installDockerScriptPath = Join-Path -Path (Split-Path $MyInvocation.MyCommand.Definition -Parent) -ChildPath "installDocker.ps1"
-$Process = Start-Process "$PSHome\powershell.exe" -Wait -PassThru -Verb Runas `
-    -ArgumentList ('-command "' + $installDockerScriptPath + '"')
-if ((-not $Process) -or ($Process.ExitCode))
-{
-    throw "Failed docker installation with $($Process.ExitCode)"
-}
-
 Write-Host "Done!"
