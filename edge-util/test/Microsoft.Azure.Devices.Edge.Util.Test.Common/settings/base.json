@@ -16,5 +16,5 @@
   "StressTest_MessagesCount_SingleSender": "10000",
   "StressTest_MessagesCount_MultipleSenders": "5000",
   "StressTest_MessagesCount_MultipleSendersMultipleReceivers": "5000",
-  "StressTest_StartEdge":  true 
+  "Tests_StartEdgeHubService": true
 }

@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public MqttHeadFixture()
         {
-            bool.TryParse(ConfigHelper.TestConfig["StressTest_StartEdge"], out bool shouldStartEdge);
+            bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
             if (shouldStartEdge)
             {
                 this.StartMqttHead(this.routes, null).Wait();
