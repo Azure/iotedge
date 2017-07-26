@@ -60,7 +60,7 @@ switch ($TargetArch)
 Function docker_login()
 {
     #echo Logging in to Docker registry
-    docker login $Registry -u $Username -p $Password
+    $Password | docker login $Registry -u $Username --password-stdin
     if ($LastExitCode)
     {
         Throw "Docker Login Failed With Exit Code $LastExitCode"
