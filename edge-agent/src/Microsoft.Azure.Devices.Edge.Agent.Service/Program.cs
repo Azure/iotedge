@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Net.NetworkInformation;
@@ -63,11 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
             string configSourceConfig = configuration.GetValue<string>("ConfigSource");
             string dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
+            Dictionary<string, string> dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
             string backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();
-            loggerBuilder.RegisterModule(new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver))));
+            loggerBuilder.RegisterModule(new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)), 
+                Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))));
             var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
 
@@ -80,10 +83,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, connectionString, backupConfigFilePath, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, connectionString, backupConfigFilePath, configuration));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, "config.json", configuration));
+                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", configuration));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");

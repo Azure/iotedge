@@ -55,7 +55,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 ModuleSet moduleSet = ModuleSet.Create(dockerModule);
 
                 // Start up the agent and run a "reconcile".
-                var loggingConfig = new DockerLoggingConfig("json-file");
+                var dockerLoggingOptions = new Dictionary<string,string>
+                {
+                    {"max-size", "1m"},
+                    {"max-file", "1" }
+                };
+                var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
 
                 IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                 {

@@ -2,6 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
+    using System.Collections;
+    using System.Collections.Generic;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -12,10 +14,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     public class LoggingModule : Module
     {
         readonly string dockerLoggingDriver;
+        readonly IDictionary<string, string> driverOptions;
 
-        public LoggingModule(string dockerLoggingDriver)
+        public LoggingModule(string dockerLoggingDriver, IDictionary<string,string> loggingDriverOptions)
         {
             this.dockerLoggingDriver = Preconditions.CheckNotNull(dockerLoggingDriver, nameof(dockerLoggingDriver));
+            this.driverOptions = Preconditions.CheckNotNull(loggingDriverOptions, nameof(loggingDriverOptions));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -33,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // DockerLoggingConfig
-            builder.Register(c => new DockerLoggingConfig(this.dockerLoggingDriver))
+            builder.Register(c => new DockerLoggingConfig(this.dockerLoggingDriver, this.driverOptions))
                 .As<DockerLoggingConfig>()
                 .SingleInstance();
 

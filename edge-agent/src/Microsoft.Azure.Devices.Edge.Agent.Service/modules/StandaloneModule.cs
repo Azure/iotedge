@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
+    using System.Collections.Generic;
     using Autofac;
     using Autofac.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -19,13 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, string configFilename, IConfiguration configuration)
+        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, IDictionary<string, string> dockerLoggingOptions, string configFilename, IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
             this.configSource = new FileConfigSourceModule(
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
                 Preconditions.CheckNotNull(configuration, nameof(configuration)));
-            this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)));
+            this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)), Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions)));
         }
 
         protected override void Load(ContainerBuilder builder)

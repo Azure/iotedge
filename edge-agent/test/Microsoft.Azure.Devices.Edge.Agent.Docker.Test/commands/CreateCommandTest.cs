@@ -43,8 +43,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     // ensure image has been pulled
                     await Client.PullImageAsync(Image, Tag, cts.Token);
-
-                    var loggingConfig = new DockerLoggingConfig("json-file");
+                    var dockerLoggingOptions = new Dictionary<string, string>
+                    {
+                        {"max-size", "1m"},
+                        {"max-file", "1" }
+                    };
+                    var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, Tag,
                         new[] { new Binding("80", "8080", PortBindingType.Tcp) },
                         new Dictionary<string, string>()
