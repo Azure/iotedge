@@ -52,15 +52,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         internal IMessageSource GetMessageSource(IDictionary<string, string> systemProperties)
         {
-            if (systemProperties.TryGetValue(Core.SystemProperties.MessageType, out string messageType)
+            if (systemProperties.TryGetValue(SystemProperties.MessageType, out string messageType)
                 && messageType.Equals(Constants.TwinChangeNotificationMessageType, StringComparison.OrdinalIgnoreCase))
             {
                 return TwinChangeEventMessageSource.Instance;
             }
-            else if (systemProperties.TryGetValue(Core.SystemProperties.OutputName, out string outputName)
-                && systemProperties.TryGetValue(Core.SystemProperties.ConnectionModuleId, out string moduleId))
+            else if (systemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId))
             {
-                return ModuleMessageSource.Create(moduleId, outputName);
+                return systemProperties.TryGetValue(SystemProperties.OutputName, out string outputName)
+                    ? ModuleMessageSource.Create(moduleId, outputName)
+                    : ModuleMessageSource.Create(moduleId);
             }
             else
             {

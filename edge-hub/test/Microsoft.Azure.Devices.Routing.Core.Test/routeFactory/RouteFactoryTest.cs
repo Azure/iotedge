@@ -46,8 +46,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @"FROM /messages/events INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
-                CustomMessageSource.Create("/messages/events"),
+                @"FROM /messages INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages"),
                 "true",
                 "brokeredEndpoint",
                 "/modules/alertLogic/inputs/in1"
@@ -82,8 +82,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @"  FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
-                CustomMessageSource.Create("/messages/events"),
+                @"  FROM /messages WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages"),
                 @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "brokeredEndpoint",
                 "/modules/alertLogic/inputs/in1"
@@ -91,8 +91,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @" SELECT * FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
-                CustomMessageSource.Create("/messages/events"),
+                @" SELECT * FROM /messages WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in1"")",
+                CustomMessageSource.Create("/messages"),
                 @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "brokeredEndpoint",
                 "/modules/alertLogic/inputs/in1"
@@ -131,8 +131,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @"FROM /messages/events INTO $upstream",
-                CustomMessageSource.Create("/messages/events"),
+                @"FROM /messages INTO $upstream",
+                CustomMessageSource.Create("/messages"),
                 "true",
                 "$upstream"
             });
@@ -163,16 +163,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
 
             testData.Add(new object[]
             {
-                @"  FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
-                CustomMessageSource.Create("/messages/events"),
+                @"  FROM /messages WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
+                CustomMessageSource.Create("/messages"),
                 @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "$upstream"
             });
 
             testData.Add(new object[]
             {
-                @" SELECT * FROM /messages/events WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
-                CustomMessageSource.Create("/messages/events"),
+                @" SELECT * FROM /messages WHERE    messageType = ""alert"" AND humidity = 'high' AND temp >= 200 INTO $upstream",
+                CustomMessageSource.Create("/messages"),
                 @"messageType = ""alert"" AND humidity = 'high' AND temp >= 200",
                 "$upstream"
             });

@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 {
                     [SystemProperties.ConnectionModuleId] = "module1",
                 },
-                TelemetryMessageSource.Instance});
+                ModuleMessageSource.Create("module1")});
 
             theoryData.Add(new object[] {
                 new Dictionary<string, string>(),

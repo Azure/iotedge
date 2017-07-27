@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             
             Assert.False(TelemetryMessageSource.Instance.Match(TwinChangeEventMessageSource.Instance));
             
-            Assert.False(TelemetryMessageSource.Instance.Match(ModuleMessageSource));          
+            Assert.True(TelemetryMessageSource.Instance.Match(ModuleMessageSource));          
         }        
 
         [Fact]
@@ -61,8 +61,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [InlineData("/*")]
         [InlineData("/messages")]
         [InlineData("/messages/*")]
-        [InlineData("/messages/events")]
-        [InlineData("/messages/events/")]
+        [InlineData("/messages/")]
         public void TestTelemetryMessageSourcePatternMatch(string source)
         {
             CustomMessageSource customMessageSource = CustomMessageSource.Create(source);

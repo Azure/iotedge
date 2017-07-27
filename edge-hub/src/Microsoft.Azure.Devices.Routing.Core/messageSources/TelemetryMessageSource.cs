@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
     public class TelemetryMessageSource : BaseMessageSource
     {
         TelemetryMessageSource()
-            : base("/messages/events")
+            : base("/messages")
         {
         }
 

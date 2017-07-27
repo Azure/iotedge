@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var routes = new List<string>
             {
-                "FROM /messages/events INTO $upstream"
+                "FROM /messages INTO $upstream"
             };
 
             string edgeDeviceId = "edge";
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var routes = new List<string>
             {
-                @"FROM /messages/events INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")"
+                @"FROM /messages INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")"
             };
 
             string edgeDeviceId = "edge";
@@ -74,7 +74,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var routes = new List<string>
             {
-                @"FROM /messages/events INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/* WHERE $connectionDeviceId = 'device1' INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/modules/ml WHERE $connectionModuleId = 'ml' INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
+                @"FROM /messages/modules/asa/outputs/output1 INTO $upstream"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
+            TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
+
+            IMessage deviceMessage = GetMessage();
+            await device1.SendMessage(deviceMessage);
+            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
+            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+
+            IMessage mlMessage = GetMessage();
+            await moduleMl.SendMessageOnOutput(mlMessage);
+            Assert.False(iotHub.HasReceivedMessage(mlMessage));
+            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
+            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+
+            IMessage asaMessage = GetMessage();
+            await moduleAsa.SendMessageOnOutput(asaMessage);
+            Assert.True(iotHub.HasReceivedMessage(asaMessage));
+            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+        }
+
+        [Fact]
+        public async Task MultipleRoutesTest_WithNoModuleOutput()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages WHERE $connectionDeviceId = 'device1' INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/modules/ml INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
+                @"FROM /messages/modules/asa/* INTO $upstream"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
+            TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
+
+            IMessage deviceMessage = GetMessage();
+            await device1.SendMessage(deviceMessage);
+            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
+            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+
+            IMessage mlMessage = GetMessage();
+            await moduleMl.SendMessage(mlMessage);
+            Assert.False(iotHub.HasReceivedMessage(mlMessage));
+            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
+            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+
+            IMessage asaMessage = GetMessage();
+            await moduleAsa.SendMessage(asaMessage);
+            Assert.True(iotHub.HasReceivedMessage(asaMessage));
+            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+        }
+
+        [Fact]
+        public async Task MultipleRoutesTest_WithNoModuleOutput_WrongRoute()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages WHERE $connectionDeviceId = 'device1' INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
                 @"FROM /messages/modules/ml INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
                 @"FROM /messages/modules/asa/outputs/output1 INTO $upstream"
             };
@@ -101,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage asaMessage = GetMessage();
             await moduleAsa.SendMessage(asaMessage);
-            Assert.True(iotHub.HasReceivedMessage(asaMessage));
+            Assert.False(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
             Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
         }
@@ -111,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var routes = new List<string>
             {
-                @"FROM /messages/events WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
                 @"FROM /messages/modules/ml WHERE messageType = 'alert' INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")",
                 @"FROM /messages/modules/asa/outputs/output1 WHERE info = 'aggregate' INTO $upstream"
             };
@@ -133,14 +207,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage mlMessage = GetMessage();
             mlMessage.Properties.Add("messageType", "alert");
-            await moduleMl.SendMessage(mlMessage);
+            await moduleMl.SendMessageOnOutput(mlMessage);
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage));
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
 
             IMessage asaMessage = GetMessage();
             asaMessage.Properties.Add("info", "aggregate");
-            await moduleAsa.SendMessage(asaMessage);
+            await moduleAsa.SendMessageOnOutput(asaMessage);
             Assert.True(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
             Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
@@ -151,8 +225,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var routes = new List<string>
             {
-                @"FROM /messages/events WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")",
-                @"FROM /messages/events WHERE as_number(temp) < 50 INTO BrokeredEndpoint(""/modules/mod2/inputs/in2"")",
+                @"FROM /messages WHERE as_number(temp) > 50 INTO BrokeredEndpoint(""/modules/mod1/inputs/in1"")",
+                @"FROM /messages/* WHERE as_number(temp) < 50 INTO BrokeredEndpoint(""/modules/mod2/inputs/in2"")",
             };
 
             string edgeDeviceId = "edge";
@@ -280,11 +354,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
             }
 
-            public Task SendMessage(IMessage message)
+            public Task SendMessageOnOutput(IMessage message)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
                 message.SystemProperties[SystemProperties.OutputName] = this.outputName;
+                return this.deviceListener.ProcessMessageAsync(message);
+            }
+
+            public Task SendMessage(IMessage message)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
                 return this.deviceListener.ProcessMessageAsync(message);
             }
 
