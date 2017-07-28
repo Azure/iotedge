@@ -115,12 +115,15 @@ Function docker_build_and_tag_and_push(
         {
             Throw "Docker Push Failed With Exit Code $LastExitCode"
         }
-
+        
         docker push $LatestVersionTag
         if ($LastExitCode)
         {
             Throw "Docker Push Failed With Exit Code $LastExitCode"
         }
+
+        docker rmi $FullVersionTag
+        docker rmi $LatestVersionTag
     }
 }
 
