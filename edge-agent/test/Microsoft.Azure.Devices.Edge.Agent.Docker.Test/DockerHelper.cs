@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
@@ -33,13 +32,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         /// <returns></returns>
         public static async Task PullImageAsync(this IDockerClient client, string image, string tag, CancellationToken token)
         {
-            var pullParams = new ImagesPullParameters
+            var pullParams = new ImagesCreateParameters
             {
-                Parent = image,
+                FromImage = image,
                 Tag = tag
             };
-            Stream stream = await Client.Images.PullImageAsync(pullParams, null);
-            await stream.CopyToAsync(Stream.Null, BufferSize, token);
+            await Client.Images.CreateImageAsync(pullParams, null, new Progress<JSONMessage>(), token);
         }
 
         /// <summary>

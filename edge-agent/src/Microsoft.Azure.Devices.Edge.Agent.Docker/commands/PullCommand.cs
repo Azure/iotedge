@@ -2,7 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
-    using System.IO;
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
@@ -26,15 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public async Task ExecuteAsync(CancellationToken token)
         {
-            var pullParameters = new ImagesPullParameters
+            var pullParameters = new ImagesCreateParameters
             {
-                Parent = this.module.Config.Image,
+                FromImage = this.module.Config.Image,
                 Tag = this.module.Config.Tag
             };
-            Stream stream = await this.client.Images.PullImageAsync(pullParameters, this.authConfig);
 
-            // We need to read the entire contents of the stream to ensure the image is fully downloaded
-            await stream.CopyToAsync(Stream.Null, BufferSize, token);
+            await this.client.Images.CreateImageAsync(pullParameters, this.authConfig, new Progress<JSONMessage>(), token);
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;

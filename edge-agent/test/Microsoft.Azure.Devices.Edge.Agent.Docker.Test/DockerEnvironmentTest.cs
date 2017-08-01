@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             };
 
             var dockerClient = Mock.Of<IDockerClient>(dc => 
-                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id) == Task.FromResult(new ContainerInspectResponse())));
+                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(new ContainerInspectResponse())));
 
             // Act
             var dockerEnvironment = new DockerEnvironment(dockerClient);
