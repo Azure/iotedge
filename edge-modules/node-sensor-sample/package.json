@@ -1,0 +1,11 @@
+{
+  "name": "node-sensor-sample",
+  "version": "1.0.0",
+  "description": "A sample sensor module",
+  "main": "app.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "azure-iot-device": "^1.1.16-preview",
+    "azure-iot-device-mqtt": "^1.1.16-preview"
+  }
+}
