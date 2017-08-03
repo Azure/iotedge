@@ -70,7 +70,7 @@ $image_name = "edge-service"
 $mma_connection = "HostName=$IoTHubHostname;DeviceId=$DeviceId;SharedAccessKey=$AccessKey"
 $tag = "edgebuilds.azurecr.io/azedge-edge-service-windows-x64:$ImageVersion"
 
-docker login $Registry -u $Username -p $Password
+$Password | docker login $Registry -u $Username --password-stdin
 if ($LastExitCode)
 {
     Throw "Docker Login Failed With Exit Code $LastExitCode"
