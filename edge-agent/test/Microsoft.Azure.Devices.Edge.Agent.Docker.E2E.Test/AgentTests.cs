@@ -45,15 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ? new DockerConfig(testConfig.ImageName, testConfig.ImageTag, testConfig.PortBindings)
                     : new DockerConfig(testConfig.ImageName, testConfig.ImageTag);
 
-                // Initialize an Edge Agent module object.
-                var dockerModule = new DockerModule(
-                    testConfig.Name,
-                    testConfig.Version,
-                    ModuleStatus.Running,
-                    dockerConfig
-                );
-                ModuleSet moduleSet = ModuleSet.Create(dockerModule);
-
                 // Start up the agent and run a "reconcile".
                 var dockerLoggingOptions = new Dictionary<string,string>
                 {
@@ -73,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
                 var environment = new DockerEnvironment(client);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
-                var agent = new Agent(moduleSet, environment, new RestartPlanner(commandFactory));
+                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory));
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

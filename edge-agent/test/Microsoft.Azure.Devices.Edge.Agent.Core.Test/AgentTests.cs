@@ -16,32 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void AgentConstructorInvalidArgs()
         {
-            ModuleSet testSet = ModuleSet.Empty;
-            var mockEnvironment = new Mock<IEnvironment>();
+			var mockConfigSource = new Mock<IConfigSource>();
+			var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
 
             Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironment.Object, mockPlanner.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(testSet, null, mockPlanner.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(testSet, mockEnvironment.Object, null));
-        }
-
-        [Fact]
-        [Unit]
-        public async void CreateAsyncCreatesAnAgent()
-        {
-            ModuleSet testSet = ModuleSet.Empty;
-
-            var mockConfigSource = new Mock<IConfigSource>();
-            var mockEnvironment = new Mock<IEnvironment>();
-            var mockPlanner = new Mock<IPlanner>();
-
-            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
-                .ReturnsAsync(testSet);
-
-            Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
-
-            Assert.NotNull(agent);
-
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, null));
         }
 
         [Fact]
@@ -64,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.Plan(desiredSet, currentSet))
                 .Returns(Plan.Empty);
 
-            Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
 
             await agent.ReconcileAsync(token);
 
@@ -110,39 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.Plan(desiredSet, currentSet))
                 .Returns(testPlan);
 
-            Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
 
             await agent.ReconcileAsync(token);
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.Plan(desiredSet, currentSet), Times.Once);
             recordKeeper.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
-        }
-
-        [Fact]
-        [Unit]
-        public async void ApplyDiffSuccess()
-        {
-            //public async Task ApplyDiffAsync(Diff diff, CancellationToken token)
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"));
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"));
-            var cancellationTokenSource = new CancellationTokenSource();
-            var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-
-            ModuleSet desiredSet = ModuleSet.Create(desiredModule);
-            ModuleSet currentSet = ModuleSet.Create(currentModule);
-            var mockConfigSource = new Mock<IConfigSource>();
-            var mockEnvironment = new Mock<IEnvironment>();
-            var mockPlanner = new Mock<IPlanner>();
-
-            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
-                .ReturnsAsync(desiredSet);
-
-            Agent agent = await Agent.CreateAsync(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
-
-            await Task
-                .WhenAll(agent.ApplyDiffAsync(Diff.Empty, timeoutTokenSource.Token), 
-                         agent.ApplyDiffAsync(desiredSet.Diff(currentSet), cancellationTokenSource.Token));
         }
     }
 }

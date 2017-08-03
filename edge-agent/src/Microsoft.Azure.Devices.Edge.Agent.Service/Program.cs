@@ -49,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 ?.Address;
             if (address != null)
             {
-                connectionString = $"{connectionString};GatewayHostName={address.ToString()}";
-            }
+				connectionString = $"{connectionString};GatewayHostName={address.ToString()}";
+			}
             else
             {
                 logger.LogWarning($"Unable to retrieve IP address for network interface {edgeHubIpInterfaceName}");
@@ -108,15 +108,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     Agent agent = await container.Resolve<Task<Agent>>();
 
-                    // Do another reconcile whenever the config source reports that the desired
-                    // configuration has changed.
-                    configSource.ModuleSetChanged += async (sender, diff) =>
-                    {
-                        logger.LogInformation("Applying config change...");
-                        await agent.ApplyDiffAsync(diff, CancellationToken.None);
-                    };
+					// Do another reconcile whenever the config source reports that the desired
+					// configuration has changed.
+					configSource.ModuleSetChanged += (sender, diff) =>
+					{
+						logger.LogInformation("Received config change...");
+					};
 
-                    configSource.ModuleSetFailed += (sender, ex) =>
+					configSource.ModuleSetFailed += (sender, ex) =>
                     {
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
                     };

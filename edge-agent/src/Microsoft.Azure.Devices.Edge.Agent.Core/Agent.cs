@@ -2,95 +2,79 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Extensions.Logging;
+	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Microsoft.Azure.Devices.Edge.Util;
+	using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+	using Microsoft.Extensions.Logging;
 
-    public class Agent
-    {
-        readonly AtomicReference<ModuleSet> desired;
-        readonly IEnvironment environment;
-        readonly IPlanner planner;
-        readonly AsyncLock sync;
+	public class Agent
+	{
+		readonly IEnvironment environment;
+		readonly IPlanner planner;
+		readonly IConfigSource configSource;
 
-        public Agent(ModuleSet initial, IEnvironment environment, IPlanner planner)
-        {
-            this.desired = new AtomicReference<ModuleSet>(Preconditions.CheckNotNull(initial, nameof(initial)));
-            this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
-            this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
-            this.sync = new AsyncLock();
-            Events.AgentCreated();
-        }
+		public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner)
+		{
+			this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
+			this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
+			this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
+			Events.AgentCreated();
+		}
 
-        public static async Task<Agent> CreateAsync(IConfigSource config, IEnvironment environment, IPlanner planner)
-        {
-            ModuleSet initial = await config.GetModuleSetAsync();
-            return new Agent(initial, environment, planner);
-        }
+		public async Task ReconcileAsync(CancellationToken token)
+		{
+			Task<ModuleSet> envTask = this.environment.GetModulesAsync(token);
+			Task<ModuleSet> configTask = this.configSource.GetModuleSetAsync();
 
-        public async Task ReconcileAsync(CancellationToken token)
-        {
-            ModuleSet current = await this.environment.GetModulesAsync(token);
-            Plan plan = this.planner.Plan(this.desired, current);
+			await Task.WhenAll(envTask, configTask);
 
-            if (!plan.IsEmpty)
-            {
-                try
-                {
-                    await plan.ExecuteAsync(token);
-                }
-                catch (Exception ex)
-                {
-                    Events.PlanExecutionFailed(ex);
-                    throw;
-                }
-            }
-        }
+			ModuleSet current = envTask.Result;
+			ModuleSet desired = configTask.Result;
+			Plan plan = this.planner.Plan(desired, current);
 
-        public async Task ApplyDiffAsync(Diff diff, CancellationToken token)
-        {
-            using (await this.sync.LockAsync(token))
-            {
-                ModuleSet snapshot = this.desired.Value;
-                ModuleSet updated = snapshot.ApplyDiff(diff);
-                if (!this.desired.CompareAndSet(snapshot, updated))
-                {
-                    Events.UpdateDesiredStateFailed();
-                    throw new InvalidOperationException("Invalid update desired moduleset operation.");
-                }
-            }
-        }
+			if (!plan.IsEmpty)
+			{
+				try
+				{
+					await plan.ExecuteAsync(token);
+				}
+				catch (Exception ex)
+				{
+					Events.PlanExecutionFailed(ex);
+					throw;
+				}
+			}
+		}
 
-        static class Events
-        {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
-            const int IdStart = AgentEventIds.Agent;
+		static class Events
+		{
+			static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+			const int IdStart = AgentEventIds.Agent;
 
-            enum EventIds
-            {
-                AgentCreated = IdStart,
-                UpdateDesiredStateFailed,
-                PlanExecutionFailed
-            }
+			enum EventIds
+			{
+				AgentCreated = IdStart,
+				UpdateDesiredStateFailed,
+				PlanExecutionFailed
+			}
 
-            public static void AgentCreated()
-            {
-                Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
-            }
+			public static void AgentCreated()
+			{
+				Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
+			}
 
-            public static void UpdateDesiredStateFailed()
-            {
-                Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
-            }
+			public static void UpdateDesiredStateFailed()
+			{
+				Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
+			}
 
-            public static void PlanExecutionFailed(Exception ex)
-            {
-                Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
-            }
-        }
+			public static void PlanExecutionFailed(Exception ex)
+			{
+				Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
+			}
+		}
 
-    }
+	}
 }

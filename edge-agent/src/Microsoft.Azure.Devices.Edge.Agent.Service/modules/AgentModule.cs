@@ -37,17 +37,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
-            // Task<Agent>
-            builder.Register(
-                async c => await Agent.CreateAsync(
-                    await c.Resolve<Task<IConfigSource>>(),
-                    c.Resolve<IEnvironment>(),
-                    await c.Resolve<Task<IPlanner>>())
-                )
-                .As<Task<Agent>>()
-                .SingleInstance();
+			// Task<Agent>
+			builder.Register(
+				async c => new Agent(
+					await c.Resolve<Task<IConfigSource>>(),
+					c.Resolve<IEnvironment>(),
+					await c.Resolve<Task<IPlanner>>())
+				)
+				.As<Task<Agent>>()
+				.SingleInstance();
 
-            base.Load(builder);
+			base.Load(builder);
         }
     }
 }

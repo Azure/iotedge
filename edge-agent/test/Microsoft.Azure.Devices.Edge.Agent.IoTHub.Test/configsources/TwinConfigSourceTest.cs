@@ -80,10 +80,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
 			var deviceClient = new Mock<IDeviceClient>();
 			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+			deviceClient
+					.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+					.Callback<ConnectionStatusChangesHandler>(
+						(i) => { this.connectionStatusChangedHandler = i; });
+
+			deviceClient
+					.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+					.Callback<ConnectionStatusChangesHandler>(
+						(i) => { this.connectionStatusChangedHandler = i; });
 
 			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
 			{
 				// Act
+				this.connectionStatusChangedHandler(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 				ModuleSet startingSet = await twinConfig.GetModuleSetAsync();
 
 				IModule returnedModule1 = startingSet.Modules["mod1"];
@@ -92,9 +102,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			}
 		}
 
+
 		[Fact]
 		[Unit]
-		public async void GetConfigAsyncThrows()
+		public async void GetModuleSetAsyncEmptyThrows()
 		{
 			// Arrange
 			var twin = new Twin();
@@ -124,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
 				// Act
 				// Assert  
-				await Assert.ThrowsAsync<Exception>(() => twinConfig.GetModuleSetAsync());
+				await Assert.ThrowsAsync<InvalidOperationException>(() => twinConfig.GetModuleSetAsync());
 				Assert.True(failEventCalled);
 			}
 		}
@@ -167,6 +178,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 					})
 				.Returns(Task.FromResult(0));
 
+			deviceClient
+					.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+					.Callback<ConnectionStatusChangesHandler>(
+						(i) => { this.connectionStatusChangedHandler = i; });
+
 			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
 			{
 				// Act
@@ -178,6 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 					changeEventCalled = true;
 					receivedDiff = diff;
 				};
+
+				this.connectionStatusChangedHandler(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
 
 				await this.desiredPropertyCallback(desiredreportedProperties, null);
 
@@ -206,6 +224,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 		[Unit]
 		public async void OnConnectionStatusChangedSuccess()
 		{
+			var twin = new Twin();
+			var config = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
+
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
+
 			var deviceClient = new Mock<IDeviceClient>();
 			deviceClient
 				.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -214,11 +242,104 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 					{
 						this.connectionStatusChangedHandler = i;
 					});
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
 
 			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
 			{
 				this.connectionStatusChangedHandler(ConnectionStatus.Connected, ConnectionStatusChangeReason.No_Network);
 				Assert.True(twinConfig.ConnectionStatus == ConnectionStatus.Connected);
+			}
+		}
+
+		[Fact]
+		[Unit]
+		public async void PropertyUpdateCallbackWhileOfflineReturnsException()
+		{
+			var twin = new Twin();
+			var config = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
+
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
+
+			var deviceClient = new Mock<IDeviceClient>();
+			deviceClient
+				.Setup(t => t.SetDesiredPropertyUpdateCallback(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
+				.Callback<DesiredPropertyUpdateCallback, object>((i, j) => { this.desiredPropertyCallback = i; });
+
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+
+			deviceClient
+					.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+					.Callback<ConnectionStatusChangesHandler>(
+						(i) => { this.connectionStatusChangedHandler = i; });
+
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				bool failEventCalled = false;
+				twinConfig.ModuleSetFailed += (sender, ex) =>
+				{
+					failEventCalled = true;
+				};
+				await this.desiredPropertyCallback(desiredreportedProperties, null);
+				Assert.True(failEventCalled == true);
+			}
+		}
+
+		[Fact]
+		[Unit]
+		public async void PropertyUpdateCallbackWhileConnectedReturnsSuccess()
+		{
+			var twin = new Twin();
+			var config = new TestConfig("image1");
+			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config);
+			ModuleSet moduleSet1 = ModuleSet.Create(module1);
+
+			var desiredreportedProperties = new TwinCollection();
+			desiredreportedProperties["modules"] = moduleSet1.Modules;
+			desiredreportedProperties["$version"] = 123;
+			twin.Properties.Desired = desiredreportedProperties;
+
+			IModule module2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, config);
+			ModuleSet moduleSet2 = ModuleSet.Create(module2);
+
+			var diff = new TwinCollection();
+			diff["modules"] = moduleSet2.Modules;
+			diff["$version"] = 123;
+
+			ModuleSet moduleSetTotal = ModuleSet.Create(module1, module2);
+
+			var deviceClient = new Mock<IDeviceClient>();
+
+			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
+
+			deviceClient
+				.Setup(t => t.SetDesiredPropertyUpdateCallback(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
+				.Callback<DesiredPropertyUpdateCallback, object>((i, j) => { this.desiredPropertyCallback = i; });
+
+			deviceClient
+					.Setup(t => t.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+					.Callback<ConnectionStatusChangesHandler>(
+						(i) => { this.connectionStatusChangedHandler = i; });
+
+			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config))
+			{
+				this.connectionStatusChangedHandler(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+				Assert.True(twinConfig.CurrentModuleSet.Diff(moduleSet1).IsEmpty == true);
+
+				bool moduleSetChanged = false;
+				twinConfig.ModuleSetChanged += (sender, d) =>
+				{
+					moduleSetChanged = true;
+				};
+				await this.desiredPropertyCallback(diff, null);
+
+				Assert.True(twinConfig.CurrentModuleSet.Diff(moduleSetTotal).IsEmpty == true);
+				Assert.True(moduleSetChanged == true);
 			}
 		}
 	}
