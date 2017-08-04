@@ -82,9 +82,9 @@ if ($LastExitCode)
     Throw "Docker Pull Failed With Exit Code $LastExitCode"
 }
 
-docker stop $image_name
+docker stop $image_name 2>&1 | Out-String
 
-docker rm $image_name
+docker rm $image_name 2>&1 | Out-String
 
 $run_command = "docker run "
 if (-not $Foreground)
