@@ -6,12 +6,6 @@ if ! command -v python > /dev/null 2>&1; then
         exit /b 1
 fi
 
-# Check if distro is Ubuntu
-if ! grep -qi Ubuntu <(python -mplatform); then
-        echo "This script works only on Ubuntu"
-        exit 1
-fi
-
 # Update Apt-get
 
 sudo apt-get update

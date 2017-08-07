@@ -22,6 +22,7 @@ usage()
     echo " --device-id          Edge device ID"
     echo " --access-key         Shared access key used to authenticate the device with IoTHub"
     echo " --routes             Edge routes separated by , (comma)"
+    echo " --arch               The architecture of the host machine (armv7hf|x64)"
     exit 1;
 }
 
@@ -81,6 +82,9 @@ process_args()
             ROUTES="$arg"
             process_routes
             save_next_arg=0
+        elif [ $save_next_arg -eq 9 ]; then
+            ARCH="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -92,6 +96,7 @@ process_args()
                 "--device-id" ) save_next_arg=6;;
                 "--access-key" ) save_next_arg=7;;
                 "--routes" ) save_next_arg=8;;
+                "--arch" ) save_next_arg=9;;
                 * ) usage;;
             esac
         fi
@@ -100,6 +105,15 @@ process_args()
     if [ -z ${DOCKER_REGISTRY} ]; then
         echo "Registry Parameter Invalid"
         print_help_and_exit
+    fi
+
+    if [ -z ${ARCH} ]; then
+        if [ "x86_64" == "$(uname -m)" ]; then
+            ARCH="x64"
+        else
+            ARCH="armv7hf"
+        fi
+        echo "Detected architecture: $ARCH"
     fi
 
     if [ -z ${DOCKER_USERNAME} ]; then
@@ -152,7 +166,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-sudo docker pull edgebuilds.azurecr.io/azedge-edge-service-x64:$DOCKER_IMAGEVERSION
+sudo docker pull edgebuilds.azurecr.io/azedge-edge-service-$ARCH:$DOCKER_IMAGEVERSION
 if [ $? -ne 0 ]; then
     echo "Docker Pull Failed!"
     exit 1
@@ -162,7 +176,7 @@ sudo docker stop $image_name
 
 sudo docker rm $image_name
 
-sudo docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name $image_name -p 8883:8883 -p 443:443 -e DockerUri=unix:///var/run/docker.sock -e MMAConnectionString=$mma_connection -e IotHubHostName=$IOTHUB_HOSTNAME -e EdgeDeviceId=$DEVICEID "${docker_routes[@]}" edgebuilds.azurecr.io/azedge-edge-service-x64:$DOCKER_IMAGEVERSION 
+sudo docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name $image_name -p 8883:8883 -p 443:443 -e DockerUri=unix:///var/run/docker.sock -e MMAConnectionString=$mma_connection -e IotHubHostName=$IOTHUB_HOSTNAME -e EdgeDeviceId=$DEVICEID "${docker_routes[@]}" edgebuilds.azurecr.io/azedge-edge-service-$ARCH:$DOCKER_IMAGEVERSION
 
 if [ $? -ne 0 ]; then
     echo "Docker run Failed!"
