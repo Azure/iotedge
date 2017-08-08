@@ -102,44 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 			}
 		}
 
-
-		[Fact]
-		[Unit]
-		public async void GetModuleSetAsyncEmptyThrows()
-		{
-			// Arrange
-			var twin = new Twin();
-			var config1 = new TestConfig("image1");
-			IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, config1);
-			ModuleSet moduleSet1 = ModuleSet.Create(module1);
-
-			var desiredreportedProperties = new TwinCollection();
-			desiredreportedProperties["modules"] = moduleSet1.Modules;
-			desiredreportedProperties["$version"] = 123;
-			twin.Properties.Desired = desiredreportedProperties;
-
-			var deviceClient = new Mock<IDeviceClient>();
-			deviceClient.Setup(t => t.GetTwinAsync()).ReturnsAsync(twin);
-
-			var moduleSetSerdeMocked = new Mock<ISerde<ModuleSet>>();
-			moduleSetSerdeMocked.Setup(t => t.Deserialize(It.IsAny<string>())).Throws(new Exception("Any Exception"));
-
-			using (TwinConfigSource twinConfig = await TwinConfigSource.Create(deviceClient.Object, moduleSetSerdeMocked.Object, this.diffSerde, this.config))
-			{
-				bool failEventCalled = false;
-
-				twinConfig.ModuleSetFailed += (sender, ex) =>
-				{
-					failEventCalled = true;
-				};
-
-				// Act
-				// Assert  
-				await Assert.ThrowsAsync<InvalidOperationException>(() => twinConfig.GetModuleSetAsync());
-				Assert.True(failEventCalled);
-			}
-		}
-
 		[Fact]
 		[Unit]
 		public async void OnDesiredPropertyChangedSuccess()

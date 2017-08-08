@@ -149,12 +149,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
 		public override Task<ModuleSet> GetModuleSetAsync()
 		{
-			if (this.CurrentModuleSet.Equals(ModuleSet.Empty))
-			{
-				Exception ex = new InvalidOperationException("Current module set empty");
-				this.OnFailed(ex);
-				throw ex;
-			}
 			// Return the cached copy
 			return Task.FromResult(this.CurrentModuleSet);
 		}
