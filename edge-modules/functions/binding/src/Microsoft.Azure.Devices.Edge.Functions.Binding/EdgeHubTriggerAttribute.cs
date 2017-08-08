@@ -22,11 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         }
 
         /// <summary>
-        /// Gets or sets the app setting name that contains the EdgeHub connection string.
-        /// </summary>
-        public string Connection { get; set; }
-
-        /// <summary>
         /// Gets the EdgeHub message inputName that triggers the function.
         /// </summary>
         public string InputName { get; private set; }

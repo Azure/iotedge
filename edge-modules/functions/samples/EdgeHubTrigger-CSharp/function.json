@@ -1,0 +1,17 @@
+{
+  "bindings": [
+    {
+      "type": "edgeHubTrigger",
+      "name": "messageReceived",
+      "InputName": "input1",
+      "direction": "in"
+    },
+    {
+      "type": "edgeHub",
+      "name": "output",
+      "outputName": "receiver4",
+      "batchSize": 2,
+      "direction": "inout"
+    }
+  ]
+}

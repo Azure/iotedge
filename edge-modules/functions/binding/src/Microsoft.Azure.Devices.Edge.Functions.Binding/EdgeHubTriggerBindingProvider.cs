@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
-        readonly SemaphoreSlim deviceClientSemaphore = new SemaphoreSlim(1, 1);
         readonly INameResolver nameResolver;
         const string DefaultConnectionStringEnvName = "EdgeHubConnectionString";
         DeviceClient deviceClient;
@@ -51,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 throw new InvalidOperationException($"Can't bind EdgeHubTriggerAttribute to type '{parameter.ParameterType}'.");
             }
 
-            await this.TrySetEventDefaultHandlerAsync(attribute.Connection);
+            await this.TrySetEventDefaultHandlerAsync();
 
             var messageProcessor = new EdgeHubMessageProcessor();
             var triggerBinding = new EdgeHubTriggerBinding(context.Parameter, messageProcessor);
@@ -75,36 +74,17 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             return triggerBinding;
         }
 
-        Task TrySetEventDefaultHandlerAsync(string connectionStringEnvVariableName)
+        Task TrySetEventDefaultHandlerAsync()
         {
             if (this.deviceClient != null)
             {
                 return Task.CompletedTask;
             }
 
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                // TODO: SECURITY WARNING !!! Please remove this code after Edge Hub is not using self signed certificates !!!
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            };
-            ITransportSettings[] settings = { mqttSetting };
-            string connectionString = nameResolver.Resolve(string.IsNullOrEmpty(connectionStringEnvVariableName) ? DefaultConnectionStringEnvName : connectionStringEnvVariableName);
+            string connectionString = nameResolver.Resolve(DefaultConnectionStringEnvName);
 
-            try
-            {
-                this.deviceClientSemaphore.Wait();
-                if (this.deviceClient == null)
-                {
-                    this.deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
-                    return this.deviceClient.SetEventDefaultHandlerAsync(FunctionsMessageHandler, null);
-                }
-            }
-            finally
-            {
-                this.deviceClientSemaphore.Release();
-            }
-
-            return Task.CompletedTask;
+            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(connectionString);
+            return this.deviceClient.SetEventDefaultHandlerAsync(FunctionsMessageHandler, null);
         }
 
         async Task FunctionsMessageHandler(Message message, object userContext)
@@ -114,21 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
-                    await edgeHubTriggerBinding.TriggerMessage(GetMessageCopy(payload, message), userContext);
+                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
                 }
             }
-        }
-
-        Message GetMessageCopy(byte[] payload, Message message)
-        {
-            var copy = new Message(payload);
-
-            foreach (var kv in message.Properties)
-            {
-                copy.Properties.Add(kv.Key, message.Properties[kv.Key]);
-            }
-
-            return copy;
         }
     }
 }

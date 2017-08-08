@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
 {
     using System;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Config;
@@ -27,6 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             // register trigger binding provider
             var triggerBindingProvider = new EdgeHubTriggerBindingProvider(nameResolver);
             extensions.RegisterExtension<ITriggerBindingProvider>(triggerBindingProvider);
+
+            extensions.RegisterBindingRules<EdgeHubAttribute>();
+            var rule = context.AddBindingRule<EdgeHubAttribute>();
+            rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder<>), nameResolver);
 
             context.AddConverter<Message, string>(MessageConverter);
         }

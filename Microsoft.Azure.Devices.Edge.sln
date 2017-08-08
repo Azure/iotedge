@@ -120,6 +120,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "binding", "binding", "{B8B0
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Functions.Binding", "edge-modules\functions\binding\src\Microsoft.Azure.Devices.Edge.Functions.Binding\Microsoft.Azure.Devices.Edge.Functions.Binding.csproj", "{63120FDB-92DD-4E02-B77A-E4B51999A0BB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "EdgeHubTrigger-CSharp", "{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\EdgeHubTrigger-CSharp\function.json = edge-modules\functions\samples\EdgeHubTrigger-CSharp\function.json
+		edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx = edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -278,6 +286,8 @@ Global
 		{1ABF19EE-7689-4EE3-A099-16111A8F16F4} = {B8B03013-8D6E-4D4E-9914-33D55074DEC8}
 		{B8B03013-8D6E-4D4E-9914-33D55074DEC8} = {C4502187-81D7-4299-85C3-64AE241503E0}
 		{63120FDB-92DD-4E02-B77A-E4B51999A0BB} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
+		{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E} = {C4502187-81D7-4299-85C3-64AE241503E0}
+		{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
