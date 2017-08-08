@@ -48,8 +48,9 @@ $docker_routes=""
 if ($Routes)
 {
     $array = $Routes.Split(",")
-    for ($i=0; $i -lt $array.length; $i++) {
-        $docker_routes += " -e routes__$i=" + $array[$i]
+    for ($i=0; $i -lt $array.length; $i++)
+    {
+        $docker_routes += (" -e routes__{0}=`"{1}`"" -f $i, $array[$i])
     }
     Write-Host "Docker routes $docker_routes"
 }
@@ -82,9 +83,9 @@ if ($LastExitCode)
     Throw "Docker Pull Failed With Exit Code $LastExitCode"
 }
 
-docker stop $image_name 2>&1 | Out-String
+& cmd /c "docker stop $image_name 2>&1"
 
-docker rm $image_name 2>&1 | Out-String
+& cmd /c "docker rm $image_name 2>&1"
 
 $run_command = "docker run "
 if (-not $Foreground)

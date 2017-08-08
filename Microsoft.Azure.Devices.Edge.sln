@@ -86,6 +86,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{DB96
 		scripts\windows\DownloadAndInstallCertificate.ps1 = scripts\windows\DownloadAndInstallCertificate.ps1
 		scripts\windows\installPrereqs.ps1 = scripts\windows\installPrereqs.ps1
 		scripts\windows\runTests.bat = scripts\windows\runTests.bat
+		scripts\windows\runTests.ps1 = scripts\windows\runTests.ps1
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core", "edge-hub\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj", "{9479C3D7-F565-4135-97C9-1B5D1199C259}"
