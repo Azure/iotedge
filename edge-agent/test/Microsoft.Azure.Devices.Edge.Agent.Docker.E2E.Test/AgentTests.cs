@@ -45,6 +45,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ? new DockerConfig(testConfig.ImageName, testConfig.ImageTag, testConfig.PortBindings)
                     : new DockerConfig(testConfig.ImageName, testConfig.ImageTag);
 
+                // Initialize an Edge Agent module object.
+                var dockerModule = new DockerModule(
+                    testConfig.Name,
+                    testConfig.Version,
+                    ModuleStatus.Running,
+                    dockerConfig
+                );
+                var moduleSet = ModuleSet.Create(dockerModule);
+
                 // Start up the agent and run a "reconcile".
                 var dockerLoggingOptions = new Dictionary<string,string>
                 {
@@ -60,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                configSource.Setup(cs => cs.GetModuleSetAsync()).ReturnsAsync(moduleSet);
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
                 var environment = new DockerEnvironment(client);
