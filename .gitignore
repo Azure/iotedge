@@ -292,3 +292,9 @@ FakesAssemblies/
 launchSettings.json
 target/
 **/generated/*
+
+# macOS files
+.DS_Store
+
+# VS on Mac files
+*.userprefs
