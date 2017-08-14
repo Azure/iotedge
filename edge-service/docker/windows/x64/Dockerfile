@@ -6,7 +6,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 RUN New-SelfSignedCertificate -Subject ('CN={0}' -f $Env:ComputerName) -CertStoreLocation Cert:\CurrentUser\My; `
     CertUtil -ExportPFX -user -p `\"`\" my $Env:ComputerName \edge-server.pfx
 
-FROM microsoft/dotnet:2.0.0-preview2-runtime-nanoserver
+FROM microsoft/dotnet:2.0.0-runtime-nanoserver
 
 ENV SSL_CERTIFICATE_PATH \certs
 ENV SSL_CERTIFICATE_NAME edge-server.pfx

@@ -1,16 +1,31 @@
-FROM microsoft/dotnet:2.0.0-preview1-sdk
+#########
+# This container is used to create a local instance
+# of the "Hosted Linux Preview" VSTS build agent.
+#
+# It will be used to define the agent used to run
+# our BVT test suite against the Raspberry Pi.
+#########
+FROM microsoft/vsts-agent:ubuntu-16.04-tfs-2017-docker-17.03.0-ce-standard
 
-# Install Java.
-WORKDIR /usr/local/java
-RUN \
-  wget -c --header "Cookie: oraclelicense=accept-securebackup-cookie"  \
-    http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jdk-8u131-linux-x64.tar.gz && \
-  tar zxvf jdk-8u131-linux-x64.tar.gz && \
-  rm -rf jdk-8u131-linux-x64.tar.gz && \
-  update-alternatives --install "/usr/bin/java" "java" "/usr/local/java/jdk1.8.0_131/jre/bin/java" 1 && \
-  update-alternatives --install "/usr/bin/javac" "javac" "/usr/local/java/jdk1.8.0_131/bin/javac" 1 && \
-  update-alternatives --install "/usr/bin/javaws" "javaws" "/usr/local/java/jdk1.8.0_131/jre/bin/javaws" 1 && \
-  update-alternatives --set java /usr/local/java/jdk1.8.0_131/jre/bin/java && \
-  update-alternatives --set javac /usr/local/java/jdk1.8.0_131/bin/javac && \
-  update-alternatives --set javaws /usr/local/java/jdk1.8.0_131/jre/bin/javaws
+ARG AGENT_VERSION="2.120.1"
 
+WORKDIR /vsts
+
+# Install VSTS-Agent
+RUN curl \
+      -SL https://github.com/Microsoft/vsts-agent/releases/download/v$AGENT_VERSION/vsts-agent-ubuntu.16.04-x64-$AGENT_VERSION.tar.gz \
+      --output /vsts/vsts-agent-ubuntu.16.04-x64-$AGENT_VERSION.tar.gz \
+ && tar xzf /vsts/vsts-agent-ubuntu.16.04-x64-$AGENT_VERSION.tar.gz \
+ && rm /vsts/vsts-agent-ubuntu.16.04-x64-$AGENT_VERSION.tar.gz
+
+# Launch VSTS-Agent
+CMD /vsts/bin/Agent.Listener configure \
+      --unattended \
+      --agent "${VSTS_AGENT:-$(hostname)}" \
+      --url "https://${VSTS_ACCOUNT:-msazure}.visualstudio.com" \
+      --auth PAT \
+      --token "${VSTS_TOKEN}" \
+      --pool "${VSTS_POOL:-Azure-IoT-Edge-Core}" \
+      --work "${VSTS_WORK:-_work}" \
+      --replace \
+ && /vsts/bin/Agent.Listener run

@@ -1,15 +1,30 @@
-# How to build
+Containerized Build Environment
+===============================
 
-This Dockerfile allows us to build an image that we can then use to build the
-Edge code. Build the image with something like:
+This Dockerfile creates an environment based on the VSTS "Hosted Linux Preview" build agent.
 
-```
-docker build -t edge-build .
-```
-
-And then if you have your source checked out to `c:\code\Azure-IoT-Edge-Core`
-then you can build it with:
+Image Creation
+--------------
 
 ```
-docker run --rm -it -v /c/code:/code -w /code/Azure-IoT-Edge-Core edge-build ./scripts/linux/buildBranch.sh
+docker build -t edge-build-env .
 ```
+
+Use Cases
+---------
+
+### Local VSTS Agent
+
+  Launch a local VSTS agent, test your build configuration and interact with it through VSTS.
+
+  ```
+  docker run -it -e "VSTS_TOKEN=<your VSTS personal access token>" --net host -v /var/run/docker.sock:/var/run/docker.sock edge-build-env
+  ```
+
+### Temporary Build Environment
+
+  Enter the environment made available to the VSTS agent, validate dependencies and test your scripts. 
+
+  ```
+  docker run -it -e "VSTS_TOKEN=<your VSTS personal access token>" --net host -v /var/run/docker.sock:/var/run/docker.sock edge-build-env /bin/bash
+  ```

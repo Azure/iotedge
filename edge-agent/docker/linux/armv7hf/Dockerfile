@@ -1,4 +1,4 @@
-FROM edgebuilds.azurecr.io/azedge-dotnet-runtime-armv7hf:latest
+FROM microsoft/dotnet:2.0.0-runtime-stretch-arm32v7
 
 ARG EXE_DIR=.
 ENV DockerLoggingDriver=journald
