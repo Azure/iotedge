@@ -93,7 +93,7 @@ Function docker_build_and_tag_and_push(
     $LatestVersionTag = "${TagPrefix}:latest"
 
     echo "Building and Pushing Docker image $ImageName for $Arch"
-    $docker_build_cmd = "docker build -t $FullVersionTag -t $LatestVersionTag"
+    $docker_build_cmd = "docker build --no-cache -t $FullVersionTag -t $LatestVersionTag"
     if ($Dockerfile)
     {
         $docker_build_cmd += " --file $Dockerfile"
@@ -150,5 +150,7 @@ BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"
 BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service"
 
 BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
+
+BuildTagPush "functions-binding" "Microsoft.Azure.Devices.Edge.Functions.Binding"
 
 echo "Done Building And Pushing Docker Images"

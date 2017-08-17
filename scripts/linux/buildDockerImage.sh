@@ -168,7 +168,7 @@ docker_build_and_tag_and_push()
     fi
 
     echo "Building and Pushing Docker image $imagename for $arch"
-    docker_build_cmd="docker build"
+    docker_build_cmd="docker build --no-cache"
     docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-$arch:$DOCKER_IMAGEVERSION"
     docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-$arch:latest"
     if [ ! -z "${dockerfile}" ]; then
@@ -247,6 +247,12 @@ docker_build_and_tag_and_push edge-service "$ARCH" "$EXE_DOCKER_DIR/linux/$ARCH/
 EXE_DIR="SimulatedTemperatureSensor"
 EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
 docker_build_and_tag_and_push simulated-temperature-sensor "$ARCH" "$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+[ $? -eq 0 ] || exit $?
+
+# push FunctionsBinding image
+EXE_DIR="Microsoft.Azure.Devices.Edge.Functions.Binding"
+EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
+docker_build_and_tag_and_push functions-binding "$ARCH" "$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
 [ $? -eq 0 ] || exit $?
 
 echo "Done Building And Pushing Docker Images"

@@ -26,30 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             var extensions = config.GetService<IExtensionRegistry>();
             var nameResolver = config.GetService<INameResolver>();
 
-            var extensionConfig = new EdgeHubExtensionConfig(nameResolver);
+            var extensionConfig = new EdgeHubExtensionConfigProvider();
             extensions.RegisterExtension<IExtensionConfigProvider>(extensionConfig);
-        }
-
-        class EdgeHubExtensionConfig : IExtensionConfigProvider
-        {
-            readonly INameResolver nameResolver;
-
-            public EdgeHubExtensionConfig(INameResolver nameResolver)
-            {
-                this.nameResolver = nameResolver;
-            }
-
-            public void Initialize(ExtensionConfigContext context)
-            {
-                if (context == null)
-                {
-                    throw new ArgumentNullException("context");
-                }
-
-                // Register our extension binding providers
-                context.Config.RegisterBindingExtensions(
-                    new EdgeHubTriggerBindingProvider(this.nameResolver));
-            }
         }
     }
 }

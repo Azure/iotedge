@@ -13,6 +13,7 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/t
 SLN_PATTERN='Microsoft.Azure.*.sln'
 CSPROJ_PATTERN='*.csproj'
 TEST_CSPROJ_PATTERN='*Test.csproj'
+FUNCTION_BINDING_CSPROJ_PATTERN='*Binding.csproj'
 ANTLR_PATTERN='*.g4'
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
@@ -90,6 +91,17 @@ while read proj; do
         RES=1
     fi
 done < <(find $ROOT_FOLDER -type f -name $CSPROJ_PATTERN -exec grep -l "<OutputType>Exe</OutputType>" {} +)
+
+while read proj; do
+    echo "Publishing Solution - $proj"
+    PROJ_FILE=$(basename "$proj")
+    PROJ_NAME="${PROJ_FILE%.*}"
+    $DOTNET_ROOT_PATH/dotnet publish -f netstandard2.0 -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
+
+done < <(find $ROOT_FOLDER -type f -name $FUNCTION_BINDING_CSPROJ_PATTERN)
 
 echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
 rm -fr $PUBLISH_FOLDER/docker

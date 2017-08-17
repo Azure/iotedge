@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
 
             extensions.RegisterBindingRules<EdgeHubAttribute>();
             var rule = context.AddBindingRule<EdgeHubAttribute>();
-            rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder<>), nameResolver);
+            rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder), nameResolver);
 
             context.AddConverter<Message, string>(MessageConverter);
         }

@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     /// Any user parameter that sends EdgeHub events will eventually get bound to this object. 
     /// This will queue events and send in batches, also keeping under the 256kb edge hub limit per batch. 
     /// </summary>
-    public class EdgeHubAsyncCollector<T> : IAsyncCollector<T>
+    public class EdgeHubAsyncCollector : IAsyncCollector<Message>
     {
         readonly DeviceClient client;
         readonly EdgeHubAttribute attribute;
@@ -48,14 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         /// <param name="item">The event to add</param>
         /// <param name="cancellationToken">a cancellation token. </param>
         /// <returns></returns>
-        public async Task AddAsync(T item, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task AddAsync(Message message, CancellationToken cancellationToken = default(CancellationToken))
         {
-            Message message = item as Message;
-            if (message == null)
-            {
-                return;
-            }
-
             byte[] payload = message.GetBytes();
             Message copy = Utils.GetMessageCopy(payload, message);
             IList<Message> batch = null;
