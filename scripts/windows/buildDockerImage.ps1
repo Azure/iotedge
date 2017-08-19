@@ -31,7 +31,10 @@ Param(
     [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
 
     # Do not push images to the registry
-    [Switch]$SkipPush
+    [Switch]$SkipPush,
+
+    # Cleanup all images to not pollute the build machine
+    [Switch]$Cleanup
 )
 
 if (-not $ImageVersion)
@@ -154,3 +157,8 @@ BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
 BuildTagPush "functions-binding" "Microsoft.Azure.Devices.Edge.Functions.Binding"
 
 echo "Done Building And Pushing Docker Images"
+
+if ($Cleanup)
+{
+    docker rmi $(docker images -q)
+}
