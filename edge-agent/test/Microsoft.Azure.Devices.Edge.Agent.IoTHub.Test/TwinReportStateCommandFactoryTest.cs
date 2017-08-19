@@ -59,27 +59,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(commandFactory);
         }
 
-        static Mock<IModule> MakeTestModule(
+        static Mock<IReportedModule> MakeTestModule(
             string name,
             string version = "1.0",
             string type = "docker",
-            ModuleStatus status = ModuleStatus.Running)
+            ModuleStatus status = ModuleStatus.Running,
+            int exitCode = 0,
+            string statusDescription = "Running for 1 minute",
+            string lastStartTime = "0001-01-01T00:00:00Z",
+            string lastExitTime = "0001-01-01T00:00:00Z")
         {
-            var testModule = new Mock<IModule>();
+            var testModule = new Mock<IReportedModule>();
             testModule.Setup(m => m.Name).Returns(name);
             testModule.Setup(m => m.Version).Returns(version);
             testModule.Setup(m => m.Type).Returns(type);
             testModule.Setup(m => m.Status).Returns(status);
+            testModule.Setup(m => m.ExitCode).Returns(exitCode);
+            testModule.Setup(m => m.StatusDescription).Returns(statusDescription);
+            testModule.Setup(m => m.LastStartTime).Returns(lastStartTime);
+            testModule.Setup(m => m.LastExitTime).Returns(lastExitTime);
 
             return testModule;
         }
 
         static IEnumerable<object[]> CreateTestDataForForwardTests()
         {
-            var updateModule = new Mock<IModule>();
+            var updateModule = new Mock<IReportedModule>();
 
             // By default we don't expect anything to get added to the twin collection.
-            void DefaultAssert(TwinCollection collection, Mock<IModule> module)
+            void DefaultAssert(TwinCollection collection, Mock<IReportedModule> module)
             {
                 var modules = collection["modules"] as JObject;
                 Assert.NotNull(modules);
@@ -87,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
 
             // For the "remove" command we expect the module to be added to the twincollection with a "null" value.
-            void RemoveAssert(TwinCollection collection, Mock<IModule> module)
+            void RemoveAssert(TwinCollection collection, Mock<IReportedModule> module)
             {
                 var modules = collection["modules"] as JObject;
                 Assert.NotNull(modules);
@@ -105,8 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             (
                 CommandMethodExprFunc CommandMethodBeingTested,
                 TestExecutionFunc TestExecutionFunc,
-                Mock<IModule> TestModule,
-                Action<TwinCollection, Mock<IModule>> AssertAction
+                Mock<IReportedModule> TestModule,
+                Action<TwinCollection, Mock<IReportedModule>> AssertAction
             )[] testInputRecords = {
                 (
                     (testModule, factory) => f => f.Create(testModule),
@@ -155,14 +163,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             });
         }
 
-        static IModule MakeModuleFromMock(IModule mockModule)
+        static IReportedModule MakeModuleFromMock(IReportedModule mockModule)
         {
-            return new TestModule(
+            return new TestReportedModule(
                 mockModule.Name,
                 mockModule.Version,
                 mockModule.Type,
                 mockModule.Status,
-                new TestConfig("testimage")
+                new TestConfig("testimage"),
+                mockModule.ExitCode,
+                mockModule.StatusDescription,
+                mockModule.LastStartTime,
+                mockModule.LastExitTime
             );
         }
 
@@ -172,8 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async void TestCommandExecute(
             CommandMethodExprFunc methodExpr,
             TestExecutionFunc testFunc,
-            Mock<IModule> testModule,
-            Action<TwinCollection, Mock<IModule>> assertAction
+            Mock<IReportedModule> testModule,
+            Action<TwinCollection, Mock<IReportedModule>> assertAction
         )
         {
             var underlyingCommand = new Mock<ICommand>();
@@ -195,8 +207,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async void TestCommandUndo(
             CommandMethodExprFunc methodExpr,
             TestExecutionFunc testFunc,
-            Mock<IModule> testModule,
-            Action<TwinCollection, Mock<IModule>> assertAction
+            Mock<IReportedModule> testModule,
+            Action<TwinCollection, Mock<IReportedModule>> assertAction
         )
         {
             var underlyingCommand = new Mock<ICommand>();
@@ -215,8 +227,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         async Task TestCommand(
             CommandMethodExprFunc methodExpr,
             TestExecutionFunc testFunc,
-            Mock<IModule> testModule,
-            Action<TwinCollection, Mock<IModule>> assertAction,
+            Mock<IReportedModule> testModule,
+            Action<TwinCollection, Mock<IReportedModule>> assertAction,
             Mock<ICommand> underlyingCommand,
             Func<ICommand, Task> testAction
         )

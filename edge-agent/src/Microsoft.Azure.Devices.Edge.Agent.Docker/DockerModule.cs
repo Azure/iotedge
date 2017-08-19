@@ -40,9 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);
 
-        public bool Equals(IModule other) => this.Equals(other as DockerModule);
+        public virtual bool Equals(IModule other) => this.Equals(other as DockerModule);
 
-        public bool Equals(IModule<DockerConfig> other)
+        public virtual bool Equals(IModule<DockerConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;

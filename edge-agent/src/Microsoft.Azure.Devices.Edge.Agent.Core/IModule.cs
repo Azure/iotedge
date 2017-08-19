@@ -17,7 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [EnumMember(Value = "stopped")]
         Stopped,
         [EnumMember(Value = "paused")]
-        Paused
+        Paused,
+        [EnumMember(Value = "unhealthy")]
+        Unhealthy,
     }
 
     public interface IModule : IEquatable<IModule>
@@ -33,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty(PropertyName = "status")]
         ModuleStatus Status { get; }
+
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>

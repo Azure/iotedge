@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public bool Equals(IModule other) => this.Equals(other as TestModuleBase<TConfig>);
 
-        public bool Equals(IModule<TConfig> other)
+        public virtual bool Equals(IModule<TConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;

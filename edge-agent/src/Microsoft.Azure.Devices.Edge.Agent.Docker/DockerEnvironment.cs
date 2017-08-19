@@ -82,8 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 ?.Env
                 ?.ToDictionary('=') ?? ImmutableDictionary<string, string>.Empty;
 
+            int exitCode = (inspected?.State != null)? (int)inspected.State.ExitCode : 0;
+            string statusDescription = inspected?.State?.Status;
+            string lastStartTime = inspected?.State?.StartedAt;
+            string lastExitTime = inspected?.State?.FinishedAt;
+
             var config = new DockerConfig(image, tag, portBindings, env);
-            return new DockerModule(name, version, status, config);
+            return new DockerEnvModule(name, version, status, config, exitCode, statusDescription, lastStartTime, lastExitTime);
         }
 
         static IEnumerable<PortBinding> ToPortBinding(string key, IList<Binding> binding)

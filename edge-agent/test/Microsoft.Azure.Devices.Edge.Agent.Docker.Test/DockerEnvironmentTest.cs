@@ -133,9 +133,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var environment = new DockerEnvironment(Client);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.NotNull(modules.Modules[Name]);
-                    Assert.Equal("v1", ((DockerModule)modules.Modules[Name]).Config.Env["k1"]);
-                    Assert.Equal("v2", ((DockerModule)modules.Modules[Name]).Config.Env["k2"]);
-                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerModule)modules.Modules[Name]).Config.Env["EdgeHubConnectionString"]);
+                    Assert.Equal("v1", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k1"]);
+                    Assert.Equal("v2", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k2"]);
+                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerEnvModule)modules.Modules[Name]).Config.Env["EdgeHubConnectionString"]);
                 }
             }
             finally
@@ -149,6 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task ContainerToModuleTest()
         {
+            const string StatusText = "Running for 1 second";
+            const string LastStartText = "start time";
+            const string LastExitText = "ending time";
             // Arrange
             var id = Guid.NewGuid().ToString();
             var containerListResponse = new ContainerListResponse
@@ -159,9 +162,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 State = "running",
                 Labels = new Dictionary<string, string> { { "version", "v2" } }
             };
+            var inspectContainerResponse = new ContainerInspectResponse
+            {
+                State = new ContainerState
+                {
+                    Status = StatusText,
+                    ExitCode = 0,
+                    StartedAt = LastStartText,
+                    FinishedAt = LastExitText
+                }
+            };
 
             var dockerClient = Mock.Of<IDockerClient>(dc => 
-                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(new ContainerInspectResponse())));
+                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(inspectContainerResponse)));
 
             // Act
             var dockerEnvironment = new DockerEnvironment(dockerClient);
@@ -169,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Assert
             Assert.NotNull(module);
-            var dockerModule = module as DockerModule;
+            var dockerModule = module as DockerEnvModule;
             Assert.NotNull(dockerModule);
             Assert.Equal("localhost:5000/sensor", dockerModule.Config.Image);
             Assert.Equal("v2", dockerModule.Config.Tag);
@@ -179,6 +192,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal("sensor", dockerModule.Name);
             Assert.Equal("v2", dockerModule.Version);
             Assert.Equal(ModuleStatus.Running, dockerModule.Status);
+            Assert.Equal(0, dockerModule.ExitCode);
+            Assert.Equal(StatusText, dockerModule.StatusDescription);
+            Assert.Equal(LastStartText, dockerModule.LastStartTime);
+            Assert.Equal(LastExitText, dockerModule.LastExitTime);
         }
     }
 }
