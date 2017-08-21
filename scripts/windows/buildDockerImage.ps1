@@ -30,6 +30,9 @@ Param(
     [ValidateNotNullOrEmpty()]
     [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
 
+    # Use Windows vNext base images
+    [Switch]$vNext,
+
     # Do not push images to the registry
     [Switch]$SkipPush,
 
@@ -88,15 +91,31 @@ Function docker_build_and_tag_and_push(
     [String]$ContextPath, 
 
     # Build args
-    [String]$BuildArgs
+    [String]$BuildArgs,
+
+    [Switch]$Push,
+
+    [String]$Tag
 )
 {
-    $TagPrefix = "$Registry/azedge-$ImageName-windows-${Arch}"
+    $Suffix = ""
+    if ($vNext)
+    {
+        $Suffix = "-vnext"
+    }
+    $TagPrefix = "$Registry/azedge-$ImageName-windows${Suffix}-${Arch}"
     $FullVersionTag = "${TagPrefix}:$ImageVersion"
     $LatestVersionTag = "${TagPrefix}:latest"
 
     echo "Building and Pushing Docker image $ImageName for $Arch"
-    $docker_build_cmd = "docker build --no-cache -t $FullVersionTag -t $LatestVersionTag"
+    if ($Tag)
+    {       
+        $docker_build_cmd = "docker build --no-cache -t $Tag"
+    }
+    else 
+    {
+        $docker_build_cmd = "docker build --no-cache -t $FullVersionTag -t $LatestVersionTag"
+    }
     if ($Dockerfile)
     {
         $docker_build_cmd += " --file $Dockerfile"
@@ -111,7 +130,7 @@ Function docker_build_and_tag_and_push(
         Throw "Docker Build Failed With Exit Code $LastExitCode"
     }
 
-    if (-not $SkipPush)
+    if ($Push)
     {
         docker push $FullVersionTag
         if ($LastExitCode)
@@ -130,15 +149,22 @@ Function docker_build_and_tag_and_push(
     }
 }
 
-Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
+Function BuildTagPush([String]$ProjectName, [String]$ProjectPath, [Switch]$vNextSpecial)
 {
     $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
+    $Suffix = ""
+    if ($vNext -and $vNextSpecial)
+    {
+        $Suffix = ".vnext"
+    }
+
     docker_build_and_tag_and_push `
         -ImageName $ProjectName `
         -Arch $TargetArch `
-        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile" `
+        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile$Suffix" `
         -ContextPath $FullProjectPath `
-        -BuildArgs "--build-arg EXE_DIR=."
+        -BuildArgs "--build-arg EXE_DIR=." `
+        -Push:(-not $SkipPush)
 }
 
 if (-not $SkipPush)
@@ -146,11 +172,22 @@ if (-not $SkipPush)
     docker_login
 }
 
+if ($vNext)
+{
+    $DockerfileDirectory = "$PublishDir\docker\dotnet-runtime\windows\$TargetArch"
+    docker_build_and_tag_and_push `
+        -ImageName "dotnet" `
+        -Arch $TargetArch `
+        -Dockerfile "$DockerfileDirectory\Dockerfile" `
+        -ContextPath $DockerfileDirectory `
+        -Tag "dotnet:2.0.0-runtime-nanoserver"
+}
+
 BuildTagPush "edge-agent" "Microsoft.Azure.Devices.Edge.Agent.Service"
 
-BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"
+BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service" -vNextSpecial
 
-BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service"
+BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service" -vNextSpecial
 
 BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
 

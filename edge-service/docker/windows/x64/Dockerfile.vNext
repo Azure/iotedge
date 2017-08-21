@@ -1,5 +1,5 @@
 # escape=`
-FROM microsoft/windowsservercore AS installer-env
+FROM microsoft/windowsservercore-insider AS installer-env
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
@@ -19,4 +19,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
+CMD ["cmd", "/c", "scripts\\windows\\start.cmd"]

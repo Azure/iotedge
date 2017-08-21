@@ -1,5 +1,5 @@
 # escape=`
-FROM microsoft/windowsservercore AS installer-env
+FROM microsoft/windowsservercore-insider AS installer-env
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

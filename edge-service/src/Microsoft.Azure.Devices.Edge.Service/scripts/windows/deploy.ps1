@@ -41,7 +41,9 @@ Param(
     [String]$Routes,
 
     # Do not detach after the service starts
-    [Switch]$Foreground
+    [Switch]$Foreground,
+
+    [Switch]$vNext
 )
 
 $docker_routes=""
@@ -69,7 +71,12 @@ if (-not $ImageVersion)
 
 $image_name = "edge-service"
 $mma_connection = "HostName=$IoTHubHostname;DeviceId=$DeviceId;SharedAccessKey=$AccessKey"
-$tag = "edgebuilds.azurecr.io/azedge-edge-service-windows-x64:$ImageVersion"
+$suffix = ""
+if ($vNext)
+{
+    $suffix = "-vnext"
+}
+$tag = "edgebuilds.azurecr.io/azedge-edge-service-windows$suffix-x64:$ImageVersion"
 
 $Password | docker login $Registry -u $Username --password-stdin
 if ($LastExitCode)

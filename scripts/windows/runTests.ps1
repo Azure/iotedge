@@ -2,3 +2,4 @@
 
 # This will at least validate that the container exists
 docker rm -f edge-service
+docker rmi $(docker images -a -q)
