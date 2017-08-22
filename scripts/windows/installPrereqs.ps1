@@ -3,13 +3,15 @@
     [String]$DotnetSdkUrl = "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/master/dotnet-sdk-latest-win-x64.zip",
 
     [ValidateNotNullOrEmpty()]
-    [String]$NugetUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
+    [String]$NugetUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
+
+    [Switch]$Release
 )
 
 # Installs the pre-reqs on the Windows machine.
 
 if (-not (Test-Path env:AGENT_WORKFOLDER)) { throw "Environment variable AGENT_WORKFOLDER not set." }
-if (-not (Test-Path env:BUILD_REPOSITORY_LOCALPATH)) { throw "Environment variable BUILD_REPOSITORY_LOCALPATH not set." }
+if (-not $Release -and -not (Test-Path env:BUILD_REPOSITORY_LOCALPATH)) { throw "Environment variable BUILD_REPOSITORY_LOCALPATH not set." }
 
 $baseFolder = Join-Path -Path $env:AGENT_WORKFOLDER -ChildPath "dotnet"
 if (Test-Path $baseFolder)
@@ -33,10 +35,13 @@ $packageExe = Join-Path -Path $baseFolder -ChildPath "nuget.exe"
 $webclient = New-Object System.Net.WebClient
 $webclient.DownloadFile($NugetUrl, $packageExe)
 
-$rootFolder = $env:BUILD_REPOSITORY_LOCALPATH
-& $packageExe install OpenCover -version 4.6.519 -OutputDirectory $rootFolder
-& $packageExe install OpenCoverToCoberturaConverter -version 0.2.6 -OutputDirectory $rootFolder
-& $packageExe install ReportGenerator  -version 2.5.6 -OutputDirectory $rootFolder
+if (-not $Release)
+{
+    $rootFolder = $env:BUILD_REPOSITORY_LOCALPATH
+    & $packageExe install OpenCover -version 4.6.519 -OutputDirectory $rootFolder
+    & $packageExe install OpenCoverToCoberturaConverter -version 0.2.6 -OutputDirectory $rootFolder
+    & $packageExe install ReportGenerator  -version 2.5.6 -OutputDirectory $rootFolder
+}
 
 Write-Host "Cleaning up."
 Remove-Item $packageZip

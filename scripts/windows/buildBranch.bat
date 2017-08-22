@@ -120,11 +120,11 @@ if "!PUBLISH_TESTS!" == "--publish-tests"  (
     for /r %BUILD_REPOSITORY_LOCALPATH% %%f in (%TEST_CSPROJ_PATTERN%) do (
         echo Publishing - %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!
         for %%i in ("%%f") do set PROJ_NAME=%%~ni
-        "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %RELEASE_TESTS_FOLDER%\!PROJ_NAME! %%f
+        "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %RELEASE_TESTS_FOLDER%\target %%f
         if !ERRORLEVEL! neq 0 exit /b 1
 
-        echo "Copying %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!"
-        xcopy %%f "%RELEASE_TESTS_FOLDER%\!PROJ_NAME!"
+        echo "Copying %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!\"
+        xcopy %%f "%RELEASE_TESTS_FOLDER%\!PROJ_NAME!\"
     )
 
     echo Copying %SRC_SCRIPTS_DIR% to %RELEASE_TESTS_FOLDER%

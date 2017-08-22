@@ -66,7 +66,7 @@ FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
     IF EXIST "%opencover%" (
         "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml
     ) ELSE (
-        "%DOTNET_ROOT_PATH%\dotnet" test %%f --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build %TEST_FILTER%
+        "%DOTNET_ROOT_PATH%\dotnet" test "%%f" --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build %TEST_FILTER%
     )
 )
 
