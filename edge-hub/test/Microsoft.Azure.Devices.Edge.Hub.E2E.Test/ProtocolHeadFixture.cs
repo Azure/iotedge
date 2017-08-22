@@ -125,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public async Task StartMqttHead(IList<string> routes, Action<ContainerBuilder> setupMocks)
         {
+            const int ConnectionPoolSize = 10;
             string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
             byte[] cert = Convert.FromBase64String(certificateValue);
             var certificate = new X509Certificate2(cert);
@@ -152,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(false, null, TimeSpan.MinValue, 0);
             builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics));
-            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes, storeAndForwardConfiguration));
+            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes, storeAndForwardConfiguration, ConnectionPoolSize));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();
 

@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             string iothubHostname = this.GetIotHubHostName();
             string edgeDeviceId = this.Configuration.GetValue<string>("EdgeDeviceId");
+            int connectionPoolSize = this.Configuration.GetValue<int>("IotHubConnectionPoolSize");
 
             var topics = new MessageAddressConversionConfiguration(
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             builder.RegisterModule(new CommonModule(iothubHostname, edgeDeviceId));            
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics));
-            builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes, storeAndForwardConfiguration));
+            builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes, storeAndForwardConfiguration, connectionPoolSize));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
                         

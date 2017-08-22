@@ -4,6 +4,6 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.4.0-preview.2" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.5.0-preview.1" />
   </ItemGroup>
 </Project>

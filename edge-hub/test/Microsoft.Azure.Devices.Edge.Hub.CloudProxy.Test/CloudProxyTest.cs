@@ -164,6 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         async Task<Try<ICloudProxy>> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
+            const int ConnectionPoolSize = 10;
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
             var converters = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
             {
@@ -171,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 { typeof(Twin), new TwinMessageConverter() },
                 { typeof(TwinCollection), new TwinCollectionMessageConverter() }
             });
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters, ConnectionPoolSize);
             var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity);
             return cloudProxy;

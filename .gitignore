@@ -298,3 +298,6 @@ target/
 
 # VS on Mac files
 *.userprefs
+
+# IoT Edge artifacts
+backup.json

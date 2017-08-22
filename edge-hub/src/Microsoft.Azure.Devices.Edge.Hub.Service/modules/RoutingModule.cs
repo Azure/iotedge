@@ -28,13 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string edgeDeviceId;
         readonly IEnumerable<string> routes;
         readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
+        readonly int connectionPoolSize;
 
-        public RoutingModule(string iotHubName, string edgeDeviceId, IEnumerable<string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public RoutingModule(string iotHubName, string edgeDeviceId, IEnumerable<string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration, int connectionPoolSize)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            this.connectionPoolSize = connectionPoolSize;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -103,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ICloudProxyProvider
-            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverterProvider>()))
+            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize))
                 .As<ICloudProxyProvider>()
                 .SingleInstance();
 
