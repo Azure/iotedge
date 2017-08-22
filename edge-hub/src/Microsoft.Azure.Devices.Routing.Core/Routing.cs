@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             // Endpoints
             public const int EndpointExecutorFsm = EventIdStart + 500;
             public const int AsyncEndpointExecutor = EventIdStart + 600;
+            public const int StoringAsyncEndpointExecutor = AsyncEndpointExecutor + 60;
             public const int SyncEndpointExecutor = EventIdStart + 700;
 
             // Query

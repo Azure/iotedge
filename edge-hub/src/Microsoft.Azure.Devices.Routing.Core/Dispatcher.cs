@@ -298,7 +298,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
             {
                 return this.executorFactory.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
-            }
+            }            
         }
 
         static class Events

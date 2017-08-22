@@ -88,8 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         },
                         () =>
                         {
-                            // TODO - Check if this should be failed instead.
-                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException("No connection to IoTHub found"));
+                            failed.AddRange(routingMessages);
+                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.Id} is not connected"));
                             Events.NoDeviceProxy(this.moduleEndpoint);
                             return TaskEx.Done;
                         });
@@ -105,7 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public Endpoint Endpoint => this.moduleEndpoint;
 
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => false);
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(this.IsTransientException);
+
+            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException;
 
             Util.Option<IDeviceProxy> GetDeviceProxy()
             {

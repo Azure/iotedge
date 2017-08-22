@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
             this.Source = AppendSingleTrailingSlash(Preconditions.CheckNotNull(source));
         }
 
-        protected string Source { get; }
+        public string Source { get; }
         
         public virtual bool Match(IMessageSource messageSource)
         {

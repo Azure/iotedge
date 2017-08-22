@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -29,5 +30,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IDeviceListener deviceListener = new DeviceListener(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
             return deviceListener;
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.edgeHub?.Dispose();
+            }
+        }
+
+        public void Dispose() => this.Dispose(true);
     }
 }

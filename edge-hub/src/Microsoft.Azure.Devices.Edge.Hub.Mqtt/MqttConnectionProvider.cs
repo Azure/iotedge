@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
     using System.Security.Authentication;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -36,5 +37,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             return messagingBridge;
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.connectionProvider?.Dispose();
+            }
+        }
+
+        public void Dispose() => this.Dispose(true);
     }
 }

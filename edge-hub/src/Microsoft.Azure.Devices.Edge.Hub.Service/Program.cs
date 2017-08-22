@@ -2,6 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
+    using System.IO;
+    using System.Runtime.Loader;
+    using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -11,12 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using System;
-    using System.IO;
-    using System.Runtime.Loader;
-    using System.Security.Cryptography.X509Certificates;
-    using System.Threading;
-    using System.Threading.Tasks;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class Program
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             hosting.Start();
 
             logger.LogInformation("Starting MQTT Server");
-            IMqttConnectionProvider connectionProvider = await container.Resolve<Task<IMqttConnectionProvider>>();
+            using (IMqttConnectionProvider connectionProvider = await container.Resolve<Task<IMqttConnectionProvider>>())
             using (IProtocolHead protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, connectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>()))
             {
                 await protocolHead.StartAsync();

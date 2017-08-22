@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Newtonsoft.Json;
     using SystemPropertiesList = Microsoft.Azure.Devices.Routing.Core.SystemProperties;
 
     public class Message : IMessage
@@ -58,6 +59,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
         }
 
+        [JsonConstructor]
         public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
         {
             this.MessageSource = messageSource;

@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 
     /// <summary>
     /// The <c>IEdgeHub</c> is responsible for processing messages sent to the
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// for instance handles this by having the router process the message by
     /// executing the routing rules it is configured with.
     /// </summary>
-    public interface IEdgeHub
+    public interface IEdgeHub : IDisposable
     {
         Task ProcessDeviceMessage(IIdentity identity, IMessage message);
 

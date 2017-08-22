@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.Equal(FailureKind.InternalError, sinkResult.InvalidDetailsList.FirstOrDefault().FailureKind);
+            Assert.Equal(FailureKind.InternalError, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.Equal(FailureKind.InternalError, sinkResult.InvalidDetailsList.FirstOrDefault().FailureKind);
+            Assert.Equal(FailureKind.InternalError, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
     }
 }

@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
         {
+            message.SystemProperties[Edge.Hub.Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString();
             IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
             return this.router.RouteAsync(routingMessage);
         }
@@ -127,6 +128,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Task routingSendMessageTask = this.router.RouteAsync(routingMessage);
 
             return Task.WhenAll(cloudSendMessageTask, routingSendMessageTask);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.router?.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         static class Events

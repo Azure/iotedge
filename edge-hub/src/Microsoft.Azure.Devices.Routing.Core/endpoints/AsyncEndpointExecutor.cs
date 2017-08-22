@@ -33,8 +33,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     {
         const int MaxMessagesPerTask = 1000;
 
-        readonly Timer batchTimer;
-        readonly ICheckpointer checkpointer;
+        readonly Timer batchTimer;        
         readonly AtomicBoolean closed;
         readonly CancellationTokenSource cts;
         readonly ITargetBlock<IMessage> head;
@@ -50,7 +49,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             Preconditions.CheckNotNull(endpoint);
             Preconditions.CheckNotNull(config);
-            this.checkpointer = Preconditions.CheckNotNull(checkpointer);
+            this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.cts = new CancellationTokenSource();
             this.options = Preconditions.CheckNotNull(options);
             this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
@@ -81,13 +80,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.tail = process;
         }
 
-        public async Task Invoke(IMessage message)
+        protected ICheckpointer Checkpointer { get; }
+
+        protected CancellationTokenSource CancellationTokenSource => this.cts;
+
+        public virtual Task Invoke(IMessage message) => this.SendToTplHead(message);
+
+        protected async Task SendToTplHead(IMessage message)
         {
             try
             {
                 Preconditions.CheckNotNull(message);
 
-                this.checkpointer.Propose(message);
+                this.Checkpointer.Propose(message);
 
                 if (this.closed)
                 {
@@ -133,7 +138,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        public async Task CloseAsync()
+        public async virtual Task CloseAsync()
         {
             Events.Close(this);
 

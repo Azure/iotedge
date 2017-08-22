@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="RocksDbNative" Version="5.4.6.9" />
+    <PackageReference Include="RocksDbSharp" Version="5.4.6.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj" />
+  </ItemGroup>
+
+</Project>

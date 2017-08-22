@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
@@ -148,9 +149,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(false, null, TimeSpan.MinValue, 0);
             builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics));
-            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes));
+            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes, storeAndForwardConfiguration));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();
 

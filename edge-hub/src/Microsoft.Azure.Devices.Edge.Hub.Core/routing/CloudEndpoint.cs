@@ -52,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public async Task<ISinkResult> ProcessAsync(IRoutingMessage routingMessage, CancellationToken token)
             {
-                // TODO - figure out if we can use cancellation token to cancel send
-                var succeded = new List<IRoutingMessage>();
+                var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
+                SendFailureDetails sendFailureDetails = null;
 
                 IMessage message = this.cloudEndpoint.messageConverter.ToMessage(Preconditions.CheckNotNull(routingMessage, nameof(routingMessage)));
                 await this.GetCloudProxy(routingMessage)
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             bool result = await c.SendMessageAsync(message);
                             if (result)
                             {
-                                succeded.Add(routingMessage);
+                                succeeded.Add(routingMessage);
                             }
                             else
                             {
@@ -74,29 +74,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         },
                         () =>
                         {
-                            // TODO - Check if this should be failed instead. 
-                            invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.InternalError));
+
+                            failed.Add(routingMessage);
+                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException($"IoTHub is not connected"));
                             return TaskEx.Done;
                         });
 
-                return new SinkResult<IRoutingMessage>(succeded, failed, invalid, null);
+                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
             }
 
             public async Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
-                var succeded = new List<IRoutingMessage>();
+                var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
 
                 foreach (IRoutingMessage routingMessage in Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)))
                 {
+                    if(token.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
                     ISinkResult res = await this.ProcessAsync(routingMessage, token);
-                    succeded.AddRange(res.Succeeded);
+                    succeeded.AddRange(res.Succeeded);
                     failed.AddRange(res.Failed);
                     invalid.AddRange(res.InvalidDetailsList);
                 }
 
-                return new SinkResult<IRoutingMessage>(succeded, failed, invalid, null);
+                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, null);
             }
 
             public Task CloseAsync(CancellationToken token)
@@ -107,7 +113,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public Endpoint Endpoint => this.cloudEndpoint;
 
-            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(_ => false);
+            public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(this.IsTransientException);
+
+            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException;
 
             Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
             {
@@ -136,7 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 CloudProxyNotFound = IdStart,
-                DeviceIdNotFound
+                DeviceIdNotFound,
+                IoTHubNotConnected
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -149,7 +158,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void CloudProxyNotFound(string id)
             {
-                Log.LogError((int)EventIds.CloudProxyNotFound, Invariant($"Cloud proxy not found for Id {id}"));
+                Log.LogWarning((int)EventIds.CloudProxyNotFound, Invariant($"Cloud proxy not found for Id {id}"));
+            }
+
+            internal static void IoTHubNotConnected(string id)
+            {
+                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"IoTHub not connected for Id {id}"));
             }
         }
     }

@@ -28,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string Version = "version";
         public const string ExpiryTimeUtc = "absolute-expiry-time";
         public const string MessageType = "messageType";
-        
+        public const string EdgeMessageId = "edgeMessageId";
+
         private class OnTheWireSystemPropertyNames
         {
             public const string ExpiryTimeUtc = "$.exp";
@@ -67,6 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { ContentType, OnTheWireSystemPropertyNames.ContentType },
             { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncoding },
             { MessageSchema, OnTheWireSystemPropertyNames.MessageSchema }
-        };
+        };        
     }
 }

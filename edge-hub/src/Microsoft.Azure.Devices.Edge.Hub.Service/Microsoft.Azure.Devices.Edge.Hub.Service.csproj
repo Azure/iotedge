@@ -31,6 +31,7 @@
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj" />
 	<ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Http\Microsoft.Azure.Devices.Edge.Hub.Http.csproj" />
 	<ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj" />
+	<ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb.csproj" />
   </ItemGroup>
 
   <ItemGroup>
