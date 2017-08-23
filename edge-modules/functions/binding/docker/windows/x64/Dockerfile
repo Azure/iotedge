@@ -1,6 +1,6 @@
 # escape=`
 
-FROM edgebuilds.azurecr.io/azure-functions-runtime-windows-x64:2.0.0-beta1-aaebce7
+FROM edgebuilds.azurecr.io/azure-functions-runtime-windows-x64:2.0.0-beta1-0c7272b
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

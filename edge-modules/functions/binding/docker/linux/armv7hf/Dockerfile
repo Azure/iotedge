@@ -1,4 +1,4 @@
-FROM edgebuilds.azurecr.io/azure-functions-runtime-armv7hf:2.0.0-beta1-aaebce7
+FROM edgebuilds.azurecr.io/azure-functions-runtime-armv7hf:2.0.0-beta1-0c7272b
 
 WORKDIR /app
 
