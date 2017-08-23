@@ -144,8 +144,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             if (!this.storeAndForwardConfiguration.IsEnabled)
             {
                 // IEndpointExecutorFactory
-                builder.Register(c => Task.FromResult(new SyncEndpointExecutorFactory(c.Resolve<EndpointExecutorConfig>())))
-                    .As<Task<IEndpointExecutorFactory>>()
+                builder.Register(c => new SyncEndpointExecutorFactory(c.Resolve<EndpointExecutorConfig>()))
+                    .As<IEndpointExecutorFactory>()
+                    .SingleInstance();
+
+                // Task<Router>
+                builder.Register(c => Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, c.Resolve<RouterConfig>(), c.Resolve<IEndpointExecutorFactory>()))
+                    .As<Task<Router>>()
                     .SingleInstance();
             }
             else
@@ -176,17 +181,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     })
                    .As<Task<IEndpointExecutorFactory>>()
                    .SingleInstance();
-            }
 
-            // Task<Router>
-            builder.Register(
-                    async c =>
-                    {
-                        IEndpointExecutorFactory endpointExecutorFactory = await c.Resolve<Task<IEndpointExecutorFactory>>();
-                        return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, c.Resolve<RouterConfig>(), endpointExecutorFactory, CheckpointStore.Create(c.Resolve<IDbStoreProvider>()));
-                    })
-                .As<Task<Router>>()
-                .SingleInstance();
+                // Task<Router>
+                builder.Register(
+                        async c =>
+                        {
+                            IEndpointExecutorFactory endpointExecutorFactory = await c.Resolve<Task<IEndpointExecutorFactory>>();
+                            return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, c.Resolve<RouterConfig>(), endpointExecutorFactory, CheckpointStore.Create(c.Resolve<IDbStoreProvider>()));
+                        })
+                    .As<Task<Router>>()
+                    .SingleInstance();
+            }
 
             // Task<IEdgeHub>
             builder.Register(
