@@ -1,0 +1,14 @@
+﻿[
+    {
+        "name": "dotnet",
+        "version": "1.0",
+        "imageName": "microsoft/dotnet",
+        "imageTag": "2.0.0-sdk-nanoserver",
+        "validator": {
+            "$type": "RunCommandValidator",
+            "command": "docker",
+            "args": "run --rm --link dotnet:dotnet microsoft/dotnet:2.0.0-sdk-nanoserver dotnet --version",
+            "outputEquals": "2.0.0"
+        }
+    }
+]

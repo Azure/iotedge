@@ -1,2 +1,5 @@
 ﻿{
+    "testSuite": [
+        "test-config-windows-x64.json"
+      ]
 }
