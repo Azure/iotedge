@@ -127,6 +127,7 @@ if [ "$PUBLISH_TESTS" == "--publish-tests" ]; then
     echo "Copying $SRC_SCRIPTS_DIR to $RELEASE_TESTS_FOLDER/scripts"
     rm -fr $RELEASE_TESTS_FOLDER/scripts
     cp -r $SRC_SCRIPTS_DIR $RELEASE_TESTS_FOLDER
+    cp $ROOT_FOLDER/nuget.config $RELEASE_TESTS_FOLDER
 fi
 
 exit $RES

@@ -129,4 +129,5 @@ if "!PUBLISH_TESTS!" == "--publish-tests"  (
 
     echo Copying %SRC_SCRIPTS_DIR% to %RELEASE_TESTS_FOLDER%
     xcopy /si %SRC_SCRIPTS_DIR% %RELEASE_TESTS_FOLDER%\scripts
+    xcopy %BUILD_REPOSITORY_LOCALPATH%\Nuget.config %RELEASE_TESTS_FOLDER%
 )
