@@ -14,14 +14,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Message = Microsoft.Azure.Devices.Message;
 
     [Bvt]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class Cloud2DeviceTest : IClassFixture<MqttHeadFixture>
+    public class Cloud2DeviceTest
     {
+        ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         const string MessagePropertyName = "property1";
         //use different device than edge device id so the connection is closed between tests
         const string DeviceId = "device2";
 
-        [Fact, TestPriority(1)]
+        [Fact, TestPriority(101)]
         public async void Receive_C2D_SingleMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -34,8 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
                 await serviceClient.OpenAsync();
 
-                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                {
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+                };
                 ITransportSettings[] settings = { mqttSetting };
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                 await deviceClient.OpenAsync();
@@ -63,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(2)]
+        [Fact, TestPriority(102)]
         public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -80,8 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(DeviceId, message);
 
-                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                {
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+                };
                 ITransportSettings[] settings = { mqttSetting };
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                 await deviceClient.OpenAsync();
@@ -104,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact, TestPriority(3)]
+        [Fact, TestPriority(103)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -121,8 +127,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(DeviceId, message);
 
-                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                {
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+                };
                 ITransportSettings[] settings = { mqttSetting };
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                 await deviceClient.OpenAsync();

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.Security.Cryptography.X509Certificates;
-    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
@@ -30,10 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
-    public class ProtocolHeadFixture : IDisposable
+    public class ProtocolHeadFixture
     {
         IProtocolHead protocolHead;
         IContainer container;
+        static readonly ProtocolHeadFixture instance = new ProtocolHeadFixture();
 
         readonly IList<string> inboundTemplates = new List<string>()
         {
@@ -53,10 +53,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
-        readonly IList<string> defaultRoutes = new List<string>() { "FROM /messages/events INTO $upstream" };
         const string DeviceId = "device1";
 
-        public void Dispose()
+        readonly IList<string> routes = new List<string>() {
+            "FROM /messages/events INTO $upstream",
+            "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
+            "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
+            "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
+            "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
+            "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
+            "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
+            "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
+            "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
+            "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
+            "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
+        };
+
+        public static ProtocolHeadFixture GetInstance()
+        {
+            return instance;
+        }
+
+        private ProtocolHeadFixture()
+        {
+            bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
+            if (shouldStartEdge)
+            {
+                this.StartMqttHead(this.routes, null).Wait();
+            }
+        }
+
+        ~ProtocolHeadFixture()
         {
             if (this.protocolHead != null)
             {
@@ -131,7 +160,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var certificate = new X509Certificate2(cert);
             string iothubHostname = await SecretsHelper.GetSecret("IothubHostname");
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
-            routes = routes ?? this.defaultRoutes;
 
             var builder = new ContainerBuilder();
             builder.RegisterModule(new LoggingModule());

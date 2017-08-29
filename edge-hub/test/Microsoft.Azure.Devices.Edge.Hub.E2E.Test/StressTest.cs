@@ -14,12 +14,14 @@
     using Xunit;
 
     [Bvt]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class StressTest : IClassFixture<MqttHeadFixture>
+    public class StressTest
     {
+        ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         string edgeDeviceConnectionString;
 
-        [Fact, TestPriority(1)]
+        [Fact, TestPriority(301)]
         public async Task SingleSenderSingleReceiverTest()
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_SingleSender"], out int messagesCount);
@@ -52,9 +54,11 @@
                     await receiver.Disconnect();
                 }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(2)]
+        [Fact, TestPriority(302)]
         public async Task MultipleSendersSingleReceiverTest()
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSenders"], out int messagesCount);
@@ -95,9 +99,11 @@
                     await receiver.Disconnect();
                 }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(3)]
+        [Fact, TestPriority(303)]
         public async Task MultipleSendersMultipleReceivers_Count_Test()
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSendersMultipleReceivers"], out int messagesCount);
@@ -133,9 +139,11 @@
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(4)]
+        [Fact, TestPriority(304)]
         public async Task MultipleSendersMultipleReceivers_Duration_Test()
         {
             List<Module> senders = null;
@@ -169,6 +177,8 @@
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
         async Task<List<Module>> GetModules(string moduleNamePrefix, int count, bool isReceiver)

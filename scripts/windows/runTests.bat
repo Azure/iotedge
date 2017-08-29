@@ -33,11 +33,6 @@ IF NOT [%1] == [] (
     )
 )
 
-IF NOT DEFINED TEST_FILTER (
-    REM Default is to run only unit tests
-    SET TEST_FILTER=--filter "Category=Unit"
-)
-
 SET TEST_PROJ_PATTERN=Microsoft.Azure*test.csproj
 SET ROOTFOLDER=%BUILD_REPOSITORY_LOCALPATH%
 SET DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet

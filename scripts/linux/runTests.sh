@@ -14,7 +14,7 @@ AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 
 # Process script arguments
-TEST_FILTER=${1:-"--filter Category=Unit"}
+TEST_FILTER="$1"
 
 SUFFIX='Microsoft.Azure*test.csproj'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
@@ -42,7 +42,7 @@ echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
 RES=0
 while read line; do
   echo "Running tests for project - $line"
-  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER --logger "trx;LogFileName=result.trx" -o "$OUTPUT_FOLDER" --no-build $line
+  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER -p:ParallelizeTestCollections=false --logger "trx;LogFileName=result.trx" -o "$OUTPUT_FOLDER" --no-build $line
   if [ $? -gt 0 ]
   then
     RES=1
