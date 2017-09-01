@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudProxyMock = new Mock<ICloudProxy>();
             cloudProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))                
-                .ReturnsAsync(() => true);
+                .Returns(Task.CompletedTask);
             cloudProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
             string device1Id = "device1";

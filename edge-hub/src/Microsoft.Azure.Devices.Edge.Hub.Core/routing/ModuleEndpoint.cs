@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -46,6 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         class ModuleMessageProcessor : IProcessor
         {
+            static readonly ISet<Type> RetryableExceptions = new HashSet<Type>
+            {
+                typeof(TimeoutException),
+                typeof(IOException),
+                typeof(EdgeHubIOException)
+            };
+
             Util.Option<IDeviceProxy> devicePoxy = Option.None<IDeviceProxy>();
             readonly ModuleEndpoint moduleEndpoint;
 
@@ -66,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 // TODO - figure out if we can use cancellation token to cancel send
                 var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
+                var invalid = new List<InvalidDetails<IRoutingMessage>>();
                 SendFailureDetails sendFailureDetails = null;
 
                 await this.GetDeviceProxy()
@@ -75,21 +84,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                             foreach (IRoutingMessage routingMessage in routingMessages)
                             {
                                 IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                                bool res = await d.SendMessageAsync(message, this.moduleEndpoint.Input);
-                                if (res)
+                                try
                                 {
+                                    await d.SendMessageAsync(message, this.moduleEndpoint.Input);
                                     succeeded.Add(routingMessage);
                                 }
-                                else
+                                catch (Exception ex)
                                 {
-                                    failed.Add(routingMessage);
+                                    if (IsRetryable(ex))
+                                    {
+                                        failed.Add(routingMessage);
+                                    }
+                                    else
+                                    {
+                                        invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                                    }
+                                    Events.ErrorSendingMessages(this.moduleEndpoint, ex);
                                 }
+                            }
+
+                            if (failed.Count > 0)
+                            {
+                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.Id}"));
                             }
                         },
                         () =>
                         {
                             failed.AddRange(routingMessages);
-                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.Id} is not connected"));
+                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.Id} is not connected"));
                             Events.NoDeviceProxy(this.moduleEndpoint);
                             return TaskEx.Done;
                         });
@@ -107,15 +129,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(this.IsTransientException);
 
-            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException;
+            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException
+                || ex is EdgeHubIOException;
 
             Util.Option<IDeviceProxy> GetDeviceProxy()
             {
                 this.devicePoxy = this.devicePoxy.Filter(d => d.IsActive).Match(
                     d => Option.Some(d),
-                    () => this.moduleEndpoint.deviceProxyGetterFunc());
+                    () => this.moduleEndpoint.deviceProxyGetterFunc().Filter(d => d.IsActive));
                 return this.devicePoxy;
             }
+
+            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
         }
 
         static class Events
@@ -125,12 +150,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             enum EventIds
             {
-                NoDeviceProxy = IdStart
+                NoDeviceProxy = IdStart,
+                ErrorSendingMessages
             }
 
             public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
             {
-                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Device proxy not found for device {moduleEndpoint.Id}"));
+                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Module {moduleEndpoint.Id} is not connected"));
+            }
+
+            public static void ErrorSendingMessages(ModuleEndpoint moduleEndpoint, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorSendingMessages, ex, Invariant($"Error sending messages to module {moduleEndpoint.Id}"));
             }
         }
     }

@@ -7,21 +7,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     public interface IDeviceListener
     {
-        Task ProcessMessageAsync(IMessage message);
+        Task ProcessDeviceMessageAsync(IMessage message);
 
-        Task ProcessMessageBatchAsync(IEnumerable<IMessage> message);
+        Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message);
 
         Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage);
 
         Task<IMessage> GetTwinAsync();
 
-        Task ProcessMethodResponseAsync(DirectMethodResponse response);
+        Task ProcessMethodResponseAsync(IMessage message);
 
         void BindDeviceProxy(IDeviceProxy deviceProxy);
 
         Task CloseAsync();
 
-        Task ProcessFeedbackMessageAsync(IFeedbackMessage feedbackMessage);
+        Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus);
 
         IIdentity Identity { get; }
     }

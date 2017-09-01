@@ -3,8 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -24,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     {
         readonly Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
-        
+
         public CloudEndpoint(string id, Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
@@ -43,6 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         class CloudMessageProcessor : IProcessor
         {
+            static readonly ISet<Type> RetryableExceptions = new HashSet<Type>
+            {
+                typeof(TimeoutException),
+                typeof(IOException),
+                typeof(IotHubException)
+            };
+
             readonly CloudEndpoint cloudEndpoint;
 
             public CloudMessageProcessor(CloudEndpoint endpoint)
@@ -62,21 +71,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     .Match(
                         async (c) =>
                         {
-                            bool result = await c.SendMessageAsync(message);
-                            if (result)
+                            try
                             {
+                                await c.SendMessageAsync(message);
                                 succeeded.Add(routingMessage);
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                failed.Add(routingMessage);
+                                if (IsRetryable(ex))
+                                {
+                                    failed.Add(routingMessage);
+                                }
+                                else
+                                {
+                                    invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                                }
+
+                                if (failed.Count > 0)
+                                {
+                                    sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"));
+                                }
                             }
                         },
                         () =>
                         {
-
+                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException("IoTHub is not connected"));
                             failed.Add(routingMessage);
-                            sendFailureDetails = new SendFailureDetails(FailureKind.InternalError, new EdgeHubConnectionException($"IoTHub is not connected"));
+                            Events.IoTHubNotConnected(this.Endpoint.Id);
                             return TaskEx.Done;
                         });
 
@@ -91,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 foreach (IRoutingMessage routingMessage in Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)))
                 {
-                    if(token.IsCancellationRequested)
+                    if (token.IsCancellationRequested)
                     {
                         break;
                     }
@@ -124,16 +145,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                         ? $"{deviceId}/{moduleId}"
                         : deviceId;
-                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);
-                    if (!cloudProxy.Exists(c => c.IsActive))
-                    {
-                        Events.CloudProxyNotFound(id);
-                    }
+                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id)
+                        .Filter(c => c.IsActive);
                     return cloudProxy;
                 }
                 Events.DeviceIdNotFound(routingMessage);
                 return Option.None<ICloudProxy>();
             }
+
+            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
         }
 
         static class Events
@@ -143,8 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             enum EventIds
             {
-                CloudProxyNotFound = IdStart,
-                DeviceIdNotFound,
+                DeviceIdNotFound = IdStart,
                 IoTHubNotConnected
             }
 
@@ -156,14 +175,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogError((int)EventIds.DeviceIdNotFound, message);
             }
 
-            public static void CloudProxyNotFound(string id)
-            {
-                Log.LogWarning((int)EventIds.CloudProxyNotFound, Invariant($"Cloud proxy not found for Id {id}"));
-            }
-
             internal static void IoTHubNotConnected(string id)
             {
-                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"IoTHub not connected for Id {id}"));
+                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active IotHub connection for device {id}"));
             }
         }
     }

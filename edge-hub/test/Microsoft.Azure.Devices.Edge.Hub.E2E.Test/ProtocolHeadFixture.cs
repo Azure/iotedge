@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(false, null, TimeSpan.MinValue, 0);
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(false, null, TimeSpan.MaxValue, 0);
             builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics));
             builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes, storeAndForwardConfiguration, ConnectionPoolSize));

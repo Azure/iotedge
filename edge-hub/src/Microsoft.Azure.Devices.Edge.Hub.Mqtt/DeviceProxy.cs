@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Events.SetInactive(this.Identity);
         }
 
-        public Task<bool> SendMessageAsync(IMessage message)
+        public Task SendC2DMessageAsync(IMessage message)
         {
             message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = this.Identity.Id;
             message.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriC2D;
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(true);
         }
 
-        public Task<bool> SendMessageAsync(IMessage message, string input)
+        public Task SendMessageAsync(IMessage message, string input)
         {
             bool result = false;
             var moduleIdentity = this.Identity as IModuleIdentity;
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return Task.FromResult(result);
         }
 
-        public Task CallMethodAsync(DirectMethodRequest request)
+        public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
         {
             string address = TwinAddressHelper.FormatDeviceMethodRequestAddress(request.CorrelationId, request.Name);
             IProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(request.Data.ToByteBuffer(), address)
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .Build();
 
             this.channel.Handle(pgMessage);
-            return TaskEx.Done;
+            return Task.FromResult(default(DirectMethodResponse));
         }
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties)

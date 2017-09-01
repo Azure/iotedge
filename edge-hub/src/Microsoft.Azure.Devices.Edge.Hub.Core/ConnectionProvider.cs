@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 throw new EdgeHubConnectionException($"Unable to connect to IoTHub for device {identity.Id}", cloudProxy.Exception);
             }
-            IDeviceListener deviceListener = new DeviceListener(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
+            IDeviceListener deviceListener = new DeviceMessageHandler(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
             return deviceListener;
         }
 

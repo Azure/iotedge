@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             int index = 0;
             foreach ((byte[] key, byte[] value) kv in new List<(byte[], byte[])>(this.keyValues))
             {
-                if (Enumerable.SequenceEqual(key, kv.key))
+                if (key.SequenceEqual(kv.key))
                 {
                     return index;
                 }

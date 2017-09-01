@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return converter.ToMessage(twin);
         }
 
-        public async Task<bool> SendMessageAsync(IMessage inputMessage)
+        public async Task SendMessageAsync(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
@@ -72,16 +72,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 await this.deviceClient.SendEventAsync(message);
                 Events.SendMessage(this);
-                return true;
             }
             catch (Exception ex)
             {
                 Events.ErrorSendingMessage(this, ex);
-                return false;
+                throw;
             }
         }
 
-        public async Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
+        public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             IEnumerable<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
@@ -90,12 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 await this.deviceClient.SendEventBatchAsync(messages);
                 Events.SendMessage(this);
-                return true;
             }
             catch (Exception ex)
             {
                 Events.ErrorSendingBatchMessage(this, ex);
-                return false;
+                throw;
             }
         }
 
@@ -115,12 +113,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public bool IsActive => this.isActive.Get();
 
-        public Task SendFeedbackMessageAsync(IFeedbackMessage message)
+        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus)
         {
-            Preconditions.CheckNotNull(message, nameof(message));
-            message.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId);
+            Preconditions.CheckNonWhiteSpace(messageId, nameof(messageId));
             Events.SendFeedbackMessage(this);
-            switch (message.FeedbackStatus)
+            switch (feedbackStatus)
             {
                 case FeedbackStatus.Complete:
                     return this.deviceClient.CompleteAsync(messageId);
@@ -130,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     return this.deviceClient.RejectAsync(messageId);
                 default:
                     throw new InvalidOperationException("Feedback status type is not supported");
-            }            
+            }
         }
 
         public Task SetupCallMethodAsync() => this.cloudReceiver.SetupCallMethodAsync();
@@ -183,12 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogError((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.identity.Id}"));
+                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.identity.Id}"));
             }
 
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogError((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.identity.Id}"));
+                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.identity.Id}"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
@@ -205,6 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.identity.Id}"));
             }
-        }        
+        }
     }
 }

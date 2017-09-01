@@ -20,9 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     {
         Task<bool> CloseAsync();
 
-        Task<bool> SendMessageAsync(IMessage message);
+        Task SendMessageAsync(IMessage message);
 
-        Task<bool> SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);
+        Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);
 
         Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage);
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         bool IsActive { get; }
 
-        Task SendFeedbackMessageAsync(IFeedbackMessage message);
+        Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus);
 
         Task SetupCallMethodAsync();
 

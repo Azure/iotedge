@@ -308,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutorConfig = new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
 
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).ReturnsAsync(true);
+            cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.SetupGet(c => c.IsActive).Returns(true);
 
@@ -345,10 +345,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IModuleIdentity moduleIdentity = SetupModuleIdentity(moduleId, deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(moduleIdentity);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceListener(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                var deviceListener = new DeviceMessageHandler(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
-                deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase)))).Callback<IMessage, string>((m, e) => receivedMessages.Add(m)).ReturnsAsync(true);
+                deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase))))
+                    .Callback<IMessage, string>((m, e) => receivedMessages.Add(m))
+                    .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
                 connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
                 return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
@@ -359,14 +361,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
                 message.SystemProperties[SystemProperties.OutputName] = this.outputName;
-                return this.deviceListener.ProcessMessageAsync(message);
+                return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
 
             public Task SendMessage(IMessage message)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
-                return this.deviceListener.ProcessMessageAsync(message);
+                return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
 
             public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(m =>
@@ -395,14 +397,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IDeviceIdentity deviceIdentity = SetupDeviceIdentity(deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(deviceIdentity);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceListener(deviceIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                var deviceListener = new DeviceMessageHandler(deviceIdentity, edgeHub, connectionManager, cloudProxy.Value);
                 return new TestDevice(deviceIdentity, deviceListener);
             }
 
             public Task SendMessage(IMessage message)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
-                return this.deviceListener.ProcessMessageAsync(message);
+                return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
 
             public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) => 

@@ -20,7 +20,7 @@
             var identity = Mock.Of<IIdentity>();
 
             IMessage sentMessage = null;
-            deviceProxy.Setup(r => r.SendMessageAsync(It.IsAny<IMessage>()))
+            deviceProxy.Setup(r => r.SendC2DMessageAsync(It.IsAny<IMessage>()))
                 .Returns(Task.FromResult(true))
                 .Callback<IMessage>(m => sentMessage = m);
 
@@ -65,7 +65,7 @@
 
             var cloudListener = new CloudListener(deviceProxy, edgeHub, identity);
             await cloudListener.CallMethodAsync(request);
-            Mock.Get(edgeHub).Verify(dp => dp.InvokeMethodAsync(identity, request), Times.Once);
+            Mock.Get(deviceProxy).Verify(dp => dp.InvokeMethodAsync(request), Times.Once);
         }
     }
 }

@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             if (!message.SystemProperties.TryGetValue(Core.SystemProperties.EdgeMessageId, out string edgeMessageId))
             {
-                throw new InvalidOperationException($"Message does not contain required system property EdgeMessageId");
+                throw new InvalidOperationException("Message does not contain required system property EdgeMessageId");
             }
 
             long offset = await sequentialStore.Add(new MessageRef(edgeMessageId));
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 

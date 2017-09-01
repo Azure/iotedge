@@ -2,16 +2,21 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using static System.FormattableString;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
 
     public class MessagingServiceClient : IMessagingServiceClient
@@ -44,11 +49,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Events.BindMessageChannel(this.deviceListener.Identity);
         }
 
-        static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.TwinPrefix, StringComparison.Ordinal);
+        public Task AbandonAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Abandon);
 
-        static bool IsMethodResponseAddress(string topicName) => topicName.StartsWith(Constants.MethodPrefix, StringComparison.Ordinal);
+        public Task CompleteAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
 
-        async Task SendTwinAsync(IProtocolGatewayMessage protocolGatewayMessage)
+        public Task RejectAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Reject);
+
+        public Task DisposeAsync(Exception cause)
+        {
+            Events.Disposing(this.deviceListener.Identity, cause);
+            return this.deviceListener.CloseAsync();
+        }
+
+        public async Task SendAsync(IProtocolGatewayMessage message)
+        {
+            Preconditions.CheckNotNull(message, nameof(message));
+
+            using (message)
+            {
+                Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address));
+                if (IsTwinAddress(message.Address))
+                {
+                    await this.ProcessTwinAsync(message);
+                }
+                else if (IsMethodResponseAddress(message.Address))
+                {
+                    await this.ProcessMethodResponse(message);
+                }
+                else
+                {
+                    await this.ProcessMessageAsync(message);
+                }
+            }
+        }
+
+        public int MaxPendingMessages => 100;
+
+        async Task ProcessTwinAsync(IProtocolGatewayMessage protocolGatewayMessage)
         {
             var properties = new Dictionary<StringSegment, StringSegment>();
             if (TwinAddressHelper.TryParseOperation(protocolGatewayMessage.Address, properties, out TwinAddressHelper.Operation operation, out StringSegment subresource))
@@ -76,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         break;
 
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
-                        EnsureNoSubresource(subresource);                        
+                        EnsureNoSubresource(subresource);
 
                         Core.IMessage forwardMessage = new MqttMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
                             .Build();
@@ -95,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 })
                                 .Build();
                             IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(deviceResponseMessage);
-                            this.messagingChannel.Handle(twinPatchMessage);                            
+                            this.messagingChannel.Handle(twinPatchMessage);
                         }
                         Events.UpdateReportedProperties(this.deviceListener.Identity);
                         break;
@@ -110,23 +147,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        Task SendMethodResponse(IProtocolGatewayMessage message)
+        Task ProcessMethodResponse(IProtocolGatewayMessage message)
         {
             try
             {
-                Events.SendMethodResponse(this.deviceListener.Identity, message.Address);
-                Core.IMessage msg = this.messageConverter.ToMessage(message);
-
-                if (!msg.Properties.TryGetValue(SystemProperties.CorrelationId, out string correlationId)
-                    || !msg.Properties.TryGetValue(SystemProperties.StatusCode, out string statusCode)
-                    || !int.TryParse(statusCode, out int statusCodeValue))
-                {
-                    Events.SendMethodResponseInvalid(this.deviceListener.Identity, message.Address);
-                    return TaskEx.Done;
-                }
-
-                message.Payload.ResetReaderIndex();
-                return this.deviceListener.ProcessMethodResponseAsync(new DirectMethodResponse(correlationId, message.Payload.ToByteArray(), statusCodeValue));
+                Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
+                this.deviceListener.ProcessMethodResponseAsync(coreMessage);
+                return Task.CompletedTask;                
             }
             catch (Exception e)
             {
@@ -135,13 +162,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        Task SendMessageAsync(IProtocolGatewayMessage message)
+        Task ProcessMessageAsync(IProtocolGatewayMessage message)
         {
             try
             {
                 Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
-                Events.SendMessage(this.deviceListener.Identity);
-                return this.deviceListener.ProcessMessageAsync(coreMessage);
+                Events.ProcessMessage(this.deviceListener.Identity);
+                return this.deviceListener.ProcessDeviceMessageAsync(coreMessage);
             }
             catch (Exception e)
             {
@@ -150,27 +177,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        public async Task SendAsync(IProtocolGatewayMessage message)
-        {
-            Preconditions.CheckNotNull(message, nameof(message));           
+        static bool IsTwinAddress(string topicName) => topicName.StartsWith(Constants.TwinPrefix, StringComparison.Ordinal);
 
-            using (message)
-            {
-                Preconditions.CheckNonWhiteSpace(message.Address, nameof(message.Address));
-                if (IsTwinAddress(message.Address))
-                {
-                    await this.SendTwinAsync(message);
-                }
-                else if (IsMethodResponseAddress(message.Address))
-                {
-                    await this.SendMethodResponse(message);
-                }
-                else
-                {
-                    await this.SendMessageAsync(message);
-                }
-            }
-        }
+        static bool IsMethodResponseAddress(string topicName) => topicName.StartsWith(Constants.MethodPrefix, StringComparison.Ordinal);
 
         static void EnsureNoSubresource(StringSegment subresource)
         {
@@ -179,50 +188,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new InvalidOperationException($"Further resource specialization is not supported: `{subresource.ToString()}`.");
             }
         }
-
-        // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
-        // message sent out via PG for example will cause a feedback to be generated
-        // with TwinLockToken as message ID which is redundant.
-        static bool IsValidMessageId(string messageId) => messageId != null && messageId != TwinLockToken;
-
-        public Task AbandonAsync(string messageId)
-        {
-            if (IsValidMessageId(messageId))
-            {
-                MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
-                message.SystemProperties.Add(SystemProperties.MessageId, messageId);
-                var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Abandon);
-                return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
-            }
-            return TaskEx.Done;
-        }
-
-        public Task CompleteAsync(string messageId)
-        {
-            if (IsValidMessageId(messageId))
-            {
-                MqttMessage message = new MqttMessage.Builder(new byte[0]).Build();
-                message.SystemProperties.Add(SystemProperties.MessageId, messageId);
-                var feedBackMessage = new MqttFeedbackMessage(message, FeedbackStatus.Complete);
-                return this.deviceListener.ProcessFeedbackMessageAsync(feedBackMessage);
-            }
-            return TaskEx.Done;
-        }
-
-        public Task RejectAsync(string messageId)
-        {
-            //Reject is not supported by IoTHub on MQTT
-            return TaskEx.Done;
-        }
-
-        public Task DisposeAsync(Exception cause)
-        {
-            Events.Disposing(this.deviceListener.Identity, cause);
-            return this.deviceListener.CloseAsync();
-        }
-
-        // TODO - Check what value should be set here.
-        public int MaxPendingMessages => 100; // From IotHub codebase.
 
         static class Events
         {
@@ -234,12 +199,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 BindMessageChannel = IdStart,
                 GetTwin,
                 UpdateReportedProperties,
-                SendMessage,
+                ProcessMessage,
                 Dispose,
-                SendMethodResponse,
-                InvalidMethodResponse,
-                SendMessageFailure,
-                SendMethodResponseFailure
+                SendMethodResponseFailure,
+                SendMessageFailure
             }
 
             public static void BindMessageChannel(IIdentity identity)
@@ -257,19 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device Id {identity.Id}"));
             }
 
-            public static void SendMessage(IIdentity identity)
+            public static void ProcessMessage(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device Id {identity.Id}"));
-            }
-
-            public static void SendMethodResponse(IIdentity identity, string address)
-            {
-                Log.LogDebug((int)EventIds.SendMethodResponse, Invariant($"Sending method response with address {address} for device Id {identity.Id}"));
-            }
-
-            public static void SendMethodResponseInvalid(IIdentity identity, string address)
-            {
-                Log.LogError((int)EventIds.InvalidMethodResponse, Invariant($"Method response address is invalid {address} for device Id {identity.Id}"));
+                Log.LogDebug((int)EventIds.ProcessMessage, Invariant($"Sending message for device Id {identity.Id}"));
             }
 
             public static void Disposing(IIdentity identity, Exception cause)
@@ -285,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SendMethodResponseFailed(IIdentity identity, Exception exception)
             {
                 Log.LogError((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
-            }
+            }            
         }
-    }
+    }    
 }

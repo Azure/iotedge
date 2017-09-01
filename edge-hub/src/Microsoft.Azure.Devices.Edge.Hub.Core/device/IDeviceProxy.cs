@@ -21,11 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     {
         Task CloseAsync(Exception ex);
 
-        Task<bool> SendMessageAsync(IMessage message);
+        Task SendC2DMessageAsync(IMessage message);
 
-        Task<bool> SendMessageAsync(IMessage message, string input);
+        Task SendMessageAsync(IMessage message, string input);
 
-        Task CallMethodAsync(DirectMethodRequest request);
+        Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request);
 
         Task OnDesiredPropertyUpdates(IMessage desiredProperties);
 

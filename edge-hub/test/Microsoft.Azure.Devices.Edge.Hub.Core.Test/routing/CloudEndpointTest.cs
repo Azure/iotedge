@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public void ModuleMessageProcessor_CloseAsyncTest()
+        public void CloudMessageProcessor_CloseAsyncTest()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var cloudProxy = Mock.Of<ICloudProxy>();
@@ -67,20 +67,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task ModuleMessageProcessor_ProcessAsyncTest()
+        public async Task CloudMessageProcessor_ProcessAsyncTest()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var routingMessage = Mock.Of<IRoutingMessage>();
-            var cloudProxy = Mock.Of<ICloudProxy>();
+            var cloudProxy = Mock.Of<ICloudProxy>(c => c.IsActive == true);
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> {{"connectionDeviceId", "myConnectionDeviceId"}});
-            Mock.Get(cloudProxy).Setup(cp => cp.SendMessageAsync(It.IsAny<IMessage>())).Returns(Task.FromResult(false));
+            Mock.Get(cloudProxy).Setup(cp => cp.SendMessageAsync(It.IsAny<IMessage>())).Returns(Task.FromResult(true));
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Option.Some(cloudProxy), routingMessageConverter);
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.True(sinkResult.Failed.Contains(routingMessage));
+            Assert.True(sinkResult.Succeeded.Contains(routingMessage));
         }
 
         [Fact]
@@ -95,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.Equal(FailureKind.InternalError, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(FailureKind.None, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(typeof(EdgeHubConnectionException), sinkResult.SendFailureDetails.OrDefault().RawException.GetType());
         }
 
         [Fact]
@@ -110,7 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
-            Assert.Equal(FailureKind.InternalError, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(FailureKind.None, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(typeof(EdgeHubConnectionException), sinkResult.SendFailureDetails.OrDefault().RawException.GetType());
         }
     }
 }

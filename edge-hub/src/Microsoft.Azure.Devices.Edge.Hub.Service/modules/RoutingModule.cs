@@ -128,10 +128,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        RetryStrategy defaultRetryStrategy = new FixedInterval(10, TimeSpan.FromSeconds(10));
-                        TimeSpan defaultRevivePeriod = TimeSpan.FromHours(1);
-                        TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
-                        return new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod);
+                        // Endpoint executor config values - 
+                        // ExponentialBackoff - minBackoff = 10s, maxBackoff = 60s, delta (used to add randomness to backoff) - 10s (default)
+                        // Num of retries = (Store and forward timeout secs / minBackoff) + 1 (this gives us an upper limit on the number of times we need to retry)
+                        // Revive period - period for which the endpoint should be considered dead if it doesn't respond - 1 min (we want to try continuously till the message expires)
+                        // Timeout - time for which we want for the ack from the endpoint = 60s
+                        
+                        int minWaitSecs = 10;
+                        int maxWaitSecs = 60;
+                        int retries = (int)Math.Min(1000, (this.storeAndForwardConfiguration.TimeToLive.TotalSeconds / minWaitSecs) + 1);
+                        RetryStrategy retryStrategy = new ExponentialBackoff(retries, TimeSpan.FromSeconds(minWaitSecs), TimeSpan.FromSeconds(maxWaitSecs), TimeSpan.FromSeconds(10));
+                        TimeSpan revivePeriod = TimeSpan.FromMinutes(1);
+                        TimeSpan timeout = TimeSpan.FromSeconds(60);
+                        return new EndpointExecutorConfig(timeout, retryStrategy, revivePeriod);
                     })
                 .As<EndpointExecutorConfig>()
                 .SingleInstance();

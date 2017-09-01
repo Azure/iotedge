@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var deviceProxyMock = new Mock<IDeviceProxy>();
             deviceProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))
-                .ReturnsAsync(() => true);
+                .Returns(Task.CompletedTask);
 
             deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
 

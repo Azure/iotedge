@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
         }
 
-        public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.edgeHub.InvokeMethodAsync(this.identity, request);
+        public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.deviceProxy.InvokeMethodAsync(request);
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.deviceProxy.OnDesiredPropertyUpdates(desiredProperties);
 
-        public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendMessageAsync(message);
+        public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendC2DMessageAsync(message);
     }
 }

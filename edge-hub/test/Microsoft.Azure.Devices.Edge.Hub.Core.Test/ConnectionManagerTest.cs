@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object, EdgeDeviceId);
 
-            var deviceListener = new DeviceListener(identity.Object, edgeHub.Object, connectionManager, cloudProxyMock.Object);
+            var deviceListener = new DeviceMessageHandler(identity.Object, edgeHub.Object, connectionManager, cloudProxyMock.Object);
 
             await connectionManager.CreateCloudConnectionAsync(identity.Object);
             Option<ICloudProxy> cloudProxy = connectionManager.GetCloudConnection(deviceId);
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             Option<IDeviceProxy> deviceProxy = connectionManager.GetDeviceConnection(deviceId);
             Assert.True(deviceProxy.HasValue);
-            Assert.Equal(deviceProxyMock1.Object, deviceProxy.OrDefault());
+            Assert.True(deviceProxy.OrDefault().IsActive);
             Assert.True(deviceProxyMock1.Object.IsActive);
 
             cloudProxy = connectionManager.GetCloudConnection(deviceId);
