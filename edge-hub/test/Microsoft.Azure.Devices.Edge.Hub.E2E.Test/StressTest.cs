@@ -215,7 +215,7 @@
         {
             if (this.edgeDeviceConnectionString == null)
             {
-                this.edgeDeviceConnectionString = await SecretsHelper.GetSecret("IotEdgeDevice1ConnStr1");
+                this.edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             }
             return this.edgeDeviceConnectionString;
         }

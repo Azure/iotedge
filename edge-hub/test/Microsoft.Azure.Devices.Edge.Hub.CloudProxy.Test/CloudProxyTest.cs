@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -22,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [Bvt]
     public class CloudProxyTest
     {
+        static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
         public static IEnumerable<object[]> GetTestMessages()
         {
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetTestMessage))]
         public async Task SendMessageTest(IMessage message)
         {
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             Assert.True(cloudProxy.Success);
             await cloudProxy.Value.SendMessageAsync(message);
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetTestMessages))]
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
 
             Try<ICloudProxy> cloudProxy1 = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             Assert.True(cloudProxy1.Success);
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetTestMessages))]
         public async Task SendMessageBatchTest(IList<IMessage> messages)
         {
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
             Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             Assert.True(cloudProxy.Success);
             await cloudProxy.Value.SendMessageBatchAsync(messages);

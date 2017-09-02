@@ -20,14 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         const string MessagePropertyName = "property1";
-        //use different device than edge device id so the connection is closed between tests
-        const string DeviceId = "device2";
+        const string DeviceNamePrefix = "E2E_c2d_";
 
         [Fact, TestPriority(101)]
         public async void Receive_C2D_SingleMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            string deviceConnectionString = await this.GetDeviceConnectionString("device2ConnStrKey");
+
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -47,9 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(2));
 
                 Message message = this.CreateMessage(out string payload);
-                await serviceClient.SendAsync(DeviceId, message);
+                await serviceClient.SendAsync(deviceName, message);
 
                 await this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]);
+                
             }
             finally
             {
@@ -64,6 +66,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // wait for the connection to be closed on the Edge side
                 await Task.Delay(TimeSpan.FromSeconds(20));
+
+                if (rm != null)
+                {
+                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
+                    await rm.CloseAsync();
+                }
             }
         }
 
@@ -71,7 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            string deviceConnectionString = await this.GetDeviceConnectionString("device2ConnStrKey");
+
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -82,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 //Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
-                await serviceClient.SendAsync(DeviceId, message);
+                await serviceClient.SendAsync(deviceName, message);
 
                 var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                 {
@@ -107,6 +117,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // wait for the connection to be closed on the Edge side
                 await Task.Delay(TimeSpan.FromSeconds(20));
+
+                if (rm != null)
+                {
+                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
+                    await rm.CloseAsync();
+                }
             }
         }
 
@@ -114,7 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            string deviceConnectionString = await this.GetDeviceConnectionString("device2ConnStrKey");
+
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -125,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 //Send message before device is listening
                 Message message = this.CreateMessage(out string payload);
-                await serviceClient.SendAsync(DeviceId, message);
+                await serviceClient.SendAsync(deviceName, message);
 
                 var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                 {
@@ -139,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // send new message after offline was received
                 message = this.CreateMessage(out payload);
-                await serviceClient.SendAsync(DeviceId, message);
+                await serviceClient.SendAsync(deviceName, message);
                 await this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]);
             }
             finally
@@ -155,6 +173,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // wait for the connection to be closed on the Edge side
                 await Task.Delay(TimeSpan.FromSeconds(20));
+
+                if (rm != null)
+                {
+                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
+                    await rm.CloseAsync();
+                }
             }
         }
 
@@ -194,13 +218,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 throw new TimeoutException("Test is running longer than expected.");
             }
-        }
-
-        async Task<string> GetDeviceConnectionString(string secretConfigKey)
-        {
-            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-            string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(secretConfigKey);
-            return $"{deviceConnectionString};GatewayHostName={gatewayHostname}";
         }
     }
 }
