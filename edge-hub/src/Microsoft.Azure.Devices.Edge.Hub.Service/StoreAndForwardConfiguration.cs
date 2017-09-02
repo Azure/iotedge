@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             else
             {
-                return new StoreAndForwardConfiguration(false, null, TimeSpan.MinValue, 0);
+                return new StoreAndForwardConfiguration(false, null, TimeSpan.MaxValue, 0);
             }
         }
 
