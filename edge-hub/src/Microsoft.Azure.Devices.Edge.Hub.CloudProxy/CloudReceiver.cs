@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
         readonly ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>> methodCalls;
         readonly AtomicLong correlationId = new AtomicLong();
-
         Task receiveMessageTask;
 
         // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
@@ -205,11 +204,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 this.listener = listener;
                 this.converter = converter;
-            }
+			}
 
             public Task OnDesiredPropertyUpdates(TwinCollection desiredProperties)
             {
-                return this.listener.OnDesiredPropertyUpdates(this.converter.ToMessage(desiredProperties));
+				return this.listener.OnDesiredPropertyUpdates(this.converter.ToMessage(desiredProperties));
             }
         }
     }

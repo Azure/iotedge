@@ -56,8 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<IMessage> GetTwinAsync()
         {
-            Twin twin = await this.deviceClient.GetTwinAsync();
-            Events.GetTwin(this);
+			Twin twin = await this.deviceClient.GetTwinAsync();
+			Events.GetTwin(this);
             IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
             return converter.ToMessage(twin);
         }

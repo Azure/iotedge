@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task<IMessage> GetTwinAsync() => this.cloudProxy.GetTwinAsync();
+		public Task<IMessage> GetTwinAsync() => this.edgeHub.GetTwinAsync(this.Identity.Id);
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
 

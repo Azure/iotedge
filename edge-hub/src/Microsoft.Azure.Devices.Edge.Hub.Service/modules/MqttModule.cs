@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ISettingsProvider>()
                 .SingleInstance();
 
-            // Task<IMqttConnectionProvider>
-            builder.Register(
+			// Task<IMqttConnectionProvider>
+			builder.Register(
                 async c =>
                 {
                     IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();

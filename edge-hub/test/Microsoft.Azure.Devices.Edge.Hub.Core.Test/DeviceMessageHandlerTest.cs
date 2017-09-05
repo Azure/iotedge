@@ -15,25 +15,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class DeviceMessageHandlerTest
     {
-        [Fact]
-        public async Task ForwardsGetTwinOperationToTheCloudProxy()
-        {
-            var edgeHub = Mock.Of<IEdgeHub>();
-            var connMgr = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IDeviceIdentity>();
+		[Fact]
+		public async Task ForwardsGetTwinOperationToEdgeHub()
+		{
+			var edgeHub = new Mock<IEdgeHub>();
+			var connMgr = Mock.Of<IConnectionManager>();
+			var identity = Mock.Of<IDeviceIdentity>();
+			var cloudProxy = Mock.Of<ICloudProxy>();
 
-            IMessage expectedMessage = new Message(new byte[0]);
+			IMessage expectedMessage = new Message(new byte[0]);
+			edgeHub.Setup(e => e.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(expectedMessage));
 
-            var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(x => x.GetTwinAsync())
-                .Returns(Task.FromResult(expectedMessage));
+			var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, cloudProxy);
+			IMessage actualMessage = await listener.GetTwinAsync();
 
-            var listener = new DeviceMessageHandler(identity, edgeHub, connMgr, cloudProxy.Object);
-            IMessage actualMessage = await listener.GetTwinAsync();
-
-            cloudProxy.Verify(x => x.GetTwinAsync(), Times.Once);
-            Assert.Same(expectedMessage, actualMessage);
-        }        
+			edgeHub.Verify(x => x.GetTwinAsync(identity.Id), Times.Once);
+			Assert.Same(expectedMessage, actualMessage);
+		} 
 
         [Fact]
         public async Task ProcessMessageBatchAsync_RouteAsyncTest()

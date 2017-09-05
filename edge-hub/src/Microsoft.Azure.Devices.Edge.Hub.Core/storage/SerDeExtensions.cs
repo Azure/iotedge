@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System.Text;
     using Newtonsoft.Json;
 
-    static class SerDeExtensions
+    public static class SerDeExtensions
     {
         static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
