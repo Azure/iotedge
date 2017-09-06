@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26606.0
+VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -129,7 +129,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "Ed
 		edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx = edge-modules\functions\samples\EdgeHubTrigger-CSharp\run.csx
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb.csproj", "{E94F75DE-7F60-4234-99C7-EB3022504D8A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage", "edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj", "{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage.RocksDb", "edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj", "{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage.Test", "edge-util\test\Microsoft.Azure.Devices.Edge.Storage.Test\Microsoft.Azure.Devices.Edge.Storage.Test.csproj", "{3EB5B58A-5820-44E7-9558-917C105B940D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -245,10 +249,18 @@ Global
 		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63120FDB-92DD-4E02-B77A-E4B51999A0BB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E94F75DE-7F60-4234-99C7-EB3022504D8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E94F75DE-7F60-4234-99C7-EB3022504D8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E94F75DE-7F60-4234-99C7-EB3022504D8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E94F75DE-7F60-4234-99C7-EB3022504D8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EB5B58A-5820-44E7-9558-917C105B940D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EB5B58A-5820-44E7-9558-917C105B940D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EB5B58A-5820-44E7-9558-917C105B940D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EB5B58A-5820-44E7-9558-917C105B940D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -295,7 +307,9 @@ Global
 		{63120FDB-92DD-4E02-B77A-E4B51999A0BB} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
 		{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E} = {C4502187-81D7-4299-85C3-64AE241503E0}
 		{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
-		{E94F75DE-7F60-4234-99C7-EB3022504D8A} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
+		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
+		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
+		{3EB5B58A-5820-44E7-9558-917C105B940D} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

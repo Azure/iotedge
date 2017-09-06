@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb
+namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Collections.Generic;

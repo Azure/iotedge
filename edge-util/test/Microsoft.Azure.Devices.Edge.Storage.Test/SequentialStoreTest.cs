@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
+namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 

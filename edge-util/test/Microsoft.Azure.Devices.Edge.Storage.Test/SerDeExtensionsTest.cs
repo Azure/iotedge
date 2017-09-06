@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
+namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
             ITestInterface testObj = new TestClass("Foo") { Prop2 = 100 };
             string json = SerDeExtensions.ToJson(testObj);
-            string expectedJson = @"{""$type"":""Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage.SerDeExtensionsTest+TestClass, Microsoft.Azure.Devices.Edge.Hub.Core.Test"",""Prop1"":""Foo"",""Prop2"":100}";
+            string expectedJson = @"{""$type"":""Microsoft.Azure.Devices.Edge.Storage.Test.SerDeExtensionsTest+TestClass, Microsoft.Azure.Devices.Edge.Storage.Test"",""Prop1"":""Foo"",""Prop2"":100}";
             Assert.Equal(expectedJson, json);
 
             ITestInterface jsonConvertedObj = SerDeExtensions.FromJson<ITestInterface>(json);

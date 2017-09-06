@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
+namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    static class StoreUtils
+    public static class StoreUtils
     {
         public static long GetOffsetFromKey(byte[] key)
         {

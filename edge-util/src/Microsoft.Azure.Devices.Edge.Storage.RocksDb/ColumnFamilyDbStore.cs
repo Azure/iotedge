@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Storage.RocksDb
+namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Threading.Tasks;
-    using DotNetty.Common.Utilities;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using RocksDbSharp;
 

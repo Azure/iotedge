@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
+namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Threading.Tasks;
@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     /// 3. Support for generic types for keys and values
     /// TODO - Since Key/Value types are generic, need to look into the right behavior to handle null values here. 
     /// </summary>
-    class EntityStore<TK, TV> : IEntityStore<TK, TV>
+    public class EntityStore<TK, TV> : IEntityStore<TK, TV>
     {
         readonly IDbStore dbStore;
         readonly KeyLockProvider keyLockProvider;

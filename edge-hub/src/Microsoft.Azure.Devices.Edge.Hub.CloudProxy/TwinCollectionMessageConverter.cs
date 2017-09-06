@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 	using System.Collections.Generic;
 	using System.Text;
 	using Microsoft.Azure.Devices.Edge.Hub.Core;
-	using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+	using Microsoft.Azure.Devices.Edge.Storage;
 	using Microsoft.Azure.Devices.Shared;
 
 	public class TwinCollectionMessageConverter : IMessageConverter<TwinCollection>

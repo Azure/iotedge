@@ -13,9 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+	using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
@@ -229,8 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(c.Resolve<EndpointExecutorConfig>(), new AsyncEndpointExecutorOptions(1), messageStore);
                             return endpointExecutorFactory;
                         })
-                    .As<Task<IEndpointExecutorFactory>>()
-                    .SingleInstance();
+					   .As<Task<IEndpointExecutorFactory>>()
+					   .SingleInstance();
 
                     // Task<Router>
                     builder.Register(

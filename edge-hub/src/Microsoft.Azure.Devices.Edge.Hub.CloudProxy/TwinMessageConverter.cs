@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 	using System.IO;
 	using System.Text;
 	using Microsoft.Azure.Devices.Edge.Hub.Core;
-	using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+	using Microsoft.Azure.Devices.Edge.Storage;
 	using Microsoft.Azure.Devices.Shared;
 	using Newtonsoft.Json;
 
