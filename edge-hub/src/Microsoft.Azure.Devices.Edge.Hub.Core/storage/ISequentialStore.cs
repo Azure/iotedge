@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Store for storing entities in an ordered list - Entities can be retrieved in the same order in which they were saved.
@@ -13,8 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     /// </summary>
     public interface ISequentialStore<T> : IDisposable
     {
-        Task<long> Add(T item);
+        Task<long> Append(T item);
 
-        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);
+        Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);
+
+        Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);        
     }
 }

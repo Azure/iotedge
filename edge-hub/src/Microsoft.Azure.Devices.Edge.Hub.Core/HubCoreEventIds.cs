@@ -10,5 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const int ModuleEndpoint = EventIdStart + 300;
         public const int Authenticator = EventIdStart + 400;
         public const int RoutingEdgeHub = EventIdStart + 500;
+        public const int MessageStore = EventIdStart + 600;
     }
 }

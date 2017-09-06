@@ -6,9 +6,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class StoringAsyncEndpointExecutor : AsyncEndpointExecutor
     {
@@ -41,6 +43,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             catch(Exception ex)
             {
                 Events.AddMessageFailure(this, ex);
+                throw;
             }
         }
 
@@ -49,7 +52,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             try
             {
                 Events.StartSendMessagesPump(this);
-                IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.Checkpointer.Offset);
+                IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.Checkpointer.Offset + 1);
                 while (!this.CancellationTokenSource.IsCancellationRequested)
                 {
                     try
@@ -62,7 +65,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             {
                                 await this.SendToTplHead(message);
                             }
-                            Events.SendMessagesSuccess(this);
+                            Events.SendMessagesSuccess(this, messages);
                         }
                     }
                     catch (Exception ex)
@@ -128,9 +131,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Log.LogWarning((int)EventIds.SendMessagesError, ex, $"[SendMessageError] Error sending message batch to endpoint to IPL head for EndpointId: {executor.Endpoint.Id}.");
             }
 
-            public static void SendMessagesSuccess(StoringAsyncEndpointExecutor executor)
+            public static void SendMessagesSuccess(StoringAsyncEndpointExecutor executor, IEnumerable<IMessage> messages)
             {
-                Log.LogDebug((int)EventIds.SendMessagesSuccess, $"[SendMessagesSuccess] Successfully sent batch of messages to IPL head for EndpointId: {executor.Endpoint.Id}.");
+                Log.LogDebug((int)EventIds.SendMessagesSuccess, Invariant($"[SendMessagesSuccess] Successfully sent {messages.Count()} messages to IPL head for EndpointId: {executor.Endpoint.Id}."));
             }
 
             public static void SendMessagesPumpFailure(StoringAsyncEndpointExecutor executor, Exception ex)

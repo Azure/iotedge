@@ -4,11 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Moq;
     using Xunit;
 
     [Unit]
@@ -17,7 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [Fact]
         public async Task BasicTest()
         {
-            using (IMessageStore messageStore = await this.GetMessageStore())
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore();
+            using (IMessageStore messageStore = result.messageStore)
             {
                 for (int i = 0; i < 10000; i++)
                 {
@@ -60,6 +64,135 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
+        [Fact]
+        public async Task CleanupTestTimeout()
+        {
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            using (IMessageStore messageStore = result.messageStore)
+            {
+                for (int i = 0; i < 200; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        long offset = await messageStore.Add("module1", this.GetMessage(i));
+                        Assert.Equal(i / 2, offset);
+                    }
+                    else
+                    {
+                        long offset = await messageStore.Add("module2", this.GetMessage(i));
+                        Assert.Equal(i / 2, offset);
+                    }
+                }
+
+                IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+                IEnumerable<IMessage> batch = await module1Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                IMessageIterator module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                await Task.Delay(TimeSpan.FromSeconds(60));
+
+                module1Iterator = messageStore.GetMessageIterator("module1");
+                batch = await module1Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+
+                module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+            }
+        }
+
+        [Fact]
+        public async Task CleanupTestCheckpointed()
+        {
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            ICheckpointStore checkpointStore = result.checkpointStore;
+            using (IMessageStore messageStore = result.messageStore)
+            {
+                for (int i = 0; i < 200; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        long offset = await messageStore.Add("module1", this.GetMessage(i));
+                        Assert.Equal(i / 2, offset);
+                    }
+                    else
+                    {
+                        long offset = await messageStore.Add("module2", this.GetMessage(i));
+                        Assert.Equal(i / 2, offset);
+                    }
+                }
+
+                IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+                IEnumerable<IMessage> batch = await module1Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                IMessageIterator module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                await checkpointStore.SetCheckpointDataAsync("module1", new CheckpointData(198), CancellationToken.None);
+                await checkpointStore.SetCheckpointDataAsync("module2", new CheckpointData(199), CancellationToken.None);
+                await Task.Delay(TimeSpan.FromSeconds(75));
+
+                module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+
+                module1Iterator = messageStore.GetMessageIterator("module1");
+                batch = await module1Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+            }
+        }
+
+        [Fact]
+        public async Task CleanupTestCheckpointAndTimeout()
+        {
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(40);
+            ICheckpointStore checkpointStore = result.checkpointStore;
+            using (IMessageStore messageStore = result.messageStore)
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    await messageStore.Add("module1", this.GetMessage(i));
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(10));
+
+                for (int i = 0; i < 100; i++)
+                {
+                    await messageStore.Add("module2", this.GetMessage(i));
+                }
+
+                IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+                IEnumerable<IMessage> batch = await module1Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                IMessageIterator module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                await checkpointStore.SetCheckpointDataAsync("module2", new CheckpointData(99), CancellationToken.None);
+                await Task.Delay(TimeSpan.FromSeconds(25));
+
+                module2Iterator = messageStore.GetMessageIterator("module2");
+                batch = await module2Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+
+                module1Iterator = messageStore.GetMessageIterator("module1");
+                batch = await module1Iterator.GetNext(100);
+                Assert.Equal(100, batch.Count());
+
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                module1Iterator = messageStore.GetMessageIterator("module1");
+                batch = await module1Iterator.GetNext(100);
+                Assert.Equal(0, batch.Count());
+            }
+        }
+
         IMessage GetMessage(int i)
         {
             return new Message(TelemetryMessageSource.Instance,
@@ -72,13 +205,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 });
         }
 
-        async Task<IMessageStore> GetMessageStore()
+        async Task<(IMessageStore, ICheckpointStore)> GetMessageStore(int ttlSecs = 300)
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-            IMessageStore messageStore = await MessageStore.CreateAsync(storeProvider, new List<string> { "module1", "module2" });
+            ICheckpointStore checkpointStore = CheckpointStore.Create(dbStoreProvider);
+            IMessageStore messageStore = await MessageStore.CreateAsync(storeProvider, new List<string> { "module1", "module2" }, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
             Assert.NotNull(messageStore);
-            return messageStore;
+            return (messageStore, checkpointStore);
         }
     }
 }

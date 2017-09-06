@@ -53,7 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 for (int i = index; i < index + batchSize && i < this.keyValues.Count; i++)
                 {
-                    await callback(this.keyValues[i].Item1, this.keyValues[i].Item2);
+                    var keyClone = this.keyValues[i].Item1.Clone() as byte[];
+                    var valueClone = this.keyValues[i].Item2.Clone() as byte[];
+                    await callback(keyClone, valueClone);
                 }
             }
         }

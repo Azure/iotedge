@@ -41,8 +41,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         public virtual Task Remove(TK key)
-        {            
+        {
             return this.dbStore.Remove(key.ToBytes());
+        }
+
+        public async Task<bool> Remove(TK key, Func<TV, bool> predicate)
+        {
+            Preconditions.CheckNotNull(predicate, nameof(predicate));
+            using (await this.keyLockProvider.GetLock(key).LockAsync())
+            {
+                Option<TV> value = await this.Get(key);
+                return await value.Filter(v => predicate(v)).Match(
+                    async v =>
+                    {
+                        await this.Remove(key);
+                        return true;
+                    },
+                    () => Task.FromResult(false));
+            }
         }
 
         public Task<bool> Update(TK key, Func<TV, TV> updator)

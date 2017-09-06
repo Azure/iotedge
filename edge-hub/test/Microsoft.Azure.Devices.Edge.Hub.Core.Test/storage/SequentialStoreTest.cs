@@ -16,11 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         {
             var entityStore = new EntityStore<byte[], Item>(new InMemoryDbStore());
             var sequentialStore = await SequentialStore<Item>.Create(entityStore);
-            long offset = await sequentialStore.Add(new Item { Prop1 = 10 });
+            long offset = await sequentialStore.Append(new Item { Prop1 = 10 });
             Assert.Equal(0, offset);
 
             sequentialStore = await SequentialStore<Item>.Create(entityStore);
-            offset = await sequentialStore.Add(new Item { Prop1 = 20 });
+            offset = await sequentialStore.Append(new Item { Prop1 = 20 });
             Assert.Equal(1, offset);
         }
 
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     {
                         for (int j = 0; j < 1000; j++)
                         {
-                            long offset = await sequentialStore.Add(new Item { Prop1 = i * 10 + j });
+                            long offset = await sequentialStore.Append(new Item { Prop1 = i * 10 + j });
                             Assert.True(offset <= 10000);
                         }
                     }));
