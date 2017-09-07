@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             // Arrange
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = new Mock<IDeviceListener>();
+            var deviceListener = new Mock<IDeviceListener>(MockBehavior.Strict);
 
             // Act
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             // Arrange
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = new Mock<IDeviceListener>();
+            var deviceListener = new Mock<IDeviceListener>(MockBehavior.Strict);
 
             // Act
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListener.Object, messageConverter);
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             // Arrange
             string messageId = Guid.NewGuid().ToString();
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = new Mock<IDeviceListener>();
+            var deviceListener = new Mock<IDeviceListener>(MockBehavior.Strict);
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(
                 It.Is<string>(s => s.Equals(messageId, StringComparison.OrdinalIgnoreCase)),
                 It.Is<FeedbackStatus>(f => f == FeedbackStatus.Complete)))
@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             // Arrange
             string messageId = Guid.NewGuid().ToString();
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = new Mock<IDeviceListener>();
+            var deviceListener = new Mock<IDeviceListener>(MockBehavior.Strict);
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(
                 It.Is<string>(s => s.Equals(messageId, StringComparison.OrdinalIgnoreCase)),
                 It.Is<FeedbackStatus>(f => f == FeedbackStatus.Abandon)))

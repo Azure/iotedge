@@ -2,27 +2,22 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.IO;
     using System.Threading.Tasks;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using static System.FormattableString;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
 
     public class MessagingServiceClient : IMessagingServiceClient
     {
         static readonly StringSegment RequestId = new StringSegment(TwinNames.RequestId);
-        static readonly string TwinLockToken = "r";
+        const string TwinLockToken = "r";
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
@@ -49,11 +44,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Events.BindMessageChannel(this.deviceListener.Identity);
         }
 
-        public Task AbandonAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Abandon);
+        // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
+        // message sent out via PG for example will cause a feedback to be generated
+        // with TwinLockToken as message ID which is redundant.
+        static bool IsValidMessageId(string messageId) => messageId != null && messageId != TwinLockToken;
 
-        public Task CompleteAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
+        public Task AbandonAsync(string messageId) => IsValidMessageId(messageId)
+            ? this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Abandon)
+            : Task.CompletedTask;
 
-        public Task RejectAsync(string messageId) => this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Reject);
+        public Task CompleteAsync(string messageId) => IsValidMessageId(messageId)
+            ? this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete)
+            : Task.CompletedTask;
+
+        public Task RejectAsync(string messageId) => IsValidMessageId(messageId)
+            ? this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Reject)
+            : Task.CompletedTask;
 
         public Task DisposeAsync(Exception cause)
         {
@@ -153,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Core.IMessage coreMessage = this.messageConverter.ToMessage(message);
                 this.deviceListener.ProcessMethodResponseAsync(coreMessage);
-                return Task.CompletedTask;                
+                return Task.CompletedTask;
             }
             catch (Exception e)
             {
@@ -238,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void SendMethodResponseFailed(IIdentity identity, Exception exception)
             {
                 Log.LogError((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
-            }            
+            }
         }
-    }    
+    }
 }
