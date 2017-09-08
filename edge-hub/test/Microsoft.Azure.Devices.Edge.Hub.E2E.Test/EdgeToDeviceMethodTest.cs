@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Xunit;
 
-    [Bvt]
+    [Bvt, E2e]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class EdgeToDeviceMethodTest

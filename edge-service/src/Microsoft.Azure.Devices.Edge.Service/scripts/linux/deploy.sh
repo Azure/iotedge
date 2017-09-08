@@ -166,18 +166,26 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Stop and remove any existing edge-service containers
+if [ $(sudo docker ps -a | grep $image_name | wc -l) -ne 0 ]; then
+    sudo docker stop $image_name
+    sudo docker rm $image_name
+fi
+
+# Remove any existing edge-service images
+if [ $(sudo docker images | grep "edgebuilds.azurecr.io/azedge-edge-service-$ARCH" | wc -l) -ne 0 ]; then
+    sudo docker rmi $(sudo docker images | grep "edgebuilds.azurecr.io/azedge-edge-service-$ARCH" | egrep -o '[a-fA-F0-9]{12}')
+fi
+
+# Pull current release version
 sudo docker pull edgebuilds.azurecr.io/azedge-edge-service-$ARCH:$DOCKER_IMAGEVERSION
 if [ $? -ne 0 ]; then
     echo "Docker Pull Failed!"
     exit 1
 fi
 
-sudo docker stop $image_name
-
-sudo docker rm $image_name
-
+# Run current release version
 sudo docker run -d -v /var/run/docker.sock:/var/run/docker.sock --name $image_name -p 8883:8883 -p 443:443 -e DockerUri=unix:///var/run/docker.sock -e MMAConnectionString=$mma_connection -e IotHubHostName=$IOTHUB_HOSTNAME -e EdgeDeviceId=$DEVICEID "${docker_routes[@]}" edgebuilds.azurecr.io/azedge-edge-service-$ARCH:$DOCKER_IMAGEVERSION
-
 if [ $? -ne 0 ]; then
     echo "Docker run Failed!"
     exit 1

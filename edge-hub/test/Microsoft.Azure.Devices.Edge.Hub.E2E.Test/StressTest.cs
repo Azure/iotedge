@@ -13,7 +13,7 @@
     using Newtonsoft.Json;
     using Xunit;
 
-    [Bvt]
+    [Bvt, E2e, Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest
