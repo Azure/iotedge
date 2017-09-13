@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
-        const string DeviceId = "device1";
+        readonly string DeviceId = "device1";
 
         readonly IList<string> routes = new List<string>() {
             "FROM /messages/events INTO $upstream",
@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         private ProtocolHeadFixture()
         {
+            this.DeviceId = ConfigHelper.TestConfig["GatewayDeviceId"];
             bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
             if (shouldStartEdge)
             {

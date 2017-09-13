@@ -129,11 +129,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var update = new TaskCompletionSource<IMessage>();
             var cloudListener = new Mock<ICloudListener>();
+            var deviceConnectionStringKey = "device2ConnStrKey";
             cloudListener.Setup(x => x.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback((IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
 
-            Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            Try<ICloudProxy> cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey);
             Assert.True(cloudProxy.Success);
 
             cloudProxy.Value.BindCloudListener(cloudListener.Object);
@@ -144,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ["desiredPropertyTest"] = Guid.NewGuid().ToString()
             };
 
-            await UpdateDesiredProperty("device2", desired);
+            await UpdateDesiredProperty(ConnectionStringHelper.GetDeviceId(await SecretsHelper.GetSecretFromConfigKey(deviceConnectionStringKey)), desired);
             await update.Task;
             await cloudProxy.Value.RemoveDesiredPropertyUpdatesAsync();
 
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 { typeof(TwinCollection), new TwinCollectionMessageConverter() }
             });
             ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters, ConnectionPoolSize);
-            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
+            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity);
             return cloudProxy;
         }

@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(MessageConverterProvider, ConnectionPoolSize);
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
+            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceIdentity).Result;
             Assert.True(cloudProxy.Success);
             bool result = await cloudProxy.Value.CloseAsync();
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Change the connection string key, deliberately.
             char updatedLastChar = (char)(deviceConnectionString[deviceConnectionString.Length - 1] + 1);
             deviceConnectionString = deviceConnectionString.Substring(0, deviceConnectionString.Length - 1) + updatedLastChar;
-            var deviceIdentity2 = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == deviceConnectionString);
+            var deviceIdentity2 = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceIdentity2).Result;
             Assert.False(cloudProxy.Success);
         }

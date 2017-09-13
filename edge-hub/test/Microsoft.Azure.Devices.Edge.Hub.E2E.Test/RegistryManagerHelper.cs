@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
-    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
@@ -13,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             string deviceName = devicePrefix + Guid.NewGuid();
             Device device = await registryManager.AddDeviceAsync(new Device(deviceName));
-            string deviceConnectionString = GetDeviceConnectionString(device, GetHostName(iotHubConnectionString));
+            string deviceConnectionString = GetDeviceConnectionString(device, ConnectionStringHelper.GetHostName(iotHubConnectionString));
 
             await Task.Delay(1000);
             return new Tuple<string, string>(deviceName, deviceConnectionString);
@@ -23,12 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
             return $"HostName={hostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
-        }
-
-        public static string GetHostName(string connectionString)
-        {
-            var regex = new Regex("HostName=([^;]+)", RegexOptions.None);
-            return regex.Match(connectionString).Groups[1].Value;
         }
 
         public static Task RemoveDevice(string deviceName, RegistryManager registryManager)

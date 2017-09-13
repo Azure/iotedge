@@ -5,7 +5,7 @@
         "clientCertificateThumbprint": "3c79dc82703923b48866c3ce294e0b06f5e2578e"
     },
     "iotHubConnStrKey": "IotHubConnStr1",
-    "device1ConnStrKey": "IotDeviceConnStr1",
+    "device1ConnStrKey": "IotDevice1ConnStr1",
     "device2ConnStrKey": "IotDevice2ConnStr1",
     "device3ConnStrKey": "IotDevice3ConnStr1",
     "eventHubConnStrKey": "EventHubConnStr1",
