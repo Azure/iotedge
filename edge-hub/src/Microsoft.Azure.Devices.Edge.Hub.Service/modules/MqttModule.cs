@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -17,11 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly MessageAddressConversionConfiguration conversionConfiguration;
         readonly IConfiguration mqttSettingsConfiguration;
-        
-        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration)
+        readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
+
+        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration, StoreAndForwardConfiguration storeAndForwardConfiguration)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
+            this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -41,8 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ISettingsProvider>()
                 .SingleInstance();
 
-			// Task<IMqttConnectionProvider>
-			builder.Register(
+            // Task<IMqttConnectionProvider>
+            builder.Register(
                 async c =>
                 {
                     IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
@@ -53,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 })
                 .As<Task<IMqttConnectionProvider>>()
                 .SingleInstance();
-            
+
             // IIdentityProvider
             builder.Register(
                 c =>
@@ -64,7 +67,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ISessionStatePersistenceProvider
-            builder.Register(c => new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>()))
+            builder.Register(
+                    c =>
+                    {
+                        Option<IStoreProvider> storeProvider = this.storeAndForwardConfiguration.IsEnabled ? Option.Some<IStoreProvider>(new StoreProvider(c.Resolve<IDbStoreProvider>())) 
+                            : Option.None<IStoreProvider>();
+                        return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>(), storeProvider);
+                    })
                 .As<ISessionStatePersistenceProvider>()
                 .SingleInstance();
 

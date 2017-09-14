@@ -4,13 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
-    using System.Globalization;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class MqttMessageConverter : IMessageConverter<Message>
     {
+        // Same Value as IotHub
+        static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(30);
         public Message FromMessage(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
@@ -57,12 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             message.SystemProperties.Add(SystemProperties.MessageId, sourceMessage.MessageId);
 
-            // TODO: Should uncomment code below instead of setting Edge time this code when session (which persist the subscriptions) is persisted in Edge. 
-            // TODO: Without session persistence, messages that are sent when the device is not connected are rejected by Protocol Gateway
-            // TODO: add clock skew time to EnqueuedTimeUtc: sourceMessage.EnqueuedTimeUtc.Add(ClockSkewAdjustment); IotHub value is 30 secs
-            // DateTime createTime = sourceMessage.EnqueuedTimeUtc == DateTime.MinValue ? DateTime.UtcNow : sourceMessage.EnqueuedTimeUtc;
-            DateTime createTime = DateTime.UtcNow;  
-
+            DateTime createTime = sourceMessage.EnqueuedTimeUtc == DateTime.MinValue ? DateTime.UtcNow : sourceMessage.EnqueuedTimeUtc.Add(ClockSkewAdjustment);
 
             message.SystemProperties.Add(SystemProperties.EnqueuedTime, createTime.ToString("o"));
             message.SystemProperties.Add(SystemProperties.LockToken, sourceMessage.LockToken);

@@ -10,5 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string MessageStorePartitionKey = "messages";
         public const string TwinStorePartitionKey = "twins";
         public const string CheckpointStorePartitionKey = "checkpoints";
+        public const string SessionStorePartitionKey = "sessions";
     }
 }

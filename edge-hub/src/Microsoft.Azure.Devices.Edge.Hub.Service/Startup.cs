@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
-    using System.IO;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
@@ -86,8 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             builder.RegisterModule(new CommonModule(iothubHostname, edgeDeviceId));            
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics));
             builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes, storeAndForwardConfiguration, connectionPoolSize));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForwardConfiguration));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
                         
