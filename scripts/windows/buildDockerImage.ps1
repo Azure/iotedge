@@ -197,5 +197,11 @@ echo "Done Building And Pushing Docker Images"
 
 if ($Cleanup)
 {
+    & cmd /c "docker rm $image_name 2>&1"
+    $containers = $(docker ps -a -q)
+    if ($containers)
+    {
+        docker rm -f $containers
+    }
     docker rmi $(docker images -q)
 }
