@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public const string EdgeDeviceConnectionStringKey = "EdgeDeviceConnectionString";
 
+        public const string EdgeHubConnectionStringKey = "EdgeHubConnectionString";
+
         public const string ModuleIdKey = "ModuleId";
     }
 }

@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     Assert.NotNull(modules.Modules[Name]);
                     Assert.Equal("v1", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k1"]);
                     Assert.Equal("v2", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k2"]);
-                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerEnvModule)modules.Modules[Name]).Config.Env["EdgeDeviceConnectionString"]);
+                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerEnvModule)modules.Modules[Name]).Config.Env["EdgeHubConnectionString"]);
                 }
             }
             finally

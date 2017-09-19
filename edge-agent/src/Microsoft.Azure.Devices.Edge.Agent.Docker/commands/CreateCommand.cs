@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             if (!string.IsNullOrWhiteSpace(edgeDeviceConnectionString))
             {
                 // append the module ID to this string
-                edgeDeviceConnectionString = $"{Constants.EdgeDeviceConnectionStringKey}={edgeDeviceConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
+                edgeDeviceConnectionString = $"{Constants.EdgeHubConnectionStringKey}={edgeDeviceConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
 
                 env = env.Concat(new string[] { edgeDeviceConnectionString });
             }
