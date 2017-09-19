@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                 {
-                    { "EdgeHubConnectionString", "FakeConnectionString" }
+                    { "EdgeDeviceConnectionString", "FakeConnectionString" }
                 }).Build();
 
                 var configSource = new Mock<IConfigSource>();

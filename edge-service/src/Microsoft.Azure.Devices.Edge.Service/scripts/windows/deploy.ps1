@@ -101,7 +101,7 @@ if (-not $Foreground)
 }
 $run_command += "--name $image_name -p 8883:8883 -p 443:443 " + 
     "-e DockerUri=http://${DockerAddress}:2375 " + 
-    "-e MMAConnectionString='$mma_connection' -e IotHubHostName=$IoTHubHostname " + 
+    "-e DeviceConnectionString='$mma_connection' -e IotHubHostName=$IoTHubHostname " + 
     "-e EdgeDeviceId=$DeviceId" +
     "$docker_routes $tag"
 

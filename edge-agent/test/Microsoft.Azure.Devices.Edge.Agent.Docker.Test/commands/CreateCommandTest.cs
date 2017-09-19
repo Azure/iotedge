@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { "EdgeHubConnectionString", FakeConnectionString }
+                        { "EdgeDeviceConnectionString", FakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
-                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", envMap["EdgeHubConnectionString"]);
+                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", envMap["EdgeDeviceConnectionString"]);
                 }
             }
             finally
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { "EdgeHubConnectionString", FakeConnectionString }
+                        { "EdgeDeviceConnectionString", FakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();

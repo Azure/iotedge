@@ -13,7 +13,7 @@ The application will read the `appsettings.json` for configuration. The format i
 ```json
 {
   "DockerUri": "<docker service uri>",
-  "MMAConnectionString": "<Your IoT Hub Connection String>",
+  "DeviceConnectionString": "<Your IoT Hub Device Connection String>",
   "ConfigSource": "<iothubconnected|standalone>",
   "DockerLoggingDriver":  "<json-file|journald|fluentd|etwlogs|none>"
 }
@@ -26,7 +26,7 @@ environment variables.
 
 `DockerUri`
 
-`MMAConnectionString`
+`DeviceConnectionString`
 
 `ConfigSource`
 
@@ -37,7 +37,7 @@ environment variables.
 This is the URI for the docker service.  Typically this is "http://localhost:2375"
 on Windows and "unix:///var/run/docker.sock" on Linux.
 
-### MMAConnectionString
+### DeviceConnectionString
 
 Set to the IoT Hub connection string of the edge device. Needed when 
 `ConfigSource` is "iothubconnected".
@@ -47,7 +47,7 @@ Set to the IoT Hub connection string of the edge device. Needed when
 May be set to "iothubconnected" or "standalone".  When set to "iothubconnected",
 the edge device twin is used as a configuration source for modules. When set to 
 standalone, a file (`config.json`) is used as a configuration source for modules. 
-`MMAConnectionString` must be set to a device connection string if `ConfigSource`
+`DeviceConnectionString` must be set to a device connection string if `ConfigSource`
 is set to "iothubconnected".
 
 ### DockerLoggingDriver

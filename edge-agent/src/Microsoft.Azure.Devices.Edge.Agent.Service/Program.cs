@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return MainAsync(configuration).Result;
         }
 
-        static string GetEdgeHubConnectionString(IConfiguration configuration, ILogger logger)
+        static string GetDeviceConnectionString(IConfiguration configuration, ILogger logger)
         {
-            string connectionString = configuration.GetValue<string>("MMAConnectionString");
+            string connectionString = configuration.GetValue<string>("DeviceConnectionString");
             string edgeHubIpInterfaceName = configuration.GetValue<string>("IPInterfaceName");
 
             // find the local IP address on network interface edgeHubIPInterfaceName
@@ -74,8 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
 
-            string connectionString = GetEdgeHubConnectionString(configuration, logger);
-            configuration["EdgeHubConnectionString"] = connectionString;
+            string connectionString = GetDeviceConnectionString(configuration, logger);
+            configuration["EdgeDeviceConnectionString"] = connectionString;
 
             var dockerUri = new Uri(dockerUriConfig);
             var builder = new ContainerBuilder();

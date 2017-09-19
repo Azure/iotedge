@@ -56,13 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         {
             IEnumerable<string> env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}");
 
-            string edgeHubConnectionString = this.configSource.Configuration.GetValue<string>(Constants.EdgeHubConnectionStringKey, string.Empty);
-            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
+            string edgeDeviceConnectionString = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceConnectionStringKey, string.Empty);
+            if (!string.IsNullOrWhiteSpace(edgeDeviceConnectionString))
             {
                 // append the module ID to this string
-                edgeHubConnectionString = $"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
+                edgeDeviceConnectionString = $"{Constants.EdgeDeviceConnectionStringKey}={edgeDeviceConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
 
-                env = env.Concat(new string[] { edgeHubConnectionString });
+                env = env.Concat(new string[] { edgeDeviceConnectionString });
             }
 
             return env;
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public string Show() => $"docker create {this.portBindingsLazy.Value} {this.envLazy.Value} {this.loggerOptionsLazy.Value} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
 
-        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => val.Contains(Constants.EdgeHubConnectionStringKey)? $"--env {Constants.EdgeHubConnectionStringKey}=[connection string]": $"--env \"{val}\""));
+        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => val.Contains(Constants.EdgeDeviceConnectionStringKey)? $"--env {Constants.EdgeDeviceConnectionStringKey}=[connection string]": $"--env \"{val}\""));
 
         static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
 
