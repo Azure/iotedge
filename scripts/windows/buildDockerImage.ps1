@@ -149,11 +149,11 @@ Function docker_build_and_tag_and_push(
     }
 }
 
-Function BuildTagPush([String]$ProjectName, [String]$ProjectPath, [Switch]$vNextSpecial)
+Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
 {
     $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
     $Suffix = ""
-    if ($vNext -and $vNextSpecial)
+    if ($vNext)
     {
         $Suffix = ".vnext"
     }
@@ -185,13 +185,16 @@ if ($vNext)
 
 BuildTagPush "edge-agent" "Microsoft.Azure.Devices.Edge.Agent.Service"
 
-BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service" -vNextSpecial
+BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"
 
-BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service" -vNextSpecial
+BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service"
 
 BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
 
-BuildTagPush "functions-binding" "Microsoft.Azure.Devices.Edge.Functions.Binding"
+if (-not $vNext)
+{
+    BuildTagPush "functions-binding" "Microsoft.Azure.Devices.Edge.Functions.Binding"
+}
 
 echo "Done Building And Pushing Docker Images"
 
