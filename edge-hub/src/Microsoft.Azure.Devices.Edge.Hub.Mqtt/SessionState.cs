@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public ISessionState Copy()
         {
-            var sessionState = new SessionState(this.IsTransient);
+            var sessionState = new SessionState(!this.ShouldSaveToStore);
             sessionState.subscriptions.AddRange(this.Subscriptions);
             sessionState.subscriptionRegistrations.AddRange(this.SubscriptionRegistrations);
             return sessionState;

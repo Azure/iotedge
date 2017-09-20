@@ -67,12 +67,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ISessionStatePersistenceProvider
-            builder.Register(
+            builder.Register<ISessionStatePersistenceProvider>(
                     c =>
                     {
-                        Option<IStoreProvider> storeProvider = this.storeAndForwardConfiguration.IsEnabled ? Option.Some<IStoreProvider>(new StoreProvider(c.Resolve<IDbStoreProvider>())) 
-                            : Option.None<IStoreProvider>();
-                        return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>(), storeProvider);
+                        if (this.storeAndForwardConfiguration.IsEnabled)
+                        {
+                            IEntityStore<string, ISessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey);
+                            return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
+                        }
+                        else
+                        {
+                            return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
+                        }
+
                     })
                 .As<ISessionStatePersistenceProvider>()
                 .SingleInstance();

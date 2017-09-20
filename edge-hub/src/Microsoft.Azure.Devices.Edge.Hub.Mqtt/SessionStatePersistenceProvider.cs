@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt.Subscription;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
@@ -15,16 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class SessionStatePersistenceProvider : ISessionStatePersistenceProvider
     {
         readonly IConnectionManager connectionManager;
-        readonly Option<IEntityStore<string, ISessionState>> sessionStore;
 
-        public SessionStatePersistenceProvider(IConnectionManager connectionManager) : this(connectionManager, Option.None<IStoreProvider>()) { }
-
-        public SessionStatePersistenceProvider(IConnectionManager connectionManager, Option<IStoreProvider> storeProvider)
+        public SessionStatePersistenceProvider(IConnectionManager connectionManager)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            this.sessionStore = storeProvider.Match(some => Option.Some(some.GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey)),
-                () => Option.None<IEntityStore<string, ISessionState>>());
         }
 
         public ISessionState Create(bool transient)
@@ -34,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task<ISessionState> GetAsync(IDeviceIdentity identity)
         {
-            return this.GetSessionFromStore(identity.Id);
+            return Task.FromResult((ISessionState)null);
         }
 
         public async Task SetAsync(IDeviceIdentity identity, ISessionState sessionState)
@@ -54,31 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             registrationSessionState.ClearRegistrations();
-
-            await this.PersistToStore(identity.Id, registrationSessionState);
         }
 
         public Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState)
         {
-            return this.sessionStore.Match(some => some.Remove(identity.Id), () => Task.CompletedTask);
-        }
-
-        async Task<ISessionState> GetSessionFromStore(string id)
-        {
-            Option<ISessionState> sessionState = await this.sessionStore.Match(some => some.Get(id), () => Task.FromResult(Option.None<ISessionState>()));
-            return sessionState.GetOrElse((ISessionState)null);
-        }
-
-        Task PersistToStore(string id, SessionState sessionState)
-        {
-            if (sessionState.ShouldSaveToStore)
-            {
-                return this.sessionStore.Match(some => some.PutOrUpdate(id, sessionState, u => sessionState), () => Task.CompletedTask);
-            }
-            else
-            {
-                return Task.CompletedTask;
-            }
+            return TaskEx.Done;
         }
     }
 }
