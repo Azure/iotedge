@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -169,10 +170,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 { typeof(Twin), new TwinMessageConverter() },
                 { typeof(TwinCollection), new TwinCollectionMessageConverter() }
             });
-            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters, ConnectionPoolSize);
+            ICloudProxyProvider cloudProxyProvider = new CloudProxyProvider(converters, ConnectionPoolSize, true);
             var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
-            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity);
+            Try<ICloudProxy> cloudProxy = await cloudProxyProvider.Connect(deviceIdentity, this.ConnectionStatusChangeCallback);
             return cloudProxy;
+        }
+
+        void ConnectionStatusChangeCallback(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            throw new InvalidOperationException("Unexpected call to connection status change callback");
         }
 
         static async Task CheckMessageInEventHub(IList<IMessage> sentMessages, DateTime startTime)

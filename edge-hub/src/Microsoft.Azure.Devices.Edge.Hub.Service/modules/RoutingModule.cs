@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 				.SingleInstance();
 
 			// ICloudProxyProvider
-			builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize))
+			builder.Register(c => new CloudProxyProvider(c.Resolve<IMessageConverterProvider>(), this.connectionPoolSize, !this.storeAndForwardConfiguration.IsEnabled))
 				.As<ICloudProxyProvider>()
 				.SingleInstance();
 

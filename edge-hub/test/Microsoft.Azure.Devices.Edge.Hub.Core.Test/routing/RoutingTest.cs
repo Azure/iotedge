@@ -1,6 +1,12 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -14,11 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
@@ -315,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudProxy.SetupGet(c => c.IsActive).Returns(true);
 
             var cloudProxyProvider = new Mock<ICloudProxyProvider>();
-            cloudProxyProvider.Setup(c => c.Connect(It.IsAny<IIdentity>())).ReturnsAsync(Try.Success(cloudProxy.Object));
+            cloudProxyProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<ConnectionStatus, ConnectionStatusChangeReason>>())).ReturnsAsync(Try.Success(cloudProxy.Object));
             IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider.Object, edgeDeviceId);
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));

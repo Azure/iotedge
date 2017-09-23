@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -17,19 +18,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using static System.FormattableString;
 
     class CloudProxy : ICloudProxy
-    {
-        readonly IIdentity identity;
+    {        
+        readonly IIdentity identity;        
         readonly DeviceClient deviceClient;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly AtomicBoolean isActive;
+        readonly Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler;
         CloudReceiver cloudReceiver;
 
-        public CloudProxy(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, IIdentity identity)
+        public CloudProxy(DeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, IIdentity identity, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.isActive = new AtomicBoolean(true);
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
+            if (connectionStatusChangedHandler != null)
+            {
+                this.connectionStatusChangedHandler = connectionStatusChangedHandler;
+                this.deviceClient.SetConnectionStatusChangesHandler(new ConnectionStatusChangesHandler(connectionStatusChangedHandler));
+            }
         }
 
         public async Task<bool> CloseAsync()
@@ -42,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         await this.cloudReceiver.CloseAsync();
                     }
-                    await this.deviceClient.CloseAsync();
+                    await this.deviceClient.CloseAsync();                    
                 }
                 Events.Closed(this);
                 return true;
@@ -76,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorSendingMessage(this, ex);
+                await this.HandleException(ex);
                 throw;
             }
         }
@@ -93,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorSendingBatchMessage(this, ex);
+                await this.HandleException(ex);
                 throw;
             }
         }
@@ -140,6 +149,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void StartListening() => this.cloudReceiver.StartListening();
 
+        async Task HandleException(Exception ex)
+        {
+            try
+            {
+                if (ex is UnauthorizedException)
+                {
+                    await this.CloseAsync();
+                    this.connectionStatusChangedHandler(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Expired_SAS_Token);
+                }
+            }
+            catch (Exception e)
+            {
+                Events.ExceptionInHandleException(ex, e);
+            }
+        }
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<CloudProxy>();
@@ -155,7 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 SendMessageBatchError,
                 UpdateReportedProperties,
                 BindCloudListener,
-                SendFeedbackMessage
+                SendFeedbackMessage,
+                ExceptionInHandleException
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -201,6 +227,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void SendFeedbackMessage(CloudProxy cloudProxy)
             {
                 Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message for device {cloudProxy.identity.Id}"));
+            }
+
+            internal static void ExceptionInHandleException(Exception handlingException, Exception caughtException)
+            {
+                Log.LogDebug((int)EventIds.ExceptionInHandleException, Invariant($"Got exception {caughtException} while handling exception {handlingException}"));
             }
         }
     }

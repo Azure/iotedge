@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 
     public class SasTokenDeviceIdentityProvider : IDeviceIdentityProvider
     {
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.identityFactory = identityFactory;
         }
 
-        public async Task<ProtocolGateway.Identity.IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
+        public async Task<IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
         {
             Try<IIdentity> deviceIdentity = this.identityFactory.GetWithSasToken(username, password);
             if (!deviceIdentity.Success
