@@ -3,8 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 {
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
 	using Microsoft.Azure.Devices.Edge.Agent.Core;
 	using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
 	using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 	using Microsoft.Azure.Devices.Client;
 	using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
-	public class TwinConfigSource : BaseConfigSource
+    public class TwinConfigSource : BaseConfigSource
 	{
 		ISerde<ModuleSet> ModuleSetSerde { get; }
 
@@ -23,13 +23,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
 		readonly IDeviceClient deviceClient;
 
-		// Variables to track current module set and connection status
-		internal ModuleSet CurrentModuleSet { get; set; }
+        // Variables to track current module set and connection status
+        internal ModuleSet CurrentModuleSet { get; set; }
 		internal ConnectionStatus ConnectionStatus { get; set; }
 
 		readonly Object twinRefreshLock;
 		readonly AtomicBoolean getTwinInProgress;
-		bool refreshTwin;
+        readonly AtomicBoolean hasBeenInitialized;
+        readonly AtomicBoolean refreshTwin;
 
 		TwinConfigSource(IDeviceClient deviceClient, ISerde<ModuleSet> moduleSetSerde, ISerde<Diff> diffSerde, IConfiguration configuration)
 			: base(configuration)
@@ -43,9 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 			this.ConnectionStatus = ConnectionStatus.Disabled;
 			this.twinRefreshLock = new Object();
 			this.getTwinInProgress = new AtomicBoolean(false);
-			this.refreshTwin = false;
+            this.hasBeenInitialized = new AtomicBoolean(false);
+            this.refreshTwin = new AtomicBoolean(false);
 
-			Events.Created();
+            Events.Created();
 		}
 
 		Task OnDesiredPropertyChanged(TwinCollection desiredProperties, object userContext)
@@ -58,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 				// getTwinInProgress flag will be set by the time we reach here.
 				if (this.getTwinInProgress.Get())
 				{
-					this.refreshTwin = true;
+					this.refreshTwin.Set(true);
 					Events.ModuleSetUpdateInProgress();
 					return Task.CompletedTask;
 				}
@@ -116,21 +118,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 					while (refreshTwin)
 					{
 						Twin twin = await deviceClient.GetTwinAsync();
-						this.CurrentModuleSet = this.ModuleSetSerde.Deserialize(twin.Properties.Desired.ToJson());
+                        this.CurrentModuleSet = this.ModuleSetSerde.Deserialize(twin.Properties.Desired.ToJson());
 
-						lock (this.twinRefreshLock)
+                        lock (this.twinRefreshLock)
 						{
 							// If a patch update was received while GetModuleSetAsync was in progress,
 							// refresh the twin
 							refreshTwin = this.refreshTwin;
-							this.refreshTwin = false;
+							this.refreshTwin.Set(false);
 							if (!refreshTwin)
 							{
 								this.getTwinInProgress.Set(false);
 							}
-						}
-					}
-				}
+                        }
+
+                        // Initialization step - remove all reported properties in preperation for new state.
+                        if (!this.hasBeenInitialized)
+                        {
+                            /*
+                            Task<ModuleSet> envTask = this.environment.GetModulesAsync(token);
+                             */
+                            ModuleSet reportedModuleSet = this.ModuleSetSerde.Deserialize(twin.Properties.Reported.ToJson());
+                            var modulesMap = new Dictionary<string, IModule>();
+                            foreach (var pair in reportedModuleSet.Modules)
+                            {
+                                modulesMap.Add(pair.Key, null);
+                            }
+
+                            var reportedProps = new TwinCollection
+                            {
+                                ["modules"] = modulesMap
+                            };
+
+                            try
+                            {
+                                await this.deviceClient.UpdateReportedPropertiesAsync(reportedProps);
+                                this.hasBeenInitialized.Set(true);
+                            }
+
+                            catch (Exception e)
+                            {
+                                // absorb exception - log an error
+                                Events.DeviceClientException(e);
+                            }
+                        }
+                    }
+                }
 				catch (Exception ex)
 				{
 					Events.GetTwinFailed(ex, status.ToString());
