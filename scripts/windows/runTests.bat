@@ -54,14 +54,19 @@ IF NOT EXIST "%OUTPUT_FOLDER%" (
 
 SET opencover=%ROOTFOLDER%\OpenCover.4.6.519\tools\OpenCover.Console.exe
 SET targetargs=test %TEST_FILTER% --logger trx;LogFileName=result.trx
+SET RES=0
 
 ECHO Running tests in all test projects with filter: %TEST_FILTER:--filter =%
 FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
     ECHO Running tests for project - %%f
     IF EXIST "%opencover%" (
-        "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml
+        "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml -returntargetcode
     ) ELSE (
         "%DOTNET_ROOT_PATH%\dotnet" test "%%f" --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build %TEST_FILTER%
+    )
+
+    IF !ERRORLEVEL! NEQ 0 (
+        SET RES=!ERRORLEVEL!
     )
 )
 
@@ -72,3 +77,7 @@ IF EXIST "%ROOTFOLDER%\OpenCoverToCoberturaConverter.0.2.6.0\tools\OpenCoverToCo
 IF EXIST "%ROOTFOLDER%\ReportGenerator.2.5.6\tools\ReportGenerator.exe" (
     "%ROOTFOLDER%\ReportGenerator.2.5.6\tools\ReportGenerator.exe" -reporttypes:MHtml -reports:%OUTPUT_FOLDER%\code-coverage.xml -targetdir:%OUTPUT_FOLDER%\Report
 )
+
+ECHO "runTests.bat exit code: %RES%"
+
+EXIT /B %RES%
