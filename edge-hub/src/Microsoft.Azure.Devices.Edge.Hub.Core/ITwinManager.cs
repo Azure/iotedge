@@ -9,5 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		Task<IMessage> GetTwinAsync(string id);
 
 		Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection);
+
+		Task UpdateReportedPropertiesAsync(string id, IMessage twinCollection);
 	}
 }

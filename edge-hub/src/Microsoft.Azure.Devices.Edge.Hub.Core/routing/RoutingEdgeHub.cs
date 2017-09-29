@@ -64,8 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 			Preconditions.CheckNotNull(identity, nameof(identity));
 			Preconditions.CheckNotNull(reportedPropertiesMessage, nameof(reportedPropertiesMessage));
 
-			Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
-			Task cloudSendMessageTask = cloudProxy.Match(cp => cp.UpdateReportedPropertiesAsync(reportedPropertiesMessage), () => Task.CompletedTask);
+			Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
 
 			IRoutingMessage routingMessage = this.messageConverter.FromMessage(reportedPropertiesMessage);
 			Task routingSendMessageTask = this.router.RouteAsync(routingMessage);

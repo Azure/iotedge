@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 	using Microsoft.Azure.Devices.Edge.Storage;
 	using Microsoft.Azure.Devices.Edge.Util;
 	using Microsoft.Azure.Devices.Shared;
+	using Microsoft.Extensions.Logging;
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
 
@@ -18,14 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		readonly IMessageConverter<TwinCollection> twinCollectionConverter;
 		readonly IMessageConverter<Twin> twinConverter;
 		readonly IConnectionManager connectionManager;
-		internal Option<IEntityStore<string, Twin>> twinStore { get; }
+		internal Option<IEntityStore<string, TwinInfo>> TwinStore { get; }
 
-		public TwinManager(IConnectionManager connectionManager, IMessageConverter<TwinCollection> twinCollectionConverter, IMessageConverter<Twin> twinConverter, Option<IEntityStore<string, Twin>> twinStore)
+		public TwinManager(IConnectionManager connectionManager, IMessageConverter<TwinCollection> twinCollectionConverter, IMessageConverter<Twin> twinConverter, Option<IEntityStore<string, TwinInfo>> twinStore)
 		{
 			this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
 			this.twinCollectionConverter = Preconditions.CheckNotNull(twinCollectionConverter, nameof(twinCollectionConverter));
 			this.twinConverter = Preconditions.CheckNotNull(twinConverter, nameof(twinConverter));
-			this.twinStore = Preconditions.CheckNotNull(twinStore, nameof(twinStore));
+			this.TwinStore = Preconditions.CheckNotNull(twinStore, nameof(twinStore));
 		}
 
 		public static ITwinManager CreateTwinManager(IConnectionManager connectionManager, IMessageConverterProvider messageConverterProvider, Option<IStoreProvider> storeProvider)
@@ -35,27 +36,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 			Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
 			return new TwinManager(connectionManager, messageConverterProvider.Get<TwinCollection>(), messageConverterProvider.Get<Twin>(),
 				storeProvider.Match(
-					s => Option.Some(s.GetEntityStore<string, Twin>(Constants.TwinStorePartitionKey)),
-					() => Option.None<IEntityStore<string, Twin>>()));
+					s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
+					() => Option.None<IEntityStore<string, TwinInfo>>()));
 		}
 
 		public async Task<IMessage> GetTwinAsync(string id)
 		{
-			return await this.twinStore.Match(
+			return await this.TwinStore.Match(
 				async (store) =>
 				{
-					Twin twin = await this.GetTwinWithStoreSupportAsync(id);
-					return this.twinConverter.ToMessage(twin);
+					TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
+					return this.twinConverter.ToMessage(twinInfo.Twin);
 				},
 				async () =>
 				{
 					// pass through to cloud proxy
 					Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-					return await cloudProxy.Match(async (cp) => await cp.GetTwinAsync(), () => throw new Exception($"Cloud proxy unavailable for device {id}"));
+					return await cloudProxy.Match(async (cp) => await cp.GetTwinAsync(), () => throw new InvalidOperationException($"Cloud proxy unavailable for device {id}"));
 				});
 		}
 
-		async Task<Twin> GetTwinWithStoreSupportAsync(string id)
+		async Task<TwinInfo> GetTwinInfoWithStoreSupportAsync(string id)
 		{
 			try
 			{
@@ -63,33 +64,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 				return await cloudProxy.Match(
 						async (cp) =>
 						{
-							return await this.GetTwinWhenCloudOnlineAsync(id, cp);
+							return await this.GetTwinInfoWhenCloudOnlineAsync(id, cp);
 						},
-						async () => await this.GetTwinWhenCloudOfflineAsync(id, new Exception($"Error accessing cloud proxy for device {id}"))
+						async () => await this.GetTwinInfoWhenCloudOfflineAsync(id, new InvalidOperationException($"Error accessing cloud proxy for device {id}"))
 				);
 			}
 			catch (Exception e)
 			{
-				return await this.GetTwinWhenCloudOfflineAsync(id, e);
+				return await this.GetTwinInfoWhenCloudOfflineAsync(id, e);
 			}
 		}
 
-		internal async Task<Twin> GetTwinFromStoreAsync(string id, Func<Twin, Task<Twin>> twinStoreHit, Func<Task<Twin>> twinStoreMiss)
+		internal async Task ExecuteOnTwinStoreResultAsync(string id, Func<TwinInfo, Task> twinStoreHit, Func<Task> twinStoreMiss)
 		{
-			Option<Twin> cached = await this.twinStore.Match(async (s) => await s.Get(id), () => throw new Exception("Missing twin store"));
-			return await cached.Match(twinStoreHit, twinStoreMiss);
+			Option<TwinInfo> cached = await this.TwinStore.Match(async (s) => await s.Get(id), () => throw new InvalidOperationException("Missing twin store"));
+			await cached.Match(async (c) => await twinStoreHit(c), async () => await twinStoreMiss());
 		}
 
 		public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)
 		{
-			await this.twinStore.Match(
+			await this.TwinStore.Match(
 				async (s) => await this.UpdateDesiredPropertiesWithStoreSupportAsync(id, desiredProperties),
-				async () =>
-				{
-					// pass through to device proxy
-					Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
-					await deviceProxy.Match(dp => dp.OnDesiredPropertyUpdates(desiredProperties), () => throw new Exception($"Device proxy unavailable for device {id}"));
-				});
+				async () => await this.SendDesiredPropertiesToDeviceProxy(id, desiredProperties));
+		}
+
+		async Task SendDesiredPropertiesToDeviceProxy(string id, IMessage desired)
+		{
+			Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
+			await deviceProxy.Match(dp => dp.OnDesiredPropertyUpdates(desired), () => throw new InvalidOperationException($"Device proxy unavailable for device {id}"));
 		}
 
 		async Task UpdateDesiredPropertiesWithStoreSupportAsync(string id, IMessage desiredProperties)
@@ -97,53 +99,164 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 			try
 			{
 				TwinCollection desired = this.twinCollectionConverter.FromMessage(desiredProperties);
-				await this.GetTwinFromStoreAsync(
+				await this.ExecuteOnTwinStoreResultAsync(
 					id,
 					async (t) => await this.UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(id, t, desired),
 					async () => await this.UpdateDesiredPropertiesWhenTwinStoreNeedsTwinAsync(id, desired));
-				Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
-				await deviceProxy.Match(dp => dp.OnDesiredPropertyUpdates(desiredProperties), () => throw new Exception($"Device proxy unavailable for device {id}"));
+				await this.SendDesiredPropertiesToDeviceProxy(id, desiredProperties);
 			}
 			catch (Exception e)
 			{
-				throw new Exception($"Error updating desired properties for device {id}", e);
+				throw new InvalidOperationException($"Error processing desired properties for device {id}", e);
 			}
 		}
 
-		Twin UpdateTwinStoreDesiredProperties(Twin old, TwinCollection diff)
+		async Task UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(string id, TwinInfo twinInfo, TwinCollection desired)
 		{
-			TwinCollection merged = MergeTwinCollections(old.Properties.Desired, diff, true);
-			old.Properties.Desired = merged;
-			return old;
+			await this.TwinStore.Match(
+				async (s) => await s.Update(
+					id,
+					u =>
+					{
+						u.Twin.Properties.Desired = MergeTwinCollections(u.Twin.Properties.Desired, desired, true);
+						return u;
+					}),
+				() => throw new InvalidOperationException("Missing twin store"));
 		}
 
-		async Task<Twin> UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(string id, Twin twin, TwinCollection desired)
+		async Task UpdateDesiredPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection desired)
 		{
-			Twin updated = twin;
-			await this.twinStore.Match(async (s) => await s.PutOrUpdate(id, twin,
-				u => updated = this.UpdateTwinStoreDesiredProperties(u, desired)), () => throw new Exception("Missing twin store"));
-			return await Task.FromResult(updated);
+			TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
+			await this.UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(id, twinInfo, desired);
 		}
 
-		async Task<Twin> UpdateDesiredPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection desired)
-		{
-			Twin twin = await this.GetTwinWithStoreSupportAsync(id);
-			return await this.UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(id, twin, desired);
-		}
-
-		async Task<Twin> GetTwinWhenCloudOnlineAsync(string id, ICloudProxy cp)
+		async Task<TwinInfo> GetTwinInfoWhenCloudOnlineAsync(string id, ICloudProxy cp)
 		{
 			IMessage twinMessage = await cp.GetTwinAsync();
-			Twin twin = twinConverter.FromMessage(twinMessage);
-			await this.twinStore.Match(async (s) => await s.PutOrUpdate(id, twin, t => twin), () => throw new Exception("Missing twin store"));
-			return twin;
+			Twin cloudTwin = twinConverter.FromMessage(twinMessage);
+
+			TwinInfo updated = new TwinInfo(cloudTwin, null);
+			await this.TwinStore.Match(
+				async (s) => await s.PutOrUpdate(
+					id,
+					updated,
+					t =>
+					{
+						updated = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch);
+						return updated;
+					}),
+				() => throw new InvalidOperationException("Missing twin store"));
+			return updated;
 		}
 
-		async Task<Twin> GetTwinWhenCloudOfflineAsync(string id, Exception e)
+		async Task<TwinInfo> GetTwinInfoWhenCloudOfflineAsync(string id, Exception e)
 		{
-			Twin twin = await this.GetTwinFromStoreAsync(id, t => Task.FromResult(t), () => throw new Exception($"Error getting twin for device {id}", e));
-			IMessage twinMessage = twinConverter.ToMessage(twin);
-			return twin;
+			TwinInfo twinInfo = null;
+			await this.ExecuteOnTwinStoreResultAsync(
+				id,
+				t =>
+				{
+					twinInfo = t;
+					return Task.CompletedTask;
+				},
+				() => throw new InvalidOperationException($"Error getting twin for device {id}"));
+			return twinInfo;
+		}
+
+		async Task UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(string id, TwinCollection reported)
+		{
+			await this.TwinStore.Match(
+				async (s) => await s.Update(
+					id,
+					u =>
+					{
+						TwinCollection mergedProperty = MergeTwinCollections(u.Twin.Properties.Reported, reported, true /* treatNullAsDelete */);
+						u.Twin.Properties.Reported = mergedProperty;
+						return u;
+					}),
+				() => throw new InvalidOperationException("Missing twin store"));
+		}
+
+		async Task UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection reported)
+		{
+			TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
+			await this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported);
+		}
+
+		public async Task UpdateReportedPropertiesAsync(string id, IMessage reportedProperties)
+		{
+			await this.TwinStore.Match(
+				async (s) => await this.UpdateReportedPropertiesWithStoreSupportAsync(id, reportedProperties),
+				async () => await this.SendReportedPropertiesToCloudProxy(id, reportedProperties));
+		}
+
+		async Task UpdateReportedPropertiesPatch(string id, TwinCollection reportedProperties)
+		{
+			await this.TwinStore.Match(
+				async (s) => await s.Update(
+					id,
+					u =>
+					{
+						TwinCollection mergedPatch = null;
+						if (u.ReportedPropertiesPatch == null)
+						{
+							mergedPatch = reportedProperties;
+						}
+						else
+						{
+							mergedPatch = MergeTwinCollections(u.ReportedPropertiesPatch, reportedProperties, false /* treatNullAsDelete */);
+						}
+						return new TwinInfo(u.Twin, mergedPatch);
+					}),
+				() => throw new InvalidOperationException("Missing twin store"));
+		}
+
+		async Task UpdateReportedPropertiesWithStoreSupportAsync(string id, IMessage reportedProperties)
+		{
+			TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
+
+			try
+			{
+				// Update the local twin's reported properties
+				await this.ExecuteOnTwinStoreResultAsync(
+						id,
+						async (t) => await this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported),
+						async () => await this.UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(id, reported));
+			}
+			catch (Exception e)
+			{
+				throw new InvalidOperationException($"Error updating reported properties for device {id}", e);
+			}
+
+			try
+			{
+				// TODO handle the case where patches have accumulated. co-ordinate with the connection
+				// callback to handle pending patches
+				await this.SendReportedPropertiesToCloudProxy(id, reportedProperties);
+			}
+			catch (Exception e)
+			{
+				Events.UpdateReportedToCloudException(id, e);
+				try
+				{
+					// Update the collective patch of reported properties
+					await this.ExecuteOnTwinStoreResultAsync(
+						id,
+						async (t) => await this.UpdateReportedPropertiesPatch(id, reported),
+						() => throw new InvalidOperationException($"Missing cached twin for device {id}"));
+					return;
+				}
+				catch (Exception inner)
+				{
+					throw new InvalidOperationException($"Error updating reported properties for device {id}", inner);
+				}
+			}
+		}
+
+		async Task SendReportedPropertiesToCloudProxy(string id, IMessage reported)
+		{
+			Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+			await cloudProxy.Match(async (cp) => await cp.UpdateReportedPropertiesAsync(reported), () => throw new InvalidOperationException($"Cloud proxy unavailable for device {id}"));
 		}
 
 		internal static TwinCollection MergeTwinCollections(TwinCollection baseline, TwinCollection patch, bool treatNullAsDelete)
@@ -195,6 +308,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 				}
 			}
 			return JToken.FromObject(result);
+		}
+
+		static class Events
+		{
+			static readonly ILogger Log = Logger.Factory.CreateLogger<TwinManager>();
+			const int IdStart = HubCoreEventIds.TwinManager;
+
+			enum EventIds
+			{
+				UpdateReportedToCloudException = IdStart,
+				StoreTwinFailed
+			}
+
+			public static void UpdateReportedToCloudException(string identity, Exception e)
+			{
+				Log.LogDebug((int)EventIds.UpdateReportedToCloudException, $"Updating reported properties for {identity} in cloud failed with error {e.GetType()} {e.Message}");
+			}
+
+			public static void StoreTwinFailed(string identity, Exception e, long v, long desired, long reported)
+			{
+				Log.LogDebug((int)EventIds.StoreTwinFailed, $"Storing twin for {identity} failed with error {e.GetType()} {e.Message}. Retrieving last stored twin with version {v}, desired version {desired} and reported version {reported}");
+			}
 		}
 	}
 }
