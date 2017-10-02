@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Moq;
     using Xunit;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     public class CloudReceiverTest
     {
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static readonly byte[] Data = new byte[0];
 
         [Fact]
+        [Integration]
         public async Task MethodCallHandler_WhenResponse_WithRequestIdReceived_Completes()
         {
             var cloudListener = new Mock<ICloudListener>();

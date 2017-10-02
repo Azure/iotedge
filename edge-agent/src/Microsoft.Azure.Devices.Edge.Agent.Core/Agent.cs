@@ -2,14 +2,13 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Microsoft.Azure.Devices.Edge.Util;
-	using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-	using Microsoft.Extensions.Logging;
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
-	public class Agent
+    public class Agent
 	{
 		readonly IEnvironment environment;
 		readonly IPlanner planner;

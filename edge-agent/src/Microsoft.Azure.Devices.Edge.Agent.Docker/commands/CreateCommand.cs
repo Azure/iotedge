@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -11,111 +10,74 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Binding = global::Docker.DotNet.Models.PortBinding;
+    using Newtonsoft.Json;
 
     public class CreateCommand : ICommand
     {
+        readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
-        readonly DockerModule module;
-        readonly DockerLoggingConfig dockerLoggerConfig;
-        readonly Lazy<string> loggerOptionsLazy;
-        readonly Lazy<string> envLazy;
-        readonly Lazy<string> portBindingsLazy;
-        readonly IConfigSource configSource;
 
         public CreateCommand(IDockerClient client, DockerModule module, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
         {
+            // Validate parameters
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.module = Preconditions.CheckNotNull(module, nameof(module));
-            this.dockerLoggerConfig = Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
-            this.loggerOptionsLazy = new Lazy<string>(() => ShowLoggingOptions(this.dockerLoggerConfig));
-            this.envLazy = new Lazy<string>(() => ShowEnvVars(this.GetContainerEnv()));
-            this.portBindingsLazy = new Lazy<string>(() => ShowPortBindings(module.Config.PortBindings));
-            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
+            Preconditions.CheckNotNull(module, nameof(module));
+            Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
+            Preconditions.CheckNotNull(configSource, nameof(configSource));
+
+            this.createContainerParameters = module.Config.CreateOptions ?? new CreateContainerParameters();
+            var normalizedCreateOptions = JsonConvert.SerializeObject(this.createContainerParameters);
+
+            // Force update parameters with indexing entries
+            this.createContainerParameters.Name = module.Name;
+            this.createContainerParameters.Image = module.Config.Image + ":" + module.Config.Tag;
+
+            // Inject global parameters
+            InjectConfig(this.createContainerParameters, configSource, module);
+            InjectLoggerConfig(this.createContainerParameters, dockerLoggerConfig);
+
+            // Inject required Edge parameters
+            this.createContainerParameters.Labels = this.createContainerParameters.Labels ?? new Dictionary<string, string>();
+            this.createContainerParameters.Labels?.Remove("owner");
+            this.createContainerParameters.Labels.Add("owner", Constants.Owner);
+            this.createContainerParameters.Labels?.Remove("version");
+            this.createContainerParameters.Labels.Add("version", module.Version);
+            this.createContainerParameters.Labels?.Remove("normalizedCreateOptions");
+            this.createContainerParameters.Labels.Add("normalizedCreateOptions", normalizedCreateOptions);
         }
 
-        public async Task ExecuteAsync(CancellationToken token)
-        {
-            var parameters = new CreateContainerParameters
-            {
-                Name = this.module.Name,
-                Labels = new Dictionary<string, string>
-                {
-                    { "version", this.module.Version },
-                    { "owner", Constants.Owner },
-                },
-                Image = this.module.Config.Image + ":" + this.module.Config.Tag,
-                Env = this.GetContainerEnv().ToList()
-            };
-            ApplyPortBindings(parameters, this.module);
-            ApplyLoggingOptions(parameters, this.dockerLoggerConfig);
-            await this.client.Containers.CreateContainerAsync(parameters);
-        }
+        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
 
-        IEnumerable<string> GetContainerEnv()
-        {
-            IEnumerable<string> env = this.module.Config.Env.Select(kvp => $"{kvp.Key}={kvp.Value}");
 
-            string edgeDeviceConnectionString = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceConnectionStringKey, string.Empty);
-            if (!string.IsNullOrWhiteSpace(edgeDeviceConnectionString))
-            {
-                // append the module ID to this string
-                edgeDeviceConnectionString = $"{Constants.EdgeHubConnectionStringKey}={edgeDeviceConnectionString};{Constants.ModuleIdKey}={this.module.Name}";
-
-                env = env.Concat(new string[] { edgeDeviceConnectionString });
-            }
-
-            return env;
-        }
+        public string Show() => ObfuscateConnectionStringInCreateContainerParameters(JsonConvert.SerializeObject(this.createContainerParameters));
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker create {this.portBindingsLazy.Value} {this.envLazy.Value} {this.loggerOptionsLazy.Value} --name {this.module.Name} --label version=\"{this.module.Version}\" --label owner =\"{Constants.Owner}\" {this.module.Config.Image}:{this.module.Config.Tag}";
-
-        static string ShowEnvVars(IEnumerable<string> env) => string.Join(" ", env.Select(val => val.Contains(Constants.EdgeDeviceConnectionStringKey)? $"--env {Constants.EdgeDeviceConnectionStringKey}=[connection string]": $"--env \"{val}\""));
-
-        static string ShowPortBindings(IEnumerable<Docker.PortBinding> bindings) => string.Join(" ", bindings.Select(b => $"-p {b.To}:{b.From}"));
-
-        static void ApplyPortBindings(CreateContainerParameters parameters, DockerModule module)
+        static void InjectConfig(CreateContainerParameters parameters, IConfigSource configSource, DockerModule module)
         {
-            IDictionary<string, IList<Binding>> bindings = new Dictionary<string, IList<Binding>>();
-            foreach (Docker.PortBinding binding in module.Config.PortBindings)
+            // Inject the connection string as an environment variable
+            string edgeHubConnectionString = configSource.Configuration.GetValue(Constants.EdgeHubConnectionStringKey, string.Empty);
+            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
             {
-                var pb = new Binding
-                {
-                    HostPort = binding.To
-                };
-                IList<Binding> current = bindings.GetOrElse(binding.From, () => new List<Binding>());
-                current.Add(pb);
-                bindings[$"{binding.From}/{TypeString(binding.Type)}"] = current;
+                parameters.Env = parameters.Env ?? new List<string>();
+                parameters.Env.Remove($"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={module.Name}");
+                parameters.Env.Add($"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={module.Name}");
             }
-
-            parameters.HostConfig = parameters.HostConfig ?? new HostConfig();
-            parameters.HostConfig.PortBindings = bindings;
         }
 
-        static string ShowLoggingOptions(DockerLoggingConfig dockerLoggerConfig) => 
-            string.Join(" ", "--logdriver", dockerLoggerConfig.Type, string.Join(" ", dockerLoggerConfig.Config.Select(kvp => $"--log-opt \"{kvp.Key}={kvp.Value}\"")));
-
-
-        static void ApplyLoggingOptions(CreateContainerParameters parameters, DockerLoggingConfig dockerLoggerConfig)
+        static void InjectLoggerConfig(CreateContainerParameters parameters, DockerLoggingConfig dockerLoggerConfig)
         {
             parameters.HostConfig = parameters.HostConfig ?? new HostConfig();
             parameters.HostConfig.LogConfig = parameters.HostConfig.LogConfig ?? new LogConfig();
             parameters.HostConfig.LogConfig.Type = dockerLoggerConfig.Type;
+            parameters.HostConfig.LogConfig.Config = dockerLoggerConfig.Config;
         }
 
-        static string TypeString(PortBindingType type)
+        static string ObfuscateConnectionStringInCreateContainerParameters(string serializedCreateOptions)
         {
-            switch (type)
-            {
-                case PortBindingType.Tcp:
-                    return "tcp";
-                case PortBindingType.Udp:
-                    return "udp";
-                default:
-                    return "unknown";
-            }
+            var scrubbed = JsonConvert.DeserializeObject<CreateContainerParameters>(serializedCreateOptions);
+            scrubbed.Env?.Select((env, i) => ((env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1) ? env : $"{Constants.EdgeHubConnectionStringKey}=******"));
+            return JsonConvert.SerializeObject(scrubbed);
         }
     }
 }

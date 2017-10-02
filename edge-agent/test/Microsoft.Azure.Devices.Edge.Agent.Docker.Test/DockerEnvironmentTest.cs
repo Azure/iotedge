@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [Collection("Docker")]
     public class DockerEnvironmentTest
     {
-        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
         static readonly IDockerClient Client = DockerHelper.Client;
 
         [Fact]
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { "EdgeDeviceConnectionString", FakeConnectionString }
+                        { Constants.EdgeHubConnectionStringKey, FakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
@@ -106,17 +106,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 {
                     await Client.CleanupContainerAsync(Name, Image);
 
-                    var config = new DockerConfig(Image, Tag, new Dictionary<string, string>()
-                    {
-                        { "k1", "v1" },
-                        { "k2", "v2" }
-                    });
+                    var createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
+                    var config = new DockerConfig(Image, Tag, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { "EdgeDeviceConnectionString", FakeConnectionString }
+                        { Constants.EdgeHubConnectionStringKey, FakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
@@ -133,9 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var environment = new DockerEnvironment(Client);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.NotNull(modules.Modules[Name]);
-                    Assert.Equal("v1", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k1"]);
-                    Assert.Equal("v2", ((DockerEnvModule)modules.Modules[Name]).Config.Env["k2"]);
-                    Assert.Equal($"{FakeConnectionString};ModuleId={Name}", ((DockerEnvModule)modules.Modules[Name]).Config.Env["EdgeHubConnectionString"]);
+
+                    Assert.True(((DockerEnvModule)modules.Modules[Name]).Config.CreateOptions.Env.Contains("k1=v1"));
+                    Assert.True(((DockerEnvModule)modules.Modules[Name]).Config.CreateOptions.Env.Contains("k2=v2"));
                 }
             }
             finally
@@ -186,8 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(dockerModule);
             Assert.Equal("localhost:5000/sensor", dockerModule.Config.Image);
             Assert.Equal("v2", dockerModule.Config.Tag);
-            Assert.Equal(0, dockerModule.Config.PortBindings.Count);
-            Assert.Equal(0, dockerModule.Config.Env.Count);
+            Assert.Equal(0, dockerModule.Config.CreateOptions.Env?.Count ?? 0);
+            Assert.Equal(0, dockerModule.Config.CreateOptions.HostConfig?.PortBindings?.Count ?? 0);
 
             Assert.Equal("sensor", dockerModule.Name);
             Assert.Equal("v2", dockerModule.Version);

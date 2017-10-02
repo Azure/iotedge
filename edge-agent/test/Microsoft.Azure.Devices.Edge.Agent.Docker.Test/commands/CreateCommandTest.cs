@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
-    using Binding = Microsoft.Azure.Devices.Edge.Agent.Docker.PortBinding;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
                     await Client.CleanupContainerAsync(Name, Image);
 
@@ -49,18 +48,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         {"max-file", "1" }
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, Tag,
-                        new[] { new Binding("80", "8080", PortBindingType.Tcp) },
-                        new Dictionary<string, string>()
-                        {
-                            { "k1", "v1" },
-                            { "k2", "v2" }
-                        });
+                    var config = new DockerConfig(Image, Tag, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { "EdgeDeviceConnectionString", FakeConnectionString }
+                        { Constants.EdgeHubConnectionStringKey, FakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
@@ -100,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             try
             {
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
                     await Client.CleanupContainerAsync(Name, Image);
 
@@ -108,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var config = new DockerConfig(Image, Tag, new[] { new Binding("42", "42", PortBindingType.Udp)});
+                    var config = new DockerConfig(Image, Tag, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>

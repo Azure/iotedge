@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public string ImageTag { get; set; }
 
-        public PortBinding[] PortBindings { get; set; }
+        public string ImageCreateOptions { get; set; }
 
         public Validator Validator { get; set; }
     }

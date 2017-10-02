@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -16,21 +15,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config3 = new DockerConfig("image1", "42");
         static readonly DockerConfig Config4 = new DockerConfig("image1", "43");
         
-        static readonly DockerConfig Config5 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("42", "42", PortBindingType.Udp) });
-        static readonly DockerConfig Config6 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp) }, new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } });
-        static readonly DockerConfig Config7 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp) }, new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } });
-        static readonly DockerConfig Config8 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) }, new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } });
-        static readonly DockerConfig Config9 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("42", "42", PortBindingType.Tcp), new PortBinding("43", "43", PortBindingType.Udp) }, new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" }, { "k3", "v3" } });
+        static readonly DockerConfig Config5 = new DockerConfig("image1", "42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
+        static readonly DockerConfig Config6 = new DockerConfig("image1", "42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config7 = new DockerConfig("image1", "42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config8 = new DockerConfig("image1", "42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
+        static readonly DockerConfig Config9 = new DockerConfig("image1", "42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
 
-        static readonly DockerConfig Config10 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp) }, new Dictionary<string, string> { { "k11", "v11" }, { "k22", "v22" } });
-        static readonly DockerConfig Config11 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp) }, new Dictionary<string, string> { { "k33", "v33" }, { "k44", "v44" } });
+        static readonly DockerConfig Config10 = new DockerConfig("image1", "42", @"{""Env"": [""k11=v11"", ""k22=v22""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config11 = new DockerConfig("image1", "42", @"{""Env"": [""k33=v33"", ""k44=v44""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
 
         [Fact]
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerConfig(null, "42"));
-            Assert.Throws<ArgumentNullException>(() => new DockerConfig("image1", null));
+            Assert.Throws<ArgumentException>(() => new DockerConfig(null, "42"));
+            Assert.Throws<ArgumentException>(() => new DockerConfig("image1", null));
         }
 
         [Fact]

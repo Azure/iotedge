@@ -16,8 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [ExcludeFromCodeCoverage]
     public class DockerModuleTest
     {
-        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
-        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
+        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
+        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
 
         static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
         static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
         static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, Config1);
 
-        const string SerializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"config\":{\"image\":\"image1\",\"tag\":\"42\",\"portbindings\":{\"43/udp\":{\"from\":\"43\",\"to\":\"43\",\"type\":\"udp\"},\"42/tcp\":{\"from\":\"42\",\"to\":\"42\",\"type\":\"tcp\"}}}}";
+        const string SerializedModule = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""config"":{""image"":""image1"",""tag"":""42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {
@@ -41,7 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":10
+            ""createoptions"":{
+               ""env"":10
+            }
          }
       },
       {
@@ -52,7 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":""boo""
+            ""createoptions"":{
+               ""env"":""boo""
+            }
          }
       },
       {
@@ -63,7 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":true
+            ""createoptions"":{
+               ""env"":true
+            }
          }
       }
    ],
@@ -76,9 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":{
-               ""k1"":""v1"",
-               ""k2"":""v2""
+            ""createoptions"":{
+               ""env"":[
+                  ""k1=v1"",
+                  ""k2=v2""
+               ]
             }
          }
       },
@@ -90,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":{
-
+            ""createoptions"":{
+               ""env"":[""""]
             }
          }
       },
@@ -103,7 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
-            ""env"":null
+            ""createoptions"":{
+               ""env"":[]
+            }
          }
       },
       {
@@ -125,17 +135,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Status"":""running"",
          ""Config"":{
             ""Image"":""image1"",
-            ""tag"":""42"",
-            ""portbindings"":{
-               ""43/udp"":{
-                  ""from"":""43"",
-                  ""to"":""43"",
-                  ""type"":""udp""
-               },
-               ""42/tcp"":{
-                  ""from"":""42"",
-                  ""to"":""42"",
-                  ""type"":""tcp""
+            ""Tag"":""42"",
+            ""CreateOptions"": {
+               ""HostConfig"": {
+                  ""PortBindings"": {
+                     ""43/udp"": [
+                        {
+                           ""HostPort"": ""43""
+                        }
+                     ],
+                     ""42/tcp"": [
+                        {
+                           ""HostPort"": ""42""
+                        }
+                     ]
+                  }
                }
             }
          }
@@ -148,16 +162,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""config"":{
             ""image"":""image1"",
             ""tag"":""42"",
-            ""portbindings"":{
-               ""43/udp"":{
-                  ""from"":""43"",
-                  ""to"":""43"",
-                  ""type"":""udp""
-               },
-               ""42/tcp"":{
-                  ""from"":""42"",
-                  ""to"":""42"",
-                  ""type"":""tcp""
+            ""createoptions"": {
+               ""hostconfig"": {
+                  ""portbindings"": {
+                     ""43/udp"": [
+                        {
+                           ""hostport"": ""43""
+                        }
+                     ],
+                     ""42/tcp"": [
+                        {
+                           ""hostport"": ""42""
+                        }
+                     ]
+                  }
                }
             }
          }
@@ -166,20 +184,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""NAME"":""<module_name>"",
          ""VERSION"":""<semantic_version_number>"",
          ""TYPE"":""docker"",
-         ""STATUS"":""RUNNING"",
+         ""STATUS"":""running"",
          ""CONFIG"":{
             ""IMAGE"":""image1"",
             ""TAG"":""42"",
-            ""PORTBINDINGS"":{
-               ""43/udp"":{
-                  ""FROM"":""43"",
-                  ""TO"":""43"",
-                  ""TYPE"":""udp""
-               },
-               ""42/tcp"":{
-                  ""FROM"":""42"",
-                  ""TO"":""42"",
-                  ""TYPE"":""tcp""
+            ""CREATEOPTIONS"": {
+               ""HOSTCONFIG"": {
+                  ""PORTBINDINGS"": {
+                     ""43/udp"": [
+                        {
+                           ""HOSTPORT"": ""43""
+                        }
+                     ],
+                     ""42/tcp"": [
+                        {
+                           ""HOSTPORT"": ""42""
+                        }
+                     ]
+                  }
                }
             }
          }
@@ -376,14 +398,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         [Fact]
         [Unit]
-        public void TestSerializeEnvConfig()
+        public void TestSerializeContainerCreateConfig()
         {
             // Arrange
-            var config = new DockerConfig("ubuntu", "latest", new Dictionary<string, string>
-            {
-                { "k1", "v1" },
-                { "k2", "v2" }
-            });
+            string createOptions = @"{""Env"": [""k1=v1"",""k2=v2""]}";
+            var config = new DockerConfig("ubuntu", "latest", createOptions);
             var module = new DockerModule("testser", "1.0", ModuleStatus.Running, config);
 
             // Act
@@ -391,27 +410,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Assert
             DockerModule mod2 = ModuleSerde.Instance.Deserialize<DockerModule>(json);
-            Assert.Equal(2, mod2.Config.Env.Count);
-            Assert.Equal(mod2.Config.Env["k1"], "v1");
-            Assert.Equal(mod2.Config.Env["k2"], "v2");
-        }
-
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetValidEnvJsonInputs))]
-        public void TestDeserializeValidEnvJson(string inputJson)
-        {
-            DockerModule module = ModuleSerde.Instance.Deserialize<DockerModule>(inputJson);
-            Assert.NotNull(module);
-            Assert.NotNull(module.Config.Env);
-
-            // if module name is "mod1" then verify that the env vars are what we expect them to be
-            if (module.Name == "mod1")
-            {
-                Assert.Equal(2, module.Config.Env.Count);
-                Assert.Equal("v1", module.Config.Env["k1"]);
-                Assert.Equal("v2", module.Config.Env["k2"]);
-            }
+            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k1=v1"""));
+            Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k2=v2"""));
         }
 
         [Theory]

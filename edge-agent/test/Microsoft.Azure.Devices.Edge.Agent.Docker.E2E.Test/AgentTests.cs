@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 await RemoveContainer(client, testConfig);
 
                 // Initialize docker configuration for this module.
-                DockerConfig dockerConfig = testConfig.PortBindings != null
-                    ? new DockerConfig(testConfig.ImageName, testConfig.ImageTag, testConfig.PortBindings)
+                DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
+                    ? new DockerConfig(testConfig.ImageName, testConfig.ImageTag, testConfig.ImageCreateOptions)
                     : new DockerConfig(testConfig.ImageName, testConfig.ImageTag);
 
                 // Initialize an Edge Agent module object.

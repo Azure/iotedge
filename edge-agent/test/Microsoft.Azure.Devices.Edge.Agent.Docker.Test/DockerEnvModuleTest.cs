@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [Unit]
     public class DockerEnvModuleTest
     {
-        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
-        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", new HashSet<PortBinding> { new PortBinding("43", "43", PortBindingType.Udp), new PortBinding("42", "42", PortBindingType.Tcp) });
+        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
 
         static readonly IModule Module1 = new DockerEnvModule("mod1", "version1", ModuleStatus.Running, Config1, 0, null, null, null);
         static readonly IModule Module1a = new DockerEnvModule("mod1", "version1", ModuleStatus.Running, Config1, 0, null, null, null);
@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig ValidConfig = new DockerConfig("image1", "42");
         static readonly DockerEnvModule ValidJsonModule = new DockerEnvModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, ValidConfig, 0, "<status description>", "<last start time>", "<last exit time>");
 
-        const string SerializedModule1 = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"exitcode\":0,\"config\":{\"image\":\"image1\",\"tag\":\"42\",\"portbindings\":{\"43/udp\":{\"from\":\"43\",\"to\":\"43\",\"type\":\"udp\"},\"42/tcp\":{\"from\":\"42\",\"to\":\"42\",\"type\":\"tcp\"}}}}";
-        const string SerializedModule2 = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"docker\",\"status\":\"running\",\"exitcode\":0,\"statusdescription\":\"Running 1 minute\",\"laststarttime\":\"2017-08-04T17:52:13.0419502Z\",\"lastexittime\":\"0001-01-01T00:00:00Z\",\"config\":{\"image\":\"image1\",\"tag\":\"42\",\"portbindings\":{\"43/udp\":{\"from\":\"43\",\"to\":\"43\",\"type\":\"udp\"},\"42/tcp\":{\"from\":\"42\",\"to\":\"42\",\"type\":\"tcp\"}}}}";
+        const string SerializedModule1 = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""exitcode"":0,""config"":{""image"":""image1"",""tag"":""42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}}}";
+        const string SerializedModule2 = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""exitcode"":0,""statusdescription"":""Running 1 minute"",""laststarttime"":""2017-08-04T17:52:13.0419502Z"",""lastexittime"":""0001-01-01T00:00:00Z"",""config"":{""image"":""image1"",""tag"":""42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {

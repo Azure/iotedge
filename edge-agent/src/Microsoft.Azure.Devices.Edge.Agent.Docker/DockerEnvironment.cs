@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -12,8 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Binding = global::Docker.DotNet.Models.PortBinding;
-    using System;
 
     public class DockerEnvironment : IEnvironment
     {
@@ -72,50 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
-            IEnumerable<PortBinding> portBindings = inspected
-                ?.HostConfig
-                ?.PortBindings
-                ?.SelectMany(p => ToPortBinding(p.Key, p.Value)) ?? ImmutableList<PortBinding>.Empty;
-
-            IDictionary<string, string> env = inspected
-                ?.Config
-                ?.Env
-                ?.ToDictionary('=') ?? ImmutableDictionary<string, string>.Empty;
-
             int exitCode = (inspected?.State != null)? (int)inspected.State.ExitCode : 0;
             string statusDescription = inspected?.State?.Status;
             string lastStartTime = inspected?.State?.StartedAt;
             string lastExitTime = inspected?.State?.FinishedAt;
 
-            var config = new DockerConfig(image, tag, portBindings, env);
+            var config = new DockerConfig(image, tag, (inspected?.Config?.Labels?["normalizedCreateOptions"] ?? string.Empty));
             return new DockerEnvModule(name, version, status, config, exitCode, statusDescription, lastStartTime, lastExitTime);
-        }
-
-        static IEnumerable<PortBinding> ToPortBinding(string key, IList<Binding> binding)
-        {
-            string[] splits = key.Split('/');
-            string fromStr = splits[0];
-            string typeStr = splits.Length > 1 ? splits[1] : "tcp";
-
-            if (splits.Length < 1)
-            {
-                Logger.LogWarning("Using default PortBinding type of 'tcp' for key '{0}'", key);
-            }
-
-            PortBindingType type;
-            switch (typeStr.ToLowerInvariant())
-            {
-                case "tcp":
-                    type = PortBindingType.Tcp;
-                    break;
-                case "udp":
-                    type = PortBindingType.Udp;
-                    break;
-                default:
-                    type = PortBindingType.Tcp;
-                    break;
-            }
-            return binding.Select(b => new PortBinding(b.HostPort, fromStr, type));
         }
 
         static ModuleStatus ToStatus(string state)
