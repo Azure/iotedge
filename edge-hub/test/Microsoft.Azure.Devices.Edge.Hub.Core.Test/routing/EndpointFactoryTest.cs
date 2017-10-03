@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             
             var moduleEndpoint = endpoint as ModuleEndpoint;
             Assert.NotNull(moduleEndpoint);
-            Assert.Equal("Device1/alertLogic", moduleEndpoint.Id);
+            Assert.Equal("Device1/alertLogic/in1", moduleEndpoint.Id);
             Assert.Equal("in1", moduleEndpoint.Input);
         }
 

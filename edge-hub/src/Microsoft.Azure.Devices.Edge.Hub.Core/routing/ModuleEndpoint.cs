@@ -25,13 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     {
         readonly Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
+        readonly string moduleId;
 
-        public ModuleEndpoint(string id, string input, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
+        public ModuleEndpoint(string id, string moduleId, string input, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
             this.Input = Preconditions.CheckNotNull(input);
             this.deviceProxyGetterFunc = Preconditions.CheckNotNull(deviceProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
+            this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public override string Type => this.GetType().Name;
@@ -105,13 +107,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                             if (failed.Count > 0)
                             {
-                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.Id}"));
+                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
                             }
                         },
                         () =>
                         {
                             failed.AddRange(routingMessages);
-                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.Id} is not connected"));
+                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
                             Events.NoDeviceProxy(this.moduleEndpoint);
                             return TaskEx.Done;
                         });
@@ -156,12 +158,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
             {
-                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Module {moduleEndpoint.Id} is not connected"));
+                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"Module {moduleEndpoint.moduleId} is not connected"));
             }
 
             public static void ErrorSendingMessages(ModuleEndpoint moduleEndpoint, Exception ex)
             {
-                Log.LogWarning((int)EventIds.ErrorSendingMessages, ex, Invariant($"Error sending messages to module {moduleEndpoint.Id}"));
+                Log.LogWarning((int)EventIds.ErrorSendingMessages, ex, Invariant($"Error sending messages to module {moduleEndpoint.moduleId}"));
             }
         }
     }

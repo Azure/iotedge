@@ -22,12 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var deviceProxyMock = new Mock<IDeviceProxy>();
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
+            string endpointId = $"{moduleId}/{moduleEndpointAddress}";
+            var moduleEndpoint = new ModuleEndpoint(endpointId, moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
-
-            Assert.Equal(moduleId, moduleEndpoint.Id);
+            Assert.Equal(endpointId, moduleEndpoint.Id);
             Assert.Equal("ModuleEndpoint", moduleEndpoint.Type);
-            Assert.Equal(moduleId, moduleEndpoint.Name);
+            Assert.Equal(endpointId, moduleEndpoint.Name);
             Assert.Equal(string.Empty, moduleEndpoint.IotHubName);
         }
 
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
             Assert.NotNull(moduleMessageProcessor);
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
             Task result = moduleMessageProcessor.CloseAsync(CancellationToken.None);
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxy.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, () => Option.Some(deviceProxy.Object), routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage ,CancellationToken.None);
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.Some(deviceProxy.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, () => Option.Some(deviceProxy.Object), routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string moduleId = "device1/module1";
             string moduleEndpointAddress = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint(moduleId, moduleEndpointAddress, () => Option.None<IDeviceProxy>(), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{moduleId}/{moduleEndpointAddress}", moduleId, moduleEndpointAddress, () => Option.None<IDeviceProxy>(), routingMessageConverter);
 
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await moduleMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);

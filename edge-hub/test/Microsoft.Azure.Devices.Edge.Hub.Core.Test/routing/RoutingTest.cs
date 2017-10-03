@@ -109,7 +109,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 			Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
 		}
 
-		[Fact]
+        [Fact]
+        public async Task MultipleRoutesSameModuleTest()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages/* WHERE $connectionDeviceId = 'device1' INTO BrokeredEndpoint(""/modules/ml/inputs/in1"")",
+                @"FROM /messages/modules/ml/outputs/op1 WHERE $connectionModuleId = 'ml' INTO BrokeredEndpoint(""/modules/ml/inputs/in2"")",
+                @"FROM /messages/modules/ml/outputs/op2 INTO BrokeredEndpoint(""/modules/asa/inputs/input1"")"
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", new List<string> { "in1", "in2" }, edgeHub, connectionManager);
+            TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
+
+            IMessage deviceMessage = GetMessage();
+            await device1.SendMessage(deviceMessage);
+            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
+            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+
+            IMessage mlMessage = GetMessage();
+            await moduleMl.SendMessageOnOutput(mlMessage);
+            Assert.False(iotHub.HasReceivedMessage(mlMessage));
+            Assert.True(moduleMl.HasReceivedMessage(mlMessage));
+            Assert.False(moduleAsa.HasReceivedMessage(mlMessage));
+
+            IMessage mlMessage2 = GetMessage();
+            await moduleMl.SendMessageOnOutput(mlMessage2, "op2");
+            Assert.False(iotHub.HasReceivedMessage(mlMessage2));
+            Assert.False(moduleMl.HasReceivedMessage(mlMessage2));
+            Assert.True(moduleAsa.HasReceivedMessage(mlMessage2));
+        }
+
+        [Fact]
 		public async Task MultipleRoutesTest_WithNoModuleOutput()
 		{
 			var routes = new List<string>
@@ -344,7 +381,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 				this.receivedMessages = receivedMessages;
 			}
 
-			public static async Task<TestModule> Create(string deviceId, string moduleId, string outputEndpointId, string inputEndpointId, IEdgeHub edgeHub, IConnectionManager connectionManager)
+            public static Task<TestModule> Create(string deviceId, string moduleId, string outputEndpointId, string inputEndpointId, IEdgeHub edgeHub, IConnectionManager connectionManager) =>
+                Create(deviceId, moduleId, outputEndpointId, new List<string> { inputEndpointId }, edgeHub, connectionManager);
+
+            public static async Task<TestModule> Create(string deviceId, string moduleId, string outputEndpointId, List<string> inputEndpointIds, IEdgeHub edgeHub, IConnectionManager connectionManager)
 			{
 				IModuleIdentity moduleIdentity = SetupModuleIdentity(moduleId, deviceId);
 				Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(moduleIdentity);
@@ -352,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 				var deviceListener = new DeviceMessageHandler(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
 				var receivedMessages = new List<IMessage>();
 				var deviceProxy = new Mock<IDeviceProxy>();
-				deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => e.Equals(inputEndpointId, StringComparison.OrdinalIgnoreCase))))
+				deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))
 					.Callback<IMessage, string>((m, e) => receivedMessages.Add(m))
 					.Returns(Task.CompletedTask);
 				deviceProxy.SetupGet(d => d.IsActive).Returns(true);
@@ -360,15 +400,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 				return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
 			}
 
-			public Task SendMessageOnOutput(IMessage message)
-			{
-				message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
-				message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
-				message.SystemProperties[SystemProperties.OutputName] = this.outputName;
-				return this.deviceListener.ProcessDeviceMessageAsync(message);
-			}
+            public Task SendMessageOnOutput(IMessage message) => this.SendMessageOnOutput(message, this.outputName);                
 
-			public Task SendMessage(IMessage message)
+            public Task SendMessageOnOutput(IMessage message, string outputName)
+            {
+                message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
+                message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
+                message.SystemProperties[SystemProperties.OutputName] = outputName;
+                return this.deviceListener.ProcessDeviceMessageAsync(message);
+            }
+
+            public Task SendMessage(IMessage message)
 			{
 				message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
 				message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
