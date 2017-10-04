@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service;
@@ -53,22 +54,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
-        readonly string DeviceId = "device1";
+        const string DeviceId = "device1";
 
-        readonly IList<string> routes = new List<string>() {
-            "FROM /messages/events INTO $upstream",
-            "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
-            "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
-            "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
-            "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
-            "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
-            "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
-            "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
-            "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
-            "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
-            "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
-            "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
+        readonly IDictionary<string, string> routes = new Dictionary<string, string>() {
+            ["r1"] = "FROM /messages/events INTO $upstream",
+            ["r2"] = "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            ["r3"] = "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
+            ["r4"] = "FROM /messages/modules/sender1 INTO BrokeredEndpoint(\"/modules/receiver1/inputs/input1\")",
+            ["r5"] = "FROM /messages/modules/sender2 INTO BrokeredEndpoint(\"/modules/receiver2/inputs/input1\")",
+            ["r6"] = "FROM /messages/modules/sender3 INTO BrokeredEndpoint(\"/modules/receiver3/inputs/input1\")",
+            ["r7"] = "FROM /messages/modules/sender4 INTO BrokeredEndpoint(\"/modules/receiver4/inputs/input1\")",
+            ["r8"] = "FROM /messages/modules/sender5 INTO BrokeredEndpoint(\"/modules/receiver5/inputs/input1\")",
+            ["r9"] = "FROM /messages/modules/sender6 INTO BrokeredEndpoint(\"/modules/receiver6/inputs/input1\")",
+            ["r10"] = "FROM /messages/modules/sender7 INTO BrokeredEndpoint(\"/modules/receiver7/inputs/input1\")",
+            ["r11"] = "FROM /messages/modules/sender8 INTO BrokeredEndpoint(\"/modules/receiver8/inputs/input1\")",
+            ["r12"] = "FROM /messages/modules/sender9 INTO BrokeredEndpoint(\"/modules/receiver9/inputs/input1\")",
+            ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
         };
 
         public static ProtocolHeadFixture GetInstance()
@@ -78,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         private ProtocolHeadFixture()
         {
-            this.DeviceId = ConfigHelper.TestConfig["GatewayDeviceId"];
             bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
             if (shouldStartEdge)
             {
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IList<string> routes = null)
+        public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IDictionary<string, string> routes = null)
         {
             var deviceListener = new Mock<IDeviceListener>();
             IConnectionManager connectionManager = null;
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return (connectionManager, deviceListener);
         }
 
-        public async Task StartMqttHead(IList<string> routes, Action<ContainerBuilder> setupMocks)
+        public async Task StartMqttHead(IDictionary<string, string> routes, Action<ContainerBuilder> setupMocks)
         {
             const int ConnectionPoolSize = 10;
             string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
@@ -179,11 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(false, null, TimeSpan.MaxValue, 0);
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
-            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, routes, storeAndForwardConfiguration, ConnectionPoolSize));
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, storeAndForwardConfiguration));
-            
+            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, null, routes, false, storeAndForwardConfiguration, ConnectionPoolSize));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();
 

@@ -17,17 +17,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudProxyProvider cloudProxyProvider;
-        readonly string edgeDeviceId;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
+        public event EventHandler<IIdentity> DeviceConnected;
+        public event EventHandler<IIdentity> DeviceDisconnected;
 
-        public ConnectionManager(ICloudProxyProvider cloudProxyProvider, string edgeDeviceId)
+        public ConnectionManager(ICloudProxyProvider cloudProxyProvider)
         {
             this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
-            // TODO: edgeDeviceId is only used to check if device connection should not be removed (see method RemoveDeviceConnection)
-            // Remove it when module identity is supported in IoTHub 
-            this.edgeDeviceId = Preconditions.CheckNotNull(edgeDeviceId, nameof(this.edgeDeviceId));
         }
 
         public void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
@@ -39,22 +37,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             currentDeviceProxy
                 .Filter(dp => dp.IsActive)
                 .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
+            this.DeviceConnected?.Invoke(this, identity);
         }
 
-        public void RemoveDeviceConnection(string id)
+        public Task RemoveDeviceConnection(string id)
         {
-            this.GetDeviceConnection(id)
-                .ForEach(deviceproxy => deviceproxy.SetInactive());
-            // TODO - Currently this doesn't close the cloud connection for device that has same id as Edge id as other modules might be using it. 
-            // After IoTHub supports module identity, add code to close all cloud connections.
-            if (!this.IsEdgeDevice(id))
-            {
-                this.GetCloudConnection(id).ForEach(cp => cp.CloseAsync());
-            }
-            Events.RemoveDeviceConnection(id);
+            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
+                ? this.RemoveDeviceConnection(device)
+                : Task.CompletedTask;
         }
 
-        internal bool IsEdgeDevice(string id) => this.edgeDeviceId.Equals(GetDeviceId(id), StringComparison.OrdinalIgnoreCase);
+        async Task RemoveDeviceConnection(ConnectedDevice device)
+        {
+            device.DeviceProxy.Filter(dp => dp.IsActive)
+                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
+
+            await device.CloudProxy.Filter(cp => cp.IsActive)
+                .Match(cp => cp.CloseAsync(), () => Task.FromResult(true));
+
+            Events.RemoveDeviceConnection(device.Identity.Id);
+            this.DeviceDisconnected?.Invoke(this, device.Identity);
+        }
 
         public Option<IDeviceProxy> GetDeviceConnection(string id)
         {
@@ -65,55 +68,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Option<ICloudProxy> GetCloudConnection(string id)
         {
-            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-            id = GetDeviceId(id);
-
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? device.CloudProxy.Filter(cp => cp.IsActive)
                 : Option.None<ICloudProxy>();
-        }
-
-        public async Task<bool> CloseConnectionAsync(string id)
-        {
-            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
-            {
-                return false;
-            }
-
-            device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {id}.")));
-
-            bool returnVal = await device.CloudProxy.Filter(cp => cp.IsActive)
-                .Map(cp => cp.CloseAsync())
-                .GetOrElse(Task.FromResult(true));
-
-            Events.CloseConnection(id);
-
-            return returnVal;
-        }
-
-        async Task<bool> CloseDeviceConnectionAsync(ConnectedDevice device)
-        {
-            device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
-
-            bool returnVal = await device.CloudProxy.Filter(cp => cp.IsActive)
-                .Map(cp => cp.CloseAsync())
-                .GetOrElse(Task.FromResult(true));
-
-            Events.CloseDeviceConnection(device.Identity.Id);
-
-            return returnVal;
         }
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-            IIdentity deviceIdentity = GetDeviceIdentity(identity);
-
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             (Try<ICloudProxy> newCloudProxy, Option<ICloudProxy> existingCloudProxy) = await device.UpdateCloudProxy(() => this.GetCloudProxy(device));
 
             // If the existing cloud proxy had an active connection then close it since we
@@ -121,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await existingCloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));
-            Events.NewCloudConnection(deviceIdentity);
+            Events.NewCloudConnection(identity);
 
             return newCloudProxy;
         }
@@ -130,12 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            // TODO: This line is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-            IIdentity deviceIdentity = GetDeviceIdentity(identity);
-
             // Get an existing ConnectedDevice from this.devices or add a new non-connected
             // instance to this.devices and return that.
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(deviceIdentity);            
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudProxy> cloudProxyTry = await device.GetOrCreateCloudProxy(
                 () => this.GetCloudProxy(device));
@@ -143,10 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         Task<Try<ICloudProxy>> GetCloudProxy(ConnectedDevice device) => this.cloudProxyProvider.Connect(device.Identity,
-                (ConnectionStatus status, ConnectionStatusChangeReason reason) => this.CloudConnectionStatusChangedHandler(device, status, reason));
+                (status, reason) => this.CloudConnectionStatusChangedHandler(device, status, reason));
 
-        async void CloudConnectionStatusChangedHandler(ConnectedDevice device, 
-            ConnectionStatus connectionStatus, 
+        async void CloudConnectionStatusChangedHandler(ConnectedDevice device,
+            ConnectionStatus connectionStatus,
             ConnectionStatusChangeReason connectionStatusChangeReason)
         {
             if (connectionStatus == ConnectionStatus.Connected)
@@ -157,42 +118,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if (connectionStatusChangeReason == ConnectionStatusChangeReason.Expired_SAS_Token)
                 {
-                    await this.CloseDeviceConnectionAsync(device);
+                    await this.RemoveDeviceConnection(device);
                 }
                 this.CloudConnectionLost?.Invoke(this, device.Identity);
-            }
-        }
-
-        /// <summary>
-        /// If the identity is a moduleIdentity, it creates an identity for the underlying device. 
-        /// TODO: This is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-        /// </summary>
-        static IIdentity GetDeviceIdentity(IIdentity identity)
-        {
-            var moduleIdentity = identity as ModuleIdentity;
-            return moduleIdentity != null ? new DeviceIdentity(moduleIdentity, moduleIdentity.DeviceId) : identity;
-        }
-
-        /// <summary>
-        /// If the id is deviceId/moduleId, then it gets the deviceId from it
-        /// TODO: This is a temporary workaround to use the underlying DeviceIdentity for cloud connections for modules
-        /// </summary>
-        static string GetDeviceId(string id)
-        {
-            int seperatorIndex = id.IndexOf('/');
-            return seperatorIndex > 0 ? id.Substring(0, seperatorIndex) : id;
-        }
-
-        static string GetDeviceId(IIdentity identity)
-        {
-            switch (identity)
-            {
-                case IModuleIdentity moduleIdentity:
-                    return moduleIdentity.DeviceId;
-                case IDeviceIdentity deviceIdentity:
-                    return deviceIdentity.DeviceId;
-                default:
-                    throw new InvalidOperationException($"Unknown identity - {identity}");
             }
         }
 
@@ -242,8 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudProxyLock.LockAsync())
                 {
-                    var existingCloudProxy = this.CloudProxy;
-                    var newCloudProxy = await cloudProxyGetter();
+                    Option<ICloudProxy> existingCloudProxy = this.CloudProxy;
+                    Try<ICloudProxy> newCloudProxy = await cloudProxyGetter();
                     if (newCloudProxy.Success)
                     {
                         this.CloudProxy = Option.Some(newCloudProxy.Value);
@@ -262,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         .Match(cp => Task.FromResult(Try.Success(cp)),
                         async () =>
                         {
-                            var cloudProxy = await cloudProxyGetter();
+                            Try<ICloudProxy> cloudProxy = await cloudProxyGetter();
                             if (cloudProxy.Success)
                             {
                                 this.CloudProxy = Option.Some(cloudProxy.Value);
@@ -282,8 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 CreateNewCloudConnection = IdStart,
                 NewDeviceConnection,
-                RemoveDeviceConnection,
-                CloseDeviceConnection
+                RemoveDeviceConnection
             }
 
             public static void NewCloudConnection(IIdentity identity)
@@ -299,17 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void RemoveDeviceConnection(string id)
             {
                 Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
-            }
-
-            public static void CloseConnection(string id)
-            {
-                Log.LogInformation((int)EventIds.CloseDeviceConnection, Invariant($"Connection closed for device {id}"));
-            }
-
-            public static void CloseDeviceConnection(string id)
-            {
-                Log.LogInformation((int)EventIds.CloseDeviceConnection, Invariant($"Device connection closed for device {id}"));
-            }
+            }            
         }
     }
 }

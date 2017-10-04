@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -23,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
 
-        void RemoveDeviceConnection(string id);
+        Task RemoveDeviceConnection(string id);
 
         Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity);
 
@@ -33,10 +32,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<ICloudProxy> GetCloudConnection(string id);
 
-        Task<bool> CloseConnectionAsync(string id);
-
         event EventHandler<IIdentity> CloudConnectionLost;
 
         event EventHandler<IIdentity> CloudConnectionEstablished;
+
+        event EventHandler<IIdentity> DeviceConnected;
+
+        event EventHandler<IIdentity> DeviceDisconnected;
     }
 }

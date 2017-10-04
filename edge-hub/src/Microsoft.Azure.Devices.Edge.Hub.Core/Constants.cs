@@ -11,5 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string TwinStorePartitionKey = "twins";
         public const string CheckpointStorePartitionKey = "checkpoints";
         public const string SessionStorePartitionKey = "sessions";
+
+        public const string ConfigSchemaVersion = "1.0";
     }
 }

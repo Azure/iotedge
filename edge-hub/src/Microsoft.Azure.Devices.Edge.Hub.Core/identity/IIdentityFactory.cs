@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
@@ -14,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public interface IIdentityFactory
     {
         Try<IIdentity> GetWithSasToken(string username, string password);
+
+        Try<IIdentity> GetWithSasToken(string connectionString);
 
         Try<IIdentity> GetWithHubKey(string username, string keyName, string keyValue);
 

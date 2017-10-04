@@ -19,11 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         readonly IDbStore dbStore;
         readonly KeyLockProvider keyLockProvider;
 
-        public EntityStore(IDbStore dbStore, int keyShardCount = 1)
+        public EntityStore(IDbStore dbStore, string entityName, int keyShardCount = 1)
         {
-            this.dbStore = dbStore;
-            this.keyLockProvider = new KeyLockProvider(keyShardCount);
+            this.dbStore = Preconditions.CheckNotNull(dbStore, nameof(dbStore));
+            this.keyLockProvider = new KeyLockProvider(Preconditions.CheckRange(keyShardCount, 1, nameof(keyShardCount)));
+            this.EntityName = Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
         }
+
+        public string EntityName { get; }
 
         public async Task<Option<TV>> Get(TK key)
         {

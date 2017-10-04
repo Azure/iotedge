@@ -28,10 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
         }
 
-        internal DeviceIdentity(Identity identity, string deviceId)
-            : this(identity.IotHubHostName, deviceId, identity.ConnectionString, identity.Scope, identity.PolicyName, identity.Secret)
-        { }
-
         public string DeviceId { get; }
 
         public override string Id => this.DeviceId;

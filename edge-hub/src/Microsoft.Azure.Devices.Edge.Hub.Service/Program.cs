@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
@@ -49,6 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
+
+            logger.LogInformation("Initializing configuration");
+            IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
+            ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
+            await configUpdater.Init(configSource);
 
             logger.LogInformation("Starting Http Server");
             hosting.Start();

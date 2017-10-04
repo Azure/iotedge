@@ -12,5 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		public const int RoutingEdgeHub = EventIdStart + 500;
 		public const int MessageStore = EventIdStart + 600;
 		public const int TwinManager = EventIdStart + 700;
+		public const int ConfigUpdater = EventIdStart + 800;
+		public const int EdgeHubConnection = EventIdStart + 900;
 	}
 }

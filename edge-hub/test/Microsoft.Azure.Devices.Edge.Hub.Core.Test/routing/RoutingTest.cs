@@ -354,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var cloudProxyProvider = new Mock<ICloudProxyProvider>();
             cloudProxyProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<ConnectionStatus, ConnectionStatusChangeReason>>())).ReturnsAsync(Try.Success(cloudProxy.Object));
-            IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider.Object, edgeDeviceId);
+            IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider.Object);
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();

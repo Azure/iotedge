@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-
     public abstract class Identity : IIdentity
     {
         protected Identity(

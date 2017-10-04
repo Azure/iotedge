@@ -2,11 +2,9 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Util;
     using System;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class IdentityFactory : IIdentityFactory
     {
@@ -39,11 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 string deviceHubHostName = usernameSegments[0];
                 string deviceId = usernameSegments[1];
 
-                // Currently, we build the device connection string for both devices and modules
-                // Once modules have their identity in IoTHub, this will have to construct a different connection string
-                // depending on whether it is a module or a device.
-                string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
-
                 // The username is of the following format -
                 // For Device identity - iothubHostName/deviceId/api-version=version/DeviceClientType=clientType
                 // For Module identity - iothubHostName/deviceId/moduleId/api-version=version/DeviceClientType=clientType
@@ -51,16 +44,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 if (usernameSegments.Length >= 3 && usernameSegments[2].IndexOf("=", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     string moduleId = usernameSegments[2];
+                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
                     // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
                     var hubDeviceIdentity = new ModuleIdentity(deviceHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret);
                     return hubDeviceIdentity;
                 }
                 else
                 {
+                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
                     // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
                     var hubDeviceIdentity = new DeviceIdentity(deviceHubHostName, deviceId, connectionString, scope, policyName, secret);
                     return hubDeviceIdentity;
                 }
+            }
+            catch (Exception ex)
+            {
+                return Try<IIdentity>.Failure(ex);
+            }
+        }
+
+        public Try<IIdentity> GetWithSasToken(string connectionString)
+        {
+            Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            try
+            {
+                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
+                IIdentity identity = string.IsNullOrWhiteSpace(iotHubConnectionStringBuilder.ModuleId)
+                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, AuthenticationScope.SasToken, null, iotHubConnectionStringBuilder.SharedAccessSignature) as IIdentity
+                    : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, AuthenticationScope.SasToken, null, iotHubConnectionStringBuilder.SharedAccessSignature);
+                return Try.Success(identity);
             }
             catch (Exception ex)
             {
@@ -74,6 +86,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IotHubConnectionStringBuilder csb = IotHubConnectionStringBuilder.Create(iotHubHostName, authenticationMethod);
             string connectionString = csb.ToString();
             return connectionString;
+        }
+
+        internal static string GetConnectionString(string iotHubHostName, string deviceId, string moduleId, string secret)
+        {
+            // TODO - Temporary workaround since DeviceAuthenticationWithToken does not support module identity
+            return $"HostName={iotHubHostName};DeviceId={deviceId};ModuleId={moduleId};SharedAccessSignature={secret}";
         }
 
         static IAuthenticationMethod DeriveAuthenticationMethod(

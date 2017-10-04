@@ -24,8 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 		readonly IConnectionManager connectionManager;
 		readonly ITwinManager twinManager;
 
-		static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(5);
-
 		public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter, IConnectionManager connectionManager, ITwinManager twinManager)
 		{
 			this.router = Preconditions.CheckNotNull(router, nameof(router));

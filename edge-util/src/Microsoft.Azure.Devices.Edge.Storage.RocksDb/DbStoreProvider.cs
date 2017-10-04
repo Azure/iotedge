@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
     public class DbStoreProvider : IDbStoreProvider
     {
+        const string DefaultPartitionName = "default";
         readonly RocksDbWrapper db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
 
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore))
-            {
+            {                
                 ColumnFamilyHandle handle = this.db.CreateColumnFamily(new ColumnFamilyOptions(), partitionName);
                 entityDbStore = new ColumnFamilyDbStore(this.db, handle);
                 entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
@@ -47,7 +48,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
-        public IDbStore GetDbStore() => this.GetDbStore("default");
+        public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
+
+        public void RemoveDbStore(string partitionName)
+        {
+            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
+            // Don't drop the default partition
+            if (!partitionName.Equals(DefaultPartitionName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (this.entityDbStoreDictionary.TryRemove(partitionName, out IDbStore _))
+                {
+                    // TODO - Check if this deletes the data in the partition. It should as part of compaction.
+                    this.db.DropColumnFamily(partitionName);
+                }
+            }
+        }
 
         protected virtual void Dispose(bool disposing)
         {

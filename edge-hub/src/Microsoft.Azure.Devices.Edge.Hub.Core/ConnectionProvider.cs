@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -17,11 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
-		}
+        }
 
         public async Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity)
         {
-            // Set up a connection to the cloud here, so that we can use it in the 
+            // Set up a connection to the cloud here, so that we can use it in the Device proxy
             Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity));
             if (!cloudProxy.Success)
             {

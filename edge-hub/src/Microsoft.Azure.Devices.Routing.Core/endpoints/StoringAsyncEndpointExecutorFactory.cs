@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             Preconditions.CheckNotNull(checkpointer, nameof(checkpointer));
             Preconditions.CheckNotNull(endpointExecutorConfig, nameof(endpointExecutorConfig));
 
+            this.messageStore.AddEndpoint(endpoint.Id);
             IEndpointExecutor endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, this.options, this.messageStore);
             return Task.FromResult(endpointExecutor);
         }

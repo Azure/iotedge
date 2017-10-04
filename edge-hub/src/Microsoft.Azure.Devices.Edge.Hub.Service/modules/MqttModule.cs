@@ -18,13 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly MessageAddressConversionConfiguration conversionConfiguration;
         readonly IConfiguration mqttSettingsConfiguration;
-        readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
+        readonly bool isStoreAndForwardEnabled;
 
-        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration, bool isStoreAndForwardEnabled)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
-            this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register<ISessionStatePersistenceProvider>(
                     c =>
                     {
-                        if (this.storeAndForwardConfiguration.IsEnabled)
+                        if (this.isStoreAndForwardEnabled)
                         {
                             IEntityStore<string, ISessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey);
                             return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);

@@ -5,12 +5,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
+    using System.IO;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
@@ -24,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         const string ConfigFileName = "appsettings_hub.json";
         const string TopicNameConversionSectionName = "mqttTopicNameConversion";
+        readonly Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder;
+        readonly string edgeHubConnectionString;
 
         public Startup(IHostingEnvironment env)
         {
@@ -31,6 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .AddJsonFile(ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
+
+            this.edgeHubConnectionString = this.Configuration.GetValue<string>("IotHubConnectionString");
+            this.iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(this.edgeHubConnectionString);
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -50,24 +58,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             services.AddSingleton<IStartup>(sp => this);
             this.Container = this.BuildContainer(services);
-            
+
             return new AutofacServiceProvider(this.Container);
         }
 
         IContainer BuildContainer(IServiceCollection services)
         {
-            string iothubHostname = this.GetIotHubHostName();
-            string edgeDeviceId = this.Configuration.GetValue<string>("EdgeDeviceId");
             int connectionPoolSize = this.Configuration.GetValue<int>("IotHubConnectionPoolSize");
 
             var topics = new MessageAddressConversionConfiguration(
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
-            var routes = this.Configuration.GetSection("routes").Get<List<string>>();
+            var routes = this.Configuration.GetSection("routes").Get<Dictionary<string, string>>();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
 
-            StoreAndForwardConfiguration storeAndForwardConfiguration = StoreAndForwardConfiguration.Initialize(this.Configuration);
+            (bool isEnabled, StoreAndForwardConfiguration config) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -84,22 +90,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
-            builder.RegisterModule(new CommonModule(iothubHostname, edgeDeviceId));            
-            builder.RegisterModule(new RoutingModule(iothubHostname, edgeDeviceId, routes, storeAndForwardConfiguration, connectionPoolSize));
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForwardConfiguration));
+            // Register modules
+            builder.RegisterModule(new CommonModule(this.iotHubConnectionStringBuilder.HostName, this.iotHubConnectionStringBuilder.DeviceId));            
+            builder.RegisterModule(
+                new RoutingModule(
+                    this.iotHubConnectionStringBuilder.HostName, 
+                    this.iotHubConnectionStringBuilder.DeviceId, 
+                    this.edgeHubConnectionString,
+                    routes, 
+                    storeAndForward.isEnabled, 
+                    storeAndForward.config, 
+                    connectionPoolSize));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
-                        
-            IContainer container = builder.Build();            
+
+            IContainer container = builder.Build();
             return container;
         }
 
         public void Configure(IApplicationBuilder app)
         {
-            app.UseAuthenticationMiddleware(this.GetIotHubHostName());            
-            app.UseMvc();           
+            app.UseAuthenticationMiddleware(this.iotHubConnectionStringBuilder.HostName);
+            app.UseMvc();
         }
 
-        string GetIotHubHostName() => this.Configuration.GetValue<string>("IotHubHostName");        
+        (bool isEnabled, StoreAndForwardConfiguration config) GetStoreAndForwardConfiguration()
+        {
+            int defaultTtl = -1;
+            bool isEnabled = this.Configuration.GetValue<bool>("storeAndForwardEnabled");
+            int timeToLiveSecs = defaultTtl;
+            if(isEnabled)
+            {
+                IConfiguration storeAndForwardConfigurationSection = this.Configuration.GetSection("storeAndForward");
+                timeToLiveSecs = storeAndForwardConfigurationSection.GetValue<int>("timeToLiveSecs", defaultTtl);
+            }
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
+            return (isEnabled, storeAndForwardConfiguration);            
+        }
     }
 }

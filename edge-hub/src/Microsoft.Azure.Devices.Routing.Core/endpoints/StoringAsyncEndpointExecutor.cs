@@ -93,6 +93,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         public override async Task CloseAsync()
         {
             await base.CloseAsync();
+            await this.messageStore?.RemoveEndpoint(this.Endpoint.Id);
             await (this.sendMessageTask ?? Task.CompletedTask);            
         }
 

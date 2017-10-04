@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Extensions.Logging;
@@ -27,35 +27,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     {
         const long DefaultStartingOffset = 0;
         readonly IEntityStore<string, MessageWrapper> messageEntityStore;
-        readonly IDictionary<string, ISequentialStore<MessageRef>> endpointSequentialStores;
+        readonly ConcurrentDictionary<string, ISequentialStore<MessageRef>> endpointSequentialStores;
         readonly CleanupProcessor messagesCleaner;
-        readonly TimeSpan timeToLive;
         readonly ICheckpointStore checkpointStore;
+        readonly IStoreProvider storeProvider;
+        TimeSpan timeToLive;
 
-        MessageStore(IEntityStore<string, MessageWrapper> entityStore, IDictionary<string, ISequentialStore<MessageRef>> endpointSequentialStores, ICheckpointStore checkpointStore, TimeSpan timeToLive)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive)
         {
-            this.messageEntityStore = Preconditions.CheckNotNull(entityStore, nameof(entityStore));
-            this.endpointSequentialStores = Preconditions.CheckNotNull(endpointSequentialStores, nameof(endpointSequentialStores));
+            this.storeProvider = Preconditions.CheckNotNull(storeProvider);
+            this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
+            this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
             this.messagesCleaner = new CleanupProcessor(this);
+            Events.MessageStoreCreated(this);
         }
 
-        public static async Task<IMessageStore> CreateAsync(IStoreProvider storeProvider, IEnumerable<string> endpoints, ICheckpointStore checkpointStore, TimeSpan timeToLive)
+        public void SetTimeToLive(TimeSpan timeSpan)
         {
-            Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            Preconditions.CheckNotNull(endpoints, nameof(endpoints));
+            this.timeToLive = timeSpan;
+        }
 
-            IEntityStore<string, MessageWrapper> entityStore = storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
-            var endpointSequentialStores = new Dictionary<string, ISequentialStore<MessageRef>>();
-            foreach (string endpoint in endpoints)
+        public async Task AddEndpoint(string endpointId)
+        {
+            ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(endpointId);
+            this.endpointSequentialStores.TryAdd(endpointId, sequentialStore);
+        }
+
+        public Task RemoveEndpoint(string endpointId)
+        {
+            if (this.endpointSequentialStores.TryGetValue(endpointId, out ISequentialStore<MessageRef> sequentialStore))
             {
-                ISequentialStore<MessageRef> sequentialStore = await storeProvider.GetSequentialStore<MessageRef>(endpoint);
-                endpointSequentialStores.Add(endpoint, sequentialStore);
+                this.storeProvider.RemoveStore(sequentialStore);
             }
-            var messageStore = new MessageStore(entityStore, new ConcurrentDictionary<string, ISequentialStore<MessageRef>>(endpointSequentialStores), checkpointStore, timeToLive);
-            Events.MessageStoreCreated(messageStore);
-            return messageStore;
+            return Task.CompletedTask;
         }
 
         public async Task<long> Add(string endpointId, IMessage message)
@@ -216,9 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         class CleanupProcessor : IDisposable
         {
-            const int DeleteBatchSize = 50;
-            const int EnsureCleanupTaskTimerSecs = 300; // Run once every 5 mins.
-            const int MinCleanupSleepTimeSecs = 300;
+            const int EnsureCleanupTaskTimerSecs = 600; // Run once every 10 mins.
+            const int MinCleanupSleepTimeSecs = 30; // Sleep for 30 secs
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
@@ -251,12 +256,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 try
                 {
-                    // Handle each endpoint min of (5 mins or twice for each timeToLive period). This will ensure deletion of messages with a max staleness of ttl/2.
-                    long sleepSecs = Math.Min(MinCleanupSleepTimeSecs, (long)this.messageStore.timeToLive.TotalSeconds / (this.messageStore.endpointSequentialStores.Count * 2));
-                    TimeSpan sleepTime = TimeSpan.FromSeconds(sleepSecs);
-
+                    int cleanupTaskSleepTimeSecs = Math.Min((int)this.messageStore.timeToLive.TotalSeconds / 2, EnsureCleanupTaskTimerSecs);
+                    TimeSpan cleanupTaskSleepTime = TimeSpan.FromSeconds(cleanupTaskSleepTimeSecs);
                     while (true)
                     {
+                        TimeSpan sleepTime = TimeSpan.FromSeconds(MinCleanupSleepTimeSecs);
                         foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
                         {
                             try
@@ -269,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 Events.CleanupTaskStarted(endpointSequentialStore.Key);
                                 CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
                                 ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
-                                
+
                                 async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                                 {
                                     if (checkpointData.Offset < offset &&
@@ -278,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                         return false;
                                     }
 
-                                    bool deleteMessage = false; 
+                                    bool deleteMessage = false;
 
                                     // Decrement ref count. 
                                     await this.messageStore.messageEntityStore.Update(
@@ -296,14 +300,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                             return m;
                                         });
 
-                                    if(deleteMessage)
+                                    if (deleteMessage)
                                     {
                                         await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
                                     }
 
                                     return true;
                                 }
-                 
+
                                 int cleanupCount = 0;
                                 while (await sequentialStore.RemoveFirst(DeleteMessageCallback))
                                 {
@@ -318,6 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
                             }
                         }
+                        await Task.Delay(cleanupTaskSleepTime);
                     }
                 }
                 catch (Exception ex)

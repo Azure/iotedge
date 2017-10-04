@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.tailOffset = tailOffset;
         }
 
+        public string EntityName => this.entityStore.EntityName;
+
         public static async Task<ISequentialStore<T>> Create(IEntityStore<byte[], T> entityStore)
         {
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));

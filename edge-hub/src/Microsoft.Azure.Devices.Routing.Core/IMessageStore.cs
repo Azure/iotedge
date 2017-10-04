@@ -34,5 +34,20 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Returns an iterator that allows reading messages starting from the first message.
         /// </summary>
         IMessageIterator GetMessageIterator(string endpointId);
+
+        /// <summary>
+        /// Adds a new endpoint to the store
+        /// </summary>
+        Task AddEndpoint(string endpointId);
+
+        /// <summary>
+        /// Removes the endpoint from the store
+        /// </summary>
+        Task RemoveEndpoint(string endpointId);
+
+        /// <summary>
+        /// Set the expiry time for messages in the store
+        /// </summary>
+        void SetTimeToLive(TimeSpan timeToLive);
     }
 }

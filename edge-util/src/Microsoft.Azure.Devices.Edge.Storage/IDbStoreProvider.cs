@@ -12,5 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         IDbStore GetDbStore(string partitionName);
 
         IDbStore GetDbStore();
+
+        void RemoveDbStore(string partitionName);
     }
 }

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class InMemoryDbStoreProvider : IDbStoreProvider
     {
+        const string DefaultPartitionName = "$Default";
         readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();
 
         public IDbStore GetDbStore(string partitionName)
@@ -16,7 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return dbStore;
         }
 
-        public IDbStore GetDbStore() => this.GetDbStore("$Default");
+        public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
+
+        public void RemoveDbStore(string partitionName)
+        {
+            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
+            this.partitionDbStoreDictionary.TryRemove(partitionName, out IDbStore _);
+        }
 
         public void Dispose()
         {

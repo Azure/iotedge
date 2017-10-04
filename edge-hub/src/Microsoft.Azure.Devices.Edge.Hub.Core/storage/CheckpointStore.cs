@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         public static CheckpointStore Create(IDbStoreProvider dbStoreProvider)
         {
             IDbStore dbStore = Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider)).GetDbStore(Constants.CheckpointStorePartitionKey);
-            IEntityStore<string, CheckpointEntity> underlyingStore = new EntityStore<string, CheckpointEntity>(dbStore, 12);
+            IEntityStore<string, CheckpointEntity> underlyingStore = new EntityStore<string, CheckpointEntity>(dbStore, nameof(CheckpointEntity), 12);
             return new CheckpointStore(underlyingStore);
         }
 

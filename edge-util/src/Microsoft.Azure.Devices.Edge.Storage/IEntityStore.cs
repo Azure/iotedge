@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public interface IEntityStore<TK, TV> : IKeyValueStore<TK, TV>
     {
+        string EntityName { get; }
+
         Task<bool> Remove(TK key, Func<TV, bool> predicate);
 
         Task<bool> Update(TK key, Func<TV, TV> updator);

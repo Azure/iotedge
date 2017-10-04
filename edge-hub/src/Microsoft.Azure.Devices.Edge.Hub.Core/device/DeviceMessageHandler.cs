@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             Events.BindDeviceProxy(this.Identity);
         }
 
-        public Task CloseAsync()
+        public async Task CloseAsync()
         {
-            this.connectionManager.RemoveDeviceConnection(this.Identity.Id);
+            this.SetInactive();
+            await this.connectionManager.RemoveDeviceConnection(this.Identity.Id);
             Events.Close(this.Identity);
-            return Task.CompletedTask;
         }
 
         public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)
@@ -203,7 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 BindDeviceProxy = IdStart,
                 RemoveDeviceConnection,
-                MethodReceived,
                 MethodSentToClient,
                 MethodResponseReceived,
                 MethodRequestIdNotMatched,

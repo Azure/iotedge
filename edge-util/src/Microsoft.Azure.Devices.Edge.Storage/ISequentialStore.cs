@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public interface ISequentialStore<T> : IDisposable
     {
+        string EntityName { get; }
+
         Task<long> Append(T item);
 
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);

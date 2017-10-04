@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task CreateTest()
         {
-            var entityStore = new EntityStore<byte[], Item>(new InMemoryDbStore());
+            var entityStore = new EntityStore<byte[], Item>(new InMemoryDbStore(), "testEntity");
             var sequentialStore = await SequentialStore<Item>.Create(entityStore);
             long offset = await sequentialStore.Append(new Item { Prop1 = 10 });
             Assert.Equal(0, offset);
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             using(var dbStoreProvider = new InMemoryDbStoreProvider())
             {
-                var entityStore = new EntityStore<byte[], Item>(dbStoreProvider.GetDbStore());
+                var entityStore = new EntityStore<byte[], Item>(dbStoreProvider.GetDbStore(), "testEntity");
                 var sequentialStore = await SequentialStore<Item>.Create(entityStore);
                 var tasks = new List<Task>();
                 for (int i = 0; i < 10; i++)

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task BasicTest()
         {
-            var entityStore = new EntityStore<Key, Value>(new InMemoryDbStore());
+            var entityStore = new EntityStore<Key, Value>(new InMemoryDbStore(), "testEntity");
             await entityStore.Put(new Key { Type = "A", Id = 1 }, new Value { Prop1 = "Foo", Prop2 = 10 });
             await entityStore.Put(new Key { Type = "A", Id = 2 }, new Value { Prop1 = "Foo", Prop2 = 20 });
             await entityStore.Put(new Key { Type = "A", Id = 3 }, new Value { Prop1 = "Foo", Prop2 = 30 });
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task GetFirstLastDefaultTest()
         {
-            var entityStore = new EntityStore<Key, Value>(new InMemoryDbStore());
+            var entityStore = new EntityStore<Key, Value>(new InMemoryDbStore(), "testEntity");
             Option<(Key, Value)> firstEntryOption = await entityStore.GetFirstEntry();
             Assert.False(firstEntryOption.HasValue);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task PutOrUpdateTest()
         {
-            var entityStore = new EntityStore<string, string>(new InMemoryDbStore());
+            var entityStore = new EntityStore<string, string>(new InMemoryDbStore(), "testEntity");
             await entityStore.PutOrUpdate("key1", "putValue", (v) => "updateValue");
             Option<string> value = await entityStore.Get("key1");
             Assert.Equal("putValue", value.OrDefault());
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task UpdateTest()
         {
-            var entityStore = new EntityStore<string, string>(new InMemoryDbStore());
+            var entityStore = new EntityStore<string, string>(new InMemoryDbStore(), "testEntity");
             await entityStore.Put("key1", "putValue");
             Option<string> value = await entityStore.Get("key1");
             Assert.Equal("putValue", value.OrDefault());
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task IterateTest()
         {
-            var entityStore = new EntityStore<int, string>(new InMemoryDbStore());
+            var entityStore = new EntityStore<int, string>(new InMemoryDbStore(), "testEntity");
             for (int i = 0; i < 100; i++)
             {
                 await entityStore.Put(i, $"{i}");

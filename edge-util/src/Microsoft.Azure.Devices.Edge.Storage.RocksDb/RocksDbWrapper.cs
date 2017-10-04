@@ -63,6 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public ColumnFamilyHandle CreateColumnFamily(ColumnFamilyOptions columnFamilyOptions, string entityName) => this.db.CreateColumnFamily(columnFamilyOptions, entityName);
 
+        public void DropColumnFamily(string columnFamilyName) => this.db.DropColumnFamily(columnFamilyName);
+
         public byte[] Get(byte[] key, ColumnFamilyHandle handle) => this.db.Get(key, handle);
 
         public void Put(byte[] key, byte[] value, ColumnFamilyHandle handle) => this.db.Put(key, value, handle);
