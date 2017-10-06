@@ -151,6 +151,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
         public override Task<ModuleSet> GetModuleSetAsync()
         {
+            // if the connection status is "Disabled" and the module set is empty
+            // then that means we just started up and there is no connectivity (yet)
+            if(this.ConnectionStatus == ConnectionStatus.Disabled && this.CurrentModuleSet.Equals(ModuleSet.Empty))
+            {
+                throw new InvalidOperationException("No connectivity to IoT Hub and there is no in-memory cache of the desired module set.");
+            }
+
             // Return the cached copy
             return Task.FromResult(this.CurrentModuleSet);
         }

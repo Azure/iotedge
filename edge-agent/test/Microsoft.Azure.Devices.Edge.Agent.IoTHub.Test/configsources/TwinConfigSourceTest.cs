@@ -184,6 +184,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 
         [Fact]
         [Unit]
+        public async void GettingModuleSetBeforeFirstConnectionThrows()
+        {
+            // Arrange
+            var deviceClient = new Mock<IDeviceClient>();
+            var twinConfigSource = await TwinConfigSource.Create(deviceClient.Object, this.moduleSetSerde, this.diffSerde, this.config);
+
+            // Act
+            // Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinConfigSource.GetModuleSetAsync());
+        }
+
+        [Fact]
+        [Unit]
         public async void OnConnectionStatusChangedSuccess()
         {
             var twin = new Twin();

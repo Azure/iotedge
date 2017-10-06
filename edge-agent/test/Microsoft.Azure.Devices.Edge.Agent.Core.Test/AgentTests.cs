@@ -59,6 +59,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.VerifyAll();
         }
 
+        [Fact]
+        [Unit]
+        public async void ReconcileAsyncAbortsWhenConfigSourceThrows()
+        {
+            // Arrange
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
+            var token = new CancellationToken();
+            var currentSet = ModuleSet.Empty;
+
+            mockConfigSource.Setup(cs => cs.GetModuleSetAsync()).Throws<InvalidOperationException>();
+            mockEnvironment.Setup(env => env.GetModulesAsync(token))
+                .ReturnsAsync(currentSet);
+
+            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object);
+
+            // Act
+            // Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()), Times.Never);
+        }
 
         [Fact]
         [Unit]
