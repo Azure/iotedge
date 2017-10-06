@@ -14,6 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         ICommand Start(IModule module);
 
+        ICommand Restart(IModule module);
+
         ICommand Stop(IModule module);
+
+        ICommand Wrap(ICommand command);
     }
 }

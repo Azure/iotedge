@@ -503,7 +503,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     // this router to make progress.
                     ICollection<IMessage> tocheckpoint = thisPtr.currentSendCommand.Messages;
                     Events.Dead(thisPtr, tocheckpoint);
-                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(null);
+                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(null as SendFailureDetails);
                     await RunInternalAsync(thisPtr, Commands.Checkpoint(new SinkResult<IMessage>(tocheckpoint, persistingFailureDetails)));
                 }
                 catch (Exception ex)

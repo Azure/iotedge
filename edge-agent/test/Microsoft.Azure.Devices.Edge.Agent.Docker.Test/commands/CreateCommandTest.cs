@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     var config = new DockerConfig(Image, Tag, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // verify container is created
                     ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
                     Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
-                    Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                    Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);
 
                     var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image, Tag, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, config);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // verify container is created
                     ContainerInspectResponse container = await Client.Containers.InspectContainerAsync(Name);
                     Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
-                    Assert.Equal("1.0", container.Config.Labels.GetOrElse("version", "missing"));
+                    Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
                     Assert.Equal(1, container.HostConfig.PortBindings.Count);
                 }
             }

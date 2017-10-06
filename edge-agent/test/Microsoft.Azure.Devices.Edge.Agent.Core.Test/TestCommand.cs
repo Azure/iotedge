@@ -40,16 +40,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     {
         public List<TestRecordType> ExecutionList { get; }
         public List<TestRecordType> UndoList { get; }
+        public List<(TestCommandType Type, ICommand Command)> WrappedCommmandList { get; }
 
         public TestPlanRecorder()
         {
             this.ExecutionList = new List<TestRecordType>();
             this.UndoList = new List<TestRecordType>();
+            this.WrappedCommmandList = new List<(TestCommandType Type, ICommand Command)>();
         }
 
         public void ModuleExecuted(TestCommandType type, IModule module) => this.ExecutionList.Add(new TestRecordType(type, module));
 
         public void ModuleUndone(TestCommandType type, IModule module) => this.UndoList.Add(new TestRecordType(type, module));
+
+        public void CommandWrapped(ICommand command) => this.WrappedCommmandList.Add((TestCommandType.TestWrap, command));
     }
 
     public class TestCommandFactory : ICommandFactory
@@ -64,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public ICommand Create(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestCreate, module,  this.Recorder);
+            return new TestCommand(TestCommandType.TestCreate, module, this.Recorder);
         }
 
         public ICommand Pull(IModule module)
@@ -97,6 +101,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(module is TestModule);
             return new TestCommand(TestCommandType.TestStop, module, this.Recorder);
         }
+
+        public ICommand Restart(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return new TestCommand(TestCommandType.TestRestart, module, this.Recorder);
+        }
+
+        public ICommand Wrap(ICommand command)
+        {
+            foreach (TestPlanRecorder r in this.Recorder)
+                r.CommandWrapped(command);
+
+            return command;
+        }
     }
 
     public class TestCommand : ICommand
@@ -107,8 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public bool CommandExecuted;
         public bool CommandUndone;
 
-        public TestCommand(TestCommandType type, IModule module)
-        : this(type, module, Option.None<TestPlanRecorder>())
+        public TestCommand(TestCommandType type, IModule module) :
+            this(type, module, Option.None<TestPlanRecorder>())
         {
         }
 
@@ -138,5 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.CommandUndone = true;
             return TaskEx.Done;
         }
+
+        public override string ToString() => this.Show();
     }
 }

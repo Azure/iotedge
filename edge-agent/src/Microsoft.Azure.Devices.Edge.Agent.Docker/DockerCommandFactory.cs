@@ -54,11 +54,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 ? new StopCommand(this.client, (DockerModule)module)
                 : (ICommand)NullCommand.Instance;
 
+        public ICommand Restart(IModule module) =>
+            module is DockerRuntimeModule
+                ? new RestartCommand(this.client, (DockerRuntimeModule)module)
+                : (ICommand)NullCommand.Instance;
+
+        public ICommand Wrap(ICommand command) => command;
+
         AuthConfig FirstAuthConfigOrDefault(DockerModule module)
         {
             var authConfigs = this.configSource.Configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>();
             return DockerUtil.FirstAuthConfigOrDefault(module.Config.Image, authConfigs);
         }
-
     }
 }

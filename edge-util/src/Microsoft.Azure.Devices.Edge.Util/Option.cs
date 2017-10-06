@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util
 {
@@ -87,6 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <param name="alternative"></param>
         /// <returns></returns>
         public T GetOrElse(T alternative) => this.HasValue ? this.Value : alternative;
+
+        public T GetOrElse(Func<T> alternativeMaker) => this.HasValue ? this.Value : alternativeMaker();
 
         public Option<T> Else(Option<T> alternativeOption) => this.HasValue ? this : alternativeOption;
 

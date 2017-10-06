@@ -38,18 +38,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
             // Inject required Edge parameters
             this.createContainerParameters.Labels = this.createContainerParameters.Labels ?? new Dictionary<string, string>();
-            this.createContainerParameters.Labels?.Remove("owner");
-            this.createContainerParameters.Labels.Add("owner", Constants.Owner);
-            this.createContainerParameters.Labels?.Remove("version");
-            this.createContainerParameters.Labels.Add("version", module.Version);
-            this.createContainerParameters.Labels?.Remove("normalizedCreateOptions");
-            this.createContainerParameters.Labels.Add("normalizedCreateOptions", normalizedCreateOptions);
+            
+            this.createContainerParameters.Labels.Remove(Constants.Labels.Owner);
+            this.createContainerParameters.Labels.Add(Constants.Labels.Owner, Constants.Owner);
+            
+            this.createContainerParameters.Labels.Remove(Constants.Labels.Version);
+            this.createContainerParameters.Labels.Add(Constants.Labels.Version, module.Version);
+            
+            this.createContainerParameters.Labels.Remove(Constants.Labels.NormalizedCreateOptions);
+            this.createContainerParameters.Labels.Add(Constants.Labels.NormalizedCreateOptions, normalizedCreateOptions);
+
+            this.createContainerParameters.Labels.Remove(Constants.Labels.RestartPolicy);
+            this.createContainerParameters.Labels.Add(Constants.Labels.RestartPolicy, module.RestartPolicy.ToString());
+
+            this.createContainerParameters.Labels.Remove(Constants.Labels.DesiredStatus);
+            this.createContainerParameters.Labels.Add(Constants.Labels.DesiredStatus, module.DesiredStatus.ToString());
         }
 
         public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
 
-
-        public string Show() => ObfuscateConnectionStringInCreateContainerParameters(JsonConvert.SerializeObject(this.createContainerParameters));
+        public string Show() => $"docker create {ObfuscateConnectionStringInCreateContainerParameters(JsonConvert.SerializeObject(this.createContainerParameters))}";
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 

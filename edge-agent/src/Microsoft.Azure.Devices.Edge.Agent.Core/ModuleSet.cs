@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleSet
     {
-        public static ModuleSet Empty { get; } = new ModuleSet(ImmutableDictionary<string, IModule>.Empty);
+        public static ModuleSet Empty { get; } = new ModuleSet(ImmutableDictionary<string, IModule>.Empty as IImmutableDictionary<string, IModule>);
 
         public IImmutableDictionary<string, IModule> Modules { get; }
 
@@ -18,6 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public ModuleSet(IDictionary<string, IModule> modules)
         {
             this.Modules = modules?.ToImmutableDictionary() ?? Empty.Modules;
+        }
+
+        public ModuleSet(IImmutableDictionary<string, IModule> modules)
+        {
+            this.Modules = modules ?? Empty.Modules;
         }
 
         public static ModuleSet Create(params IModule[] modules) => new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
@@ -38,11 +43,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         // TODO use equality comparer instead of equals?
         public Diff Diff(ModuleSet other)
         {
+            // build list of modules that are available in "this"
+            // module set but not available in "other" module set; this
+            // represents modules that may need to be "created" - in that
+            // they don't exist yet
             IEnumerable<IModule> created = this.Modules.Keys
                 .Except(other.Modules.Keys)
                 .Select(key => this.Modules[key]);
+
+            // build list of modules that are available in "other"
+            // module set but not available in "this" module set; this
+            // represents modules that are currently running but need
+            // to be removed
             IEnumerable<string> removed = other.Modules.Keys
                 .Except(this.Modules.Keys);
+
+            // build list of modules that are currently running but the
+            // configuration has changed; these are modules that need to
+            // be "updated"
             IEnumerable<IModule> updated = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
                 .Where(key => !this.Modules[key].Equals(other.Modules[key]))

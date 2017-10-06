@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         TestUpdate,
         TestRemove,
         TestStart,
-        TestStop
+        TestStop,
+        TestRestart,
+        TestWrap
     }
 }

@@ -108,10 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             //Config1 = new TestConfig("image1");
             //arrange
             Diff nonEmptyUpdated = Diff.Create(Module1);
-            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
+            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
             string nonEmptyRemovedJson = "{\"modules\":{\"module2\": null },\"$version\":127}";
-            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"unkonwn\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
-            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}},\"$version\":127}";
+            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"unknown\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
+            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
 
             var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string> { "module2" });
 

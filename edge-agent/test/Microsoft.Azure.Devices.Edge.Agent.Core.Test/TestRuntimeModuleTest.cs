@@ -4,17 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Newtonsoft.Json;
     using Xunit;
-    using Newtonsoft.Json.Linq;
-    using System.Linq;
-    using System.Collections.Generic;
-
 
     [ExcludeFromCodeCoverage]
-    public class TestReportedModuleTest
+    public class TestRuntimeModuleTest
     {
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
@@ -22,14 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public static TestModule TestModule1 = new TestModule("name", "version", "type", ModuleStatus.Running, Config1);
 
-        public static TestReportedModule ReportedModule1 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config1, 0, "statusDescription", "lastStartTime", "lastExitTime");
-        public static TestReportedModule ReportedModule2 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config2, 0, "statusDescription", "lastStartTime", "lastExitTime");
-        public static TestReportedModule ReportedModule3 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config3, 0, "statusDescription", "lastStartTime", "lastExitTime");
+        static DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
+        static DateTime LastExitTime = LastStartTime.AddDays(1);
 
-        public static TestReportedModule ReportedModule4 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config3, -1, "statusDescription", "lastStartTime", "lastExitTime");
-        public static TestReportedModule ReportedModule5 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config3, 0, "status is different", "lastStartTime", "lastExitTime");
-        public static TestReportedModule ReportedModule6 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config3, 0, "statusDescription", "last start time is different", "lastExitTime");
-        public static TestReportedModule ReportedModule7 = new TestReportedModule("name", "version", "type", ModuleStatus.Running, Config3, 0, "statusDescription", "lastStartTime", "last exit is different");
+        public static TestRuntimeModule ReportedModule1 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config1, 0, "statusDescription", LastStartTime, LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+        public static TestRuntimeModule ReportedModule2 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config2, 0, "statusDescription", LastStartTime, LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+        public static TestRuntimeModule ReportedModule3 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config3, 0, "statusDescription", LastStartTime, LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+
+        public static TestRuntimeModule ReportedModule4 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config3, -1, "statusDescription", LastStartTime, LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+        public static TestRuntimeModule ReportedModule5 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config3, 0, "status is different", LastStartTime, LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+        public static TestRuntimeModule ReportedModule6 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config3, 0, "statusDescription", LastStartTime.AddDays(-1), LastExitTime, 0, DateTime.MinValue, ModuleStatus.Running);
+        public static TestRuntimeModule ReportedModule7 = new TestRuntimeModule("name", "version", RestartPolicy.OnUnhealthy, "type", ModuleStatus.Running, Config3, 0, "statusDescription", LastStartTime, LastExitTime.AddDays(1), 0, DateTime.MinValue, ModuleStatus.Running);
 
         [Fact]
         [Unit]
@@ -75,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public static void TestNullIsOK()
         {
-            var reportedModule = new TestReportedModule(TestModule1.Name, TestModule1.Version, TestModule1.Type, TestModule1.Status, TestModule1.Config, 0, null, null, null);
+            var reportedModule = new TestRuntimeModule(TestModule1.Name, TestModule1.Version, TestModule1.RestartPolicy, TestModule1.Type, ModuleStatus.Running, TestModule1.Config, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
 
             Assert.True(TestModule1.Equals(reportedModule));
             Assert.True(reportedModule.Equals(TestModule1));

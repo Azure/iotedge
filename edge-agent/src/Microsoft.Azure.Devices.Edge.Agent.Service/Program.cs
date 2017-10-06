@@ -49,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 ?.Address;
             if (address != null)
             {
-				connectionString = $"{connectionString};GatewayHostName={address.ToString()}";
-			}
+                connectionString = $"{connectionString};GatewayHostName={address.ToString()}";
+            }
             else
             {
                 logger.LogWarning($"Unable to retrieve IP address for network interface {edgeHubIpInterfaceName}");
@@ -66,6 +66,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
             Dictionary<string, string> dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
             string backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
+            int maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
+            TimeSpan intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
+            int coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();
@@ -83,10 +86,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, connectionString, backupConfigFilePath, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, connectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", configuration));
+                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");
@@ -108,14 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
                     Agent agent = await container.Resolve<Task<Agent>>();
 
-					// Do another reconcile whenever the config source reports that the desired
-					// configuration has changed.
-					configSource.ModuleSetChanged += (sender, diff) =>
-					{
-						logger.LogInformation("Received config change...");
-					};
+                    // Do another reconcile whenever the config source reports that the desired
+                    // configuration has changed.
+                    configSource.ModuleSetChanged += (sender, diff) =>
+                    {
+                        logger.LogInformation("Received config change...");
+                    };
 
-					configSource.ModuleSetFailed += (sender, ex) =>
+                    configSource.ModuleSetFailed += (sender, ex) =>
                     {
                         logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
                     };

@@ -17,14 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
     public class FileConfigSourceTest : IDisposable
     {
-
-        static readonly string validJson1 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"}},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"}}}}";
+        static readonly string validJson1 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
         static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1);
         static readonly ModuleSet ValidSet1 = ModuleSet.Create(ValidModule1, ValidModule2);
 
-        static readonly string validJson2 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Stopped\",\"Config\":{\"Image\":\"image1\"}},\"mod3\":{\"Name\":\"mod3\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"}}}}";
+        static readonly string validJson2 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Status\":\"Stopped\"},\"mod3\":{\"Name\":\"mod3\",\"Version\":\"version1\",\"Type\":\"test\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Status\":\"Running\"}}}";
         static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1);
         static readonly IModule ValidModule3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1);
         static readonly ModuleSet ValidSet2 = ModuleSet.Create(UpdatedModule1, ValidModule3);

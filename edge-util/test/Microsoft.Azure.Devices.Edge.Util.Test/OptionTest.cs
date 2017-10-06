@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
@@ -133,6 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(3, some.GetOrElse(4));
             Assert.Equal(2, none.GetOrElse(2));
+            Assert.Equal(1, none.GetOrElse(() => 1));
         }
 
         [Fact]

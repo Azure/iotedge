@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Threading;
@@ -30,6 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         public ICommand Start(IModule module) => new LoggingCommand(this.underlying.Start(module), "start", this.logger);
 
         public ICommand Stop(IModule module) => new LoggingCommand(this.underlying.Stop(module), "stop", this.logger);
+
+        public ICommand Restart(IModule module) => new LoggingCommand(this.underlying.Restart(module), "restart", this.logger);
+
+        public ICommand Wrap(ICommand command) => new LoggingCommand(this.underlying.Wrap(command), command.ToString(), this.logger);
 
         class LoggingCommand : ICommand
         {

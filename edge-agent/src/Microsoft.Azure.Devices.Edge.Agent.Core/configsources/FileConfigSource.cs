@@ -85,15 +85,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 ModuleSet newConfig = await this.GetModuleSetAsync();
                 Diff diff;
-				using (await this.sync.LockAsync())
-				{
-					ModuleSet snapshot = this.current.Value;
-					diff = snapshot == null
-						? Diff.Create(newConfig.Modules.Values.ToArray())
-						: newConfig.Diff(snapshot);
-					this.AssignCurrentModuleSet(newConfig);
-				}
-				this.OnModuleSetChanged(diff);
+                using (await this.sync.LockAsync())
+                {
+                    ModuleSet snapshot = this.current.Value;
+                    diff = snapshot == null
+                        ? Diff.Create(newConfig.Modules.Values.ToArray())
+                        : newConfig.Diff(snapshot);
+                    this.AssignCurrentModuleSet(newConfig);
+                }
+                this.OnModuleSetChanged(diff);
             }
             catch (Exception ex) when (!ex.IsFatal())
             {

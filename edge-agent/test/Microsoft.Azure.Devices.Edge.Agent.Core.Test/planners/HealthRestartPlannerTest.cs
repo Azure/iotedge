@@ -1,0 +1,877 @@
+// Copyright (c) Microsoft. All rights reserved.
+
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
+
+    public class HealthRestartPlannerTest
+    {
+        const int MaxRestartCount = 5;
+        const int CoolOffTimeUnitInSeconds = 10;
+        static readonly TimeSpan IntensiveCareTime = TimeSpan.FromMinutes(10);
+
+        static readonly TestConfig Config1 = new TestConfig("image1");
+        static readonly TestConfig Config2 = new TestConfig("image2");
+
+        static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, HealthRestartPlanner planner) CreatePlanner()
+        {
+            var factory = new TestCommandFactory();
+            var store = new Mock<IEntityStore<string, ModuleState>>();
+            var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
+            var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager);
+
+            return (factory, store, restartManager, planner);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestCreateValidation()
+        {
+            var (factory, store, restartManager, _) = CreatePlanner();
+
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(null, store.Object, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, null, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, null));
+            Assert.NotNull(new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestMinimalTest()
+        {
+            // Arrange
+            var (factory, _, _, planner) = CreatePlanner();
+            var token = new CancellationToken();
+            var expectedExecutionList = new List<TestRecordType>();
+
+            // Act
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty);
+            await addPlan.ExecuteAsync(token);
+
+            // Assert
+            factory.Recorder.ForEach(r => Assert.Equal(expectedExecutionList, r.ExecutionList));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestAddRunningModule()
+        {
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
+            ModuleSet addRunning = ModuleSet.Create(addModule);
+            var addExecutionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestPull, addModule),
+                new TestRecordType(TestCommandType.TestCreate, addModule),
+                new TestRecordType(TestCommandType.TestStart, addModule),
+            };
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty);
+            await addPlan.ExecuteAsync(CancellationToken.None);
+
+            factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestAddStoppedModule()
+        {
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1);
+            ModuleSet addRunning = ModuleSet.Create(addModule);
+            var addExecutionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestPull, addModule),
+                new TestRecordType(TestCommandType.TestCreate, addModule)
+            };
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty);
+            await addPlan.ExecuteAsync(CancellationToken.None);
+
+            factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestUpdateModule()
+        {
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            IRuntimeModule currentModule = new TestRuntimeModule(
+                "mod1", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
+            ModuleSet currentSet = ModuleSet.Create(currentModule);
+            ModuleSet desiredSet = ModuleSet.Create(desiredModule);
+
+            var updateExecutionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestStop, desiredModule),
+                new TestRecordType(TestCommandType.TestPull, desiredModule),
+                new TestRecordType(TestCommandType.TestUpdate, desiredModule),
+                new TestRecordType(TestCommandType.TestStart, desiredModule),
+            };
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet);
+            await addPlan.ExecuteAsync(CancellationToken.None);
+
+            factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestRemoveModule()
+        {
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            IRuntimeModule removeModule = new TestRuntimeModule(
+                "mod1", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
+            ModuleSet removeRunning = ModuleSet.Create(removeModule);
+            var removeExecutionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestStop, removeModule),
+                new TestRecordType(TestCommandType.TestRemove, removeModule),
+            };
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning);
+            await addPlan.ExecuteAsync(CancellationToken.None);
+
+            factory.Recorder.ForEach(r =>
+            {
+                Assert.Equal(removeExecutionList, r.ExecutionList);
+                Assert.Equal(1, r.WrappedCommmandList.Count);
+            });
+        }
+
+        static IRuntimeModule[] GetRemoveTestData() => new IRuntimeModule[]
+            {
+                // Always
+                new TestRuntimeModule(
+                    "removeModule1", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                new TestRuntimeModule(
+                    "removeModule2", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                new TestRuntimeModule(
+                    "removeModule3", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                new TestRuntimeModule(
+                    "removeModule4", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                new TestRuntimeModule(
+                    "removeModule5", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+
+                // OnUnhealthy
+                new TestRuntimeModule(
+                    "removeModule6", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                new TestRuntimeModule(
+                    "removeModule7", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                new TestRuntimeModule(
+                    "removeModule8", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                new TestRuntimeModule(
+                    "removeModule9", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                new TestRuntimeModule(
+                    "removeModule10", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+
+                // OnFailure
+                new TestRuntimeModule(
+                    "removeModule11", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                new TestRuntimeModule(
+                    "removeModule12", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                new TestRuntimeModule(
+                    "removeModule13", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                new TestRuntimeModule(
+                    "removeModule14", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                new TestRuntimeModule(
+                    "removeModule15", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+
+                // Never
+                new TestRuntimeModule(
+                    "removeModule16", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                new TestRuntimeModule(
+                    "removeModule17", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                new TestRuntimeModule(
+                    "removeModule18", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                new TestRuntimeModule(
+                    "removeModule19", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                new TestRuntimeModule(
+                    "removeModule20", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed)
+            };
+
+        [Fact]
+        [Unit]
+        public async Task TestRemoveKitchenSink()
+        {
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            IRuntimeModule[] removedModules = GetRemoveTestData();
+
+            ModuleSet removeRunning = ModuleSet.Create(removedModules);
+            var expectedExecutionList = removedModules.SelectMany(m => new TestRecordType[]
+            {
+                new TestRecordType(TestCommandType.TestStop, m),
+                new TestRecordType(TestCommandType.TestRemove, m)
+            }).ToList();
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning);
+            await addPlan.ExecuteAsync(CancellationToken.None);
+
+            factory.Recorder.ForEach(r =>
+            {
+                Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                Assert.Equal(removedModules.Count(), r.WrappedCommmandList.Count);
+            });
+        }
+
+        static (IRuntimeModule RunningModule, IModule UpdatedModule)[] GetUpdateDeployTestData() => new(IRuntimeModule RunningModule, IModule UpdatedModule)[]
+            {
+                // Always
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule1", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                    new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule2", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                    new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule3", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                    new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule4", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                    new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule5", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                    new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always)
+                ),
+
+                // OnUnhealthy
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule6", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                    new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule7", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                    new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule8", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                    new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule9", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                    new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule10", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                    new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy)
+                ),
+
+                // OnFailure
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule11", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                    new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule12", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                    new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule13", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                    new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule14", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                    new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule15", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                    new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure)
+                ),
+
+                // Never
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule16", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
+                    new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule17", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                    new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule18", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                    new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule19", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                    new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never)
+                ),
+                (
+                    new TestRuntimeModule(
+                        "updateDeployModule20", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                    new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never)
+                ),
+            };
+
+        [Fact]
+        [Unit]
+        public async Task TestUpdateDeployKitchenSink()
+        {
+            // This test makes sure that if a module is being re-deployed due to a
+            // configuration change then the runtime state of the module has no impact
+            // on whether it undergoes a re-deploy or not.
+
+            // Arrange
+            var (factory, store, restartManager, planner) = CreatePlanner();
+            (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployTestData();
+
+            // build "current" and "desired" module sets
+            var currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray());
+            var desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
+
+            // build expected execution list
+            var expectedExecutionList = data.SelectMany(d => new TestRecordType[]
+            {
+                new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
+                new TestRecordType(TestCommandType.TestPull, d.UpdatedModule),
+                new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
+                new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
+            });
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            await plan.ExecuteAsync(CancellationToken.None);
+
+            // Assert
+            factory.Recorder.ForEach(r =>
+            {
+                Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+            });
+        }
+
+        static (IRuntimeModule RunningModule, bool Restart)[] GetUpdateStateChangeTestData() => new(IRuntimeModule RunningModule, bool Restart)[]
+        {
+            ///////////////////////////
+            // RestartPolicy.Always
+            ///////////////////////////
+
+            // ModuleStatus.Running
+            (
+                new TestRuntimeModule(
+                    "updateStateModule1", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5), 0,
+                    DateTime.MinValue, ModuleStatus.Running),
+                false
+            ),
+
+            // ModuleStatus.Backoff
+            (
+                new TestRuntimeModule(
+                    "updateStateModule2", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule3", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule4", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+
+            // ModuleStatus.Unhealthy
+            (
+                new TestRuntimeModule(
+                    "updateStateModule5", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule6", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule7", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+
+            // ModuleStatus.Stopped
+            (
+                new TestRuntimeModule(
+                    "updateStateModule8", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule9", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule10", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+
+            // ModuleStatus.Failed
+            (
+                new TestRuntimeModule(
+                    "updateStateModule11", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule12", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule13", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+
+            //////////////////////////////
+            // RestartPolicy.OnUnhealthy
+            //////////////////////////////
+
+            // ModuleStatus.Running
+            (
+                new TestRuntimeModule(
+                    "updateStateModule14", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5), 0,
+                    DateTime.MinValue, ModuleStatus.Running),
+                false
+            ),
+
+            // ModuleStatus.Backoff
+            (
+                new TestRuntimeModule(
+                    "updateStateModule15", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule16", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule17", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+
+            // ModuleStatus.Unhealthy
+            (
+                new TestRuntimeModule(
+                    "updateStateModule18", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule19", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule20", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+
+            // ModuleStatus.Stopped
+            (
+                new TestRuntimeModule(
+                    "updateStateModule21", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule22", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule23", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+
+            // ModuleStatus.Failed
+            (
+                new TestRuntimeModule(
+                    "updateStateModule24", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule25", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule26", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+
+            //////////////////////////////
+            // RestartPolicy.OnFailure
+            //////////////////////////////
+
+            // ModuleStatus.Running
+            (
+                new TestRuntimeModule(
+                    "updateStateModule27", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5), 0,
+                    DateTime.MinValue, ModuleStatus.Running),
+                false
+            ),
+
+            // ModuleStatus.Backoff
+            (
+                new TestRuntimeModule(
+                    "updateStateModule28", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule29", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Backoff),
+                true
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule30", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+
+            // ModuleStatus.Unhealthy
+            (
+                new TestRuntimeModule(
+                    "updateStateModule31", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule32", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule33", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+
+            // ModuleStatus.Stopped
+            (
+                new TestRuntimeModule(
+                    "updateStateModule34", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule35", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule36", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+
+            // ModuleStatus.Failed
+            (
+                new TestRuntimeModule(
+                    "updateStateModule37", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule38", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule39", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+
+            //////////////////////////////
+            // RestartPolicy.Never
+            //////////////////////////////
+
+            // ModuleStatus.Running
+            (
+                new TestRuntimeModule(
+                    "updateStateModule40", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5), 0,
+                    DateTime.MinValue, ModuleStatus.Running),
+                false
+            ),
+
+            // ModuleStatus.Backoff
+            (
+                new TestRuntimeModule(
+                    "updateStateModule41", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule42", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule43", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Backoff),
+                false
+            ),
+
+            // ModuleStatus.Unhealthy
+            (
+                new TestRuntimeModule(
+                    "updateStateModule44", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule45", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule46", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Unhealthy),
+                false
+            ),
+
+            // ModuleStatus.Stopped
+            (
+                new TestRuntimeModule(
+                    "updateStateModule47", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule48", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule49", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Stopped),
+                false
+            ),
+
+            // ModuleStatus.Failed
+            (
+                new TestRuntimeModule(
+                    "updateStateModule50", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule51", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromHours(1), 0, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+            (
+                new TestRuntimeModule(
+                    "updateStateModule52", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
+                    0, string.Empty, DateTime.MinValue, DateTime.UtcNow - TimeSpan.FromSeconds(40), 3, DateTime.MinValue, ModuleStatus.Failed),
+                false
+            ),
+        };
+
+        [Fact]
+        [Unit]
+        public async Task TestUpdateStateChangedKitchenSink()
+        {
+            // Arrange
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            // prepare list of modules whose configurations have been updated
+            (IRuntimeModule RunningModule, IModule UpdatedModule)[] updateDeployModules = GetUpdateDeployTestData();
+
+            // prepare list of removed modules
+            IEnumerable<IRuntimeModule> removedModules = GetRemoveTestData();
+
+            // prepare a list of existing modules whose runtime status may/may not have been updated
+            (IRuntimeModule RunningModule, bool Restart)[] updateStateChangedModules = GetUpdateStateChangeTestData();
+
+            // build "current" and "desired" module sets
+            var currentModuleSet = ModuleSet.Create(updateDeployModules
+                .Select(d => d.RunningModule)
+                .Concat(removedModules)
+                .Concat(updateStateChangedModules.Select(m => m.RunningModule))
+                .ToArray()
+            );
+            var desiredModuleSet = ModuleSet.Create(updateDeployModules
+                .Select(d => d.UpdatedModule)
+                .Concat(updateStateChangedModules.Select(m => m.RunningModule))
+                .ToArray()
+            );
+
+            // build expected execution list
+            var expectedExecutionList = updateDeployModules
+                .SelectMany(d => new TestRecordType[]
+                {
+                    new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
+                    new TestRecordType(TestCommandType.TestPull, d.UpdatedModule),
+                    new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
+                    new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
+                })
+                .Concat(removedModules.SelectMany(m => new TestRecordType[]
+                {
+                    new TestRecordType(TestCommandType.TestStop, m),
+                    new TestRecordType(TestCommandType.TestRemove, m)
+                }))
+                .Concat(
+                    updateStateChangedModules
+                        .Where(d => d.Restart)
+                        .Select(d => new TestRecordType(TestCommandType.TestRestart, d.RunningModule))
+                );
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            await plan.ExecuteAsync(CancellationToken.None);
+
+            // Assert
+            factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestResetStatsForHealthyModules()
+        {
+            // Arrange
+            var (factory, store, restartManager, planner) = CreatePlanner();
+
+            // derive list of "running great" modules from GetUpdateStateChangeTestData()
+            IEnumerable<IRuntimeModule> runningGreatModules = GetUpdateStateChangeTestData()
+                .Where(d => d.Restart == false)
+                .Select(d => d.RunningModule)
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running);
+
+            // have the "store" return true when the "Contains" call happens to check if a module has
+            // records in the store with stats
+            store.Setup(s => s.Contains(It.IsAny<string>()))
+                .Returns(() => Task.FromResult(true));
+
+            var currentModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
+            var desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            await plan.ExecuteAsync(CancellationToken.None);
+
+            // Assert
+            factory.Recorder.ForEach(r => Assert.Equal(runningGreatModules.Count(), r.WrappedCommmandList.Count));
+        }
+    }
+}

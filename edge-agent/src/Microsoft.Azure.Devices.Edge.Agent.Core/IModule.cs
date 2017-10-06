@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -10,16 +10,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModuleStatus
     {
+        /// <summary>
+        /// This is the state that all modules start out in. As soon as a deployment
+        /// is created, it is assumed that all modules in the deployment begin life
+        /// in the "Unknown" state.
+        /// </summary>
         [EnumMember(Value = "unknown")]
-        Unknown,
+        Unknown, // TODO: Consider removing this status entirely since it doesn't seem to be used.
+
+        /// <summary>
+        /// Modules transition to the "Backoff" state when the MMA has scheduled
+        /// the module to be started but hasn't actually started running yet. This is
+        /// useful when we have a failing module that is undergoing state changes as
+        /// part of the implementation of its restart policy. For example when a failing
+        /// module is awaiting restart during the cool-off period as dictated by the
+        /// exponential back-off restart strategy, the module will be in this
+        /// "Backoff" state.
+        /// </summary>
+        [EnumMember(Value = "backoff")]
+        Backoff,
+
+        /// <summary>
+        /// This state indicates that module is currently running.
+        /// </summary>
         [EnumMember(Value = "running")]
         Running,
-        [EnumMember(Value = "stopped")]
-        Stopped,
-        [EnumMember(Value = "paused")]
-        Paused,
+
+        /// <summary>
+        /// The state transitions to "unhealthy" when a health-probe check fails/times out.
+        /// </summary>
         [EnumMember(Value = "unhealthy")]
         Unhealthy,
+
+        /// <summary>
+        /// The "Stopped" state indicates that the module exited successfully (with a zero
+        /// exit code).
+        /// </summary>
+        [EnumMember(Value = "stopped")]
+        Stopped,
+
+        /// <summary>
+        /// The "Failed" state indicates that the module exited with a failure exit code
+        /// (non-zer0). The module can transition back to "Backoff" from this state
+        /// depending on the restart policy in effect.
+        /// 
+        /// This state can indicate that the module has experienced an unrecoverable error.
+        /// This happens when the MMA has given up on trying to resuscitate the module and user
+        /// action is required to update its code/configuration in order for it to work again
+        /// which would mean that a new deployment is required.
+        /// </summary>
+        [EnumMember(Value = "failed")]
+        Failed
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum RestartPolicy
+    {
+        [EnumMember(Value = "never")]
+        Never = 0,
+
+        [EnumMember(Value = "on-failure")]
+        OnFailure = 1,
+
+        [EnumMember(Value = "on-unhealthy")]
+        OnUnhealthy = 2,
+
+        [EnumMember(Value = "always")]
+        Always = 3
     }
 
     public interface IModule : IEquatable<IModule>
@@ -34,8 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         string Type { get; }
 
         [JsonProperty(PropertyName = "status")]
-        ModuleStatus Status { get; }
+        ModuleStatus DesiredStatus { get; }
 
+        [JsonProperty(PropertyName = "restartPolicy")]
+        RestartPolicy RestartPolicy { get;  }
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>

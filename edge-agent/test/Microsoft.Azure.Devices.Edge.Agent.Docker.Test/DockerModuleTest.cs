@@ -19,16 +19,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config1 = new DockerConfig("image1", "42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
         static readonly DockerConfig Config2 = new DockerConfig("image2", "42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
 
-        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
-        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
-        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, Config1);
-        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, Config1);
-        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, Config1);
-        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config2);
-        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, Config1);
-        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, Config1);
+        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2);
+        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+        static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1);
 
-        const string SerializedModule = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""config"":{""image"":""image1"",""tag"":""42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}}}";
+        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
+
+        const string SerializedModule = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""config"":{""image"":""image1"",""tag"":""42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {
@@ -79,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
+         ""restartPolicy"": ""on-failure"",
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
@@ -95,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
+         ""restartPolicy"": ""always"",
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
@@ -108,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
+         ""restartPolicy"": ""on-unhealthy"",
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1"",
@@ -121,6 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
+         ""restartPolicy"": ""never"",
          ""config"":{
             ""image"":""image1"",
             ""tag"":""ver1""
@@ -133,6 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
+         ""RestartPolicy"": ""on-unhealthy"",
          ""Config"":{
             ""Image"":""image1"",
             ""Tag"":""42"",
@@ -159,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""version"":""<semantic_version_number>"",
          ""type"":""docker"",
          ""status"":""running"",
+         ""restartPolicy"": ""on-unhealthy"",
          ""config"":{
             ""image"":""image1"",
             ""tag"":""42"",
@@ -185,6 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""VERSION"":""<semantic_version_number>"",
          ""TYPE"":""docker"",
          ""STATUS"":""running"",
+         ""RESTARTPOLICY"": ""on-unhealthy"",
          ""CONFIG"":{
             ""IMAGE"":""image1"",
             ""TAG"":""42"",
@@ -263,6 +272,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Config"":{
 
          }
+      },
+      {
+         ""Name"":""<module_name>"",
+         ""Version"":""<semantic_version_number>"",
+         ""Type"":""docker"",
+         ""Status"":""running"",
+         ""RestartPolicy"": ""no-such-policy"",
+         ""Config"":{
+            ""Image"":""image1"",
+            ""tag"":""42"",
+            ""portbindings"":{
+               ""43/udp"":{
+                  ""from"":""43"",
+                  ""to"":""43"",
+                  ""type"":""udp""
+               },
+               ""42/tcp"":{
+                  ""from"":""42"",
+                  ""to"":""42"",
+                  ""type"":""tcp""
+               }
+            }
+         }
       }
    ],
    ""statusJson"":[
@@ -294,10 +326,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerModule(null, "version1", ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", null, ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule(null, "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", null, ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1));
         }
 
         [Fact]
@@ -308,6 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(Module1, Module2);
             Assert.Equal(Module8, Module8);
             Assert.NotEqual(Module1, Module3);
+            Assert.NotEqual(Module1, Module9);
             Assert.NotEqual(Module1, Module4);
             Assert.NotEqual(Module1, Module6);
             Assert.NotEqual(Module1, Module7);
@@ -329,6 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(Module1.GetHashCode(), Module2.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module3.GetHashCode());
+            Assert.NotEqual(Module1.GetHashCode(), Module9.GetHashCode());
         }
 
         static IEnumerable<string> GetJsonTestCases(string subset)
@@ -371,8 +406,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void TestDeserializeStatusJson()
         {
             string[] statusJsons = GetJsonTestCases("statusJson").ToArray();
-            Assert.Equal(ModuleStatus.Stopped, ModuleSerde.Instance.Deserialize<DockerModule>(statusJsons[0]).Status);
-            Assert.Equal(ModuleStatus.Unknown, ModuleSerde.Instance.Deserialize<DockerModule>(statusJsons[1]).Status);
+            Assert.Equal(ModuleStatus.Stopped, ModuleSerde.Instance.Deserialize<DockerModule>(statusJsons[0]).DesiredStatus);
+            Assert.Equal(ModuleStatus.Unknown, ModuleSerde.Instance.Deserialize<DockerModule>(statusJsons[1]).DesiredStatus);
         }
 
         [Theory]
@@ -403,7 +438,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Arrange
             string createOptions = @"{""Env"": [""k1=v1"",""k2=v2""]}";
             var config = new DockerConfig("ubuntu", "latest", createOptions);
-            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, config);
+            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config);
 
             // Act
             string json = ModuleSerde.Instance.Serialize(module);

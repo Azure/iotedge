@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -9,71 +9,77 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Extensions.Logging;
 
     public class Agent
-	{
-		readonly IEnvironment environment;
-		readonly IPlanner planner;
-		readonly IConfigSource configSource;
+    {
+        readonly IEnvironment environment;
+        readonly IPlanner planner;
+        readonly IReporter reporter;
+        readonly IConfigSource configSource;
 
-		public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner)
-		{
-			this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
-			this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
-			this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
-			Events.AgentCreated();
-		}
+        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IReporter reporter)
+        {
+            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
+            this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
+            this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
+            this.reporter = Preconditions.CheckNotNull(reporter, nameof(reporter));
+            Events.AgentCreated();
+        }
 
-		public async Task ReconcileAsync(CancellationToken token)
-		{
-			Task<ModuleSet> envTask = this.environment.GetModulesAsync(token);
-			Task<ModuleSet> configTask = this.configSource.GetModuleSetAsync();
+        public async Task ReconcileAsync(CancellationToken token)
+        {
+            Task<ModuleSet> envTask = this.environment.GetModulesAsync(token);
+            Task<ModuleSet> configTask = this.configSource.GetModuleSetAsync();
 
-			await Task.WhenAll(envTask, configTask);
+            await Task.WhenAll(envTask, configTask);
 
-			ModuleSet current = envTask.Result;
-			ModuleSet desired = configTask.Result;
-			Plan plan = this.planner.Plan(desired, current);
+            ModuleSet current = envTask.Result;
+            ModuleSet desired = configTask.Result;
+            ModuleSet updated = current;
+            Plan plan = await this.planner.PlanAsync(desired, current);
 
-			if (!plan.IsEmpty)
-			{
-				try
-				{
-					await plan.ExecuteAsync(token);
-				}
-				catch (Exception ex)
-				{
-					Events.PlanExecutionFailed(ex);
-					throw;
-				}
-			}
-		}
+            if (!plan.IsEmpty)
+            {
+                try
+                {
+                    await plan.ExecuteAsync(token);
+                    updated = await this.environment.GetModulesAsync(token);
+                }
+                catch (Exception ex)
+                {
+                    Events.PlanExecutionFailed(ex);
+                    throw;
+                }
+            }
 
-		static class Events
-		{
-			static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
-			const int IdStart = AgentEventIds.Agent;
+            await this.reporter.ReportAsync(updated);
+        }
 
-			enum EventIds
-			{
-				AgentCreated = IdStart,
-				UpdateDesiredStateFailed,
-				PlanExecutionFailed
-			}
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+            const int IdStart = AgentEventIds.Agent;
 
-			public static void AgentCreated()
-			{
-				Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
-			}
+            enum EventIds
+            {
+                AgentCreated = IdStart,
+                UpdateDesiredStateFailed,
+                PlanExecutionFailed
+            }
 
-			public static void UpdateDesiredStateFailed()
-			{
-				Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
-			}
+            public static void AgentCreated()
+            {
+                Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
+            }
 
-			public static void PlanExecutionFailed(Exception ex)
-			{
-				Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
-			}
-		}
+            public static void UpdateDesiredStateFailed()
+            {
+                Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
+            }
 
-	}
+            public static void PlanExecutionFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
+            }
+        }
+
+    }
 }

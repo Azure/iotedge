@@ -20,13 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IModule configSource;
         readonly IModule logging;
 
-        public StandaloneModule(Uri dockerHost, string dockerLoggingDriver, IDictionary<string, string> dockerLoggingOptions, string configFilename, IConfiguration configuration)
+        public StandaloneModule(
+            Uri dockerHost, string dockerLoggingDriver,
+            IDictionary<string, string> dockerLoggingOptions, string configFilename,
+            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration)
         {
-            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)));
+            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
             this.configSource = new FileConfigSourceModule(
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
-                Preconditions.CheckNotNull(configuration, nameof(configuration)));
-            this.logging = new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)), Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions)));
+                Preconditions.CheckNotNull(configuration, nameof(configuration))
+            );
+            this.logging = new LoggingModule(
+                Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),
+                Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))
+            );
         }
 
         protected override void Load(ContainerBuilder builder)

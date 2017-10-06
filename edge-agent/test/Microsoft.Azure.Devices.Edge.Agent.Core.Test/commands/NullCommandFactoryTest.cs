@@ -12,14 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         public void NullCommandFactoryAllTest()
         {
             NullCommandFactory nf = NullCommandFactory.Instance;
-            var nm = new TestModule("null","version_null","null",ModuleStatus.Running, new TestConfig("null"));
-            var nmn = new TestModule("next","version_null","null",ModuleStatus.Running, new TestConfig("null"));
+            var nm = new TestModule("null", "version_null", "null", ModuleStatus.Running, new TestConfig("null"));
+            var nmn = new TestModule("next", "version_null", "null", ModuleStatus.Running, new TestConfig("null"));
             ICommand createCommand = nf.Create(nm);
             ICommand pullCommand = nf.Pull(nm);
             ICommand updateCommand = nf.Update(nm,nmn);
             ICommand removeCommand = nf.Remove(nm);
             ICommand startCommand = nf.Start(nm);
             ICommand stopCommand = nf.Stop(nm);
+            ICommand restartCommand = nf.Restart(nm);
+            ICommand wrapCommand = nf.Wrap(createCommand);
 
             Assert.Equal(NullCommand.Instance, createCommand);
             Assert.Equal(NullCommand.Instance, pullCommand);
@@ -27,6 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             Assert.Equal(NullCommand.Instance, removeCommand);
             Assert.Equal(NullCommand.Instance, startCommand);
             Assert.Equal(NullCommand.Instance, stopCommand);
+            Assert.Equal(NullCommand.Instance, restartCommand);
+            Assert.Equal(createCommand, wrapCommand);
         }
     }
 }

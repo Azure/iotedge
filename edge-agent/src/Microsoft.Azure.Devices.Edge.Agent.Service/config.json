@@ -5,6 +5,7 @@
       "version": "1.0",
       "type": "docker",
       "status": "running",
+      "restartPolicy":  "on-unhealthy",
       "config": {
         "image": "mongo",
         "tag": "3.4.4",

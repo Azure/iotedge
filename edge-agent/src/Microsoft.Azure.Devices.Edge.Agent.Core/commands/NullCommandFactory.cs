@@ -21,5 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         public ICommand Start(IModule module) => NullCommand.Instance;
 
         public ICommand Stop(IModule module) => NullCommand.Instance;
+
+        public ICommand Restart(IModule module) => NullCommand.Instance;
+
+        public ICommand Wrap(ICommand command) => command;
     }
 }

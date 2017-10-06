@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
 
         static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
-        static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"}}";
+        static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {
@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""image1""
       }
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""version"": ""<semantic_version_number>"",
       ""type"": ""docker"",
       ""status"": ""running"",
+      ""restartpolicy"": ""on-unhealthy"",
       ""config"": {
         ""image"": ""image1""
       }
@@ -57,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""VERSION"": ""<semantic_version_number>"",
       ""TYPE"": ""docker"",
       ""STATUS"": ""RUNNING"",
+      ""RESTARTPOLICY"": ""on-unhealthy"",
       ""CONFIG"": {
         ""IMAGE"": ""image1""
       }
@@ -68,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""stopped"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -77,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""Unknown"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -87,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -95,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -103,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Name"": ""<module_name>"",
       ""Type"": ""docker"",
       ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -111,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -119,13 +128,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
-      ""Status"": ""running""
+      ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
     },
     {
       ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {}
     },
     {
@@ -133,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
+      ""RestartPolicy"": ""on-unhealthy"",
       ""Config"": {
         ""Image"": ""<docker_image_name>""
       }
@@ -224,8 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void TestDeserializeStatusJson()
         {
             string[] statusJsons = GetJsonTestCases("statusJson").ToArray();
-            Assert.Equal(ModuleStatus.Stopped, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[0]).Status);
-            Assert.Equal(ModuleStatus.Unknown, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[1]).Status);
+            Assert.Equal(ModuleStatus.Stopped, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[0]).DesiredStatus);
+            Assert.Equal(ModuleStatus.Unknown, ModuleSerde.Instance.Deserialize<TestModule>(statusJsons[1]).DesiredStatus);
         }
 
         [Fact]

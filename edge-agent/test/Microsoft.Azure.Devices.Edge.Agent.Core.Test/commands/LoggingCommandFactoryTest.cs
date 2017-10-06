@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, ICommand>>;
-    using TestExecutionExpr = System.Func<Commands.LoggingCommandFactory, ICommand>;
+    using TestExecutionExpr = System.Func<LoggingCommandFactory, ICommand>;
 
     class FailureCommand : ICommand
     {
@@ -63,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
         static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"));
         static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"));
+        static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         static IEnumerable<object[]> CreateTestData()
         {
@@ -99,6 +100,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                     f => f.Stop(TestModule),
                     NullCommandFactory.Instance.Stop(TestModule),
                     factory => factory.Stop(TestModule)
+                ),
+                (
+                    f => f.Restart(TestModule),
+                    NullCommandFactory.Instance.Restart(TestModule),
+                    factory => factory.Restart(TestModule)
+                ),
+                (
+                    f => f.Wrap(WrapTargetCommand),
+                    WrapTargetCommand,
+                    factory => factory.Wrap(WrapTargetCommand)
                 )
             };
 

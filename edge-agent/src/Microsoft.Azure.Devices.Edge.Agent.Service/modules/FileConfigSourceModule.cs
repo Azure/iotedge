@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
 
     public class FileConfigSourceModule : Module
     {
@@ -64,6 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     return config;
                 })
                 .As<Task<IConfigSource>>()
+                .SingleInstance();
+
+            // Task<IReporter>
+            builder.Register(c => Task.FromResult(NullReporter.Instance))
+                .As<Task<IReporter>>()
                 .SingleInstance();
 
             base.Load(builder);

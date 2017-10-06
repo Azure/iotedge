@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
 
     public class AgentTests
     {
@@ -50,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     testConfig.Name,
                     testConfig.Version,
                     ModuleStatus.Running,
+                    Core.RestartPolicy.OnUnhealthy,
                     dockerConfig
                 );
                 var moduleSet = ModuleSet.Create(dockerModule);
@@ -71,10 +74,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                 configSource.Setup(cs => cs.GetModuleSetAsync()).ReturnsAsync(moduleSet);
 
+                // TODO: Fix this up with a real reporter. But before we can do that we need to use
+                // the real configuration source that talks to IoT Hub above.
+                var reporter = NullReporter.Instance;
+
+                var restartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
+                var restartManager = new Mock<IRestartPolicyManager>().Object;
+
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
-                var environment = new DockerEnvironment(client);
+                var environment = new DockerEnvironment(client, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
-                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory));
+                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public void Dispose()
         {
-            // No-op            
+            // No-op
         }
     }
 }

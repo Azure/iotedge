@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,13 +16,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void AgentConstructorInvalidArgs()
         {
-			var mockConfigSource = new Mock<IConfigSource>();
-			var mockEnvironment = new Mock<IEnvironment>();
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
 
-            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironment.Object, mockPlanner.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, null));
+            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object, mockReporter.Object));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, null, mockReporter.Object));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, null));
         }
 
         [Fact]
@@ -37,20 +39,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
 
             mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(desiredSet);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockPlanner.Setup(pl => pl.Plan(desiredSet, currentSet))
-                .Returns(Plan.Empty);
+            mockPlanner.Setup(pl => pl.PlanAsync(desiredSet, currentSet))
+                .Returns(Task.FromResult(Plan.Empty));
+            mockReporter.Setup(r => r.ReportAsync(currentSet))
+                .Returns(Task.CompletedTask);
 
-            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object);
 
             await agent.ReconcileAsync(token);
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
-            mockPlanner.Verify(pl => pl.Plan(desiredSet, currentSet), Times.Once);
+            mockPlanner.Verify(pl => pl.PlanAsync(desiredSet, currentSet), Times.Once);
+            mockReporter.VerifyAll();
         }
 
 
@@ -69,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             };
             var commandList = new List<ICommand>
             {
-                new TestCommand(TestCommandType.TestCreate,desiredModule, recordKeeper),
+                new TestCommand(TestCommandType.TestCreate, desiredModule, recordKeeper),
                 new TestCommand(TestCommandType.TestRemove, currentModule, recordKeeper)
             };
             var testPlan = new Plan(commandList);
@@ -78,25 +84,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
             ModuleSet currentSet = ModuleSet.Create(currentModule);
-            
 
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
             var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
 
             mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
                 .ReturnsAsync(desiredSet);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockPlanner.Setup(pl => pl.Plan(desiredSet, currentSet))
-                .Returns(testPlan);
+            mockPlanner.Setup(pl => pl.PlanAsync(desiredSet, currentSet))
+                .Returns(Task.FromResult(testPlan));
+            mockReporter.Setup(r => r.ReportAsync(currentSet))
+                .Returns(Task.CompletedTask);
 
-            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object);
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object);
 
             await agent.ReconcileAsync(token);
 
-            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
-            mockPlanner.Verify(pl => pl.Plan(desiredSet, currentSet), Times.Once);
+            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Exactly(2));
+            mockPlanner.Verify(pl => pl.PlanAsync(desiredSet, currentSet), Times.Once);
+            mockReporter.VerifyAll();
             recordKeeper.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
         }
     }

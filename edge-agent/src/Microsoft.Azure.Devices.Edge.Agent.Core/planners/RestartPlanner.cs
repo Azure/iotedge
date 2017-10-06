@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -22,12 +23,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
         }
 
-        public Plan Plan(ModuleSet desired, ModuleSet current)
+        public Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
-            return diff.IsEmpty
+            Plan plan = diff.IsEmpty
                 ? Core.Plan.Empty
                 : this.CreatePlan(desired, current, diff);
+
+            return Task.FromResult(plan);
         }
 
         Plan CreatePlan(ModuleSet desired, ModuleSet current, Diff diff)
@@ -35,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
             IEnumerable<ICommand> remove = diff.Removed.Select(name => this.commandFactory.Remove(current.Modules[name]));
             IEnumerable<ICommand> start = desired.Modules
-                .Where(m=> m.Value.Status == ModuleStatus.Running)
+                .Where(m => m.Value.DesiredStatus == ModuleStatus.Running)
                 .Select(m => this.commandFactory.Start(m.Value));
 
             IList<ICommand> pull = desired.Modules
