@@ -74,8 +74,8 @@ emailAddress                    = Email Address
 
 # Optionally, specify some defaults.
 countryName_default             = US
-stateOrProvinceName_default     = WA
-localityName_default            =
+stateOrProvinceName_default     = Washington
+localityName_default            = Redmond
 0.organizationName_default      = Default Edge Organization
 organizationalUnitName_default  =
 emailAddress_default            =

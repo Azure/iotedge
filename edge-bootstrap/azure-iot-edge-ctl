@@ -1,0 +1,465 @@
+#! /bin/bash
+
+###############################################################################
+# This script controls the Edge Runtime.
+#  All commands that are supported will require the Edge Runtime configuration
+#  file to be configured by the user. If no such config file is provided to the
+#  user or no default config file is present, the user is presented with
+#  actionable next steps.
+#
+# Run this script with --help to learn more.
+###############################################################################
+set -e
+
+###############################################################################
+# Define Environment Variables
+###############################################################################
+SCRIPT_NAME=$(basename $0)
+SCRIPT_DIR=$(dirname $0)
+SCRIPT_DIR=$(readlink -f ${SCRIPT_DIR})
+EDGE_CONFIG_DEPLOYMENTS=("docker")
+EDGE_CONFIG_SCHEMAS=("1")
+EDGE_CONFIG_LOG_LEVELS=("info" "debug")
+EDGE_CONFIG_CERTS_OPTS=("selfSigned" "preInstalled")
+
+EDGE_RUNTIME_COMMANDS=("start" "stop" "restart" "status")
+EDGE_RUNTIME_DEFAULT_HOME_DIR="/usr/local/azure-iot-edge"
+EDGE_RUNTIME_DEFAULT_CONFIG_DIR="${EDGE_RUNTIME_DEFAULT_HOME_DIR}/config"
+EDGE_RUNTIME_DEFAULT_CONFIG_FILENAME="config.json"
+EDGE_RUNTIME_DEFAULT_CONFIG_SRC_FILE="${SCRIPT_DIR}/config/azure-iot-edge-config-reference.json"
+EDGE_RUNTIME_DEFAULT_CONFIG_FILE="${EDGE_RUNTIME_DEFAULT_CONFIG_DIR}/${EDGE_RUNTIME_DEFAULT_CONFIG_FILENAME}"
+EDGE_RUNTIME_CONFIG_FILE=
+EDGE_RUNTIME_COMMAND=
+EDGE_RUNTIME_DEPLOYMENT_TYPE="unknown"
+EDGE_RUNTIME_LOG_LEVEL=
+EDGE_RUNTIME_CONN_STR=
+EDGE_RUNTIME_HOME_DIR=
+EDGE_RUNTIME_CERT_OPT=
+EDGE_RUNTIME_SELFSIGN_CERT_REGEN=
+EDGE_RUNTIME_PREINSTALL_CA_CERT_PATH=
+EDGE_RUNTIME_PREINSTALL_SERVER_CERT_PATH=
+EDGE_RUNTIME_HOSTNAME=
+
+EDGE_RUNTIME_DOCKER_URI=
+EDGE_RUNTIME_DOCKER_MODULE_REGISTRIES_CSV=
+EDGE_RUNTIME_DOCKER_LOG_DRIVER=
+EDGE_RUNTIME_DOCKER_LOG_OPTIONS_CSV=
+EDGE_RUNTIME_DOCKER_IMAGE=
+
+# general script variables
+LOG_LEVEL_ERR=1
+LOG_LEVEL_INF=2
+LOG_LEVEL_DBG=3
+VERBOSE_LEVEL_DEFAULT=$LOG_LEVEL_ERR
+VERBOSE_LEVEL=$VERBOSE_LEVEL_DEFAULT
+
+###############################################################################
+# Log message to console depending on verbosity level setting
+###############################################################################
+function log()
+{
+    if [[ $VERBOSE_LEVEL -ge $1 ]]; then
+        shift;
+        echo "$@"
+    fi
+}
+
+function log_debug()
+{
+    log ${LOG_LEVEL_DBG} "DBG:$@"
+}
+
+function log_error()
+{
+    log ${LOG_LEVEL_ERR} "ERR:$@"
+}
+
+function log_info()
+{
+    log ${LOG_LEVEL_INF} "INF:$@"
+}
+
+###############################################################################
+# Helper function to check if an application is installed. Exits if not found.
+###############################################################################
+function check_if_installed()
+{
+    local app="${1}"
+    log_info "Checking if '${app}' is installed."
+    $(command -v ${app} >/dev/null 2>&1 ||
+    { echo >&2 "Error: ${app} not found. Please install ${app}. Aborting."; exit 1;})
+    log_info "   ${app}... Ok."
+}
+
+###############################################################################
+# Print usage information pertaining to this script and exit
+###############################################################################
+function usage()
+{
+
+    echo ""
+    echo "$SCRIPT_NAME [command] [options]"
+    echo ""
+    echo " Supported Edge Runtime Commands: ${EDGE_RUNTIME_COMMANDS[@]}"
+    echo " start | restart"
+    echo "   -f, --config-file  Control Azure Edge using the specified" \
+         "configuration file. Optional."
+    echo "                      If not provided, the configuration" \
+         "file at ENV variable EDGEHOMEDIR/config will be used:"
+    echo " -v,   --verbose      Global verbose level. Optional." \
+         "${LOG_LEVEL_ERR} - Error, ${LOG_LEVEL_INF} - Info, " \
+         "${LOG_LEVEL_DBG} - Debug."
+
+    echo " Note: Users might need to run this with elevated (sudo) privileges."
+    echo " Examples:"
+    echo "  ${SCRIPT_NAME} start"
+    echo "  ${SCRIPT_NAME} stop"
+    echo "  ${SCRIPT_NAME} restart"
+    echo "  ${SCRIPT_NAME} status"
+    echo "  ${SCRIPT_NAME} start --config-file config.json --verbose 3"
+    exit 1;
+}
+
+function print_help_and_exit()
+{
+    echo "Run $SCRIPT_NAME --help for more information."
+    exit 1
+}
+
+function print_unhandled_args_and_exit()
+{
+    echo "Unknown Input Argument(s): $@"
+    echo "Run $SCRIPT_NAME --help for more information."
+    exit 1
+}
+
+###############################################################################
+# Obtain and validate the command line options supported by this script
+###############################################################################
+function process_args()
+{
+    local save_next_arg=0
+
+    for arg in $@
+    do
+        if [ ${save_next_arg} -eq 1 ]; then
+            EDGE_RUNTIME_CONFIG_FILE="$arg"
+            save_next_arg=0
+        elif [ ${save_next_arg} -eq 2 ]; then
+            VERBOSE_LEVEL=$arg
+            save_next_arg=0
+        else
+            case "${arg}" in
+                "-h" | "--help" ) usage;;
+                "start" )   EDGE_RUNTIME_COMMAND="${arg}";;
+                "restart" ) EDGE_RUNTIME_COMMAND="${arg}";;
+                "stop" )    EDGE_RUNTIME_COMMAND="${arg}";;
+                "status" )  EDGE_RUNTIME_COMMAND="${arg}";;
+                "-f" | "--config-file" ) save_next_arg=1;;
+                "-v" | "--verbose" ) save_next_arg=2;;
+                * ) print_unhandled_args_and_exit ${arg};;
+            esac
+        fi
+    done
+
+    if [[ -z "${EDGE_RUNTIME_COMMAND}" ]]; then
+        log_error "Edge Runtime Command Is Required."
+        print_help_and_exit
+    fi
+
+    local use_default_cfg=1
+    if [[ -z "${EDGE_RUNTIME_CONFIG_FILE}" ]]; then
+        home_dir="EDGEHOMEDIR"
+        if [[ ! -z "${!home_dir}" ]]; then
+            log_info "Env Variable 'EDGEHOMEDIR' Value:${!home_dir}"
+            local full_home_dir=$(readlink -f ${!home_dir})
+            if [[ ! -d "${full_home_dir}" ]]; then
+                log_info "EDGEHOMEDIR Is Invalid:${!home_dir}."
+            else
+                local cfg_file="${full_home_dir}/config/${EDGE_RUNTIME_DEFAULT_CONFIG_FILENAME}"
+                if [[ ! -e "${cfg_file}" ]]; then
+                    log_info "EDGEHOMEDIR Config File Does Not Exist:${cfg_file}"
+                else
+                    EDGE_RUNTIME_CONFIG_FILE="${cfg_file}"
+                    use_default_cfg=0
+                fi
+            fi
+        fi
+    fi
+
+    if [[ ${use_default_cfg} -eq 1  ]]; then
+        EDGE_RUNTIME_CONFIG_FILE="${EDGE_RUNTIME_DEFAULT_CONFIG_FILE}"
+        use_default_cfg=1
+    fi
+
+    if [[ ! -e "${EDGE_RUNTIME_CONFIG_FILE}" ]]; then
+        log_error "Default Edge Runtime Config File" \
+                  "  ${EDGE_RUNTIME_CONFIG_FILE} does not exist."
+        if [[ use_default_cfg -eq 1 ]]; then
+            echo " - To setup your default configuration file:"
+            echo "    1. Copy"
+            echo "       SRC: ${EDGE_RUNTIME_DEFAULT_CONFIG_SRC_FILE} to"
+            echo "       DEST:${EDGE_RUNTIME_DEFAULT_CONFIG_FILE}"
+            echo "    2. Edit"
+            echo "       Modify this newly copied file with the the necessary" \
+                 "configuration data."
+            echo " - Alternatively, users can specify their own configuration" \
+                 "file."
+        fi
+        print_help_and_exit
+    fi
+}
+
+###############################################################################
+# Verify Azure Edge Runtime Dependencies
+###############################################################################
+function verify_base_prerequisites()
+{
+    check_if_installed "jq"
+}
+
+function verify_deployment_prerequisites()
+{
+    local deployment="${1}"
+    local cert_opt="${2}"
+
+    if [[ "${cert_opt}" == "selfSigned" ]]; then
+        check_if_installed "openssl"
+    fi
+}
+
+###############################################################################
+# Invoke the launch Edge script based on deployment type
+# Ouput:
+#   None.
+###############################################################################
+function control_deployment
+{
+    local deployment="${EDGE_RUNTIME_DEPLOYMENT_TYPE}"
+
+    verify_deployment_prerequisites "${deployment}" "${EDGE_RUNTIME_CERT_OPT}"
+
+    declare -a cmd_args
+    cmd_args+=("${EDGE_RUNTIME_COMMAND}")
+    if [[ "${EDGE_RUNTIME_COMMAND}" == *"start" ]]; then
+        cmd_args+=("--edge-home-dir" "${EDGE_RUNTIME_HOME_DIR}")
+        cmd_args+=("--connection-string" "${EDGE_RUNTIME_CONN_STR}")
+        cmd_args+=("--docker-uri" "${EDGE_RUNTIME_DOCKER_URI}")
+        if [[ ! -z "${EDGE_RUNTIME_DOCKER_LOG_DRIVER}"  ]]; then
+            cmd_args+=("--docker-log-driver" "${EDGE_RUNTIME_DOCKER_LOG_DRIVER}")
+        fi
+        if [[ ! -z "${EDGE_RUNTIME_DOCKER_LOG_OPTIONS_CSV}"  ]]; then
+            cmd_args+=("--docker-log-options-csv" "${EDGE_RUNTIME_DOCKER_LOG_OPTIONS_CSV}")
+        fi
+        cmd_args+=("--edge-runtime-image" "${EDGE_RUNTIME_DOCKER_IMAGE}")
+        if [[ ! -z "${EDGE_RUNTIME_DOCKER_MODULE_REGISTRIES_CSV}"  ]]; then
+            cmd_args+=("--module-repositories-csv" "${EDGE_RUNTIME_DOCKER_MODULE_REGISTRIES_CSV}")
+        fi
+        if [[ ! -z "${EDGE_RUNTIME_LOG_LEVEL}"  ]]; then
+            cmd_args+=("--edge-log-level" "${EDGE_RUNTIME_LOG_LEVEL}")
+        fi
+        cmd_args+=("--edge-hub-dns" "${EDGE_RUNTIME_HOSTNAME}")
+        if [[ "${EDGE_RUNTIME_CERT_OPT}" == "selfSigned" ]]; then
+            if [[ "${EDGE_RUNTIME_SELFSIGN_CERT_REGEN}" == "true" ]]; then
+                cmd_args+=("--force-regenerate-certs")
+            fi
+        else
+            cmd_args+=("--edge-device-ca-cert" "${EDGE_RUNTIME_PREINSTALL_CA_CERT_PATH}")
+            cmd_args+=("--edge-hub-server-cert" "${EDGE_RUNTIME_PREINSTALL_SERVER_CERT_PATH}")
+        fi
+        cmd_args+=("--verbose" "${VERBOSE_LEVEL}")
+    fi
+
+    local cmd="${SCRIPT_DIR}/deployment-${deployment}/control-edge "
+    cmd+="${cmd_args[@]}"
+    ${cmd}
+}
+
+###############################################################################
+# Parse Edge Runtime Config JSON File. After parsing and validating the input,
+# all requried global state variables are initialized.
+# Input:
+#   Config File Path
+# Ouput:
+#   None.
+###############################################################################
+function parse_config_file()
+{
+    local cfg_file="${1}"
+    local is_valid=
+
+    is_valid=0
+    local schema=$(jq -r '.schemaVersion' ${cfg_file})
+    for item in "${EDGE_CONFIG_SCHEMAS[@]}"
+    do
+        if [[ "${item}" == "${schema}" ]]; then
+            is_valid=1
+            break
+        fi
+    done
+    if [[ $is_valid -eq 0 ]]; then
+        log_error "Unsupported Schema Version:'${schema}'"
+        exit 1
+    fi
+
+    EDGE_RUNTIME_CONN_STR=$(jq -r '.deviceConnectionString' ${cfg_file})
+    if [[ -z "${EDGE_RUNTIME_CONN_STR}" ]] ||
+       [[ "${EDGE_RUNTIME_CONN_STR}" == "null" ]]; then
+        log_error "Invalid Edge Runtime Connection String:'${EDGE_RUNTIME_CONN_STR}'"
+        exit 1
+    fi
+
+    EDGE_RUNTIME_HOME_DIR=$(jq -r '.homeDir' ${cfg_file})
+    if [[ -z "${EDGE_RUNTIME_HOME_DIR}" ]] ||
+       [[ "${EDGE_RUNTIME_HOME_DIR}" == "null" ]]; then
+        log_error "Invalid Edge Runtime Home Directory:'${EDGE_RUNTIME_HOME_DIR}'"
+        exit 1
+    elif [[ ! -d "${EDGE_RUNTIME_HOME_DIR}" ]]; then
+        log_error "   Edge Runtime Home Directory Does Not Exist:" \
+                  "${EDGE_RUNTIME_HOME_DIR}"
+        exit 1
+    fi
+
+    EDGE_RUNTIME_HOSTNAME=$(jq -r '.hostName' ${cfg_file})
+    if [[ -z "${EDGE_RUNTIME_HOSTNAME}" ]] ||
+       [[ "${EDGE_RUNTIME_HOSTNAME}" == "null" ]]; then
+        log_error "Invalid Edge Runtime Hostname:'${EDGE_RUNTIME_HOSTNAME}'"
+        exit 1
+    fi
+
+    is_valid=0
+    local log_level=$(jq -r '.logLevel' ${cfg_file})
+    for item in "${EDGE_CONFIG_LOG_LEVELS[@]}"
+    do
+        if [[ "${item}" == "${log_level}" ]]; then
+            is_valid=1
+            break
+        fi
+    done
+    if [[ $is_valid -eq 0 ]]; then
+        log_error "Unsupported Edge Runtime Log Level:'${log_level}'"
+        exit 1
+    fi
+    EDGE_RUNTIME_LOG_LEVEL="${log_level}"
+
+    is_valid=0
+    local cert_opt=$(jq -r '.security.certificates.option' ${cfg_file})
+    for item in "${EDGE_CONFIG_CERTS_OPTS[@]}"
+    do
+        if [[ "${item}" == "${cert_opt}" ]]; then
+            is_valid=1
+            break
+        fi
+    done
+    if [[ $is_valid -eq 0 ]]; then
+        log_error "Unsupported Edge Runtime Certificate Provisioning" \
+                  "Option:'${cert_opt}'"
+        exit 1
+    else
+        if [[ "${cert_opt}" == "selfSigned" ]]; then
+            local force_gen=$(jq -r '.security.certificates.selfSigned.forceRegenerate' ${cfg_file})
+            if [[ -z "${force_gen}" ]] ||
+               [[ "${force_gen}" == "true" ]] ||
+               [[ "${force_gen}" == "false" ]]; then
+                EDGE_RUNTIME_SELFSIGN_CERT_REGEN="${force_gen}"
+            else
+                log_error "Unsupported Self Signed Certificate Regeneration" \
+                          "Option:'${force_gen}'"
+                exit 1
+            fi
+        else
+            local ca=$(jq -r '.security.certificates.preInstalled.deviceCACertificateFilePath' ${cfg_file})
+            local server=$(jq -r '.security.certificates.preInstalled.serverCertificateFilePath' ${cfg_file})
+
+            if [[ -z "${ca}" ]]; then
+                log_error "Edge CA Certificate Path is Empty."
+                exit 1
+            elif [[ ! -e "${ca}" ]]; then
+                log_error "Edge CA Certificate File Does Not Exist:${ca}"
+                exit 1
+            else
+                EDGE_RUNTIME_PREINSTALL_CA_CERT_PATH="${ca}"
+            fi
+
+            if [[ -z "${server}" ]]; then
+                log_error "Edge Runtime Server Certificate Path is Empty."
+                exit 1
+            elif [[ ! -e "${server}" ]]; then
+                log_error "Edge Runtime Server Certificate File Does Not Exist:${server}"
+                exit 1
+            else
+                EDGE_RUNTIME_PREINSTALL_SERVER_CERT_PATH="${server}"
+            fi
+        fi
+        EDGE_RUNTIME_CERT_OPT="${cert_opt}"
+    fi
+
+    is_valid=0
+    local deployment=$(jq -r '.runtime.type' ${cfg_file})
+    for item in "${EDGE_CONFIG_DEPLOYMENTS[@]}"
+    do
+        if [[ "${item}" == "${deployment}" ]]; then
+            is_valid=1
+            break
+        fi
+    done
+    if [[ $is_valid -eq 0 ]]; then
+        log_error "Unsupported Edge Runtime Deployment Type:'${deployment}'"
+        exit 1
+    fi
+    EDGE_RUNTIME_DEPLOYMENT_TYPE="${deployment}"
+
+    if [[ "${EDGE_RUNTIME_DEPLOYMENT_TYPE}" == "docker" ]]; then
+        local output=
+        # parse the Edge runtime image
+        output=$(jq -r '.runtime.docker.edgeRuntimeImage' ${cfg_file})
+        if [[ -z "${output}" ]] || [[ "${output}" == "null" ]]; then
+            log_error "Edge Runtime Docker Image is Empty."
+            exit 1
+        fi
+        EDGE_RUNTIME_DOCKER_IMAGE="${output}"
+
+        # parse the docker URI
+        output=$(jq -r '.runtime.docker.uri' ${cfg_file})
+        if [[ -z "${output}" ]] || [[ "${output}" == "null" ]]; then
+            log_error "Docker URI Cannot Be Empty."
+            exit 1
+        fi
+        EDGE_RUNTIME_DOCKER_URI="${output}"
+
+        # parse any module registries from the user
+        output=$(jq -r '.runtime.docker.registries | keys[] as $k | [.[$k].address, .[$k].username, .[$k].password] | @csv' ${cfg_file})
+        if [[ "${output}" == "null" ]]; then
+            output=
+        fi
+        if [[ ! -z "${output}" ]]; then
+            output=$(echo "${output}" | tr "\n" ";")
+        fi
+        EDGE_RUNTIME_DOCKER_MODULE_REGISTRIES_CSV="${output}"
+
+        # parse docker logging driver
+        output=$(jq -r '.runtime.docker.loggingOptions | .["log-driver"]' ${cfg_file})
+        if [[ "${output}" == "null" ]]; then
+            output=""
+        fi
+        EDGE_RUNTIME_DOCKER_LOG_DRIVER="${output}"
+
+        # parse docker logging driver options
+        output=$(jq -r '.runtime.docker.loggingOptions | .["log-opts"] | keys[] as $k | [$k, .[$k] ] | @csv  ' ${cfg_file})
+        if [[ "${output}" == "null" ]]; then
+            output=
+        fi
+        if [[ ! -z "${output}" ]]; then
+            output=$(echo "${output}" | tr "\n" ";")
+        fi
+        EDGE_RUNTIME_DOCKER_LOG_OPTIONS_CSV="${output}"
+    fi
+}
+
+###############################################################################
+# Main Script Execution
+###############################################################################
+process_args $@
+verify_base_prerequisites
+parse_config_file "${EDGE_RUNTIME_CONFIG_FILE}"
+control_deployment

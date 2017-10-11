@@ -114,6 +114,13 @@ function print_help_and_exit()
     exit 1
 }
 
+function print_unhandled_args_and_exit()
+{
+    echo "Unknown Input Argument(s): $@"
+    echo "Run $SCRIPT_NAME --help for more information."
+    exit 1
+}
+
 ###############################################################################
 # Helper function to validate if a password is valid or not
 # Input:
@@ -191,7 +198,7 @@ function process_args()
                 "--device-ca-password"  ) save_next_arg=10;;
                 "--force-no-passwords" ) EDGE_USE_PK_PASSWORDS=OFF;;
                 "--no-prompt" ) EDGE_USE_DEFAULTS=ON;;
-                * ) usage;;
+                * ) print_unhandled_args_and_exit ${arg};;
             esac
         fi
     done
