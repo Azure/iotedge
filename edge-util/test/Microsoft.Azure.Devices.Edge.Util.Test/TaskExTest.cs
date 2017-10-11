@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
@@ -33,6 +33,35 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var cts = new CancellationTokenSource();
             cts.Cancel();
             await cts.Token.WhenCanceled();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task WhenAllTuple()
+        {
+            var (val1, val2) = await TaskEx.WhenAll(Task.FromResult(12), Task.FromResult("hello"));
+            Assert.Equal(12, val1);
+            Assert.Equal("hello", val2);
+
+            var (a1, a2, a3, a4, a5, a6, a7, a8, a9) = await TaskEx.WhenAll(
+                Task.FromResult(1),
+                Task.FromResult(2),
+                Task.FromResult(3),
+                Task.FromResult(4),
+                Task.FromResult(5),
+                Task.FromResult(6),
+                Task.FromResult(7),
+                Task.FromResult(8),
+                Task.FromResult(9));
+            Assert.Equal(1, a1);
+            Assert.Equal(2, a2);
+            Assert.Equal(3, a3);
+            Assert.Equal(4, a4);
+            Assert.Equal(5, a5);
+            Assert.Equal(6, a6);
+            Assert.Equal(7, a7);
+            Assert.Equal(8, a8);
+            Assert.Equal(9, a9);
         }
     }
 }
