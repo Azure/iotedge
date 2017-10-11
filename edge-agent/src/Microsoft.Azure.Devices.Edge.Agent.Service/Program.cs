@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
@@ -12,7 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -33,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return MainAsync(configuration).Result;
         }
 
-        static string GetDeviceConnectionString(IConfiguration configuration, ILogger logger)
+        static string GetGatewayHostname(IConfiguration configuration, ILogger logger)
         {
             string connectionString = configuration.GetValue<string>("DeviceConnectionString");
             string edgeHubIpInterfaceName = configuration.GetValue<string>("IPInterfaceName");
@@ -77,8 +79,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
 
-            string connectionString = GetDeviceConnectionString(configuration, logger);
-            configuration["EdgeDeviceConnectionString"] = connectionString;
+            string deviceConnectionString = GetGatewayHostname(configuration, logger);
+            IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
+            var edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
+                .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
+                .SetGatewayHostName(connectionStringParser.GatewayHostName)
+                .Build();
 
             var dockerUri = new Uri(dockerUriConfig);
             var builder = new ContainerBuilder();
@@ -86,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, connectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
                     break;
                 case "standalone":
                     builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));

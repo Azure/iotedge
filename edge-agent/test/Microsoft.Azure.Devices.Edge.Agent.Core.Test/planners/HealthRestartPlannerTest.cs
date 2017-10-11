@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var expectedExecutionList = new List<TestRecordType>();
 
             // Act
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await addPlan.ExecuteAsync(token);
 
             // Assert
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var (factory, store, restartManager, planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
@@ -75,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
             await addPlan.ExecuteAsync(CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
@@ -88,13 +90,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var (factory, store, restartManager, planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1);
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestPull, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule)
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
             await addPlan.ExecuteAsync(CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
@@ -110,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 "mod1", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
                 0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
             IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
 
@@ -120,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
             await addPlan.ExecuteAsync(CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
@@ -141,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, removeModule),
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
             };
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await addPlan.ExecuteAsync(CancellationToken.None);
 
             factory.Recorder.ForEach(r =>
@@ -236,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, m),
                 new TestRecordType(TestCommandType.TestRemove, m)
             }).ToList();
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await addPlan.ExecuteAsync(CancellationToken.None);
 
             factory.Recorder.ForEach(r =>
@@ -388,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Arrange
             var (factory, store, restartManager, planner) = CreatePlanner();
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployTestData();
-
+            var moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
             // build "current" and "desired" module sets
             var currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray());
             var desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
@@ -403,7 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             });
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
             await plan.ExecuteAsync(CancellationToken.None);
 
             // Assert
@@ -816,6 +820,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 .Concat(updateStateChangedModules.Select(m => m.RunningModule))
                 .ToArray()
             );
+            var moduleIdentities = GetModuleIdentities(updateDeployModules.Select(d => d.UpdatedModule).ToList());
 
             // build expected execution list
             var expectedExecutionList = updateDeployModules
@@ -838,7 +843,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 );
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
             await plan.ExecuteAsync(CancellationToken.None);
 
             // Assert
@@ -867,11 +872,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await plan.ExecuteAsync(CancellationToken.None);
 
             // Assert
             factory.Recorder.ForEach(r => Assert.Equal(runningGreatModules.Count(), r.WrappedCommmandList.Count));
+        }
+
+        static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
+        {
+            var credential = "fake";
+            IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
+            foreach (var module in modules)
+            {
+                var identity = new Mock<IModuleIdentity>();
+                identity.Setup(id => id.ConnectionString).Returns(credential);
+                identity.Setup(id => id.Name).Returns(module.Name);
+                identities.Add(module.Name, identity.Object);
+            }
+
+            return identities.ToImmutableDictionary();
         }
     }
 }

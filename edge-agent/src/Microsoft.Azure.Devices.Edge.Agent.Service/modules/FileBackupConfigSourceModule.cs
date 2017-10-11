@@ -20,21 +20,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class FileBackupConfigSourceModule : Module
     {
-        readonly string connectionString;
+        readonly EdgeHubConnectionString connectionDetails;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
         readonly IConfiguration configuration;
 
-        public FileBackupConfigSourceModule(string connectionString, string backupConfigFilePath, IConfiguration config)
+        public FileBackupConfigSourceModule(EdgeHubConnectionString connectionStringBuilder, string backupConfigFilePath, IConfiguration config)
         {
-            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            this.connectionDetails = Preconditions.CheckNotNull(connectionStringBuilder, nameof(connectionStringBuilder));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new DeviceClientModule(this.connectionString));
+            builder.RegisterModule(new DeviceClientModule(this.connectionDetails));
+            builder.RegisterModule(new ServiceClientModule(this.connectionDetails));
 
             // ISerde<Diff>
             builder.Register(c => new DiffSerde(
@@ -44,6 +45,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     }
                 ))
                 .As<ISerde<Diff>>()
+                .SingleInstance();
+
+            // IModuleIdentityLifecycleManager
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.connectionDetails))
+                .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
             // ICommandFactory
@@ -74,11 +80,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     async c =>
                     {
                         ISerde<ModuleSet> moduleSetSerde = c.Resolve<ISerde<ModuleSet>>();
+                        Task<IDeviceClient> deviceClientTask = c.Resolve<Task<IDeviceClient>>();
+                        ISerde<Diff> diff = c.Resolve<ISerde<Diff>>();
                         ITwinConfigSource twinConfigSource = await TwinConfigSource.Create(
-                            c.Resolve<IDeviceClient>(),
+                            await deviceClientTask,
                             moduleSetSerde,
-                            c.Resolve<ISerde<Diff>>(),
-                            this.configuration
+                            diff,
+							this.configuration
                         );
                         return twinConfigSource;
                     })
@@ -103,11 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IReporter>
             builder.Register(
-                    async c => new IoTHubReporter(
-                        c.Resolve<IDeviceClient>(),
-                        await c.Resolve<Task<ITwinConfigSource>>()
-                    ) as IReporter
-                )
+                    async c =>
+                    {
+                        Task<IDeviceClient> deviceTask = c.Resolve<Task<IDeviceClient>>();
+                        Task<ITwinConfigSource> twinTask = c.Resolve<Task<ITwinConfigSource>>();
+                        return new IoTHubReporter(
+                            await deviceTask,
+                            await twinTask) as IReporter;
+                    })
                 .As<Task<IReporter>>()
                 .SingleInstance();
 

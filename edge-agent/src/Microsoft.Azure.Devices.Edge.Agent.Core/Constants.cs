@@ -6,8 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         public const string Owner = "Microsoft.Azure.Devices.Edge.Agent";
 
+        // Connection string of the Edge Device.
         public const string EdgeDeviceConnectionStringKey = "EdgeDeviceConnectionString";
 
+        // Connection string base for Edge Hub Modules
         public const string EdgeHubConnectionStringKey = "EdgeHubConnectionString";
 
         public const string ModuleIdKey = "ModuleId";

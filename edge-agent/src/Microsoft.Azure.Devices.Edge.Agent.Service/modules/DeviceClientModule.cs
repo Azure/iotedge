@@ -1,25 +1,31 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
+    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class DeviceClientModule : Module
     {
-        readonly string connectionString;
+        readonly EdgeHubConnectionString connectionDetails;
 
-        public DeviceClientModule(string connectionString)
+        public DeviceClientModule(EdgeHubConnectionString connectionStringBuilder)
         {
-            this.connectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+            this.connectionDetails = Preconditions.CheckNotNull(connectionStringBuilder, nameof(connectionStringBuilder));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IDeviceClient
-            builder.Register(c => new DeviceClient(this.connectionString))
-                .As<IDeviceClient>()
+            builder.Register(
+                    async c =>
+                    {
+                        IDeviceClient dc = await DeviceClient.Create(this.connectionDetails, c.Resolve<IServiceClient>());
+                        return dc;
+                    })
+                .As<Task<IDeviceClient>>()
                 .SingleInstance();
 
             base.Load(builder);

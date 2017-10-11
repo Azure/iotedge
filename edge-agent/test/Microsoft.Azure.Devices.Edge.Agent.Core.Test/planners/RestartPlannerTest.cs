@@ -1,13 +1,15 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Globalization;
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class RestartPlannerTest
@@ -24,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var token = new CancellationToken();
 
             var addExecutionList = new List<TestRecordType>();
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await addPlan.ExecuteAsync(token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
@@ -35,10 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerAdd1RunningModule()
         {
             var factory = new TestCommandFactory();
+
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
+
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
+
             var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
@@ -46,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
             await addPlan.ExecuteAsync(token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
@@ -57,17 +63,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerAdd1StoppedModule()
         {
             var factory = new TestCommandFactory();
-            var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
 
             IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2);
             ModuleSet addStopped = ModuleSet.Create(stoppedModule);
+
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
+
             var addStoppedExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestPull, stoppedModule),
                 new TestRecordType(TestCommandType.TestCreate, stoppedModule),
             };
-            Plan addStoppedPlan = await planner.PlanAsync(addStopped, ModuleSet.Empty);
+            Plan addStoppedPlan = await planner.PlanAsync(addStopped, ModuleSet.Empty, moduleIdentities);
             await addStoppedPlan.ExecuteAsync(token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addStoppedExecutionList, r.ExecutionList));
@@ -78,11 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerUpdate1Module()
         {
             var factory = new TestCommandFactory();
-            var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
 
             IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
             IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
+
+            var moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
+            var planner = new RestartPlanner(factory);
+            var token = new CancellationToken();
+
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
             var updateExecutionList = new List<TestRecordType>
@@ -92,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
             await addPlan.ExecuteAsync(token);
 
             factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
@@ -113,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, removeModule),
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
             };
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
             await addPlan.ExecuteAsync(token);
 
             factory.Recorder.ForEach(r => Assert.Equal(removeExecutionList, r.ExecutionList));
@@ -124,7 +136,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerAddRemoveUpdate()
         {
             var factory = new TestCommandFactory();
-            var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
             DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTime = lastStartTime.AddDays(1);
@@ -143,6 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1),
                 new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1)
             };
+
+            var moduleIdentities = GetModuleIdentities(desiredModules);
+            var planner = new RestartPlanner(factory);
+
             ModuleSet currentSet = ModuleSet.Create(currentModules.ToArray());
             ModuleSet desiredSet = ModuleSet.Create(desiredModules.ToArray());
             var updateExecutionList = new List<TestRecordType>
@@ -162,30 +177,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStart, desiredModules[0]),
                 new TestRecordType(TestCommandType.TestStart, desiredModules[2]),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
             await addPlan.ExecuteAsync(token);
 
             //Weak confirmation: no assumed order.
             factory.Recorder.ForEach(recorder => Assert.All(updateExecutionList, r => Assert.True(recorder.ExecutionList.Contains(r))));
-            factory.Recorder.ForEach(recorder =>
+            factory.Recorder.ForEach(
+                recorder =>
+                {
+                    // One way to validate order
+                    // UpdateMod1
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[13])));
+                    // UpdateMod2
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[1])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                    // RemoveMod1
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[3])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[5])));
+                    // RemoveMod2
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[4])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
+                    // AddMod1
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])));
+                    // AddModTrue2
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                });
+        }
+
+        static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
+        {
+            var credential = "fake";
+            IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
+            foreach (var module in modules)
             {
-                // One way to validate order
-                // UpdateMod1
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[13])));
-                // UpdateMod2
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[1])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
-                // RemoveMod1
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[3])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[5])));
-                // RemoveMod2
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[4])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
-                // AddMod1
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])));
-                // AddModTrue2
-                Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
-            });
+                var identity = new Mock<IModuleIdentity>();
+                identity.Setup(id => id.ConnectionString).Returns(credential);
+                identity.Setup(id => id.Name).Returns(module.Name);
+                identities.Add(module.Name, identity.Object);
+            }
+
+            return identities.ToImmutableDictionary();
         }
     }
 }

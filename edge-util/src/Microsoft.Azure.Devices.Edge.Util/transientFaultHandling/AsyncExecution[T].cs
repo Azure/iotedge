@@ -19,7 +19,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
     /// <summary>
     /// Handles the execution and retries of the user-initiated task.

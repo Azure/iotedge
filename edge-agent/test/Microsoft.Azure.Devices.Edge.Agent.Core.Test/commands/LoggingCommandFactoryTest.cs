@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 {
     using System;
@@ -48,14 +48,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         {
             var logFactoryMock = new Mock<ILoggerFactory>();
             var factoryMock = new Mock<ICommandFactory>();
-            ICommand nullCmd = NullCommandFactory.Instance.Create(TestModule);
+            var moduleIdentity = new Mock<IModuleIdentity>();
+            ICommand nullCmd = NullCommandFactory.Instance.Create(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
 
-            factoryMock.Setup(f => f.Create(TestModule))
+            factoryMock.Setup(f => f.Create(It.IsAny<IModuleWithIdentity>()))
                 .Returns(nullCmd);
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = factory.Create(TestModule);
+            ICommand create = factory.Create(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
 
             Assert.Equal(create.Show(), nullCmd.Show());
 
@@ -67,14 +68,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
         static IEnumerable<object[]> CreateTestData()
         {
+            var moduleIdentity = new Mock<IModuleIdentity>();
+            var testModule = new ModuleWithIdentity(TestModule, moduleIdentity.Object);
+            var updateModule = new ModuleWithIdentity(UpdateModule, moduleIdentity.Object);
             // CommandMethodBeingTested - factory command under test
             // Command - command object to be mocked.
             // TestExpr - the expression to execute test.
             (CommandMethodExpr CommandMethodBeingTested, ICommand Command, TestExecutionExpr TestExpr)[] testInputRecords = {
                 (
-                    f => f.Create(TestModule),
-                    NullCommandFactory.Instance.Create(TestModule),
-                    factory => factory.Create(TestModule)
+                    f => f.Create(testModule),
+                    NullCommandFactory.Instance.Create(testModule),
+                    factory => factory.Create(testModule)
                 ),
                 (
                     f => f.Pull(TestModule),
@@ -82,9 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                     factory => factory.Pull(TestModule)
                 ),
                 (
-                    f => f.Update(TestModule, UpdateModule),
-                    NullCommandFactory.Instance.Update(TestModule, UpdateModule),
-                    factory => factory.Update(TestModule, UpdateModule)
+                    f => f.Update(TestModule, updateModule),
+                    NullCommandFactory.Instance.Update(TestModule, updateModule),
+                    factory => factory.Update(TestModule, updateModule)
                 ),
                 (
                     f => f.Remove(TestModule),

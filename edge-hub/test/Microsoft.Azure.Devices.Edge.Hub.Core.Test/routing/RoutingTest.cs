@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;

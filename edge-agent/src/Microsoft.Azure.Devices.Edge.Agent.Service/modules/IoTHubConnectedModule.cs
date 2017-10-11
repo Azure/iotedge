@@ -1,12 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using Autofac;
     using Autofac.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -24,12 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public IotHubConnectedModule(
             Uri dockerHost, string dockerLoggingDriver,
             IDictionary<string,string> dockerLoggingOptions,
-            string connectionString, string backupConfigFilePath,
+            EdgeHubConnectionString connectionDetails, string backupConfigFilePath,
             int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
             this.configSource = new FileBackupConfigSourceModule(
-                Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString)),
+                Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails)),
                 Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath)),
                 Preconditions.CheckNotNull(configuration, nameof(configuration))
             );

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Moq;
 
     public class PlanTest
     {
@@ -67,11 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"))),
                 new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"))),
             };
+            var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
             {
-                factory.Create(moduleExecutionList[0].Module),
+                factory.Create(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
                 factory.Pull(moduleExecutionList[1].Module),
-                factory.Update(moduleExecutionList[0].Module, moduleExecutionList[2].Module),
+                factory.Update(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
                 factory.Remove(moduleExecutionList[3].Module),
                 factory.Start(moduleExecutionList[4].Module),
                 factory.Stop(moduleExecutionList[5].Module),

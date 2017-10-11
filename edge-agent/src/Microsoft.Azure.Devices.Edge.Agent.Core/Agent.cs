@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
+    using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,13 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly IPlanner planner;
         readonly IReporter reporter;
         readonly IConfigSource configSource;
+        readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
 
-        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IReporter reporter)
+        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IReporter reporter, IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
             this.reporter = Preconditions.CheckNotNull(reporter, nameof(reporter));
+            this.moduleIdentityLifecycleManager = Preconditions.CheckNotNull(moduleIdentityLifecycleManager, nameof(moduleIdentityLifecycleManager));
             Events.AgentCreated();
         }
 
@@ -34,7 +37,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             ModuleSet current = envTask.Result;
             ModuleSet desired = configTask.Result;
             ModuleSet updated = current;
-            Plan plan = await this.planner.PlanAsync(desired, current);
+           
+            ImmutableDictionary<string, IModuleIdentity> identities = (await this.moduleIdentityLifecycleManager.UpdateModulesIdentity(desired, current))
+                .ToImmutableDictionary(p => p.Name);
+            Plan plan = await this.planner.PlanAsync(desired, current, identities);
 
             if (!plan.IsEmpty)
             {

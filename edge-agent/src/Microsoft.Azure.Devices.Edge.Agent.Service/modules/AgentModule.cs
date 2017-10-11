@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Storage;
 
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly int coolOffTimeUnitInSeconds;
 
         public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds)
-        {
+        { 
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -68,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IRestartManager
             builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnitInSeconds))
-             .As<IRestartPolicyManager>()
-             .SingleInstance();
+                .As<IRestartPolicyManager>()
+                .SingleInstance();
 
             // IPlanner
             builder.Register(async c => new HealthRestartPlanner(
@@ -87,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     await c.Resolve<Task<IConfigSource>>(),
                     c.Resolve<IEnvironment>(),
                     await c.Resolve<Task<IPlanner>>(),
-                    await c.Resolve<Task<IReporter>>())
+                    await c.Resolve<Task<IReporter>>(),
+                    c.Resolve<IModuleIdentityLifecycleManager>())
                 )
                 .As<Task<Agent>>()
                 .SingleInstance();

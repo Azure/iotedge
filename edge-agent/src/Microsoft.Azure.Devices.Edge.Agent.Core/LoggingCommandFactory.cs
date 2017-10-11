@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -19,11 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.logger = Preconditions.CheckNotNull(loggerFactory, nameof(loggerFactory)).CreateLogger<LoggingCommandFactory>();
         }
 
-        public ICommand Create(IModule module) => new LoggingCommand(this.underlying.Create(module), "create", this.logger);
+        public ICommand Create(IModuleWithIdentity module) => new LoggingCommand(this.underlying.Create(module), "create", this.logger);
 
         public ICommand Pull(IModule module) => new LoggingCommand(this.underlying.Pull(module), "pull", this.logger);
 
-        public ICommand Update(IModule current, IModule next) => new LoggingCommand(this.underlying.Update(current, next), "update", this.logger);
+        public ICommand Update(IModule current, IModuleWithIdentity next) => new LoggingCommand(this.underlying.Update(current, next), "update", this.logger);
 
         public ICommand Remove(IModule module) => new LoggingCommand(this.underlying.Remove(module), "remove", this.logger);
 

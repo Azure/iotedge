@@ -12,6 +12,7 @@
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
     [Bvt, E2e, Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -27,10 +28,15 @@
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_SingleSender"], out int messagesCount);
             Module sender = null;
             Module receiver = null;
+
+            // Get the connection string from the secret store
+            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
+            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             try
             {
-                sender = await this.GetModule("sender1", false);
-                receiver = await this.GetModule("receiver1", true);
+                sender = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", false);
+                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", true);
                 await receiver.SetupReceiveMessageHandler();
 
                 Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
@@ -45,6 +51,10 @@
             }
             finally
             {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }
                 if (sender != null)
                 {
                     await sender.Disconnect();
@@ -66,11 +76,15 @@
             Module sender2 = null;
             Module receiver = null;
 
+            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
+            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+
             try
             {
-                sender1 = await this.GetModule("senderA", false);
-                sender2 = await this.GetModule("senderB", false);
-                receiver = await this.GetModule("receiverA", true);
+                sender1 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderA", false);
+                sender2 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderB", false);
+                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiverA", true);
 
                 Task<int> task1 = sender1.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(8));
                 Task<int> task2 = sender2.SendMessagesByCountAsync("output1", messagesCount, messagesCount, TimeSpan.FromMinutes(8));
@@ -86,6 +100,10 @@
             }
             finally
             {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }
                 if (sender1 != null)
                 {
                     await sender1.Disconnect();
@@ -110,10 +128,14 @@
             List<Module> senders = null;
             List<Module> receivers = null;
 
+            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
+            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+
             try
             {
-                senders = await this.GetModules("sender", 10, false);
-                receivers = await this.GetModules("receiver", 10, true);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", 10, false);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", 10, true);
 
                 TimeSpan timeout = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesByCountAsync("output1", 0, messagesCount, timeout));
@@ -130,6 +152,10 @@
             }
             finally
             {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }
                 if (senders != null)
                 {
                     await Task.WhenAll(senders.Select(s => s.Disconnect()));
@@ -149,10 +175,14 @@
             List<Module> senders = null;
             List<Module> receivers = null;
 
+            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
+            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+
             try
             {
-                senders = await this.GetModules("sender", 10, false);
-                receivers = await this.GetModules("receiver", 10, true);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", 10, false);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", 10, true);
 
                 TimeSpan sendDuration = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesForDurationAsync("output1", sendDuration));
@@ -168,6 +198,10 @@
             }
             finally
             {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }
                 if (senders != null)
                 {
                     await Task.WhenAll(senders.Select(s => s.Disconnect()));
@@ -181,21 +215,21 @@
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        async Task<List<Module>> GetModules(string moduleNamePrefix, int count, bool isReceiver)
+        async Task<List<Module>> GetModules(RegistryManager rm, string hostname, string deviceId, string moduleNamePrefix, int count, bool isReceiver)
         {
             var modules = new List<Module>();
             for (int i = 1; i <= count; i++)
             {
                 string moduleId = moduleNamePrefix + i.ToString();
-                Module module = await this.GetModule(moduleId, isReceiver);
+                Module module = await this.GetModule(rm, hostname, deviceId, moduleId, isReceiver);
                 modules.Add(module);
             }
             return modules;
         }
 
-        async Task<Module> GetModule(string moduleId, bool isReceiver)
+        async Task<Module> GetModule(RegistryManager rm, string hostname, string deviceId, string moduleId, bool isReceiver)
         {
-            string connStr = await this.GetModuleConnectionString(moduleId);
+            string connStr = await RegistryManagerHelper.CreateModuleIfNotExists(rm, hostname, deviceId, moduleId);
             Module module = await Module.CreateAndConnect(connStr);
             if (isReceiver)
             {
@@ -204,18 +238,13 @@
             return module;
         }
 
-        async Task<string> GetModuleConnectionString(string moduleId)
-        {
-            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-            string edgeDeviceConnectionString = await this.GetEdgeDeviceConnectionString();
-            return $"{edgeDeviceConnectionString};GatewayHostName={gatewayHostname};ModuleId={moduleId}";
-        }
-
         async Task<string> GetEdgeDeviceConnectionString()
         {
             if (this.edgeDeviceConnectionString == null)
             {
+                //string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
                 this.edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
+                //this.edgeDeviceConnectionString = $"{this.edgeDeviceConnectionString};GatewayHostName={gatewayHostname}";
             }
             return this.edgeDeviceConnectionString;
         }

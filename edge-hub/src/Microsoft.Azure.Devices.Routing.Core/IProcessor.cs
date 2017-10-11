@@ -4,7 +4,7 @@
 
 namespace Microsoft.Azure.Devices.Routing.Core
 {
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     public interface IProcessor : ISink<IMessage>
     {

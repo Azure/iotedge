@@ -19,7 +19,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling
+namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
 {
     /// <summary>
     /// Provides a wrapper for a non-generic <see cref="T:System.Threading.Tasks.Task" /> and calls into the pipeline

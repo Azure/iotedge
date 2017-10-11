@@ -57,4 +57,8 @@
   <ItemGroup>
     <Folder Include="grammar\generated\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+  </ItemGroup>
 </Project>

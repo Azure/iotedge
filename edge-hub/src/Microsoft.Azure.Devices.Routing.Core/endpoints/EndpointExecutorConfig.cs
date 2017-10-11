@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     public class EndpointExecutorConfig
     {

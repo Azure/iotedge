@@ -1,43 +1,98 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
-	using System;
-	using System.Threading.Tasks;
-	using Microsoft.Azure.Devices.Client;
-	using Microsoft.Azure.Devices.Edge.Util;
-	using Microsoft.Azure.Devices.Shared;
-	using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using System;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
 
-	public class DeviceClient : IDeviceClient
-	{
-		readonly Client.DeviceClient deviceClient;
-		private const uint deviceClientTimeout = 30000; // ms
+    public class DeviceClient : IDeviceClient
+    {
+        readonly Client.DeviceClient deviceClient;
+        private const uint DeviceClientTimeout = 30000; // ms
+        public const string AgentModuleId = "$edgeAgent";
+        static readonly ITransientErrorDetectionStrategy TransientDetectionStrategy = new DeviceClientRetryStrategy();
+        static readonly RetryStrategy TransientRetryStrategy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-		public DeviceClient(string connectionString)
-		{
-			Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
 
-			// TODO: REMOVE!! -->
-			var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-			mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-			// TODO: <-- REMOVE!!
+        DeviceClient(Client.DeviceClient deviceClient)
+        {
+            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
+        }
 
-			ITransportSettings[] settings = { mqttSetting };
-			this.deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, settings);
-			this.deviceClient.OperationTimeoutInMilliseconds = deviceClientTimeout;
-		}
+        public static async Task<DeviceClient> Create(EdgeHubConnectionString deviceDetails, IServiceClient deviceAuthorizedServiceClient)
+        {
+            Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
+            Preconditions.CheckNotNull(deviceAuthorizedServiceClient, nameof(deviceAuthorizedServiceClient));
 
-		public void Dispose() => this.deviceClient.Dispose();
+            string moduleString = await ConstructModuleConnectionString(deviceDetails, deviceAuthorizedServiceClient);
 
-		public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
-			this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, userContext);
+            Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(moduleString);
+            deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
 
-		public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+            Events.DeviceClientCreated();
+            return new DeviceClient(deviceClient);
+        }
 
-		public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+        static async Task<string> ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails, IServiceClient deviceAuthorizedServiceClient)
+        {
+            var transientRetryPolicy = new RetryPolicy(TransientDetectionStrategy, TransientRetryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => Events.GetModuleFailed(args);
+            // ReSharper disable once UnusedVariable
+            Module agentModule = await transientRetryPolicy.ExecuteAsync(() => deviceAuthorizedServiceClient.GetModule(AgentModuleId));
 
-		public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler statusChangedHandler) =>
-			this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
-	}
+            // TODO: should be using agentModule's authentication
+            EdgeHubConnectionString agentConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
+                .SetSharedAccessKey(connectionDetails.SharedAccessKey)
+                .SetModuleId(AgentModuleId)
+                .Build();
+            return agentConnectionString.ToConnectionString();
+        }
+
+        public void Dispose() => this.deviceClient.Dispose();
+
+        public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
+            this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, userContext);
+
+        public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
+
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+
+        public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler statusChangedHandler) =>
+            this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
+
+        class DeviceClientRetryStrategy : ITransientErrorDetectionStrategy
+        {
+            public bool IsTransient(Exception ex) => !(ex is ArgumentException);
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+            const int IdStart = AgentEventIds.DeviceClient;
+
+            enum EventIds
+            {
+                DeviceClientCreated = IdStart,
+                GetModuleFailed,
+            }
+
+            public static void DeviceClientCreated()
+            {
+                Log.LogDebug((int)EventIds.DeviceClientCreated, "Device Client for Agent Module Created.");
+            }
+
+            public static void GetModuleFailed(RetryingEventArgs args)
+            {
+                Log.LogWarning((int)EventIds.GetModuleFailed, args.LastException, "Attempt to get Agent Module from service failed.");
+            }
+        }
+    }
+
+
 }

@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 {
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -23,17 +24,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
         }
 
-        public Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current)
+        public Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             Diff diff = desired.Diff(current);
             Plan plan = diff.IsEmpty
                 ? Core.Plan.Empty
-                : this.CreatePlan(desired, current, diff);
+                : this.CreatePlan(desired, current, diff, moduleIdentities);
 
             return Task.FromResult(plan);
         }
 
-        Plan CreatePlan(ModuleSet desired, ModuleSet current, Diff diff)
+        Plan CreatePlan(ModuleSet desired, ModuleSet current, Diff diff, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
             IEnumerable<ICommand> remove = diff.Removed.Select(name => this.commandFactory.Remove(current.Modules[name]));
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             // Only update changed modules
             IList<ICommand> update = diff.Updated
-                .Select(m => this.CreateOrUpdate(current, m))
+                .Select(m => this.CreateOrUpdate(current, m, moduleIdentities))
                 .ToList();
 
             IList<ICommand> commands = stop
@@ -60,10 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return new Plan(commands);
         }
 
-        ICommand CreateOrUpdate(ModuleSet current, IModule desiredMod) =>
+        ICommand CreateOrUpdate(ModuleSet current, IModule desiredMod, IImmutableDictionary<string, IModuleIdentity> moduleIdentities) =>
             current.TryGetModule(desiredMod.Name, out IModule currentMod)
-                ? this.commandFactory.Update(currentMod, desiredMod)
-                : this.commandFactory.Create(desiredMod);
+                ? this.commandFactory.Update(currentMod, new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)))
+                : this.commandFactory.Create(new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)));
 
         static class Events
         {

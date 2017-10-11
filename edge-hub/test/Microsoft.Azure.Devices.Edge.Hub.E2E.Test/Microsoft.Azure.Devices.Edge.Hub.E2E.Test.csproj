@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.5.1-preview-001" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.0.0-preview2-final" />

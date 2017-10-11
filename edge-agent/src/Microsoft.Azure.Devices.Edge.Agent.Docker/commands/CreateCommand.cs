@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
     using System.Collections.Generic;
@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CreateCommand : ICommand
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
 
-        public CreateCommand(IDockerClient client, DockerModule module, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
+        public CreateCommand(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
         {
             // Validate parameters
             this.client = Preconditions.CheckNotNull(client, nameof(client));
@@ -33,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.createContainerParameters.Image = module.Config.Image + ":" + module.Config.Tag;
 
             // Inject global parameters
-            InjectConfig(this.createContainerParameters, configSource, module);
+            InjectConfig(this.createContainerParameters, configSource, module, identity);
             InjectLoggerConfig(this.createContainerParameters, dockerLoggerConfig);
 
             // Inject required Edge parameters
@@ -61,15 +60,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        static void InjectConfig(CreateContainerParameters parameters, IConfigSource configSource, DockerModule module)
+        static void InjectConfig(CreateContainerParameters parameters, IConfigSource configSource, DockerModule module, IModuleIdentity identity)
         {
             // Inject the connection string as an environment variable
-            string edgeHubConnectionString = configSource.Configuration.GetValue(Constants.EdgeHubConnectionStringKey, string.Empty);
-            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
+            if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
             {
+                string edgeDeviceConnectionString = $"{Constants.EdgeHubConnectionStringKey}={identity.ConnectionString}";
                 parameters.Env = parameters.Env ?? new List<string>();
-                parameters.Env.Remove($"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={module.Name}");
-                parameters.Env.Add($"{Constants.EdgeHubConnectionStringKey}={edgeHubConnectionString};{Constants.ModuleIdKey}={module.Name}");
+                parameters.Env.Remove(edgeDeviceConnectionString);
+                parameters.Env.Add(edgeDeviceConnectionString);
             }
         }
 
@@ -84,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         static string ObfuscateConnectionStringInCreateContainerParameters(string serializedCreateOptions)
         {
             var scrubbed = JsonConvert.DeserializeObject<CreateContainerParameters>(serializedCreateOptions);
-            scrubbed.Env?.Select((env, i) => ((env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1) ? env : $"{Constants.EdgeHubConnectionStringKey}=******"));
+            scrubbed.Env = scrubbed.Env?.Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******").ToList();
             return JsonConvert.SerializeObject(scrubbed);
         }
     }

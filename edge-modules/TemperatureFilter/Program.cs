@@ -1,4 +1,4 @@
-﻿
+
 namespace TemperatureFilter
 {
     using System;

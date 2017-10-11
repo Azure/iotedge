@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
@@ -45,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-filters";
-            const string FakeConnectionString = "FakeConnectionString";
+            string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
+            string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
 
             try
             {
@@ -60,13 +62,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { Constants.EdgeHubConnectionStringKey, FakeConnectionString }
+                        { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
 
-                    var create = new CreateCommand(Client, module, loggingConfig, configSource.Object);
+                    var credential = "fake";
+                    var identity = new Mock<IModuleIdentity>();
+                    identity.Setup(id => id.ConnectionString).Returns(credential);
+
+                    var create = new CreateCommand(Client, module, identity.Object, loggingConfig, configSource.Object);
 
                     // pull the image for both containers
                     await Client.PullImageAsync(Image, Tag, cts.Token);
@@ -102,7 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             const string Image = "hello-world";
             const string Tag = "latest";
             const string Name = "test-env";
-            const string FakeConnectionString = "FakeConnectionString";
+            string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("deviceKey"));
+            string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
 
             try
             {
@@ -117,13 +124,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
-                        { Constants.EdgeHubConnectionStringKey, FakeConnectionString }
+                        { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
 
-                    var create = new CreateCommand(Client, module, loggingConfig, configSource.Object);
+                    string moduleKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("moduleKey"));
+                    var credential = "fake";
+                    var identity = new Mock<IModuleIdentity>();
+                    identity.Setup(id => id.ConnectionString).Returns(credential);
+
+                    var create = new CreateCommand(Client, module, identity.Object, loggingConfig, configSource.Object);
 
                     await Client.PullImageAsync(Image, Tag, cts.Token);
 

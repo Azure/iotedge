@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -136,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return (added, updateDeployed, updateStateChanged, removed, runningGreat);
         }
 
-        public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current)
+        public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
@@ -158,14 +159,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             // create "create" commands for modules that have been added
             IEnumerable<ICommand> create = added
-                .Select(m => this.commandFactory.Create(m));
+                .Select(m => this.commandFactory.Create(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name))));
 
             // create "update" commands for modules that have been updated
             IEnumerable<ICommand> update = updateDeployed
                 .Select(m =>
                 {
                     current.TryGetModule(m.Name, out IModule currentModule);
-                    return this.commandFactory.Update(currentModule, m);
+                    return this.commandFactory.Update(currentModule, new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)));
                 });
 
             // create "start" commands for modules that have been added/updated and where the

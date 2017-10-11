@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;

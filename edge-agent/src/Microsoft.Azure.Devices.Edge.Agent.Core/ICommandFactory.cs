@@ -4,11 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public interface ICommandFactory
     {
-        ICommand Create(IModule module);
+        ICommand Create(IModuleWithIdentity module);
 
         ICommand Pull(IModule module);
 
-        ICommand Update(IModule current, IModule next);
+        ICommand Update(IModule current, IModuleWithIdentity next);
 
         ICommand Remove(IModule module);
 

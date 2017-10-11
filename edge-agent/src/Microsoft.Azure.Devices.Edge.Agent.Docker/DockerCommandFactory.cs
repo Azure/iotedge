@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
@@ -24,19 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
 
-        public ICommand Create(IModule module) =>
-            module is DockerModule
-                ? new CreateCommand(this.client, (DockerModule)module, this.dockerLoggerConfig, this.configSource)
-                : (ICommand)NullCommand.Instance;
+        public ICommand Create(IModuleWithIdentity module) =>
+        module.Module is DockerModule
+            ? new CreateCommand(this.client, (DockerModule) module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
+        : (ICommand)NullCommand.Instance;
 
         public ICommand Pull(IModule module) =>
             module is DockerModule
                 ? new PullCommand(this.client, (DockerModule)module, this.FirstAuthConfigOrDefault((DockerModule)module))
                 : (ICommand)NullCommand.Instance;
 
-        public ICommand Update(IModule current, IModule next) =>
-            current is DockerModule && next is DockerModule
-                ? new UpdateCommand(this.client, (DockerModule)current, (DockerModule)next, this.dockerLoggerConfig, this.configSource)
+        public ICommand Update(IModule current, IModuleWithIdentity next) =>
+            current is DockerModule && next.Module is DockerModule
+                ? new UpdateCommand(this.client, (DockerModule)current, (DockerModule)next.Module, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
                 : (ICommand)NullCommand.Instance;
 
         public ICommand Remove(IModule module) =>

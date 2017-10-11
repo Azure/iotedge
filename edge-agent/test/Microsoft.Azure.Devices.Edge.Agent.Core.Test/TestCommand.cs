@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
@@ -65,10 +65,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
 
-        public ICommand Create(IModule module)
+        public ICommand Create(IModuleWithIdentity module)
         {
-            Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestCreate, module, this.Recorder);
+            Assert.True(module.Module is TestModule);
+            return new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder);
         }
 
         public ICommand Pull(IModule module)
@@ -77,11 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return new TestCommand(TestCommandType.TestPull, module, this.Recorder);
         }
 
-        public ICommand Update(IModule current, IModule next)
+        public ICommand Update(IModule current, IModuleWithIdentity next)
         {
             Assert.True(current is TestModule);
-            Assert.True(next is TestModule);
-            return new TestCommand(TestCommandType.TestUpdate, next, this.Recorder);
+            Assert.True(next.Module is TestModule);
+            return new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder);
         }
 
         public ICommand Remove(IModule module)

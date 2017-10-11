@@ -14,5 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int RestartManager = EventIdStart + 700;
         public const int IoTHubReporter = EventIdStart + 800;
         public const int DockerEnvironment = EventIdStart + 900;
+        public const int ModuleLifecycleCommandFactory = EventIdStart + 1000;
+        public const int DeviceClient = EventIdStart + 1100;
+
     }
 }

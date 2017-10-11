@@ -12,8 +12,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
     using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
@@ -10,11 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         {
         }
 
-        public ICommand Create(IModule module) => NullCommand.Instance;
+        public ICommand Create(IModuleWithIdentity module) => NullCommand.Instance;
 
         public ICommand Pull(IModule module) => NullCommand.Instance;
 
-        public ICommand Update(IModule current, IModule next) => NullCommand.Instance;
+        public ICommand Update(IModule current, IModuleWithIdentity next) => NullCommand.Instance;
 
         public ICommand Remove(IModule module) => NullCommand.Instance;
 

@@ -6,21 +6,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
-    using Microsoft.Azure.Devices.Edge.Storage;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
 
     public class AgentTests
     {
@@ -64,10 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     {"max-file", "1" }
                 };
                 var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-
+                
+                string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
                 IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                 {
-                    { "EdgeDeviceConnectionString", "FakeConnectionString" }
+                    { "DeviceConnectionString", $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}" }
                 }).Build();
 
                 var configSource = new Mock<IConfigSource>();
@@ -84,7 +85,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
                 var environment = new DockerEnvironment(client, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
-                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter);
+
+                var credential = "fake";
+                var identity = new Mock<IModuleIdentity>();
+                identity.Setup(id => id.ConnectionString).Returns(credential);
+                identity.Setup(id => id.Name).Returns(testConfig.Name);
+                IEnumerable<IModuleIdentity> identities = new List<IModuleIdentity>()
+                {
+                    identity.Object
+                };
+                var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+                moduleIdentityLifecycleManager.Setup(m => m.UpdateModulesIdentity(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
+
+                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter, moduleIdentityLifecycleManager.Object);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
@@ -16,10 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Routing.Core.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
