@@ -22,7 +22,7 @@ EDGE_CONFIG_SCHEMAS=("1")
 EDGE_CONFIG_LOG_LEVELS=("info" "debug")
 EDGE_CONFIG_CERTS_OPTS=("selfSigned" "preInstalled")
 
-EDGE_RUNTIME_COMMANDS=("start" "stop" "restart" "status")
+EDGE_RUNTIME_COMMANDS=("start" "stop" "restart" "status", "uninstall")
 EDGE_RUNTIME_DEFAULT_HOME_DIR="/usr/local/azure-iot-edge"
 EDGE_RUNTIME_DEFAULT_CONFIG_DIR="${EDGE_RUNTIME_DEFAULT_HOME_DIR}/config"
 EDGE_RUNTIME_DEFAULT_CONFIG_FILENAME="config.json"
@@ -96,7 +96,6 @@ function check_if_installed()
 ###############################################################################
 function usage()
 {
-
     echo ""
     echo "$SCRIPT_NAME [command] [options]"
     echo ""
@@ -116,6 +115,7 @@ function usage()
     echo "  ${SCRIPT_NAME} stop"
     echo "  ${SCRIPT_NAME} restart"
     echo "  ${SCRIPT_NAME} status"
+    echo "  ${SCRIPT_NAME} uninstall"
     echo "  ${SCRIPT_NAME} start --config-file config.json --verbose 3"
     exit 1;
 }
@@ -155,6 +155,7 @@ function process_args()
                 "restart" ) EDGE_RUNTIME_COMMAND="${arg}";;
                 "stop" )    EDGE_RUNTIME_COMMAND="${arg}";;
                 "status" )  EDGE_RUNTIME_COMMAND="${arg}";;
+                "uninstall" )  EDGE_RUNTIME_COMMAND="${arg}";;
                 "-f" | "--config-file" ) save_next_arg=1;;
                 "-v" | "--verbose" ) save_next_arg=2;;
                 * ) print_unhandled_args_and_exit ${arg};;
@@ -185,6 +186,8 @@ function process_args()
                 fi
             fi
         fi
+    else
+        use_default_cfg=0
     fi
 
     if [[ ${use_default_cfg} -eq 1  ]]; then
@@ -433,7 +436,7 @@ function parse_config_file()
             output=
         fi
         if [[ ! -z "${output}" ]]; then
-            output=$(echo "${output}" | tr "\n" ";")
+            output=$(echo "${output}" | tr "\n" ":")
         fi
         EDGE_RUNTIME_DOCKER_MODULE_REGISTRIES_CSV="${output}"
 
@@ -450,7 +453,7 @@ function parse_config_file()
             output=
         fi
         if [[ ! -z "${output}" ]]; then
-            output=$(echo "${output}" | tr "\n" ";")
+            output=$(echo "${output}" | tr "\n" ":")
         fi
         EDGE_RUNTIME_DOCKER_LOG_OPTIONS_CSV="${output}"
     fi
