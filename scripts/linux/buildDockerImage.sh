@@ -17,7 +17,6 @@ SCRIPT_NAME=$(basename $0)
 PUBLISH_DIR=
 DOTNET_DOWNLOAD_URL=
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
-SKIP_RUNTIME=0
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -25,9 +24,9 @@ SKIP_RUNTIME=0
 check_arch()
 {
     if [ "$ARCH" == "x86_64" ]; then
-        ARCH="x64"
+        ARCH="amd64"
     elif [ "$ARCH" == "armv7l" ]; then
-        ARCH="armv7hf"
+        ARCH="arm32v7"
     else
         echo "Unsupported Architecture"
         exit 1
@@ -100,7 +99,6 @@ process_args()
                 "--bin-dir" ) save_next_arg=5;;
                 "--dotnet-url" ) save_next_arg=6;;
                 "-t" | "--target-arch" ) save_next_arg=7;;
-                "--skip-runtime" ) SKIP_RUNTIME=1;;
                 * ) usage;;
             esac
         fi
@@ -169,8 +167,8 @@ docker_build_and_tag_and_push()
 
     echo "Building and Pushing Docker image $imagename for $arch"
     docker_build_cmd="docker build --no-cache"
-    docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-$arch:$DOCKER_IMAGEVERSION"
-    docker_build_cmd+=" -t $DOCKER_REGISTRY/azedge-$imagename-$arch:latest"
+    docker_build_cmd+=" -t $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:$DOCKER_IMAGEVERSION"
+    docker_build_cmd+=" -t $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:latest"
     if [ ! -z "${dockerfile}" ]; then
         docker_build_cmd+=" --file $dockerfile"
     fi
@@ -184,12 +182,12 @@ docker_build_and_tag_and_push()
         echo "Docker Build Failed With Exit Code $?"
         exit 1
     else
-        docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:$DOCKER_IMAGEVERSION
+        docker push $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:$DOCKER_IMAGEVERSION
         if [ $? -ne 0 ]; then
             echo "Docker Build Failed With Exit Code $?"
             exit 1
         else
-            docker push $DOCKER_REGISTRY/azedge-$imagename-$arch:latest
+            docker push $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:latest
             if [ $? -ne 0 ]; then
                 echo "Docker Push Latest Image Failed: $?"
                 exit 1
@@ -211,18 +209,6 @@ docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 if [ $? -ne 0 ]; then
     echo "Docker Login Failed!"
     exit 1
-fi
-
-# push edge-runtime dotnet image
-if [ $SKIP_RUNTIME -eq 0 ]; then
-    EXE_DIR="dotnet-runtime"
-    EXE_DOCKER_DIR=$PUBLISH_DIR/docker/$EXE_DIR/latest
-    DOTNET_BUILD_ARG=""
-    if [[ ! -z ${DOTNET_DOWNLOAD_URL} ]]; then
-        DOTNET_BUILD_ARG="--build-arg DOTNET_DOWNLOAD_URL=$DOTNET_DOWNLOAD_URL"
-    fi
-    docker_build_and_tag_and_push $EXE_DIR "$ARCH" "$EXE_DOCKER_DIR/$ARCH/Dockerfile" "$EXE_DOCKER_DIR" "$DOTNET_BUILD_ARG"
-    [ $? -eq 0 ] || exit $?
 fi
 
 # push edge-agent image

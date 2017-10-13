@@ -76,7 +76,7 @@ if ($vNext)
 {
     $suffix = "-vnext"
 }
-$tag = "edgebuilds.azurecr.io/azedge-edge-service-windows$suffix-x64:$ImageVersion"
+$tag = "edgebuilds.azurecr.io/azureiotedge/edge-service-windows$suffix-amd64:$ImageVersion"
 
 $Password | docker login $Registry -u $Username --password-stdin
 if ($LastExitCode)

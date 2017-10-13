@@ -26,13 +26,13 @@ if "%pushos%"=="linux" if not "%dockeros%"=="linux" goto osmismatch
 if "%pushos%"=="windows" if not "%dockeros%"=="windows" goto osmismatch
 
 if "%pushos%"=="windows" (
-    set "image[0]=azedge-edge-service-windows-x64"
-    set "image[1]=azedge-simulated-temperature-sensor-windows-x64"
+    set "image[0]=azureiotedge/edge-service-windows-amd64"
+    set "image[1]=azureiotedge/simulated-temperature-sensor-windows-amd64"
 ) else (
-    set "image[0]=azedge-edge-service-x64"
-    set "image[1]=azedge-simulated-temperature-sensor-x64"
-    set "image[2]=azedge-edge-service-armv7hf"
-    set "image[3]=azedge-simulated-temperature-sensor-armv7hf"
+    set "image[0]=azureiotedge/edge-service-amd64"
+    set "image[1]=azureiotedge/simulated-temperature-sensor-amd64"
+    set "image[2]=azureiotedge/edge-service-arm32v7"
+    set "image[3]=azureiotedge/simulated-temperature-sensor-arm32v7"
 )
 
 echo.

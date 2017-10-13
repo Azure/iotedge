@@ -59,7 +59,7 @@ if (-not (Test-Path $PublishDir))
 
 switch ($TargetArch)
 {
-    "AMD64" { $TargetArch = "x64" }
+    "AMD64" { $TargetArch = "amd64" }
     default { throw "Unsupported arch '$TargetArch'" }
 }
 
@@ -76,19 +76,19 @@ Function docker_login()
 Function docker_build_and_tag_and_push(
     # Name of the docker edge image to publish
     [Parameter(Mandatory = $true)]
-    [String]$ImageName, 
+    [String]$ImageName,
 
     # Arch of base image
     [Parameter(Mandatory = $true)]
-    [String]$Arch, 
+    [String]$Arch,
 
     # Path to the dockerfile
     [ValidateNotNullOrEmpty()]
-    [String]$Dockerfile, 
+    [String]$Dockerfile,
 
     # Docker context path
     [Parameter(Mandatory = $true)]
-    [String]$ContextPath, 
+    [String]$ContextPath,
 
     # Build args
     [String]$BuildArgs,
@@ -103,16 +103,16 @@ Function docker_build_and_tag_and_push(
     {
         $Suffix = "-vnext"
     }
-    $TagPrefix = "$Registry/azedge-$ImageName-windows${Suffix}-${Arch}"
+    $TagPrefix = "$Registry/azureiotedge/$ImageName-windows${Suffix}-${Arch}"
     $FullVersionTag = "${TagPrefix}:$ImageVersion"
     $LatestVersionTag = "${TagPrefix}:latest"
 
     echo "Building and Pushing Docker image $ImageName for $Arch"
     if ($Tag)
-    {       
+    {
         $docker_build_cmd = "docker build --no-cache -t $Tag"
     }
-    else 
+    else
     {
         $docker_build_cmd = "docker build --no-cache -t $FullVersionTag -t $LatestVersionTag"
     }
@@ -137,7 +137,7 @@ Function docker_build_and_tag_and_push(
         {
             Throw "Docker Push Failed With Exit Code $LastExitCode"
         }
-        
+
         docker push $LatestVersionTag
         if ($LastExitCode)
         {

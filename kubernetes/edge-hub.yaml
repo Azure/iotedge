@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: edge-hub
-        image: edgebuilds.azurecr.io/azedge-edge-hub-x64:latest
+        image: edgebuilds.azurecr.io/azureiotedge/edge-hub-linux-amd64:latest
         ports:
         - containerPort: 8883
         env:
