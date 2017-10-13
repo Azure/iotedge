@@ -9,8 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 	using Microsoft.Azure.Devices.Edge.Storage;
 	using Microsoft.Azure.Devices.Shared;
 	using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-	public class TwinMessageConverter : IMessageConverter<Twin>
+    public class TwinMessageConverter : IMessageConverter<Twin>
 	{
 		public IMessage ToMessage(Twin sourceMessage)
 		{
@@ -22,22 +23,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 				writer.WriteRawValue(sourceMessage.Properties.Desired.ToJson());
 				writer.WritePropertyName(TwinNames.Reported);
 				writer.WriteRawValue(sourceMessage.Properties.Reported.ToJson());
-				writer.WriteEndObject();
+                writer.WriteEndObject();
 				writer.Flush();
 			}
 
 			byte[] body = Encoding.UTF8.GetBytes(json.ToString());
 			return new CloudEdgeMessage(body, null, new Dictionary<string, string>
 			{
-				[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o")
-			});
+				[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                [SystemProperties.Version] = sourceMessage.Version.ToString()
+            });
 		}
 
 		public Twin FromMessage(IMessage message)
 		{
 			Twin twin = new Twin();
-			twin.Properties = message.Body.FromBytes<TwinProperties>();
-			return twin;
+            twin.Properties = message.Body.FromBytes<TwinProperties>();
+            twin.Version = Convert.ToInt64(message.SystemProperties[SystemProperties.Version]);
+            return twin;
 		}
 	}
 }

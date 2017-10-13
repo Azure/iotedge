@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -10,11 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		public Twin Twin { get; }
 		public TwinCollection ReportedPropertiesPatch { get; }
 
+		public bool SubscribedToDesiredPropertyUpdates { get; }
+
 		[JsonConstructor]
-		public TwinInfo(Twin Twin, TwinCollection ReportedPropertiesPatch)
+		public TwinInfo(Twin twin, TwinCollection reportedPropertiesPatch, bool subscribedToDesiredPropertyUpdates)
 		{
-			this.Twin = Twin;
-			this.ReportedPropertiesPatch = ReportedPropertiesPatch;
+			this.Twin = twin;
+			this.ReportedPropertiesPatch = reportedPropertiesPatch;
+			this.SubscribedToDesiredPropertyUpdates = subscribedToDesiredPropertyUpdates;
 		}
 	}
 }

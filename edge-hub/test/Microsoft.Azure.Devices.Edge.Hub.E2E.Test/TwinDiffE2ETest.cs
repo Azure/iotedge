@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 	{
 		ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
 		const string MessagePropertyName = "property1";
-		const string DeviceNamePrefix = "E2E_c2d_";
+		const string DeviceNamePrefix = "E2E_twin_";
 		string deviceName;
 		RegistryManager rm = null;
 		DeviceClient deviceClient = null;

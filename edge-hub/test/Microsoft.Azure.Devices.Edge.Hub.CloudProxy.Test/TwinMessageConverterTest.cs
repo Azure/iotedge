@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
@@ -113,7 +113,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
         {
             MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.EnqueuedTime] = "" })
+                .SetSystemProperties(new Dictionary<string, string>() {
+                    [SystemProperties.EnqueuedTime] = "",
+                    [SystemProperties.Version] = "0"})
                 .Build();
             IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
             Assert.Equal(expectedMessage.Body, actualMessage.Body);
