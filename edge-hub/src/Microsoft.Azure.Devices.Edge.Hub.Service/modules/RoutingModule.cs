@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int connectionPoolSize;
         readonly bool isStoreAndForwardEnabled;
         readonly string edgeHubConnectionString;
+        readonly bool useTwinConfig;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IDictionary<string, string> routes,
             bool isStoreAndForwardEnabled,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            int connectionPoolSize)
+            int connectionPoolSize,
+            bool useTwinConfig)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.connectionPoolSize = connectionPoolSize;
+            this.useTwinConfig = useTwinConfig;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -141,18 +144,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
-                    Try<IIdentity> edgeHubIdentity = identityFactory.GetWithSasToken(this.edgeHubConnectionString);
-                    if (!edgeHubIdentity.Success)
-                    {
-                        throw edgeHubIdentity.Exception;
-                    }
-                    var connectionManager = c.Resolve<IConnectionManager>();
-                    var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
-                    var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                     var routeFactory = c.Resolve<RouteFactory>();
-                    IConfigSource edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
-                    return edgeHubConnection;
+
+                    if (this.useTwinConfig)
+                    {
+                        IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
+                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithSasToken(this.edgeHubConnectionString);
+                        if (!edgeHubIdentity.Success)
+                        {
+                            throw edgeHubIdentity.Exception;
+                        }
+                        var connectionManager = c.Resolve<IConnectionManager>();
+                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+                        return edgeHubConnection;
+                    }
+                    else
+                    {
+                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                    }
                 })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();

@@ -69,11 +69,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var topics = new MessageAddressConversionConfiguration(
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 this.Configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
+
+            string configSource = this.Configuration.GetValue<string>("configSource");
+            bool useTwinConfig = !string.IsNullOrWhiteSpace(configSource) && configSource.Equals("twin", StringComparison.OrdinalIgnoreCase);
+
             var routes = this.Configuration.GetSection("routes").Get<Dictionary<string, string>>();
-
-            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
-
             (bool isEnabled, StoreAndForwardConfiguration config) storeAndForward = this.GetStoreAndForwardConfiguration();
+
+            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");                        
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -100,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     routes, 
                     storeAndForward.isEnabled, 
                     storeAndForward.config, 
-                    connectionPoolSize));
+                    connectionPoolSize,
+                    useTwinConfig));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

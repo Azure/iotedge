@@ -51,5 +51,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             return registryManager.RemoveDeviceAsync(deviceName);
         }
+
+        public static async Task<string> GetOrCreateModule(RegistryManager registryManager, string hostName, string deviceId, string moduleId)
+        {
+            Module module = await registryManager.GetModuleAsync(deviceId, moduleId);
+            if (module == null)
+            {
+                module = await registryManager.AddModuleAsync(new Module(deviceId, moduleId));
+            }
+
+            string gatewayHostname = "127.0.0.1";
+            return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
+        }
     }
 }

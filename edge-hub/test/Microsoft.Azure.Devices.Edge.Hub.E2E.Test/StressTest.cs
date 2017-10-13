@@ -20,7 +20,6 @@
     public class StressTest
     {
         ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
-        string edgeDeviceConnectionString;
 
         [Fact, TestPriority(301)]
         public async Task SingleSenderSingleReceiverTest()
@@ -29,10 +28,10 @@
             Module sender = null;
             Module receiver = null;
 
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
-            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+
             try
             {
                 sender = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", false);
@@ -76,9 +75,9 @@
             Module sender2 = null;
             Module receiver = null;
 
-            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
-            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
@@ -124,25 +123,28 @@
         [Fact, TestPriority(303)]
         public async Task MultipleSendersMultipleReceivers_Count_Test()
         {
+            // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
+            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice 
+            const int ModulesCount = 2;
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSendersMultipleReceivers"], out int messagesCount);
             List<Module> senders = null;
             List<Module> receivers = null;
 
-            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
-            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
-                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", 10, false);
-                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", 10, true);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true);
 
                 TimeSpan timeout = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesByCountAsync("output1", 0, messagesCount, timeout));
 
                 int[] results = await Task.WhenAll(tasks);
                 int sentMessagesCount = results.Sum();
-                Assert.Equal(messagesCount * 10, sentMessagesCount);
+                Assert.Equal(messagesCount * ModulesCount, sentMessagesCount);
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
                 int receivedMessagesCount = 0;
@@ -164,6 +166,7 @@
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
+                await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
@@ -172,17 +175,20 @@
         [Fact, TestPriority(304)]
         public async Task MultipleSendersMultipleReceivers_Duration_Test()
         {
+            // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
+            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice 
+            const int ModulesCount = 2;
             List<Module> senders = null;
             List<Module> receivers = null;
 
-            string iotHubConnectionString = await this.GetEdgeDeviceConnectionString();
-            var connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
-                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", 10, false);
-                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", 10, true);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true);
 
                 TimeSpan sendDuration = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesForDurationAsync("output1", sendDuration));
@@ -210,45 +216,37 @@
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
+                await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        async Task<List<Module>> GetModules(RegistryManager rm, string hostname, string deviceId, string moduleNamePrefix, int count, bool isReceiver)
+        async Task<List<Module>> GetModules(RegistryManager rm, string hostName, string deviceId, string moduleNamePrefix, int count, bool isReceiver)
         {
             var modules = new List<Module>();
             for (int i = 1; i <= count; i++)
             {
                 string moduleId = moduleNamePrefix + i.ToString();
-                Module module = await this.GetModule(rm, hostname, deviceId, moduleId, isReceiver);
+                Module module = await this.GetModule(rm, hostName, deviceId, moduleId, isReceiver);
                 modules.Add(module);
             }
             return modules;
         }
 
-        async Task<Module> GetModule(RegistryManager rm, string hostname, string deviceId, string moduleId, bool isReceiver)
+        async Task<Module> GetModule(RegistryManager rm, string hostName, string deviceId, string moduleId, bool isReceiver)
         {
-            string connStr = await RegistryManagerHelper.CreateModuleIfNotExists(rm, hostname, deviceId, moduleId);
+            string connStr = await RegistryManagerHelper.GetOrCreateModule(rm, hostName, deviceId, moduleId);
             Module module = await Module.CreateAndConnect(connStr);
             if (isReceiver)
             {
                 await module.SetupReceiveMessageHandler();
             }
             return module;
-        }
+        }        
 
-        async Task<string> GetEdgeDeviceConnectionString()
-        {
-            if (this.edgeDeviceConnectionString == null)
-            {
                 //string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-                this.edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
                 //this.edgeDeviceConnectionString = $"{this.edgeDeviceConnectionString};GatewayHostName={gatewayHostname}";
-            }
-            return this.edgeDeviceConnectionString;
-        }
-
         class Module
         {
             readonly DeviceClient deviceClient;

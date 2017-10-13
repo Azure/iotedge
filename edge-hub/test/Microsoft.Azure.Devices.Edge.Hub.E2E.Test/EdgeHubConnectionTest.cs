@@ -36,22 +36,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
             var cloudProxyProvider = new CloudProxyProvider(messageConverterProvider, 1, true);
             var connectionManager = new ConnectionManager(cloudProxyProvider);
-
-            string iothubHostname = await SecretsHelper.GetSecret("IothubHostname");
-            var identityFactory = new IdentityFactory(iothubHostname);
-
+           
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            string edgeHubId = "testEdgeDevice12";
+            string edgeHubId = "testEdgeDevice21";
             Device edgeDevice = await registryManager.GetDeviceAsync(edgeHubId);
             if (edgeDevice != null)
             {
                 await registryManager.RemoveDeviceAsync(edgeDevice);
             }
             edgeDevice = await registryManager.AddDeviceAsync(new Device(edgeHubId));
-            string deviceConnStr = $"HostName={iothubHostname};DeviceId={edgeHubId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+
+            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+
+            var identityFactory = new IdentityFactory(iotHubConnectionStringBuilder.HostName);
+            string deviceConnStr = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeHubId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             Try<IIdentity> edgeHubIdentity = identityFactory.GetWithSasToken(deviceConnStr);
             Assert.True(edgeHubIdentity.Success);
             Assert.NotNull(edgeHubIdentity.Value);
@@ -86,8 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             // Simulate a downstream device that connects to Edge Hub.
             string downstreamDeviceId = "device1";
-            string sasToken = TokenHelper.CreateSasToken($"{iothubHostname}/devices/{downstreamDeviceId}");
-            string downstreamDeviceConnectionstring = $"HostName={iothubHostname};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
+            string sasToken = TokenHelper.CreateSasToken($"{iotHubConnectionStringBuilder.HostName}/devices/{downstreamDeviceId}");
+            string downstreamDeviceConnectionstring = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
             Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithSasToken(downstreamDeviceConnectionstring);
             IDeviceProxy downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
 

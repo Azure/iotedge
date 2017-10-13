@@ -1,23 +1,23 @@
 {
-    "keyVault": {
-        "baseUrl": "https://edgebuildkv.vault.azure.net/",
-        "clientId": "668cc883-59f1-4a11-9d4d-bdf18563d672",
-        "clientCertificateThumbprint": "3c79dc82703923b48866c3ce294e0b06f5e2578e"
-    },
-    "iotHubConnStrKey": "IotHubConnStrPreview",
-    "device1ConnStrKey": "IotDevice1ConnStrPreview",
-    "device2ConnStrKey": "IotDevice2ConnStrPreview",
-    "device3ConnStrKey": "IotDevice3ConnStrPreview",
-    "eventHubConnStrKey": "EventHubConnStrPreview",
-    "iotEdgeModuleConnStrKey": "IotEdgeModuleConnStr1",
-    "testSuite": [
-        "test-config-x64.json"
-    ],
-    "dockerHostUrl": "http://localhost:2375",
-    "GatewayHostname": "127.0.0.1",
-    "GatewayDeviceId": "device1",
-    "StressTest_MessagesCount_SingleSender": "10000",
-    "StressTest_MessagesCount_MultipleSenders": "5000",
-    "StressTest_MessagesCount_MultipleSendersMultipleReceivers": "5000",
-    "Tests_StartEdgeHubService": true
+  "keyVault": {
+    "baseUrl": "https://edgebuildkv.vault.azure.net/",
+    "clientId": "668cc883-59f1-4a11-9d4d-bdf18563d672",
+    "clientCertificateThumbprint": "3c79dc82703923b48866c3ce294e0b06f5e2578e"
+  },
+  "iotHubConnStrKey": "IotHubConnStrPreview",
+  "device1ConnStrKey": "IotDevice1ConnStrPreview",
+  "device2ConnStrKey": "IotDevice2ConnStrPreview",
+  "device3ConnStrKey": "IotDevice3ConnStrPreview",
+  "eventHubConnStrKey": "EventHubConnStrPreview",
+  "iotEdgeModuleConnStrKey": "IotEdgeModuleConnStr1",
+  "testSuite": [
+    "test-config-x64.json"
+  ],
+  "dockerHostUrl": "http://localhost:2375",
+  "GatewayHostname": "127.0.0.1",
+  "GatewayDeviceId": "device1",
+  "StressTest_MessagesCount_SingleSender": "10000",
+  "StressTest_MessagesCount_MultipleSenders": "5000",
+  "StressTest_MessagesCount_MultipleSendersMultipleReceivers": "5000",
+  "Tests_StartEdgeHubService": true
 }

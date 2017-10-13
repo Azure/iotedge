@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [Fact]
         public async Task CleanupTestCheckpointAndTimeout()
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(80);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(180);
             ICheckpointStore checkpointStore = result.checkpointStore;
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 Assert.Equal(100, batch.Count());
 
                 await checkpointStore.SetCheckpointDataAsync("module2", new CheckpointData(99), CancellationToken.None);
-                await Task.Delay(TimeSpan.FromSeconds(80));
+                await Task.Delay(TimeSpan.FromSeconds(130));
 
                 module2Iterator = messageStore.GetMessageIterator("module2");
                 batch = await module2Iterator.GetNext(100);
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 batch = await module1Iterator.GetNext(100);
                 Assert.Equal(100, batch.Count());
 
-                await Task.Delay(TimeSpan.FromSeconds(80));
+                await Task.Delay(TimeSpan.FromSeconds(130));
 
                 module1Iterator = messageStore.GetMessageIterator("module1");
                 batch = await module1Iterator.GetNext(100);

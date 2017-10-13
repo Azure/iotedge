@@ -54,8 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
-        const string DeviceId = "device1";
-
         readonly IDictionary<string, string> routes = new Dictionary<string, string>() {
             ["r1"] = "FROM /messages/events INTO $upstream",
             ["r2"] = "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
@@ -159,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
             byte[] cert = Convert.FromBase64String(certificateValue);
             var certificate = new X509Certificate2(cert);
-            string iothubHostname = await SecretsHelper.GetSecret("IothubHostname");
+            string edgeHubConnectionString = await SecretsHelper.GetSecret("EdgeHubConnStr1");
+            Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
             var builder = new ContainerBuilder();
@@ -180,11 +179,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-            builder.RegisterModule(new CommonModule(iothubHostname, DeviceId));
-            builder.RegisterModule(new RoutingModule(iothubHostname, DeviceId, null, routes, false, storeAndForwardConfiguration, ConnectionPoolSize));
+            builder.RegisterModule(new CommonModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
+            builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, routes, false, storeAndForwardConfiguration, ConnectionPoolSize, false));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();
+
+            IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
+            ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();
+            await configUpdater.Init(configSource);
 
             IMqttConnectionProvider mqttConnectionProvider = await this.container.Resolve<Task<IMqttConnectionProvider>>();
             this.protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>());
