@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         }
 
         public ICommand Create(IModuleWithIdentity module) =>
-        module.Module is DockerModule
-            ? new CreateCommand(this.client, (DockerModule) module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
-        : (ICommand)NullCommand.Instance;
+            module.Module is DockerModule
+                ? CreateCommand.Build(this.client, (DockerModule)module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule)
+                : (ICommand)NullCommand.Instance;
 
         public ICommand Pull(IModule module) =>
             module is DockerModule

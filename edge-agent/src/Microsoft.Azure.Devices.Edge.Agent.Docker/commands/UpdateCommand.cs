@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
 
             this.remove = new RemoveCommand(client, current);
-            this.create = new CreateCommand(client, next, identity, dockerLoggerConfig, configSource);
+            this.create = CreateCommand.Build(client, next, identity, dockerLoggerConfig, configSource, next is EdgeHubDockerModule);
         }
 
         public async Task ExecuteAsync(CancellationToken token)

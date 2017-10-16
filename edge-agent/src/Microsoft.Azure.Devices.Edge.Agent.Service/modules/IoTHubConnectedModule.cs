@@ -24,12 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public IotHubConnectedModule(
             Uri dockerHost, string dockerLoggingDriver,
             IDictionary<string,string> dockerLoggingOptions,
-            EdgeHubConnectionString connectionDetails, string backupConfigFilePath,
-            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration)
+            EdgeHubConnectionString connectionDetails,
+            string edgeDeviceConnectionString,
+            string backupConfigFilePath,
+            int maxRestartCount,
+            TimeSpan intensiveCareTime,
+            int coolOffTimeUnitInSeconds,
+            IConfiguration configuration)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
             this.configSource = new FileBackupConfigSourceModule(
                 Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails)),
+                Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString)),
                 Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath)),
                 Preconditions.CheckNotNull(configuration, nameof(configuration))
             );

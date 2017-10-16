@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public DockerRuntimeModule(
             string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy,
             DockerConfig config, int exitCode, string statusDescription, DateTime lastStartTime,
-            DateTime lastExitTime, int restartCount, DateTime lastRestartTime, ModuleStatus runtimeStatus
+            DateTime lastExitTime, int restartCount, DateTime lastRestartTime, ModuleStatus runtimeStatus, ConfigurationInfo configuration
         )
-            : base(name, version, desiredStatus, restartPolicy, config)
+            : base(name, version, desiredStatus, restartPolicy, config, configuration)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -50,10 +50,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         DockerRuntimeModule(
             string name, string version, string type, ModuleStatus status, RestartPolicy restartPolicy,
             DockerConfig config, int? exitCode, string statusDescription, DateTime lastStartTimeUtc,
-            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus
+            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus, ConfigurationInfo configurationInfo
         )
             : this(name, version, status, restartPolicy, config, exitCode ?? 0, statusDescription,
-                  lastStartTimeUtc, lastExitTimeUtc, restartCount, lastRestartTimeUtc, runtimeStatus)
+                  lastStartTimeUtc, lastExitTimeUtc, restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return false;
             if (ReferenceEquals(this, other))
                 return true;
-            // Compare as IModule, then Compare as IReportedModule, if applicable
+            // Compare as IModule, then Compare as IRuntimeModule, if applicable
             if (!base.Equals(other))
             {
                 return false;

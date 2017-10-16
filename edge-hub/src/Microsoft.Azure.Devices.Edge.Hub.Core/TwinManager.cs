@@ -367,51 +367,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(baseline, nameof(baseline));
             Preconditions.CheckNotNull(patch, nameof(patch));
-            JToken baselineToken = JToken.Parse(baseline.ToJson()).DeepClone();
-            JToken patchToken = JToken.Parse(patch.ToJson()).DeepClone();
-            return new TwinCollection(MergeTwinCollections(baselineToken, patchToken, treatNullAsDelete).ToJson());
-        }
-
-        static JToken MergeTwinCollections(JToken baseline, JToken patch, bool treatNullAsDelete)
-        {
-            // Reached the leaf JValue
-            if ((patch is JValue) || (baseline.Type == JTokenType.Null) || (baseline is JValue))
-            {
-                return patch;
-            }
-
-            JsonSerializerSettings settings = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Include
-            };
-
-            Dictionary<string, JToken> patchDictionary = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(patch.ToJson(), settings);
-
-            Dictionary<string, JToken> baselineDictionary = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(baseline.ToJson(), settings);
-
-            Dictionary<string, JToken> result = baselineDictionary;
-            foreach (KeyValuePair<string, JToken> patchPair in patchDictionary)
-            {
-                bool baselineContainsKey = baselineDictionary.ContainsKey(patchPair.Key);
-                if (baselineContainsKey && (patchPair.Value.Type != JTokenType.Null))
-                {
-                    JToken baselineValue = baselineDictionary[patchPair.Key];
-                    JToken nestedResult = MergeTwinCollections(baselineValue, patchPair.Value, treatNullAsDelete);
-                    result[patchPair.Key] = nestedResult;
-                }
-                else // decide whether to remove or add the patch key
-                {
-                    if (treatNullAsDelete && (patchPair.Value.Type == JTokenType.Null))
-                    {
-                        result.Remove(patchPair.Key);
-                    }
-                    else
-                    {
-                        result[patchPair.Key] = patchPair.Value;
-                    }
-                }
-            }
-            return JToken.FromObject(result);
+            string baselineJson = baseline.ToJson();
+            string patchJson = patch.ToJson();
+            string mergedJson = JsonEx.MergeJson(baselineJson, patchJson, treatNullAsDelete);
+            return new TwinCollection(mergedJson);
         }
 
         internal static TwinCollection DiffTwinCollections(TwinCollection from, TwinCollection to)

@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
     public class ModuleIdentityLifecycleManagerTest
     {
+        static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         [Fact]
         [Unit]
         public async Task TestGetModulesIdentity_WithEmptyDiff_ShouldReturnEmptyIdentities()
@@ -29,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Empty, ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Empty, ModuleSet.Empty);
 
             Assert.True(modulesIdentities.Count() == 0);
         }
@@ -59,9 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).Returns(Task.FromResult(updatedServiceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name)), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
@@ -97,9 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
@@ -134,13 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().ConnectionString);
+            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -181,13 +182,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().ConnectionString);
+            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -222,13 +223,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }).Returns(Task.FromResult(serviceIdentities));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().ConnectionString);
+            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -259,9 +260,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));
             serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));
 
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            IEnumerable<IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 0)), Times.Once);
             serviceClient.Verify(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => m.Count() == 0)), Times.Once);
@@ -276,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Use Json to create module because managedBy property can't has private set on Module object
             const string moduleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":\"iotEdge\"}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(moduleJson);
-            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             var serviceClient = new Mock<IServiceClient>();
             var hostname = "hostname";
@@ -293,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var diff = new Diff(ImmutableList<IModule>.Empty, new List<string>() { Name });
 
-            await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
+            await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
 
             serviceClient.Verify(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name)), Times.Once);
         }
@@ -306,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Use Json to create module because managedBy property can't has private set on Module object
             const string moduleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":null}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(moduleJson);
-            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             var serviceClient = new Mock<IServiceClient>();
             var hostname = "hostname";
@@ -321,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.RemoveModules(It.IsAny<IEnumerable<string>>())).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
 
-            await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).UpdateModulesIdentity(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
+            await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentities(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
 
             serviceClient.Verify(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 0)), Times.Once);
         }

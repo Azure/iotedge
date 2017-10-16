@@ -15,22 +15,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         readonly Client.DeviceClient deviceClient;
         private const uint DeviceClientTimeout = 30000; // ms
-        public const string AgentModuleId = "$edgeAgent";
         static readonly ITransientErrorDetectionStrategy TransientDetectionStrategy = new DeviceClientRetryStrategy();
         static readonly RetryStrategy TransientRetryStrategy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
-
 
         DeviceClient(Client.DeviceClient deviceClient)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
         }
 
-        public static async Task<DeviceClient> Create(EdgeHubConnectionString deviceDetails, IServiceClient deviceAuthorizedServiceClient)
+        public static async Task<DeviceClient> CreateAsync(EdgeHubConnectionString deviceDetails, IServiceClient deviceAuthorizedServiceClient)
         {
             Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
             Preconditions.CheckNotNull(deviceAuthorizedServiceClient, nameof(deviceAuthorizedServiceClient));
 
-            string moduleString = await ConstructModuleConnectionString(deviceDetails, deviceAuthorizedServiceClient);
+            string moduleString = await ConstructModuleConnectionStringAsync(deviceDetails, deviceAuthorizedServiceClient);
 
             Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(moduleString);
             deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
@@ -39,17 +37,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return new DeviceClient(deviceClient);
         }
 
-        static async Task<string> ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails, IServiceClient deviceAuthorizedServiceClient)
+        static async Task<string> ConstructModuleConnectionStringAsync(EdgeHubConnectionString connectionDetails, IServiceClient deviceAuthorizedServiceClient)
         {
             var transientRetryPolicy = new RetryPolicy(TransientDetectionStrategy, TransientRetryStrategy);
             transientRetryPolicy.Retrying += (_, args) => Events.GetModuleFailed(args);
             // ReSharper disable once UnusedVariable
-            Module agentModule = await transientRetryPolicy.ExecuteAsync(() => deviceAuthorizedServiceClient.GetModule(AgentModuleId));
+            Module agentModule = await transientRetryPolicy.ExecuteAsync(() => deviceAuthorizedServiceClient.GetModule(Constants.EdgeAgentModuleIdentityName));
 
             // TODO: should be using agentModule's authentication
             EdgeHubConnectionString agentConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
                 .SetSharedAccessKey(connectionDetails.SharedAccessKey)
-                .SetModuleId(AgentModuleId)
+                .SetModuleId(Constants.EdgeAgentModuleIdentityName)
                 .Build();
             return agentConnectionString.ToConnectionString();
         }
@@ -93,6 +91,4 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
     }
-
-
 }

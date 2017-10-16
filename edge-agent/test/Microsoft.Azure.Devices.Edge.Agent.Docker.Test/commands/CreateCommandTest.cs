@@ -28,8 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         [Integration]
         public async Task SmokeTest()
         {
-            const string Image = "hello-world";
-            const string Tag = "latest";
+            const string Image = "hello-world:latest";
             const string Name = "test-helloworld";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
@@ -41,15 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
                     // ensure image has been pulled
-                    await DockerHelper.Client.PullImageAsync(Image, Tag, cts.Token);
+                    await DockerHelper.Client.PullImageAsync(Image, cts.Token);
                     var dockerLoggingOptions = new Dictionary<string, string>
                     {
                         { "max-size", "1m" },
                         { "max-file", "1" }
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, Tag, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
 
-                    var command = new CreateCommand(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object);
+                    ICommand command = CreateCommand.Build(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);
@@ -91,8 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
         [Integration]
         public async Task TestUdpModuleConfig()
         {
-            const string Image = "hello-world";
-            const string Tag = "latest";
+            const string Image = "hello-world:latest";
             const string Name = "test-helloworld";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
@@ -104,11 +102,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
                     // ensure image has been pulled
-                    await DockerHelper.Client.PullImageAsync(Image, Tag, cts.Token);
+                    await DockerHelper.Client.PullImageAsync(Image, cts.Token);
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var config = new DockerConfig(Image, Tag, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
+                    var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -122,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
-                    var command = new CreateCommand(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object);
+                    ICommand command = CreateCommand.Build(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
                     // run the command
                     await command.ExecuteAsync(cts.Token);

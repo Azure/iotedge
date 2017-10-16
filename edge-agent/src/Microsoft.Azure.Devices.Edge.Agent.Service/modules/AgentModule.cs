@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Storage;
 
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly int coolOffTimeUnitInSeconds;
 
         public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds)
-        { 
+        {
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -60,11 +59,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IEnvironment
-            builder.Register(c => new DockerEnvironment(
-                 c.Resolve<IDockerClient>(),
-                 c.Resolve<IEntityStore<string, ModuleState>>(),
-                 c.Resolve<IRestartPolicyManager>()))
-             .As<IEnvironment>()
+            builder.Register(
+                async c =>
+                {
+                    IEnvironment dockerEnvironment = await DockerEnvironment.CreateAsync(
+                        c.Resolve<IDockerClient>(),
+                        c.Resolve<IEntityStore<string, ModuleState>>(),
+                        c.Resolve<IRestartPolicyManager>());
+                    return dockerEnvironment;
+                })
+             .As<Task<IEnvironment>>()
              .SingleInstance();
 
             // IRestartManager
@@ -84,13 +88,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<Agent>
             builder.Register(
-                async c => new Agent(
-                    await c.Resolve<Task<IConfigSource>>(),
-                    c.Resolve<IEnvironment>(),
-                    await c.Resolve<Task<IPlanner>>(),
-                    await c.Resolve<Task<IReporter>>(),
-                    c.Resolve<IModuleIdentityLifecycleManager>())
-                )
+                async c =>
+                {
+                    var configSource = c.Resolve<Task<IConfigSource>>();
+                    var environment = c.Resolve<Task<IEnvironment>>();
+                    var planner = c.Resolve<Task<IPlanner>>();
+                    var reporter = c.Resolve<Task<IReporter>>();
+                    var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
+                    return new Agent(
+                        await configSource,
+                        await environment,
+                        await planner,
+                        await reporter,
+                        moduleIdentityLifecycleManager);
+                })
                 .As<Task<Agent>>()
                 .SingleInstance();
 

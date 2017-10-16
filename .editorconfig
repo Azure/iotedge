@@ -6,3 +6,21 @@ indent_style = space
 indent_size = 4
 charset = utf-8
 trim_trailing_whitespace = true
+
+dotnet_style_qualification_for_field = true
+dotnet_style_qualification_for_property = true
+dotnet_style_qualification_for_method = true
+dotnet_style_qualification_for_event = true
+csharp_style_var_when_type_is_apparent = true
+csharp_style_expression_bodied_methods = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_space_after_keywords_in_control_flow_statements = true
+
+dotnet_naming_rule.async_methods_end_in_async.symbols = any_async_methods
+dotnet_naming_rule.async_methods_end_in_async.style = end_in_async
+dotnet_naming_rule.async_methods_end_in_async.severity = suggestion
+dotnet_naming_symbols.any_async_methods.applicable_kinds = method
+dotnet_naming_symbols.any_async_methods.applicable_accessibilities = *
+dotnet_naming_symbols.any_async_methods.required_modifiers = async
+dotnet_naming_style.end_in_async.required_suffix = Async
+dotnet_naming_style.end_in_async.capitalization  = pascal_case

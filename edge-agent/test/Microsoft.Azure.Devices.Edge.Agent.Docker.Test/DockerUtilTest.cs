@@ -1,4 +1,5 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using Microsoft.Azure.Devices.Edge.Agent.Docker;

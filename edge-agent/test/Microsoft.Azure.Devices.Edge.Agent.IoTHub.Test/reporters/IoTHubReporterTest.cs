@@ -3,11 +3,15 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
@@ -17,156 +21,394 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
     public class IoTHubReporterTest
     {
+        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+
         [Fact]
         [Unit]
         public void CreateInvalidInputs()
         {
-            // Arrange
-            var deviceClient = new Mock<IDeviceClient>();
-            var twinConfigSource = new Mock<ITwinConfigSource>();
+            var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+            var environment = new Mock<IEnvironment>();
 
-            // Act
-            // Assert
-            Assert.Throws<ArgumentNullException>(() => new IoTHubReporter(null, twinConfigSource.Object));
-            Assert.Throws<ArgumentNullException>(() => new IoTHubReporter(deviceClient.Object, null));
+            Assert.Throws<ArgumentNullException>(() => new IoTHubReporter(null, environment.Object));
+            Assert.Throws<ArgumentNullException>(() => new IoTHubReporter(edgeAgentConnection.Object, null));
         }
+
+        [Fact]
+        [Unit]
+        public async void SkipReportIfNoSavedStateAndNoStateFromConfigSource()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var environment = new Mock<IEnvironment>();
+                edgeAgentConnection.Setup(c => c.ReportedProperties)
+                    .Returns(Option.None<TwinCollection>());
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
+                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, AgentConfig.Empty, DeploymentStatus.Success);
+
+                // Assert
+                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
+            }
+        }
+
+        IModule CreateMockEdgeAgentModule() => new TestRuntimeModule(
+                            Constants.EdgeAgentModuleName, string.Empty, RestartPolicy.Always, "docker", ModuleStatus.Running,
+                            new TestConfig("EdgeAgentImage"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running);
 
         [Fact]
         [Unit]
         public async void ReportedPatchTest()
         {
-            // Arrange
-            var deviceClient = new Mock<IDeviceClient>();
-            var twinConfigSource = new Mock<ITwinConfigSource>();
-            var reporter = new IoTHubReporter(deviceClient.Object, twinConfigSource.Object);
-            TwinCollection patch = null;
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
 
-            var reportedModuleSet = ModuleSet.Create(
-                new TestRuntimeModule(
-                    "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running
-                ),
-                new TestRuntimeModule(
-                    "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Backoff
-                )
-            );
-            var currentModuleSet = ModuleSet.Create(
-                new TestRuntimeModule(
-                    "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Backoff
-                ),
-                new TestRuntimeModule(
-                    "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running
-                )
-            );
-            twinConfigSource.SetupGet(tcs => tcs.ReportedModuleSet)
-                .Returns(reportedModuleSet);
-            deviceClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                .Callback<TwinCollection>(tc => patch = tc)
-                .Returns(Task.CompletedTask);
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running
+                        ),
+                        new TestRuntimeModule(
+                            "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Backoff
+                        )
+                    ).Modules.ToImmutableDictionary()
+                );
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
 
-            // Act
-            await reporter.ReportAsync(currentModuleSet);
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
 
-            // Assert
-            twinConfigSource.VerifyAll();
-            Assert.NotNull(patch);
+                // prepare AgentConfig
+                var agentConfig = new AgentConfig(
+                    DesiredVersion,
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    ModuleSet.Empty,
+                    Option.None<IEdgeAgentModule>()
+                );
 
-            JObject json = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
-            JObject expectedJson = JsonConvert.DeserializeObject(
-                "{" +
-                    "\"modules\": {" +
-                        $"\"mod1\": {JsonConvert.SerializeObject(currentModuleSet.Modules["mod1"])}," +
-                        $"\"mod2\": {JsonConvert.SerializeObject(currentModuleSet.Modules["mod2"])}," +
-                        "\"extra_mod\": null" +
-                    "}" +
-                "}"
-            ) as JObject;
-            Assert.True(JToken.DeepEquals(expectedJson, json));
+                // prepare IEnvironment mock
+                var environment = new Mock<IEnvironment>();
+                IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgentModule));
+
+                // build current module set
+                var currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    lastDesiredVersion = DesiredVersion,
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Successful
+                    },
+                    runtime = new
+                    {
+                        type = RuntimeType,
+                        settings = new
+                        {
+                            minDockerVersion = MinDockerVersion,
+                            loggingOptions = LoggingOptions
+                        }
+                    },
+                    systemModules = new Dictionary<string, object>
+                    {
+                        { "edgeAgent", edgeAgentModule }
+                    },
+                    modules = new Dictionary<string, object>
+                    {
+                        {
+                            currentModuleSet.Modules["mod1"].Name,
+                            new
+                            {
+                                runtimeStatus = "backoff"
+                            }
+                        },
+                        { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
+                        { "extra_mod", null }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void ReportedPatchTestStripMetadata()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running
+                        ),
+                        new TestRuntimeModule(
+                            "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Backoff
+                        )
+                    ).Modules.ToImmutableDictionary()
+                );
+
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(() =>
+                {
+                    var coll = new TwinCollection(JsonConvert.SerializeObject(reportedState));
+                    coll["$metadata"] = JObject.FromObject(new { foo = 10 });
+                    coll["$version"] = 751;
+                    return Option.Some(coll);
+                });
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // prepare AgentConfig
+                var agentConfig = new AgentConfig(
+                    DesiredVersion,
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    ModuleSet.Empty,
+                    Option.None<IEdgeAgentModule>()
+                );
+
+                // prepare IEnvironment mock
+                var environment = new Mock<IEnvironment>();
+                IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgentModule));
+
+                // build current module set
+                var currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    lastDesiredVersion = DesiredVersion,
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Successful
+                    },
+                    runtime = new
+                    {
+                        type = RuntimeType,
+                        settings = new
+                        {
+                            minDockerVersion = MinDockerVersion,
+                            loggingOptions = LoggingOptions
+                        }
+                    },
+                    systemModules = new Dictionary<string, object>
+                    {
+                        { "edgeAgent", edgeAgentModule }
+                    },
+                    modules = new Dictionary<string, object>
+                    {
+                        {
+                            currentModuleSet.Modules["mod1"].Name,
+                            new
+                            {
+                                runtimeStatus = "backoff"
+                            }
+                        },
+                        { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
+                        { "extra_mod", null }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
         }
 
         [Fact]
         [Unit]
         public async void ReportedPatchTest2()
         {
-            // Arrange
-            var deviceClient = new Mock<IDeviceClient>();
-            var twinConfigSource = new Mock<ITwinConfigSource>();
-            var reporter = new IoTHubReporter(deviceClient.Object, twinConfigSource.Object);
-            TwinCollection patch = null;
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
 
-            var reportedModuleSet = ModuleSet.Create(
-                new TestRuntimeModule(
-                    "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running
-                ),
-                new TestRuntimeModule(
-                    "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Backoff
-                )
-            );
-            var currentModuleSet = ModuleSet.Create(
-                new TestRuntimeModule(
-                    "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Backoff
-                ),
-                new TestRuntimeModule(
-                    "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running
-                )
-            );
-            twinConfigSource.SetupGet(tcs => tcs.ReportedModuleSet)
-                .Returns(reportedModuleSet);
-            deviceClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                .Callback<TwinCollection>(tc => patch = tc)
-                .Returns(Task.CompletedTask);
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running
+                        ),
+                        new TestRuntimeModule(
+                            "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Backoff
+                        )
+                    ).Modules.ToImmutableDictionary()
+                );
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
 
-            // Act
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
 
-            // this should cause "extra_mod" to get deleted and "mod1" and "mod2" to get updated
-            await reporter.ReportAsync(currentModuleSet);
+                // prepare AgentConfig
+                var agentConfig = new AgentConfig(
+                    DesiredVersion,
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    ModuleSet.Empty,
+                    Option.None<IEdgeAgentModule>()
+                );
 
-            // now change "current" so that "mod1" fails
-            reportedModuleSet = currentModuleSet;
-            currentModuleSet = ModuleSet.Create(
-                new TestRuntimeModule(
-                    "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Failed
-                ),
-                new TestRuntimeModule(
-                    "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
-                    new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running
-                )
-            );
+                // prepare IEnvironment mock
+                var environment = new Mock<IEnvironment>();
+                IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgentModule));
 
-            // this should "mod1" to get updated
-            await reporter.ReportAsync(currentModuleSet);
+                // build current module set
+                var currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
 
-            // Assert
-            twinConfigSource.VerifyAll();
-            Assert.NotNull(patch);
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
 
-            JObject json = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
-            JObject expectedJson = JsonConvert.DeserializeObject(
-                "{" +
-                    "\"modules\": {" +
-                        $"\"mod1\": {JsonConvert.SerializeObject(currentModuleSet.Modules["mod1"])}" +
-                    "}" +
-                "}"
-            ) as JObject;
-            Assert.True(JToken.DeepEquals(expectedJson, json));
+                // this should cause "extra_mod" to get deleted and "mod1" and "mod2" to get updated
+                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+
+                // now change "current" so that "mod1" fails
+                reportedState = new AgentState(
+                    reportedState.LastDesiredVersion,
+                    reportedState.LastDesiredStatus,
+                    reportedState.RuntimeInfo,
+                    new Dictionary<string, IModule>
+                    {
+                        { Constants.EdgeAgentModuleName, edgeAgentModule }
+                    },
+                    currentModuleSet.Modules.ToImmutableDictionary()
+                );
+                currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Failed
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
+
+                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    modules = new Dictionary<string, object>
+                    {
+                        {
+                            currentModuleSet.Modules["mod1"].Name,
+                            new
+                            {
+                                runtimeStatus = "failed"
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
         }
     }
 }

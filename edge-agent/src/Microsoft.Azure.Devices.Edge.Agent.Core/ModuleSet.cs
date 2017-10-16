@@ -65,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 .Intersect(other.Modules.Keys)
                 .Where(key => !this.Modules[key].Equals(other.Modules[key]))
                 .Select(key => this.Modules[key]);
+
             return new Diff(created.Concat(updated).ToList(), removed.ToList());
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
@@ -15,86 +15,131 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     [ExcludeFromCodeCoverage]
     public class TestModuleTest
     {
+        static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly TestConfig Config3 = new TestConfig("image1");
 
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1);
-        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1);
-        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1);
-        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2);
-        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1);
-        static readonly string serializedModule = "{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}";
+        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {
   ""validJson"": [
     {
-      ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
+      ""Settings"": {
         ""Image"": ""image1""
+      },
+      ""Configuration"": {
+        ""id"":""1""
       }
     },
     {
-      ""name"": ""<module_name>"",
       ""version"": ""<semantic_version_number>"",
       ""type"": ""docker"",
       ""status"": ""running"",
       ""restartpolicy"": ""on-unhealthy"",
-      ""config"": {
+      ""settings"": {
         ""image"": ""image1""
+      },
+      ""configuration"": {
+        ""id"":""1""
       }
     },
     {
-      ""NAME"": ""<module_name>"",
       ""VERSION"": ""<semantic_version_number>"",
       ""TYPE"": ""docker"",
       ""STATUS"": ""RUNNING"",
       ""RESTARTPOLICY"": ""on-unhealthy"",
-      ""CONFIG"": {
+      ""SETTINGS"": {
         ""IMAGE"": ""image1""
+      },
+      ""CONFIGURATION"": {
+        ""id"":""1""
       }
     }
   ],
   ""statusJson"": [
     {
-      ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""stopped"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
+      ""Settings"": {
         ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
       }
     },
     {
-      ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""Unknown"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
+      ""Settings"": {
         ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
       }
     }
   ],
   ""throwsException"": [
     {
-      ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
+      ""Settings"": {
         ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
+      }
+    },
+    {
+      ""Type"": ""docker"",
+      ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
+      ""Settings"": {
+        ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
+      }
+    },
+    {
+      ""Version"": ""<semantic_version_number>"",
+      ""Status"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
+      ""Settings"": {
+        ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
+      }
+    },
+    {
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Settings"": ""running"",
+      ""RestartPolicy"": ""on-unhealthy"",
+      ""Configuration"": {
+        ""id"":""1""
       }
     },
     {
@@ -102,50 +147,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Type"": ""docker"",
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
-        ""Image"": ""<docker_image_name>""
+      ""Settings"": {},
+      ""Configuration"": {
+        ""id"":""1""
       }
     },
     {
-      ""Name"": ""<module_name>"",
-      ""Type"": ""docker"",
-      ""Status"": ""running"",
-      ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
-        ""Image"": ""<docker_image_name>""
-      }
-    },
-    {
-      ""Name"": ""<module_name>"",
-      ""Version"": ""<semantic_version_number>"",
-      ""Status"": ""running"",
-      ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
-        ""Image"": ""<docker_image_name>""
-      }
-    },
-    {
-      ""Name"": ""<module_name>"",
-      ""Version"": ""<semantic_version_number>"",
-      ""Type"": ""docker"",
-      ""Status"": ""running"",
-      ""RestartPolicy"": ""on-unhealthy"",
-    },
-    {
-      ""Name"": ""<module_name>"",
-      ""Version"": ""<semantic_version_number>"",
-      ""Type"": ""docker"",
-      ""Status"": ""running"",
-      ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {}
-    },
-    {
-      ""Name"": ""<module_name>"",
       ""Version"": ""<semantic_version_number>"",
       ""Type"": ""docker"",
       ""Status"": ""<bad_status>"",
       ""RestartPolicy"": ""on-unhealthy"",
-      ""Config"": {
+      ""Settings"": {
+        ""Image"": ""<docker_image_name>""
+      },
+      ""Configuration"": {
+        ""id"":""1""
+      }
+    },
+    {
+      ""Version"": ""<semantic_version_number>"",
+      ""Type"": ""docker"",
+      ""Status"": ""<bad_status>"",
+      ""RestartPolicy"": ""on-unhealthy"",
+      ""Settings"": {
         ""Image"": ""<docker_image_name>""
       }
     }
@@ -156,10 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new TestModule(null, "version1", "type1", ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo));
         }
 
         [Fact]
@@ -220,6 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void TestDeserializeValidJson(string inputJson)
         {
             TestModule module = ModuleSerde.Instance.Deserialize<TestModule>(inputJson);
+            module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
         }
 
@@ -256,6 +280,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string jsonFromTestModule = ModuleSerde.Instance.Serialize(Module8);
             var myModule = ModuleSerde.Instance.Deserialize<TestModule>(jsonFromTestModule);
             IModule moduleFromSerializedModule = ModuleSerde.Instance.Deserialize<TestModule>(serializedModule);
+
+            myModule.Name = "mod1";
+            moduleFromSerializedModule.Name = "mod1";
 
             Assert.True(Module8.Equals(myModule));
             Assert.True(moduleFromSerializedModule.Equals(Module8));

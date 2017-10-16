@@ -2,11 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Threading.Tasks;
 
     public interface IModuleIdentityLifecycleManager
     {
-        Task<IEnumerable<IModuleIdentity>> UpdateModulesIdentity(ModuleSet desired, ModuleSet current);
+        Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentities(ModuleSet desired, ModuleSet current);
     }
 }

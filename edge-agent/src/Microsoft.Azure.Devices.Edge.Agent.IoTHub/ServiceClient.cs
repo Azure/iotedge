@@ -12,14 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly RegistryManager rm;
         readonly string deviceId;
 
-        public ServiceClient(EdgeHubConnectionString connectionDetails)
+        public ServiceClient(string deviceConnectionString, string deviceId)
         {
-            Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
-
-            this.deviceId = Preconditions.CheckNotNull(connectionDetails.DeviceId, nameof(this.deviceId));
-            string connectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
-                .SetSharedAccessKey(connectionDetails.SharedAccessKey).Build().ToConnectionString();
-            this.rm = RegistryManager.CreateFromConnectionString(connectionString);
+            Preconditions.CheckNonWhiteSpace(deviceConnectionString, nameof(deviceConnectionString));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.rm = RegistryManager.CreateFromConnectionString(deviceConnectionString);
         }
 
         public void Dispose()

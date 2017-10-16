@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
@@ -38,8 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModuleBase<TConfig> : IModule<TConfig>
     {
-        [JsonProperty(Required = Required.Always, PropertyName = "name")]
-        public string Name { get; }
+        [JsonIgnore]
+        public string Name { get; set; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "version")]
         public string Version { get; }
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public string Type { get; }
 
-        [JsonProperty(Required = Required.Always, PropertyName = "config")]
+        [JsonProperty(Required = Required.Always, PropertyName = "settings")]
         public TConfig Config { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "restartPolicy")]
@@ -56,15 +56,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty(Required = Required.Always, PropertyName = "status")]
         public ModuleStatus DesiredStatus { get; }
 
+        [JsonProperty(Required = Required.Always, PropertyName = "configuration")]
+        public ConfigurationInfo ConfigurationInfo { get; }
+
         [JsonConstructor]
-        public TestModuleBase(string name, string version, string type, ModuleStatus desiredStatus, TConfig config, RestartPolicy restartPolicy)
+        public TestModuleBase(string name, string version, string type, ModuleStatus desiredStatus, TConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration)
         {
-            this.Name = Preconditions.CheckNotNull(name, nameof(name));
+            this.Name = name;
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.Type = Preconditions.CheckNotNull(type, nameof(type));
             this.DesiredStatus = Preconditions.CheckNotNull(desiredStatus, nameof(desiredStatus));
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ConfigurationInfo = configuration ?? new ConfigurationInfo();
         }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
@@ -102,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestModule : TestModuleBase<TestConfig>
     {
-        public TestModule(string name, string version, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy = RestartPolicy.OnUnhealthy) : base(name, version, type, desiredStatus, config, restartPolicy)
+        public TestModule(string name, string version, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration)
+            : base(name, version, type, desiredStatus, config, restartPolicy, configuration)
         {
         }
     }

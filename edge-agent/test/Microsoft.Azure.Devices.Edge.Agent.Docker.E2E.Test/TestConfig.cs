@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
@@ -8,9 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public string Version { get; set; }
 
-        public string ImageName { get; set; }
-
-        public string ImageTag { get; set; }
+        public string Image { get; set; }
 
         public string ImageCreateOptions { get; set; }
 

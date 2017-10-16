@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
@@ -30,14 +30,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         /// <param name="tag"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public static async Task PullImageAsync(this IDockerClient client, string image, string tag, CancellationToken token)
+        public static async Task PullImageAsync(this IDockerClient client, string image, CancellationToken token)
         {
-            var pullParams = new ImagesCreateParameters
+            string[] imageParts = image.Split(':');
+            string fromImage = imageParts[0];
+            string tag = imageParts[1];
+            var pullParameters = new ImagesCreateParameters
             {
-                FromImage = image,
+                FromImage = fromImage,
                 Tag = tag
             };
-            await Client.Images.CreateImageAsync(pullParams, null, new Progress<JSONMessage>(), token);
+
+            await Client.Images.CreateImageAsync(pullParameters, null, new Progress<JSONMessage>(), token);
         }
 
         /// <summary>

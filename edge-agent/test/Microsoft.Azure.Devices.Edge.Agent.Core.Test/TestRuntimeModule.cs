@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
@@ -33,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public TestRuntimeModule(
             string name, string version, RestartPolicy restartPolicy, string type, ModuleStatus desiredStatus,
             TestConfig config, int exitCode, string statusDescription, DateTime lastStartTimeUtc,
-            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus)
-            : base(name, version, type, desiredStatus, config, restartPolicy)
+            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus, ConfigurationInfo deploymentInfo = null)
+            : base(name, version, type, desiredStatus, config, restartPolicy, deploymentInfo)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;

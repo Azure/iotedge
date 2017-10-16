@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CreateCommand : ICommand
@@ -16,42 +17,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
 
-        public CreateCommand(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
+        public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
+        {
+            this.client = Preconditions.CheckNotNull(client, nameof(client));
+            this.createContainerParameters = Preconditions.CheckNotNull(createContainerParameters, nameof(createContainerParameters));
+        }
+
+        public static ICommand Build(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource, bool buildForEdgeHub)
         {
             // Validate parameters
-            this.client = Preconditions.CheckNotNull(client, nameof(client));
+            Preconditions.CheckNotNull(client, nameof(client));
             Preconditions.CheckNotNull(module, nameof(module));
             Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
             Preconditions.CheckNotNull(configSource, nameof(configSource));
 
-            this.createContainerParameters = module.Config.CreateOptions ?? new CreateContainerParameters();
-            var normalizedCreateOptions = JsonConvert.SerializeObject(this.createContainerParameters);
+            CreateContainerParameters createContainerParameters = module.Config.CreateOptions ?? new CreateContainerParameters();
+
+            // serialize user provided create options to add as docker label, before adding other values
+            string createOptionsString = JsonConvert.SerializeObject(createContainerParameters);
 
             // Force update parameters with indexing entries
-            this.createContainerParameters.Name = module.Name;
-            this.createContainerParameters.Image = module.Config.Image + ":" + module.Config.Tag;
+            createContainerParameters.Name = module.Name;
+            createContainerParameters.Image = module.Config.Image;
 
             // Inject global parameters
-            InjectConfig(this.createContainerParameters, configSource, module, identity);
-            InjectLoggerConfig(this.createContainerParameters, dockerLoggerConfig);
+            InjectConfig(createContainerParameters, identity, buildForEdgeHub);
+            InjectLoggerConfig(createContainerParameters, dockerLoggerConfig);
 
             // Inject required Edge parameters
-            this.createContainerParameters.Labels = this.createContainerParameters.Labels ?? new Dictionary<string, string>();
-            
-            this.createContainerParameters.Labels.Remove(Constants.Labels.Owner);
-            this.createContainerParameters.Labels.Add(Constants.Labels.Owner, Constants.Owner);
-            
-            this.createContainerParameters.Labels.Remove(Constants.Labels.Version);
-            this.createContainerParameters.Labels.Add(Constants.Labels.Version, module.Version);
-            
-            this.createContainerParameters.Labels.Remove(Constants.Labels.NormalizedCreateOptions);
-            this.createContainerParameters.Labels.Add(Constants.Labels.NormalizedCreateOptions, normalizedCreateOptions);
+            InjectLabels(createContainerParameters, module, createOptionsString);
 
-            this.createContainerParameters.Labels.Remove(Constants.Labels.RestartPolicy);
-            this.createContainerParameters.Labels.Add(Constants.Labels.RestartPolicy, module.RestartPolicy.ToString());
+            InjectNetworkAlias(createContainerParameters, configSource, buildForEdgeHub);
 
-            this.createContainerParameters.Labels.Remove(Constants.Labels.DesiredStatus);
-            this.createContainerParameters.Labels.Add(Constants.Labels.DesiredStatus, module.DesiredStatus.ToString());
+            return new CreateCommand(client, createContainerParameters);
         }
 
         public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
@@ -60,15 +58,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        static void InjectConfig(CreateContainerParameters parameters, IConfigSource configSource, DockerModule module, IModuleIdentity identity)
+        static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub)
         {
             // Inject the connection string as an environment variable
             if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
             {
-                string edgeDeviceConnectionString = $"{Constants.EdgeHubConnectionStringKey}={identity.ConnectionString}";
-                parameters.Env = parameters.Env ?? new List<string>();
-                parameters.Env.Remove(edgeDeviceConnectionString);
-                parameters.Env.Add(edgeDeviceConnectionString);
+                string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
+                string edgeDeviceConnectionString = $"{connectionStringKey}={identity.ConnectionString}";
+                
+                if(createContainerParameters.Env != null)
+                {
+                    // Remove any existing environment variables with the same key.
+                    List<string> existingConnectionStrings = createContainerParameters.Env.Where(e => e.StartsWith($"{connectionStringKey}=")).ToList();
+                    existingConnectionStrings.ForEach(e => createContainerParameters.Env.Remove(e));
+                }
+                else
+                {
+                    createContainerParameters.Env = new List<string>();
+                }
+                createContainerParameters.Env.Add(edgeDeviceConnectionString);
             }
         }
 
@@ -80,10 +88,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             parameters.HostConfig.LogConfig.Config = dockerLoggerConfig.Config;
         }
 
+        static void InjectLabels(CreateContainerParameters createContainerParameters, DockerModule module, string createOptionsString)
+        {
+            // Inject required Edge parameters
+            createContainerParameters.Labels = createContainerParameters.Labels ?? new Dictionary<string, string>();
+
+            createContainerParameters.Labels[Constants.Labels.Owner] = Constants.Owner;
+            createContainerParameters.Labels[Constants.Labels.NormalizedCreateOptions] = createOptionsString;
+            createContainerParameters.Labels[Constants.Labels.RestartPolicy] = module.RestartPolicy.ToString();
+            createContainerParameters.Labels[Constants.Labels.DesiredStatus] = module.DesiredStatus.ToString();
+
+            if (!string.IsNullOrWhiteSpace(module.Version))
+            {
+                createContainerParameters.Labels[Constants.Labels.Version] = module.Version;
+            }
+
+            if (!string.IsNullOrWhiteSpace(module.ConfigurationInfo.Id))
+            {
+                createContainerParameters.Labels[Constants.Labels.ConfigurationId] = module.ConfigurationInfo.Id;
+            }
+        }
+
+        static void InjectNetworkAlias(CreateContainerParameters createContainerParameters, IConfigSource configSource, bool addEdgeDeviceHostNameAlias)
+        {
+            string networkId = configSource.Configuration.GetValue<string>(Docker.Constants.NetworkIdKey);
+            string edgeDeviceHostName = configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+            if (!string.IsNullOrWhiteSpace(networkId))
+            {
+                var endpointSettings = new EndpointSettings();
+                if (addEdgeDeviceHostNameAlias && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
+                {
+                    endpointSettings.Aliases = new List<string> { edgeDeviceHostName };
+                }
+
+                IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
+                {
+                    [networkId] = endpointSettings
+                };
+                createContainerParameters.NetworkingConfig = new NetworkingConfig { EndpointsConfig = endpointsConfig };
+            }
+
+        }
+
         static string ObfuscateConnectionStringInCreateContainerParameters(string serializedCreateOptions)
         {
             var scrubbed = JsonConvert.DeserializeObject<CreateContainerParameters>(serializedCreateOptions);
-            scrubbed.Env = scrubbed.Env?.Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******").ToList();
+            scrubbed.Env = scrubbed.Env?
+                .Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******")
+                .Select((env, i) => env.IndexOf(Constants.IotHubConnectionStringKey) == -1 ? env : $"{Constants.IotHubConnectionStringKey}=******")
+                .ToList();
             return JsonConvert.SerializeObject(scrubbed);
         }
     }

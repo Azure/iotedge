@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
@@ -26,10 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public async Task ExecuteAsync(CancellationToken token)
         {
+            string[] imageParts = this.module.Config.Image.Split(':');            
+            string image = imageParts[0];            
+            string tag = imageParts.Length > 1 ? imageParts[1] : string.Empty;
             var pullParameters = new ImagesCreateParameters
             {
-                FromImage = this.module.Config.Image,
-                Tag = this.module.Config.Tag
+                FromImage = image,
+                Tag = tag
             };
 
             await this.client.Images.CreateImageAsync(pullParameters, this.authConfig, new Progress<JSONMessage>(), token);
@@ -37,6 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker pull {this.module.Config.Image}:{this.module.Config.Tag}";
+        public string Show() => $"docker pull {this.module.Config.Image}";
     }
 }

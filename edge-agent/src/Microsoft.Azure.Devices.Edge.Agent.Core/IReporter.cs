@@ -2,10 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System.Threading;
     using System.Threading.Tasks;
 
     public interface IReporter
     {
-        Task ReportAsync(ModuleSet moduleSet);
+        Task ReportAsync(CancellationToken token, ModuleSet moduleSet, AgentConfig agentConfig, DeploymentStatus status);
     }
 }

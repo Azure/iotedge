@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             foreach (JToken xtoken in modules.Children())
             {
                 JToken xtokenFirst = xtoken.First;
+                var name = xtokenFirst.Path.Split('.')[1];
 
                 if (xtokenFirst.HasValues)
                 {
@@ -67,12 +68,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                     {
                         throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
                     }
-
-                    updateList.Add(ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType));
+                    var module = ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType);
+                    module.Name = name;
+                    updateList.Add(module);
                 }
                 else
                 {
-                    removeList.Add(xtokenFirst.Path.Split('.')[1]);
+                    removeList.Add(name);
                 }
             }
 

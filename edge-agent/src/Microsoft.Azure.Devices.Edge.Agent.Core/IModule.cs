@@ -81,8 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IModule : IEquatable<IModule>
     {
-        [JsonProperty(PropertyName = "name")]
-        string Name { get; }
+        [JsonIgnore]
+        string Name { get; set; }
 
         [JsonProperty(PropertyName = "version")]
         string Version { get; }
@@ -95,10 +95,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get;  }
+
+        [JsonProperty(PropertyName = "configuration")]
+        ConfigurationInfo ConfigurationInfo { get; }
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
     {
+        [JsonProperty(PropertyName = "settings")]
         TConfig Config { get; }
+    }    
+
+    public interface IEdgeHubModule : IModule
+    {
+    }
+
+    public interface IEdgeAgentModule : IModule
+    {
     }
 }

@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         FailureCommand()
         {
         }
-        
+
         public Task ExecuteAsync(CancellationToken token) => throw new ArgumentException();
 
         public Task UndoAsync(CancellationToken token) => throw new ArgumentException();
@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
     public class LoggingCommandFactoryTest
     {
+        static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+
         [Fact]
         [Unit]
         public void InvalidParamtersForConstructor()
@@ -62,8 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
         }
 
-        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"));
-        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"));
+        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
         static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         static IEnumerable<object[]> CreateTestData()

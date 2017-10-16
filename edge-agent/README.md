@@ -15,7 +15,9 @@ The application will read the `appsettings.json` for configuration. The format i
   "DockerUri": "<docker service uri>",
   "DeviceConnectionString": "<Your IoT Hub Device Connection String>",
   "ConfigSource": "<iothubconnected|standalone>",
-  "DockerLoggingDriver":  "<json-file|journald|fluentd|etwlogs|none>"
+  "DockerLoggingDriver":  "<json-file|journald|fluentd|etwlogs|none>",
+  "NetworkId": "<Docker network id>",
+  "EdgeDeviceHostName": "<Edge device host name>"
 }
 ```
 
@@ -31,6 +33,10 @@ environment variables.
 `ConfigSource`
 
 `DockerLoggingDriver`
+
+`NetworkId`
+
+`EdgeDeviceHostName`
 
 ### DockerURI
 
@@ -84,3 +90,12 @@ Logs are not available through the `docker logs` command when using "journald."
 The following logging drivers have default options which should work when 
 assigned: "fluentd", "etwlogs", and "none". No testing or validation was done on 
 these logging drivers.
+
+### NetworkId
+
+Set to the Docker network you want the modules in the Edge deployment to be a part of.
+
+### EdgeDeviceHostName
+
+Set to the host name of the edge device, which will be used by the modules and 
+downstream devices to connect to the EdgeHub.

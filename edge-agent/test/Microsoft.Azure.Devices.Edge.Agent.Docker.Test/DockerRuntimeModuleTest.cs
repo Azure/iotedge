@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
@@ -18,42 +18,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [Unit]
     public class DockerRuntimeModuleTest
     {
-        static readonly DockerConfig Config1 = new DockerConfig("image1", "42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
-        static readonly DockerConfig Config2 = new DockerConfig("image2", "42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
+        static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}");
 
-        static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module1a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module2 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module2a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module3 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module4 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, -1, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module5 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 35 minutes", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module6 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-07-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module7 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module8 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly DockerModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1);
-        static readonly IModule Module10 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnFailure, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running);
-        static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped);
+        static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module1a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module2 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module2a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module3 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module4 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, -1, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module5 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 35 minutes", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module6 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-07-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module7 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module8 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly DockerModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, new ConfigurationInfo("1"));
+        static readonly IModule Module10 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnFailure, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, new ConfigurationInfo("1"));
 
-        static readonly DockerConfig ValidConfig = new DockerConfig("image1", "42");
-        static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running);
+        static readonly DockerConfig ValidConfig = new DockerConfig("image1:42", null);
+        static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, new ConfigurationInfo("1"));
 
-        const string SerializedModule1 = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""config"":{""image"":""image1"",""tag"":""42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}}}";
-        const string SerializedModule2 = @"{""name"":""mod1"",""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""statusdescription"":""Running 1 minute"",""laststarttimeutc"":""2017-08-04T17:52:13.0419502Z"",""lastexittimeutc"":""0001-01-01T00:00:00Z"",""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""config"":{""image"":""image1"",""tag"":""42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}}}";
+        const string SerializedModule1 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
+        const string SerializedModule2 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""statusdescription"":""Running 1 minute"",""laststarttimeutc"":""2017-08-04T17:52:13.0419502Z"",""lastexittimeutc"":""0001-01-01T00:00:00Z"",""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(@"
 {
    ""invalidExitCodeJson"":[
       {
-         ""name"": ""mod1"",
          ""version"": ""1.0.0"",
          ""type"": ""docker"",
          ""status"": ""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"": {
-            ""image"": ""image1"",
-            ""tag"": ""ver1"",
+         ""settings"": {
+            ""image"": ""image1:ver1""
          },
          ""exitcode"": ""zero"",
          ""statusdescription"" : ""<status description>"",
@@ -61,14 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod2"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1"",
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": true,
          ""statusdescription"" : ""<status description>"",
@@ -76,14 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod3"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1"",
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": [ 0 ,1 ],
          ""statusdescription"" : ""<status description>"",
@@ -91,14 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod4"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1"",
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": {},
          ""statusdescription"" : ""<status description>"",
@@ -108,14 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""invalidStatusDescription"":[
       {
-         ""name"":""mod3"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": 0,
          ""statusdescription"" : {},
@@ -123,14 +113,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod4"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
          ""restartPolicy"": ""on-unhealthy"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1"",
          },
          ""exitcode"": 0,
          ""statusdescription"" : [],
@@ -140,13 +128,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""invalidLastStartTime"":[
       {
-         ""name"":""mod3"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1"",
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -154,13 +140,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod4"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1"",
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -170,13 +154,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""invalidLastRestartTime"":[
       {
-         ""name"":""mod3"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1"",
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -184,13 +166,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : ""0001-01-01T00:00:00.0000000""
       },
       {
-         ""name"":""mod4"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -200,14 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""invalidRestartCount"":[
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:ver1"",
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -218,14 +196,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""RuntimeStatus"":""running""
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42"",
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -236,14 +212,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""RuntimeStatus"":""running""
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42"",
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -254,14 +228,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""RuntimeStatus"":""running""
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42"",
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -272,14 +244,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""RuntimeStatus"":""running""
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:ver1""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -292,13 +262,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""invalidLastExitTime"":[
       {
-         ""name"":""mod3"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:ver1""
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -306,13 +274,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""lastexittimeutc"" : {}
       },
       {
-         ""name"":""mod4"",
          ""version"":""1.0.0"",
          ""type"":""docker"",
          ""status"":""running"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""ver1""
+         ""settings"":{
+            ""image"":""image1:42""
          },
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
@@ -322,14 +288,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
    ],
    ""validStatus"":[
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""unknown"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -337,17 +301,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""unknown""
+         ""RuntimeStatus"":""unknown"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""stopped"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -355,17 +320,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""stopped""
+         ""RuntimeStatus"":""stopped"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""backoff"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -373,17 +339,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""backoff""
+         ""RuntimeStatus"":""backoff"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""unhealthy"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -391,17 +358,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""unhealthy""
+         ""RuntimeStatus"":""unhealthy"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -409,17 +377,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""running""
+         ""RuntimeStatus"":""running"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""failed"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -427,19 +396,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""0001-01-01T00:00:00.0000000"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""failed""
+         ""RuntimeStatus"":""failed"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       }
    ],
    ""validJson"":[
       {
-         ""Name"":""<module_name>"",
          ""Version"":""<semantic_version_number>"",
          ""Type"":""docker"",
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
-         ""Config"":{
-            ""Image"":""image1"",
-            ""tag"":""42"",
+         ""Settings"":{
+            ""Image"":""image1:42""
          },
          ""ExitCode"": 0,
          ""StatusDescription"" : ""<status description>"",
@@ -447,10 +417,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""LastExitTimeUtc"" : ""2017-08-05T17:52:13.0419502Z"",
          ""RestartCount"" : 1,
          ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RuntimeStatus"":""running""
+         ""RuntimeStatus"":""running"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
       },
       {
-         ""name"":""<module_name>"",
          ""version"":""<semantic_version_number>"",
          ""type"":""docker"",
          ""status"":""running"",
@@ -459,31 +431,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""statusdescription"" : ""<status description>"",
          ""laststarttimeutc"" : ""2017-08-04T17:52:13.0419502Z"",
          ""lastexittimeutc"" : ""2017-08-05T17:52:13.0419502Z"",
-         ""config"":{
-            ""image"":""image1"",
-            ""tag"":""42"",
+         ""settings"":{
+            ""image"":""image1:42""
          },
          ""restartcount"" : 1,
          ""lastrestarttimeutc"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""runtimestatus"":""running""
+         ""runtimestatus"":""running"",
+         ""configuration"": {
+            ""id"": ""1""
+         }
       },
       {
          ""EXITCODE"": 0,
          ""STATUSDESCRIPTION"" : ""<status description>"",
          ""LASTSTARTTIMEUTC"" : ""2017-08-04T17:52:13.0419502Z"",
          ""LASTEXITTIMEUTC"" : ""2017-08-05T17:52:13.0419502Z"",
-         ""NAME"":""<module_name>"",
          ""VERSION"":""<semantic_version_number>"",
          ""TYPE"":""docker"",
          ""STATUS"":""RUNNING"",
          ""RESTARTPOLICY"":""on-failure"",
-         ""CONFIG"":{
-            ""IMAGE"":""image1"",
-            ""TAG"":""42"",
+         ""SETTINGS"":{
+            ""IMAGE"":""image1:42""
          },
          ""RESTARTCOUNT"" : 1,
          ""LASTRESTARTTIMEUTC"" : ""2017-08-06T17:52:13.0419502Z"",
-         ""RUNTIMESTATUS"":""running""
+         ""RUNTIMESTATUS"":""running"",
+         ""CONFIGURATION"": {
+            ""id"": ""1""
+         }
       }
    ],
 }
@@ -539,30 +514,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
 
-            // null module name
-            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule(null, "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running));
-
             // null version
-            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", null, ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running));
+            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", null, ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1")));
 
             // null docker config
-            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running));
+            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1")));
 
             // bad desired status
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1")));
 
             // bad restart policy
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1")));
 
             // bad runtime status
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, (ModuleStatus)int.MaxValue));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, (ModuleStatus)int.MaxValue, new ConfigurationInfo("1")));
 
             // bad restart count
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, -1, DateTime.MinValue, ModuleStatus.Running));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, -1, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1")));
 
-            var env1 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-            var env2 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-            var env3 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
+            var env1 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+            var env2 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+            var env3 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
             Assert.NotNull(env1);
             Assert.NotNull(env2);
             Assert.NotNull(env3);
@@ -602,6 +574,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             IModule myModule = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(jsonFromDockerModule);
             IModule moduleFromSerializedModule = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(SerializedModule2);
 
+            myModule.Name = "mod1";
+            moduleFromSerializedModule.Name = "mod1";
+
             Assert.True(Module2.Equals(myModule));
             Assert.True(moduleFromSerializedModule.Equals(Module2));
         }
@@ -613,6 +588,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             IModule myModule = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(jsonFromDockerModule);
             IModule moduleFromSerializedModule = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(SerializedModule1);
 
+            myModule.Name = "mod1";
+            moduleFromSerializedModule.Name = "mod1";
+
             Assert.True(Module1.Equals(myModule));
             Assert.True(moduleFromSerializedModule.Equals(Module1));
         }
@@ -622,6 +600,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void TestDeserializeValidJson(string inputJson)
         {
             DockerRuntimeModule module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
+            module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
         }
 

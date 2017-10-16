@@ -22,21 +22,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceConnectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
         }
 
-        public async Task<IEnumerable<IModuleIdentity>> UpdateModulesIdentity(ModuleSet desired, ModuleSet current)
+        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentities(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)
             {
-                return new List<IModuleIdentity>();
+                return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
+            // System modules have different module names and identity names. We need to convert module names to module identity names
+            // and vice versa, to make sure the right values are being used.
+            // TODO - This will fail if the user adds modules with the same module name as a system module - for example a module called
+            // edgeHub. We might have to catch such cases and flag them as error (or handle them in some other way).
+
+            IEnumerable<string> updatedModuleIdentites = diff.Updated.Select(m => GetModuleIdentityName(m.Name));
+            IEnumerable<string> removedModuleIdentites = diff.Removed.Select(m => GetModuleIdentityName(m));
+
             IEnumerable<Module> modules = await this.serviceClient.GetModules();
+
+            // TODO - Temporary because serviceClient.GetModules does not return system modules at the moment
+            if (!modules.Any(m => m.Id.Equals(Constants.EdgeHubModuleIdentityName)))
+            {
+                Module edgeHubModule = await this.serviceClient.GetModule(Constants.EdgeHubModuleIdentityName);
+                if (edgeHubModule != null)
+                {
+                    modules = modules.Concat(new Module[] { edgeHubModule });
+                }
+            }
+
             ImmutableDictionary<string, Module> modulesDict = modules.ToImmutableDictionary(p => p.Id);
 
-            IEnumerable<string> createIdentities = diff.Updated.Where(m => !modulesDict.ContainsKey(m.Name)).Select(m => m.Name);
-            IEnumerable<string> removeIdentities = diff.Removed.Where(m => modulesDict.ContainsKey(m)
-                && string.Equals(modulesDict.GetValueOrDefault(m).ManagedBy, ManagedByEdgeHubValue, StringComparison.OrdinalIgnoreCase)).Select(m => m);
+            IEnumerable<string> createIdentities = updatedModuleIdentites.Where(m => !modulesDict.ContainsKey(m));
+            IEnumerable<string> removeIdentities = removedModuleIdentites.Where(m => modulesDict.ContainsKey(m)
+                && string.Equals(modulesDict.GetValueOrDefault(m).ManagedBy, ManagedByEdgeHubValue, StringComparison.OrdinalIgnoreCase));
 
+            // Update any identities that don't have Sas auth type or where the keys are null (this will happen for single device deployments,
+            // where the identities of modules are created, but the auth keys are not set)
             IEnumerable<Module> updateIdentities = modules.Where(
                 m => m.Authentication == null
                     || m.Authentication.Type != AuthenticationType.Sas
@@ -45,15 +66,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     .Select(
                     m =>
                     {
-                        m.Authentication = new AuthenticationMechanism();
-                        m.Authentication.Type = AuthenticationType.Sas;
+                        m.Authentication = new AuthenticationMechanism
+                        {
+                            Type = AuthenticationType.Sas
+                        };
                         return m;
                     }).ToList();
 
-            IEnumerable<Module> updatedModulesIndentity = await this.UpdateServiceModulesIdentity(removeIdentities, createIdentities, updateIdentities);
+            IEnumerable<Module> updatedModulesIndentity = await this.UpdateServiceModulesIdentityAsync(removeIdentities, createIdentities, updateIdentities);
             ImmutableDictionary<string, Module> updatedDict = updatedModulesIndentity.ToImmutableDictionary(p => p.Id);
 
-            return updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(p => new ModuleIdentity(p.Id, this.GetModuleConnectionString(p)));
+            IEnumerable<IModuleIdentity> moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(p => new ModuleIdentity(p.Id, this.GetModuleConnectionString(p)));
+            return moduleIdentities.ToImmutableDictionary(m => GetModuleName(m.Name));
+        }
+
+        private string GetModuleName(string name)
+        {
+            if (name.Equals(Constants.EdgeHubModuleIdentityName))
+            {
+                return Constants.EdgeHubModuleName;
+            }
+            else if (name.Equals(Constants.EdgeAgentModuleIdentityName))
+            {
+                return Constants.EdgeAgentModuleName;
+            }
+            return name;
+        }
+
+        private string GetModuleIdentityName(string moduleName)
+        {
+            if (moduleName.Equals(Constants.EdgeHubModuleName))
+            {
+                return Constants.EdgeHubModuleIdentityName;
+            }
+            else if (moduleName.Equals(Constants.EdgeAgentModuleName))
+            {
+                return Constants.EdgeAgentModuleIdentityName;
+            }
+            return moduleName;
         }
 
         string GetModuleConnectionString(Module module)
@@ -63,14 +113,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 throw new ArgumentException($"Authentication type {module.Authentication.Type} is not supported.");
             }
 
-            return new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(this.deviceConnectionDetails.HostName, this.deviceConnectionDetails.DeviceId)
+            var connectionStringBuilder = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(this.deviceConnectionDetails.HostName, this.deviceConnectionDetails.DeviceId)
                 .SetModuleId(module.Id)
-                .SetSharedAccessKey(module.Authentication.SymmetricKey.PrimaryKey)
-                .Build()
+                .SetSharedAccessKey(module.Authentication.SymmetricKey.PrimaryKey);
+
+            if (!module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
+            {
+                connectionStringBuilder = connectionStringBuilder
+                    .SetGatewayHostName(this.deviceConnectionDetails.GatewayHostName);
+            }
+
+            return connectionStringBuilder.Build()
                 .ToConnectionString();
         }
 
-        async Task<IEnumerable<Module>> UpdateServiceModulesIdentity(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)
+        async Task<IEnumerable<Module>> UpdateServiceModulesIdentityAsync(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)
         {
             await this.serviceClient.RemoveModules(removeIdentities);
 

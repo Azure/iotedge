@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             using (var cts = new CancellationTokenSource(Timeout))
             {
-                var environment = new DockerEnvironment(Client, RestartStateStore, RestartManager);
+                var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                 ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                 Assert.Equal(0, modules.Modules.Count);
             }
@@ -41,10 +41,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         [Fact]
         [Integration]
+        public async Task TestPlatformInfo()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                SystemInfoResponse systemInfo = await Client.System.GetSystemInfoAsync(cts.Token);
+
+                // Act
+                var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
+
+                // Assert
+                Assert.Equal(systemInfo.OperatingSystem, environment.OperatingSystem);
+                Assert.Equal(systemInfo.Architecture, environment.Architecture);
+            }
+        }
+
+        [Fact]
+        [Integration]
         public async Task TestFilters()
         {
-            const string Image = "hello-world";
-            const string Tag = "latest";
+            const string Image = "hello-world:latest";
             const string Name = "test-filters";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
@@ -57,8 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync("test-filters-external", Image);
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var config = new DockerConfig(Image, Tag);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
+                    var config = new DockerConfig(Image);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -72,10 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
-                    var create = new CreateCommand(Client, module, identity.Object, loggingConfig, configSource.Object);
+                    ICommand create = CreateCommand.Build(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
                     // pull the image for both containers
-                    await Client.PullImageAsync(Image, Tag, cts.Token);
+                    await Client.PullImageAsync(Image, cts.Token);
 
                     // pull and create module using commands
                     await create.ExecuteAsync(cts.Token);
@@ -83,12 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var createParams = new CreateContainerParameters
                     {
                         Name = "test-filters-external",
-                        Image = Image + ":" + Tag,
+                        Image = Image,
                     };
                     await Client.Containers.CreateContainerAsync(createParams);
 
                     // Check that only containers created via command are listed in the environment
-                    var environment = new DockerEnvironment(Client, RestartStateStore, RestartManager);
+                    var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.Equal(1, modules.Modules.Count);
                     Assert.Equal(module.Name, modules.Modules.First().Value.Name);
@@ -105,8 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Integration]
         public async Task TestEnvVars()
         {
-            const string Image = "hello-world";
-            const string Tag = "latest";
+            const string Image = "hello-world:latest";
             const string Name = "test-env";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("deviceKey"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
@@ -118,9 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync(Name, Image);
 
                     var createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
-                    var config = new DockerConfig(Image, Tag, createOptions);
+                    var config = new DockerConfig(Image, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -135,15 +151,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
-                    var create = new CreateCommand(Client, module, identity.Object, loggingConfig, configSource.Object);
+                    ICommand create = CreateCommand.Build(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
-                    await Client.PullImageAsync(Image, Tag, cts.Token);
+                    await Client.PullImageAsync(Image, cts.Token);
 
                     // create module using command
                     await create.ExecuteAsync(cts.Token);
 
                     // check that the environment variables are being returned
-                    var environment = new DockerEnvironment(Client, RestartStateStore, RestartManager);
+                    var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.NotNull(modules.Modules[Name]);
                     Assert.True(((DockerRuntimeModule)modules.Modules[Name]).Config.CreateOptions.Env.Contains("k1=v1"));
@@ -161,6 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task ContainerToModuleTest()
         {
+            const string OperatingSystem = "Alpine Linux v3.5";
+            const string Architecture = "x86_x64";
             const string StatusText = "Running for 1 second";
             DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime LastExitTime = LastStartTime.AddDays(1);
@@ -185,19 +203,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 }
             };
 
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OperatingSystem = OperatingSystem,
+                Architecture = Architecture
+            };
+
             var dockerClient = Mock.Of<IDockerClient>(dc => 
-                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(inspectContainerResponse)));
+                dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(inspectContainerResponse)) &&
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
 
             // Act
-            var dockerEnvironment = new DockerEnvironment(dockerClient, RestartStateStore, RestartManager);
-            IModule module = await dockerEnvironment.ContainerToModule(containerListResponse);
+            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
+            IModule module = await dockerEnvironment.ContainerToModuleAsync(containerListResponse);
 
             // Assert
             Assert.NotNull(module);
             var dockerModule = module as DockerRuntimeModule;
             Assert.NotNull(dockerModule);
-            Assert.Equal("localhost:5000/sensor", dockerModule.Config.Image);
-            Assert.Equal("v2", dockerModule.Config.Tag);
+            Assert.Equal("localhost:5000/sensor:v2", dockerModule.Config.Image);
             Assert.Equal(0, dockerModule.Config.CreateOptions.Env?.Count ?? 0);
             Assert.Equal(0, dockerModule.Config.CreateOptions.HostConfig?.PortBindings?.Count ?? 0);
 
@@ -208,6 +232,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(StatusText, dockerModule.StatusDescription);
             Assert.Equal(LastStartTime, dockerModule.LastStartTimeUtc);
             Assert.Equal(LastExitTime, dockerModule.LastExitTimeUtc);
+            Assert.Equal(OperatingSystem, dockerEnvironment.OperatingSystem);
+            Assert.Equal(Architecture, dockerEnvironment.Architecture);
         }
     }
 }

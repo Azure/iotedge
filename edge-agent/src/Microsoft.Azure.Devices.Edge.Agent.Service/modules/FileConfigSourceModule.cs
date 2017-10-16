@@ -59,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     IConfigSource config = await FileConfigSource.Create(
-                        this.configFilename,
-                        c.Resolve<ISerde<ModuleSet>>(),
+                        this.configFilename,                        
                         this.configuration);
                     return config;
                 })
@@ -68,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // Task<IReporter>
+            // TODO: When using a file backed config source we need to figure out
+            // how reporting will work.
             builder.Register(c => Task.FromResult(NullReporter.Instance))
                 .As<Task<IReporter>>()
                 .SingleInstance();

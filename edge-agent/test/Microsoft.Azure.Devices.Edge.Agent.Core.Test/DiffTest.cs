@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     {
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
-        static readonly IModule Module1A = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
-        static readonly IModule Module2 = new TestModule("mod2", "version2", "type2", ModuleStatus.Running, Config2);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
+        static readonly IModule Module1A = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
+        static readonly IModule Module2 = new TestModule("mod2", "version2", "type2", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
 
         [Fact]
         [Unit]
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string>{"module2"});
             Diff alsoNonEmptyDiff = nonEmptyUpdated;
             object nonEmptyUpdatedObjectSameReference = nonEmptyUpdated;
-            
+
             Assert.False(nonEmptyUpdated.Equals(null));
             Assert.True(nonEmptyUpdated.Equals(alsoNonEmptyDiff));
             Assert.False(nonEmptyUpdated.Equals(new object()));
@@ -108,10 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             //Config1 = new TestConfig("image1");
             //arrange
             Diff nonEmptyUpdated = Diff.Create(Module1);
-            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
+            string nonEmptyUpdatedJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
             string nonEmptyRemovedJson = "{\"modules\":{\"module2\": null },\"$version\":127}";
-            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"unknown\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
-            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\"}},\"$version\":127}";
+            string nonSupportedTypeModuleJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"type\":\"unknown\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
+            string noTypeDiffJson = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\",\"version\":\"2\"}}},\"$version\":127}";
 
             var nonEmptyRemoved = new Diff(ImmutableList<IModule>.Empty, new List<string> { "module2" });
 

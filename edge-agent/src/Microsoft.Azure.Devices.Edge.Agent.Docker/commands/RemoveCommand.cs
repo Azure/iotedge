@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
+    using System;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
@@ -34,31 +35,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         {
             Logger.LogError($"Module {this.module.Name} exited with a non-zero exit code of {exitCode}.");
 
-            using (var cts = new CancellationTokenSource())
+            try
             {
-                var parameters = new ContainerLogsParameters
+                using (var cts = new CancellationTokenSource())
                 {
-                    ShowStdout = true,
-                    Tail = RemoveCommand.LogLinesToPull
-                };
-                cts.CancelAfter(RemoveCommand.WaitForLogs);
-                using (var stream = await this.client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
-                {
-                    bool firstLine = true;
-                    using (var reader = new StreamReader(stream))
+                    var parameters = new ContainerLogsParameters
                     {
-                        while (stream.CanRead && !reader.EndOfStream)
+                        ShowStdout = true,
+                        Tail = RemoveCommand.LogLinesToPull
+                    };
+                    cts.CancelAfter(RemoveCommand.WaitForLogs);
+                    using (var stream = await this.client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
+                    {
+                        bool firstLine = true;
+                        using (var reader = new StreamReader(stream))
                         {
-                            if (firstLine)
+                            while (stream.CanRead && !reader.EndOfStream)
                             {
-                                Logger.LogError($"Last {RemoveCommand.LogLinesToPull} log lines from container {this.module.Name}:");
-                                firstLine = false;
+                                if (firstLine)
+                                {
+                                    Logger.LogError($"Last {RemoveCommand.LogLinesToPull} log lines from container {this.module.Name}:");
+                                    firstLine = false;
+                                }
+                                var line = await reader.ReadLineAsync();
+                                Logger.LogError(line);
                             }
-                            var line = await reader.ReadLineAsync();
-                            Logger.LogError(line);
                         }
                     }
                 }
+            }
+            catch(Exception ex)
+            {
+                Logger.LogError($"Unable to get logs from module {this.module.Name} - {ex.Message}");
             }
         }
 

@@ -29,34 +29,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            Task<ModuleSet> envTask = this.environment.GetModulesAsync(token);
-            Task<ModuleSet> configTask = this.configSource.GetModuleSetAsync();
-
-            await Task.WhenAll(envTask, configTask);
-
-            ModuleSet current = envTask.Result;
-            ModuleSet desired = configTask.Result;
+            var (current, agentConfig) = await TaskEx.WhenAll(
+                this.environment.GetModulesAsync(token),
+                this.configSource.GetAgentConfigAsync()
+            );
             ModuleSet updated = current;
-           
-            ImmutableDictionary<string, IModuleIdentity> identities = (await this.moduleIdentityLifecycleManager.UpdateModulesIdentity(desired, current))
-                .ToImmutableDictionary(p => p.Name);
-            Plan plan = await this.planner.PlanAsync(desired, current, identities);
 
-            if (!plan.IsEmpty)
+            if (agentConfig != AgentConfig.Empty)
             {
-                try
+                IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentities(agentConfig.ModuleSet, current);
+                Plan plan = await this.planner.PlanAsync(agentConfig.ModuleSet, current, identities);
+                if (!plan.IsEmpty)
                 {
-                    await plan.ExecuteAsync(token);
-                    updated = await this.environment.GetModulesAsync(token);
-                }
-                catch (Exception ex)
-                {
-                    Events.PlanExecutionFailed(ex);
-                    throw;
+                    try
+                    {
+                        await plan.ExecuteAsync(token);
+                        updated = await this.environment.GetModulesAsync(token);
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.PlanExecutionFailed(ex);
+
+                        updated = await this.environment.GetModulesAsync(token);
+                        await this.reporter.ReportAsync(token, updated, agentConfig, new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
+
+                        throw;
+                    }
                 }
             }
 
-            await this.reporter.ReportAsync(updated);
+            await this.reporter.ReportAsync(token, updated, agentConfig, DeploymentStatus.Success);
         }
 
         static class Events
@@ -67,18 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             enum EventIds
             {
                 AgentCreated = IdStart,
-                UpdateDesiredStateFailed,
                 PlanExecutionFailed
             }
 
             public static void AgentCreated()
             {
                 Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
-            }
-
-            public static void UpdateDesiredStateFailed()
-            {
-                Log.LogError((int)EventIds.UpdateDesiredStateFailed, "Agent update to desired state failed.");
             }
 
             public static void PlanExecutionFailed(Exception ex)

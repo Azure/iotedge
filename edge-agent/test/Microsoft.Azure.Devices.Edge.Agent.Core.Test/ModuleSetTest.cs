@@ -12,15 +12,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class ModuleSetTest
     {
+        static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
 
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
-        static readonly IModule Module2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1);
-        static readonly IModule Module3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1);
-        static readonly IModule Module4 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module4 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-        static readonly TestModule Module5 = new TestModule("mod5", "version1", "test", ModuleStatus.Running, Config2);
+        static readonly TestModule Module5 = new TestModule("mod5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
         static readonly ModuleSet ModuleSet1 = ModuleSet.Create(Module1);
         static readonly ModuleSet ModuleSet2 = ModuleSet.Create(Module5, Module3);
@@ -124,17 +126,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestDeserialize()
         {
-            string validJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string validJsonAllLower = "{\"modules\":{\"mod1\":{\"name\":\"mod1\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartpolicy\":\"on-unhealthy\"},\"mod2\":{\"name\":\"mod2\",\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"config\":{\"image\":\"image1\"},\"restartpolicy\":\"on-unhealthy\"}}}";
-            string validJsonAllCap = "{\"MODULES\":{\"mod1\":{\"NAME\":\"mod1\",\"VERSION\":\"version1\",\"TYPE\":\"test\",\"STATUS\":\"RUNNING\",\"CONFIG\":{\"IMAGE\":\"image1\"},\"RESTARTPOLICY\":\"on-unhealthy\"},\"mod2\":{\"NAME\":\"mod2\",\"VERSION\":\"version1\",\"TYPE\":\"test\",\"STATUS\":\"RUNNING\",\"CONFIG\":{\"IMAGE\":\"image1\"},\"RESTARTPOLICY\":\"on-unhealthy\"}}}";
+            string validJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Settings\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string validJsonAllLower = "{\"modules\":{\"mod1\":{\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartpolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"version\":\"version1\",\"type\":\"test\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartpolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string validJsonAllCap = "{\"MODULES\":{\"mod1\":{\"NAME\":\"mod1\",\"VERSION\":\"version1\",\"TYPE\":\"test\",\"STATUS\":\"RUNNING\",\"SETTINGS\":{\"IMAGE\":\"image1\"},\"RESTARTPOLICY\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"NAME\":\"mod2\",\"VERSION\":\"version1\",\"TYPE\":\"test\",\"STATUS\":\"RUNNING\",\"SETTINGS\":{\"IMAGE\":\"image1\"},\"RESTARTPOLICY\":\"on-unhealthy\",\"CONFIGURATION\":{\"id\":\"1\"}}}}";
 
-            string noNameson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string noVersionJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string noTypeJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string noStatusJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string noConfigJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string noConfigImageJson = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{},\"RestartPolicy\":\"on-unhealthy\"}}}";
-            string notATestType = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"not_a_test\",\"Status\":\"Running\",\"Config\":{},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{},\"RestartPolicy\":\"on-unhealthy\"}}}";
+            string noVersionJson = "{\"Modules\":{\"mod1\":{\"Type\":\"test\",\"Status\":\"Running\",\"Settings\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string noTypeJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Status\":\"Running\",\"Settings\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Status\":\"Running\",\"settings\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string noStatusJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Settings\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"settings\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string noConfigJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Settings\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string noConfigImageJson = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
+            string notATestType = "{\"Modules\":{\"mod1\":{\"Version\":\"version1\",\"Type\":\"not_a_test\",\"Status\":\"Running\",\"Settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"Configuration\":{\"id\":\"1\"}},\"mod2\":{\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"settings\":{},\"RestartPolicy\":\"on-unhealthy\",\"configuration\":{\"id\":\"1\"}}}}";
 
             var serializerInputTable = new Dictionary<string, Type>() { { "Test", typeof(TestModule) }};
             var myModuleSetSerde = new ModuleSetSerde(serializerInputTable);
@@ -157,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(Module1.Equals(myModule5));
             Assert.True(Module2.Equals(myModule6));
 
-            Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noNameson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noVersionJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noStatusJson));
             Assert.Throws<JsonSerializationException>(() => myModuleSetSerde.Deserialize(noTypeJson));

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 {
@@ -256,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 try
                 {
-                    int cleanupTaskSleepTimeSecs = Math.Min((int)this.messageStore.timeToLive.TotalSeconds / 2, EnsureCleanupTaskTimerSecs);
+                    double cleanupTaskSleepTimeSecs = Math.Min(this.messageStore.timeToLive.TotalSeconds / 2, EnsureCleanupTaskTimerSecs);
                     TimeSpan cleanupTaskSleepTime = TimeSpan.FromSeconds(cleanupTaskSleepTimeSecs);
                     while (true)
                     {

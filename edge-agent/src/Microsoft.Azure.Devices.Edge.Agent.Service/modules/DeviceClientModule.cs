@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        IDeviceClient dc = await DeviceClient.Create(this.connectionDetails, c.Resolve<IServiceClient>());
+                        IDeviceClient dc = await DeviceClient.CreateAsync(this.connectionDetails, c.Resolve<IServiceClient>());
                         return dc;
                     })
                 .As<Task<IDeviceClient>>()

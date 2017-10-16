@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -8,10 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IConfigSource : IDisposable
     {
-        Task<ModuleSet> GetModuleSetAsync();
-
-        event EventHandler<Diff> ModuleSetChanged;
-        event EventHandler<Exception> ModuleSetFailed;
+        Task<AgentConfig> GetAgentConfigAsync();
 
         IConfiguration Configuration { get; }
     }

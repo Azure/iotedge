@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Moq;
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
+      using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
     using Xunit;
@@ -44,14 +44,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
 
-            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
-                .ReturnsAsync(desiredSet);
+            AgentConfig agentConfig = new AgentConfig(0, Mock.Of<IRuntimeInfo>(), desiredSet, Option.None<IEdgeAgentModule>());
+            mockConfigSource.Setup(cs => cs.GetAgentConfigAsync())
+                .ReturnsAsync(agentConfig);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
-                .ReturnsAsync(currentSet);
+			    .ReturnsAsync(currentSet);
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(agentConfig.ModuleSet, currentSet))
+                .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(desiredSet, currentSet, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(Plan.Empty));
-            mockReporter.Setup(r => r.ReportAsync(currentSet))
-                .Returns(Task.CompletedTask);
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(desiredSet, currentSet))
+                .Returns(Task.FromResult((IImmutableDictionary<String, IModuleIdentity>)ImmutableDictionary<String, IModuleIdentity>.Empty));
 
             Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
 
@@ -59,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.PlanAsync(desiredSet, currentSet, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
-            mockReporter.VerifyAll();
+            mockReporter.Verify(r => r.ReportAsync(token, currentSet, agentConfig, new DeploymentStatus(DeploymentStatusCode.Successful)), Times.Once);
         }
 
         [Fact]
@@ -75,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
 
-            mockConfigSource.Setup(cs => cs.GetModuleSetAsync()).Throws<InvalidOperationException>();
+            mockConfigSource.Setup(cs => cs.GetAgentConfigAsync()).Throws<InvalidOperationException>();
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
 
@@ -91,8 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void ReconcileAsyncOnSetPlan()
         {
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"));
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"));
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
             Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
             var moduleExecutionList = new List<TestRecordType>
             {
@@ -110,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
 
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
+            AgentConfig agentConfig = new AgentConfig(0, Mock.Of<IRuntimeInfo>(), desiredSet, Option.None<IEdgeAgentModule>());
             ModuleSet currentSet = ModuleSet.Create(currentModule);
 
             var mockConfigSource = new Mock<IConfigSource>();
@@ -118,13 +122,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
 
-            mockConfigSource.Setup(cs => cs.GetModuleSetAsync())
-                .ReturnsAsync(desiredSet);
+            mockConfigSource.Setup(cs => cs.GetAgentConfigAsync())
+                .ReturnsAsync(agentConfig);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(agentConfig.ModuleSet, currentSet))
+                .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(desiredSet, currentSet, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(testPlan));
-            mockReporter.Setup(r => r.ReportAsync(currentSet))
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(desiredSet, currentSet))
+                .Returns(Task.FromResult((IImmutableDictionary<String, IModuleIdentity>)ImmutableDictionary<String, IModuleIdentity>.Empty));
+            mockReporter.Setup(r => r.ReportAsync(token, currentSet, agentConfig, new DeploymentStatus(DeploymentStatusCode.Successful)))
                 .Returns(Task.CompletedTask);
 
             Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);

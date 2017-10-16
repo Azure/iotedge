@@ -1,9 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -25,15 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
                 Converters = new List<JsonConverter>
                 {
-                    new ModuleJsonConverter(converters)
+                    new ModuleJsonConverter(converters),
+                    new ModuleSetJsonConverter()
                 },
             };
         }
 
-        public string Serialize(ModuleSet moduleSet)
-        {
-            return JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
-        }
+        public string Serialize(ModuleSet moduleSet) => JsonConvert.SerializeObject(moduleSet, this.jsonSerializerSettings);
 
         public ModuleSet Deserialize(string json) => this.Deserialize<ModuleSet>(json);
 
@@ -49,21 +48,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             }
         }
 
+        class ModuleSetJsonConverter: JsonConverter
+        {
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                var modules = new Dictionary<string, IDictionary<string, IModule>>(serializer.Deserialize<IDictionary<string, IDictionary<string, IModule>>>(reader), StringComparer.OrdinalIgnoreCase)
+                    .GetOrElse("modules", new Dictionary<string, IModule>())
+                    .ToDictionary(pair => pair.Key, pair => { pair.Value.Name = pair.Key; return pair.Value; });
+
+                return new ModuleSet(modules);
+            }
+
+            public override bool CanWrite => false;
+
+            public override bool CanConvert(Type objectType) => objectType == typeof(ModuleSet);
+        }
+
         class ModuleJsonConverter : JsonConverter
         {
             readonly IDictionary<string, Type> converters;
 
             readonly ModuleSerde moduleSerde = ModuleSerde.Instance;
 
-            public ModuleJsonConverter(IDictionary<string, System.Type> deserializerTypes)
+            public ModuleJsonConverter(IDictionary<string, Type> deserializerTypes)
             {
                 this.converters = new Dictionary<string, Type>(deserializerTypes, StringComparer.OrdinalIgnoreCase);
             }
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-            {
-                throw new NotSupportedException();
-            }
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {

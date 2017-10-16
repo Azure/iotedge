@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         // Connection string base for Edge Hub Modules
         public const string EdgeHubConnectionStringKey = "EdgeHubConnectionString";
 
+        public const string IotHubConnectionStringKey = "IotHubConnectionString";
+
         public const string ModuleIdKey = "ModuleId";
 
         public const string MMAStorePartitionKey = "mma";
@@ -20,6 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const ModuleStatus DefaultDesiredStatus = ModuleStatus.Running;
 
+        public const string EdgeHubModuleName = "edgeHub";
+
+        public const string EdgeAgentModuleName = "edgeAgent";
+
+        public const string EdgeHubModuleIdentityName = "$edgeHub";
+
+        public const string EdgeAgentModuleIdentityName = "$edgeAgent";
+
+        public const string EdgeDeviceHostNameKey = "EdgeDeviceHostName";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";
@@ -27,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             public const string RestartPolicy = "net.azure-devices.edge.restartPolicy";
             public const string DesiredStatus = "net.azure-devices.edge.desiredStatus";
             public const string NormalizedCreateOptions = "net.azure-devices.edge.normalizedCreateOptions";
+            public const string ConfigurationId = "net.azure-devices.edge.configurationId";
         }
     }
 }

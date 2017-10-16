@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 {
@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
     using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
-    /// Implements a trigger binding for EdgeHub which triggers a function 
+    /// Implements a trigger binding for EdgeHub which triggers a function
     /// when a message with corresponding InputName is received
     /// Please see <see href="https://github.com/Azure/azure-webjobs-sdk-extensions/wiki/Trigger-Binding-Extensions#binding">Trigger Binding Extensions</see>
     /// </summary>

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -44,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // Initialize docker configuration for this module.
                 DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
-                    ? new DockerConfig(testConfig.ImageName, testConfig.ImageTag, testConfig.ImageCreateOptions)
-                    : new DockerConfig(testConfig.ImageName, testConfig.ImageTag);
+                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
+                    : new DockerConfig(testConfig.Image);
 
                 // Initialize an Edge Agent module object.
                 var dockerModule = new DockerModule(
@@ -53,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     testConfig.Version,
                     ModuleStatus.Running,
                     Core.RestartPolicy.OnUnhealthy,
-                    dockerConfig
+                    dockerConfig,
+                    null
                 );
                 var moduleSet = ModuleSet.Create(dockerModule);
 
@@ -73,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                configSource.Setup(cs => cs.GetModuleSetAsync()).ReturnsAsync(moduleSet);
+                //configSource.Setup(cs => cs.GetModuleSetAsync()).ReturnsAsync(moduleSet);
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
                 // the real configuration source that talks to IoT Hub above.
@@ -83,19 +85,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var restartManager = new Mock<IRestartPolicyManager>().Object;
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
-                var environment = new DockerEnvironment(client, restartStateStore, restartManager);
+                var environment = await DockerEnvironment.CreateAsync(client, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
 
                 var credential = "fake";
                 var identity = new Mock<IModuleIdentity>();
                 identity.Setup(id => id.ConnectionString).Returns(credential);
                 identity.Setup(id => id.Name).Returns(testConfig.Name);
-                IEnumerable<IModuleIdentity> identities = new List<IModuleIdentity>()
+                IImmutableDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>()
                 {
-                    identity.Object
-                };
+                    [testConfig.Name] = identity.Object
+                }.ToImmutableDictionary();
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-                moduleIdentityLifecycleManager.Setup(m => m.UpdateModulesIdentity(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
+                moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
                 var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter, moduleIdentityLifecycleManager.Object);
                 await agent.ReconcileAsync(CancellationToken.None);

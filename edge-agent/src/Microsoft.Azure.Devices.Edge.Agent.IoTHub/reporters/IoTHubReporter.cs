@@ -5,77 +5,99 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public class IoTHubReporter : IReporter
     {
-        readonly ITwinConfigSource twinConfigSource;
-        readonly IDeviceClient deviceClient;
+        readonly string[] SystemModuleNames = new string[]
+        {
+            Constants.EdgeAgentModuleName,
+            Constants.EdgeHubModuleName
+        };
+        readonly IEdgeAgentConnection edgeAgentConnection;
+        readonly IEnvironment environment;
         readonly object sync;
-        Option<ModuleSet> reported;
+        Option<AgentState> reportedState;
 
-        public IoTHubReporter(IDeviceClient deviceClient, ITwinConfigSource twinConfigSource)
+        public IoTHubReporter(IEdgeAgentConnection edgeAgentConnection, IEnvironment environment)
         {
-            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
-            this.twinConfigSource = Preconditions.CheckNotNull(twinConfigSource, nameof(twinConfigSource));
+            this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
+            this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
+
             this.sync = new object();
-            this.reported = Option.None<ModuleSet>();
+            this.reportedState = Option.None<AgentState>();
         }
 
-        ModuleSet Reported
+        JToken GetReportedJson()
         {
-            // if we have a cached copy of the reported modules list then we return that;
-            // if we don't have it cached then we return whatever we got when we fetched the
-            // twin from IoT Hub via twinConfigSource
-            get
+            lock (this.sync)
             {
-                lock (this.sync)
-                {
-                    ModuleSet reported = this.reported.GetOrElse(this.twinConfigSource.ReportedModuleSet);
-                    return reported.Equals(ModuleSet.Empty) ? reported : new ModuleSet(reported.Modules);
-                }
-            }
-
-            set
-            {
-                lock (this.sync)
-                {
-                    this.reported = Option.Some(value);
-                }
+                return this.reportedState
+                    .Map(s => JToken.Parse(JsonConvert.SerializeObject(s)))
+                    .GetOrElse(() =>
+                        this.edgeAgentConnection.ReportedProperties
+                            .Map(coll => JsonEx.StripMetadata(JToken.Parse(coll.ToJson())))
+                            .GetOrElse(JValue.CreateNull()));
             }
         }
 
-        public async Task ReportAsync(ModuleSet moduleSet)
+        void SetReported(AgentState reported)
         {
-            Diff diff = moduleSet.Diff(this.Reported);
-
-            // add the modules that are still running
-            var modulesMap = new Dictionary<string, IModule>(diff.Updated.ToImmutableDictionary(m => m.Name));
-
-            // add removed modules by assigning 'null' as the value
-            foreach (string moduleName in diff.Removed)
+            lock (this.sync)
             {
-                modulesMap.Add(moduleName, null);
+                this.reportedState = Option.Some(reported);
+            }
+        }
+
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, AgentConfig agentConfig, DeploymentStatus status)
+        {
+            // produce JSONs for previously reported state and current state
+            JToken reportedJson = this.GetReportedJson();
+
+            // if there is no reported JSON to compare against, then we don't do anything
+            // because this typically means that we never connected to IoT Hub before and
+            // we have no connection yet
+            if (reportedJson.Type == JTokenType.Null)
+            {
+                Events.NoSavedReportedProperties();
+                return;
             }
 
-            if (modulesMap.Count > 0)
-            {
-                var reportedProps = new TwinCollection
-                {
-                    ["modules"] = modulesMap
-                };
+            IModule edgeAgentModule = await this.environment.GetEdgeAgentModuleAsync(token);
+            IEnumerable<KeyValuePair<string, IModule>> systemModules = moduleSet.Modules
+                .Where(kvp => SystemModuleNames.Contains(kvp.Value.Name))
+                .Concat(new KeyValuePair<string, IModule>[] { new KeyValuePair<string, IModule>(edgeAgentModule.Name, edgeAgentModule) });
+            IEnumerable<KeyValuePair<string, IModule>> userModules = moduleSet.Modules.Except(systemModules);
 
+            var currentState = new AgentState(
+                agentConfig.Version,
+                status,
+                agentConfig.Runtime,
+                systemModules.ToImmutableDictionary(),
+                userModules.ToImmutableDictionary()
+            );
+
+            // diff and prepare patch
+            JToken currentJson = JToken.Parse(JsonConvert.SerializeObject(currentState));
+            JObject patch = JsonEx.Diff(reportedJson, currentJson);
+
+            if (patch.HasValues)
+            {
                 try
                 {
-                    await this.deviceClient.UpdateReportedPropertiesAsync(reportedProps);
+                    // send reported props
+                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch));
 
                     // update our cached copy of reported properties
-                    this.Reported = moduleSet;
+                    this.SetReported(currentState);
 
                     Events.UpdatedReportedProperties();
                 }
@@ -98,12 +120,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         enum EventIds
         {
             UpdateReportedPropertiesFailed = IdStart,
-            UpdatedReportedProperties = IdStart + 1
+            UpdatedReportedProperties = IdStart + 1,
+            NoSavedReportedProperties = IdStart + 2
+        }
+
+        public static void NoSavedReportedProperties()
+        {
+            Log.LogWarning((int)EventIds.NoSavedReportedProperties, "Skipped updating reported properties because no saved reported properties exist yet.");
         }
 
         public static void UpdatedReportedProperties()
         {
-            Log.LogInformation((int)EventIds.UpdatedReportedProperties, $"Updated reported properties");
+            Log.LogInformation((int)EventIds.UpdatedReportedProperties, "Updated reported properties");
         }
 
         public static void UpdateReportedPropertiesFailed(Exception e)

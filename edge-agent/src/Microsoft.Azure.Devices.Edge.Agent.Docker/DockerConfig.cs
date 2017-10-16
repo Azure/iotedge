@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
@@ -11,40 +11,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
+        public static DockerConfig Unknown = new DockerConfig("Unknown");
+
         [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
-
-        [JsonProperty(Required = Required.Always, PropertyName = "tag")]
-        public string Tag { get; }
 
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions));
         readonly CreateContainerParameters createOptions;
 
-        public DockerConfig(
-            string image,
-            string tag)
-            : this(image, tag, string.Empty)
+        public DockerConfig(string image)
+            : this(image, string.Empty)
         {
         }
 
         [JsonConstructor]
-        public DockerConfig(
-            string image,
-            string tag,
-            string createOptions)
+        public DockerConfig(string image, string createOptions)
         {
             this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image));
-            this.Tag = Preconditions.CheckNonWhiteSpace(tag, nameof(tag));
-            if (createOptions == null)
-            {
-                this.createOptions = new CreateContainerParameters();
-            }
-            else
-            {
-                this.createOptions = JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions) ?? new CreateContainerParameters();
-            }
+            this.createOptions = string.IsNullOrWhiteSpace(createOptions)
+                ? new CreateContainerParameters()
+                : JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions);
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
@@ -54,7 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             unchecked
             {
                 int hashCode = (this.Image != null ? this.Image.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ this.Tag.GetHashCode();
                 hashCode = (hashCode * 397) ^ (this.createOptions?.GetHashCode() ?? 0);
                 return hashCode;
             }
@@ -72,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Image, other.Image) &&
-                   string.Equals(this.Tag, other.Tag) &&
                    CompareCreateOptions(this.CreateOptions, other.CreateOptions);
         }
 
@@ -87,9 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 writer.WritePropertyName("image");
                 serializer.Serialize(writer, dockerconfig.Image);
 
-                writer.WritePropertyName("tag");
-                serializer.Serialize(writer, dockerconfig.Tag);
-
                 writer.WritePropertyName("createOptions");
                 serializer.Serialize(writer, JsonConvert.SerializeObject(dockerconfig.CreateOptions));
 
@@ -103,10 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 // Pull out JToken values from json
                 obj.TryGetValue("image", StringComparison.OrdinalIgnoreCase, out JToken jTokenImage);
-                obj.TryGetValue("tag", StringComparison.OrdinalIgnoreCase, out JToken jTokenTag);
                 obj.TryGetValue("createOptions", StringComparison.OrdinalIgnoreCase, out JToken jTokenCreateOptions);
 
-                return new DockerConfig(jTokenImage?.ToString(), jTokenTag?.ToString(), (jTokenCreateOptions?.ToString() ?? string.Empty));
+                return new DockerConfig(jTokenImage?.ToString(), (jTokenCreateOptions?.ToString() ?? string.Empty));
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);

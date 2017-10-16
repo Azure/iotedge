@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -11,10 +11,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     /// </summary>
     public interface IEnvironment
     {
+        string OperatingSystem { get; }
+
+        string Architecture { get; }
+
         /// <summary>
         /// Returns a ModuleSet representing the current state of the system (current reality)
         /// </summary>
         /// <returns></returns>
         Task<ModuleSet> GetModulesAsync(CancellationToken token);
+
+        Task<IModule> GetEdgeAgentModuleAsync(CancellationToken token);
     }
 }

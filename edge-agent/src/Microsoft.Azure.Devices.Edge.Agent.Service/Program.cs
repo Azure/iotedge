@@ -34,33 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             return MainAsync(configuration).Result;
         }
-
-        static string GetGatewayHostname(IConfiguration configuration, ILogger logger)
-        {
-            string connectionString = configuration.GetValue<string>("DeviceConnectionString");
-            string edgeHubIpInterfaceName = configuration.GetValue<string>("IPInterfaceName");
-
-            // find the local IP address on network interface edgeHubIPInterfaceName
-            IPAddress address = NetworkInterface
-                .GetAllNetworkInterfaces()
-                .FirstOrDefault(inf => inf.Name.Equals(edgeHubIpInterfaceName, StringComparison.OrdinalIgnoreCase))
-                ?.GetIPProperties()
-                ?.UnicastAddresses
-                // We are only interested in IPv4 addresses at this point.
-                ?.FirstOrDefault(addr => addr.Address.AddressFamily == AddressFamily.InterNetwork)
-                ?.Address;
-            if (address != null)
-            {
-                connectionString = $"{connectionString};GatewayHostName={address.ToString()}";
-            }
-            else
-            {
-                logger.LogWarning($"Unable to retrieve IP address for network interface {edgeHubIpInterfaceName}");
-            }
-
-            return connectionString;
-        }
-
+        
         public static async Task<int> MainAsync(IConfiguration configuration)
         {
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
@@ -79,11 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
 
-            string deviceConnectionString = GetGatewayHostname(configuration, logger);
+            string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+            string edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
             IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
             var edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
                 .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
-                .SetGatewayHostName(connectionStringParser.GatewayHostName)
+                .SetGatewayHostName(edgeDeviceHostName)
                 .Build();
 
             var dockerUri = new Uri(dockerUriConfig);
@@ -92,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, deviceConnectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
                     break;
                 case "standalone":
                     builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
@@ -116,19 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
                 {
                     Agent agent = await container.Resolve<Task<Agent>>();
-
-                    // Do another reconcile whenever the config source reports that the desired
-                    // configuration has changed.
-                    configSource.ModuleSetChanged += (sender, diff) =>
-                    {
-                        logger.LogInformation("Received config change...");
-                    };
-
-                    configSource.ModuleSetFailed += (sender, ex) =>
-                    {
-                        logger.LogError(AgentEventIds.Agent, ex, "Configuration source failure");
-                    };
-
                     while (!cts.Token.IsCancellationRequested)
                     {
                         try
