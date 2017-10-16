@@ -39,7 +39,7 @@ namespace SimulatedTemperatureSensor
                 MachinePressureMin = configuration.GetValue<double>("machinePressureMin", 1),
                 MachinePressureMax = configuration.GetValue<double>("machinePressureMax", 10),
                 AmbientTemp = configuration.GetValue<double>("ambientTemp", 21),
-                HumidityPercent = configuration.GetValue<int>("abientHumidity", 25)
+                HumidityPercent = configuration.GetValue<int>("ambientHumidity", 25)
             };
 
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
