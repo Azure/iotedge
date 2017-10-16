@@ -2,8 +2,7 @@
     {
         "name": "mongo-server",
         "version": "1.0",
-        "imageName": "mongo",
-        "imageTag": "3.4.4",
+        "image": "mongo:3.4.4",
         "validator": {
             "$type": "RunCommandValidator",
             "command": "docker",
@@ -14,15 +13,8 @@
     {
         "name": "nginx-server",
         "version": "1.0",
-        "imageName": "nginx",
-        "imageTag": "latest",
-        "portBindings": [
-            {
-                "from": 80,
-                "to": 8080,
-                "type": "tcp"
-            }
-        ],
+        "image": "nginx:latest",
+        "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
         "validator": {
             "$type": "RunCommandValidator",
             "command": "docker",

@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     {"max-file", "1" }
                 };
                 var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                
+
                 string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
                 IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                 {
@@ -75,7 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                //configSource.Setup(cs => cs.GetModuleSetAsync()).ReturnsAsync(moduleSet);
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
                 // the real configuration source that talks to IoT Hub above.
@@ -156,8 +155,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             //      {
             //         "name": "mongo-server",
             //         "version": "1.0",
-            //         "imageName": "mongo",
-            //         "imageTag": "3.4.4",
+            //         "image": "mongo:3.4.4",
+            //         "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
             //         "validator": {
             //             "$type": "RunCommandValidator",
             //             "command": "docker",
@@ -165,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             //             "outputEquals": "3.4.4"
             //         }
             //      }
-            // 
+            //
             // Here the value "RunCommandValidator" for "$type" means that Newtonsoft JSON will
             // de-serialize the "validator" object from the JSON into an instance of type "RunCommandValidator".
             // We provide the mapping from the value of "$type" to a fully qualified .NET type name by providing

@@ -2,8 +2,7 @@
     {
         "name": "dotnet",
         "version": "1.0",
-        "imageName": "microsoft/dotnet",
-        "imageTag": "2.0.0-sdk-nanoserver",
+        "image": "microsoft/dotnet:2.0.0-sdk-nanoserver",
         "validator": {
             "$type": "RunCommandValidator",
             "command": "docker",
