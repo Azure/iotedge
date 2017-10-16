@@ -47,7 +47,6 @@ usage()
     echo " -p, --password       Docker Username's password"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
-    echo " --skip-runtime       Do not build dotnet runtime"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--dotnet-url          Dotnet Runtime Download (tar.gz) URL"
     exit 1;
