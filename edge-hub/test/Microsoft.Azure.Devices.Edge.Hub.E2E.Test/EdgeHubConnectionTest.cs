@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
             var cloudProxyProvider = new CloudProxyProvider(messageConverterProvider, 1, true);
             var connectionManager = new ConnectionManager(cloudProxyProvider);
-           
+
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             // Connect the downstream device and make sure the reported properties are updated as expected.
             connectionManager.AddDeviceConnection(downstreamDeviceIdentity.Value, downstreamDeviceProxy);
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            await Task.Delay(TimeSpan.FromSeconds(10));
             reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
             Assert.Equal(1, reportedProperties.Clients.Count);
             Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[downstreamDeviceId].Status);

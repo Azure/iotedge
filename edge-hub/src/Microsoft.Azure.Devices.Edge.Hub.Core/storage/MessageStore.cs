@@ -20,8 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     /// <summary>
     /// This object is responsible for storing messages for each endpoint.
     /// - Each message is stored in the message store
-    /// - A reference to the message is also stored in a per-endpoint-queue. 
-    /// - Messages can be retrieved per endpoint in batches. 
+    /// - A reference to the message is also stored in a per-endpoint-queue.
+    /// - Messages can be retrieved per endpoint in batches.
     /// </summary>
     public class MessageStore : IMessageStore
     {

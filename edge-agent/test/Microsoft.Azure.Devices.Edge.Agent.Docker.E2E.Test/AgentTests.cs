@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -73,8 +74,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     { "DeviceConnectionString", $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}" }
                 }).Build();
 
+                var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
+                var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
+                var agentConfig = new AgentConfig(1, runtimeInfo, moduleSet, Option.None<IEdgeAgentModule>());
+
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                configSource.Setup(cs => cs.GetAgentConfigAsync()).ReturnsAsync(agentConfig);
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
                 // the real configuration source that talks to IoT Hub above.

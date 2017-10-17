@@ -10,12 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     }
 
     public interface IRuntimeInfo<TConfig> : IRuntimeInfo
-    {        
+    {
         TConfig Config { get; }
     }
 
     public class UnknownRuntimeInfo : IRuntimeInfo
-    { 
+    {
         UnknownRuntimeInfo() { }
 
         public static UnknownRuntimeInfo Instance { get; } = new UnknownRuntimeInfo();
