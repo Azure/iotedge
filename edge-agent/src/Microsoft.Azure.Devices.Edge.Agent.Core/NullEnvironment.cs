@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         public static NullEnvironment Instance { get; } = new NullEnvironment();
 
-        public string OperatingSystem => string.Empty;
+        public string OperatingSystemType => string.Empty;
 
         public string Architecture => string.Empty;
 
@@ -20,5 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public Task<ModuleSet> GetModulesAsync(CancellationToken token) => Task.FromResult(ModuleSet.Empty);
 
         public Task<IModule> GetEdgeAgentModuleAsync(CancellationToken token) => Task.FromResult((IModule)null);
+
+        public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo) => Task.FromResult(runtimeInfo);
     }
 }

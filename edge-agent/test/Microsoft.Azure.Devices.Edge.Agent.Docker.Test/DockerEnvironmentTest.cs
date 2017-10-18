@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
 
                 // Assert
-                Assert.Equal(systemInfo.OperatingSystem, environment.OperatingSystem);
+                Assert.Equal(systemInfo.OSType, environment.OperatingSystemType);
                 Assert.Equal(systemInfo.Architecture, environment.Architecture);
             }
         }
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task ContainerToModuleTest()
         {
-            const string OperatingSystem = "Alpine Linux v3.5";
+            const string OperatingSystemType = "linux";
             const string Architecture = "x86_x64";
             const string StatusText = "Running for 1 second";
             DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var systemInfoResponse = new SystemInfoResponse
             {
-                OperatingSystem = OperatingSystem,
+                OSType = OperatingSystemType,
                 Architecture = Architecture
             };
 
@@ -232,8 +232,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(StatusText, dockerModule.StatusDescription);
             Assert.Equal(LastStartTime, dockerModule.LastStartTimeUtc);
             Assert.Equal(LastExitTime, dockerModule.LastExitTimeUtc);
-            Assert.Equal(OperatingSystem, dockerEnvironment.OperatingSystem);
+            Assert.Equal(OperatingSystemType, dockerEnvironment.OperatingSystemType);
             Assert.Equal(Architecture, dockerEnvironment.Architecture);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetUpdatedRuntimeInfoAsyncTest()
+        {
+            const string OperatingSystemType = "linux";
+            const string Architecture = "x86_x64";
+
+            DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
+            DateTime LastExitTime = LastStartTime.AddDays(1);
+
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+
+            var inputRuntimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.13", string.Empty));
+
+            // Act
+            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
+            IRuntimeInfo outputRuntimeInfo = await dockerEnvironment.GetUpdatedRuntimeInfoAsync(inputRuntimeInfo);
+
+            // Assert
+            Assert.NotNull(outputRuntimeInfo);
+            var dockerReportedRuntimeInfo = outputRuntimeInfo as DockerReportedRuntimeInfo;
+            Assert.NotNull(dockerReportedRuntimeInfo);
+
+            var expectedRuntimeInfo = new DockerReportedRuntimeInfo("docker", inputRuntimeInfo.Config, new DockerPlatformInfo(OperatingSystemType, Architecture));
+            Assert.Equal(expectedRuntimeInfo, dockerReportedRuntimeInfo);
         }
     }
 }

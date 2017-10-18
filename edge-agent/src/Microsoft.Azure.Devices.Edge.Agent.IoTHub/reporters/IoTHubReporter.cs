@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             var currentState = new AgentState(
                 agentConfig.Version,
                 status,
-                agentConfig.Runtime,
+                await this.environment.GetUpdatedRuntimeInfoAsync(agentConfig.Runtime),
                 systemModules.ToImmutableDictionary(),
                 userModules.ToImmutableDictionary()
             );

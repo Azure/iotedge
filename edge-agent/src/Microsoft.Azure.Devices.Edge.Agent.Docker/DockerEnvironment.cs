@@ -27,17 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly IEntityStore<string, ModuleState> store;
         readonly IRestartPolicyManager restartManager;
 
-        DockerEnvironment(IDockerClient client, IEntityStore<string, ModuleState> store, IRestartPolicyManager restartManager, string operatingSystem, string architecture)
+        DockerEnvironment(IDockerClient client, IEntityStore<string, ModuleState> store, IRestartPolicyManager restartManager, string operatingSystemType, string architecture)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.store = Preconditions.CheckNotNull(store, nameof(store));
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
 
-            this.OperatingSystem = string.IsNullOrWhiteSpace(operatingSystem) ? "Unknown" : operatingSystem;
+            this.OperatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? "Unknown" : operatingSystemType;
             this.Architecture = string.IsNullOrWhiteSpace(architecture) ? "Unknown" : architecture;
         }
 
-        public string OperatingSystem { get; }
+        public string OperatingSystemType { get; }
 
         public string Architecture { get; }
 
@@ -48,7 +48,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // get system information from docker
             SystemInfoResponse info = await client.System.GetSystemInfoAsync();
 
-            return new DockerEnvironment(client, store, restartManager, info.OperatingSystem, info.Architecture);
+            return new DockerEnvironment(client, store, restartManager, info.OSType, info.Architecture);
+        }
+
+        public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo)
+        {
+            string type = runtimeInfo?.Type ?? "docker";
+            DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
+            var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
+
+            return Task.FromResult(new DockerReportedRuntimeInfo(type, config, platform) as IRuntimeInfo);
         }
 
         public async Task<ModuleSet> GetModulesAsync(CancellationToken token)
