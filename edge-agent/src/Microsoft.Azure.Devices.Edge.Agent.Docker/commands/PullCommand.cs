@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using System.Net;
 
     public class PullCommand : ICommand
     {
@@ -35,7 +36,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 Tag = tag
             };
 
-            await this.client.Images.CreateImageAsync(pullParameters, this.authConfig, new Progress<JSONMessage>(), token);
+            try
+            {
+                await this.client.Images.CreateImageAsync(pullParameters,
+                                                          this.authConfig,
+                                                          new Progress<JSONMessage>(),
+                                                          token);
+            }
+            catch (DockerApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+
+            {
+                throw new ImageNotFoundException(image, tag, ex.StatusCode.ToString(), ex);
+            }
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
