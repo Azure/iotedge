@@ -33,6 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 await registryManager.RemoveDeviceAsync(edgeDevice);
             }
+
+            await Task.Delay(TimeSpan.FromSeconds(20));
+
             edgeDevice = new Device(edgeDeviceId)
             {
                 Capabilities = new DeviceCapabilities { IotEdge = true },

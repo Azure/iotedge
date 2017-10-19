@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     public class IdentityFactoryTest
     {
         [Fact]
-        public void GetWithSasTokenTest_Device()
+        public void GetWithConnectionStringTest_Device()
         {
             string deviceId = "device1";
             string iotHubHostName = "edgehubtest1.azure-devices.net";
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string deviceConnectionstring = $"HostName={iotHubHostName};DeviceId={deviceId};SharedAccessKey={key}";
 
             IIdentityFactory identityFactory = new IdentityFactory(iotHubHostName);
-            Try<IIdentity> identityTry = identityFactory.GetWithSasToken(deviceConnectionstring);
+            Try<IIdentity> identityTry = identityFactory.GetWithConnectionString(deviceConnectionstring);
             Assert.True(identityTry.Success);
             Assert.NotNull(identityTry.Value);
             IIdentity identity = identityTry.Value;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public void GetWithSasTokenTest_Module()
+        public void GetWithConnectionStringTest_Module()
         {
             string deviceId = "device1";
             string moduleId = "module1";
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string deviceConnectionstring = $"HostName={iotHubHostName};DeviceId={deviceId};ModuleId={moduleId};SharedAccessKey={key}";
 
             IIdentityFactory identityFactory = new IdentityFactory(iotHubHostName);
-            Try<IIdentity> identityTry = identityFactory.GetWithSasToken(deviceConnectionstring);
+            Try<IIdentity> identityTry = identityFactory.GetWithConnectionString(deviceConnectionstring);
             Assert.True(identityTry.Success);
             Assert.NotNull(identityTry.Value);
             IModuleIdentity identity = identityTry.Value as IModuleIdentity;

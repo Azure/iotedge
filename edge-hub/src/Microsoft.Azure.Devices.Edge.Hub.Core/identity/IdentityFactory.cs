@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -37,6 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 string deviceHubHostName = usernameSegments[0];
                 string deviceId = usernameSegments[1];
 
+                // TODO - currently policy is not used, and is not applicable for devices/modules.
+                // Need to check if it should be removed. 
+
                 // The username is of the following format -
                 // For Device identity - iothubHostName/deviceId/api-version=version/DeviceClientType=clientType
                 // For Module identity - iothubHostName/deviceId/moduleId/api-version=version/DeviceClientType=clientType
@@ -63,20 +66,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public Try<IIdentity> GetWithSasToken(string connectionString)
+        public Try<IIdentity> GetWithConnectionString(string connectionString)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
             {
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
+                (AuthenticationScope scope, string policyName, string secret) parsedResult = GetConnectionStringAuthDetails(iotHubConnectionStringBuilder);
                 IIdentity identity = string.IsNullOrWhiteSpace(iotHubConnectionStringBuilder.ModuleId)
-                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, AuthenticationScope.SasToken, null, iotHubConnectionStringBuilder.SharedAccessSignature) as IIdentity
-                    : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, AuthenticationScope.SasToken, null, iotHubConnectionStringBuilder.SharedAccessSignature);
+                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret) as IIdentity
+                    : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret);
                 return Try.Success(identity);
             }
             catch (Exception ex)
             {
                 return Try<IIdentity>.Failure(ex);
+            }
+        }
+
+        static (AuthenticationScope scope, string policyName, string secret) GetConnectionStringAuthDetails(IotHubConnectionStringBuilder iotHubConnectionStringBuilder)
+        {
+            switch(iotHubConnectionStringBuilder.AuthenticationMethod)
+            {
+                case DeviceAuthenticationWithToken auth:
+                    return (AuthenticationScope.SasToken, null, auth.Token);
+                case DeviceAuthenticationWithRegistrySymmetricKey auth:
+                    return (AuthenticationScope.DeviceKey, null, auth.KeyAsBase64String);
+                default:
+                    throw new InvalidOperationException($"Unexpected authentication method type - {iotHubConnectionStringBuilder.AuthenticationMethod.GetType()}");
             }
         }
 

@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Bvt]
     public class EdgeHubConnectionTest
     {
+        const string EdgeHubModuleId = "$edgeHub";
+
         [Fact]
         public async Task TestEdgeHubConnection()
         {
@@ -37,30 +39,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var cloudProxyProvider = new CloudProxyProvider(messageConverterProvider, 1, true);
             var connectionManager = new ConnectionManager(cloudProxyProvider);
 
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = await SecretsHelper.GetSecret("IotHubConnStrPreview");
+            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            string edgeHubId = "testEdgeDevice21";
-            Device edgeDevice = await registryManager.GetDeviceAsync(edgeHubId);
+            string edgeDeviceId = "testHubEdgeDevice1";
+            Device edgeDevice = await registryManager.GetDeviceAsync(edgeDeviceId);
             if (edgeDevice != null)
             {
                 await registryManager.RemoveDeviceAsync(edgeDevice);
             }
-            edgeDevice = await registryManager.AddDeviceAsync(new Device(edgeHubId));
 
-            Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
-            var identityFactory = new IdentityFactory(iotHubConnectionStringBuilder.HostName);
-            string deviceConnStr = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeHubId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-            Try<IIdentity> edgeHubIdentity = identityFactory.GetWithSasToken(deviceConnStr);
+            edgeDevice = new Device(edgeDeviceId)
+            {
+                Capabilities = new DeviceCapabilities { IotEdge = true },
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+            };
+            edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
+
+            string iothubHostName = iotHubConnectionStringBuilder.HostName;
+            var identityFactory = new IdentityFactory(iothubHostName);
+
+            string deviceConnStr = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={EdgeHubModuleId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+            Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(deviceConnStr);
             Assert.True(edgeHubIdentity.Success);
             Assert.NotNull(edgeHubIdentity.Value);
 
             // Set Edge hub desired properties
-            long expectedVersion = await this.SetDesiredProperties(registryManager, edgeHubId);
+            await this.SetDesiredProperties(registryManager, edgeDeviceId);
 
-            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeHubId);
+            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId);
             var routeFactory = new EdgeRouteFactory(endpointFactory);
 
             // Create Edge Hub connection
@@ -79,28 +90,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.True(route.Endpoints.First().GetType() == typeof(CloudEndpoint));
 
             // Make sure reported properties were updated appropriately
-            EdgeHubConnection.ReportedProperties reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
-            Assert.Equal(expectedVersion, reportedProperties.LastDesiredVersion.Value);
+            EdgeHubConnection.ReportedProperties reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(0, reportedProperties.Clients.Count);
 
             // Simulate a downstream device that connects to Edge Hub.
             string downstreamDeviceId = "device1";
-            string sasToken = TokenHelper.CreateSasToken($"{iotHubConnectionStringBuilder.HostName}/devices/{downstreamDeviceId}");
-            string downstreamDeviceConnectionstring = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
-            Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithSasToken(downstreamDeviceConnectionstring);
+            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
+            string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
+            Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
             IDeviceProxy downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
 
             // Connect the downstream device and make sure the reported properties are updated as expected.
             connectionManager.AddDeviceConnection(downstreamDeviceIdentity.Value, downstreamDeviceProxy);
             await Task.Delay(TimeSpan.FromSeconds(10));
-            reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
+            reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(1, reportedProperties.Clients.Count);
             Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[downstreamDeviceId].Status);
             Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
             Assert.Null(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
-            Assert.Equal(expectedVersion, reportedProperties.LastDesiredVersion.Value);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
 
             // Update desired propertied and make sure callback is called with valid values
@@ -119,12 +128,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
 
             edgeHubConnection.SetConfigUpdatedCallback(ConfigUpdatedCallback);
-            expectedVersion = await this.UpdateDesiredProperties(registryManager, edgeHubId);
+            await this.UpdateDesiredProperties(registryManager, edgeDeviceId);
             await Task.Delay(TimeSpan.FromSeconds(5));
             Assert.True(callbackCalled);
 
-            reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
-            Assert.Equal(expectedVersion, reportedProperties.LastDesiredVersion.Value);
+            reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(1, reportedProperties.Clients.Count);
@@ -132,75 +140,76 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // Disconnect the downstream device and make sure the reported properties are updated as expected.
             await connectionManager.RemoveDeviceConnection(downstreamDeviceId);
             await Task.Delay(TimeSpan.FromSeconds(2));
-            reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
+            reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(1, reportedProperties.Clients.Count);
             Assert.Equal(ConnectionStatus.Disconnected, reportedProperties.Clients[downstreamDeviceId].Status);
             Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
             Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
-            Assert.Equal(expectedVersion, reportedProperties.LastDesiredVersion.Value);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
 
             // If the edge hub restarts, clear out the connected devices in the reported properties.
             edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
-            reportedProperties = await this.GetReportedProperties(registryManager, edgeHubId);
+            reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
 
-            await registryManager.RemoveDeviceAsync(edgeHubId);
+            await registryManager.RemoveDeviceAsync(edgeDeviceId);
         }
 
         async Task<EdgeHubConnection.ReportedProperties> GetReportedProperties(RegistryManager registryManager, string edgeHubId)
         {
-            Twin twin = await registryManager.GetTwinAsync(edgeHubId);
+            Twin twin = await registryManager.GetTwinAsync(edgeHubId, EdgeHubModuleId);
             string reportedPropertiesJson = twin.Properties.Reported.ToJson();
             var reportedProperties = JsonConvert.DeserializeObject<EdgeHubConnection.ReportedProperties>(reportedPropertiesJson);
             return reportedProperties;
         }
 
-        async Task<long> SetDesiredProperties(RegistryManager registryManager, string edgeHubId)
+        async Task SetDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            Twin twin = await registryManager.GetTwinAsync(edgeHubId);
+            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var twinContent = new TwinContent();
+            cc.ModuleContent["$edgeHub"] = twinContent;
+
             var desiredProperties = new
             {
-                properties = new
+                schemaVersion = "1.0",
+                routes = new Dictionary<string, string>
                 {
-                    desired = new
-                    {
-                        schemaVersion = "1.0",
-                        routes = new Dictionary<string, string>
-                        {
-                            ["route1"] = "from /* INTO $upstream",
-                        },
-                        storeAndForwardConfiguration = new
-                        {
-                            timeToLiveSecs = 20
-                        }
-                    }
+                    ["route1"] = "from /* INTO $upstream",
+                },
+                storeAndForwardConfiguration = new
+                {
+                    timeToLiveSecs = 20
                 }
             };
             string patch = JsonConvert.SerializeObject(desiredProperties);
-            Twin updatedTwin = await registryManager.UpdateTwinAsync(twin.DeviceId, patch, twin.ETag);
-            return updatedTwin.Properties.Desired.Version;
+
+            twinContent.TargetContent = new TwinCollection(patch);
+            await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
         }
 
-        async Task<long> UpdateDesiredProperties(RegistryManager registryManager, string edgeHubId)
+        async Task UpdateDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            Twin twin = await registryManager.GetTwinAsync(edgeHubId);
+            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var twinContent = new TwinContent();
+            cc.ModuleContent["$edgeHub"] = twinContent;
+
             var desiredProperties = new
             {
-                properties = new
+                schemaVersion = "1.0",
+                routes = new Dictionary<string, string>
                 {
-                    desired = new
-                    {
-                        routes = new Dictionary<string, string>
-                        {
-                            ["route2"] = "from /modules/module1 INTO BrokeredEndpoint(\"/modules/Module2/inputs/input1\")",
-                        }
-                    }
+                    ["route1"] = "from /* INTO $upstream",
+                    ["route2"] = "from /modules/module1 INTO BrokeredEndpoint(\"/modules/Module2/inputs/input1\")",
+                },
+                storeAndForwardConfiguration = new
+                {
+                    timeToLiveSecs = 20
                 }
             };
+
             string patch = JsonConvert.SerializeObject(desiredProperties);
-            Twin updatedTwin = await registryManager.UpdateTwinAsync(twin.DeviceId, patch, twin.ETag);
-            return updatedTwin.Properties.Desired.Version;
+            twinContent.TargetContent = new TwinCollection(patch);
+            await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
         }
     }
 }

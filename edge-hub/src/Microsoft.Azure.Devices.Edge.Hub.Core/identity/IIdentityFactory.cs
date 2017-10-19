@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Try<IIdentity> GetWithSasToken(string username, string password);
 
-        Try<IIdentity> GetWithSasToken(string connectionString);
+        Try<IIdentity> GetWithConnectionString(string connectionString);
 
         Try<IIdentity> GetWithHubKey(string username, string keyName, string keyValue);
 

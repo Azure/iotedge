@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.useTwinConfig)
                     {
                         IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
-                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithSasToken(this.edgeHubConnectionString);
+                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
                         if (!edgeHubIdentity.Success)
                         {
                             throw edgeHubIdentity.Exception;
@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c =>
                     {
                         EndpointExecutorConfig endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
-                        IMessageStore messageStore =c.Resolve<IMessageStore>();
+                        IMessageStore messageStore = c.Resolve<IMessageStore>();
                         IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1), messageStore);
                         return endpointExecutorFactory;
                     })
