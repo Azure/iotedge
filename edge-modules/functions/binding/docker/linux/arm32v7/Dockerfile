@@ -1,11 +1,5 @@
-FROM edgebuilds.azurecr.io/azure-functions-runtime-armv7hf:2.0.0-beta1-0c7272b
+FROM edgebuilds.azurecr.io/azure-functions-runtime-arm32v7:2.0.0-beta1-3f54f80
 
 WORKDIR /app
 
 COPY $EXE_DIR/ ./bindings
-
-COPY ./linux/downloadAndRun.sh /app
-
-ENV AzureWebJobs_ExtensionsPath /app
-
-CMD ["./downloadAndRun.sh"]

@@ -1,0 +1,5 @@
+{
+  "watchDirectories": [ "Shared" ],
+  "functionTimeout": "00:05:00",
+  "functions": [ "EdgeHubTrigger-Csharp" ]
+}

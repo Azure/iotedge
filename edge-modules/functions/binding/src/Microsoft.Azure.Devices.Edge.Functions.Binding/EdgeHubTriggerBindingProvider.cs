@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
@@ -6,10 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Reflection;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host.Triggers;
@@ -45,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return null;
             }
 
-            if (parameter.ParameterType != typeof(Message))
+            if (parameter.ParameterType != typeof(Message) && parameter.ParameterType != typeof(string))
             {
                 throw new InvalidOperationException($"Can't bind EdgeHubTriggerAttribute to type '{parameter.ParameterType}'.");
             }

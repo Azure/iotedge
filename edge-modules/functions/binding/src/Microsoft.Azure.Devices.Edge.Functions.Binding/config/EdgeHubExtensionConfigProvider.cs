@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
 {
@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Azure.WebJobs.Host.Triggers;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Extension configuration provider used to register EdgeHub triggers and binders
@@ -34,11 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder), nameResolver);
 
             context.AddConverter<Message, string>(MessageConverter);
+            context.AddConverter<string, Message>(this.ConvertToMessage);
         }
 
-        string MessageConverter(Message arg)
+        Message ConvertToMessage(string str)
         {
-            return arg.ToString();
+            return JsonConvert.DeserializeObject<Message>(str);
+        }
+
+        string MessageConverter(Message msg)
+        {
+            return JsonConvert.SerializeObject(msg);
         }
     }
 }

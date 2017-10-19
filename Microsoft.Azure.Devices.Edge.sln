@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.26711.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -125,6 +125,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Functions.Binding", "edge-modules\functions\binding\src\Microsoft.Azure.Devices.Edge.Functions.Binding\Microsoft.Azure.Devices.Edge.Functions.Binding.csproj", "{63120FDB-92DD-4E02-B77A-E4B51999A0BB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\host.json = edge-modules\functions\samples\host.json
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EdgeHubTrigger-CSharp", "EdgeHubTrigger-CSharp", "{AFA4A92F-62AA-4EA9-9AE2-70E7EC5FCB12}"
 	ProjectSection(SolutionItems) = preProject
@@ -141,6 +144,32 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8D653BF9-C9B0-4892-97F2-4550E3FA3E8A}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{64E95D7B-8541-4A88-A291-8BE3445FB8FF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{80688705-AEFD-4297-907E-2B20DAFBB5D5}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\bin\extensions.json = edge-modules\functions\samples\bin\extensions.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{B5BB5CDE-E6C7-4896-A66E-17D81BDB9A31}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\docker\linux\amd64\Dockerfile = edge-modules\functions\samples\docker\linux\amd64\Dockerfile
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "arm32v7", "arm32v7", "{31B0F93F-3E58-4C66-9DCC-24236EA81F16}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\docker\linux\arm32v7\Dockerfile = edge-modules\functions\samples\docker\linux\arm32v7\Dockerfile
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{A7922DBF-E53A-45AB-86C6-3978ADE5196A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{8EF9C00D-85BB-49B0-A181-0C7581439816}"
+	ProjectSection(SolutionItems) = preProject
+		edge-modules\functions\samples\docker\windows\amd64\Dockerfile = edge-modules\functions\samples\docker\windows\amd64\Dockerfile
 	EndProjectSection
 EndProject
 Global
@@ -318,6 +347,13 @@ Global
 		{DB92F6C3-A611-40C5-B464-8F11A3EE1AC3} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{D6BFCE1F-0F53-43F1-8D2B-FC0FF8EEFA9C} = {66964A75-04AC-4FDE-8505-E6CB2EF90BE8}
 		{3EB5B58A-5820-44E7-9558-917C105B940D} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
+		{64E95D7B-8541-4A88-A291-8BE3445FB8FF} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
+		{80688705-AEFD-4297-907E-2B20DAFBB5D5} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
+		{BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
+		{B5BB5CDE-E6C7-4896-A66E-17D81BDB9A31} = {BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}
+		{31B0F93F-3E58-4C66-9DCC-24236EA81F16} = {BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}
+		{A7922DBF-E53A-45AB-86C6-3978ADE5196A} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
+		{8EF9C00D-85BB-49B0-A181-0C7581439816} = {A7922DBF-E53A-45AB-86C6-3978ADE5196A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
