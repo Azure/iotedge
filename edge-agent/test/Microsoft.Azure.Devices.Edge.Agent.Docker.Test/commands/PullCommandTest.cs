@@ -128,6 +128,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
         [Fact]
         [Unit]
+        public async Task InternalServerErrorUnitTest()
+        {
+            const string Name = "non-existing-image-name";
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+            {
+                var images = new Mock<IImageOperations>();
+                //ImagesCreateParameters parameters, AuthConfig authConfig, IProgress<JSONMessage> progress, CancellationToken cancellationToken = default(CancellationToken)
+                images.Setup(m => m.CreateImageAsync(It.IsAny<ImagesCreateParameters>(),
+                                                     It.IsAny<AuthConfig>(),
+                                                     It.IsAny<IProgress<JSONMessage>>(),
+                                                     It.IsAny<CancellationToken>()))
+                                                  .Throws(new DockerApiException(System.Net.HttpStatusCode.InternalServerError, "FakeResponseBody"));
+
+                var dockerClient = new Mock<IDockerClient>();
+                dockerClient.SetupGet(c => c.Images).Returns(images.Object);
+
+                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, DockerConfig.Unknown, null);
+
+
+                ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
+
+                await Assert.ThrowsAsync<InternalServerErrorException>(() => pullCommand.ExecuteAsync(cts.Token));
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async Task DockerApiExceptionDifferentFromNotFoundUnitTest()
         {
             const string Name = "non-existing-image-name";

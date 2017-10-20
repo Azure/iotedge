@@ -53,10 +53,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                                                           new Progress<JSONMessage>(),
                                                           token);
             }
-            catch (DockerApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-
+            catch (DockerApiException ex)
             {
-                throw new ImageNotFoundException(image, tag, ex.StatusCode.ToString(), ex);
+                if(ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new ImageNotFoundException(image, tag, ex.StatusCode.ToString(), ex);
+                }
+                else if (ex.StatusCode == HttpStatusCode.InternalServerError)
+                {
+                    throw new InternalServerErrorException(image, tag, ex.StatusCode.ToString(), ex);
+                }
+                //otherwise throw
+                throw;                
             }
         }
 
