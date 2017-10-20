@@ -26,5 +26,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         DateTime DequeuedTime { get; }
 
         QueryValue GetQueryValue(string queryString);
+
+        long Size();
     }
 }

@@ -163,5 +163,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             throw new InvalidOperationException("Content encoding is not specified in system properties.");
         }
+
+        public long Size()
+        {
+            long size = 0L;
+            size += this.Properties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.SystemProperties.Aggregate(0, (acc, pair) => (acc + pair.Key.Length + pair.Value.Length));
+            size += this.Body.Length;
+            return size;
+        }
     }
 }
