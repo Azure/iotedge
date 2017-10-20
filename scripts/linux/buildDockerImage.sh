@@ -235,10 +235,10 @@ docker_build_and_tag_and_push simulated-temperature-sensor "$ARCH" "$EXE_DOCKER_
 [ $? -eq 0 ] || exit $?
 
 # push FunctionsBinding image
-EXE_DIR="Microsoft.Azure.Devices.Edge.Functions.Binding"
-EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
-docker_build_and_tag_and_push functions-binding "$ARCH" "$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
-[ $? -eq 0 ] || exit $?
+# EXE_DIR="Microsoft.Azure.Devices.Edge.Functions.Binding"
+# EXE_DOCKER_DIR=$PUBLISH_DIR/$EXE_DIR/docker
+# docker_build_and_tag_and_push functions-binding "$ARCH" "$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile" "$PUBLISH_DIR/$EXE_DIR" "--build-arg EXE_DIR=."
+# [ $? -eq 0 ] || exit $?
 
 echo "Done Building And Pushing Docker Images"
 
