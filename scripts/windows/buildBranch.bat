@@ -33,6 +33,7 @@ set PUBLISH_FOLDER=%BUILD_BINARIESDIRECTORY%\publish
 set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
 set RELEASE_TESTS_FOLDER=%BUILD_BINARIESDIRECTORY%\release-tests
 set SRC_SCRIPTS_DIR=%BUILD_REPOSITORY_LOCALPATH%\scripts
+set SRC_BIN_DIR=%BUILD_REPOSITORY_LOCALPATH%\bin
 set TEST_CSPROJ_PATTERN=Microsoft.Azure*Test.csproj
 set FUNCTION_BINDING_CSPROJ_PATTERN=*Binding.csproj
 
@@ -103,13 +104,19 @@ for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_
 for /r %BUILD_REPOSITORY_LOCALPATH% %%f in (%FUNCTION_BINDING_CSPROJ_PATTERN%) do (
         echo Publishing - %%f
         for %%i in ("%%f") do set PROJ_NAME=%%~ni
-      
+
         "%DOTNET_ROOT_PATH%\dotnet" publish -f netstandard2.0 -c %CONFIGURATION% -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
         if !ERRORLEVEL! neq 0 exit /b 1
     )
 
 echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker
 xcopy /si %SRC_DOCKER_DIR% %PUBLISH_FOLDER%\docker
+
+echo Copying %SRC_SCRIPTS_DIR% to %PUBLISH_FOLDER%
+xcopy /si %SRC_SCRIPTS_DIR% %PUBLISH_FOLDER%\scripts
+
+echo Copying %SRC_BIN_DIR% to %PUBLISH_FOLDER%
+xcopy /si %SRC_BIN_DIR% %PUBLISH_FOLDER%\bin
 
 echo Publish tests - %PUBLISH_TESTS%
 if "!PUBLISH_TESTS!" == "--publish-tests"  (
