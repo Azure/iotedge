@@ -16,6 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     {
         readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
+        readonly static Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
+        {
+            {"8883/tcp", new PortBinding {HostPort="8883" } },
+            {"443/tcp", new PortBinding {HostPort="443" } }
+        };
 
         public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
         {
@@ -23,12 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.createContainerParameters = Preconditions.CheckNotNull(createContainerParameters, nameof(createContainerParameters));
         }
 
-        public static ICommand Build(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource, bool buildForEdgeHub)
+        public static async Task<ICommand> BuildAsync(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig defaultDockerLoggerConfig, IConfigSource configSource, bool buildForEdgeHub)
         {
             // Validate parameters
             Preconditions.CheckNotNull(client, nameof(client));
             Preconditions.CheckNotNull(module, nameof(module));
-            Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
+            Preconditions.CheckNotNull(defaultDockerLoggerConfig, nameof(defaultDockerLoggerConfig));
             Preconditions.CheckNotNull(configSource, nameof(configSource));
 
             CreateContainerParameters createContainerParameters = module.Config.CreateOptions ?? new CreateContainerParameters();
@@ -40,9 +45,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             createContainerParameters.Name = module.Name;
             createContainerParameters.Image = module.Config.Image;
 
+            var agentConfig = await configSource.GetAgentConfigAsync();
+            Option<DockerRuntimeInfo> dockerRuntimeInfo;
+            if (agentConfig.Runtime is DockerRuntimeInfo)
+            {
+                dockerRuntimeInfo = Option.Some(agentConfig.Runtime as DockerRuntimeInfo);
+            }
+            else
+            {
+                dockerRuntimeInfo = Option.None<DockerRuntimeInfo>();
+            }
+
             // Inject global parameters
             InjectConfig(createContainerParameters, identity, buildForEdgeHub);
-            InjectLoggerConfig(createContainerParameters, dockerLoggerConfig);
+            InjectPortBindings(createContainerParameters, buildForEdgeHub);
+            InjectLoggerConfig(createContainerParameters, defaultDockerLoggerConfig, dockerRuntimeInfo.Map(r => r.Config.LoggingOptions));
 
             // Inject required Edge parameters
             InjectLabels(createContainerParameters, module, createOptionsString);
@@ -80,12 +97,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
         }
 
-        static void InjectLoggerConfig(CreateContainerParameters parameters, DockerLoggingConfig dockerLoggerConfig)
+        static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)
         {
-            parameters.HostConfig = parameters.HostConfig ?? new HostConfig();
-            parameters.HostConfig.LogConfig = parameters.HostConfig.LogConfig ?? new LogConfig();
-            parameters.HostConfig.LogConfig.Type = dockerLoggerConfig.Type;
-            parameters.HostConfig.LogConfig.Config = dockerLoggerConfig.Config;
+            if (injectForEdgeHub)
+            {
+                createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
+                createContainerParameters.HostConfig.PortBindings = createContainerParameters.HostConfig.PortBindings ?? new Dictionary<string, IList<PortBinding>>();
+
+                foreach (var binding in EdgeHubPortBinding)
+                {
+                    IList<PortBinding> current = createContainerParameters.HostConfig.PortBindings.GetOrElse(binding.Key, () => new List<PortBinding>());
+                    current.Add(binding.Value);
+                    createContainerParameters.HostConfig.PortBindings[binding.Key] = current;
+                }
+            }
+        }
+        static void InjectLoggerConfig(CreateContainerParameters createContainerParameters, DockerLoggingConfig defaultDockerLoggerConfig, Option<string> sourceLoggingOptions)
+        {
+            createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
+
+            Option<LogConfig> sourceOptions;
+            try
+            {
+                sourceOptions = sourceLoggingOptions.Filter(l => !string.IsNullOrEmpty(l)).Map(l =>
+                    JsonConvert.DeserializeObject<LogConfig>(l));
+            }
+            catch
+            {
+                sourceOptions = Option.None<LogConfig>();
+            }
+
+            if ((createContainerParameters.HostConfig.LogConfig == null) || (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig.Type)))
+            {
+                createContainerParameters.HostConfig.LogConfig = sourceOptions.GetOrElse(new LogConfig
+                {
+                    Type = defaultDockerLoggerConfig.Type,
+                    Config = defaultDockerLoggerConfig.Config
+                });
+            }
         }
 
         static void InjectLabels(CreateContainerParameters createContainerParameters, DockerModule module, string createOptionsString)

@@ -65,55 +65,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
 
-        public ICommand Create(IModuleWithIdentity module)
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module)
         {
             Assert.True(module.Module is TestModule);
-            return new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder));
         }
 
-        public ICommand Pull(IModule module)
+        public Task<ICommand> PullAsync(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestPull, module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPull, module, this.Recorder));
         }
 
-        public ICommand Update(IModule current, IModuleWithIdentity next)
+        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next)
         {
             Assert.True(current is TestModule);
             Assert.True(next.Module is TestModule);
-            return new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder));
         }
 
-        public ICommand Remove(IModule module)
+        public Task<ICommand> RemoveAsync(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestRemove, module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRemove, module, this.Recorder));
         }
 
-        public ICommand Start(IModule module)
+        public Task<ICommand> StartAsync(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestStart, module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStart, module, this.Recorder));
         }
 
-        public ICommand Stop(IModule module)
+        public Task<ICommand> StopAsync(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestStop, module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder));
         }
 
-        public ICommand Restart(IModule module)
+        public Task<ICommand> RestartAsync(IModule module)
         {
             Assert.True(module is TestModule);
-            return new TestCommand(TestCommandType.TestRestart, module, this.Recorder);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder));
         }
 
-        public ICommand Wrap(ICommand command)
+        public Task<ICommand> WrapAsync(ICommand command)
         {
             foreach (TestPlanRecorder r in this.Recorder)
                 r.CommandWrapped(command);
 
-            return command;
+            return Task.FromResult<ICommand>(command);
         }
     }
 

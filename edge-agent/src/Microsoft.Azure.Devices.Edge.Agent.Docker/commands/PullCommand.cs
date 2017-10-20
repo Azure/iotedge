@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
@@ -13,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
     public class PullCommand : ICommand
     {
-        const int BufferSize = 1 << 19; // 0.5 MB
         readonly IDockerClient client;
         readonly DockerModule module;
         readonly AuthConfig authConfig;
@@ -27,9 +27,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public async Task ExecuteAsync(CancellationToken token)
         {
-            string[] imageParts = this.module.Config.Image.Split(':');            
-            string image = imageParts[0];            
-            string tag = imageParts.Length > 1 ? imageParts[1] : string.Empty;
+            string[] imageParts = this.module.Config.Image.Split(':');
+            string image;
+            string tag;
+            if (imageParts.Length > 1)
+            {
+                image = string.Join(":", imageParts.Take(imageParts.Length - 1));
+                tag = imageParts[imageParts.Length - 1];
+            }
+            else
+            {
+                image = imageParts[0];
+                tag = string.Empty;
+            }
             var pullParameters = new ImagesCreateParameters
             {
                 FromImage = image,

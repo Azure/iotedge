@@ -1,23 +1,25 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System.Threading.Tasks;
+
     public interface ICommandFactory
     {
-        ICommand Create(IModuleWithIdentity module);
+        Task<ICommand> CreateAsync(IModuleWithIdentity module);
 
-        ICommand Pull(IModule module);
+        Task<ICommand> PullAsync(IModule module);
 
-        ICommand Update(IModule current, IModuleWithIdentity next);
+        Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next);
 
-        ICommand Remove(IModule module);
+        Task<ICommand> RemoveAsync(IModule module);
 
-        ICommand Start(IModule module);
+        Task<ICommand> StartAsync(IModule module);
 
-        ICommand Restart(IModule module);
+        Task<ICommand> RestartAsync(IModule module);
 
-        ICommand Stop(IModule module);
+        Task<ICommand> StopAsync(IModule module);
 
-        ICommand Wrap(ICommand command);
+        Task<ICommand> WrapAsync(ICommand command);
     }
 }

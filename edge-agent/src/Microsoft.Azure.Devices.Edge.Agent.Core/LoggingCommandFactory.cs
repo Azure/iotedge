@@ -19,21 +19,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.logger = Preconditions.CheckNotNull(loggerFactory, nameof(loggerFactory)).CreateLogger<LoggingCommandFactory>();
         }
 
-        public ICommand Create(IModuleWithIdentity module) => new LoggingCommand(this.underlying.Create(module), "create", this.logger);
+        public async Task<ICommand> CreateAsync(IModuleWithIdentity module) => new LoggingCommand(await this.underlying.CreateAsync(module), "create", this.logger);
 
-        public ICommand Pull(IModule module) => new LoggingCommand(this.underlying.Pull(module), "pull", this.logger);
+        public async Task<ICommand> PullAsync(IModule module) => new LoggingCommand(await this.underlying.PullAsync(module), "pull", this.logger);
 
-        public ICommand Update(IModule current, IModuleWithIdentity next) => new LoggingCommand(this.underlying.Update(current, next), "update", this.logger);
+        public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next) => new LoggingCommand(await this.underlying.UpdateAsync(current, next), "update", this.logger);
 
-        public ICommand Remove(IModule module) => new LoggingCommand(this.underlying.Remove(module), "remove", this.logger);
+        public async Task<ICommand> RemoveAsync(IModule module) => new LoggingCommand(await this.underlying.RemoveAsync(module), "remove", this.logger);
 
-        public ICommand Start(IModule module) => new LoggingCommand(this.underlying.Start(module), "start", this.logger);
+        public async Task<ICommand> StartAsync(IModule module) => new LoggingCommand(await this.underlying.StartAsync(module), "start", this.logger);
 
-        public ICommand Stop(IModule module) => new LoggingCommand(this.underlying.Stop(module), "stop", this.logger);
+        public async Task<ICommand> StopAsync(IModule module) => new LoggingCommand(await this.underlying.StopAsync(module), "stop", this.logger);
 
-        public ICommand Restart(IModule module) => new LoggingCommand(this.underlying.Restart(module), "restart", this.logger);
+        public async Task<ICommand> RestartAsync(IModule module) => new LoggingCommand(await this.underlying.RestartAsync(module), "restart", this.logger);
 
-        public ICommand Wrap(ICommand command) => new LoggingCommand(this.underlying.Wrap(command), command.ToString(), this.logger);
+        public async Task<ICommand> WrapAsync(ICommand command) => new LoggingCommand(await this.underlying.WrapAsync(command), command.ToString(), this.logger);
 
         class LoggingCommand : ICommand
         {

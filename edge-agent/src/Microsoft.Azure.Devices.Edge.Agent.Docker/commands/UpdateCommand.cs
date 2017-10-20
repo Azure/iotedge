@@ -13,15 +13,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         readonly ICommand remove;
         readonly ICommand create;
 
-        public UpdateCommand(IDockerClient client, DockerModule current, DockerModule next, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
+        public UpdateCommand(ICommand remove, ICommand create)
+        {
+            this.remove = Preconditions.CheckNotNull(remove, nameof(remove));
+            this.create = Preconditions.CheckNotNull(create, nameof(create));
+        }
+
+        public static async Task<ICommand> BuildAsync(IDockerClient client, DockerModule current, DockerModule next, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
         {
             Preconditions.CheckNotNull(client, nameof(client));
             Preconditions.CheckNotNull(current, nameof(current));
             Preconditions.CheckNotNull(next, nameof(next));
             Preconditions.CheckNotNull(dockerLoggerConfig, nameof(dockerLoggerConfig));
 
-            this.remove = new RemoveCommand(client, current);
-            this.create = CreateCommand.Build(client, next, identity, dockerLoggerConfig, configSource, next is EdgeHubDockerModule);
+            var remove = new RemoveCommand(client, current);
+            var create = await CreateCommand.BuildAsync(client, next, identity, dockerLoggerConfig, configSource, next is EdgeHubDockerModule);
+            return new UpdateCommand(remove, create);
         }
 
         public async Task ExecuteAsync(CancellationToken token)

@@ -73,12 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
             {
-                factory.Create(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
-                factory.Pull(moduleExecutionList[1].Module),
-                factory.Update(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
-                factory.Remove(moduleExecutionList[3].Module),
-                factory.Start(moduleExecutionList[4].Module),
-                factory.Stop(moduleExecutionList[5].Module),
+                await factory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
+                await factory.PullAsync(moduleExecutionList[1].Module),
+                await factory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
+                await factory.RemoveAsync(moduleExecutionList[3].Module),
+                await factory.StartAsync(moduleExecutionList[4].Module),
+                await factory.StopAsync(moduleExecutionList[5].Module),
             };
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();

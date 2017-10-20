@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 {
@@ -24,32 +24,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
         }
 
-        public Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
+        async public Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             Diff diff = desired.Diff(current);
             Plan plan = diff.IsEmpty
                 ? Core.Plan.Empty
-                : this.CreatePlan(desired, current, diff, moduleIdentities);
+                : await this.CreatePlan(desired, current, diff, moduleIdentities);
 
-            return Task.FromResult(plan);
+            return plan;
         }
 
-        Plan CreatePlan(ModuleSet desired, ModuleSet current, Diff diff, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
+        async Task<Plan> CreatePlan(ModuleSet desired, ModuleSet current, Diff diff, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
-            IEnumerable<ICommand> stop = current.Modules.Select(m => this.commandFactory.Stop(m.Value));
-            IEnumerable<ICommand> remove = diff.Removed.Select(name => this.commandFactory.Remove(current.Modules[name]));
-            IEnumerable<ICommand> start = desired.Modules
+            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Select(m => this.commandFactory.StopAsync(m.Value));
+            IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
+            IEnumerable<Task<ICommand>> removeTasks = diff.Removed.Select(name => this.commandFactory.RemoveAsync(current.Modules[name]));
+            IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
+            IEnumerable<Task<ICommand>> startTasks = desired.Modules
                 .Where(m => m.Value.DesiredStatus == ModuleStatus.Running)
-                .Select(m => this.commandFactory.Start(m.Value));
+                .Select(m => this.commandFactory.StartAsync(m.Value));
+            IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
-            IList<ICommand> pull = desired.Modules
-                .Select(m => this.commandFactory.Pull(m.Value))
+            IEnumerable<Task<ICommand>> pullTasks = desired.Modules
+                .Select(m => this.commandFactory.PullAsync(m.Value))
                 .ToList();
+            IEnumerable<ICommand> pull = await Task.WhenAll(pullTasks);
 
             // Only update changed modules
-            IList<ICommand> update = diff.Updated
+            IList<Task<ICommand>> updateTasks = diff.Updated
                 .Select(m => this.CreateOrUpdate(current, m, moduleIdentities))
                 .ToList();
+            IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
 
             IList<ICommand> commands = stop
                 .Concat(remove)
@@ -61,10 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return new Plan(commands);
         }
 
-        ICommand CreateOrUpdate(ModuleSet current, IModule desiredMod, IImmutableDictionary<string, IModuleIdentity> moduleIdentities) =>
+        async Task<ICommand> CreateOrUpdate(ModuleSet current, IModule desiredMod, IImmutableDictionary<string, IModuleIdentity> moduleIdentities) =>
             current.TryGetModule(desiredMod.Name, out IModule currentMod)
-                ? this.commandFactory.Update(currentMod, new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)))
-                : this.commandFactory.Create(new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)));
+                ? await this.commandFactory.UpdateAsync(currentMod, new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)))
+                : await this.commandFactory.CreateAsync(new ModuleWithIdentity(desiredMod, moduleIdentities.GetValueOrDefault(desiredMod.Name)));
 
         static class Events
         {

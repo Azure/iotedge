@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // Task<IReporter>
             // TODO: When using a file backed config source we need to figure out
             // how reporting will work.
-            builder.Register(c => Task.FromResult(NullReporter.Instance))
+            builder.Register(c => Task.FromResult(NullReporter.Instance as IReporter))
                 .As<Task<IReporter>>()
                 .SingleInstance();
 

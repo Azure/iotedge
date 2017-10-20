@@ -49,16 +49,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
         }
 
-        IEnumerable<ICommand> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
+        IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
         {
             IEnumerable<IRuntimeModule> modulesToBeRestarted = this.restartManager.ApplyRestartPolicy(modules);
-            IEnumerable<ICommand> restart = modulesToBeRestarted.SelectMany(module => new ICommand[]
+            IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.SelectMany(module => new[]
             {
                 // restart the module
-                this.commandFactory.Restart(module),
+                this.commandFactory.RestartAsync(module),
 
                 // Update restart count and last restart time in store
-                this.commandFactory.Wrap(
+                this.commandFactory.WrapAsync(
                     new UpdateModuleStateCommand(
                         module, this.store, new ModuleState(module.RestartCount + 1, DateTime.UtcNow)
                     )
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     {
                         // NOTE: This is a "special" command in that it doesn't come from an "ICommandFactory". This
                         // command clears the health stats from the store.
-                        resetHealthStats.Add(this.commandFactory.Wrap(new RemoveModuleStateCommand(module, this.store)));
+                        resetHealthStats.Add(await this.commandFactory.WrapAsync(new RemoveModuleStateCommand(module, this.store)));
                         Events.ClearedRestartStats(module, this.intensiveCareTime);
                     }
                 }
@@ -144,40 +144,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             var modulesAddedOrUpdated = added.Concat(updateDeployed);
 
             // create "stop" commands for modules that have been updated/removed
-            IEnumerable<ICommand> stop = updateDeployed
+            IEnumerable<Task<ICommand>> stopTasks = updateDeployed
                 .Concat(removed)
-                .Select(m => this.commandFactory.Stop(m));
+                .Select(m => this.commandFactory.StopAsync(m));
+            IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
 
             // create "remove" commands for modules that are being deleted in this deployment
-            IEnumerable<ICommand> remove = removed.Select(m => this.commandFactory.Remove(m));
+            IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
+            IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
 
             // remove any saved state we might for moduels that are being removed
-            IEnumerable<ICommand> removeState = removed.Select(m => this.commandFactory.Wrap(new RemoveModuleStateCommand(m, this.store)));
+            IEnumerable<Task<ICommand>> removeStateTasks = removed.Select(m => this.commandFactory.WrapAsync(new RemoveModuleStateCommand(m, this.store)));
+            IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // create "pull" commands for modules that have been added/updated
-            IEnumerable<ICommand> pull = modulesAddedOrUpdated.Select(m => this.commandFactory.Pull(m));
+            IEnumerable<Task<ICommand>> pullTasks = modulesAddedOrUpdated.Select(m => this.commandFactory.PullAsync(m));
+            IEnumerable<ICommand> pull = await Task.WhenAll(pullTasks);
 
             // create "create" commands for modules that have been added
-            IEnumerable<ICommand> create = added
-                .Select(m => this.commandFactory.Create(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name))));
+            IEnumerable<Task<ICommand>> createTasks = added
+                .Select( m => this.commandFactory.CreateAsync(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name))));
+            IEnumerable<ICommand> create = await Task.WhenAll(createTasks);
 
             // create "update" commands for modules that have been updated
-            IEnumerable<ICommand> update = updateDeployed
+            IEnumerable<Task<ICommand>> updateTasks = updateDeployed
                 .Select(m =>
                 {
                     current.TryGetModule(m.Name, out IModule currentModule);
-                    return this.commandFactory.Update(currentModule, new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)));
+                    return this.commandFactory.UpdateAsync(currentModule, new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)));
                 });
+            IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
 
             // create "start" commands for modules that have been added/updated and where the
             // status desired is "Running"; this handles the case where someone adds/updates a
             // module to the deployment but has the desired "status" field as "Stopped"
-            IEnumerable<ICommand> start = modulesAddedOrUpdated
+            IEnumerable<Task<ICommand>> startTasks = modulesAddedOrUpdated
                 .Where(m => m.DesiredStatus == ModuleStatus.Running)
-                .Select(m => this.commandFactory.Start(m));
+                .Select(m => this.commandFactory.StartAsync(m));
+            IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
             // apply restart policy for modules that are not in the deployment list and aren't running
-            IEnumerable<ICommand> restart = this.ApplyRestartPolicy(updateStateChanged);
+            IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged);
+            IEnumerable<ICommand> restart = await Task.WhenAll(restartTasks);
+
 
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
             // for more than "IntensiveCareTime" & still have an entry for them in the store

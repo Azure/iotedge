@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -24,42 +25,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
 
-        public ICommand Create(IModuleWithIdentity module) =>
+        public async Task<ICommand> CreateAsync(IModuleWithIdentity module) =>
             module.Module is DockerModule
-                ? CreateCommand.Build(this.client, (DockerModule)module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule)
-                : (ICommand)NullCommand.Instance;
+                ? await CreateCommand.BuildAsync(this.client, (DockerModule)module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule)
+                : NullCommand.Instance;
 
-        public ICommand Pull(IModule module) =>
-            module is DockerModule
+        public Task<ICommand> PullAsync(IModule module) =>
+            Task.FromResult(module is DockerModule
                 ? new PullCommand(this.client, (DockerModule)module, this.FirstAuthConfigOrDefault((DockerModule)module))
-                : (ICommand)NullCommand.Instance;
+                : (ICommand)NullCommand.Instance);
 
-        public ICommand Update(IModule current, IModuleWithIdentity next) =>
+        public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next) =>
             current is DockerModule && next.Module is DockerModule
-                ? new UpdateCommand(this.client, (DockerModule)current, (DockerModule)next.Module, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
-                : (ICommand)NullCommand.Instance;
+                ? await UpdateCommand.BuildAsync(this.client, (DockerModule)current, (DockerModule)next.Module, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
+                : NullCommand.Instance;
 
-        public ICommand Remove(IModule module) =>
-            module is DockerModule
+        public Task<ICommand> RemoveAsync(IModule module) =>
+            Task.FromResult(module is DockerModule
                 ? new RemoveCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance;
+                : (ICommand)NullCommand.Instance);
 
-        public ICommand Start(IModule module) =>
-            module is DockerModule
+        public Task<ICommand> StartAsync(IModule module) =>
+            Task.FromResult(module is DockerModule
                 ? new StartCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance;
+                : (ICommand)NullCommand.Instance);
 
-        public ICommand Stop(IModule module) =>
-            module is DockerModule
+        public Task<ICommand> StopAsync(IModule module) =>
+            Task.FromResult(module is DockerModule
                 ? new StopCommand(this.client, (DockerModule)module)
-                : (ICommand)NullCommand.Instance;
+                : (ICommand)NullCommand.Instance);
 
-        public ICommand Restart(IModule module) =>
-            module is DockerRuntimeModule
+        public Task<ICommand> RestartAsync(IModule module) =>
+            Task.FromResult(module is DockerRuntimeModule
                 ? new RestartCommand(this.client, (DockerRuntimeModule)module)
-                : (ICommand)NullCommand.Instance;
+                : (ICommand)NullCommand.Instance);
 
-        public ICommand Wrap(ICommand command) => command;
+        public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
 
         AuthConfig FirstAuthConfigOrDefault(DockerModule module)
         {

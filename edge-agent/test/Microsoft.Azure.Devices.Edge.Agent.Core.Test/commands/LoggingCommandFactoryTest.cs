@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
-    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, ICommand>>;
-    using TestExecutionExpr = System.Func<LoggingCommandFactory, ICommand>;
+    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, System.Threading.Tasks.Task<ICommand>>>;
+    using TestExecutionExpr = System.Func<LoggingCommandFactory, System.Threading.Tasks.Task<ICommand>>;
 
     class FailureCommand : ICommand
     {
@@ -46,21 +46,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
         [Fact]
         [Unit]
-        public void TestShow()
+        public async void TestShow()
         {
             var logFactoryMock = new Mock<ILoggerFactory>();
             var factoryMock = new Mock<ICommandFactory>();
             var moduleIdentity = new Mock<IModuleIdentity>();
-            ICommand nullCmd = NullCommandFactory.Instance.Create(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
+            Task<ICommand> nullCmd = NullCommandFactory.Instance.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
 
-            factoryMock.Setup(f => f.Create(It.IsAny<IModuleWithIdentity>()))
+            factoryMock.Setup(f => f.CreateAsync(It.IsAny<IModuleWithIdentity>()))
                 .Returns(nullCmd);
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = factory.Create(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
+            ICommand create = await factory.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
 
-            Assert.Equal(create.Show(), nullCmd.Show());
+            Assert.Equal(create.Show(), nullCmd.Result.Show());
 
         }
 
@@ -76,46 +76,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             // CommandMethodBeingTested - factory command under test
             // Command - command object to be mocked.
             // TestExpr - the expression to execute test.
-            (CommandMethodExpr CommandMethodBeingTested, ICommand Command, TestExecutionExpr TestExpr)[] testInputRecords = {
+            (CommandMethodExpr CommandMethodBeingTested, Task<ICommand> Command, TestExecutionExpr TestExpr)[] testInputRecords = {
                 (
-                    f => f.Create(testModule),
-                    NullCommandFactory.Instance.Create(testModule),
-                    factory => factory.Create(testModule)
+                    f => f.CreateAsync(testModule),
+                    NullCommandFactory.Instance.CreateAsync(testModule),
+                    factory => factory.CreateAsync(testModule)
                 ),
                 (
-                    f => f.Pull(TestModule),
-                    NullCommandFactory.Instance.Pull(TestModule),
-                    factory => factory.Pull(TestModule)
+                    f => f.PullAsync(TestModule),
+                    NullCommandFactory.Instance.PullAsync(TestModule),
+                    factory => factory.PullAsync(TestModule)
                 ),
                 (
-                    f => f.Update(TestModule, updateModule),
-                    NullCommandFactory.Instance.Update(TestModule, updateModule),
-                    factory => factory.Update(TestModule, updateModule)
+                    f => f.UpdateAsync(TestModule, updateModule),
+                    NullCommandFactory.Instance.UpdateAsync(TestModule, updateModule),
+                    factory => factory.UpdateAsync(TestModule, updateModule)
                 ),
                 (
-                    f => f.Remove(TestModule),
-                    NullCommandFactory.Instance.Remove(TestModule),
-                    factory => factory.Remove(TestModule)
+                    f => f.RemoveAsync(TestModule),
+                    NullCommandFactory.Instance.RemoveAsync(TestModule),
+                    factory => factory.RemoveAsync(TestModule)
                 ),
                 (
-                    f => f.Start(TestModule),
-                    NullCommandFactory.Instance.Start(TestModule),
-                    factory => factory.Start(TestModule)
+                    f => f.StartAsync(TestModule),
+                    NullCommandFactory.Instance.StartAsync(TestModule),
+                    factory => factory.StartAsync(TestModule)
                 ),
                 (
-                    f => f.Stop(TestModule),
-                    NullCommandFactory.Instance.Stop(TestModule),
-                    factory => factory.Stop(TestModule)
+                    f => f.StopAsync(TestModule),
+                    NullCommandFactory.Instance.StopAsync(TestModule),
+                    factory => factory.StopAsync(TestModule)
+                ),
+
+                (
+                    f => f.RestartAsync(TestModule),
+                    NullCommandFactory.Instance.RestartAsync(TestModule),
+                    factory => factory.RestartAsync(TestModule)
                 ),
                 (
-                    f => f.Restart(TestModule),
-                    NullCommandFactory.Instance.Restart(TestModule),
-                    factory => factory.Restart(TestModule)
-                ),
-                (
-                    f => f.Wrap(WrapTargetCommand),
-                    WrapTargetCommand,
-                    factory => factory.Wrap(WrapTargetCommand)
+                    f => f.WrapAsync(WrapTargetCommand),
+                    Task.FromResult<ICommand>(WrapTargetCommand),
+                    factory => factory.WrapAsync(WrapTargetCommand)
                 )
             };
 
@@ -127,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         [MemberData(nameof(CreateTestData))]
         public async Task ExecuteSuccessfulTests(
             CommandMethodExpr commandMethodBeingTested,
-            ICommand commandBeingDecorated,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr
         )
         {
@@ -148,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
             // Execute the test expression
-            ICommand create = testExpr(factory);
+            ICommand create = await testExpr(factory);
 
             // attempt to execute the LoggingCommand we received
             await create.ExecuteAsync(token);
@@ -164,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         [MemberData(nameof(CreateTestData))]
         public async Task ExecuteFailureTests(
             CommandMethodExpr commandMethodBeingTested,
-            ICommand commandBeingDecorated,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr
         )
         {
@@ -175,13 +176,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var factoryMock = new Mock<ICommandFactory>();
 
             factoryMock.Setup(commandMethodBeingTested)
-                .Returns(FailureCommand.Instance);
+                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
             logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
                 .Returns(logMock.Object);
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = testExpr(factory);
+            ICommand create = await testExpr(factory);
 
             await Assert.ThrowsAsync<ArgumentException>(() => create.ExecuteAsync(token));
 
@@ -195,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         [MemberData(nameof(CreateTestData))]
         public async Task UndoSuccessTests(
             CommandMethodExpr commandMethodBeingTested,
-            ICommand commandBeingDecorated,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr
         )
         {
@@ -212,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = testExpr(factory);
+            ICommand create = await testExpr(factory);
 
             await create.UndoAsync(token);
 
@@ -226,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         [MemberData(nameof(CreateTestData))]
         public async Task UndoFailureTests(
             CommandMethodExpr commandMethodBeingTested,
-            ICommand commandBeingDecorated,
+            Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr
         )
         {
@@ -237,13 +238,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var factoryMock = new Mock<ICommandFactory>();
 
             factoryMock.Setup(commandMethodBeingTested)
-                .Returns(FailureCommand.Instance);
+                .Returns(Task.FromResult<ICommand>(FailureCommand.Instance));
             logFactoryMock.Setup(l => l.CreateLogger(It.IsAny<string>()))
                 .Returns(logMock.Object);
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = testExpr(factory);
+            ICommand create = await testExpr(factory);
 
             await Assert.ThrowsAsync<ArgumentException>(() => create.UndoAsync(token));
 

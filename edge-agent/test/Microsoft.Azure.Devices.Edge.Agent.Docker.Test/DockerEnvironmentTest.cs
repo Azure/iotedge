@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     [Collection("Docker")]
     public class DockerEnvironmentTest
@@ -82,14 +83,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
+                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
 
                     var credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
-                    ICommand create = CreateCommand.Build(Client, module, identity.Object, loggingConfig, configSource.Object, false);
+                    ICommand create = await CreateCommand.BuildAsync(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
                     // pull the image for both containers
                     await Client.PullImageAsync(Image, cts.Token);
@@ -143,15 +146,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
+                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
 
                     string moduleKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("moduleKey"));
                     var credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
-                    ICommand create = CreateCommand.Build(Client, module, identity.Object, loggingConfig, configSource.Object, false);
+                    ICommand create = await CreateCommand.BuildAsync(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
                     await Client.PullImageAsync(Image, cts.Token);
 
