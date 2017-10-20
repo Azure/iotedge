@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             JTokenType.String
         };
 
-        static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
+        public static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
 
         public static JObject Diff(JToken fromToken, JToken toToken)
         {

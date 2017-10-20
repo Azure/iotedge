@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using System.Linq;
+    using System.Collections.Generic;
 
     [Unit]
     public class TwinManagerTest
@@ -601,8 +603,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string deviceId = "device";
             TwinCollection collection = new TwinCollection()
             {
-                ["name"] = "value",
-                ["$version"] = 33
+                ["name"] = "value"
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
@@ -619,11 +620,87 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(storeMiss, true);
 
             // Act
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
         }
 
         [Fact]
         public async void UpdateReportedPropertiesWhenCloudOfflineTwinStoredSuccess()
+        {
+            // Arrange
+            Twin twin = new Twin();
+            twin.Properties.Reported = new TwinCollection()
+            {
+                ["name"] = "oldvalue"
+            };
+            IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
+
+            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
+            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+
+            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
+
+            string deviceId = "device";
+            TwinCollection collection = new TwinCollection()
+            {
+                ["name"] = "value"
+            };
+            IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
+
+            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+
+            bool storeMiss = false;
+            bool storeHit = false;
+
+            // Act - check if twin is in the cache
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+
+            // Assert - verify that twin is not in the cache
+            Assert.Equal(storeHit, false);
+            Assert.Equal(storeMiss, true);
+
+            // Act - update reported properties when twin is not in the cache
+            await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage);
+
+            // Assert - verify that the twin was fetched
+            storeMiss = false;
+            storeHit = false;
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            Assert.Equal(storeHit, true);
+
+            // Arrange - make the cloud offline
+            mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
+                .Throws(new Exception("Not interested"));
+            mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
+
+            TwinCollection patch = new TwinCollection()
+            {
+                ["name"] = null,
+                ["newname"] = "value"
+            };
+            TwinCollection merged = new TwinCollection()
+            {
+                ["newname"] = "value"
+            };
+            IMessage patchMessage = this.twinCollectionMessageConverter.ToMessage(patch);
+
+            // Act - update local copy of the twin when offline
+            await twinManager.UpdateReportedPropertiesAsync(deviceId, patchMessage);
+
+            // Assert - verify that the twin's reported properties was updated and that the patch was stored
+            TwinInfo retrieved = null;
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { retrieved = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
+            Assert.True(JToken.DeepEquals(
+                JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
+                JsonConvert.DeserializeObject<JToken>(merged.ToJson())));
+            Assert.True(JToken.DeepEquals(
+                JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
+                JsonConvert.DeserializeObject<JToken>(patch.ToJson())));
+        }
+
+        [Fact]
+        public async void UpdateReportedPropertiesWhenCloudOfflineMalformedPropertiesThrows()
         {
             // Arrange
             Twin twin = new Twin();
@@ -678,28 +755,77 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             TwinCollection patch = new TwinCollection()
             {
                 ["name"] = null,
-                ["newname"] = "value",
-                ["$version"] = 33
-            };
-            TwinCollection merged = new TwinCollection()
-            {
-                ["newname"] = "value",
-                ["$version"] = 33
+                ["malformed"] = 4503599627370496,
             };
             IMessage patchMessage = this.twinCollectionMessageConverter.ToMessage(patch);
 
-            // Act - update local copy of the twin when offline
-            await twinManager.UpdateReportedPropertiesAsync(deviceId, patchMessage);
+            // Act and assert - verify rejection of malformed reported properties
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, patchMessage));
+        }
 
-            // Assert - verify that the twin's reported properties was updated and that the patch was stored
-            TwinInfo retrieved = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { retrieved = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(merged.ToJson())));
-            Assert.True(JToken.DeepEquals(
-                JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
-                JsonConvert.DeserializeObject<JToken>(patch.ToJson())));
+        [Fact]
+        public async void UpdateReportedPropertiesWhenCloudOfflineTooLargeCollectionThrows()
+        {
+            // Arrange
+            Twin twin = new Twin();
+            twin.Properties.Reported = new TwinCollection()
+            {
+                ["name"] = "oldvalue",
+                ["$version"] = 32
+            };
+            IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
+
+            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
+            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+
+            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
+
+            string deviceId = "device";
+            TwinCollection collection = new TwinCollection()
+            {
+                ["name"] = "value",
+                ["large"] = new byte[4 * 1024],
+                ["$version"] = 33
+            };
+            IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
+
+            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+
+            bool storeMiss = false;
+            bool storeHit = false;
+
+            // Act - check if twin is in the cache
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+
+            // Assert - verify that twin is not in the cache
+            Assert.Equal(storeHit, false);
+            Assert.Equal(storeMiss, true);
+
+            // Act - update reported properties when twin is not in the cache
+            await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage);
+
+            // Assert - verify that the twin was fetched
+            storeMiss = false;
+            storeHit = false;
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => { storeMiss = true; return Task.FromResult<TwinInfo>(null); });
+            Assert.Equal(storeHit, true);
+
+            // Arrange - make the cloud offline
+            mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
+                .Throws(new Exception("Not interested"));
+            mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
+
+            TwinCollection patch = new TwinCollection()
+            {
+                ["name"] = null,
+                ["large"] = new byte[5 * 1024],
+            };
+            IMessage patchMessage = this.twinCollectionMessageConverter.ToMessage(patch);
+
+            // Act and assert - verify rejection of malformed reported properties
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, patchMessage));
         }
 
         [Fact]
@@ -727,8 +853,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             // Act and Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await twinManager.GetTwinAsync(deviceId));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.GetTwinAsync(deviceId));
         }
 
         [Fact]
@@ -755,7 +881,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
             // Act and Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await twinManager.UpdateDesiredPropertiesAsync(deviceId, collectionMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateDesiredPropertiesAsync(deviceId, collectionMessage));
         }
 
         [Fact]
@@ -799,8 +925,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             TwinCollection collection = new TwinCollection()
             {
-                ["name"] = "newvalue",
-                ["$version"] = 33
+                ["name"] = "newvalue"
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
@@ -915,7 +1040,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
         }
 
         [Fact]
@@ -1102,8 +1227,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             TwinCollection reported = new TwinCollection()
             {
-                ["value"] = "first",
-                ["$version"] = 32
+                ["value"] = "first"
             };
             IMessage reportedMessage = this.twinCollectionMessageConverter.ToMessage(reported);
 
@@ -1127,8 +1251,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange - setup another patch
             reported = new TwinCollection()
             {
-                ["value"] = "second",
-                ["$version"] = 33
+                ["value"] = "second"
             };
             reportedMessage = this.twinCollectionMessageConverter.ToMessage(reported);
             callbackReceived = false;
@@ -1292,6 +1415,95 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert - verify that empty patch didn't trigger reported property callback
             Assert.Equal(reportedReceived, false);
+        }
+
+        [Fact]
+        public void ValidateTwinPropertiesSuccess()
+        {
+            string tooLong = Enumerable.Repeat("A", 520).Aggregate((sum, next) => sum + next);
+            var reported = new Dictionary<string, string>
+            {
+                [tooLong] = "wrong"
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+
+            var reported1 = new
+            {
+                ok = "ok",
+                level = new
+                {
+                    ok = "ok",
+                    s = tooLong
+                }
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported1)));
+
+            var reported2 = new
+            {
+                level = new
+                {
+                    number = -4503599627370497
+                }
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported2)));
+
+            var reported3 = new
+            {
+                level1 = new
+                {
+                    level2 = new
+                    {
+                        level3 = new
+                        {
+                            level4 = new
+                            {
+                                level5 = new { }
+                            }
+                        }
+                    }
+                }
+            };
+
+            TwinManager.ValidateTwinProperties(JToken.FromObject(reported3));
+
+            var reported4 = new
+            {
+                level1 = new
+                {
+                    level2 = new
+                    {
+                        level3 = new
+                        {
+                            level4 = new
+                            {
+                                level5 = new
+                                {
+                                    level6 = new { }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported4)));
+
+            var reported5 = new
+            {
+                array = new[] {0, 1, 2}
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported5)));
+
+            var reported6 = new
+            {
+                tooBig = new byte[10 * 1024]
+            };
+
+            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported6)));
         }
     }
 }
