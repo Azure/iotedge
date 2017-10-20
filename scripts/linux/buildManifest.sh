@@ -109,6 +109,13 @@ process_args()
 ###############################################################################
 process_args $@
 
+#echo Logging in to Docker registry
+docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+if [ $? -ne 0 ]; then
+    echo "Docker Login Failed!"
+    exit 1
+fi
+
 # Create temp file to store modified yaml file
 manifest=$(mktemp /tmp/manifest.yaml.XXXXXX)
 [ $? -eq 0 ] || exit $?
