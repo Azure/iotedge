@@ -1,0 +1,17 @@
+image: __REGISTRY__/azureiotedge/functions-binding:__VERSION__
+manifests:
+  -
+    image: __REGISTRY__/azureiotedge/functions-binding-linux-amd64:__VERSION__
+    platform:
+      architecture: amd64
+      os: linux
+  -
+    image: __REGISTRY__/azureiotedge/functions-binding-linux-arm32v7:__VERSION__
+    platform:
+      architecture: arm
+      os: linux
+  -
+    image: __REGISTRY__/azureiotedge/functions-binding-windows-amd64:__VERSION__
+    platform:
+      architecture: amd64
+      os: windows

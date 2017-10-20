@@ -1,0 +1,17 @@
+image: __REGISTRY__/azureiotedge/edge-agent:__VERSION__
+manifests:
+  -
+    image: __REGISTRY__/azureiotedge/edge-agent-linux-amd64:__VERSION__
+    platform:
+      architecture: amd64
+      os: linux
+  -
+    image: __REGISTRY__/azureiotedge/edge-agent-linux-arm32v7:__VERSION__
+    platform:
+      architecture: arm
+      os: linux
+  -
+    image: __REGISTRY__/azureiotedge/edge-agent-windows-amd64:__VERSION__
+    platform:
+      architecture: amd64
+      os: windows

@@ -88,3 +88,21 @@ scripts\windows\runTests.bat "--filter Category=Integration|Category=Bvt"
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.
+
+## Build Manifest Image
+There is a script in the repo to build multi-architecture images.
+This scripts assumes that the platform specific images are already in the docker registry.
+Usage is as follows:
+```
+$ scripts/linux/buildManifest.sh --help
+
+buildManifest.sh [options]
+Note: Depending on the options you might have to run this as root or sudo.
+
+options
+ -r, --registry       Docker registry required to build, tag and run the module
+ -u, --username       Docker Registry Username
+ -p, --password       Docker Username's password
+ -v, --image-version  Docker Image Version.
+ -t, --template       Yaml file template for manifest definition.
+```
