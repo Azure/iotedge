@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
@@ -28,7 +29,7 @@
             Module sender = null;
             Module receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -36,7 +37,6 @@
             {
                 sender = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", false);
                 receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", true);
-                await receiver.SetupReceiveMessageHandler();
 
                 Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
 
@@ -75,7 +75,7 @@
             Module sender2 = null;
             Module receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -130,7 +130,7 @@
             List<Module> senders = null;
             List<Module> receivers = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -181,7 +181,7 @@
             List<Module> senders = null;
             List<Module> receivers = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecret("EdgeDeviceConnStr1");
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -262,10 +262,15 @@
             {
                 var settings = new[]
                 {
-                    new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) { RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true }
+                    new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+                    {
+                        RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
+                        PublishToServerQoS = QualityOfService.AtMostOnce,
+                        ReceivingQoS = QualityOfService.AtMostOnce
+                    }
                 };
 
-                DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+                DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);                
                 await moduleClient.OpenAsync();
                 return new Module(moduleClient);
             }

@@ -1,21 +1,29 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Shared;
 
     public static class RegistryManagerHelper
     {
-        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubConnectionString, RegistryManager registryManager)
+        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubConnectionString, RegistryManager registryManager, bool iotEdgeCapable = false, bool appendGatewayHostName = true)
         {
             string deviceName = devicePrefix + Guid.NewGuid();
-            Device device = await registryManager.AddDeviceAsync(new Device(deviceName));
-            string deviceConnectionString = GetDeviceConnectionString(device, ConnectionStringHelper.GetHostName(iotHubConnectionString));
+            var device = new Device(deviceName)
+            {                
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+            };
+
+            if(iotEdgeCapable)
+            {
+                device.Capabilities = new DeviceCapabilities { IotEdge = true };
+            }
+
+            device = await registryManager.AddDeviceAsync(device);
+            string deviceConnectionString = GetDeviceConnectionString(device, ConnectionStringHelper.GetHostName(iotHubConnectionString), appendGatewayHostName);
 
             await Task.Delay(1000);
             return new Tuple<string, string>(deviceName, deviceConnectionString);
@@ -35,10 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return moduleConnectionString;
         }
 
-        public static string GetDeviceConnectionString(Device device, string hostName)
-        {
-            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
-            return $"HostName={hostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
+        static string GetDeviceConnectionString(Device device, string hostName, bool appendGatewayHostName = true)
+        {            
+            string connectionString = $"HostName={hostName};DeviceId={device.Id};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
+            if(appendGatewayHostName)
+            {
+                string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
+                connectionString = $"{connectionString};GatewayHostName={gatewayHostname}";
+            }
+            return connectionString;
         }
 
         public static string GetModuleConnectionString(Module module, string hostName)
@@ -47,9 +60,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
         }
 
-        public static Task RemoveDevice(string deviceName, RegistryManager registryManager)
+        public static async Task RemoveDevice(string deviceId, RegistryManager registryManager)
         {
-            return registryManager.RemoveDeviceAsync(deviceName);
+            Device device = await registryManager.GetDeviceAsync(deviceId);
+            if (device != null)
+            {
+                await registryManager.RemoveDeviceAsync(deviceId);
+            }
         }
 
         public static async Task<string> GetOrCreateModule(RegistryManager registryManager, string hostName, string deviceId, string moduleId)

@@ -22,21 +22,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
-            string iotHubConnectionString = await SecretsHelper.GetSecret("IotHubConnStrPreview");
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            string edgeDeviceId = "testMmaEdgeDevice1";
-            Device edgeDevice = await registryManager.GetDeviceAsync(edgeDeviceId);
-            if (edgeDevice != null)
-            {
-                await registryManager.RemoveDeviceAsync(edgeDevice);
-            }
+            string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
-
-            edgeDevice = new Device(edgeDeviceId)
+            var edgeDevice = new Device(edgeDeviceId)
             {
                 Capabilities = new DeviceCapabilities { IotEdge = true },
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
@@ -115,6 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.Equal(2, deploymentConfig.Modules.Count);
             Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
             Assert.NotNull(deploymentConfig.Modules["mlModule"]);
+
+            await registryManager.RemoveDeviceAsync(edgeDevice);
         }
 
         public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)

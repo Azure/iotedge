@@ -92,6 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return (AuthenticationScope.SasToken, null, auth.Token);
                 case DeviceAuthenticationWithRegistrySymmetricKey auth:
                     return (AuthenticationScope.DeviceKey, null, auth.KeyAsBase64String);
+                case ModuleAuthenticationWithToken auth:
+                    return (AuthenticationScope.SasToken, null, auth.Token);
+                case ModuleAuthenticationWithRegistrySymmetricKey auth:
+                    return (AuthenticationScope.DeviceKey, null, auth.KeyAsBase64String);
                 default:
                     throw new InvalidOperationException($"Unexpected authentication method type - {iotHubConnectionStringBuilder.AuthenticationMethod.GetType()}");
             }

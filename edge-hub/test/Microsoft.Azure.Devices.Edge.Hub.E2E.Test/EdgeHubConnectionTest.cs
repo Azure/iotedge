@@ -39,32 +39,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var cloudProxyProvider = new CloudProxyProvider(messageConverterProvider, 1, true);
             var connectionManager = new ConnectionManager(cloudProxyProvider);
 
-            string iotHubConnectionString = await SecretsHelper.GetSecret("IotHubConnStrPreview");
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
-            string edgeDeviceId = "testHubEdgeDevice1";
-            Device edgeDevice = await registryManager.GetDeviceAsync(edgeDeviceId);
-            if (edgeDevice != null)
-            {
-                await registryManager.RemoveDeviceAsync(edgeDevice);
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(20));
-
-            edgeDevice = new Device(edgeDeviceId)
-            {
-                Capabilities = new DeviceCapabilities { IotEdge = true },
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
-            };
-            edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
-
+            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice("testHubEdgeDevice1", iotHubConnectionString, registryManager, true, false);
+            
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
             var identityFactory = new IdentityFactory(iothubHostName);
-
-            string deviceConnStr = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={EdgeHubModuleId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
-            Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(deviceConnStr);
+            string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
+            Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(edgeHubConnectionString);
             Assert.True(edgeHubIdentity.Success);
             Assert.NotNull(edgeHubIdentity.Value);
 
@@ -152,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
 
-            await registryManager.RemoveDeviceAsync(edgeDeviceId);
+            await RegistryManagerHelper.RemoveDevice(edgeDeviceId, registryManager);
         }
 
         async Task<EdgeHubConnection.ReportedProperties> GetReportedProperties(RegistryManager registryManager, string edgeHubId)

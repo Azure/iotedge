@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
             byte[] cert = Convert.FromBase64String(certificateValue);
             var certificate = new X509Certificate2(cert);
-            string edgeHubConnectionString = await SecretsHelper.GetSecret("EdgeHubConnStr1");
+            string edgeHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableHubConnStrKey");
             Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 

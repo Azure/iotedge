@@ -28,18 +28,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 			}
 
 			byte[] body = Encoding.UTF8.GetBytes(json.ToString());
-			return new CloudEdgeMessage(body, null, new Dictionary<string, string>
-			{
-				[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                [SystemProperties.Version] = sourceMessage.Version.ToString()
-            });
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o")
+            };
+
+            if(sourceMessage.Version.HasValue)
+            {
+                systemProperties[SystemProperties.Version] = sourceMessage.Version.ToString();
+            }
+
+            return new CloudEdgeMessage(body, null, systemProperties);
 		}
 
 		public Twin FromMessage(IMessage message)
 		{
 			Twin twin = new Twin();
             twin.Properties = message.Body.FromBytes<TwinProperties>();
-            twin.Version = Convert.ToInt64(message.SystemProperties[SystemProperties.Version]);
+            if (message.SystemProperties.TryGetValue(SystemProperties.Version, out string versionString)
+                && long.TryParse(versionString, out long version))
+            {
+                twin.Version = version;
+            }
             return twin;
 		}
 	}

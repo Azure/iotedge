@@ -113,14 +113,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
         {
             MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody())
-                .SetSystemProperties(new Dictionary<string, string>() {
-                    [SystemProperties.EnqueuedTime] = "",
-                    [SystemProperties.Version] = "0"})
+                .SetSystemProperties(new Dictionary<string, string>()
+                {
+                    [SystemProperties.EnqueuedTime] = ""
+                })
                 .Build();
             IMessage actualMessage = new TwinMessageConverter().ToMessage(twin);
             Assert.Equal(expectedMessage.Body, actualMessage.Body);
             Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
             Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
+        }
+
+        [Fact]
+        public void CheckVersionConvertion()
+        {
+            var messageConverter = new TwinMessageConverter();
+
+            var twin = new Twin("d1") { Version = 10 };            
+            IMessage message = messageConverter.ToMessage(twin);
+            Twin convertedTwin = messageConverter.FromMessage(message);
+            Assert.Equal(twin.Version, convertedTwin.Version);            
         }
 
         [Fact]
