@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Configuration;
@@ -15,24 +15,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly string configFilePath;
         readonly IConfigSource underlying;
         readonly AsyncLock sync = new AsyncLock();
+        readonly ISerde<DeploymentConfigInfo> serde;
 
-        public FileBackupConfigSource(string path, IConfigSource underlying)
+        public FileBackupConfigSource(string path, IConfigSource underlying, ISerde<DeploymentConfigInfo> serde)
         {
             this.configFilePath = Preconditions.CheckNonWhiteSpace(path, nameof(path));
             this.underlying = Preconditions.CheckNotNull(underlying, nameof(underlying));
+            this.serde = Preconditions.CheckNotNull(serde, nameof(serde));
             Events.Created(this.configFilePath);
         }
 
         public IConfiguration Configuration => this.underlying.Configuration;
 
-        async Task<AgentConfig> ReadFromBackup()
+        async Task<DeploymentConfigInfo> ReadFromBackup()
         {
             try
             {
                 using (await this.sync.LockAsync())
                 {
                     string json = await DiskFile.ReadAllAsync(this.configFilePath);
-                    return json.FromJson<AgentConfig>();
+                    return this.serde.Deserialize(json);
                 }
             }
             catch (Exception e)
@@ -42,11 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        async Task BackupDeploymentConfig(AgentConfig deploymentConfig)
+        async Task BackupDeploymentConfig(DeploymentConfigInfo deploymentConfigInfo)
         {
             try
             {
-                string json = deploymentConfig.ToJson();
+                string json = this.serde.Serialize(deploymentConfigInfo);
                 using (await this.sync.LockAsync())
                 {
                     await DiskFile.WriteAllAsync(this.configFilePath, json);
@@ -59,11 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        public async Task<AgentConfig> GetAgentConfigAsync()
+        public async Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync()
         {
             try
             {
-                AgentConfig deploymentConfig = await this.underlying.GetAgentConfigAsync();
+                DeploymentConfigInfo deploymentConfig = await this.underlying.GetDeploymentConfigInfoAsync();
                 // TODO - Backing up the config every time for now, probably should optimize this.
                 await this.BackupDeploymentConfig(deploymentConfig);
                 return deploymentConfig;
@@ -85,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         {
             this.underlying?.Dispose();
         }
-
+        
         static class Events
         {
             const int IdStart = AgentEventIds.FileBackupConfigSource;

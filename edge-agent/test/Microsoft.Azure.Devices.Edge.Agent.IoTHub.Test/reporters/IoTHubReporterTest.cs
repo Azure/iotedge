@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
-                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, AgentConfig.Empty, DeploymentStatus.Success);
+                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, new DeploymentConfigInfo(0, DeploymentConfig.Empty), DeploymentStatus.Success);
 
                 // Assert
                 edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
@@ -102,21 +102,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     .Returns(Task.CompletedTask);
 
                 // prepare AgentConfig
-                var agentConfig = new AgentConfig(
-                    DesiredVersion,
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
-                    ModuleSet.Empty,
-                    Option.None<IEdgeAgentModule>()
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
                 );
 
                 // prepare IEnvironment mock
                 var environment = new Mock<IEnvironment>();
                 IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).ReturnsAsync(edgeAgentModule);
-                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(agentConfig.Runtime))
+                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (agentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -136,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -234,21 +237,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     .Returns(Task.CompletedTask);
 
                 // prepare AgentConfig
-                var agentConfig = new AgentConfig(
-                    DesiredVersion,
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
-                    ModuleSet.Empty,
-                    Option.None<IEdgeAgentModule>()
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
                 );
 
                 // prepare IEnvironment mock
                 var environment = new Mock<IEnvironment>();
                 IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgentModule));
-                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(agentConfig.Runtime))
+                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (agentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -268,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -359,21 +365,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     .Returns(Task.CompletedTask);
 
                 // prepare AgentConfig
-                var agentConfig = new AgentConfig(
-                    DesiredVersion,
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
-                    ModuleSet.Empty,
-                    Option.None<IEdgeAgentModule>()
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
                 );
 
                 // prepare IEnvironment mock
                 var environment = new Mock<IEnvironment>();
                 IModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgentModule));
-                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(agentConfig.Runtime))
+                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (agentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -395,7 +404,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object);
 
                 // this should cause "extra_mod" to get deleted and "mod1" and "mod2" to get updated
-                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
 
                 // now change "current" so that "mod1" fails
                 reportedState = new AgentState(
@@ -421,7 +430,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     )
                 );
 
-                await reporter.ReportAsync(cts.Token, currentModuleSet, agentConfig, DeploymentStatus.Success);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);

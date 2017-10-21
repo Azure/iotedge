@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     [Collection("Docker")]
     public class DockerEnvironmentTest
@@ -83,10 +82,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+                    var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, deploymentConfigModules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
@@ -146,10 +147,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         { "EdgeDeviceConnectionString", fakeConnectionString }
                     }).Build();
 
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+                    var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, deploymentConfigModules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     string moduleKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("moduleKey"));
                     var credential = "fake";

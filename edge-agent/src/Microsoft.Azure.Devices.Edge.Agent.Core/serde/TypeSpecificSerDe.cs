@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                     new TypeSpecificJsonConverter(deserializerTypesMap)
                 },
             };
-        }        
+        }
 
         public string Serialize(T value)
         {

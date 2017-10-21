@@ -29,16 +29,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            var (current, agentConfig) = await TaskEx.WhenAll(
+            var (current, deploymentConfigInfo) = await TaskEx.WhenAll(
                 this.environment.GetModulesAsync(token),
-                this.configSource.GetAgentConfigAsync()
+                this.configSource.GetDeploymentConfigInfoAsync()
             );
             ModuleSet updated = current;
-
-            if (agentConfig != AgentConfig.Empty)
+            DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+            if (deploymentConfig != DeploymentConfig.Empty)
             {
-                IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentities(agentConfig.ModuleSet, current);
-                Plan plan = await this.planner.PlanAsync(agentConfig.ModuleSet, current, identities);
+                ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentities(desiredModuleSet, current);
+                Plan plan = await this.planner.PlanAsync(deploymentConfig.GetModuleSet(), current, identities);
                 if (!plan.IsEmpty)
                 {
                     try
@@ -51,14 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         Events.PlanExecutionFailed(ex);
 
                         updated = await this.environment.GetModulesAsync(token);
-                        await this.reporter.ReportAsync(token, updated, agentConfig, new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
+                        await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
 
                         throw;
                     }
                 }
             }
 
-            await this.reporter.ReportAsync(token, updated, agentConfig, DeploymentStatus.Success);
+            await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
         }
 
         static class Events

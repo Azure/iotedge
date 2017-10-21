@@ -45,16 +45,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             createContainerParameters.Name = module.Name;
             createContainerParameters.Image = module.Config.Image;
 
-            var agentConfig = await configSource.GetAgentConfigAsync();
-            Option<DockerRuntimeInfo> dockerRuntimeInfo;
-            if (agentConfig.Runtime is DockerRuntimeInfo)
-            {
-                dockerRuntimeInfo = Option.Some(agentConfig.Runtime as DockerRuntimeInfo);
-            }
-            else
-            {
-                dockerRuntimeInfo = Option.None<DockerRuntimeInfo>();
-            }
+            DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+            DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+            Option<DockerRuntimeInfo> dockerRuntimeInfo = deploymentConfig != DeploymentConfig.Empty && deploymentConfig.Runtime is DockerRuntimeInfo
+                ? Option.Some(deploymentConfig.Runtime as DockerRuntimeInfo)
+                : Option.None<DockerRuntimeInfo>();
 
             // Inject global parameters
             InjectConfig(createContainerParameters, identity, buildForEdgeHub);
@@ -112,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 }
             }
         }
+
         static void InjectLoggerConfig(CreateContainerParameters createContainerParameters, DockerLoggingConfig defaultDockerLoggerConfig, Option<string> sourceLoggingOptions)
         {
             createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();

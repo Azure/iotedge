@@ -8,28 +8,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using global::Docker.DotNet;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
 
     public class FileConfigSourceModule : Module
     {
         const string DockerType = "docker";
         readonly string configFilename;
         readonly IConfiguration configuration;
+        readonly EdgeHubConnectionString connectionDetails;
+        readonly string edgeDeviceConnectionString;
 
-        public FileConfigSourceModule(string configFilename, IConfiguration configuration)
+        public FileConfigSourceModule(string configFilename, IConfiguration configuration, EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString)
         {
-            this.configFilename = configFilename;
-            this.configuration = configuration;
+            this.configFilename = Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename));
+            this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.connectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
+            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
+            builder.RegisterModule(new ServiceClientModule(this.connectionDetails, this.edgeDeviceConnectionString));
+
+            // IModuleIdentityLifecycleManager
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.connectionDetails))
+                .As<IModuleIdentityLifecycleManager>()
+                .SingleInstance();
+
             // ISerde<ModuleSet>
             builder.Register(c => new ModuleSetSerde(
                     new Dictionary<string, Type>
@@ -58,9 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
+                    ISerde<DeploymentConfigInfo> serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                     IConfigSource config = await FileConfigSource.Create(
-                        this.configFilename,                        
-                        this.configuration);
+                        this.configFilename,
+                        this.configuration,
+                        serde);
                     return config;
                 })
                 .As<Task<IConfigSource>>()

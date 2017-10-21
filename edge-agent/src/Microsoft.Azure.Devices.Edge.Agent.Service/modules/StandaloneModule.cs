@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Collections.Generic;
     using Autofac;
     using Autofac.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -23,12 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public StandaloneModule(
             Uri dockerHost, string dockerLoggingDriver,
             IDictionary<string, string> dockerLoggingOptions, string configFilename,
-            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration)
+            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration,
+            EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString)
         {
             this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
             this.configSource = new FileConfigSourceModule(
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
-                Preconditions.CheckNotNull(configuration, nameof(configuration))
+                Preconditions.CheckNotNull(configuration, nameof(configuration)),
+                Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails)),
+                Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString))
             );
             this.logging = new LoggingModule(
                 Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),

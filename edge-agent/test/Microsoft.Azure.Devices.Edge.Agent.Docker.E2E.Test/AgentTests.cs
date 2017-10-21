@@ -58,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     dockerConfig,
                     null
                 );
-                var moduleSet = ModuleSet.Create(dockerModule);
+                var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
+                var systemModules = new SystemModules(null, null);
 
                 // Start up the agent and run a "reconcile".
                 var dockerLoggingOptions = new Dictionary<string,string>
@@ -76,11 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
                 var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
-                var agentConfig = new AgentConfig(1, runtimeInfo, moduleSet, Option.None<IEdgeAgentModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules));
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                configSource.Setup(cs => cs.GetAgentConfigAsync()).ReturnsAsync(agentConfig);
+                configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
                 // the real configuration source that talks to IoT Hub above.

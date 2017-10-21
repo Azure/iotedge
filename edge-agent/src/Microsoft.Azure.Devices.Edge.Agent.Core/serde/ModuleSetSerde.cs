@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             }
         }
 
-        class ModuleSetJsonConverter: JsonConverter
+        class ModuleSetJsonConverter : JsonConverter
         {
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
 

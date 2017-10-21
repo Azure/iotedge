@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public string Name { get; set; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "version")]
-        public string Version { get; }
+        public virtual string Version { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public string Type { get; }
@@ -51,10 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public TConfig Config { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "restartPolicy")]
-        public RestartPolicy RestartPolicy { get; }
+        public virtual RestartPolicy RestartPolicy { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "status")]
-        public ModuleStatus DesiredStatus { get; }
+        public virtual ModuleStatus DesiredStatus { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "configuration")]
         public ConfigurationInfo ConfigurationInfo { get; }
@@ -109,6 +109,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public TestModule(string name, string version, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration)
             : base(name, version, type, desiredStatus, config, restartPolicy, configuration)
         {
+        }
+    }
+
+    public class TestAgentModule : TestModule, IEdgeAgentModule
+    {
+        [JsonIgnore]
+        public override string Version { get; }
+
+        [JsonIgnore]
+        public override RestartPolicy RestartPolicy { get; }
+
+        [JsonIgnore]
+        public override ModuleStatus DesiredStatus { get; }
+
+        public TestAgentModule(string name, string type, TestConfig config, ConfigurationInfo configuration)
+            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, configuration)
+        {
+            this.Version = string.Empty;
+            this.RestartPolicy = RestartPolicy.Always;
+            this.DesiredStatus = ModuleStatus.Running;
+        }
+    }
+
+    public class TestHubModule : TestModule, IEdgeHubModule
+    {
+        [JsonIgnore]
+        public override string Version { get; }
+
+        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ConfigurationInfo configuration)
+            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, configuration)
+        {
+            this.Version = string.Empty;
         }
     }
 }

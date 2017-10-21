@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             }
         }
 
-        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, AgentConfig agentConfig, DeploymentStatus status)
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status)
         {
             // produce JSONs for previously reported state and current state
             JToken reportedJson = this.GetReportedJson();
@@ -78,9 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             IEnumerable<KeyValuePair<string, IModule>> userModules = moduleSet.Modules.Except(systemModules);
 
             var currentState = new AgentState(
-                agentConfig.Version,
+                deploymentConfigInfo.Version,
                 status,
-                await this.environment.GetUpdatedRuntimeInfoAsync(agentConfig.Runtime),
+                await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime),
                 systemModules.ToImmutableDictionary(),
                 userModules.ToImmutableDictionary()
             );

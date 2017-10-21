@@ -1,7 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ModuleWithIdentity : IModuleWithIdentity
@@ -20,9 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public IModuleIdentity ModuleIdentity => this.moduleIdentity;
 
         public override bool Equals(object obj) => this.Equals(obj as ModuleWithIdentity);
-
-        public virtual bool Equals(IModule other) => this.Equals(other as ModuleWithIdentity);
-
+        
         public virtual bool Equals(IModuleWithIdentity other)
         {
             if (ReferenceEquals(null, other))
@@ -34,13 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.module.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.moduleIdentity.GetHashCode();
-                return hashCode;
-            }
+            int hashCode = 1536872568;
+            hashCode = hashCode * -1521134295 + EqualityComparer<IModule>.Default.GetHashCode(this.Module);
+            hashCode = hashCode * -1521134295 + EqualityComparer<IModuleIdentity>.Default.GetHashCode(this.ModuleIdentity);
+            return hashCode;
         }
     }
 }

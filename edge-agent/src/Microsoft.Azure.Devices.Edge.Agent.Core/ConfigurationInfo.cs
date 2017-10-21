@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public override int GetHashCode()
         {
-            return 2108858624 + EqualityComparer<string>.Default.GetHashCode(Id);
+            return 2108858624 + EqualityComparer<string>.Default.GetHashCode(this.Id);
         }
     }
 }

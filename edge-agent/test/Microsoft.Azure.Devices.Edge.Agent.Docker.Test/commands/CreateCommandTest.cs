@@ -56,10 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         {
                             { "EdgeHubConnectionString", fakeConnectionString }
                         }).Build();
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+
+                    var modules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();
@@ -122,10 +125,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     }).Build();
 
                     // Logging options will be derived from application level configuration
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+                    var modules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
@@ -191,10 +196,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             {Docker.Constants.NetworkIdKey, "testnetwork" },
                             {Constants.EdgeDeviceHostNameKey, "testdevice" }
                         }).Build();
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+                    var modules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();
@@ -268,10 +275,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         {
                             { "EdgeHubConnectionString", fakeConnectionString }
                         }).Build();
-                    AgentConfig agentConfig = new AgentConfig(1, new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), ModuleSet.Create(module), Option.None<IEdgeAgentModule>());
+                    var modules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), systemModules, modules));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
-                    configSource.Setup(cs => cs.GetAgentConfigAsync()).Returns(Task.FromResult<AgentConfig>(agentConfig));
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();

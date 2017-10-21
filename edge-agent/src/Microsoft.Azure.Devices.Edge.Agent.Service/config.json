@@ -1,31 +1,50 @@
 ﻿{
-  "modules": {
-    "mongo-server": {
-      "name": "mongo-server",
-      "version": "1.0",
-      "type": "docker",
-      "status": "running",
-      "restartPolicy":  "on-unhealthy",
-      "config": {
-        "image": "mongo",
-        "tag": "3.4.4",
-        "portBindings": {}
+  "version": 0,
+  "deploymentConfig": {
+    "schemaVersion": "1.0",
+    "runtime": { // Information about the edge device runtime, common to all modules
+      "type": "docker", // Enum - values - docker
+      "settings": {
+        "minDockerVersion": "v1.13", // Min docker version required by this edgeAgent (currently ignored)
+        "loggingOptions": "" // Logging options for the Edge modules
       }
     },
-    "nginx-server": {
-      "name": "nginx-server",
-      "version": "1.3",
-      "type": "docker",
-      "status": "running",
-      "config": {
-        "image": "nginx",
-        "tag": "latest",
-        "portbindings": {
-          "80/tcp": {
-            "from": "80",
-            "to": "8080",
-            "type": "tcp"
-          }
+    "systemModules": {
+      "edgeAgent": { // System Module - required
+        "type": "docker", // Enum - values - docker
+        "settings": {
+          "image": "edgebuilds.azurecr.io/azedge-edge-agent-x64:6407819", // Location of the edgeAgent image
+          "createOptions": "" // Optional - will be null in general case. This is for future proofing
+        },
+        "configuration": {
+          "id": "1234"
+        }
+      },
+      "edgeHub": { // System Module - required
+        "type": "docker", // Enum - values – docker
+        "status": "running", // Enum - values - running, stopped
+        "restartPolicy": "always", // This value should be "always"
+        "settings": {
+          "image": "edgebuilds.azurecr.io/azedge-edge-hub-x64:6407819", // Path to the EdgeHub Image
+          "createOptions": "" // Options string to start the Edge Hub module (templated)
+        },
+        "configuration": {
+          "id": "1234"
+        }
+      }
+    },
+    "modules": {
+      "tempSensor": {
+        "version": "1.0",
+        "type": "docker",
+        "status": "running",
+        "restartPolicy": "always",
+        "settings": {
+          "image": "edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64:6407819",
+          "createOptions": ""
+        },
+        "configuration": {
+          "id": "1234"
         }
       }
     }

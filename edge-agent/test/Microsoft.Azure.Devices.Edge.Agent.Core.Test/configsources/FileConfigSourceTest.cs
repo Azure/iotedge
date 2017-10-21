@@ -1,224 +1,303 @@
-//// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
-//namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
-//{
-//    using System;
-//    using System.Collections.Generic;
-//    using System.IO;
-//    using System.Threading;
-//    using System.Threading.Tasks;
-//    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
-//    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-//    using Microsoft.Azure.Devices.Edge.Util;
-//    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-//    using Microsoft.Extensions.Configuration;
-//    using Newtonsoft.Json;
-//    using Xunit;
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
+{
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Configuration;
+    using Xunit;
 
-//    public class FileConfigSourceTest : IDisposable
-//    {
-//        static readonly string validJson1 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"},\"mod2\":{\"Name\":\"mod2\",\"Version\":\"version1\",\"Type\":\"test\",\"Status\":\"Running\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\"}}}";
-//        static readonly TestConfig Config1 = new TestConfig("image1");
-//        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1);
-//        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1);
-//        static readonly ModuleSet ValidSet1 = ModuleSet.Create(ValidModule1, ValidModule2);
+    public class FileConfigSourceTest : IDisposable
+    {
+        const string TestType = "test";
+        static readonly ConfigurationInfo configurationInfo = new ConfigurationInfo();
+        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), configurationInfo);
+        static readonly TestRuntimeInfo testRuntimeInfo = new TestRuntimeInfo("test");
+        static readonly TestConfig Config1 = new TestConfig("image1");
+        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, configurationInfo);
+        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, configurationInfo);
+        static readonly IDictionary<string, IModule> modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
+        static readonly DeploymentConfig ValidConfig1 = new DeploymentConfig("1.0", testRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), modules1);
+        static readonly DeploymentConfigInfo ValidConfigInfo1 = new DeploymentConfigInfo(0, ValidConfig1);
+        static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(modules1) { [EdgeHubModule.Name] = EdgeHubModule });
 
-//        static readonly string validJson2 = "{\"Modules\":{\"mod1\":{\"Name\":\"mod1\",\"Version\":\"version1\",\"Type\":\"test\",\"Config\":{\"Image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Status\":\"Stopped\"},\"mod3\":{\"Name\":\"mod3\",\"Version\":\"version1\",\"Type\":\"test\",\"config\":{\"image\":\"image1\"},\"RestartPolicy\":\"on-unhealthy\",\"Status\":\"Running\"}}}";
-//        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1);
-//        static readonly IModule ValidModule3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1);
-//        static readonly ModuleSet ValidSet2 = ModuleSet.Create(UpdatedModule1, ValidModule3);
+        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, configurationInfo);
+        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, configurationInfo);
+        static readonly IDictionary<string, IModule> modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
+        static readonly DeploymentConfig ValidConfig2 = new DeploymentConfig("1.0", testRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), modules2);
+        static readonly DeploymentConfigInfo ValidConfigInfo2 = new DeploymentConfigInfo(0, ValidConfig2);
+        static readonly ModuleSet ValidSet2 = new ModuleSet(new Dictionary<string, IModule>(modules2) { [EdgeHubModule.Name] = EdgeHubModule });
 
-//        static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
+        static readonly string InvalidJson1 = "{\"This is a terrible string\"}";
 
-//        readonly string tempFileName;
-//        readonly ModuleSetSerde moduleSetSerde;
-//        readonly IConfigurationRoot config;
+        readonly string tempFileName;
+        readonly IConfigurationRoot config;
+        readonly ISerde<DeploymentConfigInfo> serde;
 
-//        public FileConfigSourceTest()
-//        {
-//            // GetTempFileName() creates the file.
-//            this.tempFileName = Path.GetTempFileName();
-//            var serializerInputTable = new Dictionary<string, Type> { { "Test", typeof(TestModule) } };
-//            this.moduleSetSerde = new ModuleSetSerde(serializerInputTable);
-//            this.config = new ConfigurationBuilder().Build();
-//        }
+        public FileConfigSourceTest()
+        {
+            // GetTempFileName() creates the file.
+            this.tempFileName = Path.GetTempFileName();
+            this.config = new ConfigurationBuilder().Build();
 
-//        public void Dispose()
-//        {
-//            if (File.Exists(this.tempFileName))
-//            {
-//                File.Delete(this.tempFileName);
-//            }
-//        }
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestModule)
+            };
 
-//        [Fact]
-//        [Unit]
-//        public async void CreateSuccess()
-//        {
-//            File.WriteAllText(this.tempFileName, validJson1);
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestAgentModule)
+            };
 
-//            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config))
-//            {
-//                Assert.NotNull(configSource);
-//                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
-//                Assert.NotNull(configSourceSet);
-//                Diff emptyDiff = ValidSet1.Diff(configSourceSet);
-//                Assert.True(emptyDiff.IsEmpty);
-//            }
-//        }
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestHubModule)
+            };
 
-//        [Fact]
-//        [Unit]
-//        public async void ChangeFileAndSeeChange()
-//        {
-//            // Set up initial config file and create `FileConfigSource`
-//            File.WriteAllText(this.tempFileName, validJson1);
-//            Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                [TestType] = typeof(TestRuntimeInfo)
+            };
 
-//            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config))
-//            {
-//                Assert.NotNull(configSource);
+            var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+            this.serde = new TypeSpecificSerDe<DeploymentConfigInfo>(deserializerTypesMap);
+        }
 
-//                var taskComplete = new TaskCompletionSource<bool>();
-//                bool eventChangeCalled = false;
-//                Diff eventDiff = Diff.Empty;
+        public void Dispose()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+        }
 
-//                configSource.ModuleSetChanged += (sender, diff) =>
-//                {
-//                    eventDiff = diff;
-//                    eventChangeCalled = true;
-//                    taskComplete.SetResult(true);
-//                };
+        [Fact]
+        [Unit]
+        public async void CreateSuccess()
+        {
+            File.WriteAllText(this.tempFileName, ValidJson1);
 
-//                bool eventFailedCalled = false;
-//                configSource.ModuleSetFailed += (sender, ex) =>
-//                {
-//                    eventFailedCalled = true;
-//                };
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            {
+                Assert.NotNull(configSource);
+                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(deploymentConfigInfo);
+                Assert.NotNull(deploymentConfigInfo.DeploymentConfig);
+                ModuleSet moduleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                Diff emptyDiff = ValidSet1.Diff(moduleSet);
+                Assert.True(emptyDiff.IsEmpty);
+            }
+        }
 
-//                ModuleSet startingSet = await configSource.GetModuleSetAsync();
+        [Fact]
+        [Unit]
+        public async void ChangeFileAndSeeChange()
+        {
+            // Set up initial config file and create `FileConfigSource`
+            File.WriteAllText(this.tempFileName, ValidJson1);
+            Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
 
-//                // Modify the config file by writing new content.
-//                File.WriteAllText(this.tempFileName, validJson2);
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            {
+                Assert.NotNull(configSource);
 
-//                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-//                await Task.WhenAny(taskComplete.Task, cts.Token.WhenCanceled());
+                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(deploymentConfigInfo);
+                ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                Assert.True(emptyDiff.IsEmpty);
 
-//                // Assert change event is invoked, and the Diff from the event is expected.
-//                Assert.True(eventChangeCalled);
-//                Assert.False(eventFailedCalled);
-//                Assert.Equal(eventDiff, validDiff1To2);
+                // Modify the config file by writing new content.
+                File.WriteAllText(this.tempFileName, ValidJson2);
+                await Task.Delay(TimeSpan.FromSeconds(20));
 
-//                // Assert new read from config file is as expected.
-//                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
-//                Assert.NotNull(configSourceSet);
-//                Diff configDiff = configSourceSet.Diff(startingSet);
-//                Assert.Equal(configDiff, validDiff1To2);
-//            }
-//        }
+                DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(updatedAgentConfig);
+                ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                Assert.False(newDiff.IsEmpty);
+                Assert.Equal(newDiff, validDiff1To2);
+            }
+        }        
 
-//        [Fact]
-//        [Unit]
-//        public async void ConstructorInvalidInputs()
-//        {
-//            File.Delete(this.tempFileName);
+        [Fact]
+        [Unit]
+        public async void ChangeFileToInvalidBackToOk()
+        {
+            // Set up initial config file and create `FileConfigSource`
+            File.WriteAllText(this.tempFileName, ValidJson1);
+            Diff validDiff1To2 = ValidSet2.Diff(ValidSet1);
 
-//            await Assert.ThrowsAsync<ArgumentNullException>(() => FileConfigSource.Create(null, this.moduleSetSerde, this.config));
-//            await Assert.ThrowsAsync<FileNotFoundException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config));
+            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.config, this.serde))
+            {
+                Assert.NotNull(configSource);
 
-//            File.WriteAllText(this.tempFileName, validJson1);
+                DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(deploymentConfigInfo);
+                ModuleSet initialModuleSet = deploymentConfigInfo.DeploymentConfig.GetModuleSet();
+                Diff emptyDiff = ValidSet1.Diff(initialModuleSet);
+                Assert.True(emptyDiff.IsEmpty);
 
-//            await Assert.ThrowsAsync<ArgumentNullException>(() => FileConfigSource.Create(this.tempFileName, null, this.config));
+                // Modify the config file by writing new content.
+                File.WriteAllText(this.tempFileName, InvalidJson1);
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
-//            await Assert.ThrowsAsync<ArgumentNullException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, null));
-//        }
+                DeploymentConfigInfo updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(updatedAgentConfig);
+                ModuleSet updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                Diff newDiff = updatedModuleSet.Diff(initialModuleSet);
+                Assert.True(newDiff.IsEmpty);
 
-//        [Fact]
-//        [Unit]
-//        public async void SerializationOnInitFails()
-//        {
-//            File.WriteAllText(this.tempFileName, InvalidJson1);
+                // Modify the config file by writing new content.
+                File.WriteAllText(this.tempFileName, ValidJson2);
+                await Task.Delay(TimeSpan.FromSeconds(10));
 
-//            await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config));
-//        }
+                updatedAgentConfig = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(updatedAgentConfig);
+                updatedModuleSet = updatedAgentConfig.DeploymentConfig.GetModuleSet();
+                newDiff = updatedModuleSet.Diff(initialModuleSet);
+                Assert.False(newDiff.IsEmpty);
+                Assert.Equal(newDiff, validDiff1To2);
+            }
+        }
 
-//        [Fact]
-//        [Unit]
-//        public async void ChangeFileToInvalidAndSeeNoChange()
-//        {
-//            // Set up initial config file and create `FileConfigSource`
-//            File.WriteAllText(this.tempFileName, validJson1);
+        const string ValidJson1 = @"{
+                ""version"": 0,
+                ""deploymentConfig"": { 
+                    ""schemaVersion"": ""1.0"",
+                    ""runtime"": { 
+                      ""type"": ""test"", 
+                      ""settings"": {
+                        ""minDockerVersion"": ""v1.13"", 
+                        ""loggingOptions"": """" 
+                      }
+                    },
+                    ""systemModules"": {
+                      ""edgeAgent"": { 
+                        ""type"": ""test"", 
+                        ""settings"": {
+                          ""image"": ""edge-agent""
+                        },
+                        ""configuration"": {
+                          ""id"": ""1234""
+                        }
+                      },
+                      ""edgeHub"": { 
+                        ""type"": ""test"", 
+                        ""status"": ""running"", 
+                        ""restartPolicy"": ""always"", 
+                        ""settings"": {
+                          ""image"": ""edge-hub:latest""
+                        },
+                        ""configuration"": {
+                          ""id"":  ""1234""
+                        }
+                      }
+                    },
+                    ""modules"": {
+                      ""mod1"": {
+                        ""version"": ""version1"",
+                        ""type"": ""test"",
+                        ""status"": ""running"",
+                        ""restartPolicy"": ""on-unhealthy"",
+                        ""settings"": {
+                          ""image"": ""image1""
+                        },
+                        ""configuration"": {
+                          ""id"": ""1234""
+                        }
+                    }
+                  }
+                }
+            }";
 
-//            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config))
-//            {
-//                Assert.NotNull(configSource);
+        const string ValidJson2 = @"{
+                ""version"": 0,
+                ""deploymentConfig"": { 
+                    ""schemaVersion"": ""1.0"",
+                    ""runtime"": { 
+                      ""type"": ""test"", 
+                      ""settings"": {
+                        ""minDockerVersion"": ""v1.13"", 
+                        ""loggingOptions"": """" 
+                      }
+                    },
+                    ""systemModules"": {
+                      ""edgeAgent"": { 
+                        ""type"": ""test"", 
+                        ""settings"": {
+                          ""image"": ""edge-agent""
+                        },
+                        ""configuration"": {
+                          ""id"": ""1234""
+                        }
+                      },
+                      ""edgeHub"": { 
+                        ""type"": ""test"", 
+                        ""status"": ""running"", 
+                        ""restartPolicy"": ""always"", 
+                        ""settings"": {
+                          ""image"": ""edge-hub:latest""
+                        },
+                        ""configuration"": {
+                          ""id"":  ""1234""
+                        }
+                      }
+                    },
+                    ""modules"": {
+                      ""mod1"": {
+                        ""version"": ""version1"",
+                        ""type"": ""test"",
+                        ""status"": ""stopped"",
+                        ""restartPolicy"": ""on-unhealthy"",
+                        ""settings"": {
+                          ""image"": ""image1""
+                        },
+                        ""configuration"": {
+                          ""id"": ""1234""
+                        }
+                      },
+                      ""mod2"": {
+                        ""version"": ""version1"",
+                        ""type"": ""test"",
+                        ""status"": ""running"",
+                        ""restartPolicy"": ""on-unhealthy"",
+                        ""settings"": {
+                          ""image"": ""image1""
+                        },
+                        ""configuration"": {
+                          ""id"": ""1234""
+                        }
+                    }
+                  }
+                }
+            }";
+    }
 
-//                // This event is created to ensure it is *not* invoked on invalid input.
-//                var taskCompleted = new TaskCompletionSource<bool>();
-//                bool changeEventCalled = false;
-//                configSource.ModuleSetChanged += (sender, diff) =>
-//                {
-//                    changeEventCalled = true;
-//                    taskCompleted.SetResult(true);
-//                };
+    class TestRuntimeInfo : IRuntimeInfo
+    {
+        public TestRuntimeInfo(string type)
+        {
+            this.Type = type;
+        }
 
-//                bool eventFailedCalled = false;
-//                configSource.ModuleSetFailed += (sender, ex) =>
-//                {
-//                    eventFailedCalled = true;
-//                };
-//                // Attempt to modify the config with invalid input.
-//                File.WriteAllText(this.tempFileName, InvalidJson1);
+        public string Type { get; }
 
-//                var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
-//                cts.Token.ThrowIfCancellationRequested();
-//                await Task.WhenAny(taskCompleted.Task, cts.Token.WhenCanceled());
-
-//                // Assert that event is not invoked. 
-//                Assert.False(changeEventCalled);
-//                Assert.True(eventFailedCalled);
-
-//                // Assert that a read from invalid JSON will fail.
-//                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config));
-
-//            }
-//        }
-
-//        [Fact]
-//        [Unit]
-//        public async void ChangeFileToInvalidBackToOk()
-//        {
-//            File.WriteAllText(this.tempFileName, validJson1);
-
-//            using (FileConfigSource configSource = await FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config))
-//            {
-//                Assert.NotNull(configSource);
-
-//                ModuleSet startingSet = await configSource.GetModuleSetAsync();
-
-//                // watching the file in this test to cover the case where no events are invoked.
-//                var watcher = new FileSystemWatcher(Path.GetDirectoryName(this.tempFileName), Path.GetFileName(this.tempFileName))
-//                {
-//                    NotifyFilter = NotifyFilters.LastWrite
-//                };
-//                watcher.EnableRaisingEvents = true;
-
-//                File.WriteAllText(this.tempFileName, InvalidJson1);
-
-//                watcher.WaitForChanged(WatcherChangeTypes.Changed, 1000);
-//                await Assert.ThrowsAnyAsync<JsonException>(() => FileConfigSource.Create(this.tempFileName, this.moduleSetSerde, this.config));
-
-//                File.WriteAllText(this.tempFileName, validJson1);
-
-//                watcher.WaitForChanged(WatcherChangeTypes.Changed, 1000);
-
-//                ModuleSet configSourceSet = await configSource.GetModuleSetAsync();
-//                Assert.NotNull(configSourceSet);
-
-//                Diff configDiff = startingSet.Diff(configSourceSet);
-//                Assert.True(configDiff.IsEmpty);
-//            }
-//        }
-//    }
-
-//}
+        public bool Equals(IRuntimeInfo other)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

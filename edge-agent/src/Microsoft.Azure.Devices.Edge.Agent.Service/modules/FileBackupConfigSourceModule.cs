@@ -81,36 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var moduleDeserializerTypes = new Dictionary<string, Type>
-                    {
-                        [DockerType] = typeof(DockerDesiredModule)
-                    };
-
-                    var edgeAgentDeserializerTypes = new Dictionary<string, Type>
-                    {
-                        [DockerType] = typeof(EdgeAgentDockerModule)
-                    };
-
-                    var edgeHubDeserializerTypes = new Dictionary<string, Type>
-                    {
-                        [DockerType] = typeof(EdgeHubDockerModule)
-                    };
-
-                    var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
-                    {
-                        [DockerType] = typeof(DockerRuntimeInfo)
-                    };
-
-                    var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
-                    {
-                        [typeof(IModule)] = moduleDeserializerTypes,
-                        [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
-                        [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
-                        [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
-                    };
-
+                    ISerde<DeploymentConfig> serde = c.Resolve<ISerde<DeploymentConfig>>();
                     IDeviceClient deviceClient = await c.Resolve<Task<IDeviceClient>>();
-                    ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypesMap);
                     IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
                     return edgeAgentConnection;
                 })
@@ -121,9 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        ISerde<DeploymentConfigInfo> serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         IEdgeAgentConnection edgeAgentConnection = await c.Resolve<Task<IEdgeAgentConnection>>();
-                        IConfigSource twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
-                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource);
+                        var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
+                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde);
                         return backupConfigSource;
                     })
                 .As<Task<IConfigSource>>()

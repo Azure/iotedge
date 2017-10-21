@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IConfigSource : IDisposable
     {
-        Task<AgentConfig> GetAgentConfigAsync();
+        Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync();
 
         IConfiguration Configuration { get; }
     }

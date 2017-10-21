@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
 
     public class AgentModule : Module
     {
@@ -19,6 +20,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
         readonly int coolOffTimeUnitInSeconds;
+        const string DockerType = "docker";
+
+        static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
+        {
+            get
+            {
+                var moduleDeserializerTypes = new Dictionary<string, Type>
+                {
+                    [DockerType] = typeof(DockerDesiredModule)
+                };
+
+                var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+                {
+                    [DockerType] = typeof(EdgeAgentDockerModule)
+                };
+
+                var edgeHubDeserializerTypes = new Dictionary<string, Type>
+                {
+                    [DockerType] = typeof(EdgeHubDockerModule)
+                };
+
+                var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+                {
+                    [DockerType] = typeof(DockerRuntimeInfo)
+                };
+
+                var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
+                {
+                    [typeof(IModule)] = moduleDeserializerTypes,
+                    [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                    [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                    [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+                };
+                return deserializerTypesMap;
+            }
+        }
 
         public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds)
         {
@@ -30,6 +67,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
+            // ISerde<DeploymentConfig>
+            builder.Register(
+                c =>
+                {
+                    ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(DeploymentConfigTypeMapping);
+                    return serde;
+                })
+                .As<ISerde<DeploymentConfig>>()
+                .SingleInstance();
+
+            // ISerde<DeploymentConfigInfo>
+            builder.Register(
+                c =>
+                {
+                    ISerde<DeploymentConfigInfo> serde = new TypeSpecificSerDe<DeploymentConfigInfo>(DeploymentConfigTypeMapping);
+                    return serde;
+                })
+                .As<ISerde<DeploymentConfigInfo>>()
+                .SingleInstance();
+
             // IDockerClient
             builder.Register(c => new DockerClientConfiguration(this.dockerHostname).CreateClient())
                 .As<IDockerClient>()

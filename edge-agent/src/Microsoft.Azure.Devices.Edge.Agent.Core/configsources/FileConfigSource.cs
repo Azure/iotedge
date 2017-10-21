@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using System.Reactive.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Configuration;
@@ -21,15 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly FileSystemWatcher watcher;
         readonly string configFilePath;
         readonly IDisposable watcherSubscription;
-        readonly AtomicReference<AgentConfig> current;
-        readonly AsyncLock sync;        
+        readonly AtomicReference<DeploymentConfigInfo> current;
+        readonly AsyncLock sync;
+        readonly ISerde<DeploymentConfigInfo> serde;
 
-        FileConfigSource(FileSystemWatcher watcher, AgentConfig initial, IConfiguration configuration)
+        FileConfigSource(FileSystemWatcher watcher, DeploymentConfigInfo initial, IConfiguration configuration, ISerde<DeploymentConfigInfo> serde)
         {
             this.watcher = Preconditions.CheckNotNull(watcher, nameof(watcher));
             this.Configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
-            this.current = new AtomicReference<AgentConfig>(Preconditions.CheckNotNull(initial, nameof(initial)));
-            
+            this.current = new AtomicReference<DeploymentConfigInfo>(Preconditions.CheckNotNull(initial, nameof(initial)));
+            this.serde = Preconditions.CheckNotNull(serde, nameof(serde));
             this.configFilePath = Path.Combine(this.watcher.Path, this.watcher.Filter);
 
             this.sync = new AsyncLock();
@@ -41,9 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             this.watcher.EnableRaisingEvents = true;
             Events.Created(this.configFilePath);
         }
-
-        public static async Task<FileConfigSource> Create(string configFilePath, IConfiguration configuration)
+        
+        public static async Task<FileConfigSource> Create(string configFilePath, IConfiguration configuration, ISerde<DeploymentConfigInfo> serde)
         {
+            Preconditions.CheckNotNull(serde, nameof(serde));
             string path = Preconditions.CheckNonWhiteSpace(Path.GetFullPath(configFilePath), nameof(configFilePath));
             if (!File.Exists(path))
             {
@@ -53,26 +55,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             string directoryName = Path.GetDirectoryName(path);
             string fileName = Path.GetFileName(path);
 
-            AgentConfig initial = await ReadFromDisk(path);
+            DeploymentConfigInfo initial = await ReadFromDisk(path, serde);
             var watcher = new FileSystemWatcher(directoryName, fileName)
             {
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            return new FileConfigSource(watcher, initial, configuration);
+            return new FileConfigSource(watcher, initial, configuration, serde);
         }
 
         public IConfiguration Configuration { get; }
 
-        static async Task<AgentConfig> ReadFromDisk(string path)
+        static async Task<DeploymentConfigInfo> ReadFromDisk(string path, ISerde<DeploymentConfigInfo> serde)
         {
             string json = await DiskFile.ReadAllAsync(path);
-            var agentConfig = json.FromJson<AgentConfig>();
-            return agentConfig;
+            DeploymentConfigInfo deploymentConfig = serde.Deserialize(json);
+            return deploymentConfig;
         }
 
-        void UpdateCurrent(AgentConfig updated)
+        void UpdateCurrent(DeploymentConfigInfo updated)
         {
-            AgentConfig snapshot = this.current.Value;
+            DeploymentConfigInfo snapshot = this.current.Value;
             if (!this.current.CompareAndSet(snapshot, updated))
             {
                 throw new InvalidOperationException("Invalid update current moduleset operation.");
@@ -88,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             {
                 using (await this.sync.LockAsync())
                 {
-                    AgentConfig newConfig = await ReadFromDisk(this.configFilePath);
+                    DeploymentConfigInfo newConfig = await ReadFromDisk(this.configFilePath, this.serde);
                     this.UpdateCurrent(newConfig);
                 }
             }
@@ -98,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             }
         }
 
-        public Task<AgentConfig> GetAgentConfigAsync() => Task.FromResult(this.current.Value);
+        public Task<DeploymentConfigInfo> GetDeploymentConfigInfoAsync() => Task.FromResult(this.current.Value);
 
         public void Dispose()
         {
