@@ -10,8 +10,3 @@ manifests:
     platform:
       architecture: arm
       os: linux
-  -
-    image: __REGISTRY__/azureiotedge/functions-binding-windows-amd64:__VERSION__
-    platform:
-      architecture: amd64
-      os: windows

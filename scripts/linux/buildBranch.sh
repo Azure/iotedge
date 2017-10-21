@@ -20,6 +20,7 @@ PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
+SRC_BIN_DIR=$ROOT_FOLDER/bin
 
 # Process script arguments
 PUBLISH_TESTS=${1:-""}
@@ -106,6 +107,14 @@ done < <(find $ROOT_FOLDER -type f -name $FUNCTION_BINDING_CSPROJ_PATTERN)
 echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
 rm -fr $PUBLISH_FOLDER/docker
 cp -r $SRC_DOCKER_DIR $PUBLISH_FOLDER
+
+echo "Copying $SRC_SCRIPTS_DIR to $PUBLISH_FOLDER/scripts"
+rm -fr $PUBLISH_FOLDER/scripts
+cp -r $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
+
+echo "Copying $SRC_BIN_DIR to $PUBLISH_FOLDER/bin"
+rm -fr $PUBLISH_FOLDER/bin
+cp -r $SRC_BIN_DIR $PUBLISH_FOLDER
 
 if [ "$PUBLISH_TESTS" == "--publish-tests" ]; then
 
