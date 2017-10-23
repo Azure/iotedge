@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     await this.RefreshTwinAsync();
                 }
                 else
-                {   
+                {
                     await this.ApplyPatchAsync(desiredPropertiesPatch);
                 }
             }
@@ -74,43 +74,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
-            try
+            using (await this.twinLock.LockAsync())
             {
-                Events.ConnectionStatusChanged(status, reason);
-                if (status == ConnectionStatus.Connected)
+                try
                 {
-                    await this.RefreshTwinAsync();
+                    Events.ConnectionStatusChanged(status, reason);
+                    if (status == ConnectionStatus.Connected)
+                    {
+                        await this.RefreshTwinAsync();
+                    }
                 }
-            }
-            catch(Exception ex)
-            {
-                Events.ConnectionStatusChangedHandlingError(ex);
+                catch (Exception ex)
+                {
+                    Events.ConnectionStatusChangedHandlingError(ex);
+                }
             }
         }
 
         async Task RefreshTwinAsync()
         {
-            using (await this.twinLock.LockAsync())
+            try
             {
-                try
-                {
-                    Twin twin = await this.deviceClient.GetTwinAsync();
-                    this.desiredProperties = twin.Properties.Desired;
-                    this.reportedProperties = Option.Some(twin.Properties.Reported);
-                    await this.UpdateDeploymentConfig();
-                    Events.TwinRefreshSuccess();
-                }
-                catch (Exception ex)
-                {
-                    Events.TwinRefreshError(ex);
-                }
+                Twin twin = await this.deviceClient.GetTwinAsync();
+                this.desiredProperties = twin.Properties.Desired;
+                this.reportedProperties = Option.Some(twin.Properties.Reported);
+                await this.UpdateDeploymentConfig();
+                Events.TwinRefreshSuccess();
             }
+            catch (Exception ex)
+            {
+                Events.TwinRefreshError(ex);
+            }
+
         }
 
         Task UpdateDeploymentConfig()
         {
             try
-            {                
+            {
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
                 DeploymentConfig deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
                 // Do any validation on deploymentConfig if necessary
@@ -166,11 +167,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Log.LogError((int)EventIds.DesiredPropertiesFailed, exception, "EdgeAgentConnection failed to process desired properties update patch");
             }
-                        
+
             public static void ConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Log.LogInformation((int)EventIds.ConnectionStatusChanged, $"Connection status changed from to {status} with reason {reason}");
-            }            
+            }
 
             internal static void DesiredPropertiesUpdated()
             {
@@ -205,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void UpdatedDeploymentConfig()
             {
                 Log.LogDebug((int)EventIds.DeploymentConfigUpdated, "EdgeAgentConnection updated deployment config from desired properties.");
-            }            
+            }
         }
     }
 }
