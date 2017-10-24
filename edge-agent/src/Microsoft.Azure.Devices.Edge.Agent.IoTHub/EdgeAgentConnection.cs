@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
@@ -58,10 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                string baselineDesiredProperties = this.desiredProperties.ToJson();
-                string patchDesiredProperties = patch.ToJson();
-                string mergedDesiredProperties = JsonEx.MergeJson(baselineDesiredProperties, patchDesiredProperties, true);
-                this.desiredProperties = new TwinCollection(mergedDesiredProperties);
+                JToken mergedJson = JsonEx.Merge(JToken.FromObject(this.desiredProperties), JToken.FromObject(patch), true);
+                this.desiredProperties = new TwinCollection(mergedJson.ToString());
                 await this.UpdateDeploymentConfig();
                 Events.DesiredPropertiesPatchApplied();
             }

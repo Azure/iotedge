@@ -18,58 +18,57 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return token.Value<T>();
         }
 
-        public static string MergeJson(string baseline, string patch, bool treatNullAsDelete)
-        {
-            JToken baselineJToken = JToken.Parse(Preconditions.CheckNonWhiteSpace(baseline, nameof(baseline)));
-            JToken patchJToken = JToken.Parse(Preconditions.CheckNonWhiteSpace(patch, nameof(patch)));
-            JToken mergedJToken = MergeJson(baselineJToken, patchJToken, treatNullAsDelete);
-            return mergedJToken.ToString();
-        }
-
-        static JToken MergeJson(JToken baseline, JToken patch, bool treatNullAsDelete)
+        public static JToken Merge(JToken baselineToken, JToken patchToken, bool treatNullAsDelete)
         {
             // Reached the leaf JValue
-            if ((patch is JValue) || (baseline.Type == JTokenType.Null) || (baseline is JValue))
+            if (patchToken.Type != JTokenType.Object || baselineToken.Type != JTokenType.Object)
             {
-                return patch;
+                return patchToken;
             }
 
-            Dictionary<string, JToken> patchDictionary = patch.ToObject<Dictionary<string, JToken>>();
-            Dictionary<string, JToken> baselineDictionary = baseline.ToObject<Dictionary<string, JToken>>();
+            JObject patch = (JObject)patchToken;
+            JObject baseline = (JObject)baselineToken;
+            JObject result = new JObject(baseline);
 
-            Dictionary<string, JToken> result = baselineDictionary;
-            foreach (KeyValuePair<string, JToken> patchPair in patchDictionary)
+            foreach (JProperty patchProp in patch.Properties())
             {
-                bool baselineContainsKey = baselineDictionary.ContainsKey(patchPair.Key);
-                if (baselineContainsKey && (patchPair.Value.Type != JTokenType.Null))
+                if (IsValidToken(patchProp.Value))
                 {
-                    JToken baselineValue = baselineDictionary[patchPair.Key];
-                    JToken nestedResult = MergeJson(baselineValue, patchPair.Value, treatNullAsDelete);
-                    result[patchPair.Key] = nestedResult;
+                    var baselineProp = baseline.Property(patchProp.Name);
+                    if (baselineProp != null && patchProp.Value.Type != JTokenType.Null)
+                    {
+                        JToken nestedResult = Merge(baselineProp.Value, patchProp.Value, treatNullAsDelete);
+                        result[patchProp.Name] = nestedResult;
+                    }
+                    else // decide whether to remove or add the patch key
+                    {
+                        if (treatNullAsDelete && patchProp.Value.Type == JTokenType.Null)
+                        {
+                            result.Remove(patchProp.Name);
+                        }
+                        else
+                        {
+                            result[patchProp.Name] = patchProp.Value;
+                        }
+                    }
                 }
-                else // decide whether to remove or add the patch key
+                else
                 {
-                    if (treatNullAsDelete && (patchPair.Value.Type == JTokenType.Null))
-                    {
-                        result.Remove(patchPair.Key);
-                    }
-                    else
-                    {
-                        result[patchPair.Key] = patchPair.Value;
-                    }
+                    throw new InvalidOperationException($"Property {patchProp.Name} has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object");
                 }
             }
-            return JToken.FromObject(result);
+            return result;
         }
 
-		static readonly JTokenType[] ValidDiffTypes =
+        static readonly JTokenType[] ValidDiffTypes =
         {
             JTokenType.Boolean,
             JTokenType.Float,
             JTokenType.Integer,
             JTokenType.Null,
             JTokenType.Object,
-            JTokenType.String
+            JTokenType.String,
+            JTokenType.Date
         };
 
         public static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
@@ -85,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             JObject from = (JObject)fromToken;
             JObject to = (JObject)toToken;
 
-            foreach (var fromProp in from.Properties())
+            foreach (JProperty fromProp in from.Properties())
             {
                 if (IsValidToken(fromProp.Value))
                 {
@@ -121,6 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
                         patch.Add(fromProp.Name, JValue.CreateNull());
                     }
                 }
+                else
+                {
+                    throw new InvalidOperationException($"Property {fromProp.Name} has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object");
+                }
             }
 
             foreach (var toProp in to.Properties())
@@ -135,6 +138,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     {
                         patch.Add(toProp.Name, toProp.Value);
                     }
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Property {toProp.Name} has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object");
                 }
             }
 

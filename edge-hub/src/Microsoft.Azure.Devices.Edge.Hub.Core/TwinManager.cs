@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class TwinManager : ITwinManager
@@ -177,7 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             // Save the patch only if it is the next one that can be applied
                             if (desired.Version == u.Twin.Properties.Desired.Version + 1)
                             {
-                                u.Twin.Properties.Desired = MergeTwinCollections(u.Twin.Properties.Desired, desired, true);
+                                JToken mergedJson = JsonEx.Merge(
+                                    JToken.FromObject(u.Twin.Properties.Desired),
+                                    JToken.FromObject(desired), true);
+                                u.Twin.Properties.Desired = new TwinCollection(mergedJson.ToString());
                             }
                             else
                             {
@@ -235,7 +237,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 // of a connection reset or desired property update, send a patch to the downstream device
                                 if (sendDesiredPropertyUpdate && t.SubscribedToDesiredPropertyUpdates)
                                 {
-                                    diff = DiffTwinCollections(t.Twin.Properties.Desired, cloudTwin.Properties.Desired);
+                                    diff = new TwinCollection(JsonEx.Diff(
+                                        JToken.FromObject(t.Twin.Properties.Desired),
+                                        JToken.FromObject(cloudTwin.Properties.Desired)) as JObject);
                                 }
                             }
                             else
@@ -277,7 +281,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         id,
                         u =>
                         {
-                            TwinCollection mergedProperty = MergeTwinCollections(u.Twin.Properties.Reported, reported, true /* treatNullAsDelete */);
+                            JToken mergedJson = JsonEx.Merge(
+                                JToken.FromObject(u.Twin.Properties.Reported),
+                                JToken.FromObject(reported), true /* treatNullAsDelete */);
+                            TwinCollection mergedProperty = new TwinCollection(mergedJson.ToString());
                             if (!cloudVerified)
                             {
                                 ValidateTwinCollectionSize(mergedProperty);
@@ -309,7 +316,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     id,
                     u =>
                     {
-                        TwinCollection mergedPatch = MergeTwinCollections(u.ReportedPropertiesPatch, reportedProperties, false /* treatNullAsDelete */);
+                        JToken mergedJson = JsonEx.Merge(JToken.FromObject(u.ReportedPropertiesPatch),
+                            JToken.FromObject(reportedProperties), false /* treatNullAsDelete */);
+                        TwinCollection mergedPatch = new TwinCollection(mergedJson.ToString());
                         return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
                     }),
                 () => throw new InvalidOperationException("Missing twin store"));
@@ -386,66 +395,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     await cp.UpdateReportedPropertiesAsync(reported);
                 }, () => throw new InvalidOperationException($"Cloud proxy unavailable for device {id}"));
-        }
-
-        internal static TwinCollection MergeTwinCollections(TwinCollection baseline, TwinCollection patch, bool treatNullAsDelete)
-        {
-            Preconditions.CheckNotNull(baseline, nameof(baseline));
-            Preconditions.CheckNotNull(patch, nameof(patch));
-            string baselineJson = baseline.ToJson();
-            string patchJson = patch.ToJson();
-            string mergedJson = JsonEx.MergeJson(baselineJson, patchJson, treatNullAsDelete);
-            return new TwinCollection(mergedJson);
-        }
-
-        internal static TwinCollection DiffTwinCollections(TwinCollection from, TwinCollection to)
-        {
-            Preconditions.CheckNotNull(from, nameof(from));
-            Preconditions.CheckNotNull(to, nameof(to));
-            JToken fromToken = JToken.Parse(from.ToJson());
-            JToken toToken = JToken.Parse(to.ToJson());
-            JToken diff = DiffTwinCollections(fromToken, toToken);
-            return diff == null ? new TwinCollection() : new TwinCollection(diff.ToJson());
-        }
-
-        static JToken DiffTwinCollections(JToken from, JToken to)
-        {
-            if ((to is JValue) || (from is JValue))
-            {
-                return Equals(to, from) ? null : to;
-            }
-
-            Dictionary<string, JToken> toDictionary = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(to.ToJson());
-            Dictionary<string, JToken> fromDictionary = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(from.ToJson());
-            Dictionary<string, JToken> result = toDictionary;
-
-            foreach (KeyValuePair<string, JToken> fromPair in fromDictionary)
-            {
-                bool toContainsKey = toDictionary.ContainsKey(fromPair.Key);
-                if (toContainsKey)
-                {
-                    JToken nestedResult = DiffTwinCollections(fromPair.Value, toDictionary[fromPair.Key]);
-                    if (nestedResult != null)
-                    {
-                        result[fromPair.Key] = nestedResult;
-                    }
-                    else
-                    {
-                        result.Remove(fromPair.Key);
-                    }
-                }
-                else
-                {
-                    result[fromPair.Key] = null;
-                }
-            }
-
-            if (result.Count == 0)
-            {
-                return null;
-            }
-
-            return JToken.FromObject(result);
         }
 
         static void ValidatePropertyNameAndLength(string name)
