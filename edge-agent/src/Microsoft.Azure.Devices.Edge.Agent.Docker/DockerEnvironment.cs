@@ -53,7 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo)
         {
-            string type = runtimeInfo?.Type ?? "docker";
+            Preconditions.CheckArgument(string.Equals(runtimeInfo?.Type, "docker"));
+
+            string type = runtimeInfo?.Type;
             DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
             var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
 
@@ -98,13 +100,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DockerConfig config = edgeAgentContainer
                 .Map(response => new DockerConfig(response.Image, Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName)))
                 .GetOrElse(DockerConfig.Unknown);
-
-            string startedAtStr = edgeAgentContainer.OrDefault()?.State?.StartedAt;
-            DateTime startedAt = DateTime.MinValue;
-            if (startedAtStr != null)
-            {
-                startedAt = DateTime.Parse(startedAtStr, null, DateTimeStyles.RoundtripKind);
-            }
 
             // TODO: When we have health checks for Edge Agent the runtime status can potentially be "Unhealthy".
             return new EdgeAgentDockerRuntimeModule(config, ModuleStatus.Running, new ConfigurationInfo());

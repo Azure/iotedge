@@ -26,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IDockerClient Client = DockerHelper.Client;
         static readonly IEntityStore<string, ModuleState> RestartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
         static readonly IRestartPolicyManager RestartManager = new Mock<IRestartPolicyManager>().Object;
+        const string OperatingSystemType = "linux";
+        const string Architecture = "x86_x64";
 
         [Fact]
         [Integration]
@@ -185,8 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task ContainerToModuleTest()
         {
-            const string OperatingSystemType = "linux";
-            const string Architecture = "x86_x64";
             const string StatusText = "Running for 1 second";
             DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime LastExitTime = LastStartTime.AddDays(1);
@@ -248,8 +248,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task GetUpdatedRuntimeInfoAsyncTest()
         {
-            const string OperatingSystemType = "linux";
-            const string Architecture = "x86_x64";
 
             DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime LastExitTime = LastStartTime.AddDays(1);
@@ -277,6 +275,171 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var expectedRuntimeInfo = new DockerReportedRuntimeInfo("docker", inputRuntimeInfo.Config, new DockerPlatformInfo(OperatingSystemType, Architecture));
             Assert.Equal(expectedRuntimeInfo, dockerReportedRuntimeInfo);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task DockerEnvironmentCreateNullParameterCheck()
+        {
+
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await DockerEnvironment.CreateAsync(null, store, restartPolicyManager));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await DockerEnvironment.CreateAsync(dockerClient, null, restartPolicyManager));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await DockerEnvironment.CreateAsync(dockerClient, store, null));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetRuntimeInfoTest()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var dockerRuntime = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(dr =>
+                dr.Type == "docker" &&
+                dr.Config == new Mock<DockerRuntimeConfig>("1.25", "").Object);
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            // act
+            IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime);
+
+            // assert
+            Assert.True(reportedRuntimeInfo is DockerReportedRuntimeInfo);
+            DockerReportedRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
+            Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
+            Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+            Assert.NotNull(dockerReported.Config);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task BadRuntimeInfoTest()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var dockerRuntime = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(dr =>
+                dr.Type == "not docker" &&
+                dr.Config == null);
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            // act, assert
+            await Assert.ThrowsAsync<ArgumentException>(async () => await environment.GetUpdatedRuntimeInfoAsync(null));
+            await Assert.ThrowsAsync<ArgumentException>(async () => await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task NullRuntimeInfoTest()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var dockerRuntime = Mock.Of<IRuntimeInfo<string>>(dr =>
+                dr.Type == "docker" &&
+                dr.Config == null);
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            // act
+            IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime);
+
+            //. assert
+            Assert.True(reportedRuntimeInfo is DockerReportedRuntimeInfo);
+            DockerReportedRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
+            Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
+            Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+            Assert.True(string.IsNullOrEmpty(dockerReported.Config.MinDockerVersion));
+            Assert.True(string.IsNullOrEmpty(dockerReported.Config.LoggingOptions));
+        }
+
+        [Fact]
+        [Unit]
+        async Task TestGetEdgeAgentModuleAsyncContainerNotFound()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var containersMock = new Mock<IContainerOperations>();
+            containersMock.Setup(co => co.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DockerContainerNotFoundException(System.Net.HttpStatusCode.ExpectationFailed, "failed"));
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)) &&
+                dc.Containers == containersMock.Object);
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            EdgeAgentDockerRuntimeModule edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
+            Assert.NotNull(edgeAgent);
+            Assert.Equal(edgeAgent.Type, "docker");
+            Assert.Equal(DockerConfig.Unknown, edgeAgent.Config);
+        }
+
+        [Fact]
+        [Unit]
+        async Task TestGetEdgeAgentModuleAsync()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)) &&
+                dc.Containers == Mock.Of< IContainerOperations>( co =>
+                    co.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.FromResult(Mock.Of<ContainerInspectResponse>( cir =>
+                        cir.Image == "myImage"))));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            EdgeAgentDockerRuntimeModule edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
+            Assert.NotNull(edgeAgent);
+            Assert.Equal(edgeAgent.Type, "docker");
+            Assert.Equal("myImage", edgeAgent.Config.Image);
         }
     }
 }
