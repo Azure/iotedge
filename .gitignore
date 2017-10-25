@@ -251,6 +251,7 @@ ClientBin/
 *.dbproj.schemaview
 *.pfx
 *.publishsettings
+*.pyc
 node_modules/
 bower_components/
 
