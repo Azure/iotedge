@@ -24,10 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
+                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
                 EdgeHubConfig edgeHubConfig = await configProvider.GetConfig();
                 await this.UpdateRoutes(edgeHubConfig.Routes, false);
                 this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
-                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
                 Events.Initialized();
             }
             catch (Exception ex)
@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         async Task UpdateConfig(EdgeHubConfig edgeHubConfig)
         {
             Preconditions.CheckNotNull(edgeHubConfig, nameof(edgeHubConfig));
+            Events.UpdatingConfig();
             try
             {
                 await this.UpdateRoutes(edgeHubConfig.Routes, true);
@@ -66,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         await this.router.SetRoute(route);
                     }
                 }
+                Events.RoutesUpdated(routes);
             }
         }
 
@@ -74,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             if (storeAndForwardConfiguration != null)
             {
                 this.messageStore?.SetTimeToLive(TimeSpan.FromSeconds(storeAndForwardConfiguration.TimeToLiveSecs));
+                Events.UpdatedStoreAndForwardConfiguration();
             }
         }
 
@@ -87,7 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Initialized = IdStart,
                 InitializeError,
                 Updated,
-                UpdateError
+                UpdateError,
+                UpdatingConfig,
+                UpdatedRoutes,
+                UpdatedStoreAndForwardConfig
             }
 
             internal static void Initialized()
@@ -104,7 +110,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void UpdateError(Exception ex)
             {
                 Log.LogError((int)EventIds.UpdateError, ex,
-                    FormattableString.Invariant($"Error updating Edge Hub configuration"));
+                    FormattableString.Invariant($"Error updating EdgeHub configuration"));
+            }
+
+            internal static void UpdatingConfig()
+            {
+                Log.LogInformation((int)EventIds.UpdatingConfig, "Setting/updating EdgeHub configuration");
+            }
+
+            internal static void RoutesUpdated(IDictionary<string, Route> routes)
+            {
+                int count = routes.Keys.Count;
+                if (count > 0)
+                {
+                    string routeNames = string.Join(",", routes.Keys);
+                    Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set the following {count} route(s) in edge hub - {routeNames}");
+                }
+                else
+                {
+                    Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set 0 routes in the EdgeHub");
+                }
+            }
+
+            internal static void UpdatedStoreAndForwardConfiguration()
+            {
+                Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, $"Updated StoreAndForward configuration in the EdgeHub");
             }
         }
     }

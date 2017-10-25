@@ -130,8 +130,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
-                        Route route = this.routeFactory.Create(inputRoute.Value);
-                        routes[inputRoute.Key] = route;
+                        if (!string.IsNullOrWhiteSpace(inputRoute.Value))
+                        {
+                            Route route = this.routeFactory.Create(inputRoute.Value);
+                            routes[inputRoute.Key] = route;
+                        }
                     }
                     catch (Exception ex)
                     {
