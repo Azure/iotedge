@@ -106,3 +106,6 @@ options
  -v, --image-version  Docker Image Version.
  -t, --template       Yaml file template for manifest definition.
 ```
+
+## Release
+[Release Process](doc/release.md)
