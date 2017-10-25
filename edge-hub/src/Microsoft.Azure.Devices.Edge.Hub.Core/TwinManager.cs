@@ -370,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // At this point, if we are offline and if we somehow missed caching the twin before we
                 // went offline, we would call UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync and
                 // it would throw because it was unable to get the twin. This might not be acceptable as we
-                // never want a reported properties update to fail even if we are offline. TBD.
+                // never want a reported properties update to fail even if we are offline. TBD.   
                 await this.ExecuteOnTwinStoreResultAsync(
                     id,
                     (t) => this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported, cloudVerified),

@@ -140,34 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<RouteFactory>()
                 .SingleInstance();
 
-            // IConfigSource
-            builder.Register(
-                async c =>
-                {
-                    var routeFactory = c.Resolve<RouteFactory>();
-
-                    if (this.useTwinConfig)
-                    {
-                        IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
-                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
-                        if (!edgeHubIdentity.Success)
-                        {
-                            throw edgeHubIdentity.Exception;
-                        }
-                        var connectionManager = c.Resolve<IConnectionManager>();
-                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
-                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
-                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
-                        return edgeHubConnection;
-                    }
-                    else
-                    {
-                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
-                    }
-                })
-                .As<Task<IConfigSource>>()
-                .SingleInstance();
-
             // RouterConfig
             builder.Register(c => new RouterConfig(Enumerable.Empty<Route>()))
                 .As<RouterConfig>()
@@ -295,6 +267,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<ITwinManager>()
                     .SingleInstance();
             }
+
+            // IConfigSource
+            builder.Register(
+                async c =>
+                {
+                    var routeFactory = c.Resolve<RouteFactory>();
+
+                    if (this.useTwinConfig)
+                    {
+                        IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
+                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
+                        if (!edgeHubIdentity.Success)
+                        {
+                            throw edgeHubIdentity.Exception;
+                        }
+                        var connectionManager = c.Resolve<IConnectionManager>();
+                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinManager = c.Resolve<ITwinManager>();
+                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+                        return edgeHubConnection;
+                    }
+                    else
+                    {
+                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                    }
+                })
+                .As<Task<IConfigSource>>()
+                .SingleInstance();
 
             // Task<IEdgeHub>
             builder.Register(

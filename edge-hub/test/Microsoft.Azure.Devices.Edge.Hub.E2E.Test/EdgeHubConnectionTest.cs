@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -59,8 +60,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId);
             var routeFactory = new EdgeRouteFactory(endpointFactory);
 
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            IEntityStore<string, TwinInfo> twinStore = storeProvider.GetEntityStore<string, TwinInfo>("twins");
+            var twinManager = new TwinManager(connectionManager, twinCollectionMessageConverter, twinMessageConverter, Option.Some(twinStore));
+
             // Create Edge Hub connection
-            var edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            var edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
 
             // Get and Validate EdgeHubConfig
             EdgeHubConfig edgeHubConfig = await edgeHubConnection.GetConfig();
@@ -80,18 +86,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(0, reportedProperties.Clients.Count);
 
-            // Simulate a downstream device that connects to Edge Hub.
+            // Simulate a module and a downstream device that connects to Edge Hub.
+
+            string moduleId = "module1";
+            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
+            string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
+            Try<IIdentity> moduleIdentity = identityFactory.GetWithConnectionString(moduleConnectionstring);
+            IDeviceProxy moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+
             string downstreamDeviceId = "device1";
-            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
+            sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
             string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
             Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
             IDeviceProxy downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
 
-            // Connect the downstream device and make sure the reported properties are updated as expected.
+            // Connect the module and downstream device and make sure the reported properties are updated as expected.
+            connectionManager.AddDeviceConnection(moduleIdentity.Value, moduleProxy);
             connectionManager.AddDeviceConnection(downstreamDeviceIdentity.Value, downstreamDeviceProxy);
+            string moduleIdKey = $"{edgeDeviceId}/{moduleId}";
             await Task.Delay(TimeSpan.FromSeconds(10));
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
-            Assert.Equal(1, reportedProperties.Clients.Count);
+            Assert.Equal(2, reportedProperties.Clients.Count);
+            Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[moduleIdKey].Status);
+            Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
+            Assert.Null(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
             Assert.Equal(ConnectionStatus.Connected, reportedProperties.Clients[downstreamDeviceId].Status);
             Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
             Assert.Null(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
@@ -120,20 +138,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.NotNull(reportedProperties.Clients);
-            Assert.Equal(1, reportedProperties.Clients.Count);
+            Assert.Equal(2, reportedProperties.Clients.Count);
 
             // Disconnect the downstream device and make sure the reported properties are updated as expected.
+            await connectionManager.RemoveDeviceConnection(moduleIdKey);
             await connectionManager.RemoveDeviceConnection(downstreamDeviceId);
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            await Task.Delay(TimeSpan.FromSeconds(10));
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Equal(1, reportedProperties.Clients.Count);
-            Assert.Equal(ConnectionStatus.Disconnected, reportedProperties.Clients[downstreamDeviceId].Status);
-            Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
-            Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
+            Assert.True(reportedProperties.Clients.ContainsKey(moduleIdKey));
+            Assert.False(reportedProperties.Clients.ContainsKey(downstreamDeviceId));
+            Assert.Equal(ConnectionStatus.Disconnected, reportedProperties.Clients[moduleIdKey].Status);
+            Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
+            Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
 
             // If the edge hub restarts, clear out the connected devices in the reported properties.
-            edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
 
@@ -195,6 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string patch = JsonConvert.SerializeObject(desiredProperties);
             twinContent.TargetContent = new TwinCollection(patch);
             await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
-        }
+        }        
     }
 }

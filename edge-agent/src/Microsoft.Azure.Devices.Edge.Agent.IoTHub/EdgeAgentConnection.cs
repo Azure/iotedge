@@ -55,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        // This method updates local state and should be called only after acquiring twinLock
         async Task ApplyPatchAsync(TwinCollection patch)
         {
             try
@@ -73,23 +74,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
-            using (await this.twinLock.LockAsync())
+            try
             {
-                try
+                Events.ConnectionStatusChanged(status, reason);
+                if (status == ConnectionStatus.Connected)
                 {
-                    Events.ConnectionStatusChanged(status, reason);
-                    if (status == ConnectionStatus.Connected)
+                    using (await this.twinLock.LockAsync())
                     {
                         await this.RefreshTwinAsync();
                     }
                 }
-                catch (Exception ex)
-                {
-                    Events.ConnectionStatusChangedHandlingError(ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                Events.ConnectionStatusChangedHandlingError(ex);
             }
         }
 
+        // This method updates local state and should be called only after acquiring edgeHubConfigLock
         async Task RefreshTwinAsync()
         {
             try
@@ -104,7 +106,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.TwinRefreshError(ex);
             }
-
         }
 
         Task UpdateDeploymentConfig()

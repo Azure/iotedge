@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -23,30 +24,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Func<EdgeHubConfig, Task> configUpdateCallback;
         EdgeHubConfig edgeHubConfig;
         long lastDesiredVersion = -1;
-        readonly ICloudProxy cloudProxy;
+        readonly IIdentity edgeHubIdentity;
+        readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
         readonly IMessageConverter<Twin> twinMessageConverter;
         readonly RouteFactory routeFactory;
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
 
-        EdgeHubConnection(ICloudProxy cloudProxy,
+        EdgeHubConnection(IIdentity edgeHubIdentity,
+            ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter)
         {
-            this.cloudProxy = cloudProxy;
+            this.edgeHubIdentity = edgeHubIdentity;
+            this.twinManager = twinManager;
             this.twinCollectionMessageConverter = twinCollectionMessageConverter;
             this.twinMessageConverter = twinMessageConverter;
             this.routeFactory = routeFactory;
         }
 
         public static async Task<EdgeHubConnection> Create(IIdentity edgeHubIdentity,
+            ITwinManager twinManager,
             IConnectionManager connectionManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter)
         {
             Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
+            Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
             Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
@@ -59,8 +65,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             ICloudProxy cloudProxy = cloudProxyTry.Value;
-            var edgeHubConnection = new EdgeHubConnection(cloudProxy, routeFactory, twinCollectionMessageConverter, twinMessageConverter);            
-            cloudProxy.BindCloudListener(new CloudListener(edgeHubConnection));            
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            cloudProxy.BindCloudListener(new CloudListener(edgeHubConnection));
+
+            IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
+            connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
+
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
 
             // Clear out all the reported devices.
@@ -76,24 +86,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.edgeHubConfigLock.LockAsync())
             {
-                IMessage message = await this.cloudProxy.GetTwinAsync();
-                Twin twin = this.twinMessageConverter.FromMessage(message);
-                long desiredVersion = twin.Properties.Desired.Version;
-                try
-                {
-                    var desiredProperties = JsonConvert.DeserializeObject<DesiredProperties>(twin.Properties.Desired.ToJson());
-                    this.edgeHubConfig = this.GetEdgeHubConfig(desiredProperties, true);
-                    this.lastDesiredVersion = desiredVersion;
-                    await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
-                    Events.GetConfigSuccess();
-                    return this.edgeHubConfig;
-                }
-                catch (Exception ex)
-                {
-                    await this.UpdateReportedProperties(desiredVersion, new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}"));
-                    Events.ErrorGettingEdgeHubConfig(ex);
-                    return new EdgeHubConfig(Constants.ConfigSchemaVersion, null, null);
-                }
+                return await this.GetConfigInternal();
+            }
+        }
+
+        // This method updates local state and should be called only after acquiring edgeHubConfigLock
+        async Task<EdgeHubConfig> GetConfigInternal()
+        {
+            IMessage message = await this.twinManager.GetTwinAsync(this.edgeHubIdentity.Id);
+            Twin twin = this.twinMessageConverter.FromMessage(message);
+            long desiredVersion = twin.Properties.Desired.Version;
+            try
+            {
+                var desiredProperties = JsonConvert.DeserializeObject<DesiredProperties>(twin.Properties.Desired.ToJson());
+                this.edgeHubConfig = this.GetEdgeHubConfig(desiredProperties, true);
+                this.lastDesiredVersion = desiredVersion;
+                await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
+                Events.GetConfigSuccess();
+                return this.edgeHubConfig;
+            }
+            catch (Exception ex)
+            {
+                await this.UpdateReportedProperties(desiredVersion, new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}"));
+                Events.ErrorGettingEdgeHubConfig(ex);
+                return new EdgeHubConfig(Constants.ConfigSchemaVersion, null, null);
             }
         }
 
@@ -140,15 +156,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             using (await this.edgeHubConfigLock.LockAsync())
             {
-                // If the cached config is null, or if the desiredVersion is less than the 
-                // last seen desired version, then do a GetConfig again (this will update the 
-                // cached copy of the config)
-                if (this.edgeHubConfig == null || desiredVersion != this.lastDesiredVersion + 1)
+                // If the cached config is null, then do a GetConfig
+                // (this will update the cached copy of the config)
+                if (this.edgeHubConfig == null)
                 {
-                    await this.GetConfig();
+                    await this.GetConfigInternal();
                 }
                 else
                 {
+                    // TODO: Since we are using the TwinManager, maybe we can also
+                    // consider doing a GetTwin on every patch update. For now handling patches.
                     await this.PatchDesiredProperties(twinCollection);
                     Events.PatchConfigSuccess();
                 }
@@ -167,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        // This method updates local state and should be called only after acquiring edgeHubConfigLock
         async Task PatchDesiredProperties(TwinCollection twinCollection)
         {
             LastDesiredStatus lastDesiredStatus;
@@ -194,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 var edgeHubReportedProperties = new ReportedProperties(desiredVersion, desiredStatus);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.cloudProxy.UpdateReportedPropertiesAsync(message);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
             }
             catch (Exception ex)
             {
@@ -207,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                await this.UpdateDeviceConnectionStatus(device.Id, new DeviceConnectionStatus(ConnectionStatus.Disconnected, null, DateTime.UtcNow));
+                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Disconnected);
             }
             catch (Exception ex)
             {
@@ -219,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                await this.UpdateDeviceConnectionStatus(device.Id, new DeviceConnectionStatus(ConnectionStatus.Connected, DateTime.UtcNow, null));
+                await this.UpdateDeviceConnectionStatus(device, ConnectionStatus.Connected);
             }
             catch (Exception ex)
             {
@@ -227,22 +245,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        Task UpdateDeviceConnectionStatus(string deviceId, DeviceConnectionStatus deviceConnectionStatus)
+        Task UpdateDeviceConnectionStatus(IIdentity client, ConnectionStatus connectionStatus)
         {
             try
             {
+                Events.UpdatingDeviceConnectionStatus(client.Id, connectionStatus);
+
+                // If a downstream device disconnects, then remove the entry from Reported properties
+                // If a module disconnects, then update the entry to status = Disconnected
+                DeviceConnectionStatus GetDeviceConnectionStatus()
+                {
+                    if (connectionStatus == ConnectionStatus.Connected)
+                    {
+                        return new DeviceConnectionStatus(connectionStatus, DateTime.UtcNow, null);
+                    }
+                    else
+                    {
+                        return client is IDeviceIdentity
+                            ? null
+                            : new DeviceConnectionStatus(connectionStatus, null, DateTime.UtcNow);
+                    }
+                }
+
                 var connectedDevices = new Dictionary<string, DeviceConnectionStatus>
                 {
-                    [deviceId] = deviceConnectionStatus
+                    [client.Id] = GetDeviceConnectionStatus()
                 };
                 var edgeHubReportedProperties = new ReportedProperties(connectedDevices);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.cloudProxy.UpdateReportedPropertiesAsync(message);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
             }
             catch (Exception ex)
             {
-                Events.ErrorUpdatingDeviceConnectionStatus(deviceId, ex);
+                Events.ErrorUpdatingDeviceConnectionStatus(client.Id, ex);
                 return Task.CompletedTask;
             }
         }
@@ -254,14 +290,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 var edgeHubReportedProperties = new ReportedProperties(null);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.cloudProxy.UpdateReportedPropertiesAsync(message);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
             }
             catch (Exception ex)
             {
                 Events.ErrorClearingDeviceConnectionStatuses(ex);
                 return Task.CompletedTask;
             }
-        }        
+        }
 
         class DesiredProperties
         {
@@ -326,6 +362,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
+        /// The Edge Hub device proxy, that receives communication for the EdgeHub from the cloud.
+        /// Currently only receives DesiredProperties updates.
+        /// </summary>
+        class EdgeHubDeviceProxy : IDeviceProxy
+        {
+            readonly EdgeHubConnection edgeHubConnection;
+
+            public EdgeHubDeviceProxy(EdgeHubConnection edgeHubConnection)
+            {
+                this.edgeHubConnection = edgeHubConnection;
+            }
+
+            public bool IsActive => true;
+
+            public IIdentity Identity => this.edgeHubConnection.edgeHubIdentity;
+
+            public Task CloseAsync(Exception ex) => Task.CompletedTask;
+
+            public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHubConnection.HandleDesiredPropertiesUpdate(desiredProperties);
+
+            public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task SendC2DMessageAsync(IMessage message)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task SendMessageAsync(IMessage message, string input)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SetInactive()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
         /// Cloud listener that listens to updates from the cloud for the edge hub module
         /// Currently only listens for DesiredProperties updates
         /// </summary>
@@ -367,7 +445,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorUpdatingDeviceConnectionStatus,
                 GetConfigSuccess,
                 PatchConfigSuccess,
-                ErrorClearingDeviceConnectionStatuses
+                ErrorClearingDeviceConnectionStatuses,
+                UpdatingDeviceConnectionStatus
             }
 
             internal static void Initialized(IIdentity edgeHubIdentity)
@@ -431,6 +510,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogWarning((int)EventIds.ErrorClearingDeviceConnectionStatuses, ex,
                     Invariant($"Error clearing device connection statuses"));
+            }
+
+            internal static void UpdatingDeviceConnectionStatus(string deviceId, ConnectionStatus connectionStatus)
+            {
+                Log.LogDebug((int)EventIds.UpdatingDeviceConnectionStatus, Invariant($"Updating device {deviceId} connection status to {connectionStatus}"));
             }
         }
     }
