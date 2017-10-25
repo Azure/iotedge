@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -117,24 +118,91 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
     }
 
+    public class TestCommandFailureFactory : ICommandFactory
+    {
+        public Option<TestPlanRecorder> Recorder { get; }
+
+        public TestCommandFailureFactory()
+        {
+            this.Recorder = Option.Some(new TestPlanRecorder());
+        }
+
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module)
+        {
+            Assert.True(module.Module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder, true));
+        }
+
+        public Task<ICommand> PullAsync(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPull, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next)
+        {
+            Assert.True(current is TestModule);
+            Assert.True(next.Module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestUpdate, next.Module, this.Recorder, true));
+        }
+
+        public Task<ICommand> RemoveAsync(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRemove, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> StartAsync(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStart, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> StopAsync(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestStop, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> RestartAsync(IModule module)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> WrapAsync(ICommand command)
+        {
+            foreach (TestPlanRecorder r in this.Recorder)
+                r.CommandWrapped(command);
+
+            return Task.FromResult<ICommand>(command);
+        }
+    }
     public class TestCommand : ICommand
     {
         readonly Option<TestPlanRecorder> recorder;
         readonly TestCommandType type;
         readonly IModule module;
+        readonly bool throwOnExecute;
         public bool CommandExecuted;
         public bool CommandUndone;
 
         public TestCommand(TestCommandType type, IModule module) :
-            this(type, module, Option.None<TestPlanRecorder>())
+            this(type, module, Option.None<TestPlanRecorder>(), false)
         {
         }
 
-        public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder)
+        public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder) :
+            this(type, module, recorder, false)
+        {
+        }
+
+        public TestCommand(TestCommandType type, IModule module, Option<TestPlanRecorder> recorder, bool throwOnExecute)
         {
             this.type = type;
             this.module = Preconditions.CheckNotNull(module, nameof(module));
             this.recorder = recorder;
+            this.throwOnExecute = throwOnExecute;
             this.CommandExecuted = false;
             this.CommandUndone = false;
         }
@@ -143,6 +211,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public Task ExecuteAsync(CancellationToken token)
         {
+            if (this.throwOnExecute)
+            {
+                throw new ArgumentException(module.Name);
+            }
+
             foreach (TestPlanRecorder r in this.recorder)
                 r.ModuleExecuted(this.type, this.module);
             this.CommandExecuted = true;

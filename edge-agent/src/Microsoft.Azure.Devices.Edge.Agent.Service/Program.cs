@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
-                            logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile failed.");
+                            logger.LogWarning(AgentEventIds.Agent, ex, "Agent reconcile concluded with errors.");
                         }
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                     }

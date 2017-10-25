@@ -1,7 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Threading;
@@ -24,12 +25,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ExecuteAsync(CancellationToken token)
         {
+            Option<List<Exception>> failures = Option.None<List<Exception>>();
             Events.PlanExecStarted();
             foreach (ICommand command in this.commands)
             {
                 // TODO add rollback on failure?
-                await command.ExecuteAsync(token);
+                try
+                {
+                    await command.ExecuteAsync(token);
+                }
+                catch (Exception ex)
+                {
+                    Events.PlanExecStepFailed(command);
+                    if (!failures.HasValue)
+                    {
+                        failures = Option.Some(new List<Exception>());
+                    }
+                    failures.ForEach(f => f.Add(ex));
+                }
             }
+            failures.ForEach(f => throw new AggregateException(f));
             Events.PlanExecEnded();
         }
 
@@ -41,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             enum EventIds
             {
                 PlanExecStarted = IdStart,
+                PlanExecStepFailed,
                 PlanExecEnded
             }
 
@@ -49,13 +65,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 Log.LogInformation((int)EventIds.PlanExecStarted, "Plan execution started");
             }
 
+            public static void PlanExecStepFailed(ICommand command)
+            {
+                Log.LogError((int)EventIds.PlanExecStepFailed, $"Step failed, continuing execution. Failure on {command.Show()}");
+            }
+
             public static void PlanExecEnded()
             {
                 Log.LogInformation((int)EventIds.PlanExecEnded, "Plan execution ended");
             }
         }
     }
-
-
-
 }
