@@ -14,11 +14,14 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Newtonsoft.Json.Serialization;
 
     class Program
     {
         static readonly Random Rnd = new Random();
         static AtomicBoolean reset = new AtomicBoolean(false);
+
+        public enum ControlCommandEnum { reset = 0, noop = 1 };
 
         public static int Main() => MainAsync().Result;
 
@@ -53,6 +56,9 @@ namespace SimulatedTemperatureSensor
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
+            var userContext = deviceClient;
+            await deviceClient.SetEventHandlerAsync("control", ControlMessageHandle, userContext);
+
             var cts = new CancellationTokenSource();
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
             AssemblyLoadContext.Default.Unloading += OnUnload;
@@ -60,6 +66,40 @@ namespace SimulatedTemperatureSensor
 
             await SendEvent(deviceClient, messageDelay, sim, cts);
             return 0;
+        }
+
+        //TODO: Change this call back once we have the final design for Device Client Acknowledgement.
+        //Control Message expected to be:
+        // {
+        //     "command" : "reset" 
+        // } 
+        static async Task ControlMessageHandle(Message message, object userContext)
+        {
+            byte[] messageBytes = message.GetBytes();
+            string messageString = Encoding.UTF8.GetString(messageBytes);
+            DeviceClient deviceClient = userContext as DeviceClient;
+
+            Console.WriteLine($"Received message Body: [{messageString}]");
+
+            try
+            {
+                var messageBody = JsonConvert.DeserializeObject<ControlCommand>(messageString);
+                if (messageBody.Command == ControlCommandEnum.reset)
+                {
+                    reset.Set(true);
+                }
+                else
+                {
+                    //NoOp
+                }
+            }
+            catch (JsonReaderException ex)
+            {
+                Console.WriteLine($"Ignoring control message. Wrong control message exception: [{ex.Message}]");
+            }
+
+            //TODO: Remove and change to return value (Success or Failure) after Device Client is changed.. 
+            await deviceClient.CompleteAsync(message);
         }
 
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
@@ -124,6 +164,12 @@ namespace SimulatedTemperatureSensor
         {
             Console.WriteLine("Termination requested, closing.");
             cts.Cancel();
+        }
+
+        public class ControlCommand
+        {
+            [JsonProperty("command")]
+            public ControlCommandEnum Command { get; set; }
         }
 
         class MessageBody
