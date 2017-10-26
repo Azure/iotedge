@@ -302,3 +302,6 @@ target/
 
 # IoT Edge artifacts
 backup.json
+
+# python
+**/*.egg-info
