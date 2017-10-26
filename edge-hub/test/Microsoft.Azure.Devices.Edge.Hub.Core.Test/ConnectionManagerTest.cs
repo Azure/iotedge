@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(returnedDeviceProxy.HasValue);
             Assert.Equal(deviceProxyMock2.Object, returnedDeviceProxy.OrDefault());
 
-            await connectionManager.RemoveDeviceConnection(deviceIdentityMock.Object.Id);            
+            await connectionManager.RemoveDeviceConnection(deviceIdentityMock.Object.Id);
 
             returnedDeviceProxy = connectionManager.GetDeviceConnection(deviceIdentityMock.Object.Id);
             Assert.False(returnedDeviceProxy.HasValue);
@@ -344,6 +344,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             callback.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Expired_SAS_Token);
             Mock.VerifyAll(deviceProxy);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task CloudConnectionUpdateTest()
+        {
+            Mock<ICloudProxy> GetCloudProxyMock()
+            {
+                var cloudProxyMock = new Mock<ICloudProxy>();
+                cloudProxyMock.SetupGet(dp => dp.IsActive).Returns(true);
+                cloudProxyMock.Setup(dp => dp.CloseAsync()).Returns(Task.FromResult(true)).Callback(() => cloudProxyMock.SetupGet(dp => dp.IsActive).Returns(false));
+                return cloudProxyMock;
+            }
+
+            string receivedConnStr = null;
+            var cloudProviderMock = new Mock<ICloudProxyProvider>();
+            cloudProviderMock.Setup(p => p.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<ConnectionStatus, ConnectionStatusChangeReason>>()))
+                .Callback<IIdentity, Action<ConnectionStatus, ConnectionStatusChangeReason>>((i, a) => receivedConnStr = i.ConnectionString)
+                .ReturnsAsync(() => Try.Success(GetCloudProxyMock().Object));
+
+            IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object);
+
+            string deviceConnStr1 = "connstr1";
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(d => d.Id == "Device1" && d.ConnectionString == deviceConnStr1);
+
+            var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+
+            Try<ICloudProxy> receivedCloudProxy1 = await connectionManager.CreateCloudConnectionAsync(deviceIdentity);
+            connectionManager.AddDeviceConnection(deviceIdentity, deviceProxy);
+            Assert.True(receivedCloudProxy1.Success);
+            Assert.NotNull(receivedCloudProxy1.Value);
+            Assert.True(receivedCloudProxy1.Value.IsActive);
+            Assert.Equal(deviceConnStr1, receivedConnStr);
+            Assert.Equal(deviceProxy, connectionManager.GetDeviceConnection(deviceIdentity.Id).OrDefault());
+
+            string deviceConnStr2 = "connstr2";
+            deviceIdentity = Mock.Of<IDeviceIdentity>(d => d.Id == "Device1" && d.ConnectionString == deviceConnStr2);
+
+            Try<ICloudProxy> receivedCloudProxy2 = await connectionManager.CreateCloudConnectionAsync(deviceIdentity);
+            Assert.True(receivedCloudProxy2.Success);
+            Assert.NotNull(receivedCloudProxy2.Value);
+            Assert.True(receivedCloudProxy2.Value.IsActive);
+            Assert.False(receivedCloudProxy1.Value.IsActive);
+            Assert.Equal(deviceConnStr2, receivedConnStr);
+            Assert.Equal(deviceProxy, connectionManager.GetDeviceConnection(deviceIdentity.Id).OrDefault());
         }
     }
 }

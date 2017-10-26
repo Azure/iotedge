@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
+            ConnectedDevice device = this.CreateNewConnectedDevice(identity);
             (Try<ICloudProxy> newCloudProxy, Option<ICloudProxy> existingCloudProxy) = await device.UpdateCloudProxy(() => this.GetCloudProxy(device));
 
             // If the existing cloud proxy had an active connection then close it since we
@@ -132,6 +132,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 id => new ConnectedDevice(identity));
         }
 
+        ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
+        {
+            string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            return this.devices.AddOrUpdate(deviceId,
+               id => new ConnectedDevice(identity),
+               (id, cd) => new ConnectedDevice(identity, cd.CloudProxy, cd.DeviceProxy));
+        }
+
         class ConnectedDevice
         {
             // Device Proxy methods are sync coming from the Protocol gateway, 
@@ -140,10 +149,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             readonly AsyncLock cloudProxyLock = new AsyncLock();
 
             public ConnectedDevice(IIdentity identity)
+                : this(identity, Option.None<ICloudProxy>(), Option.None<IDeviceProxy>())
+            {
+            }
+
+            public ConnectedDevice(IIdentity identity, Option<ICloudProxy> cloudProxy, Option<IDeviceProxy> deviceProxy)
             {
                 this.Identity = identity;
-                this.CloudProxy = Option.None<ICloudProxy>();
-                this.DeviceProxy = Option.None<IDeviceProxy>();
+                this.CloudProxy = cloudProxy;
+                this.DeviceProxy = deviceProxy;
             }
 
             public IIdentity Identity { get; }
@@ -226,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void RemoveDeviceConnection(string id)
             {
                 Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
-            }            
+            }
         }
     }
 }
