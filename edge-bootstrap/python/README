@@ -24,12 +24,11 @@ More information for [installing python on Windows](https://docs.python.org/2/us
 In a terminal, complete the following steps:
 1. unzip the package
 2. change directory into the unzipped directory
-3. run `python setup.py install` (may need to run as administrator)
+3. run `pip install .` (may need to run as administrator)
 
 This should install the `iotedgectl` tool on your path.
 
-See [Installation Troubleshooting](#installation-troubleshooting) for common 
-installation problems
+See [Installation Troubleshooting](#installation-troubleshooting) for common installation problems.
 
 ## How To Run:
 The main commands to to operate the IoT Edge runtime are:
