@@ -83,7 +83,7 @@ fi
 
 echo "Creating source distribution for python bootstrap script"
 if [[ -z ${EGG_INFO} ]]; then
-    /usr/bin/python $ROOT_FOLDER/edge-bootstrap/python/setup.py sdist --dist-dir $OUTPUT_DIR $OPTIONS
+    cd $ROOT_FOLDER/edge-bootstrap/python && /usr/bin/python setup.py sdist --dist-dir $OUTPUT_DIR $OPTIONS
 else
-    /usr/bin/python $ROOT_FOLDER/edge-bootstrap/python/setup.py egg_info $EGG_INFO sdist --dist-dir $OUTPUT_DIR $OPTIONS
+    cd $ROOT_FOLDER/edge-bootstrap/python && /usr/bin/python setup.py egg_info $EGG_INFO sdist --dist-dir $OUTPUT_DIR $OPTIONS
 fi

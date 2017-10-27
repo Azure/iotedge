@@ -1,105 +1,108 @@
 # Azure IoT Edge Runtime Control
 
 ## Introduction
-The azure-iot-edge-runtime-ctl utility assists a user in managing and
-controlling the Edge runtime.
+The Azure IoT Edge Runtime Control utility assists a user in managing and controlling the IoT Edge runtime.
 
-Specifically, it can help in:
-* Initial Bootstrap
+Specifically, it can help:
+* Initial setup or bootstrap
 * Certificate provisioning
-* Starting/Stopping and other Edge runtime control options.
+* Starting/Stopping and other IoT Edge runtime control options.
 
-## Prerequisites:
-    1. Linux/Windows
-      * Python 2.7+
-      * For Linux hosts user should have sudo capabilities.
-    2. MacOS
-      * TBD
+## Prerequisites
+* Python 2.7+
+* Setuptools (if installing via python)
 
-## Installation:
-    1. Copy the bootstrap utility directory anywhere on your filesystem.
-      * Let's call this EDGEUTILSDIR.
-    2. $> cd <EDGEUTILSDIR>
-    3. sudo pip install -r requirements.txt
+## Installation
+### Python
+Installation requires python and setuptools.
+Download [python here](https://www.python.org/downloads/).
+
+On Windows, make sure the python.exe and python Scripts directory are on your path.
+More information for [installing python on Windows](https://docs.python.org/2/using/windows.html) can be found here.
+
+### Install the tool
+In a terminal, complete the following steps:
+1. unzip the package
+2. change directory into the unzipped directory
+2. run `python setup.py install` (may need to run as administrator)
+
+This should install the `iotedgectl` tool on your path.
 
 ## How To Run:
-The main commands to to operate the Edge runtime are:
+The main commands to to operate the IoT Edge runtime are:
 setup, start, restart, stop, status and uninstall.
 
 * **setup**: This command accepts users input to configure the runtime.
 The required filesystem and certificates are created as part of this step.
-Users can setup the Edge interactively or by using a input configuration file or
-finally, specify the configuration items via command line args
+Users can setup the IoT Edge interactively or by using a input configuration file or finally, specify the configuration items via command line args.
 Listed below are a few examples of how to use these.
 
-* **start**: This command starts the Edge runtime. This downloads the Edge
-Agent unless already available on the host machine. Any configuration information
-pertaining to the host is supplied to the Edge Agent when it is instantiated.
+* **start**: This command starts the IoT Edge runtime.
+This downloads the Edge Agent unless already available on the host machine.
+Any configuration information pertaining to the host is supplied to the Edge Agent when it is instantiated.
 
-* **restart**: This command restarts the Edge runtime and behaves like start
-if the Edge Agent does not exist. If a runtime is active, it will be stopped and
-started back to back.
+* **restart**: This command restarts the IoT Edge runtime and behaves like start if the Edge Agent does not exist.
+If a runtime is active, it will be stopped and started back to back.
 
-* **stop**: This command stops the Edge runtime.
+* **stop**: This command stops the IoT Edge runtime.
 
-* **stop**: Prints the current state of the Edge runtime.
+* **stop**: Prints the current state of the IoT Edge runtime.
 
 Print Help and Exit
 ```
-$> python azure-iot-edge-runtime-ctl --help
+$> iotedgectl --help
 ```
-Setup the Edge Runtime Using a Edge Host Configuration file.
-Please see the [Edge Host Configuration File Description](#edge-host-configuration-file-description)
+Setup the IoT Edge Runtime using a IoT Edge Host Configuration file.
+Please see the [IoT Edge Host Configuration File Description](#edge-host-configuration-file-description)
 ```
-$> python azure-iot-edge-runtime-ctl setup --help
-$> python azure-iot-edge-runtime-ctl setup --config-file edge_config.json
-$> python azure-iot-edge-runtime-ctl setup --verbose DEBUG --config-file edge_config.json
+$> iotedgectl setup --help
+$> iotedgectl setup --config-file edge_config.json
+$> iotedgectl setup --verbose DEBUG --config-file edge_config.json
 Note: When specifying the homeDir path on Windows please use "C:\\example\\edge-home"
 ```
 
-Setup the Edge Runtime Using Manually Specified Command Line Args
+Setup the IoT Edge Runtime Using Manually Specified Command Line Args
 ```
-$> python azure-iot-edge-runtime-ctl setup --connection-string "HostName=<>;DeviceId=<>;SharedAccessKey=<>"
+$> iotedgectl setup --connection-string "HostName=<>;DeviceId=<>;SharedAccessKey=<>"
 Note: When specifying the connection string ensure that it is surrounded by double quotes ".
-In general anything with a semi colon should be puy into a separate command line args
+In general anything with a semi colon should be put into a separate command line args.
 ```
 
-Start the Edge Runtime
+Start the IoT Edge Runtime
 ```
-$> python azure-iot-edge-runtime-ctl start
-$> python azure-iot-edge-runtime-ctl --verbose INFO start
-```
-
-Restart the Edge Runtime
-```
-$> python azure-iot-edge-runtime-ctl restart
-$> python azure-iot-edge-runtime-ctl --verbose INFO restart
+$> iotedgectl start
+$> iotedgectl --verbose INFO start
 ```
 
-Stop the Edge Runtime
+Restart the IoT Edge Runtime
 ```
-$> python azure-iot-edge-runtime-ctl stop
-$> python azure-iot-edge-runtime-ctl --verbose INFO stop
-```
-
-Uninstall the Edge Runtime
-```
-$> python azure-iot-edge-runtime-ctl uninstall
-$> python azure-iot-edge-runtime-ctl --verbose DEBUG uninstall
+$> iotedgectl restart
+$> iotedgectl --verbose INFO restart
 ```
 
-Print the current status of the Edge Runtime
+Stop the IoT Edge Runtime
 ```
-$> python azure-iot-edge-runtime-ctl status
-$> python azure-iot-edge-runtime-ctl --verbose INFO status
+$> iotedgectl stop
+$> iotedgectl --verbose INFO stop
 ```
 
-### Edge Home Directory Description
-The Edge runtime needs a directory on the host machine in order to execute.
-This directory will contain the necessary configuration, certificates and
-module specific files. Lets call this the *EDGEHOMEDIR*. If users do not specify
-a value for the *EDGEHOMEDIR*, these default directories will be used to
-setup/start/stop the Edge runtime.
+Uninstall the IoT Edge Runtime
+```
+$> iotedgectl uninstall
+$> iotedgectl --verbose DEBUG uninstall
+```
+
+Print the current status of the IoT Edge Runtime
+```
+$> iotedgectl status
+$> iotedgectl --verbose INFO status
+```
+
+### IoT Edge Home Directory Description
+The IoT Edge runtime needs a directory on the host machine in order to execute.
+This directory will contain the necessary configuration, certificates and module specific files.
+Lets call this the *EDGEHOMEDIR*.
+If users do not specify a value for the *EDGEHOMEDIR*, these default directories will be used to setup/start/stop the IoT Edge runtime.
 
 ```
 Default Host Paths:
@@ -109,26 +112,24 @@ Default Host Paths:
     MacOS:   TBD
 ```
 
-As the Edge runtime is executed, the following file system structure
-is created under *EDGEHOMEDIR*.
+As the IoT Edge runtime is executed, the following file system structure is created under *EDGEHOMEDIR*.
 
 ```
 EDGEHOMEDIR Structure:
 -----------------------
     EDGEHOMEDIR
         .
-        +-- config  -- Edge configuration file(s) read by the azure-iot-edge-ctl scripts to setup,
-        |              deploy and execute the Edge runtime.
+        +-- config  -- IoT Edge configuration file(s) read by the azure-iot-edge-ctl scripts to setup,
+        |              deploy and execute the IoT Edge runtime.
         +-- certs   -- This directory is created by the scripts when generating self signed certificates.
         |
-        +-- modules -- This is directory that will be created by the azure-iot-edge-ctl scripts
+        +-- modules -- This is directory that will be created by the iotedgectl scripts
                        and it used to host all the Edge Module specific files.
 ```
 
-### Edge Host Configuration File Description
+### IoT Edge Host Configuration File Description
 
-The following section goes into details of the various configuration items
-and lays out how users are expected to modify this.
+The following section goes into details of the various configuration items and lays out how users are expected to modify this.
 
 ```
   // Config file format schema; Users should not need to modify this.
@@ -137,25 +138,25 @@ and lays out how users are expected to modify this.
   // User's IoTHub Device Connection string in the format listed below.
   "deviceConnectionString": "HostName=<>;DeviceId=<>;SharedAccessKey=<>",
 
-  // Path to the Edge home dir, if left empty, a default home dir will be used
+  // Path to the IoT Edge home dir, if left empty, a default home dir will be used
   "homeDir": "<EDGEHOMEDIR>",
 
-  // Edge device's DNS name;
+  // IoT Edge device's DNS name;
   // Specifying a FQDN is only required when operating the
-  // Edge as a 'Gateway' for leaf device connectivity.
+  // IoT Edge as a 'Gateway' for leaf device connectivity.
   // If a FQDN is unavailable, the host name could be used. If left blank,
   // the utility will determine the FQDN if available or the machine name.
   // This hostname value is needed for certificate
   // generation for the Edge Hub server. This certificate is used to enable
-  // TLS connections from Edge modules and leaf devices.
+  // TLS connections from IoT Edge modules and leaf devices.
   "hostName": "<Hostname>",
 
-  // Log level setting for Edge runtime diagnostics. "info" and "debug".
+  // Log level setting for IoT Edge runtime diagnostics. "info" and "debug".
   // are the supported levels and default is info. User should only
   // modify this for debugging purposes.
   "logLevel": "info",
 
-  // Configuration settings for the Edge Runtime
+  // Configuration settings for the IoT Edge Runtime
   "security": {
 
     // Configuration of X.509 certificates; There are two options:
@@ -165,7 +166,7 @@ and lays out how users are expected to modify this.
     //
     //  - Pre Installed Certificates: When this is enabled, users are
     //    (preInstalled)              expected to supply a "Device CA"
-    //                                certificate and a Edgehub server
+    //                                certificate and a Edge Hub server
     //                                certificate signed by this
     //                                Device CA cert. This is more of
     //                                a real world setup.
@@ -183,7 +184,7 @@ and lays out how users are expected to modify this.
       }
     }
   },
-  // Section containing Configuration of Edge Runtime Deployment and Host.
+  // Section containing Configuration of IoT Edge Runtime Deployment and Host.
   "deployment": {
 
     // Currently "docker" is the only deployment type supported.
@@ -195,14 +196,14 @@ and lays out how users are expected to modify this.
       // modify this according to what is supported on their host
       "uri": "unix:///var/run/docker.sock",
 
-      // Edge runtime image; Users may have to update this as newer images
+      // IoT Edge runtime image; Users may have to update this as newer images
       // are released over time.
       "edgeRuntimeImage": "edge_repository_address/edge_image_name:version",
 
       // Users can add registries in this array for their custom modules.
       // If there is no username or password associated with a repository,
       // users should set the values as "".
-      // NOTE: This is a temporary configuration item required by the Edge
+      // NOTE: This is a temporary configuration item required by the IoT Edge
       // Longer term, users would be able to manage their repositories and
       // credentials in the cloud using the IoTHub portal.
       "registries": [
@@ -218,7 +219,7 @@ and lays out how users are expected to modify this.
         }
       ],
 
-      // Logging options for the Edge runtime. The format complies with
+      // Logging options for the IoT Edge runtime. The format complies with
       // the docker schema described here:
       // https://docs.docker.com/engine/admin/logging/overview/
       "loggingOptions": {

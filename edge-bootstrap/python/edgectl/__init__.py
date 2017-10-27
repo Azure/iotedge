@@ -19,7 +19,7 @@ def coremain():
     Return exit status code.
     """
     if EdgeDefault.is_platform_supported():
-        cli = EdgeCLI('edgectl')
+        cli = EdgeCLI('iotedgectl')
         try:
             cli.process_cli_args()
             cli.execute_command()
