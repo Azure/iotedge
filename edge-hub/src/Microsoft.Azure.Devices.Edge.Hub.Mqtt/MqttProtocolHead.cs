@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
-            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));            
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
         }
 
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 this.logger.LogInformation("Initializing TLS endpoint on port {0}.", MqttsPort);
 
-                this.serverChannel = await bootstrap.BindAsync(IPAddress.Any, MqttsPort);
+                this.serverChannel = await bootstrap.BindAsync(IPAddress.IPv6Any, MqttsPort);
 
                 this.logger.LogInformation("Started");
             }

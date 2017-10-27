@@ -15,13 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         Startup startup;
 
         public IContainer Container => this.startup.Container;
-        
+
         public void Initialize(X509Certificate2 sslCert)
         {
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(options =>
                 {
-                    options.Listen(IPAddress.Any, SslPortNumber, listenOptions =>
+                    options.Listen(IPAddress.IPv6Any, SslPortNumber, listenOptions =>
                     {
                         listenOptions.UseHttps(sslCert);
                     });
