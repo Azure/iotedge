@@ -84,15 +84,15 @@ if ($LastExitCode)
     Throw "Docker Login Failed With Exit Code $LastExitCode"
 }
 
+& cmd /c "docker stop $image_name 2>&1"
+
+& cmd /c "docker rm $image_name 2>&1"
+
 docker pull $tag
 if ($LastExitCode)
 {
     Throw "Docker Pull Failed With Exit Code $LastExitCode"
 }
-
-& cmd /c "docker stop $image_name 2>&1"
-
-& cmd /c "docker rm $image_name 2>&1"
 
 $run_command = "docker run "
 if (-not $Foreground)
@@ -100,9 +100,11 @@ if (-not $Foreground)
     $run_command += "-d "
 }
 $run_command += "--name $image_name -p 8883:8883 -p 443:443 " + 
-    "-e DockerUri=http://${DockerAddress}:2375 " + 
-    "-e DeviceConnectionString='$mma_connection' -e IotHubHostName=$IoTHubHostname " + 
-    "-e EdgeDeviceId=$DeviceId" +
+    "-e DeviceConnectionString='$mma_connection' " + 
+    "-e IotHubHostName=$IoTHubHostname " + 
+    "-e EdgeDeviceId=$DeviceId " +
+    "-e DockerUri=npipe://./pipe/docker_engine " + 
+    "-v \\.\pipe\docker_engine:\\.\pipe\docker_engine " + 
     "$docker_routes $tag"
 
 Invoke-Expression $run_command
