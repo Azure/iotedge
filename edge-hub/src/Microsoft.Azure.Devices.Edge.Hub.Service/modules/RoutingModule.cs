@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
@@ -32,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
         readonly int connectionPoolSize;
         readonly bool isStoreAndForwardEnabled;
+        readonly bool usePersistentStorage;
+        readonly string storagePath;
         readonly string edgeHubConnectionString;
         readonly bool useTwinConfig;
 
@@ -40,7 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string edgeHubConnectionString,
             IDictionary<string, string> routes,
             bool isStoreAndForwardEnabled,
+            bool usePersistentStorage,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
+            string storagePath,
             int connectionPoolSize,
             bool useTwinConfig)
         {
@@ -50,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
+            this.usePersistentStorage = usePersistentStorage;
+            this.storagePath = storagePath;
             this.connectionPoolSize = connectionPoolSize;
             this.useTwinConfig = useTwinConfig;
         }
@@ -211,11 +218,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     c =>
                     {
-                        // Create partitions for messages and twins
-                        var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
 
-                        return new InMemoryDbStoreProvider();
-                        //return Storage.RocksDb.DbStoreProvider.Create(this.storeAndForwardConfiguration.StoragePath, partitionsList);
+                        if (this.usePersistentStorage)
+                        {
+                            // Create partitions for messages and twins
+                            var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                            try
+                            {
+                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(this.storagePath, partitionsList);
+                                logger.LogInformation($"Created persistent store at {this.storagePath}");
+                                return dbStoreprovider;
+                            }
+                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            {
+                                logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                                return new InMemoryDbStoreProvider();
+                            }
+                        }
+                        else
+                        {
+                            logger.LogInformation($"Using in-memory store");
+                            return new InMemoryDbStoreProvider();
+                        }
                     })
                     .As<IDbStoreProvider>()
                     .SingleInstance();

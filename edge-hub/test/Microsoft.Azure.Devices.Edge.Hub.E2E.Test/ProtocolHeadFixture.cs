@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
+    using System.IO;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -14,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
@@ -54,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             { "ModuleEndpoint", "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"}
         };
 
-        readonly IDictionary<string, string> routes = new Dictionary<string, string>() {
+        readonly IDictionary<string, string> routes = new Dictionary<string, string>()
+        {
             ["r1"] = "FROM /messages/events INTO $upstream",
             ["r2"] = "FROM /messages/modules/senderA INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
             ["r3"] = "FROM /messages/modules/senderB INTO BrokeredEndpoint(\"/modules/receiverA/inputs/input1\")",
@@ -180,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             builder.RegisterModule(new CommonModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
-            builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, routes, false, storeAndForwardConfiguration, ConnectionPoolSize, false));
+            builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, routes, false, false, storeAndForwardConfiguration, string.Empty, ConnectionPoolSize, false));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();

@@ -12,10 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     public class DbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "default";
-        readonly RocksDbWrapper db;
+        readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
 
-        DbStoreProvider(RocksDbWrapper db, IDictionary<string, IDbStore> entityDbStoreDictionary)
+        DbStoreProvider(IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
         {
             this.db = db;
             this.entityDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>(entityDbStoreDictionary);
@@ -23,8 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public static DbStoreProvider Create(string path, IEnumerable<string> partitionsList)
         {
-            RocksDbWrapper db = RocksDbWrapper.Create(path, partitionsList);
-            IEnumerable<string> columnFamilies = RocksDbWrapper.ListColumnFamilies(path);
+            IRocksDb db = ColumnFamilyStorageRocksDbWrapper.Create(path, partitionsList);
+            IEnumerable<string> columnFamilies = db.ListColumnFamilies();
             IDictionary<string, IDbStore> entityDbStoreDictionary = new Dictionary<string, IDbStore>();
             foreach (string columnFamilyName in columnFamilies)
             {

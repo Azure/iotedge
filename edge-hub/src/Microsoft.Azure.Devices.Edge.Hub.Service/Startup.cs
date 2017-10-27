@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -27,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         const string ConfigFileName = "appsettings_hub.json";
         const string TopicNameConversionSectionName = "mqttTopicNameConversion";
+        const string EdgeHubStorageFolder = "edgeHub";
         readonly Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder;
         readonly string edgeHubConnectionString;
 
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool useTwinConfig = !string.IsNullOrWhiteSpace(configSource) && configSource.Equals("twin", StringComparison.OrdinalIgnoreCase);
 
             var routes = this.Configuration.GetSection("routes").Get<Dictionary<string, string>>();
-            (bool isEnabled, StoreAndForwardConfiguration config) storeAndForward = this.GetStoreAndForwardConfiguration();
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");                        
 
@@ -101,8 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.iotHubConnectionStringBuilder.DeviceId, 
                     this.edgeHubConnectionString,
                     routes, 
-                    storeAndForward.isEnabled, 
-                    storeAndForward.config, 
+                    storeAndForward.isEnabled,
+                    storeAndForward.usePersistentStorage,
+                    storeAndForward.config,
+                    storeAndForward.storagePath,
                     connectionPoolSize,
                     useTwinConfig));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
@@ -119,18 +121,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             app.UseMvc();
         }
 
-        (bool isEnabled, StoreAndForwardConfiguration config) GetStoreAndForwardConfiguration()
+        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
         {
             int defaultTtl = -1;
             bool isEnabled = this.Configuration.GetValue<bool>("storeAndForwardEnabled");
+            bool usePersistentStorage = this.Configuration.GetValue<bool>("usePersistentStorage");
             int timeToLiveSecs = defaultTtl;
+            string storagePath = string.Empty;
             if(isEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.Configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue<int>("timeToLiveSecs", defaultTtl);
+
+                if(usePersistentStorage)
+                {
+                    storagePath = this.GetStoragePath();
+                }
             }
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (isEnabled, storeAndForwardConfiguration);            
+            return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);            
+        }
+
+        string GetStoragePath()
+        {
+            string baseStoragePath = this.Configuration.GetValue<string>("storageFolder");
+            if(string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            {
+                baseStoragePath = Path.GetTempPath();
+            }
+            string storagePath = Path.Combine(baseStoragePath, EdgeHubStorageFolder);
+            Directory.CreateDirectory(storagePath);
+            return storagePath;
         }
     }
 }

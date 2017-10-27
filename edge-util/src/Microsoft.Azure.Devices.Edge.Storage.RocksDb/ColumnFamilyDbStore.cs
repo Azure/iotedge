@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
@@ -10,10 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
     class ColumnFamilyDbStore : IDbStore
     {
-        readonly RocksDbWrapper db;
+        readonly IRocksDb db;
         readonly ColumnFamilyHandle handle;
 
-        public ColumnFamilyDbStore(RocksDbWrapper db, ColumnFamilyHandle handle)
+        public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.handle = Preconditions.CheckNotNull(handle, nameof(handle));
@@ -123,7 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             if (disposing)
             {
-                this.db?.Dispose();
+                // Don't dispose the Db here as we could be just updating routes.
+                //this.db?.Dispose();
             }
         }
 

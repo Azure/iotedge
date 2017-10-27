@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     /// Wrapper around RocksDb. This is mainly needed because each ColumnFamilyDbStore contains an instance of this object, 
     /// and hence it could get disposed multiple times. This class makes sure the underlying RocksDb instance is disposed only once.
     /// </summary>
-    sealed class RocksDbWrapper : IDisposable
+    sealed class RocksDbWrapper : IRocksDb
     {
         static readonly DbOptions Options = new DbOptions()
             .SetCreateIfMissing()
@@ -20,10 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
         readonly RocksDb db;
+        readonly string path;
 
-        RocksDbWrapper(RocksDb db)
+        RocksDbWrapper(RocksDb db, string path)
         {
             this.db = db;
+            this.path = path;
         }
 
         public static RocksDbWrapper Create(string path, IEnumerable<string> partitionsList)
@@ -40,11 +42,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
 
             RocksDb db = RocksDb.Open(Options, path, columnFamilies);
-            var rocksDbWrapper = new RocksDbWrapper(db);
+            var rocksDbWrapper = new RocksDbWrapper(db, path);
             return rocksDbWrapper;
         }
 
-        public static IEnumerable<string> ListColumnFamilies(string path)
+        public IEnumerable<string> ListColumnFamilies() => ListColumnFamilies(this.path);
+
+        static IEnumerable<string> ListColumnFamilies(string path)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
             // ListColumnFamilies will throw is the DB doesn't exist yet, so wrap it in a try catch.
