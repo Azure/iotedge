@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     public class CloudReceiverTest
     {
@@ -32,7 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string key = Convert.ToBase64String(Encoding.UTF8.GetBytes("token"));
             DeviceClient deviceClient = DeviceClient.Create("127.0.0.1", new DeviceAuthenticationWithRegistrySymmetricKey("device1", key));
 
-            var cloudReceiver = new CloudReceiver(deviceClient, messageConverter.Object, cloudListener.Object, identity.Object);
+            var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Object, (s, r) => { });
+
+            var cloudReceiver = new CloudProxy.CloudReceiver(cloudProxy, cloudListener.Object);
 
             MethodResponse methodResponse = await cloudReceiver.MethodCallHandler(new MethodRequest(MethodName, Data), null);
             cloudListener.Verify(p => p.CallMethodAsync(It.Is<DirectMethodRequest>(x => x.Name == MethodName && x.Data == Data)), Times.Once);
