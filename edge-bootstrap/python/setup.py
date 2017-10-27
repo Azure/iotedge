@@ -17,7 +17,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='aziotedgectl',
+    name='azure-iot-edge-ctl',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -79,7 +79,7 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        'edgectl': ['config/*.json'],
+        'edgectl': ['config/*.json', 'README.md'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may

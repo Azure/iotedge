@@ -1,5 +1,7 @@
 import argparse
+import edgectl
 import logging as log
+import pkg_resources
 import sys
 from edgehostplatform import EdgeHostPlatform
 from edgeconfiginteractive import EdgeConfigInteractive
@@ -71,6 +73,9 @@ class EdgeCLI(object):
     def command(self, value):
         self._command = value
 
+    def version(self):
+        return pkg_resources.require(edgectl.package_name)[0].version
+
     def process_cli_args(self):
         parser = argparse.ArgumentParser(prog=EdgeCLI.prog(),
                                          usage=EdgeCLI.prog() + ' [command] [options]',
@@ -79,7 +84,7 @@ class EdgeCLI(object):
                                          epilog='''''')
         parser.add_argument('--version',
                             action='version',
-                            version='%(prog)s: 1.0')
+                            version='%s %s' % (EdgeCLI.prog(), self.version(),))
 
         verbose_help_str = 'Verbose Level. Permitted Values: ' \
                            + ', '.join(EdgeCLI.supported_log_levels()) \

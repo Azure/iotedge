@@ -12,6 +12,8 @@ import sys
 from default import EdgeDefault
 from edgecli import EdgeCLI
 
+package_name = 'azure-iot-edge-ctl'
+
 def coremain():
     """
     The main function.
