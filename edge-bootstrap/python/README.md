@@ -24,9 +24,12 @@ More information for [installing python on Windows](https://docs.python.org/2/us
 In a terminal, complete the following steps:
 1. unzip the package
 2. change directory into the unzipped directory
-2. run `python setup.py install` (may need to run as administrator)
+3. run `python setup.py install` (may need to run as administrator)
 
 This should install the `iotedgectl` tool on your path.
+
+See [Installation Troubleshooting](#installation-troubleshooting) for common 
+installation problems
 
 ## How To Run:
 The main commands to to operate the IoT Edge runtime are:
@@ -230,4 +233,21 @@ The following section goes into details of the various configuration items and l
       }
     }
   }
+```
+
+### Installation Troubleshooting
+
+#### Raspbian 
+
+On the raspbian platform, you may need to update pip or the setup tools:
+
+```
+sudo pip install --upgrade setuptools pip
+```
+
+The Python installation may require some C libraries to be built, these libraries
+require development packages not installed by default:
+
+```
+sudo apt-get install python2.7-dev libffi-dev libssl-dev
 ```
