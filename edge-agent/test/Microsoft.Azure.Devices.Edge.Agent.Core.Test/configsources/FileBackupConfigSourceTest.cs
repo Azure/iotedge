@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
     public class FileBackupConfigSourceTest : IDisposable
     {
-
         const string TestType = "test";
         static readonly ConfigurationInfo configurationInfo = new ConfigurationInfo();
         static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), configurationInfo);
@@ -95,6 +94,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 Assert.NotNull(config2);
 
                 Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupDoesNotHappenIfConfigSourceReportsException()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            // Arrange
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(new DeploymentConfigInfo(10, new InvalidOperationException()));
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+
+            // Act
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            {
+                // this call should fetch the config properly
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                // this should cause the version with the exception to be returned
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+
+                // Assert
+                Assert.NotNull(config2);
+                Assert.Equal(10, config2.Version);
+
+                // this should still be the JSON from the first config - config1
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
             }
         }
 

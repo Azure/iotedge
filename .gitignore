@@ -305,3 +305,6 @@ backup.json
 
 # python
 **/*.egg-info
+
+# JetBrains Rider files
+.idea/

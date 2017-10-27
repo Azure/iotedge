@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
         {
             Option<DeploymentConfigInfo> deploymentConfig = await this.edgeAgentConnection.GetDeploymentConfigInfoAsync();
             return deploymentConfig.GetOrElse(new DeploymentConfigInfo(-1, DeploymentConfig.Empty));
-        }        
+        }
 
         public void Dispose() => this.edgeAgentConnection.Dispose();
 

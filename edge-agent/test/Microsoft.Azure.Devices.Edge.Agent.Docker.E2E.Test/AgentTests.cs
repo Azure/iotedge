@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     [testConfig.Name] = identity.Object
                 }.ToImmutableDictionary();
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-                moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentities(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
+                moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
                 var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter, moduleIdentityLifecycleManager.Object);
                 await agent.ReconcileAsync(CancellationToken.None);

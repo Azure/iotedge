@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 Architecture = Architecture
             };
 
-            var dockerClient = Mock.Of<IDockerClient>(dc => 
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
                 dc.Containers == Mock.Of<IContainerOperations>(co => co.InspectContainerAsync(id, default(CancellationToken)) == Task.FromResult(inspectContainerResponse)) &&
                 dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
 
@@ -440,6 +440,64 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(edgeAgent);
             Assert.Equal(edgeAgent.Type, "docker");
             Assert.Equal("myImage", edgeAgent.Config.Image);
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestModuleListingForEdgeHubModule()
+        {
+            // Arrange
+            var dockerClient = new Mock<IDockerClient>();
+            var entityStore = new Mock<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = new Mock<IRestartPolicyManager>();
+            var systemOperations = new Mock<ISystemOperations>();
+            var containerOperations = new Mock<IContainerOperations>();
+
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            dockerClient.SetupGet(c => c.System).Returns(systemOperations.Object);
+            systemOperations.Setup(s => s.GetSystemInfoAsync(CancellationToken.None)).ReturnsAsync(systemInfoResponse);
+
+            var containerListResponse = new ContainerListResponse
+            {
+                Image = "edge.azrecr.io/edge-hub:1",
+                Names = new List<string> { "/edgeHub" },
+                ID = Guid.NewGuid().ToString(),
+                State = "running",
+                Labels = new Dictionary<string, string>
+                {
+                    { Constants.Labels.Version, "v2" }
+                }
+            };
+            var inspectContainerResponse = new ContainerInspectResponse
+            {
+                State = new ContainerState
+                {
+                    Status = "Running for 10 hours",
+                    ExitCode = 0,
+                    StartedAt = (DateTime.UtcNow - TimeSpan.FromHours(10)).ToString("o"),
+                    FinishedAt = DateTime.MinValue.ToString("o")
+                }
+            };
+
+            dockerClient.SetupGet(c => c.Containers).Returns(containerOperations.Object);
+            containerOperations.Setup(c => c.ListContainersAsync(It.IsAny<ContainersListParameters>(), CancellationToken.None))
+                .ReturnsAsync(new ContainerListResponse[] { containerListResponse });
+            containerOperations.Setup(c => c.InspectContainerAsync(containerListResponse.ID, CancellationToken.None))
+                .ReturnsAsync(inspectContainerResponse);
+
+            // Act
+            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient.Object, entityStore.Object, restartPolicyManager.Object);
+            ModuleSet modules = await dockerEnvironment.GetModulesAsync(CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(modules);
+            Assert.NotNull(modules.Modules);
+            Assert.Equal(1, modules.Modules.Count);
+            Assert.True(modules.Modules[Constants.EdgeHubModuleName] is IEdgeHubModule);
         }
     }
 }

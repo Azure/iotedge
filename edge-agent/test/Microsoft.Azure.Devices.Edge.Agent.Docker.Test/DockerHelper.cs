@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         /// </summary>
         /// <param name="client"></param>
         /// <param name="image"></param>
-        /// <param name="tag"></param>
         /// <param name="token"></param>
         /// <returns></returns>
         public static async Task PullImageAsync(this IDockerClient client, string image, CancellationToken token)

@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -72,89 +71,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return hashCode;
             }
         }
-    }
-
-    public class DockerDesiredModule : DockerModule
-    {
-        [JsonProperty(Required = Required.Always, PropertyName = "version")]
-        public override string Version { get; }
-
-        [JsonProperty(Required = Required.Always, PropertyName = "status")]
-        public override ModuleStatus DesiredStatus { get; }
-
-        [JsonProperty(
-            PropertyName = "restartPolicy",
-            Required = Required.DisallowNull,
-            DefaultValueHandling = DefaultValueHandling.Populate
-        )]
-        [DefaultValue(Core.Constants.DefaultRestartPolicy)]
-        public override RestartPolicy RestartPolicy { get; }
-
-        [JsonConstructor]
-        DockerDesiredModule(string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, string type, DockerConfig settings, ConfigurationInfo configuration)
-            : base(string.Empty, version, desiredStatus, restartPolicy, settings, configuration)
-        {
-            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
-            this.Version = Preconditions.CheckNotNull(version, nameof(version));
-            this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
-            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
-        }
-    }
-
-    public class EdgeHubDockerModule : DockerModule, IEdgeHubModule
-    {
-        [JsonProperty(Required = Required.Always, PropertyName = "status")]
-        public override ModuleStatus DesiredStatus { get; }
-
-        [JsonProperty(
-            PropertyName = "restartPolicy",
-            Required = Required.DisallowNull,
-            DefaultValueHandling = DefaultValueHandling.Populate
-        )]
-        [DefaultValue(RestartPolicy.Always)]
-        public override RestartPolicy RestartPolicy { get; }
-
-        [JsonConstructor]
-        public EdgeHubDockerModule(string type, ModuleStatus status, RestartPolicy restartPolicy, DockerConfig settings, ConfigurationInfo configuration)
-            : base(Core.Constants.EdgeHubModuleName, string.Empty, status, restartPolicy, settings, configuration)
-        {
-            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
-            this.DesiredStatus = Preconditions.CheckIsDefined(status);
-            this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
-        }
-    }
-
-    public class EdgeAgentDockerModule : DockerModule, IEdgeAgentModule
-    {
-        [JsonConstructor]
-        public EdgeAgentDockerModule(string type, DockerConfig settings, ConfigurationInfo configuration)
-            : base(Core.Constants.EdgeAgentModuleName, string.Empty, ModuleStatus.Running, RestartPolicy.Always, settings, configuration)
-        {
-            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
-        }
-    }
-
-    public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule
-    {
-        public EdgeAgentDockerRuntimeModule(DockerConfig settings, ModuleStatus runtimeStatus, ConfigurationInfo configuration)
-            : base("docker", settings, configuration)
-        {
-            this.RuntimeStatus = runtimeStatus;
-        }
-
-        [JsonProperty(PropertyName = "runtimeStatus")]
-        public ModuleStatus RuntimeStatus { get; }
-
-        [JsonIgnore]
-        public override string Version { get; }
-
-        [JsonIgnore]
-        public override ModuleStatus DesiredStatus { get; }
-
-        [JsonIgnore]
-        public override RestartPolicy RestartPolicy { get; }
-
-        [JsonIgnore]
-        public override string Type => "docker";
     }
 }

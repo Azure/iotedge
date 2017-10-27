@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Immutable;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -27,39 +28,124 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Events.AgentCreated();
         }
 
-        public async Task ReconcileAsync(CancellationToken token)
+        async Task<(ModuleSet current, Exception ex)> GetCurrentModuleSetAsync(CancellationToken token)
         {
-            var (current, deploymentConfigInfo) = await TaskEx.WhenAll(
-                this.environment.GetModulesAsync(token),
-                this.configSource.GetDeploymentConfigInfoAsync()
-            );
-            ModuleSet updated = current;
-            DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
-            if (deploymentConfig != DeploymentConfig.Empty)
+            ModuleSet current = null;
+            Exception ex = null;
+
+            try
             {
-                ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentities(desiredModuleSet, current);
-                Plan plan = await this.planner.PlanAsync(deploymentConfig.GetModuleSet(), current, identities);
-                if (!plan.IsEmpty)
-                {
-                    try
-                    {
-                        await plan.ExecuteAsync(token);
-                        updated = await this.environment.GetModulesAsync(token);
-                    }
-                    catch (Exception ex)
-                    {
-                        Events.PlanExecutionFailed(ex);
-
-                        updated = await this.environment.GetModulesAsync(token);
-                        await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
-
-                        throw;
-                    }
-                }
+                current = await this.environment.GetModulesAsync(token);
+            }
+            catch(Exception e)
+            {
+                ex = e;
             }
 
-            await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
+            return (current, ex);
+        }
+
+        async Task<(DeploymentConfigInfo deploymentConfigInfo, Exception ex)> GetDeploymentConfigInfoAsync()
+        {
+            DeploymentConfigInfo deploymentConfigInfo = null;
+            Exception ex = null;
+
+            try
+            {
+                deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
+            }
+            catch(Exception e)
+            {
+                ex = e;
+            }
+
+            return (deploymentConfigInfo, ex);
+        }
+
+        async Task<(ModuleSet current, DeploymentConfigInfo DeploymentConfigInfo, Exception ex)> GetReconcileData(CancellationToken token)
+        {
+            // we read the data from the config source and from the environment separately because
+            // when doing something like TaskEx.WhenAll(t1, t2) if either of them throws then we get
+            // nothing; so for example, if the environment is able to successfully retrieve the moduleset
+            // but there's a corrupt deployment in IoT Hub then we end up not being able to report the
+            // current state even though we have it
+
+            var ((current, environmentException), (deploymentConfigInfo, configSourceException)) = await TaskEx.WhenAll(
+                this.GetCurrentModuleSetAsync(token), this.GetDeploymentConfigInfoAsync()
+            );
+
+            var exceptions = new Exception[]
+            {
+                environmentException,
+                configSourceException,
+                deploymentConfigInfo?.Exception.OrDefault()
+            }.Where(e => e != null);
+            Exception exception = null;
+            if (exceptions.Count() > 1)
+            {
+                exception = new AggregateException(exceptions);
+            }
+            else if (exceptions.Count() > 0)
+            {
+                exception = exceptions.First();
+            }
+
+            return (current, deploymentConfigInfo, exception);
+        }
+
+        public async Task ReconcileAsync(CancellationToken token)
+        {
+            ModuleSet current, updated = null;
+            DeploymentConfigInfo deploymentConfigInfo = null;
+
+            try
+            {
+                Exception exception;
+                (current, deploymentConfigInfo, exception) = await this.GetReconcileData(token);
+                updated = current;
+                if (exception != null)
+                {
+                    throw exception;
+                }
+
+                DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+                if (deploymentConfig != DeploymentConfig.Empty)
+                {
+                    ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                    IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(
+                        desiredModuleSet, current
+                    );
+                    Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, identities);
+                    if (!plan.IsEmpty)
+                    {
+                        try
+                        {
+                            await plan.ExecuteAsync(token);
+
+                            // get post plan execution state
+                            updated = await this.environment.GetModulesAsync(token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Events.PlanExecutionFailed(ex);
+
+                            // even though plan execution failed, the environment might
+                            // still have changed (as a result of partial execution of
+                            // the plan for example)
+                            updated = await this.environment.GetModulesAsync(token);
+                            throw;
+                        }
+                    }
+                }
+
+                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
+            }
+            catch(Exception ex)
+            {
+                var status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
+                throw;
+            }
         }
 
         static class Events

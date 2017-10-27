@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -22,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
 
-        public EdgeAgentConnection(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
+        EdgeAgentConnection(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
         {
             this.deviceClient = deviceClient;
             this.desiredPropertiesSerDe = desiredPropertiesSerDe;
@@ -37,6 +39,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             await deviceClient.SetDesiredPropertyUpdateCallback(edgeAgentConnection.OnDesiredPropertiesUpdated, null);
             Events.Created();
             return edgeAgentConnection;
+        }
+
+        async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            try
+            {
+                Events.ConnectionStatusChanged(status, reason);
+                if (status == ConnectionStatus.Connected)
+                {
+                    using (await this.twinLock.LockAsync())
+                    {
+                        await this.RefreshTwinAsync();
+                    }
+                }
+            }
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            {
+                Events.ConnectionStatusChangedHandlingError(ex);
+            }
         }
 
         async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
@@ -55,43 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        // This method updates local state and should be called only after acquiring twinLock
-        async Task ApplyPatchAsync(TwinCollection patch)
-        {
-            try
-            {
-                JToken mergedJson = JsonEx.Merge(JToken.FromObject(this.desiredProperties), JToken.FromObject(patch), true);
-                this.desiredProperties = new TwinCollection(mergedJson.ToString());
-                await this.UpdateDeploymentConfig();
-                Events.DesiredPropertiesPatchApplied();
-            }
-            catch (Exception ex)
-            {
-                Events.DesiredPropertiesPatchFailed(ex);
-                // Update reported properties with last desired status
-            }
-        }
-
-        async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
-        {
-            try
-            {
-                Events.ConnectionStatusChanged(status, reason);
-                if (status == ConnectionStatus.Connected)
-                {
-                    using (await this.twinLock.LockAsync())
-                    {
-                        await this.RefreshTwinAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ConnectionStatusChangedHandlingError(ex);
-            }
-        }
-
-        // This method updates local state and should be called only after acquiring edgeHubConfigLock
         async Task RefreshTwinAsync()
         {
             try
@@ -102,30 +86,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 await this.UpdateDeploymentConfig();
                 Events.TwinRefreshSuccess();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
             {
+                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
                 Events.TwinRefreshError(ex);
+            }
+        }
+
+        // This method updates local state and should be called only after acquiring twinLock
+        async Task ApplyPatchAsync(TwinCollection patch)
+        {
+            try
+            {
+                JToken mergedJson = JsonEx.Merge(JToken.FromObject(this.desiredProperties), JToken.FromObject(patch), true);
+                this.desiredProperties = new TwinCollection(mergedJson.ToString());
+                await this.UpdateDeploymentConfig();
+                Events.DesiredPropertiesPatchApplied();
+            }
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            {
+                this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
+                Events.DesiredPropertiesPatchFailed(ex);
+                // Update reported properties with last desired status
             }
         }
 
         Task UpdateDeploymentConfig()
         {
+            DeploymentConfig deploymentConfig;
+
             try
             {
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
-                DeploymentConfig deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
+                deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
+            }
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            {
+                Events.ErrorUpdatingDeploymentConfig(ex);
+                // TODO: Localize this error?
+                throw new ConfigFormatException("Agent configuration format is invalid.", ex);
+            }
+
+            try
+            {
                 // Do any validation on deploymentConfig if necessary
                 if (!deploymentConfig.SchemaVersion.Equals(ExpectedSchemaVersion, StringComparison.OrdinalIgnoreCase))
                 {
+                    // TODO: Localize this error?
                     throw new InvalidOperationException($"Received schema with version {deploymentConfig.SchemaVersion}, but only version {ExpectedSchemaVersion} is supported.");
                 }
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
             {
                 Events.ErrorUpdatingDeploymentConfig(ex);
-                // Update reported properties with last desired status
+                throw;
             }
 
             return Task.CompletedTask;

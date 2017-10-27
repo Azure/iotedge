@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceConnectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
         }
 
-        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentities(ModuleSet desired, ModuleSet current)
+        public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty)

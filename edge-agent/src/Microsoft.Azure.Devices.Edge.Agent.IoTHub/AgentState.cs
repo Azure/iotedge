@@ -14,13 +14,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         static readonly DictionaryComparer<string, IModule> StringModuleDictionaryComparer = new DictionaryComparer<string, IModule>();
 
+        public static AgentState Empty = new AgentState();
+
         [JsonConstructor]
-        public AgentState(long lastDesiredVersion = 0, DeploymentStatus lastDesiredStatus = null, IRuntimeInfo runtimeInfo = null, IDictionary<string, IModule> systemModules = null, IDictionary<string, IModule> modules = null)
+        public AgentState(
+            long lastDesiredVersion = 0,
+            DeploymentStatus lastDesiredStatus = null,
+            IRuntimeInfo runtimeInfo = null,
+            SystemModules systemModules = null,
+            IDictionary<string, IModule> modules = null
+        )
         {
             this.LastDesiredVersion = lastDesiredVersion;
             this.LastDesiredStatus = lastDesiredStatus ?? DeploymentStatus.Unknown;
             this.RuntimeInfo = runtimeInfo;
-            this.SystemModules = systemModules?.ToImmutableDictionary() ?? ImmutableDictionary<string, IModule>.Empty;
+            this.SystemModules = systemModules ?? new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance);
             this.Modules = modules?.ToImmutableDictionary() ?? ImmutableDictionary<string, IModule>.Empty;
         }
 
@@ -35,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public IRuntimeInfo RuntimeInfo { get; }
 
         [JsonProperty(PropertyName = "systemModules")]
-        public IImmutableDictionary<string, IModule> SystemModules { get; }
+        public SystemModules SystemModules { get; }
 
         [JsonProperty(PropertyName = "modules")]
         public IImmutableDictionary<string, IModule> Modules { get; }
@@ -44,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.LastDesiredVersion,
             this.LastDesiredStatus.Clone(),
             this.RuntimeInfo,
-            this.SystemModules.ToImmutableDictionary(),
+            this.SystemModules.Clone(),
             this.Modules.ToImmutableDictionary()
         );
 
@@ -55,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                    this.LastDesiredVersion == other.LastDesiredVersion &&
                    EqualityComparer<DeploymentStatus>.Default.Equals(this.LastDesiredStatus, other.LastDesiredStatus) &&
                    EqualityComparer<IRuntimeInfo>.Default.Equals(this.RuntimeInfo, other.RuntimeInfo) &&
-                   StringModuleDictionaryComparer.Equals(this.SystemModules.ToImmutableDictionary(), other.SystemModules.ToImmutableDictionary()) &&
+                   this.SystemModules.Equals(other.SystemModules) &&
                    StringModuleDictionaryComparer.Equals(this.Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
 
         public override int GetHashCode()
@@ -64,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             hashCode = hashCode * -1521134295 + LastDesiredVersion.GetHashCode();
             hashCode = hashCode * -1521134295 + EqualityComparer<DeploymentStatus>.Default.GetHashCode(LastDesiredStatus);
             hashCode = hashCode * -1521134295 + EqualityComparer<IRuntimeInfo>.Default.GetHashCode(RuntimeInfo);
-            hashCode = hashCode * -1521134295 + StringModuleDictionaryComparer.GetHashCode(SystemModules.ToImmutableDictionary());
+            hashCode = hashCode * -1521134295 + this.SystemModules.GetHashCode();
             hashCode = hashCode * -1521134295 + StringModuleDictionaryComparer.GetHashCode(Modules.ToImmutableDictionary());
             return hashCode;
         }

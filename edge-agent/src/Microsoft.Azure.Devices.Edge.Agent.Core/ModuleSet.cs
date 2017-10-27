@@ -2,15 +2,18 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class ModuleSet
+    public class ModuleSet : IEquatable<ModuleSet>
     {
         public static ModuleSet Empty { get; } = new ModuleSet(ImmutableDictionary<string, IModule>.Empty as IImmutableDictionary<string, IModule>);
+
+        static readonly DictionaryComparer<string, IModule> ModuleDictionaryComparer = new DictionaryComparer<string, IModule>();
 
         public IImmutableDictionary<string, IModule> Modules { get; }
 
@@ -63,10 +66,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             // be "updated"
             IEnumerable<IModule> updated = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
-                .Where(key => !this.Modules[key].Equals(other.Modules[key]))
+                .Where(key =>
+                {
+                    return !this.Modules[key].Equals(other.Modules[key]);
+                })
                 .Select(key => this.Modules[key]);
 
             return new Diff(created.Concat(updated).ToList(), removed.ToList());
         }
+
+        public override bool Equals(object obj) => Equals(obj as ModuleSet);
+
+        public bool Equals(ModuleSet other) => other != null &&
+                   ModuleDictionaryComparer.Equals(Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
+
+        public override int GetHashCode() => 1729798618 + ModuleDictionaryComparer.GetHashCode(Modules.ToImmutableDictionary());
+
+        public static bool operator ==(ModuleSet set1, ModuleSet set2) =>
+                   ((object)set1 == null && (object)set2 == null)
+                   ||
+                   ((object)set1 != null && set1.Equals(set2));
+
+        public static bool operator !=(ModuleSet set1, ModuleSet set2) => !(set1 == set2);
     }
 }

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -26,26 +27,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         readonly IEnvironment environment;
         readonly object sync;
         Option<AgentState> reportedState;
+        readonly ISerde<AgentState> agentStateSerde;
 
-        public IoTHubReporter(IEdgeAgentConnection edgeAgentConnection, IEnvironment environment)
+        public IoTHubReporter(
+            IEdgeAgentConnection edgeAgentConnection,
+            IEnvironment environment,
+            ISerde<AgentState> agentStateSerde
+        )
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
             this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
+            this.agentStateSerde = Preconditions.CheckNotNull(agentStateSerde, nameof(agentStateSerde));
 
             this.sync = new object();
             this.reportedState = Option.None<AgentState>();
         }
 
-        JToken GetReportedJson()
+        AgentState GetReportedState()
         {
             lock (this.sync)
             {
                 return this.reportedState
-                    .Map(s => JToken.Parse(JsonConvert.SerializeObject(s)))
                     .GetOrElse(() =>
                         this.edgeAgentConnection.ReportedProperties
-                            .Map(coll => JsonEx.StripMetadata(JToken.Parse(coll.ToJson())))
-                            .GetOrElse(JValue.CreateNull()));
+                            .Map(coll =>
+                            {
+                                return this.agentStateSerde.Deserialize(coll.ToJson());
+                            })
+                            .GetOrElse(null as AgentState));
             }
         }
 
@@ -53,40 +62,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         {
             lock (this.sync)
             {
-                this.reportedState = Option.Some(reported);
+                if (this.reportedState.OrDefault() != reported)
+                {
+                    this.reportedState = Option.Some(reported);
+                }
             }
         }
 
         public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status)
         {
+            Preconditions.CheckNotNull(status, nameof(status));
+
             // produce JSONs for previously reported state and current state
-            JToken reportedJson = this.GetReportedJson();
+            AgentState reportedState = this.GetReportedState();
 
             // if there is no reported JSON to compare against, then we don't do anything
             // because this typically means that we never connected to IoT Hub before and
             // we have no connection yet
-            if (reportedJson.Type == JTokenType.Null)
+            if (reportedState == null)
             {
                 Events.NoSavedReportedProperties();
                 return;
             }
 
-            IModule edgeAgentModule = await this.environment.GetEdgeAgentModuleAsync(token);
-            IEnumerable<KeyValuePair<string, IModule>> systemModules = moduleSet.Modules
-                .Where(kvp => SystemModuleNames.Contains(kvp.Value.Name))
-                .Concat(new KeyValuePair<string, IModule>[] { new KeyValuePair<string, IModule>(edgeAgentModule.Name, edgeAgentModule) });
-            IEnumerable<KeyValuePair<string, IModule>> userModules = moduleSet.Modules.Except(systemModules);
+            // build system module objects
+            IEdgeAgentModule edgeAgentModule = await this.environment.GetEdgeAgentModuleAsync(token);
+            IEdgeHubModule edgeHubModule = (moduleSet?.Modules?.ContainsKey(Constants.EdgeHubModuleName) ?? false)
+                ? moduleSet.Modules[Constants.EdgeHubModuleName] as IEdgeHubModule
+                : UnknownEdgeHubModule.Instance;
+            edgeHubModule = edgeHubModule ?? UnknownEdgeHubModule.Instance;
+
+            IImmutableDictionary<string, IModule> userModules =
+                moduleSet?.Modules?.Remove(edgeAgentModule.Name)?.Remove(edgeHubModule.Name) ??
+                ImmutableDictionary<string, IModule>.Empty;
 
             var currentState = new AgentState(
-                deploymentConfigInfo.Version,
+                deploymentConfigInfo?.Version ?? reportedState.LastDesiredVersion,
                 status,
-                await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime),
-                systemModules.ToImmutableDictionary(),
+                deploymentConfigInfo != null ? (await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime)) : reportedState.RuntimeInfo,
+                new SystemModules(edgeAgentModule, edgeHubModule),
                 userModules.ToImmutableDictionary()
             );
 
             // diff and prepare patch
-            JToken currentJson = JToken.Parse(JsonConvert.SerializeObject(currentState));
+            JToken currentJson = JToken.FromObject(currentState);
+            JToken reportedJson = JToken.FromObject(reportedState);
             JObject patch = JsonEx.Diff(reportedJson, currentJson);
 
             if (patch.HasValues)
@@ -108,6 +128,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     // Swallow the exception as the device could be offline. The reported properties will get updated
                     // during the next reconcile when we have connectivity.
                 }
+            }
+            else
+            {
+                // if there is no difference between `currentState` and `reportedState` and
+                // the saved `reportedState` is empty then we should save `currentState` as
+                // the new saved reported state; this is so we avoid continuously de-serializing
+                // the reported state from the twin during every reconcile
+                this.SetReported(currentState);
             }
         }
     }

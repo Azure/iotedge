@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
         }
 
-        public async Task<IModule> GetEdgeAgentModuleAsync(CancellationToken token)
+        public async Task<IEdgeAgentModule> GetEdgeAgentModuleAsync(CancellationToken token)
         {
             Option<ContainerInspectResponse> edgeAgentContainer = await this.GetEdgeAgentContainerAsync(token);
 
@@ -105,7 +105,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return new EdgeAgentDockerRuntimeModule(config, ModuleStatus.Running, new ConfigurationInfo());
         }
 
-        internal async Task<IModule> ContainerToModuleAsync(ContainerListResponse response)
+        (
+            string name,
+            string version,
+            string image,
+            ModuleStatus desiredStatus,
+            Core.RestartPolicy RestartPolicy,
+            DockerConfig dockerConfig,
+            ConfigurationInfo configurationInfo
+        )
+        ExtractModuleInfo(ContainerListResponse response)
         {
             string name = response.Names.FirstOrDefault()?.Substring(1) ?? "unknown";
             string version = response.Labels.GetOrElse(CoreConstants.Labels.Version, string.Empty);
@@ -123,10 +132,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     CoreConstants.DefaultDesiredStatus.ToString()
                 )
             );
-
             string image = response.Image != null ? response.Image : "unknown";
+            var dockerConfig = new DockerConfig(image, (response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty)));
+            var configurationInfo = new ConfigurationInfo(response.Labels.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty));
 
-            ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
+            return (name, version, image, desiredStatus, restartPolicy, dockerConfig, configurationInfo);
+        }
+
+        (
+            int exitCode,
+            string statusDescription,
+            DateTime lastStartTime,
+            DateTime lastExitTime
+        )
+        ExtractModuleRuntimeState(ContainerInspectResponse inspected)
+        {
             int exitCode = (inspected?.State != null) ? (int)inspected.State.ExitCode : 0;
             string statusDescription = inspected?.State?.Status;
 
@@ -144,19 +164,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            ModuleState restartState = (await this.store.Get(name)).GetOrElse(new ModuleState(0, lastExitTime));
+            return (exitCode, statusDescription, lastStartTime, lastExitTime);
+        }
 
-            ModuleStatus runtimeStatus = ToRuntimeStatus(inspected.State, restartPolicy, restartState.RestartCount, lastExitTime);
+        internal async Task<IModule> ContainerToModuleAsync(ContainerListResponse response)
+        {
+            // Extract the following attributes from the container response object:
+            //  - name
+            //  - version
+            //  - image
+            //  - desired status
+            //  - restart policy,
+            //  - docker configuration
+            //  - configuration info
+            var (name, version, image, desiredStatus, restartPolicy, dockerConfig, configurationInfo) = this.ExtractModuleInfo(response);
 
-            var dockerConfig = new DockerConfig(image, (response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty)));
+            // Do a deep inspection of the container to get the following runtime state:
+            //  - exit code
+            //  - exit status description
+            //  - last start time
+            //  - lat exit time
+            ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
+            var (exitCode, statusDescription, lastStartTime, lastExitTime) = this.ExtractModuleRuntimeState(inspected);
 
-            var configurationInfo = new ConfigurationInfo(response.Labels.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty));
+            // Figure out module stats and runtime status
+            ModuleState moduleState = (await this.store.Get(name)).GetOrElse(new ModuleState(0, lastExitTime));
+            ModuleStatus runtimeStatus = ToRuntimeStatus(inspected.State, restartPolicy, moduleState.RestartCount, lastExitTime);
 
-            return new DockerRuntimeModule(
-                name, version, desiredStatus, restartPolicy, dockerConfig, exitCode,
-                statusDescription, lastStartTime, lastExitTime,
-                restartState.RestartCount, restartState.LastRestartTimeUtc, runtimeStatus, configurationInfo
-            );
+            if (name == CoreConstants.EdgeHubModuleName)
+            {
+                return new EdgeHubDockerRuntimeModule(
+                    name, version, desiredStatus, restartPolicy, dockerConfig,
+                    exitCode, statusDescription, lastStartTime, lastExitTime,
+                    moduleState.RestartCount, moduleState.LastRestartTimeUtc,
+                    runtimeStatus, configurationInfo
+                );
+            }
+            else
+            {
+                return new DockerRuntimeModule(
+                    name, version, desiredStatus, restartPolicy, dockerConfig,
+                    exitCode, statusDescription, lastStartTime, lastExitTime,
+                    moduleState.RestartCount, moduleState.LastRestartTimeUtc,
+                    runtimeStatus, configurationInfo
+                );
+            }
         }
 
         ModuleStatus ToRuntimeStatus(ContainerState containerState, Core.RestartPolicy restartPolicy, int restartCount, DateTime lastExitTime)

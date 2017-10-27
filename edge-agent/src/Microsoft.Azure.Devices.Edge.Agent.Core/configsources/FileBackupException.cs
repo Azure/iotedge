@@ -2,17 +2,17 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
-	using System;
+    using System;
 
-	[Serializable]
-	public class FileBackupException : Exception
-	{
-		public FileBackupException(string message) : base(message)
-		{
-		}
+    [Serializable]
+    public class FileBackupException : Exception
+    {
+        public FileBackupException(string message) : base(message)
+        {
+        }
 
-		public FileBackupException(string message, Exception inner) : base(message, inner)
-		{
-		}
-	}
+        public FileBackupException(string message, Exception inner) : base(message, inner)
+        {
+        }
+    }
 }

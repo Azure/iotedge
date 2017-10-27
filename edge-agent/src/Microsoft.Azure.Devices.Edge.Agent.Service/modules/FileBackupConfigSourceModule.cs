@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string edgeDeviceConnectionString;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
+        const string UnknownType = "Unknown";
         readonly IConfiguration configuration;
 
         public FileBackupConfigSourceModule(EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString, string backupConfigFilePath, IConfiguration config)
@@ -104,10 +105,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IReporter>
             builder.Register(
-                    async c => new IoTHubReporter(
-                        await c.Resolve<Task<IEdgeAgentConnection>>(),
-                        await c.Resolve<Task<IEnvironment>>()
-                    ) as IReporter
+                    async c =>
+                    {
+                        var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+                        {
+                            [DockerType] = typeof(DockerReportedRuntimeInfo)
+                        };
+
+                        var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+                        {
+                            [DockerType] = typeof(EdgeAgentDockerRuntimeModule)
+                        };
+
+                        var edgeHubDeserializerTypes = new Dictionary<string, Type>
+                        {
+                            [DockerType] = typeof(EdgeHubDockerRuntimeModule),
+                            [UnknownType] = typeof(UnknownEdgeHubModule)
+                        };
+
+                        var moduleDeserializerTypes = new Dictionary<string, Type>
+                        {
+                            [DockerType] = typeof(DockerRuntimeModule)
+                        };
+
+                        var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
+                        {
+                            { typeof(IRuntimeInfo), runtimeInfoDeserializerTypes },
+                            { typeof(IEdgeAgentModule), edgeAgentDeserializerTypes },
+                            { typeof(IEdgeHubModule), edgeHubDeserializerTypes },
+                            { typeof(IModule), moduleDeserializerTypes }
+                        };
+
+                        return new IoTHubReporter(
+                            await c.Resolve<Task<IEdgeAgentConnection>>(),
+                            await c.Resolve<Task<IEnvironment>>(),
+                            new TypeSpecificSerDe<AgentState>(deserializerTypesMap)
+                        ) as IReporter;
+                    }
                 )
                 .As<Task<IReporter>>()
                 .SingleInstance();

@@ -3,7 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public class UnknownModule : IModule
-    {         
+    {
         public string Type => "Unknown";
 
         public string Name { get => "Unknown"; set { } }

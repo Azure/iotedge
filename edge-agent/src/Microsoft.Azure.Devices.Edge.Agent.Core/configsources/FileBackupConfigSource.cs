@@ -48,10 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         {
             try
             {
-                string json = this.serde.Serialize(deploymentConfigInfo);
-                using (await this.sync.LockAsync())
+                // backup the config info only if there isn't an error in it
+                if (deploymentConfigInfo.Exception.HasValue == false)
                 {
-                    await DiskFile.WriteAllAsync(this.configFilePath, json);
+                    string json = this.serde.Serialize(deploymentConfigInfo);
+                    using (await this.sync.LockAsync())
+                    {
+                        await DiskFile.WriteAllAsync(this.configFilePath, json);
+                    }
                 }
             }
             catch (Exception e)
@@ -87,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         {
             this.underlying?.Dispose();
         }
-        
+
         static class Events
         {
             const int IdStart = AgentEventIds.FileBackupConfigSource;

@@ -9,6 +9,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerRuntimeModule : DockerModule, IRuntimeModule<DockerConfig>
     {
+        public DockerRuntimeModule(
+            string name, string version, ModuleStatus desiredStatus,
+            RestartPolicy restartPolicy, DockerConfig config, int exitCode,
+            string statusDescription, DateTime lastStartTime,
+            DateTime lastExitTime, int restartCount, DateTime lastRestartTime,
+            ModuleStatus runtimeStatus, ConfigurationInfo configuration
+        )
+            : base(name, version, desiredStatus, restartPolicy, config, configuration)
+        {
+            this.ExitCode = exitCode;
+            this.StatusDescription = statusDescription;
+            this.LastExitTimeUtc = lastExitTime;
+            this.LastStartTimeUtc = lastStartTime;
+            this.RestartCount = Preconditions.CheckRange(restartCount, 0, nameof(restartCount));
+            this.LastRestartTimeUtc = lastRestartTime;
+            this.RuntimeStatus = Preconditions.CheckIsDefined(runtimeStatus);
+        }
+
+        [JsonConstructor]
+        DockerRuntimeModule(
+            string name, string version, string type, ModuleStatus status,
+            RestartPolicy restartPolicy, DockerConfig config, int? exitCode,
+            string statusDescription, DateTime lastStartTimeUtc,
+            DateTime lastExitTimeUtc, int restartCount,
+            DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus,
+            ConfigurationInfo configurationInfo
+        )
+            : this(name, version, status, restartPolicy, config, exitCode ?? 0,
+                  statusDescription, lastStartTimeUtc, lastExitTimeUtc,
+                  restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo)
+        {
+            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
+        }
+
         [JsonProperty(PropertyName = "exitCode")]
         public int ExitCode { get; }
 
@@ -29,34 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonProperty(PropertyName = "runtimeStatus")]
         public ModuleStatus RuntimeStatus { get; }
-
-        public DockerRuntimeModule(
-            string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy,
-            DockerConfig config, int exitCode, string statusDescription, DateTime lastStartTime,
-            DateTime lastExitTime, int restartCount, DateTime lastRestartTime, ModuleStatus runtimeStatus, ConfigurationInfo configuration
-        )
-            : base(name, version, desiredStatus, restartPolicy, config, configuration)
-        {
-            this.ExitCode = exitCode;
-            this.StatusDescription = statusDescription;
-            this.LastExitTimeUtc = lastExitTime;
-            this.LastStartTimeUtc = lastStartTime;
-            this.RestartCount = Preconditions.CheckRange(restartCount, 0, nameof(restartCount));
-            this.LastRestartTimeUtc = lastRestartTime;
-            this.RuntimeStatus = Preconditions.CheckIsDefined(runtimeStatus);
-        }
-
-        [JsonConstructor]
-        DockerRuntimeModule(
-            string name, string version, string type, ModuleStatus status, RestartPolicy restartPolicy,
-            DockerConfig config, int? exitCode, string statusDescription, DateTime lastStartTimeUtc,
-            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus, ConfigurationInfo configurationInfo
-        )
-            : this(name, version, status, restartPolicy, config, exitCode ?? 0, statusDescription,
-                  lastStartTimeUtc, lastExitTimeUtc, restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo)
-        {
-            Preconditions.CheckArgument(type?.Equals("docker") ?? false);
-        }
 
         public override bool Equals(object obj) => this.Equals(obj as IModule<DockerConfig>);
 

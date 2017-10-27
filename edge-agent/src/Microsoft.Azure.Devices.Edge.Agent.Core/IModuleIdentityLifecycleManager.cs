@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IModuleIdentityLifecycleManager
     {
-        Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentities(ModuleSet desired, ModuleSet current);
+        Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current);
     }
 }

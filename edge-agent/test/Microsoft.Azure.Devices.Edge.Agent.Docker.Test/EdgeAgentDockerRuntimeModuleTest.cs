@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var expected = JToken.FromObject(new
             {
                 runtimeStatus = "running",
+                type = "docker",
                 settings = new
                 {
                     image = "booyah",

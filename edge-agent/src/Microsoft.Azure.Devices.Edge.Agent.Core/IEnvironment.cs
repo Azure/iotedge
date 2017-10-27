@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// <returns></returns>
         Task<ModuleSet> GetModulesAsync(CancellationToken token);
 
-        Task<IModule> GetEdgeAgentModuleAsync(CancellationToken token);
+        Task<IEdgeAgentModule> GetEdgeAgentModuleAsync(CancellationToken token);
 
         /// <summary>
         /// In the general case information captured in a <see cref="IRuntimeInfo"/> can
