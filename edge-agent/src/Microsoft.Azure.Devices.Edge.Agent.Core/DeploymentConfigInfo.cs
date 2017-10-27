@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
             this.Version = Preconditions.CheckRange(version, -1, nameof(version));
             this.Exception = Option.Some(Preconditions.CheckNotNull(ex, nameof(ex)));
+            this.DeploymentConfig = DeploymentConfig.Empty;
         }
 
         public long Version { get; }

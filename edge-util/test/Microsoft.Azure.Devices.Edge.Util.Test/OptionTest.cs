@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -144,7 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Option<int> none = Option.None<int>();
 
             Assert.Equal(some, some.Else(Option.Some(4)));
+            Assert.Equal(some, some.Else(() => Option.Some(4)));
             Assert.Equal(Option.Some(2), none.Else(Option.Some(2)));
+            Assert.Equal(Option.Some(2), none.Else(() => Option.Some(2)));
         }
 
         [Fact]
@@ -209,6 +212,32 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             i = 2;
             none.ForEach(v => i *= v);
+            Assert.Equal(2, i);
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestForEachAsync()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            int i = 2;
+            // ReSharper disable once AccessToModifiedClosure
+            // Need to test the side effect
+            await some.ForEachAsync(v =>
+            {
+                i *= v;
+                return Task.CompletedTask;
+            });
+            Assert.Equal(6, i);
+
+            i = 2;
+            await none.ForEachAsync(v =>
+            {
+                i *= v;
+                return Task.CompletedTask;
+            });
             Assert.Equal(2, i);
         }
     }

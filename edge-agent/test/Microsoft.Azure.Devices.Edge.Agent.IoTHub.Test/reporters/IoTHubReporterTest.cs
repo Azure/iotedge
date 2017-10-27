@@ -641,7 +641,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
-                var agentStateSerde = new Mock<ISerde<AgentState>>();
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -649,6 +648,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
 
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
@@ -665,7 +668,80 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 await reporter.ReportAsync(cts.Token, null, null, DeploymentStatus.Success);
 
                 // Assert
-                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Successful
+                    },
+                    systemModules = new
+                    {
+                        edgeAgent = new
+                        {
+                            type = "docker",
+                            version = null as string,
+                            status = null as string,
+                            restartPolicy = null as string,
+                            settings = new
+                            {
+                                image = "EdgeAgentImage"
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void ReportAsyncReportsErrorIfInitialDeserializeFails()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = AgentState.Empty;
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Throws(new FormatException("Bad format"));
+
+                var environment = new Mock<IEnvironment>();
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object, agentStateSerde.Object);
+                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, new DeploymentConfigInfo(0, DeploymentConfig.Empty), DeploymentStatus.Success);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    lastDesiredVersion = 0,
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Failed,
+                        description = "Bad format"
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
             }
         }
     }

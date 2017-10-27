@@ -4,8 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public enum DeploymentStatusCode
     {
-        Unknown = 406,
         Successful = 200,
-        Failed = 400
+        ConfigFormatError = 400,
+        Unknown = 406,
+        Failed = 500
     }
 }

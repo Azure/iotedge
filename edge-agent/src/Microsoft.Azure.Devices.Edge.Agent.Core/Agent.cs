@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -80,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 configSourceException,
                 deploymentConfigInfo?.Exception.OrDefault()
             }.Where(e => e != null);
+
             Exception exception = null;
             if (exceptions.Count() > 1)
             {
@@ -139,6 +141,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 }
 
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
+            }
+            catch(ConfigFormatException ex)
+            {
+                var status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
+                throw;
             }
             catch(Exception ex)
             {

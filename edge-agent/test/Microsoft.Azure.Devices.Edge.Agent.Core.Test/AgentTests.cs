@@ -2,14 +2,15 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Xunit;
 
     public class AgentTests
@@ -91,6 +92,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Act
             // Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
+            mockReporter.VerifyAll();
+        }
+
+        [Fact]
+        [Unit]
+        public async void ReconcileAsyncAbortsWhenConfigSourceReturnsConfigFormatException()
+        {
+            // Arrange
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
+            var token = new CancellationToken();
+            var currentSet = ModuleSet.Empty;
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+
+            var deploymentConfigInfo = new DeploymentConfigInfo(10, new ConfigFormatException("Bad config"));
+            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(deploymentConfigInfo);
+            mockEnvironment.Setup(env => env.GetModulesAsync(token))
+                .ReturnsAsync(currentSet);
+            mockReporter.Setup(r => r.ReportAsync(token, currentSet, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.ConfigFormatError)))
+                .Returns(Task.CompletedTask);
+
+            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+
+            // Act
+            // Assert
+            await Assert.ThrowsAsync<ConfigFormatException>(() => agent.ReconcileAsync(token));
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
         }

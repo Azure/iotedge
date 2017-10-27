@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Threading.Tasks;
 
     public struct Option<T> : IEquatable<Option<T>>
     {
@@ -92,6 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public Option<T> Else(Option<T> alternativeOption) => this.HasValue ? this : alternativeOption;
 
+        public Option<T> Else(Func<Option<T>> alternativeMaker) => this.HasValue ? this : alternativeMaker();
+
         public T OrDefault() => this.HasValue ? this.Value : default(T);
 
         /// <summary>
@@ -113,6 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 action(this.Value);
             }
         }
+
+        public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
@@ -143,14 +148,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// value then it returns <c>this</c> instance as is.</returns>
         /// <remarks>
         /// Think of this like a standard C# "if" statement. For e.g., the following code:
-        /// 
+        ///
         /// <code>
         /// Option&lt;string&gt; o = Option.Some("foo");
         /// o.Filter(s =&gt; s.Contains("foo")).ForEach(s =&gt; Console.WriteLine($"s = {s}"));
         /// </code>
-        /// 
+        ///
         /// is semantically equivalent to:
-        /// 
+        ///
         /// <code>
         /// string s = "foo";
         /// if (s != null &amp;&amp; s.Contains("foo"))
