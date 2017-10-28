@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
     }
 
-    public class TestPlanRecorder 
+    public class TestPlanRecorder
     {
         public List<TestRecordType> ExecutionList { get; }
         public List<TestRecordType> UndoList { get; }
@@ -111,9 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public Task<ICommand> WrapAsync(ICommand command)
         {
-            foreach (TestPlanRecorder r in this.Recorder)
-                r.CommandWrapped(command);
-
+            this.Recorder.ForEach(r => r.CommandWrapped(command));
             return Task.FromResult<ICommand>(command);
         }
     }

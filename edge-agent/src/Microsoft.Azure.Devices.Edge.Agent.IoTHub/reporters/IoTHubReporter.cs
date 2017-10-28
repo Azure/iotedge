@@ -153,13 +153,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                         JToken reportedJson = JToken.FromObject(rs);
                         JObject patch = JsonEx.Diff(reportedJson, currentJson);
 
-                        // send reported props
-                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch));
+                        if (patch.HasValues)
+                        {
+                            // send reported props
+                            await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch));
 
-                        // update our cached copy of reported properties
-                        this.SetReported(cs);
+                            // update our cached copy of reported properties
+                            this.SetReported(cs);
 
-                        Events.UpdatedReportedProperties();
+                            Events.UpdatedReportedProperties();
+                        }
                     }
                     catch (Exception e)
                     {

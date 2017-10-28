@@ -415,6 +415,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(r =>
             {
                 Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count());
+                Assert.Equal(data.Length, r.WrappedCommmandList.Count);
             });
         }
 

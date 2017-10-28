@@ -151,8 +151,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
             IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
 
-            // remove any saved state we might for moduels that are being removed
-            IEnumerable<Task<ICommand>> removeStateTasks = removed.Select(m => this.commandFactory.WrapAsync(new RemoveModuleStateCommand(m, this.store)));
+            // remove any saved state we might have for modules that are being removed or
+            // are being updated because of a deployment
+            IEnumerable<Task<ICommand>> removeStateTasks = removed
+                .Concat(updateDeployed)
+                .Select(m => this.commandFactory.WrapAsync(new RemoveModuleStateCommand(m, this.store)));
             IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // create "pull" commands for modules that have been added/updated
