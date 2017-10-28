@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Client.DeviceClient deviceClient;
         private const uint DeviceClientTimeout = 30000; // ms
         static readonly ITransientErrorDetectionStrategy TransientDetectionStrategy = new DeviceClientRetryStrategy();
-        static readonly RetryStrategy TransientRetryStrategy = new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+        static readonly RetryStrategy TransientRetryStrategy = new Util.TransientFaultHandling.ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         DeviceClient(Client.DeviceClient deviceClient)
         {

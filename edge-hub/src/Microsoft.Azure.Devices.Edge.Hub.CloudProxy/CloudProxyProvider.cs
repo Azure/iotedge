@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
@@ -59,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, this.transportSettings);
-                deviceClient.RetryPolicy = RetryPolicyType.Exponential_Backoff_With_Jitter;
                 if (!useDefaultOperationTimeout)
                 {
                     deviceClient.OperationTimeoutInMilliseconds = GetOperationTimeoutMilliseconds(connectionString);
