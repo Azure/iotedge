@@ -172,17 +172,6 @@ if (-not $SkipPush)
     docker_login
 }
 
-if ($vNext)
-{
-    $DockerfileDirectory = "$PublishDir\docker\dotnet-runtime\windows\$TargetArch"
-    docker_build_and_tag_and_push `
-        -ImageName "dotnet" `
-        -Arch $TargetArch `
-        -Dockerfile "$DockerfileDirectory\Dockerfile" `
-        -ContextPath $DockerfileDirectory `
-        -Tag "dotnet:2.0.0-runtime-nanoserver"
-}
-
 BuildTagPush "edge-agent" "Microsoft.Azure.Devices.Edge.Agent.Service"
 
 BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"

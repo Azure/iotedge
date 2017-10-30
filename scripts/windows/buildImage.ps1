@@ -180,17 +180,6 @@ if (-not $SkipPush)
     docker_login
 }
 
-if ($vNext)
-{
-    $DockerfileDirectory = "$PublishDir\docker\dotnet-runtime\windows\$TargetArch"
-    docker_build_and_tag_and_push `
-        -Name "dotnet" `
-        -Arch $TargetArch `
-        -Dockerfile "$DockerfileDirectory\Dockerfile" `
-        -ContextPath $DockerfileDirectory `
-        -Tag "dotnet:2.0.0-runtime-nanoserver"
-}
-
 BuildTagPush $ImageName $Project
 
 echo "Done Building And Pushing Docker Images"
