@@ -109,6 +109,21 @@ namespace SimulatedTemperatureSensor
             return Task.FromResult<MethodResponse>(response);
         }
 
+        /// <summary>
+        /// Module behavior:
+        ///        Sends data once every 5 seconds.
+        ///        Data trend:
+        ///-	Machine Temperature regularly rises from 21C to 100C in regularly with jitter
+        ///-	Machine Pressure correlates with Temperature 1 to 10psi
+        ///-	Ambient temperature stable around 21C
+        ///-	Humidity is stable with tiny jitter around 25%
+        ///                Method for resetting the data stream
+        /// </summary>
+        /// <param name="deviceClient"></param>
+        /// <param name="messageDelay"></param>
+        /// <param name="sim"></param>
+        /// <param name="cts"></param>
+        /// <returns></returns>
         static async Task SendEvent(
             DeviceClient deviceClient,
             TimeSpan messageDelay,
@@ -147,7 +162,7 @@ namespace SimulatedTemperatureSensor
                         Temperature = sim.AmbientTemp + Rnd.NextDouble() - 0.5,
                         Humidity = Rnd.Next(24, 27)
                     },
-                    TimeCreated = DateTime.UtcNow.ToString("o")
+                    TimeCreated = DateTime.UtcNow
                 };
 
                 string dataBuffer = JsonConvert.SerializeObject(tempData);
@@ -170,36 +185,6 @@ namespace SimulatedTemperatureSensor
         {
             [JsonProperty("command")]
             public ControlCommandEnum Command { get; set; }
-        }
-
-        class MessageBody
-        {
-            [JsonProperty(PropertyName = "machine")]
-            public Machine Machine { get; set; }
-
-            [JsonProperty(PropertyName = "ambient")]
-            public Ambient Ambient { get; set; }
-
-            [JsonProperty(PropertyName = "timeCreated")]
-            public string TimeCreated { get; set; }
-        }
-
-        class Machine
-        {
-            [JsonProperty(PropertyName ="temperature")]
-            public double Temperature { get; set; }
-
-            [JsonProperty(PropertyName = "pressure")]
-            public double Pressure { get; set; }
-        }
-
-        class Ambient
-        {
-            [JsonProperty(PropertyName = "temperature")]
-            public double Temperature { get; set; }
-
-            [JsonProperty(PropertyName = "humidity")]
-            public int Humidity { get; set; }
         }
 
         internal class SimulatorParameters

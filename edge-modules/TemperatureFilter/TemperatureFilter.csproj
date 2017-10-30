@@ -6,4 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.6.0-preview-001" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimulatedTemperatureSensor\SimulatedTemperatureSensor.csproj" />
+  </ItemGroup>
 </Project>

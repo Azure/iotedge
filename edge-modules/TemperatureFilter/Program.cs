@@ -11,6 +11,7 @@ namespace TemperatureFilter
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
+    using SimulatedTemperatureSensor;
 
     class Program
     {
@@ -99,9 +100,9 @@ namespace TemperatureFilter
             var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
 
             if (messageBody != null
-                && messageBody.Temperature > moduleModuleConfig.TemperatureThreshold)
+                && messageBody.Machine.Temperature > moduleModuleConfig.TemperatureThreshold)
             {
-                Console.WriteLine($"Temperature {messageBody.Temperature} " +
+                Console.WriteLine($"Temperature {messageBody.Machine.Temperature} " +
                     $"exceeds threshold {moduleModuleConfig.TemperatureThreshold}");
                 var filteredMessage = new Message(messageBytes);
                 foreach (KeyValuePair<string, string> prop in message.Properties)
@@ -112,6 +113,9 @@ namespace TemperatureFilter
                 filteredMessage.Properties.Add("MessageType", "Alert");
                 await deviceClient.SendEventAsync("alertOutput", filteredMessage);
             }
+
+            //TODO: Remove and change to return value (Success or Failure) after Device Client is changed.. 
+            await deviceClient.CompleteAsync(message);
         }
 
         /// <summary>
@@ -153,12 +157,5 @@ namespace TemperatureFilter
             public int TemperatureThreshold { get; }
         }
 
-        /// <summary>
-        /// The class containing the expected schema for the body of the incoming message.
-        /// </summary>
-        class MessageBody
-        {
-            public int Temperature { get; set; }
-        }
     }
 }
