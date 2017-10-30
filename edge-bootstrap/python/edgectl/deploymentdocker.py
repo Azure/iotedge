@@ -49,6 +49,15 @@ class DockerClient(object):
 
         return is_updated
 
+    def get_container_by_name(self, container_name):
+        log.debug('Finding container ' + container_name + ' in list of containers')
+        try:
+            return self._client.containers.get(container_name)
+        except docker.errors.APIError as ex:
+            log.error('Could not find container ' + container_name)
+            print (ex)
+            return None
+
     def start(self, container_name):
         log.info('Starting Container:' + container_name)
         try:
@@ -212,6 +221,25 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 break
         return result
 
+    def update(self):
+        log.info('Executing IoT Edge \'update\' For Docker Deployment')
+
+        container_name = self._edge_runtime_container_name
+
+        status = self.status()
+        if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
+            log.error('Runtime is restarting. Please retry later.')
+        elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
+            log.info('Runtime container ' + container_name + ' stopped. Please use the start command.')
+        else:
+            log.info('Stopping Runtime.')
+            self._client.stop(container_name)
+            self._client.remove(container_name)
+            log.info('Stopped Runtime.')
+            log.info('Starting Runtime.')	
+            self.start()
+            log.info('Starting Runtime.')
+
     def start(self):
         log.info('Executing Edge \'start\' For Docker Deployment')
         create_new_container = False
@@ -236,14 +264,22 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 password = edge_reg['password']
             is_updated = self._client.pull(image, username, password)
             if is_updated:
+                log.debug('Pulled new image ' + image)
                 create_new_container = True
+                self._client.remove(container_name)
             else:
                 if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
                     create_new_container = True
                     log.debug('Edge Runtime Container ' + container_name
                               + ' does not exist.')
                 else:
-                    start_existing_container = True
+                    existing = self._client.get_container_by_name(container_name)
+                    if existing.image != image:
+                        log.debug('Did not pull new image and container exists with image ' + str(existing.image))
+                        create_new_container = True
+                        self._client.remove(container_name)
+                    else:
+                        start_existing_container = True
 
         if start_existing_container:
             self._client.start(container_name)

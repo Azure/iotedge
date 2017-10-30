@@ -25,6 +25,9 @@ class EdgeDeploymentCommand(object):
     def status(self):
         pass
 
+	def update(self):
+		pass
+
 class EdgeCommand(object):
     def __init__(self, obj):
         self._obj = obj
@@ -55,3 +58,7 @@ class EdgeStatusCommand(EdgeCommand):
 class EdgeUninstallCommand(EdgeCommand):
     def execute(self):
         self._obj.uninstall()
+
+class EdgeUpdateCommand(EdgeCommand):
+    def execute(self):
+        self._obj.update()

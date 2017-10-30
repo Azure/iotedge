@@ -218,6 +218,13 @@ class EdgeCLI(object):
         cmd_status = subparsers.add_parser('status', help='status --help')
         cmd_status.set_defaults(func=self.parse_edge_command)
 
+        cmd_update = subparsers.add_parser('update', help='update --help')
+        cmd_update.add_argument('--image',
+                               help='Specify the new IoT Edge Agent image'
+                               , metavar='')
+
+        cmd_update.set_defaults(func=self.parse_edge_command)
+
         cmd_uninstall = subparsers.add_parser('uninstall'
                                               , help='uninstall --help')
         cmd_uninstall.set_defaults(func=self.parse_edge_command)
@@ -241,7 +248,8 @@ class EdgeCLI(object):
                     'restart' : self.parse_command_options_common,
                     'stop'    : self.parse_command_options_common,
                     'uninstall' : self.parse_command_options_common,
-                    'status'  : self.parse_command_options_common}
+                    'status'  : self.parse_command_options_common,
+                    'update'  : self.parse_update_options}
         self.command = args.subparser_name
         commands[args.subparser_name](args)
         return
@@ -286,6 +294,23 @@ class EdgeCLI(object):
         EdgeHostPlatform.install_edge_by_json_data(data,
                                                    self.edge_config.home_dir)
         return
+
+    def parse_update_options(self, args):
+        cmd = args.subparser_name
+        if args.image is None:
+            log.error('Please specify new IoT Edge Agent Runtime image with --image option')
+            raise ValueError('Incorrect input options for command: ' + cmd)
+        else:
+            self.parse_command_options_common(args)
+            if self.edge_config.deployment_config.edge_image == args.image:
+                log.info('New IoT Edge Agent image matches existing, nothing to do')
+                raise ValueError('No action taken for command: ' + cmd)
+            else:
+                self.edge_config.deployment_config.edge_image = args.image
+                EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
+                                                           self.edge_config.home_dir)
+                log.info('Updated config file with new image: ' + args.image)
+                return
 
     def parse_setup_options(self, args):
         cmd = args.subparser_name
