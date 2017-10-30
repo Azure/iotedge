@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 module = await registryManager.AddModuleAsync(new Module(deviceId, moduleId));
             }
 
-            string gatewayHostname = "127.0.0.1";
+            string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
             return $"HostName={hostName};DeviceId={module.DeviceId};ModuleId={module.Id};SharedAccessKey={module.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={gatewayHostname}";
         }
     }
