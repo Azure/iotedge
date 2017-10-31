@@ -3,7 +3,7 @@ import json
 import os
 import platform
 
-import edgeconstants as EC
+import edgectl.edgeconstants as EC
 
 class EdgeDefault(object):
     _edge_dir = 'azure-iot-edge'

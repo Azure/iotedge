@@ -1,10 +1,10 @@
 from __future__ import print_function
 import logging as log
 import docker
-import edgeconstants as EC
-from default import EdgeDefault
-from commandbase import EdgeDeploymentCommand
-from edgehostplatform import EdgeHostPlatform
+import edgectl.edgeconstants as EC
+from edgectl.default import EdgeDefault
+from edgectl.commandbase import EdgeDeploymentCommand
+from edgectl.edgehostplatform import EdgeHostPlatform
 
 class DockerClient(object):
     _DOCKER_INFO_OS_TYPE_KEY = 'OSType'
@@ -249,7 +249,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             self._client.stop(container_name)
             self._client.remove(container_name)
             log.info('Stopped Runtime.')
-            log.info('Starting Runtime.')	
+            log.info('Starting Runtime.')
             self.start()
             log.info('Starting Runtime.')
 

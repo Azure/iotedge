@@ -2,6 +2,7 @@ import logging as log
 import os, errno
 import socket
 
+
 def mkdir_if_needed(dir_path):
     try:
         os.mkdir(dir_path)

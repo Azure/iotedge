@@ -3,12 +3,13 @@ import edgectl
 import logging as log
 import pkg_resources
 import sys
-from edgehostplatform import EdgeHostPlatform
-from edgeconfiginteractive import EdgeConfigInteractive
-from edgeconfigparserfactory import EdgeConfigParserFactory
-from commandfactory import EdgeCommandFactory
-from default import EdgeDefault
-import edgeconstants as EC
+from edgectl.edgehostplatform import EdgeHostPlatform
+from edgectl.edgeconfiginteractive import EdgeConfigInteractive
+from edgectl.edgeconfigparserfactory import EdgeConfigParserFactory
+from edgectl.commandfactory import EdgeCommandFactory
+from edgectl.default import EdgeDefault
+import edgectl.edgeconstants as EC
+
 
 class EdgeCLI(object):
     _prog = ''

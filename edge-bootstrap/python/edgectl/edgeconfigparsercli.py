@@ -1,11 +1,12 @@
 import json
-import edgeutils
-from edgeconfig import EdgeHostConfig
-from edgeconfig import EdgeDeploymentConfigDocker
-from edgeconfigparser import EdgeConfigParser
+import edgectl.edgeutils
+from edgectl.edgeconfig import EdgeHostConfig
+from edgectl.edgeconfig import EdgeDeploymentConfigDocker
+from edgectl.edgeconfigparser import EdgeConfigParser
 
-from default import EdgeDefault
-import edgeconstants as EC
+from edgectl.default import EdgeDefault
+import edgectl.edgeconstants as EC
+
 
 class EdgeConfigParserCLI(EdgeConfigParser):
 

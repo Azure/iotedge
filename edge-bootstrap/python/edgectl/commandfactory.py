@@ -1,13 +1,13 @@
 import logging as log
-from default  import EdgeDefault
-from commandbase import EdgeSetupCommand
-from commandbase import EdgeStartCommand
-from commandbase import EdgeRestartCommand
-from commandbase import EdgeStopCommand
-from commandbase import EdgeStatusCommand
-from commandbase import EdgeUninstallCommand
-from commandbase import EdgeUpdateCommand
-from deploymentdocker import EdgeDeploymentCommandDocker
+from edgectl.default  import EdgeDefault
+from edgectl.commandbase import EdgeSetupCommand
+from edgectl.commandbase import EdgeStartCommand
+from edgectl.commandbase import EdgeRestartCommand
+from edgectl.commandbase import EdgeStopCommand
+from edgectl.commandbase import EdgeStatusCommand
+from edgectl.commandbase import EdgeUninstallCommand
+from edgectl.commandbase import EdgeUpdateCommand
+from edgectl.deploymentdocker import EdgeDeploymentCommandDocker
 
 class EdgeCommandFactory(object):
     _supported_commands = {'setup'     : EdgeSetupCommand,

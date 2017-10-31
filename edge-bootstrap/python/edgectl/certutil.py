@@ -2,7 +2,8 @@ import logging
 import errno
 import os
 from OpenSSL import crypto
-import edgeutils
+import edgectl.edgeutils
+
 
 class EdgeCertUtil(object):
     def __init__(self):
@@ -316,7 +317,7 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
         with open(ouput_file_name, 'w') as op_file:
             for file_name in file_names:
                 with open(file_name, 'r') as ip_file:
-				op_file.write(ip_file.read())
+                    op_file.write(ip_file.read())
 
 
 def get_ca_cert_file_path(certs_dir):

@@ -2,9 +2,10 @@ import json
 import logging as log
 import os
 import re
-import edgeutils
-from default  import EdgeDefault
-import edgeconstants as EC
+import edgectl.edgeconstants as EC
+import edgectl.edgeutils
+from edgectl.default  import EdgeDefault
+
 
 class EdgeDeploymentConfigDocker(object):
     def __init__(self):

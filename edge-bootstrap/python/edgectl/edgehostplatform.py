@@ -2,11 +2,12 @@ import json
 import logging as log
 import os
 from shutil import copy2
-import edgeconstants as EC
-from certutil import generate_self_signed_certs_if_needed
-from certutil import get_ca_cert_file_path
-from certutil import get_server_cert_file_path
-from default  import EdgeDefault
+import edgectl.edgeconstants as EC
+from edgectl.certutil import generate_self_signed_certs_if_needed
+from edgectl.certutil import get_ca_cert_file_path
+from edgectl.certutil import get_server_cert_file_path
+from edgectl.default  import EdgeDefault
+
 
 class EdgeHostPlatform(object):
 

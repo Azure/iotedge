@@ -1,9 +1,10 @@
 import json
 import logging as log
-import edgeconstants as EC
-from edgeconfig import EdgeHostConfig
-from edgeconfig import EdgeDeploymentConfigDocker
-from edgeconfigparser import EdgeConfigParser
+import edgectl.edgeconstants as EC
+from edgectl.edgeconfig import EdgeHostConfig
+from edgectl.edgeconfig import EdgeDeploymentConfigDocker
+from edgectl.edgeconfigparser import EdgeConfigParser
+
 
 class EdgeConfigParserFile(EdgeConfigParser):
 

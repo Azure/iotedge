@@ -4,11 +4,12 @@ import os
 import sys
 import six
 
-from default import EdgeDefault
-from edgeconfig import EdgeHostConfig
-from edgeconfig import EdgeDeploymentConfigDocker
-import edgeconstants as EC
-import edgeutils
+from edgectl.default import EdgeDefault
+from edgectl.edgeconfig import EdgeHostConfig
+from edgectl.edgeconfig import EdgeDeploymentConfigDocker
+import edgectl.edgeconstants as EC
+import edgectl.edgeutils
+
 
 class EdgeConfigInteractive(object):
     @staticmethod

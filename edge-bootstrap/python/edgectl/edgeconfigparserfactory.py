@@ -1,6 +1,7 @@
-import edgeconstants as EC
-from edgeconfigparsercli import EdgeConfigParserCLI
-from edgeconfigparserfile import EdgeConfigParserFile
+import edgectl.edgeconstants as EC
+from edgectl.edgeconfigparsercli import EdgeConfigParserCLI
+from edgectl.edgeconfigparserfile import EdgeConfigParserFile
+
 
 class EdgeConfigParserFactory(object):
     @staticmethod
