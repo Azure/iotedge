@@ -20,6 +20,10 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Expose MQTT and HTTPS ports
+EXPOSE 8883/tcp
+EXPOSE 443/tcp
+
 ENV MNCA \Program Files\dotnet\shared\Microsoft.NETCore.App\2.0.0
 
 COPY --from=installer-env ["\\System.IO.Pipes.dll", "$MNCA\\"]

@@ -15,4 +15,8 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Expose MQTT and HTTPS ports
+EXPOSE 8883/tcp
+EXPOSE 443/tcp
+
 CMD ["scripts/linux/start.sh"]
