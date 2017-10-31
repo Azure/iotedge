@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerEnvironment : IEnvironment
     {
+        const string Unknown = "Unknown";
+
         static readonly IDictionary<string, bool> Labels = new Dictionary<string, bool>
         {
             { $"{CoreConstants.Labels.Owner}={CoreConstants.Owner}", true }
@@ -33,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.store = Preconditions.CheckNotNull(store, nameof(store));
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
 
-            this.OperatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? "Unknown" : operatingSystemType;
-            this.Architecture = string.IsNullOrWhiteSpace(architecture) ? "Unknown" : architecture;
+            this.OperatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? Unknown : operatingSystemType;
+            this.Architecture = string.IsNullOrWhiteSpace(architecture) ? Unknown : architecture;
         }
 
         public string OperatingSystemType { get; }
@@ -53,13 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo)
         {
-            Preconditions.CheckArgument(string.Equals(runtimeInfo?.Type, "docker"));
+            string type = runtimeInfo?.Type ?? Unknown;
+            if (type == "docker")
+            {
+                DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
+                var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
+                runtimeInfo = new DockerReportedRuntimeInfo(type, config, platform);
+            }
 
-            string type = runtimeInfo?.Type;
-            DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
-            var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
-
-            return Task.FromResult(new DockerReportedRuntimeInfo(type, config, platform) as IRuntimeInfo);
+            return Task.FromResult(runtimeInfo);
         }
 
         public async Task<ModuleSet> GetModulesAsync(CancellationToken token)
@@ -101,8 +105,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 .Map(response => new DockerConfig(response.Image, Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName)))
                 .GetOrElse(DockerConfig.Unknown);
 
+            var configurationInfo = new ConfigurationInfo(edgeAgentContainer
+                .Map(response => response.Config?.Labels?.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty) ?? string.Empty)
+                .GetOrElse(string.Empty));
+
             // TODO: When we have health checks for Edge Agent the runtime status can potentially be "Unhealthy".
-            return new EdgeAgentDockerRuntimeModule(config, ModuleStatus.Running, new ConfigurationInfo());
+            return new EdgeAgentDockerRuntimeModule(config, ModuleStatus.Running, configurationInfo);
         }
 
         (
@@ -116,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         )
         ExtractModuleInfo(ContainerListResponse response)
         {
-            string name = response.Names.FirstOrDefault()?.Substring(1) ?? "unknown";
+            string name = response.Names.FirstOrDefault()?.Substring(1) ?? Unknown;
             string version = response.Labels.GetOrElse(CoreConstants.Labels.Version, string.Empty);
             Core.RestartPolicy restartPolicy = (Core.RestartPolicy)Enum.Parse(
                 typeof(Core.RestartPolicy),
@@ -132,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     CoreConstants.DefaultDesiredStatus.ToString()
                 )
             );
-            string image = response.Image != null ? response.Image : "unknown";
+            string image = response.Image != null ? response.Image : Unknown;
             var dockerConfig = new DockerConfig(image, (response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty)));
             var configurationInfo = new ConfigurationInfo(response.Labels.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty));
 

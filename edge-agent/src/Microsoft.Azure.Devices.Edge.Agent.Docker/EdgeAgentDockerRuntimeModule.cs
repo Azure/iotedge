@@ -7,10 +7,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule
     {
+        [JsonConstructor]
         public EdgeAgentDockerRuntimeModule(DockerConfig settings, ModuleStatus runtimeStatus, ConfigurationInfo configuration)
             : base("docker", settings, configuration)
         {
             this.RuntimeStatus = runtimeStatus;
+
+            // You maybe wondering why we are setting this here again even though
+            // the base class does this assignment. This is due to a behavior
+            // in C# where if you have an assignment to a read-only virtual property
+            // from a base constructor when it has been overriden in a sub-class, the
+            // assignment becomes a no-op.  In order to fix this we need to assign
+            // this here again so that the correct property assignment happens for real!
+            this.ConfigurationInfo = configuration ?? new ConfigurationInfo(string.Empty);
         }
 
         [JsonProperty(PropertyName = "runtimeStatus")]
@@ -24,5 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonIgnore]
         public override RestartPolicy RestartPolicy { get; }
+
+        [JsonProperty(Required = Required.Default, PropertyName = "configuration")]
+        public override ConfigurationInfo ConfigurationInfo { get; }
     }
 }

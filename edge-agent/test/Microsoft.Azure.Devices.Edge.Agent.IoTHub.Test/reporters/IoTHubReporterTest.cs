@@ -188,9 +188,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         edgeAgent = new
                         {
                             type = "docker",
-                            version = null as string,
-                            status = null as string,
-                            restartPolicy = null as string,
                             settings = new
                             {
                                 image = "EdgeAgentImage"
@@ -337,9 +334,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         edgeAgent = new
                         {
                             type = "docker",
-                            version = null as string,
-                            status = null as string,
-                            restartPolicy = null as string,
                             settings = new
                             {
                                 image = "EdgeAgentImage"
@@ -647,7 +641,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var edgeHubRuntimeMmodule = new EdgeHubDockerRuntimeModule(
+                var edgeHubRuntimeModule = new EdgeHubDockerRuntimeModule(
                     Constants.EdgeHubModuleName, "1.0", ModuleStatus.Running, RestartPolicy.Always,
                     new DockerConfig("edge.azurecr.io/edgeHub:1.0"), 0, string.Empty,
                     DateTime.UtcNow - TimeSpan.FromHours(1), DateTime.MinValue,
@@ -664,7 +658,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
                         0, DateTime.MinValue, ModuleStatus.Running
                     ),
-                    edgeHubRuntimeMmodule
+                    edgeHubRuntimeModule
                 );
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
@@ -702,13 +696,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     },
                     systemModules = new
                     {
-                        edgeHub = edgeHubRuntimeMmodule,
+                        edgeHub = edgeHubRuntimeModule,
                         edgeAgent = new
                         {
                             type = "docker",
-                            version = null as string,
-                            status = null as string,
-                            restartPolicy = null as string,
                             settings = new
                             {
                                 image = "EdgeAgentImage"
@@ -775,9 +766,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         edgeAgent = new
                         {
                             type = "docker",
-                            version = null as string,
-                            status = null as string,
-                            restartPolicy = null as string,
                             settings = new
                             {
                                 image = "EdgeAgentImage"

@@ -352,8 +352,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act, assert
-            await Assert.ThrowsAsync<ArgumentException>(async () => await environment.GetUpdatedRuntimeInfoAsync(null));
-            await Assert.ThrowsAsync<ArgumentException>(async () => await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime));
+            Assert.Null(await environment.GetUpdatedRuntimeInfoAsync(null));
+            Assert.Same(dockerRuntime, await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime));
         }
 
         [Fact]

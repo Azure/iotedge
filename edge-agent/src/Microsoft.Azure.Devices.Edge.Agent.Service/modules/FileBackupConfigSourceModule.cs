@@ -109,7 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
                         {
-                            [DockerType] = typeof(DockerReportedRuntimeInfo)
+                            [DockerType] = typeof(DockerReportedRuntimeInfo),
+                            [UnknownType] = typeof(UnknownRuntimeInfo)
                         };
 
                         var edgeAgentDeserializerTypes = new Dictionary<string, Type>

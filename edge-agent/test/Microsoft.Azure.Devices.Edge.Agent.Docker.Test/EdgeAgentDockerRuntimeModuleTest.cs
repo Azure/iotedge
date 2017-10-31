@@ -35,7 +35,63 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     id = "bing"
                 }
             });
+
             Assert.True(JToken.DeepEquals(expected, json));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonDeserialize()
+        {
+            // Arrange
+            string json = JsonConvert.SerializeObject(new
+            {
+                type = "docker",
+                runtimeStatus = "running",
+                settings = new
+                {
+                    image = "Unknown",
+                    createOptions = "{}"
+                }
+            });
+
+            // Act
+            var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
+
+            // Assert
+            Assert.Equal("docker", edgeAgent.Type);
+            Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
+            Assert.Equal("Unknown", edgeAgent.Config.Image);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonDeserialize2()
+        {
+            // Arrange
+            string json = JsonConvert.SerializeObject(new
+            {
+                type = "docker",
+                runtimeStatus = "running",
+                settings = new
+                {
+                    image = "Unknown",
+                    createOptions = "{}"
+                },
+                configuration = new
+                {
+                    id = "bing"
+                }
+            });
+
+            // Act
+            var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
+
+            // Assert
+            Assert.Equal("docker", edgeAgent.Type);
+            Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
+            Assert.Equal("Unknown", edgeAgent.Config.Image);
+            Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
         }
     }
 }
