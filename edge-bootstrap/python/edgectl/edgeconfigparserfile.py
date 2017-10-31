@@ -51,7 +51,7 @@ class EdgeConfigParserFile(EdgeConfigParser):
                 deploy_cfg.logging_driver = \
                     docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_KEY]
                 log_opts = docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_OPTIONS_KEY]
-                for opt_key, opt_val in log_opts.items():
+                for opt_key, opt_val in list(log_opts.items()):
                     deploy_cfg.add_logging_option(opt_key, opt_val)
 
             if docker_cfg is None:

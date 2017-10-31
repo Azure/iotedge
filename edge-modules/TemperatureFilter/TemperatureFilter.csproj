@@ -9,4 +9,10 @@
   <ItemGroup>
     <ProjectReference Include="..\SimulatedTemperatureSensor\SimulatedTemperatureSensor.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="scripts\linux\start.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
 </Project>

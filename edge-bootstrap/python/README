@@ -48,7 +48,7 @@ If a runtime is active, it will be stopped and started back to back.
 
 * **stop**: This command stops the IoT Edge runtime.
 
-* **stop**: Prints the current state of the IoT Edge runtime.
+* **status**: Prints the current state of the IoT Edge runtime.
 
 Print Help and Exit
 ```

@@ -21,8 +21,9 @@ class EdgeDefault(object):
             'default_edge_data_dir': '/var/lib/' + _edge_dir,
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
-                    EC.DOCKER_ENGINE_NATIVE: {
+                    EC.DOCKER_ENGINE_LINUX: {
                         'default_uri': 'unix:///var/run/docker.sock',
+                        'default_module_cert_dir': '/var/run/azure-iot-edge/certs'
                     },
                 }
             }
@@ -34,11 +35,13 @@ class EdgeDefault(object):
             'default_edge_data_dir': 'C:\\' + _edge_dir,
             'deployment': {
                 'docker': {
-                    EC.DOCKER_ENGINE_LINUX_VM: {
-                        'default_uri': 'unix:///var/run/docker.sock'
+                    EC.DOCKER_ENGINE_LINUX: {
+                        'default_uri': 'unix:///var/run/docker.sock',
+                        'default_module_cert_dir': '/var/run/azure-iot-edge/certs'
                     },
-                    EC.DOCKER_ENGINE_NATIVE: {
-                        'default_uri': 'npipe:////./pipe/docker_engine'
+                    EC.DOCKER_ENGINE_WINDOWS: {
+                        'default_uri': 'npipe:////./pipe/docker_engine',
+                        'default_module_cert_dir': '\temp\azure-iot-edge\certs'
                     }
                 }
             }
@@ -79,13 +82,20 @@ class EdgeDefault(object):
         return deployment[EC.DEPLOYMENT_DOCKER][engine]['default_uri']
 
     @staticmethod
+    def docker_module_cert_mount_dir(engine):
+        host = platform.system().lower()
+        deployment = EdgeDefault._platforms[host]['deployment']
+        docker_deployment = deployment[EC.DEPLOYMENT_DOCKER_KEY]
+        return docker_deployment[engine]['default_module_cert_dir']
+
+    @staticmethod
     def get_platform_docker_uri():
         plat = platform.system().lower()
         # @todo determine underlying engine for now use native for linux
         # and vm for windows
-        engine = EC.DOCKER_ENGINE_NATIVE
+        engine = EC.DOCKER_ENGINE_LINUX
         if plat == EC.DOCKER_HOST_WINDOWS:
-            engine = EC.DOCKER_ENGINE_LINUX_VM
+            engine = EC.DOCKER_ENGINE_LINUX
         return EdgeDefault.docker_uri(plat, engine)
 
     @staticmethod

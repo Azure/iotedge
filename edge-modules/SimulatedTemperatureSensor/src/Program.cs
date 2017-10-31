@@ -45,13 +45,16 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue<int>("ambientHumidity", 25)
             };
 
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                // TODO: Remove this when we figure out how to trust the Edge Hub's root CA in modules.
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            };
+            string caCertFilePath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            if ((caCertFilePath == null) || (!File.Exists(caCertFilePath))) {
+                // there is no CA cert provided, bypass cert verification
+                Console.WriteLine("Bypassing Certificate Validation.");
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
             ITransportSettings[] settings = { mqttSetting };
 
+            Console.WriteLine("Connection String {0}", connectionString);
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);

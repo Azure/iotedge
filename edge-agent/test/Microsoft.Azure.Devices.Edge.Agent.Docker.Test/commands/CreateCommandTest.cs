@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
+    using System.IO;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
@@ -32,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Name = "test-helloworld";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
-
+            var tempFile = Path.GetTempFileName();
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
@@ -54,7 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
                         {
-                            { "EdgeHubConnectionString", fakeConnectionString }
+                            { "EdgeHubConnectionString", fakeConnectionString },
+                            {Constants.EdgeHostCACertificateFileKey, tempFile },
+                            {Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert" }
+
                         }).Build();
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -89,10 +93,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
+                    // certificates env variables
+                    Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCACertificateFileKey]);
+
+                    // mounts
+                    Assert.True(container.HostConfig.Mounts.Count == 1);
+                    Assert.Equal(container.HostConfig.Mounts[0].Target, "/module.ca.cert");
+                    Assert.Equal(container.HostConfig.Mounts[0].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[0].ReadOnly, true);
                 }
             }
             finally
             {
+                File.Delete(tempFile);
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
         }
@@ -169,11 +182,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Name = Constants.EdgeHubModuleName;
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
-
+            var tempFile1 = Path.GetTempFileName();
+            var tempFile2 = Path.GetTempFileName();
+            var tempFile3 = Path.GetTempFileName();
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
+                    var mountMap = new Dictionary<string, string>()
+                    {
+                        {Constants.EdgeHostCACertificateFileKey, tempFile1},
+                        {Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert"},
+                        {Constants.EdgeHostHubServerCAChainCertificateFileKey, tempFile2},
+                        {Constants.EdgeModuleHubServerCAChainCertificateFileKey, "/module.ca.chain.cert"},
+                        {Constants.EdgeHostHubServerCertificateFileKey, tempFile3},
+                        {Constants.EdgeModuleHubServerCertificateFileKey, "/module.server.cert"}
+                    };
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
                     // ensure image has been pulled
@@ -194,7 +218,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         {
                             { "EdgeHubConnectionString", fakeConnectionString },
                             {Docker.Constants.NetworkIdKey, "testnetwork" },
-                            {Constants.EdgeDeviceHostNameKey, "testdevice" }
+                            {Constants.EdgeDeviceHostNameKey, "testdevice" },
+                            {Constants.EdgeHostHubServerCAChainCertificateFileKey, mountMap[Constants.EdgeHostHubServerCAChainCertificateFileKey] },
+                            {Constants.EdgeModuleHubServerCAChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey] },
+                            {Constants.EdgeHostHubServerCertificateFileKey, mountMap[Constants.EdgeHostHubServerCertificateFileKey] },
+                            {Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
@@ -230,15 +258,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.True(container.HostConfig.LogConfig.Config.Count == 0);
                     // network settings
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
+                    // mounts
+                    Assert.True(container.HostConfig.Mounts.Count == 2);
+                    Assert.Equal(container.HostConfig.Mounts[0].Target, mountMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey]);
+                    Assert.Equal(container.HostConfig.Mounts[0].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[0].ReadOnly, true);
+                    Assert.Equal(container.HostConfig.Mounts[1].Target, mountMap[Constants.EdgeModuleHubServerCertificateFileKey]);
+                    Assert.Equal(container.HostConfig.Mounts[1].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[1].ReadOnly, true);
+
+                    Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
                     //environment variables
                     var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
+                    // certificates env variables
+                    Assert.Equal("/module.ca.chain.cert", envMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey]);
+                    Assert.Equal("/module.server.cert", envMap[Constants.EdgeModuleHubServerCertificateFileKey]);
                 }
             }
             finally
             {
+                File.Delete(tempFile1);
+                File.Delete(tempFile2);
+                File.Delete(tempFile3);
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
         }

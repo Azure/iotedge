@@ -1,9 +1,13 @@
 from __future__ import print_function
 import logging as log
 import docker
+import edgeconstants as EC
+from default import EdgeDefault
 from commandbase import EdgeDeploymentCommand
+from edgehostplatform import EdgeHostPlatform
 
 class DockerClient(object):
+    _DOCKER_INFO_OS_TYPE_KEY = 'OSType'
     def __init__(self, deployment_config):
         log.info('Setting Up Docker Client With URI: ' + deployment_config.uri)
         self._client = docker.DockerClient.from_env()
@@ -16,6 +20,15 @@ class DockerClient(object):
         except docker.errors.APIError as ex:
             log.error('Could Not Login To Registry ' + addr \
                       + ' using username ' + uname)
+            print(ex)
+            raise
+
+    def get_os_type(self):
+        try:
+            info = self._client.info()
+            return info[self._DOCKER_INFO_OS_TYPE_KEY]
+        except docker.errors.APIError as ex:
+            log.error('Could Not Obtain Docker Info')
             print(ex)
             raise
 
@@ -95,7 +108,6 @@ class DockerClient(object):
             raise
 
     def status(self, container_name):
-        log.info('Getting Status For Container:' + container_name)
         try:
             result = None
             containers = self._client.containers.list(all=True)
@@ -167,7 +179,7 @@ class DockerClient(object):
             raise
 
     def run(self, image, container_name, detach_bool, env_dict, nw_name,
-            ports_dict, volume_dict):
+            ports_dict, volume_dict, log_config_dict):
         try:
             log.info('Executing docker run ' + image
                      + ' name:' + container_name
@@ -187,7 +199,8 @@ class DockerClient(object):
                                         name=container_name,
                                         network=nw_name,
                                         ports=ports_dict,
-                                        volumes=volume_dict)
+                                        volumes=volume_dict,
+                                        log_config=log_config_dict)
         except docker.errors.ContainerError as ex_ctr:
             log.error(container_name + ' Container Exited With Errors!')
             print(ex_ctr)
@@ -248,7 +261,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         edge_config = self._config_obj
 
         image = edge_config.deployment_config.edge_image
-        status = self.status()
+        status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RUNNING:
             log.error('Edge runtime Is currently running. '
                       + 'Please stop or restart the Edge runtime and retry.')
@@ -285,12 +298,42 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             self._client.start(container_name)
             print('Edge Runtime Started.')
         elif create_new_container:
+            ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
+            if ca_cert_file is None:
+                raise RuntimeError('Could Not Find CA Certificate File')
+
+            ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
+            if ca_chain_cert_file is None:
+                raise RuntimeError('Could Not Find CA Chain Certificate File')
+
+            hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
+            if hub_cert_dict is None:
+                raise RuntimeError('Could Not Find Edge Hub Certificate.')
+
             nw_name = self._edge_runtime_network_name
             self._client.create_network(nw_name)
-            env_dict = {'DockerUri': edge_config.deployment_config.uri,
-                        'DeviceConnectionString': edge_config.connection_string,
-                        'EdgeDeviceHostName': edge_config.hostname,
-                        'NetworkId': nw_name}
+
+            os_type = self._client.get_os_type()
+            os_type = os_type.lower()
+            module_certs_path = \
+                EdgeDefault.docker_module_cert_mount_dir(os_type)
+            if os_type == 'windows':
+                sep = '\\'
+            else:
+                sep = '/'
+            module_certs_path += sep
+            env_dict = {
+                'DockerUri': edge_config.deployment_config.uri,
+                'DeviceConnectionString': edge_config.connection_string,
+                'EdgeDeviceHostName': edge_config.hostname,
+                'NetworkId': nw_name,
+                'EdgeHostCACertificateFile': ca_cert_file['file_path'],
+                'EdgeModuleCACertificateFile': module_certs_path + ca_cert_file['file_name'],
+                'EdgeHostHubServerCAChainCertificateFile': ca_chain_cert_file['file_path'],
+                'EdgeModuleHubServerCAChainCertificateFile': module_certs_path + ca_chain_cert_file['file_name'],
+                'EdgeHostHubServerCertificateFile': hub_cert_dict['file_path'],
+                'EdgeModuleHubServerCertificateFile': module_certs_path + hub_cert_dict['file_name']
+            }
             idx = 0
             for registry in edge_config.deployment_config.registries:
                 key = 'DockerRegistryAuth__' + str(idx) + '__serverAddress'
@@ -306,8 +349,25 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 env_dict[key] = val
                 idx = idx + 1
 
-            ports_dict = {'8883/tcp': 8883,
-                          '443/tcp': 443}
+            # setup the Edge runtime log level
+            env_dict['RuntimeLogLevel'] = edge_config.log_level
+
+            # set the log driver type
+
+            log_driver = edge_config.deployment_config.logging_driver
+            log_config_dict = {}
+            env_dict['DockerLoggingDriver'] = log_driver
+            log_config_dict['type'] = log_driver
+
+            # set the log driver option kvp
+            log_opts_dict = edge_config.deployment_config.logging_options
+            log_config_dict['config'] = log_opts_dict
+            opts = list(log_opts_dict.items())
+            for key, val in opts:
+                key = 'DockerLoggingOptions__' + key
+                env_dict[key] = val
+
+            ports_dict = {}
             volume_dict = {}
             if edge_config.deployment_config.uri_port and \
                     edge_config.deployment_config.uri_port != '':
@@ -323,7 +383,8 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                              env_dict,
                              nw_name,
                              ports_dict,
-                             volume_dict)
+                             volume_dict,
+                             log_config_dict)
             print('Edge Runtime Started.')
         return
 
@@ -331,7 +392,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         log.info('Executing Edge \'stop\' For Docker Deployment')
         container_name = self._edge_runtime_container_name
 
-        status = self.status()
+        status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
             log.error('Edge Runtime Container container_name does not exist.')
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
@@ -350,8 +411,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         log.info('Executing Edge \'restart\' For Docker Deployment')
         container_name = self._edge_runtime_container_name
 
-        status = self.status()
-        status = self.status()
+        status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
             self.start()
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
@@ -362,8 +422,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         return
 
     def status(self):
-        log.info('Executing Edge \'status\' For Docker Deployment')
+        result = self._status()
+        print('Status: {0}'.format(result))
+        return result
 
+    def _status(self):
         result = EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         status = self._client.status(self._edge_runtime_container_name)
         if status is not None:
@@ -378,7 +441,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     def uninstall_common(self):
         container_name = self._edge_runtime_container_name
 
-        status = self.status()
+        status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
             log.info('Edge Runtime Container container_name does not exist.')
         else:

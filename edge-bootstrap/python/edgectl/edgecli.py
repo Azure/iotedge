@@ -185,13 +185,13 @@ class EdgeCLI(object):
                                + ' will be chosen:'
                                + '\n   Linux Hosts - '
                                + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX,
-                                                        EC.DOCKER_ENGINE_NATIVE)
+                                                        EC.DOCKER_ENGINE_LINUX)
                                + '\n   Windows Hosts (Linux VM) - '
                                + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS,
-                                                        EC.DOCKER_ENGINE_LINUX_VM)
+                                                        EC.DOCKER_ENGINE_LINUX)
                                + '\n   Windows Hosts (Native) - '
                                + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS,
-                                                        EC.DOCKER_ENGINE_NATIVE)
+                                                        EC.DOCKER_ENGINE_WINDOWS)
                                , metavar='')
 
         cmd_setup.add_argument('--auto-cert-gen-force-regenerate',
@@ -277,7 +277,8 @@ class EdgeCLI(object):
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse()
         EdgeHostPlatform.install_edge_by_config_file(args.config_file,
-                                                     self.edge_config.home_dir)
+                                                     self.edge_config.home_dir,
+                                                     self.edge_config.hostname)
         return
 
     def present_interactive_menu(self):
@@ -292,7 +293,8 @@ class EdgeCLI(object):
         self.edge_config = parser.parse()
         data = self.edge_config.to_json()
         EdgeHostPlatform.install_edge_by_json_data(data,
-                                                   self.edge_config.home_dir)
+                                                   self.edge_config.home_dir,
+                                                   self.edge_config.hostname)
         return
 
     def parse_update_options(self, args):

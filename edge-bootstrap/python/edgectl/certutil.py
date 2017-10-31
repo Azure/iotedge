@@ -2,6 +2,7 @@ import logging
 import errno
 import os
 from OpenSSL import crypto
+import edgeutils
 
 class EdgeCertUtil(object):
     def __init__(self):
@@ -214,7 +215,7 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
             path = os.path.realpath(dir_path)
             path = os.path.join(path, prefix)
             cert_dir = os.path.join(path, 'cert')
-            pfx_output_file_name = os.path.join(cert_dir, prefix + '.pfx')
+            pfx_output_file_name = os.path.join(cert_dir, prefix + '.cert.pfx')
             with open(pfx_output_file_name, 'w') as pfx_file:
                 pfx_file.write(str(pfx_data))
 
@@ -275,18 +276,7 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
         extensions = []
         extensions.append(crypto.X509Extension(b'basicConstraints',
                                                critical=True, value=val))
-        extensions.append(crypto.X509Extension(b'subjectKeyIdentifier',
-                                               critical=False, value=b'hash',
-                                               subject=cert))
-        val = b'digitalSignature, keyCertSign, cRLSign'
-        extensions.append(crypto.X509Extension(b'keyUsage',
-                                               critical=True, value=val))
         cert.add_extensions(extensions)
-        # this works only if added later
-        cert.add_extensions([crypto.X509Extension(b'authorityKeyIdentifier',
-                                                  critical=False,
-                                                  value=b'keyid:always,issuer',
-                                                  issuer=cert)])
         cert.sign(issuer_key_pair, EdgeCertUtilPyOpenSSL.DIGEST)
         return cert
 
@@ -305,24 +295,29 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
         extensions.append(crypto.X509Extension(b'basicConstraints',
                                                critical=False,
                                                value=b'CA:FALSE'))
-        extensions.append(crypto.X509Extension(b'subjectKeyIdentifier',
-                                               critical=False,
-                                               value=b'hash',
-                                               subject=cert))
-        val = b'digitalSignature, keyEncipherment'
-        extensions.append(crypto.X509Extension(b'keyUsage',
-                                               critical=True, value=val))
-        extensions.append(crypto.X509Extension(b'extendedKeyUsage',
-                                               critical=False,
-                                               value=b'serverAuth'))
         cert.add_extensions(extensions)
-        cert.add_extensions([crypto.X509Extension(b'authorityKeyIdentifier',
-                                                  critical=False,
-                                                  value=b'keyid,issuer:always',
-                                                  issuer=cert)])
         cert.sign(issuer_key_pair, EdgeCertUtilPyOpenSSL.DIGEST)
 
         return cert
+    @staticmethod
+    def chain_ca_certs(output_prefix, prefixes, certs_dir):
+        file_names = []
+        for prefix in prefixes:
+            cert_file_name = prefix + '.cert.pem'
+            cert_file = os.path.join(certs_dir, prefix, 'cert', cert_file_name)
+            path = os.path.realpath(cert_file)
+            file_names.append(path)
+
+        output_dir = os.path.join(certs_dir, output_prefix)
+        edgeutils.mkdir_if_needed(output_dir)
+        output_dir = os.path.join(output_dir, 'cert')
+        edgeutils.mkdir_if_needed(output_dir)
+        ouput_file_name = os.path.join(output_dir, output_prefix + '.cert.pem')
+        with open(ouput_file_name, 'w') as op_file:
+            for file_name in file_names:
+                with open(file_name, 'r') as ip_file:
+				op_file.write(ip_file.read())
+
 
 def get_ca_cert_file_path(certs_dir):
     result = None
@@ -335,13 +330,13 @@ def get_ca_cert_file_path(certs_dir):
 def get_server_cert_file_path(certs_dir):
     result = None
     prefix = 'edge-hub-server'
-    path = os.path.join(certs_dir, prefix, 'cert', prefix + '.pfx')
+    path = os.path.join(certs_dir, prefix, 'cert', prefix + '.cert.pfx')
     if os.path.exists(path):
         result = path
     return result
 
-def check_if_cert_file_exists(dir_path, prefix, sub_dir):
-    path = os.path.join(dir_path, prefix, sub_dir, prefix + '.cert.pem')
+def check_if_cert_file_exists(dir_path, prefix, sub_dir, suffix='.cert.pem'):
+    path = os.path.join(dir_path, prefix, sub_dir, prefix + suffix)
     result = os.path.exists(path)
     if result:
         logging.debug('Cert File Ok:' + path)
@@ -350,7 +345,7 @@ def check_if_cert_file_exists(dir_path, prefix, sub_dir):
 
     return result
 
-def generate_self_signed_certs(certs_dir):
+def generate_self_signed_certs(certs_dir, host_name):
     logging.info('Generating Self Signed Certificates At:' + certs_dir)
     subj_dict = {'country': 'US',
                  'state': 'Washington',
@@ -377,13 +372,16 @@ def generate_self_signed_certs(certs_dir):
     cert_util.create_server_cert('edge-hub-server',
                                  365,
                                  'edge-agent-ca',
-                                 'marohera-x1')
+                                 host_name)
 
     cert_util.export_cert_artifacts_to_dir('edge-hub-server',
                                            certs_dir)
     cert_util.export_pfx_cert('edge-hub-server', certs_dir)
 
-def generate_self_signed_certs_if_needed(certs_dir):
+    prefixes = ['edge-device-ca', 'edge-agent-ca']
+    cert_util.chain_ca_certs('edge-chain-ca', prefixes, certs_dir)
+
+def generate_self_signed_certs_if_needed(certs_dir, host_name):
     if os.path.exists(certs_dir) is False:
         raise ValueError('Invalid Directory Name:' + certs_dir)
 
@@ -391,6 +389,7 @@ def generate_self_signed_certs_if_needed(certs_dir):
     device_ca = check_if_cert_file_exists(path, 'edge-device-ca', 'cert')
     agent_ca = check_if_cert_file_exists(path, 'edge-agent-ca', 'cert')
     hub_server = check_if_cert_file_exists(path, 'edge-hub-server', 'cert')
+    hub_server_pfx = check_if_cert_file_exists(path, 'edge-hub-server', 'cert', '.cert.pfx')
 
-    if device_ca is False or agent_ca is False or hub_server is False:
-        generate_self_signed_certs(certs_dir)
+    if device_ca is False or agent_ca is False or hub_server is False or hub_server_pfx is False:
+        generate_self_signed_certs(certs_dir, host_name)

@@ -2,6 +2,7 @@
 namespace TemperatureFilter
 {
     using System;
+	using System.IO;
     using System.Collections.Generic;
     using System.Runtime.Loader;
     using System.Text;
@@ -47,13 +48,16 @@ namespace TemperatureFilter
         static async Task Init(string connectionString)
         {
             // Use Mqtt transport settings. 
-            // The RemoteCertificateValidationCallback needs to be set
-            // since the Edge Hub currently uses a self signed SSL certificate.
-            ITransportSettings[] settings =
-            {
-                new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-                { RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true }
-            };
+            string caCertFilePath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            if ((caCertFilePath == null) || (!File.Exists(caCertFilePath))) {
+                // there is no CA cert provided, bypass cert verification
+                Console.WriteLine("Bypassing Certificate Validation.");
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+            ITransportSettings[] settings = { mqttSetting };
+
+            Console.WriteLine("Connection String {0}", connectionString);
 
             // Open a connection to the Edge runtime
             DeviceClient deviceClient =
