@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -396,7 +396,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 					.Callback<IMessage, string>((m, e) => receivedMessages.Add(m))
 					.Returns(Task.CompletedTask);
 				deviceProxy.SetupGet(d => d.IsActive).Returns(true);
-				connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
+				await connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
 				return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
 			}
 

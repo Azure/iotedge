@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
@@ -73,9 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public async Task CloseAsync()
         {
-            this.SetInactive();
-            await this.connectionManager.RemoveDeviceConnection(this.Identity.Id);
-            Events.Close(this.Identity);
+            if (this.underlyingProxy.IsActive)
+            {
+                this.SetInactive();
+                await this.connectionManager.RemoveDeviceConnection(this.Identity.Id);
+                Events.Close(this.Identity);
+            }
         }
 
         public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus)

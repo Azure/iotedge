@@ -1,10 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         readonly Router router;
         readonly IMessageStore messageStore;
+        readonly AsyncLock updateLock = new AsyncLock();
 
         public ConfigUpdater(Router router, IMessageStore messageStore)
         {
@@ -24,11 +26,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
-                EdgeHubConfig edgeHubConfig = await configProvider.GetConfig();
-                await this.UpdateRoutes(edgeHubConfig.Routes, false);
-                this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
-                Events.Initialized();
+                using (await this.updateLock.LockAsync())
+                {
+                    configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
+                    Option<EdgeHubConfig> edgeHubConfig = await configProvider.GetConfig();
+                    await edgeHubConfig.Match(
+                        async config =>
+                        {
+                            await this.UpdateRoutes(config.Routes, false);
+                            this.UpdateStoreAndForwardConfig(config.StoreAndForwardConfiguration);
+                            Events.Initialized();
+                        },
+                        () =>
+                        {
+                            Events.EmptyConfigReceived();
+                            return Task.CompletedTask;
+                        });
+                }
             }
             catch (Exception ex)
             {
@@ -42,8 +56,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Events.UpdatingConfig();
             try
             {
-                await this.UpdateRoutes(edgeHubConfig.Routes, true);
-                this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
+                using (await this.updateLock.LockAsync())
+                {
+                    await this.UpdateRoutes(edgeHubConfig.Routes, true);
+                    this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
+                }
             }
             catch (Exception ex)
             {
@@ -89,11 +106,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Initialized = IdStart,
                 InitializeError,
-                Updated,
                 UpdateError,
                 UpdatingConfig,
                 UpdatedRoutes,
-                UpdatedStoreAndForwardConfig
+                UpdatedStoreAndForwardConfig,
+                EmptyConfig
             }
 
             internal static void Initialized()
@@ -128,13 +145,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
                 else
                 {
-                    Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set 0 routes in the EdgeHub");
+                    Log.LogInformation((int)EventIds.UpdatedRoutes, "Set 0 routes in the EdgeHub");
                 }
             }
 
             internal static void UpdatedStoreAndForwardConfiguration()
             {
-                Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, $"Updated StoreAndForward configuration in the EdgeHub");
+                Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, "Updated StoreAndForward configuration in the EdgeHub");
+            }
+
+            internal static void EmptyConfigReceived()
+            {
+                Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty Edge Hub configuration received."));
             }
         }
     }

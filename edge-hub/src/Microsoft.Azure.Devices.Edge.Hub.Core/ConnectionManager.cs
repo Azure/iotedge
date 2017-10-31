@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -15,28 +16,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class ConnectionManager : IConnectionManager
     {
+        const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
+        readonly object deviceConnLock = new object();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudProxyProvider cloudProxyProvider;
+        readonly int maxClients;
 
         public event EventHandler<IIdentity> CloudConnectionLost;
         public event EventHandler<IIdentity> CloudConnectionEstablished;
         public event EventHandler<IIdentity> DeviceConnected;
         public event EventHandler<IIdentity> DeviceDisconnected;
 
-        public ConnectionManager(ICloudProxyProvider cloudProxyProvider)
+        public ConnectionManager(ICloudProxyProvider cloudProxyProvider, int maxClients = DefaultMaxClients)
         {
             this.cloudProxyProvider = Preconditions.CheckNotNull(cloudProxyProvider, nameof(cloudProxyProvider));
+            this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
         }
 
-        public void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
+        public async Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy)
         {
             ConnectedDevice device = this.GetOrCreateConnectedDevice(Preconditions.CheckNotNull(identity, nameof(identity)));
             Option<IDeviceProxy> currentDeviceProxy = device.UpdateDeviceProxy(Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy)));
             Events.NewDeviceConnection(identity);
 
-            currentDeviceProxy
+            await currentDeviceProxy
                 .Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
+                .Map(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")))
+                .GetOrElse(Task.CompletedTask);
             this.DeviceConnected?.Invoke(this, identity);
         }
 
@@ -77,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            ConnectedDevice device = this.CreateNewConnectedDevice(identity);
+            ConnectedDevice device = this.CreateOrUpdateConnectedDevice(identity);
             (Try<ICloudProxy> newCloudProxy, Option<ICloudProxy> existingCloudProxy) = await device.UpdateCloudProxy(() => this.GetCloudProxy(device));
 
             // If the existing cloud proxy had an active connection then close it since we
@@ -129,16 +135,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
             return this.devices.GetOrAdd(
                 Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)),
-                id => new ConnectedDevice(identity));
+                id => this.CreateNewConnectedDevice(identity));
         }
 
-        ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
+        ConnectedDevice CreateOrUpdateConnectedDevice(IIdentity identity)
         {
             string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             return this.devices.AddOrUpdate(deviceId,
-               id => new ConnectedDevice(identity),
+               id => this.CreateNewConnectedDevice(identity),
                (id, cd) => new ConnectedDevice(identity, cd.CloudProxy, cd.DeviceProxy));
+        }
+
+        ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
+        {
+            lock(deviceConnLock)
+            {
+                if(this.devices.Values.Count(d => d.DeviceProxy.Filter(d1 => d1.IsActive).HasValue) >= this.maxClients)
+                {
+                    throw new EdgeHubConnectionException($"EdgeHub already has maximum allowed clients ({this.maxClients - 1}) connected.");
+                }
+                return new ConnectedDevice(identity);
+            }
         }
 
         class ConnectedDevice

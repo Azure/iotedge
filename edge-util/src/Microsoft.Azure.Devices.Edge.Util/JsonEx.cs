@@ -18,6 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return token.Value<T>();
         }
 
+        public static string Merge(object baseline, object patch, bool treatNullAsDelete)
+        {
+            JToken baselineToken = JToken.FromObject(baseline);
+            JToken patchToken = JToken.FromObject(patch);
+            JToken mergedToken = Merge(baselineToken, patchToken, treatNullAsDelete);
+            return mergedToken.ToString();
+        }
+
         public static JToken Merge(JToken baselineToken, JToken patchToken, bool treatNullAsDelete)
         {
             // Reached the leaf JValue

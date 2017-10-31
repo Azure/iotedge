@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
@@ -206,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task UpdateDesiredPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection desired)
         {
-            TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
+            await this.GetTwinInfoWithStoreSupportAsync(id);
             await this.UpdateDesiredPropertiesWhenTwinStoreHasTwinAsync(id, desired);
         }
 

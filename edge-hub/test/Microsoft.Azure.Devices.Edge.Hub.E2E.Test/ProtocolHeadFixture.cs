@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                                             Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(identity);
                                             ICloudListener cloudListener = new CloudListener(deviceProxy, edgeHub, identity);
                                             cloudProxy.Value.BindCloudListener(cloudListener);
-                                            connectionManager.AddDeviceConnection(identity, deviceProxy);
+                                            await connectionManager.AddDeviceConnection(identity, deviceProxy);
                                         });
                                     deviceListener.Setup(p => p.CloseAsync()).Callback(
                                         () =>

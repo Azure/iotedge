@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.edgeHubConfig = new EdgeHubConfig(Core.Constants.ConfigSchemaVersion, parsedRoutes, storeAndForwardConfiguration);
         }
 
-        public Task<EdgeHubConfig> GetConfig() => Task.FromResult(this.edgeHubConfig);
+        public Task<Option<EdgeHubConfig>> GetConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));
 
         public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback) { }
     }

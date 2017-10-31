@@ -359,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public static void MessageStoreCreated(MessageStore messageStore)
             {
-                Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store for {messageStore.endpointSequentialStores.Count} endpoints"));
+                Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store"));
             }
 
             public static void DisposingMessageStore()

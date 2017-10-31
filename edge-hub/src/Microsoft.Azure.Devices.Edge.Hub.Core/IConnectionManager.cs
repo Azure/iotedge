@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     public interface IConnectionManager
     {
-        void AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
+        Task AddDeviceConnection(IIdentity identity, IDeviceProxy deviceProxy);
 
         Task RemoveDeviceConnection(string id);
 

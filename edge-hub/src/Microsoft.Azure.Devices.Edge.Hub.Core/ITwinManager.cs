@@ -2,10 +2,9 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
     using System.Threading.Tasks;
 
-	public interface ITwinManager
+    public interface ITwinManager
 	{
 		Task<IMessage> GetTwinAsync(string id);
 
