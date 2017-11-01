@@ -71,7 +71,6 @@ namespace SimulatedTemperatureSensor
             return 0;
         }
 
-        //TODO: Change this call back once we have the final design for Device Client Acknowledgement.
         //Control Message expected to be:
         // {
         //     "command" : "reset"
