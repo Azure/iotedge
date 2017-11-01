@@ -60,7 +60,7 @@ namespace SimulatedTemperatureSensor
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
             var userContext = deviceClient;
-            await deviceClient.SetEventHandlerAsync("control", ControlMessageHandle, userContext);
+            await deviceClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             var cts = new CancellationTokenSource();
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
@@ -74,9 +74,9 @@ namespace SimulatedTemperatureSensor
         //TODO: Change this call back once we have the final design for Device Client Acknowledgement.
         //Control Message expected to be:
         // {
-        //     "command" : "reset" 
-        // } 
-        static async Task ControlMessageHandle(Message message, object userContext)
+        //     "command" : "reset"
+        // }
+        static Task<MessageResponse> ControlMessageHandle(Message message, object userContext)
         {
             byte[] messageBytes = message.GetBytes();
             string messageString = Encoding.UTF8.GetString(messageBytes);
@@ -101,8 +101,7 @@ namespace SimulatedTemperatureSensor
                 Console.WriteLine($"Ignoring control message. Wrong control message exception: [{ex.Message}]");
             }
 
-            //TODO: Remove and change to return value (Success or Failure) after Device Client is changed.. 
-            await deviceClient.CompleteAsync(message);
+            return Task.FromResult(MessageResponse.Completed);
         }
 
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)

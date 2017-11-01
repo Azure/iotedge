@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
-    /// Factory used to create ITriggerBinding instances. 
+    /// Factory used to create ITriggerBinding instances.
     /// It's TryCreateAsync method is called by the runtime for all job parameters, giving it a chance to return a binding.
     /// Please see <see href="https://github.com/Azure/azure-webjobs-sdk-extensions/wiki/Trigger-Binding-Extensions#binding-provider">Trigger Binding Extensions</see>
     /// </summary>
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
             this.receivers.AddOrUpdate(
                 attribute.InputName.ToLowerInvariant(),
-                // The function used to generate a value for an absent. 
+                // The function used to generate a value for an absent.
                 // Creates a new List and adds the message processor
                 (k) => new List<EdgeHubMessageProcessor>()
                 {

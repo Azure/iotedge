@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task MultipleSendersMultipleReceivers_Count_Test()
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
-            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice 
+            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice
             const int ModulesCount = 2;
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSendersMultipleReceivers"], out int messagesCount);
             List<Module> senders = null;
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task MultipleSendersMultipleReceivers_Duration_Test()
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
-            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice 
+            // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice
             const int ModulesCount = 2;
             List<Module> senders = null;
             List<Module> receivers = null;
@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await module.SetupReceiveMessageHandler();
             }
             return module;
-        }        
+        }
 
                 //string gatewayHostname = ConfigHelper.TestConfig["GatewayHostname"];
                 //this.edgeDeviceConnectionString = $"{this.edgeDeviceConnectionString};GatewayHostName={gatewayHostname}";
@@ -264,13 +264,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                     {
-                        RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true,
-                        PublishToServerQoS = QualityOfService.AtMostOnce,
-                        ReceivingQoS = QualityOfService.AtMostOnce
+                        RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
                     }
                 };
 
-                DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);                
+                DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
                 await moduleClient.OpenAsync();
                 return new Module(moduleClient);
             }
@@ -278,14 +276,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             public Task SetupReceiveMessageHandler()
             {
                 this.received = new HashSet<int>();
-                return this.deviceClient.SetEventDefaultHandlerAsync(this.MessageHandler, null);
+                return this.deviceClient.SetMessageHandlerAsync(this.MessageHandler, null);
             }
 
-            Task MessageHandler(Message message, object userContext)
+            Task<MessageResponse> MessageHandler(Message message, object userContext)
             {
                 int messageIndex = int.Parse(message.Properties["testId"]);
                 this.received.Add(messageIndex);
-                return Task.CompletedTask;
+                return Task.FromResult(MessageResponse.Completed);
             }
 
             public ISet<int> GetReceivedMessageIndices() => this.received;

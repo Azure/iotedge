@@ -42,12 +42,12 @@ namespace TemperatureFilter
         }
 
         /// <summary>
-        /// Initializes the DeviceClient and sets up the callback to receive 
+        /// Initializes the DeviceClient and sets up the callback to receive
         /// messages containing temperature information
         /// </summary>
         static async Task Init(string connectionString)
         {
-            // Use Mqtt transport settings. 
+            // Use Mqtt transport settings.
             string caCertFilePath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             if ((caCertFilePath == null) || (!File.Exists(caCertFilePath))) {
@@ -71,19 +71,19 @@ namespace TemperatureFilter
             var userContext = new Tuple<DeviceClient, ModuleConfig>(deviceClient, moduleConfig);
 
             // Register callback to be called when a message is sent to "input1"
-            await deviceClient.SetEventHandlerAsync(
+            await deviceClient.SetInputMessageHandlerAsync(
                 "input1",
                 PrintAndFilterMessages,
                 userContext);
         }
 
         /// <summary>
-        /// This method is called whenever the Filter module is sent a message from the EdgeHub. 
-        /// It filters the messages based on the temperature value in the body of the messages, 
+        /// This method is called whenever the Filter module is sent a message from the EdgeHub.
+        /// It filters the messages based on the temperature value in the body of the messages,
         /// and the temperature threshold set via config.
         /// It prints all the incoming messages.
         /// </summary>
-        static async Task PrintAndFilterMessages(Message message, object userContext)
+        static async Task<MessageResponse> PrintAndFilterMessages(Message message, object userContext)
         {
             int counterValue = Interlocked.Increment(ref counter);
 
@@ -118,12 +118,11 @@ namespace TemperatureFilter
                 await deviceClient.SendEventAsync("alertOutput", filteredMessage);
             }
 
-            //TODO: Remove and change to return value (Success or Failure) after Device Client is changed.. 
-            await deviceClient.CompleteAsync(message);
+            return MessageResponse.Completed;
         }
 
         /// <summary>
-        /// Get the configuration for the module (in this case the threshold temperature)s. 
+        /// Get the configuration for the module (in this case the threshold temperature)s.
         /// </summary>
         static async Task<ModuleConfig> GetConfiguration(DeviceClient deviceClient)
         {
