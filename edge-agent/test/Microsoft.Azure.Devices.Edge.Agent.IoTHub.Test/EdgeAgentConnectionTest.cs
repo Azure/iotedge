@@ -148,11 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     edgeHub = new
-                    {
-                        configuration = new
-                        {
-                            id = "1235"
-                        },
+                    {                        
                         type = "docker",
                         status = "running",
                         restartPolicy = "always",
@@ -166,11 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 modules = new
                 {
                     mongoserver = new
-                    {
-                        configuration = new
-                        {
-                            id = "1235"
-                        },
+                    {                        
                         version = "1.0",
                         type = "docker",
                         status = "running",
@@ -221,11 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     edgeHub = new
-                    {
-                        configuration = new
-                        {
-                            id = "1235"
-                        },
+                    {                        
                         type = "docker",
                         status = "running",
                         restartPolicy = "always",
@@ -239,11 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 modules = new
                 {
                     mongoserver = new
-                    {
-                        configuration = new
-                        {
-                            id = "1236"
-                        },
+                    {                        
                         version = "1.0",
                         type = "docker",
                         status = "running",
@@ -255,11 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     mlModule = new
-                    {
-                        configuration = new
-                        {
-                            id = "1236"
-                        },
+                    {                        
                         version = "1.0",
                         type = "docker",
                         status = "running",

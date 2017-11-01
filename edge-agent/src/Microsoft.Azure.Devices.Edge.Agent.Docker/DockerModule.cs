@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.Always, PropertyName = "settings")]
         public DockerConfig Config { get; }
 
-        [JsonProperty(Required = Required.Always, PropertyName = "configuration")]
+        [JsonProperty(PropertyName = "configuration")]
         public virtual ConfigurationInfo ConfigurationInfo { get; }
 
         public DockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, DockerConfig config, ConfigurationInfo configurationInfo)
