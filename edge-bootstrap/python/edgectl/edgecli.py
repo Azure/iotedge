@@ -318,7 +318,8 @@ class EdgeCLI(object):
             else:
                 self.edge_config.deployment_config.edge_image = args.image
                 EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
-                                                           self.edge_config.home_dir)
+                                                           self.edge_config.home_dir,
+                                                           self.edge_config.hostname)
                 log.info('Updated config file with new image: ' + args.image)
                 return
 
