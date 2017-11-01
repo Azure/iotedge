@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (name == CoreConstants.EdgeHubModuleName)
             {
                 return new EdgeHubDockerRuntimeModule(
-                    name, version, desiredStatus, restartPolicy, dockerConfig,
+                    desiredStatus, restartPolicy, dockerConfig,
                     exitCode, statusDescription, lastStartTime, lastExitTime,
                     moduleState.RestartCount, moduleState.LastRestartTimeUtc,
                     runtimeStatus, configurationInfo

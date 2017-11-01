@@ -642,7 +642,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // build current module set
                 var edgeHubRuntimeModule = new EdgeHubDockerRuntimeModule(
-                    Constants.EdgeHubModuleName, "1.0", ModuleStatus.Running, RestartPolicy.Always,
+                     ModuleStatus.Running, RestartPolicy.Always,
                     new DockerConfig("edge.azurecr.io/edgeHub:1.0"), 0, string.Empty,
                     DateTime.UtcNow - TimeSpan.FromHours(1), DateTime.MinValue,
                     0, DateTime.MinValue, ModuleStatus.Running, new Core.ConfigurationInfo("1")

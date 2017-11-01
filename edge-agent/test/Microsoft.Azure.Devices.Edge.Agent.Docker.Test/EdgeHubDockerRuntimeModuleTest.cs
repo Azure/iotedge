@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             // Arrange
             var module = new EdgeHubDockerRuntimeModule(
-                Core.Constants.EdgeHubModuleName, string.Empty,
                 ModuleStatus.Running, RestartPolicy.Always,
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
@@ -85,7 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Assert
             var expected = new EdgeHubDockerRuntimeModule(
-                Core.Constants.EdgeHubModuleName, string.Empty,
                 ModuleStatus.Running, RestartPolicy.Always,
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
@@ -94,6 +92,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             );
 
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        [Unit]
+        public void EqualsTest()
+        {
+            // Arrange
+            string image = "repo/microsoft/azureiotedge-hub:002";
+            var edgeHubDockerModule = new EdgeHubDockerModule(
+                "docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig(image), new ConfigurationInfo("1"));
+
+            var edgeHubDockerRuntimeModule = new EdgeHubDockerRuntimeModule(
+                ModuleStatus.Running, RestartPolicy.Always,
+                new DockerConfig(image), 0, string.Empty,
+                DateTime.MinValue, DateTime.MinValue, 0,
+                DateTime.MinValue, ModuleStatus.Running,
+                new ConfigurationInfo("1")
+            );
+
+            // Act
+            bool equal = edgeHubDockerModule.Equals(edgeHubDockerRuntimeModule);
+
+            // Assert
+            Assert.True(equal);
         }
     }
 }

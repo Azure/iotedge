@@ -11,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class EdgeHubDockerRuntimeModule : DockerRuntimeModule, IEdgeHubModule
     {
         public EdgeHubDockerRuntimeModule(
-            string name, string version, ModuleStatus desiredStatus,
+            ModuleStatus desiredStatus,
             RestartPolicy restartPolicy, DockerConfig config, int exitCode,
             string statusDescription, DateTime lastStartTime,
             DateTime lastExitTime, int restartCount, DateTime lastRestartTime,
             ModuleStatus runtimeStatus, ConfigurationInfo configuration
         )
-            : base(name, version, desiredStatus, restartPolicy, config,
+            : base(Core.Constants.EdgeHubModuleName, string.Empty, desiredStatus, restartPolicy, config,
                 exitCode, statusDescription, lastStartTime, lastExitTime,
                 restartCount, lastRestartTime, runtimeStatus, configuration)
         {
@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // this here again so that the correct property assignment happens for real!
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.Version = string.Empty;
         }
 
         [JsonConstructor]
@@ -40,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus,
             ConfigurationInfo configurationInfo
         )
-            : this(Core.Constants.EdgeHubModuleName, string.Empty, status, restartPolicy, config, exitCode ?? 0,
+            : this(status, restartPolicy, config, exitCode ?? 0,
                   statusDescription, lastStartTimeUtc, lastExitTimeUtc,
                   restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo)
         {
