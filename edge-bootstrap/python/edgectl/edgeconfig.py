@@ -3,7 +3,7 @@ import logging as log
 import os
 import re
 import edgectl.edgeconstants as EC
-import edgectl.edgeutils
+from edgectl.edgeutils import EdgeUtils
 from edgectl.default  import EdgeDefault
 
 
@@ -214,7 +214,7 @@ class EdgeHostConfig(object):
 
     @home_dir.setter
     def home_dir(self, value):
-        edgeutils.mkdir_if_needed(value)
+        EdgeUtils.mkdir_if_needed(value)
         self._home_dir = value
 
     @property

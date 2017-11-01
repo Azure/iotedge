@@ -12,6 +12,7 @@ import sys
 
 from edgectl.default import EdgeDefault
 from edgectl.edgecli import EdgeCLI
+from edgectl.edgeutils import EdgeUtils
 
 package_name = 'azure-iot-edge-ctl'
 

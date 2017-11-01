@@ -8,8 +8,7 @@ from edgectl.default import EdgeDefault
 from edgectl.edgeconfig import EdgeHostConfig
 from edgectl.edgeconfig import EdgeDeploymentConfigDocker
 import edgectl.edgeconstants as EC
-import edgectl.edgeutils
-
+from edgectl.edgeutils import EdgeUtils
 
 class EdgeConfigInteractive(object):
     @staticmethod
@@ -65,7 +64,7 @@ class EdgeConfigInteractive(object):
         done = False
         while not done:
             try:
-                default_value = edgeutils.get_hostname()
+                default_value = EdgeUtils.get_hostname()
                 print('')
                 msg = 'Next, Enter Your Edge Device\'s Hostname. \n' \
                       'This value should be the FQDN when when operating the' \

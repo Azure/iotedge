@@ -14,6 +14,8 @@ import edgectl.edgeconstants as EC
 class EdgeCLI(object):
     _prog = ''
     _supported_log_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+    _choices_log_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', \
+                           'debug', 'info', 'warning', 'error']
     _default_log_verbose_level = 'INFO'
     _initialized_logging = False
 
@@ -31,6 +33,10 @@ class EdgeCLI(object):
     @staticmethod
     def supported_log_levels():
         return EdgeCLI._supported_log_levels
+
+    @staticmethod
+    def log_level_choices():
+        return EdgeCLI._choices_log_levels
 
     @staticmethod
     def default_log_level():
@@ -92,7 +98,7 @@ class EdgeCLI(object):
                            + '. Default: ' + EdgeCLI.default_log_level()
 
         parser.add_argument('--verbose', dest='verbose_level',
-                            choices=EdgeCLI.supported_log_levels(),
+                            choices=EdgeCLI.log_level_choices(),
                             default=EdgeCLI.default_log_level(),
                             help=verbose_help_str, metavar='')
 
@@ -221,8 +227,8 @@ class EdgeCLI(object):
 
         cmd_update = subparsers.add_parser('update', help='update --help')
         cmd_update.add_argument('--image',
-                               help='Specify the new IoT Edge Agent image'
-                               , metavar='')
+                                help='Specify the new IoT Edge Agent image'
+                                , metavar='')
 
         cmd_update.set_defaults(func=self.parse_edge_command)
 
@@ -243,6 +249,7 @@ class EdgeCLI(object):
         return result
 
     def parse_edge_command(self, args):
+        args.verbose_level = args.verbose_level.upper()
         self.verbose_level = args.verbose_level
         commands = {'setup'   : self.parse_setup_options,
                     'start'   : self.parse_command_options_common,

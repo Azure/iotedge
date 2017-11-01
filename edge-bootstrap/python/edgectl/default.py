@@ -2,6 +2,7 @@ import logging as log
 import json
 import os
 import platform
+from edgectl.dockerclient import EdgeDockerClient
 
 import edgectl.edgeconstants as EC
 
@@ -91,12 +92,9 @@ class EdgeDefault(object):
     @staticmethod
     def get_platform_docker_uri():
         plat = platform.system().lower()
-        # @todo determine underlying engine for now use native for linux
-        # and vm for windows
-        engine = EC.DOCKER_ENGINE_LINUX
-        if plat == EC.DOCKER_HOST_WINDOWS:
-            engine = EC.DOCKER_ENGINE_LINUX
-        return EdgeDefault.docker_uri(plat, engine)
+        dc = EdgeDockerClient()
+        engine_os = dc.get_os_type()
+        return EdgeDefault.docker_uri(plat, engine_os)
 
     @staticmethod
     def get_home_dir(host):

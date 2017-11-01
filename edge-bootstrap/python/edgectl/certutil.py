@@ -2,7 +2,7 @@ import logging
 import errno
 import os
 from OpenSSL import crypto
-import edgectl.edgeutils
+from edgectl.edgeutils import EdgeUtils
 
 
 class EdgeCertUtil(object):
@@ -161,14 +161,14 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
             try:
                 path = os.path.realpath(dir_path)
                 path = os.path.join(path, prefix)
-                self.__mkdir_if_needed(path)
+                EdgeUtils.mkdir_if_needed(path)
                 priv_dir = os.path.join(path, 'private')
-                self.__mkdir_if_needed(priv_dir)
+                EdgeUtils.mkdir_if_needed(priv_dir)
                 os.chmod(priv_dir, 0o700)
                 cert_dir = os.path.join(path, 'cert')
-                self.__mkdir_if_needed(cert_dir)
+                EdgeUtils.mkdir_if_needed(cert_dir)
                 csr_dir = os.path.join(path, 'csr')
-                self.__mkdir_if_needed(csr_dir)
+                EdgeUtils.mkdir_if_needed(csr_dir)
 
                 # export the private key
                 key_obj = cert_dict['key_pair']
@@ -219,14 +219,6 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
             pfx_output_file_name = os.path.join(cert_dir, prefix + '.cert.pfx')
             with open(pfx_output_file_name, 'w') as pfx_file:
                 pfx_file.write(str(pfx_data))
-
-    @staticmethod
-    def __mkdir_if_needed(dir_path):
-        try:
-            os.mkdir(dir_path)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
 
     @staticmethod
     def __create_key_pair(type, key_bit_len):
@@ -310,9 +302,9 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
             file_names.append(path)
 
         output_dir = os.path.join(certs_dir, output_prefix)
-        edgeutils.mkdir_if_needed(output_dir)
+        EdgeUtils.mkdir_if_needed(output_dir)
         output_dir = os.path.join(output_dir, 'cert')
-        edgeutils.mkdir_if_needed(output_dir)
+        EdgeUtils.mkdir_if_needed(output_dir)
         ouput_file_name = os.path.join(output_dir, output_prefix + '.cert.pem')
         with open(ouput_file_name, 'w') as op_file:
             for file_name in file_names:

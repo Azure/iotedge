@@ -1,5 +1,5 @@
 import json
-import edgectl.edgeutils
+from edgectl.edgeutils import EdgeUtils
 from edgectl.edgeconfig import EdgeHostConfig
 from edgectl.edgeconfig import EdgeDeploymentConfigDocker
 from edgectl.edgeconfigparser import EdgeConfigParser
@@ -38,7 +38,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
 
         hostname = args.edge_hostname
         if hostname is None:
-            hostname = edgeutils.get_hostname()
+            hostname = EdgeUtils.get_hostname()
         config.hostname = hostname
 
         log_level = args.edge_runtime_log_level
