@@ -350,10 +350,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 updatedCloudTwin = await deviceClient.GetTwinAsync();
 
                 // replicate the patch operation locally
-                JToken mergedJson = JsonEx.Merge(
-                    JToken.FromObject(originalCloudTwin.Properties.Desired),
-                    JToken.FromObject(desiredPropertyPatch), true);
-                localMergedTwinProperties = new TwinCollection(mergedJson.ToString());
+                string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, desiredPropertyPatch, true);
+                localMergedTwinProperties = new TwinCollection(mergedJson);
             });
 
             while (!cts.IsCancellationRequested)

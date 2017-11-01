@@ -81,6 +81,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
 
+        public static string Diff(object from, object to)
+        {
+            JToken fromToken = JToken.FromObject(Preconditions.CheckNotNull(from, nameof(from)));
+            JToken toToken = JToken.FromObject(Preconditions.CheckNotNull(to, nameof(to)));
+            JObject diff = Diff(fromToken, toToken);
+            return diff.ToString();
+        }
+
         public static JObject Diff(JToken fromToken, JToken toToken)
         {
             JObject patch = new JObject();

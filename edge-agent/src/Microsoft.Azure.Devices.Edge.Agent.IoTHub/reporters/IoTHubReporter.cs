@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                 try
                 {
-                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch));
+                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
                 }
                 catch(Exception ex2) when (!ExceptionEx.IsFatal(ex))
                 {
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                         if (patch.HasValues)
                         {
                             // send reported props
-                            await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch));
+                            await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
 
                             // update our cached copy of reported properties
                             this.SetReported(cs);

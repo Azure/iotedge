@@ -297,7 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
-                    })),
+                    }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
@@ -355,7 +355,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
-                    })),
+                    }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
@@ -413,7 +413,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
-                    })),
+                    }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
@@ -470,7 +470,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
-                    })),
+                    }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
@@ -527,7 +527,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
-                    })),
+                    }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
@@ -563,7 +563,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var patch = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
             {
                 { "$version", 11 }
-            }));
+            }).ToString());
             await desiredPropertyUpdateCallback.Invoke(patch, null);
 
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();

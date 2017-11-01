@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                JToken mergedJson = JsonEx.Merge(JToken.FromObject(this.desiredProperties), JToken.FromObject(patch), true);
-                this.desiredProperties = new TwinCollection(mergedJson.ToString());
+                string mergedJson = JsonEx.Merge(this.desiredProperties, patch, true);
+                this.desiredProperties = new TwinCollection(mergedJson);
                 await this.UpdateDeploymentConfig();
                 Events.DesiredPropertiesPatchApplied();
             }

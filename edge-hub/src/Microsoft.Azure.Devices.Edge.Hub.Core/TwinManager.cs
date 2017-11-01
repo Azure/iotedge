@@ -175,10 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             // Save the patch only if it is the next one that can be applied
                             if (desired.Version == u.Twin.Properties.Desired.Version + 1)
                             {
-                                JToken mergedJson = JsonEx.Merge(
-                                    JToken.FromObject(u.Twin.Properties.Desired),
-                                    JToken.FromObject(desired), true);
-                                u.Twin.Properties.Desired = new TwinCollection(mergedJson.ToString());
+                                string mergedJson = JsonEx.Merge(u.Twin.Properties.Desired, desired, /*treatNullAsDelete*/ true);
+                                u.Twin.Properties.Desired = new TwinCollection(mergedJson);
                             }
                             else
                             {
@@ -236,9 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 // of a connection reset or desired property update, send a patch to the downstream device
                                 if (sendDesiredPropertyUpdate && t.SubscribedToDesiredPropertyUpdates)
                                 {
-                                    diff = new TwinCollection(JsonEx.Diff(
-                                        JToken.FromObject(t.Twin.Properties.Desired),
-                                        JToken.FromObject(cloudTwin.Properties.Desired)) as JObject);
+                                    diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
                                 }
                             }
                             else
@@ -280,10 +276,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         id,
                         u =>
                         {
-                            JToken mergedJson = JsonEx.Merge(
-                                JToken.FromObject(u.Twin.Properties.Reported),
-                                JToken.FromObject(reported), true /* treatNullAsDelete */);
-                            TwinCollection mergedProperty = new TwinCollection(mergedJson.ToString());
+                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
+                            TwinCollection mergedProperty = new TwinCollection(mergedJson);
                             if (!cloudVerified)
                             {
                                 ValidateTwinCollectionSize(mergedProperty);
@@ -315,9 +309,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     id,
                     u =>
                     {
-                        JToken mergedJson = JsonEx.Merge(JToken.FromObject(u.ReportedPropertiesPatch),
-                            JToken.FromObject(reportedProperties), false /* treatNullAsDelete */);
-                        TwinCollection mergedPatch = new TwinCollection(mergedJson.ToString());
+                        string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
+                        TwinCollection mergedPatch = new TwinCollection(mergedJson);
                         return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
                     }),
                 () => throw new InvalidOperationException("Missing twin store"));
