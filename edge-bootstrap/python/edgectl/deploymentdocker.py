@@ -27,6 +27,26 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 break
         return result
 
+    def login(self):
+        log.info('Executing IoT Edge \'login\' For Docker Deployment')
+        container_name = self._edge_runtime_container_name
+
+        status = self.status()
+        if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
+            log.error('Runtime is restarting. Please retry later.')
+        elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
+            log.info('Runtime container ' + container_name \
+                     + ' found in stopped state. Please use \
+                     the start command to see changes take effect.')
+        else:
+            log.info('Stopping Runtime.')
+            self._client.stop(container_name)
+            self._client.remove(container_name)
+            log.info('Stopped Runtime.')
+            log.info('Starting Runtime.')
+            self.start()
+            log.info('Starting Runtime.')
+
     def update(self):
         log.info('Executing IoT Edge \'update\' For Docker Deployment')
 
@@ -37,7 +57,8 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.error('Runtime is restarting. Please retry later.')
         elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
             log.info('Runtime container ' + container_name \
-                     + ' stopped. Please use the start command.')
+                     + ' found in stopped state. Please use \
+                     the start command to see changes take effect.')
         else:
             log.info('Stopping Runtime.')
             self._client.stop(container_name)

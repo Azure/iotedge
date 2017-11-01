@@ -7,6 +7,7 @@ from edgectl.commandbase import EdgeStopCommand
 from edgectl.commandbase import EdgeStatusCommand
 from edgectl.commandbase import EdgeUninstallCommand
 from edgectl.commandbase import EdgeUpdateCommand
+from edgectl.commandbase import EdgeLoginCommand
 from edgectl.deploymentdocker import EdgeDeploymentCommandDocker
 
 class EdgeCommandFactory(object):
@@ -16,7 +17,8 @@ class EdgeCommandFactory(object):
                            'stop'      : EdgeStopCommand,
                            'status'    : EdgeStatusCommand,
                            'uninstall' : EdgeUninstallCommand,
-                           'update'    : EdgeUpdateCommand}
+                           'update'    : EdgeUpdateCommand,
+                           'login'     : EdgeLoginCommand}
 
     @staticmethod
     def create_command(command, edge_config):

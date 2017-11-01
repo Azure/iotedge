@@ -107,10 +107,19 @@ class EdgeDeploymentConfigDocker(object):
     def registries(self):
         return self._registries
 
+    def registry_exists(self, server_address):
+        for registry in self._registries:
+            if registry['address'] == server_address:
+                return registry
+        return None
+
     def add_registry(self, server_address, username='', password=''):
         if server_address is not None:
             length = len(server_address)
             if length > 0:
+                existing = self.registry_exists(server_address)
+                if existing is not None:
+                    self._registries.remove(existing)
                 registry = {'address': server_address,
                             'username': username,
                             'password': password}

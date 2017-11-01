@@ -236,6 +236,20 @@ class EdgeCLI(object):
                                               , help='uninstall --help')
         cmd_uninstall.set_defaults(func=self.parse_edge_command)
 
+        cmd_login = subparsers.add_parser('login'
+                                          , help='login --help')
+        cmd_login.add_argument('--username',
+                               help='Specify the username of container registry',
+                               metavar='')
+        cmd_login.add_argument('--password',
+                               help='Specify the password of container registry',
+                               metavar='')
+        cmd_login.add_argument('--address',
+                               help='Specify the address of container registry',
+                               metavar='')
+
+        cmd_login.set_defaults(func=self.parse_edge_command)
+
         args = parser.parse_args()
 
         result = False
@@ -257,7 +271,8 @@ class EdgeCLI(object):
                     'stop'    : self.parse_command_options_common,
                     'uninstall' : self.parse_command_options_common,
                     'status'  : self.parse_command_options_common,
-                    'update'  : self.parse_update_options}
+                    'update'  : self.parse_update_options,
+                    'login'   : self.parse_login_options}
         self.command = args.subparser_name
         commands[args.subparser_name](args)
         return
@@ -322,6 +337,25 @@ class EdgeCLI(object):
                                                            self.edge_config.hostname)
                 log.info('Updated config file with new image: ' + args.image)
                 return
+
+    def parse_login_options(self, args):
+        cmd = args.subparser_name
+        if args.username is None:
+            log.error('Please specify username of container registry')
+            raise ValueError('Incorrect input options for command: ' + cmd)
+        if args.password is None:
+            log.error('Please specify password of container registry')
+            raise ValueError('Incorrect input options for command: ' + cmd)
+        if args.address is None:
+            log.error('Please specify address of container registry')
+            raise ValueError('Incorrect input options for command: ' + cmd)
+        self.parse_command_options_common(args)
+        self.edge_config.deployment_config.add_registry(args.address, args.username, args.password)
+        EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
+                                                   self.edge_config.home_dir,
+                                                   self.edge_config.hostname)
+        log.info('Updated config file with new registry: ' + args.address)
+        return
 
     def parse_setup_options(self, args):
         cmd = args.subparser_name
