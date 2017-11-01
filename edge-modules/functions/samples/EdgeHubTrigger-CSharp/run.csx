@@ -19,9 +19,9 @@ public static async Task Run(
     var messageString = System.Text.Encoding.UTF8.GetString(messageBytes);   
  
     // Get message body, containing the Temperature data         
-    var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString); 
- 
-    if (messageBody != null && messageBody.Temperature > DefaultTemperatureThreshold)         
+    var messageBody = JsonConvert.DeserializeObject<MessageBody>(messageString);
+
+    if (messageBody != null && messageBody.Machine.Temperature > DefaultTemperatureThreshold)         
     {   
        var filteredMessage = new Message(messageBytes);             
        foreach (KeyValuePair<string, string> prop in messageReceived.Properties)             
@@ -32,7 +32,44 @@ public static async Task Run(
        await output.AddAsync(filteredMessage);
     }
 }
-class MessageBody
+
+/// <summary>
+///Body:
+///{
+///  “machine”:{
+///    “temperature”:,
+///    “pressure”:
+///  },
+///  “ambient”:{
+///    “temperature”: , 
+///    “humidity”:
+///  }
+///  “timeCreated”:”UTC iso format”
+///}
+///Units and types:
+///Temperature: double, C
+///Humidity: int, %
+///Pressure: double, psi
+/// </summary>
+public class MessageBody
 {
-  public int Temperature { get; set; }
+    public Machine Machine { get; set; }
+
+    public Ambient Ambient { get; set; }
+
+    public DateTime TimeCreated { get; set; }
+}
+
+public class Machine
+{
+    public double Temperature { get; set; }
+
+    public double Pressure { get; set; }
+}
+
+public class Ambient
+{
+    public double Temperature { get; set; }
+
+    public int Humidity { get; set; }
 }
