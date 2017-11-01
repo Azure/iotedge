@@ -82,10 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             string connectionString = nameResolver.Resolve(DefaultConnectionStringEnvName);
 
             this.deviceClient = DeviceClientCache.Instance.GetOrCreate(connectionString);
-            return this.deviceClient.SetEventDefaultHandlerAsync(FunctionsMessageHandler, null);
+            return this.deviceClient.SetMessageHandlerAsync(FunctionsMessageHandler, null);
         }
 
-        async Task FunctionsMessageHandler(Message message, object userContext)
+        async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
         {
             var payload = message.GetBytes();
             if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
@@ -95,6 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                     await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
                 }
             }
+
+            return MessageResponse.Completed;
         }
     }
 }
