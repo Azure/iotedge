@@ -7,6 +7,10 @@ RUN Invoke-WebRequest https://jiriabits.blob.core.windows.net/files/System.IO.Pi
 
 FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
 
+USER ContainerAdministrator
+
+RUN setx /M PATH "%PATH%;%ProgramFiles%\dotnet"
+
 ARG EXE_DIR=.
 
 WORKDIR /app
@@ -19,4 +23,4 @@ COPY --from=installer-env ["\\System.IO.Pipes.dll", "$MNCA\\"]
 
 ENV IPInterfaceName vEthernet (Ethernet)
 
-CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Agent.Service.dll"]
+CMD ["dotnet.exe", "Microsoft.Azure.Devices.Edge.Agent.Service.dll"]
