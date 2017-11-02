@@ -1,5 +1,6 @@
 from __future__ import print_function
 import logging as log
+import platform
 import docker
 import edgectl.edgeconstants as EC
 from edgectl.dockerclient import EdgeDockerClient
@@ -142,13 +143,17 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 'DeviceConnectionString': edge_config.connection_string,
                 'EdgeDeviceHostName': edge_config.hostname,
                 'NetworkId': nw_name,
-                'EdgeHostCACertificateFile': ca_cert_file['file_path'],
-                'EdgeModuleCACertificateFile': module_certs_path + ca_cert_file['file_name'],
-                'EdgeHostHubServerCAChainCertificateFile': ca_chain_cert_file['file_path'],
-                'EdgeModuleHubServerCAChainCertificateFile': module_certs_path + ca_chain_cert_file['file_name'],
-                'EdgeHostHubServerCertificateFile': hub_cert_dict['file_path'],
-                'EdgeModuleHubServerCertificateFile': module_certs_path + hub_cert_dict['file_name']
             }
+            # @todo disable mounting certs for non Linux hosts
+            host = platform.system().lower()
+            if host == 'linux':
+                env_dict['EdgeHostCACertificateFile'] = ca_cert_file['file_path']
+                env_dict['EdgeModuleCACertificateFile'] = module_certs_path + ca_cert_file['file_name']
+                env_dict['EdgeHostHubServerCAChainCertificateFile'] = ca_chain_cert_file['file_path']
+                env_dict['EdgeModuleHubServerCAChainCertificateFile'] = module_certs_path + ca_chain_cert_file['file_name']
+                env_dict['EdgeHostHubServerCertificateFile'] = hub_cert_dict['file_path']
+                env_dict['EdgeModuleHubServerCertificateFile'] = module_certs_path + hub_cert_dict['file_name']
+
             idx = 0
             for registry in edge_config.deployment_config.registries:
                 key = 'DockerRegistryAuth__' + str(idx) + '__serverAddress'
