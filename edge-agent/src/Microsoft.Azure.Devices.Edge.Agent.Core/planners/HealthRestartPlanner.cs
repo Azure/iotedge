@@ -53,16 +53,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             IEnumerable<IRuntimeModule> modulesToBeRestarted = this.restartManager.ApplyRestartPolicy(modules);
 
-            IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(async module => await GroupCommand.CreateAsync(
-                // restart the module
-                await this.commandFactory.RestartAsync(module),
-                // Update restart count and last restart time in store
-                await this.commandFactory.WrapAsync(
-                    new UpdateModuleStateCommand(
-                        module, this.store, new ModuleState(module.RestartCount + 1, DateTime.UtcNow)
+            IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(async module =>
+            {
+                var group = await GroupCommand.CreateAsync(
+                    // restart the module
+                    await this.commandFactory.RestartAsync(module),
+                    // Update restart count and last restart time in store
+                    await this.commandFactory.WrapAsync(
+                        new UpdateModuleStateCommand(
+                            module, this.store, new ModuleState(module.RestartCount + 1, DateTime.UtcNow)
+                        )
                     )
-                )
-            ));
+                );
+
+                return await this.commandFactory.WrapAsync(group);
+            });
             return restart;
         }
 
