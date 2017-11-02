@@ -12,7 +12,6 @@ namespace TemperatureFilter
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
-    using SimulatedTemperatureSensor;
 
     class Program
     {

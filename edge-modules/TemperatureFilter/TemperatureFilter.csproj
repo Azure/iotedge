@@ -7,9 +7,6 @@
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.6.0-preview-003" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SimulatedTemperatureSensor\SimulatedTemperatureSensor.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <None Update="scripts\linux\start.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
