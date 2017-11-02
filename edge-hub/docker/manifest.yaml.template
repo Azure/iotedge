@@ -1,4 +1,5 @@
 image: __REGISTRY__/azureiotedge/edge-hub:__VERSION__
+tags: __TAGS__
 manifests:
   -
     image: __REGISTRY__/azureiotedge/edge-hub-linux-amd64:__VERSION__

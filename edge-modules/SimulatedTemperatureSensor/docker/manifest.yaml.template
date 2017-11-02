@@ -1,4 +1,5 @@
 image: __REGISTRY__/azureiotedge/simulated-temperature-sensor:__VERSION__
+tags: __TAGS__
 manifests:
   -
     image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-linux-amd64:__VERSION__

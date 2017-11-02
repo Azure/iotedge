@@ -18,6 +18,9 @@ SCRIPT_NAME=$(basename $0)
 DIR=$(cd "$(dirname "$0")" && pwd)
 BINDIR=$DIR/../../bin
 
+# Holds the list of tags to apply
+DOCKER_TAGS="[]"
+
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -32,6 +35,7 @@ usage()
     echo " -p, --password       Docker Username's password"
     echo " -v, --image-version  Docker Image Version."
     echo " -t, --template       Yaml file template for manifest definition."
+    echo "     --tags           Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
     exit 1;
 }
 
@@ -64,6 +68,9 @@ process_args()
         elif [ $save_next_arg -eq 5 ]; then
             YAML_TEMPLATE="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 6 ]; then
+            DOCKER_TAGS="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -72,6 +79,7 @@ process_args()
                 "-p" | "--password" ) save_next_arg=3;;
                 "-v" | "--image-version" ) save_next_arg=4;;
                 "-t" | "--template" ) save_next_arg=5;;
+                       "--tags" ) save_next_arg=6;;
                 * ) usage;;
             esac
         fi
@@ -120,7 +128,7 @@ fi
 manifest=$(mktemp /tmp/manifest.yaml.XXXXXX)
 [ $? -eq 0 ] || exit $?
 
-sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g;" $YAML_TEMPLATE > $manifest
+sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g; s/__TAGS__/${DOCKER_TAGS}/g;" $YAML_TEMPLATE > $manifest
 [ $? -eq 0 ] || exit $?
 
 echo "Build image with following manifest:"
