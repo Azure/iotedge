@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
@@ -75,12 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
             testController.OnActionExecuting(actionExecutingContext);
 
-            string toModuleId = "edgedevice/module2";
+            string toDeviceId = "edgedevice";
+            string toModuleId = "module2";
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
             var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
-            IActionResult actionResult = await testController.InvokeDeviceMethodAsync(WebUtility.UrlEncode(toModuleId), methodRequest);
+            IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
             var jsonResult = actionResult as JsonResult;

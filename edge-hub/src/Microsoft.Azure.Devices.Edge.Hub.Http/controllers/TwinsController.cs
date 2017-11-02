@@ -1,4 +1,4 @@
-﻿
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System.Net;
@@ -32,17 +32,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         }
 
         [HttpPost]
-        [Route("twins/{id}/methods")]
-        public async Task<IActionResult> InvokeDeviceMethodAsync([FromRoute] string id, [FromBody] MethodRequest methodRequest)
+        [Route("twins/{deviceId}/methods")]
+        public Task<IActionResult> InvokeDeviceMethodAsync([FromRoute] string deviceId, [FromBody] MethodRequest methodRequest)
         {
-            id = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
+            deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             this.validator.Validate(methodRequest);
 
-            Events.ReceivedMethodCall(id, methodRequest, this.identity);
-            var directMethodRequest = new DirectMethodRequest(id, methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
+            var directMethodRequest = new DirectMethodRequest(deviceId, methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
+            return this.InvokeMethodAsync(directMethodRequest);
+        }
+
+        [HttpPost]
+        [Route("twins/{deviceId}/modules/{moduleId}/methods")]
+        public Task<IActionResult> InvokeModuleMethodAsync([FromRoute] string deviceId, [FromRoute] string moduleId, [FromBody] MethodRequest methodRequest)
+        {
+            deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
+            moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
+            this.validator.Validate(methodRequest);
+
+            var directMethodRequest = new DirectMethodRequest($"{deviceId}/{moduleId}", methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
+            return this.InvokeMethodAsync(directMethodRequest);
+        }
+
+        async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
+        {
+            Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
             DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity, directMethodRequest);
-            Events.ReceivedMethodCallResponse(id, methodRequest, this.identity);
+            Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
             var methodResult = new MethodResult
             {
@@ -63,14 +80,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 ReceivedMethodResponse
             }
 
-            public static void ReceivedMethodCall(string id, MethodRequest methodRequest, IIdentity identity)
+            public static void ReceivedMethodCall(DirectMethodRequest methodRequest, IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.ReceivedMethodCall, $"Received call to invoke method {methodRequest.MethodName} on device/module {id} from module {identity.Id}");
+                Log.LogDebug((int)EventIds.ReceivedMethodCall, $"Received call to invoke method {methodRequest.Name} on device or module {methodRequest.Id} from module {identity.Id}");
             }
 
-            public static void ReceivedMethodCallResponse(string id, MethodRequest methodRequest, IIdentity identity)
+            public static void ReceivedMethodCallResponse(DirectMethodRequest methodRequest, IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from method {methodRequest.MethodName} on device/module {id} for module {identity.Id}");
+                Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from call to method {methodRequest.Name} from device or module {methodRequest.Id}. Method invoked by module {identity.Id}");
             }
         }
     }

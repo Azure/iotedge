@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System;
@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     public class AuthenticationMiddleware
     {
         readonly RequestDelegate next;
-        readonly IMemoryCache memoryCache;
         readonly IAuthenticator authenticator;
         readonly IIdentityFactory identityFactory;
         readonly string iotHubName;
@@ -35,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
-            this.memoryCache = Preconditions.CheckNotNull(memoryCache, nameof(memoryCache));
         }
 
         public async Task Invoke(HttpContext context)
@@ -55,12 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             catch (Exception ex)
             {
                 Events.AuthenticationError(ex, context);
-                await WriteErrorResponse(context, "Unknown error occurred during authentication.");                
+                await WriteErrorResponse(context, "Unknown error occurred during authentication.");
             }
         }
 
         internal async Task<(bool, string)> AuthenticateRequest(HttpContext context)
-        {            
+        {
             // Authorization header may be present in the QueryNameValuePairs as per Azure standards,           
             // So check in the query parameters first.             
             List<string> authorizationQueryParameters = context.Request.Query
@@ -78,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return LogAndReturnFailure("Invalid authorization header count");
             }
 
-            string authHeader = authorizationQueryParameters.Count == 1 
-                ? authorizationQueryParameters.First() 
+            string authHeader = authorizationQueryParameters.Count == 1
+                ? authorizationQueryParameters.First()
                 : authorizationHeaderValues.First();
 
             if (!authHeader.StartsWith("SharedAccessSignature", StringComparison.OrdinalIgnoreCase))
@@ -107,25 +105,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             }
             string moduleId = moduleIds.First();
 
-            // TODO - Cache using the module Id. This causes subsequent Http calls to go unauthenticated.
-            // Instead of this, the Client needs to cache the token, or accept a cookie and send it back. 
-            if (!this.memoryCache.TryGetValue(moduleId, out IIdentity identity))
-            {                              
-                string userName = $"{this.iotHubName}/{moduleId}";
-                Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(userName, authHeader);
-                if (!identityTry.Success)
-                {
-                    return LogAndReturnFailure("Unable to get identity for the device", identityTry.Exception);
-                }
+            string userName = $"{this.iotHubName}/{moduleId}";
+            Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(userName, authHeader);
+            if (!identityTry.Success)
+            {
+                return LogAndReturnFailure("Unable to get identity for the device", identityTry.Exception);
+            }
 
-                identity = identityTry.Value;
-                if (!await this.authenticator.AuthenticateAsync(identity))
-                {
-                    return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
-                }
-
-                // Add identity to cache.
-                this.memoryCache.Set(moduleId, identity, sharedAccessSignature.ExpiryTime() - DateTime.UtcNow);                              
+            IIdentity identity = identityTry.Value;
+            if (!await this.authenticator.AuthenticateAsync(identity))
+            {
+                return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
             }
 
             context.Items.Add(HttpConstants.IdentityKey, identity);
