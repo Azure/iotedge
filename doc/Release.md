@@ -2,7 +2,7 @@
 A couple of VSTS builds and a release are used to publish the Edge Agent, Edge Hub, and Simulated Temperature Sensor container images.
 These jobs are as follows:
 * [Azure-IoT-Edge-Core Linux Release Build](https://msazure.visualstudio.com/One/_build/index?context=mine&path=%5CCustom%5CAzure%5CIoT%5CEdge%5CCore%5CRelease&definitionId=12790&_a=completed)
-* [Azure-IoT-Edge-Core Windows RS1 Release Build](https://msazure.visualstudio.com/One/_build/index?context=allDefinitions&path=%5CCustom%5CAzure%5CIoT%5CEdge%5CCore%5CRelease&definitionId=12809&_a=completed)
+* [Azure-IoT-Edge-Core Windows RS3 Release Build](https://msazure.visualstudio.com/One/IoT-FieldGateway/_build/index?context=allDefinitions&path=%5CCustom%5CAzure%5CIoT%5CEdge%5CCore%5CRelease&definitionId=13577&_a=completed)
 * [Azure-IoT-Edge Release](https://msazure.visualstudio.com/one/_release?definitionid=643&_a=releases)
 
 The first two builds can be run in parallel.
