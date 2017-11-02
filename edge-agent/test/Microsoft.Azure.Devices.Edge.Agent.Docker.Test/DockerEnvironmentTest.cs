@@ -430,7 +430,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)) &&
                 dc.Containers == Mock.Of< IContainerOperations>( co =>
                     co.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.FromResult(Mock.Of<ContainerInspectResponse>( cir =>
-                        cir.Image == "myImage"))));
+                        cir.Config == new Config() { Image = "myImage" }))));
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 

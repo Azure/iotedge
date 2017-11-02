@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // TODO: We have more information that we could report about edge agent here. For example
             // we could serialize the entire edgeAgentContainer response object and report it.
             DockerConfig config = edgeAgentContainer
-                .Map(response => new DockerConfig(response.Image, Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName)))
+                .Map(response => new DockerConfig(response.Config?.Image ?? Unknown, Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName)))
                 .GetOrElse(DockerConfig.Unknown);
 
             var configurationInfo = new ConfigurationInfo(edgeAgentContainer
