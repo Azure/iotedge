@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
             readonly ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>> methodCalls;
             readonly AtomicLong correlationId = new AtomicLong();
-            Task receiveMessageTask;
+            Option<Task> receiveMessageTask = Option.None<Task>();
 
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
             static readonly TimeSpan DeviceMethodMaxResponseTimeout = TimeSpan.FromSeconds(5 * 60 + 30);
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public void StartListening()
             {
                 Events.StartListening(this.cloudProxy.identity);
-                this.receiveMessageTask = this.SetupMessageListening();
+                this.receiveMessageTask = Option.Some(this.SetupMessageListening());
             }
 
             async Task SetupMessageListening()
@@ -218,13 +218,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                         catch (Exception e)
                         {
-                            await this.cloudProxy.HandleException(e);
+                            if(e is UnauthorizedException)
+                            {
+                                throw;
+                            }
                             // continue when the client times out
                             // TODO: should limit the timeout?
                             Events.ErrorReceivingMessage(this.cloudProxy.identity, e);
                         }
                     }
                     Events.ReceiverStopped(this.cloudProxy.identity);
+                }
+                catch(Exception ex)
+                {
+                    Events.TerminatingErrorReceivingMessage(this.cloudProxy.identity, ex);
+                    this.receiveMessageTask = Option.None<Task>();
+                    await this.cloudProxy.HandleException(ex);
                 }
                 finally
                 {
@@ -236,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.Closing(this.cloudProxy.identity);
                 this.cancellationTokenSource.Cancel();
-                return this.receiveMessageTask ?? TaskEx.Done;
+                return this.receiveMessageTask.GetOrElse(Task.CompletedTask);
             }
 
             public Task SetupCallMethodAsync()
@@ -418,6 +427,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void StartListening(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for device {identity.Id}"));
+            }
+
+            internal static void TerminatingErrorReceivingMessage(IIdentity identity, Exception e)
+            {
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Received {e.GetType()} exception when receiving C2D messages for device {identity.Id}. Closing receive loop."));
             }
         }
     }
