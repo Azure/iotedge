@@ -251,7 +251,7 @@ class EdgeHostConfig(object):
         if value is not None:
             length = len(value)
             if length > 0:
-                self._hostname = value
+                self._hostname = value.lower()
                 is_valid = True
 
         if is_valid is False:
