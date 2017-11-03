@@ -1,7 +1,7 @@
-FROM edgebuilds.azurecr.io/azedge-functions-binding-amd64:preview-002
+FROM edgepreview.azurecr.io/azureiotedge/functions-binding-linux-amd64:1.0.0-preview007
 
 WORKDIR /app
 
-COPY $EXE_DIR/ .
+COPY samples/ samples/
 
 ENV AzureWebJobsScriptRoot=samples
