@@ -334,12 +334,12 @@ def check_if_cert_file_exists(dir_path, prefix, sub_dir, suffix='.cert.pem'):
     if result:
         logging.debug('Cert File Ok:' + path)
     else:
-        logging.info('Cert File Does Not Exist:' + path)
+        logging.debug('Cert File Does Not Exist:' + path)
 
     return result
 
 def generate_self_signed_certs(certs_dir, host_name):
-    logging.info('Generating Self Signed Certificates At:' + certs_dir)
+    logging.info('Generating Self Signed Certificates At: ' + certs_dir)
     subj_dict = {'country': 'US',
                  'state': 'Washington',
                  'locality': 'Redmond',

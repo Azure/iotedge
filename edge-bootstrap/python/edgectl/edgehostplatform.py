@@ -7,14 +7,22 @@ from edgectl.certutil import generate_self_signed_certs_if_needed
 from edgectl.certutil import get_ca_cert_file_path
 from edgectl.certutil import get_server_cert_file_path
 from edgectl.default  import EdgeDefault
-
+from edgectl.edgeutils import EdgeUtils
 
 class EdgeHostPlatform(object):
 
     @staticmethod
+    def get_host_config_file_path():
+        result = None
+        edge_config_file_path = EdgeDefault.get_host_config_file_path()
+        if edge_config_file_path and os.path.exists(edge_config_file_path):
+            result = edge_config_file_path
+        return result
+
+    @staticmethod
     def get_home_dir():
         result = None
-        edge_config_file_path = EdgeHostPlatform.__get_edge_config_file_path()
+        edge_config_file_path = EdgeDefault.get_host_config_file_path()
         if edge_config_file_path:
             with open(edge_config_file_path, 'r') as input_file:
                 data = json.load(input_file)
@@ -138,37 +146,37 @@ class EdgeHostPlatform(object):
             raise RuntimeError('Unsupported Platform.')
 
     @staticmethod
-    def __setup_home_dir(home_dir, host_name):
-        try:
-            path = os.path.realpath(home_dir)
-            certs_dir = os.path.join(path, 'certs')
-            if os.path.exists(certs_dir) is False:
-                os.mkdir(certs_dir)
-            modules_path = os.path.join(path, 'modules')
-            if os.path.exists(modules_path) is False:
-                os.mkdir(modules_path)
-            edge_agent_dir = os.path.join(modules_path,
-                                          EdgeDefault.get_agent_dir_name())
-            if os.path.exists(edge_agent_dir) is False:
-                os.mkdir(edge_agent_dir)
-            generate_self_signed_certs_if_needed(certs_dir, host_name)
-            device_root_ca_file = get_ca_cert_file_path(certs_dir)
-            copy2(device_root_ca_file, edge_agent_dir)
-            server_pfx = get_server_cert_file_path(certs_dir)
-            copy2(server_pfx, edge_agent_dir)
-        except OSError as ex:
-            log.error('Error Observed When Setting Up Edge Home Dir: ' \
-                      + path + '. Errno ' \
-                      + str(ex.errno) + ', Error:' + ex.strerror)
-            raise
+    def uninstall_edge(home_dir):
+        if EdgeDefault.is_platform_supported():
+            EdgeHostPlatform.__delete_edge_config_dir()
+            EdgeHostPlatform.__delete_home_dir(home_dir)
+        else:
+            raise RuntimeError('Unsupported Platform.')
 
     @staticmethod
-    def __get_edge_config_file_path():
-        result = None
-        edge_config_file_path = EdgeDefault.get_host_config_file_path()
-        if os.path.exists(edge_config_file_path):
-            result = edge_config_file_path
-        return result
+    def __setup_home_dir(home_dir, host_name):
+        home_dir_path = os.path.realpath(home_dir)
+        if os.path.exists(home_dir_path) is False:
+            log.debug('Edge home dir not setup, creating dir: ' + home_dir_path)
+        EdgeUtils.mkdir_if_needed(home_dir_path)
+        certs_dir = os.path.join(home_dir_path, 'certs')
+        EdgeUtils.mkdir_if_needed(certs_dir)
+        modules_path = os.path.join(home_dir_path, 'modules')
+        EdgeUtils.mkdir_if_needed(modules_path)
+        edge_agent_dir = os.path.join(modules_path,
+                                        EdgeDefault.get_agent_dir_name())
+        EdgeUtils.mkdir_if_needed(edge_agent_dir)
+        generate_self_signed_certs_if_needed(certs_dir, host_name)
+
+    @staticmethod
+    def __delete_home_dir(home_dir):
+        home_dir_path = os.path.realpath(home_dir)
+        if os.path.exists(home_dir_path):
+            log.debug('Deleting Home Dir: ' + home_dir_path)
+            path = os.path.join(home_dir_path, 'certs')
+            EdgeUtils.delete_dir(path)
+            path = os.path.join(home_dir_path, 'modules')
+            EdgeUtils.delete_dir(path)
 
     @staticmethod
     def __get_or_create_edge_config_dir():
@@ -189,3 +197,9 @@ class EdgeHostPlatform(object):
                              + str(ex.errno) + ', Error:' + ex.strerror)
                 raise
         return result
+
+    @staticmethod
+    def __delete_edge_config_dir():
+        edge_config_dir = EdgeDefault.get_host_config_dir()
+        log.debug('Deleting Edge Config Dir:' + edge_config_dir)
+        EdgeUtils.delete_dir(edge_config_dir)

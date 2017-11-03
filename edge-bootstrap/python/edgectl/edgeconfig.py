@@ -250,12 +250,13 @@ class EdgeHostConfig(object):
         is_valid = False
         if value is not None:
             length = len(value)
-            if length > 0:
+            if length > 0 and length <= 64:
                 self._hostname = value.lower()
                 is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Hostname:' + str(value))
+            raise ValueError('Invalid Hostname. Hostname cannot be empty or' \
+                             + ' greater than 64 characters. ' + str(value))
 
     @property
     def log_level(self):

@@ -28,7 +28,6 @@ def coremain():
             cli.process_cli_args()
             cli.execute_command()
         except Exception as ex:
-            print('Error "{0}" occurred. Arguments {1}.'.format(ex.message, ex.args))
             sys.exit(1)
     else:
         log.critical('Unsupported Platform. Exiting.')

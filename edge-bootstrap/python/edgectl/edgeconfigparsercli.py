@@ -48,8 +48,6 @@ class EdgeConfigParserCLI(EdgeConfigParser):
 
         # @todo get security options from user
         config.security_option = EC.SELFSIGNED_KEY
-        config.self_signed_cert_option_force_regen = \
-            args.auto_cert_gen_force_regenerate
         config.self_signed_cert_option_force_no_passwords = \
             args.auto_cert_gen_force_no_passwords
 

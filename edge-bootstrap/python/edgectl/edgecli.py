@@ -51,8 +51,8 @@ class EdgeCLI(object):
 
     @staticmethod
     def print_help_and_exit():
-        log.error('Run python ' + EdgeCLI.prog()
-                  + '.py --help for more information.')
+        print('Run python ' + EdgeCLI.prog()
+              + '.py --help for more information.')
         sys.exit(1)
 
     @property
@@ -201,11 +201,6 @@ class EdgeCLI(object):
                                                         EC.DOCKER_ENGINE_WINDOWS)
                                , metavar='')
 
-        cmd_setup.add_argument('--auto-cert-gen-force-regenerate',
-                               help='Force regeneration of the certificates'
-                               + ' needed for the Edge runtime. Optional.'
-                               , action='store_true')
-
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords',
                                help='Do not use passwords for private keys for'
                                + ' a no prompt experience. Optional.'
@@ -269,7 +264,7 @@ class EdgeCLI(object):
                     'start'   : self.parse_command_options_common,
                     'restart' : self.parse_command_options_common,
                     'stop'    : self.parse_command_options_common,
-                    'uninstall' : self.parse_command_options_common,
+                    'uninstall' : self.parse_uninstall_options,
                     'status'  : self.parse_command_options_common,
                     'update'  : self.parse_update_options,
                     'login'   : self.parse_login_options}
@@ -282,14 +277,21 @@ class EdgeCLI(object):
         self.parse_installed_config_file_options(args)
         return
 
+    def parse_uninstall_options(self, args):
+        log.debug('Command: ' + args.subparser_name)
+        self.parse_installed_config_file_options(args)
+        EdgeHostPlatform.uninstall_edge(self.edge_config.home_dir)
+        return
+
     def parse_installed_config_file_options(self, args):
-        ins_cfg_file_path = EdgeDefault.get_host_config_file_path()
+        ins_cfg_file_path = EdgeHostPlatform.get_host_config_file_path()
         if ins_cfg_file_path is None:
-            log.error('Installed Edge Config File Not Found.' \
-                      + ' Please run \'setup\'. Exiting')
+            log.error('Edge runtime has not been configured on this device.' \
+                      + ' Please run \'setup\' before you execute'
+                      + ' \'' + args.subparser_name + '\'.' )
             self.print_help_and_exit()
         else:
-            log.info('Found Installed Edge Config File:' + ins_cfg_file_path)
+            log.debug('Found Edge Config File: ' + ins_cfg_file_path)
         ip_type = EC.EdgeConfigInputSources.FILE
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse(ins_cfg_file_path)
@@ -384,13 +386,13 @@ class EdgeCLI(object):
             try:
                 self.parse_and_validate_user_input(args)
             except ValueError:
-                log.error('Error observed when validating manual user input')
+                log.error('Error observed when validating user input')
                 raise
 
         return
 
     def execute_command(self):
-        log.info('Executing Command ' + self.command)
+        log.info('Executing Command \'' + self.command + '\'')
         edge_cmd = EdgeCommandFactory.create_command(self.command,
                                                      self.edge_config)
         edge_cmd.execute()
