@@ -101,9 +101,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             // TODO: We have more information that we could report about edge agent here. For example
             // we could serialize the entire edgeAgentContainer response object and report it.
-            DockerConfig config = edgeAgentContainer
-                .Map(response => new DockerConfig(response.Config?.Image ?? Unknown, Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName)))
-                .GetOrElse(DockerConfig.Unknown);
+            DockerReportedConfig config = edgeAgentContainer
+                .Map(response =>
+                    new DockerReportedConfig(
+                        response.Config?.Image ?? Unknown,
+                        Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName),
+                        response.Image))
+                .GetOrElse(DockerReportedConfig.Unknown);
 
             var configurationInfo = new ConfigurationInfo(edgeAgentContainer
                 .Map(response => response.Config?.Labels?.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty) ?? string.Empty)
@@ -119,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string image,
             ModuleStatus desiredStatus,
             Core.RestartPolicy RestartPolicy,
-            DockerConfig dockerConfig,
+            string createOptions,
             ConfigurationInfo configurationInfo
         )
         ExtractModuleInfo(ContainerListResponse response)
@@ -141,17 +145,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 )
             );
             string image = response.Image != null ? response.Image : Unknown;
-            var dockerConfig = new DockerConfig(image, (response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty)));
+            string createOptions = response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty);
             var configurationInfo = new ConfigurationInfo(response.Labels.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty));
 
-            return (name, version, image, desiredStatus, restartPolicy, dockerConfig, configurationInfo);
+            return (name, version, image, desiredStatus, restartPolicy, createOptions, configurationInfo);
         }
 
         (
             int exitCode,
             string statusDescription,
             DateTime lastStartTime,
-            DateTime lastExitTime
+            DateTime lastExitTime,
+            string imageHash
         )
         ExtractModuleRuntimeState(ContainerInspectResponse inspected)
         {
@@ -172,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            return (exitCode, statusDescription, lastStartTime, lastExitTime);
+            return (exitCode, statusDescription, lastStartTime, lastExitTime, inspected.Image);
         }
 
         internal async Task<IModule> ContainerToModuleAsync(ContainerListResponse response)
@@ -185,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             //  - restart policy,
             //  - docker configuration
             //  - configuration info
-            var (name, version, image, desiredStatus, restartPolicy, dockerConfig, configurationInfo) = this.ExtractModuleInfo(response);
+            var (name, version, image, desiredStatus, restartPolicy, createOptions, configurationInfo) = this.ExtractModuleInfo(response);
 
             // Do a deep inspection of the container to get the following runtime state:
             //  - exit code
@@ -193,7 +198,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             //  - last start time
             //  - lat exit time
             ContainerInspectResponse inspected = await this.client.Containers.InspectContainerAsync(response.ID);
-            var (exitCode, statusDescription, lastStartTime, lastExitTime) = this.ExtractModuleRuntimeState(inspected);
+            var (exitCode, statusDescription, lastStartTime, lastExitTime, imageHash) = this.ExtractModuleRuntimeState(inspected);
+
+            var dockerConfig = new DockerReportedConfig(image, createOptions, imageHash);
 
             // Figure out module stats and runtime status
             ModuleState moduleState = (await this.store.Get(name)).GetOrElse(new ModuleState(0, lastExitTime));

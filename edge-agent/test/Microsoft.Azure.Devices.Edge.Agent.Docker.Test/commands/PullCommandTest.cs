@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, DockerConfig.Unknown, null);
+                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
 
 
                 ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, DockerConfig.Unknown, null);
+                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
 
 
                 ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, DockerConfig.Unknown, null);
+                var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
 
 
                 ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);

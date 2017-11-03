@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void TestJsonSerialize()
         {
             // Arrange
-            var module = new EdgeAgentDockerRuntimeModule(new DockerConfig("booyah"), ModuleStatus.Running, new ConfigurationInfo("bing"));
+            var module = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("booyah", string.Empty, "someSha"), ModuleStatus.Running, new ConfigurationInfo("bing"));
 
             // Act
             JToken json = JToken.Parse(JsonConvert.SerializeObject(module));
@@ -28,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 settings = new
                 {
                     image = "booyah",
-                    createOptions = "{}"
+                    createOptions = "{}",
+                    imageHash = "someSha"
                 },
                 configuration = new
                 {
@@ -50,9 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 runtimeStatus = "running",
                 settings = new
                 {
-                    image = "Unknown",
-                    createOptions = "{}"
-                }
+                    image = "someImage",
+                    createOptions = "{}",
+                    imageHash = "someSha"
+                },
             });
 
             // Act
@@ -61,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("Unknown", edgeAgent.Config.Image);
+            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig).ImageHash);
         }
 
         [Fact]
@@ -75,8 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 runtimeStatus = "running",
                 settings = new
                 {
-                    image = "Unknown",
-                    createOptions = "{}"
+                    image = "someImage",
+                    createOptions = "{}",
+                    imageHash = "someSha"
                 },
                 configuration = new
                 {
@@ -90,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
-            Assert.Equal("Unknown", edgeAgent.Config.Image);
+            Assert.Equal("someImage", edgeAgent.Config.Image);
+            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig).ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
         }
     }

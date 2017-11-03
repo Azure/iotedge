@@ -11,8 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
-        public static DockerConfig Unknown = new DockerConfig("Unknown");
-
         [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
 
@@ -59,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Image, other.Image) &&
-                   CompareCreateOptions(this.CreateOptions, other.CreateOptions);
+                CompareCreateOptions(this.CreateOptions, other.CreateOptions);
         }
 
         class DockerConfigJsonConverter : JsonConverter

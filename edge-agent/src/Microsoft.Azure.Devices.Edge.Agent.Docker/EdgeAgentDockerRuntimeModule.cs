@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule
     {
         [JsonConstructor]
-        public EdgeAgentDockerRuntimeModule(DockerConfig settings, ModuleStatus runtimeStatus, ConfigurationInfo configuration)
+        public EdgeAgentDockerRuntimeModule(DockerReportedConfig settings, ModuleStatus runtimeStatus, ConfigurationInfo configuration)
             : base("docker", settings, configuration)
         {
             this.RuntimeStatus = runtimeStatus;
