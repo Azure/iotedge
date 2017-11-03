@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
@@ -36,6 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
+            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+            Logger.SetLogLevel(logLevel);
+
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
             var hosting = new Hosting();

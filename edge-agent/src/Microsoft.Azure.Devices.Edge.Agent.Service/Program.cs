@@ -45,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
             TimeSpan intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
             int coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
+            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+            Logger.SetLogLevel(logLevel);
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();

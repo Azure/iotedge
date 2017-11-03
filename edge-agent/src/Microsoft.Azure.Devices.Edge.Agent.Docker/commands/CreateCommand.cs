@@ -92,14 +92,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 if(createContainerParameters.Env != null)
                 {
                     // Remove any existing environment variables with the same key.
-                    List<string> existingConnectionStrings = createContainerParameters.Env.Where(e => e.StartsWith($"{connectionStringKey}=")).ToList();
-                    existingConnectionStrings.ForEach(e => createContainerParameters.Env.Remove(e));
+                    List<string> envStringsToRemove = createContainerParameters.Env
+                        .Where(e => e.StartsWith($"{connectionStringKey}="))
+                        .ToList();
+                    if (injectForEdgeHub)
+                    {
+                        envStringsToRemove = envStringsToRemove.Concat(createContainerParameters.Env
+                            .Where(e => e.StartsWith($"{Logger.RuntimeLogLevelEnvKey}="))
+                            .ToList()).ToList();
+                    }
+                    envStringsToRemove.ForEach(e => createContainerParameters.Env.Remove(e));
                 }
                 else
                 {
                     createContainerParameters.Env = new List<string>();
                 }
                 createContainerParameters.Env.Add(edgeDeviceConnectionString);
+
+                // Inject the same log level for edge hub as that of agent
+                if (injectForEdgeHub)
+                {
+                    createContainerParameters.Env.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
+                }
             }
         }
 
