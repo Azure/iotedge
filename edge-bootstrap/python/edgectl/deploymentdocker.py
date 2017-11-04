@@ -37,8 +37,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.error('Runtime is restarting. Please retry later.')
         elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
             log.info('Runtime container ' + container_name \
-                     + ' found in stopped state. Please use \
-                     the start command to see changes take effect.')
+                     + ' found in stopped state. Please use' \
+                     + ' the start command to see changes take effect.')
+        elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
+            log.info('Please use the start command to see' \
+                     + ' changes take effect.')
         else:
             log.info('Stopping Runtime.')
             self._client.stop(container_name)
@@ -58,8 +61,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.error('Runtime is restarting. Please retry later.')
         elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
             log.info('Runtime container ' + container_name \
-                     + ' found in stopped state. Please use \
-                     the start command to see changes take effect.')
+                     + ' found in stopped state. Please use' \
+                     + ' the start command to see changes take effect.')
+        elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
+            log.info('Please use the start command to see' \
+                     + ' changes take effect.')
         else:
             log.info('Stopping Runtime.')
             self._client.stop(container_name)
