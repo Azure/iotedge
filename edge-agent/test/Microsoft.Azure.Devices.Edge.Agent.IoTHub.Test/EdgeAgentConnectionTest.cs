@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     edgeHub = new
-                    {                        
+                    {
                         type = "docker",
                         status = "running",
                         restartPolicy = "always",
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 modules = new
                 {
                     mongoserver = new
-                    {                        
+                    {
                         version = "1.0",
                         type = "docker",
                         status = "running",
@@ -539,7 +539,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     edgeHub = new
-                    {                        
+                    {
                         type = "docker",
                         status = "running",
                         restartPolicy = "always",
@@ -553,7 +553,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 modules = new
                 {
                     mongoserver = new
-                    {                        
+                    {
                         version = "1.0",
                         type = "docker",
                         status = "running",
@@ -565,7 +565,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         }
                     },
                     mlModule = new
-                    {                        
+                    {
                         version = "1.0",
                         type = "docker",
                         status = "running",
@@ -602,7 +602,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
-                        { "$version", 10 }
+                        { "$version", 10 },
+
+                        // This is here to prevent the "empty" twin error from being thrown.
+                        { "MoreStuff", "MoreStuffHereToo" }
                     }).ToString()),
                     Reported = new TwinCollection()
                 }
@@ -660,16 +663,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
-                        { "$version", 10 }
+                        { "$version", 10 },
+
+                        // This is here to prevent the "empty" twin error from being thrown.
+                        { "MoreStuff", "MoreStuffHereToo" }
                     }).ToString()),
                     Reported = new TwinCollection()
                 }
             };
-            var deploymentConfig = new DeploymentConfig(
-                "1.0", runtime.Object,
-                new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty
-            );
 
             deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
                 .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
@@ -701,7 +702,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         [Fact]
         [Unit]
-        public async Task GetDeploymentConfigInfoIncludesExceptionWhenSchemaVersionDoesNotMatch()
+        public async Task GetDeploymentConfigInfoAsyncIncludesExceptionWhenDeserializeThrowsConfigEmptyException()
         {
             // Arrange
             var deviceClient = new Mock<IDeviceClient>();
@@ -719,6 +720,59 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
                         { "$version", 10 }
+                    }).ToString()),
+                    Reported = new TwinCollection()
+                }
+            };
+
+            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
+                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
+                {
+                    desiredPropertyUpdateCallback = handler;
+                    desiredPropertyUpdateCallbackContext = context;
+                })
+                .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.GetTwinAsync())
+                .ReturnsAsync(twin);
+
+            // Act
+            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            Assert.NotNull(connectionStatusChangesHandler);
+            connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
+
+            var deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+
+            // Assert
+            Assert.True(deploymentConfigInfo.HasValue);
+            Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
+            Assert.IsType(typeof(ConfigEmptyException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetDeploymentConfigInfoIncludesExceptionWhenSchemaVersionDoesNotMatch()
+        {
+            // Arrange
+            var deviceClient = new Mock<IDeviceClient>();
+            var serde = new Mock<ISerde<DeploymentConfig>>();
+            var runtime = new Mock<IRuntimeInfo>();
+            var edgeAgent = new Mock<IEdgeAgentModule>();
+            var edgeHub = new Mock<IEdgeHubModule>();
+            Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
+            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
+            object desiredPropertyUpdateCallbackContext;
+            var twin = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
+                    {
+                        { "$version", 10 },
+
+                        // This is here to prevent the "empty" twin error from being thrown.
+                        { "MoreStuff", "MoreStuffHereToo" }
                     }).ToString()),
                     Reported = new TwinCollection()
                 }
@@ -753,7 +807,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
-            Assert.IsType(typeof(InvalidOperationException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+            Assert.IsType(typeof(InvalidSchemaVersionException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
         }
 
         [Fact]
@@ -832,7 +886,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
                     {
-                        { "$version", 10 }
+                        { "$version", 10 },
+
+                        // This is here to prevent the "empty" twin error from being thrown.
+                        { "MoreStuff", "MoreStuffHereToo" }
                     }).ToString()),
                     Reported = new TwinCollection()
                 }

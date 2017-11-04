@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         Successful = 200,
         ConfigFormatError = 400,
+        ConfigEmptyError = 417,
+        InvalidSchemaVersion = 412,
         Unknown = 406,
         Failed = 500
     }

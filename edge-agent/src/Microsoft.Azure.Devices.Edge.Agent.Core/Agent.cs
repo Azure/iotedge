@@ -142,6 +142,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
             }
+            catch(ConfigEmptyException ex)
+            {
+                var status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
+                throw;
+            }
+            catch(InvalidSchemaVersionException ex)
+            {
+                var status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
+                throw;
+            }
             catch(ConfigFormatException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);

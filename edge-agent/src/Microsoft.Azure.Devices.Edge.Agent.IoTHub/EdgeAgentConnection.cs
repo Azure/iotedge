@@ -117,8 +117,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             try
             {
+                // if the twin is empty then throw an appropriate error
+                if (this.desiredProperties.Count == 0)
+                {
+                    throw new ConfigEmptyException("Edge deployment configuration is empty. Please create a deployment.");
+                }
+
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
                 deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
+            }
+            catch(ConfigEmptyException)
+            {
+                Events.EmptyDeploymentConfig();
+                // TODO: Localize this error?
+                throw;
             }
             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
             {
@@ -133,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 if (!deploymentConfig.SchemaVersion.Equals(ExpectedSchemaVersion, StringComparison.OrdinalIgnoreCase))
                 {
                     // TODO: Localize this error?
-                    throw new InvalidOperationException($"Received schema with version {deploymentConfig.SchemaVersion}, but only version {ExpectedSchemaVersion} is supported.");
+                    throw new InvalidSchemaVersionException($"Received schema with version {deploymentConfig.SchemaVersion}, but only version {ExpectedSchemaVersion} is supported.");
                 }
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
@@ -171,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorUpdatingDeploymentConfig,
                 ErrorRefreshingTwin,
                 TwinRefreshSuccess,
-                ErrorHandlingConnectionChangeEvent
+                ErrorHandlingConnectionChangeEvent,
+                EmptyDeploymentConfig
             }
 
             public static void Created()
@@ -217,6 +230,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void ErrorUpdatingDeploymentConfig(Exception ex)
             {
                 Log.LogError((int)EventIds.ErrorUpdatingDeploymentConfig, ex, "Error updating deployment config from Edge agent desired properties.");
+            }
+
+            internal static void EmptyDeploymentConfig()
+            {
+                Log.LogInformation((int)EventIds.EmptyDeploymentConfig, "Deployment config in edge agent's desired properties is empty.");
             }
 
             internal static void UpdatedDeploymentConfig()
