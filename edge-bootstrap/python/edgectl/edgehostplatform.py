@@ -121,12 +121,12 @@ class EdgeHostPlatform(object):
                 copy2(ip_config_file_path, edge_config_file_path)
                 EdgeHostPlatform.__setup_home_dir(edge_home_dir, host_name)
             except IOError as ex:
-                log.error('Error Observed When Copying Config File: ' \
+                log.error('Error when copying config file: ' \
                         + ip_config_file_path + '. Errno ' \
                         + str(ex.errno) + ', Error:' + ex.strerror)
                 raise
         else:
-            raise RuntimeError('Unsupported Platform.')
+            raise RuntimeError('Unsupported platform.')
 
     @staticmethod
     def install_edge_by_json_data(data, edge_home_dir, host_name):
@@ -138,12 +138,12 @@ class EdgeHostPlatform(object):
                     output_file.write(data)
                 EdgeHostPlatform.__setup_home_dir(edge_home_dir, host_name)
             except IOError as ex:
-                log.error('Error Observed When Writing Config File: ' \
+                log.error('Error when writing config file: ' \
                         + edge_config_file_path + '. Errno ' \
                         + str(ex.errno) + ', Error:' + ex.strerror)
                 raise
         else:
-            raise RuntimeError('Unsupported Platform.')
+            raise RuntimeError('Unsupported platform.')
 
     @staticmethod
     def uninstall_edge(home_dir):
@@ -182,17 +182,17 @@ class EdgeHostPlatform(object):
     def __get_or_create_edge_config_dir():
         result = None
         edge_config_dir = EdgeDefault.get_host_config_dir()
-        log.debug('Found Edge Config Dir:' + edge_config_dir)
+        log.debug('Found config directory:' + edge_config_dir)
         if os.path.exists(edge_config_dir):
             result = edge_config_dir
         else:
             try:
-                log.info('Edge Config Dir does not exist. Creating dir:'
+                log.info('Config directory does not exist. Creating directory:'
                          + edge_config_dir)
                 os.mkdir(edge_config_dir)
                 result = edge_config_dir
             except OSError as ex:
-                log.critical('Error Observed When Creating Edge Config Dir: ' \
+                log.critical('Error when creating config directory: ' \
                              + edge_config_dir + '. Errno ' \
                              + str(ex.errno) + ', Error:' + ex.strerror)
                 raise

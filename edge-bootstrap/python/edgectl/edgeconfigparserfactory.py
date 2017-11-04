@@ -11,4 +11,4 @@ class EdgeConfigParserFactory(object):
         elif EC.EdgeConfigInputSources.CLI == input_type:
             return EdgeConfigParserCLI(args, deployment)
         else:
-            raise NotImplementedError("Unsupported Edge Configuration Type.")
+            raise NotImplementedError("Unsupported configuration type.")

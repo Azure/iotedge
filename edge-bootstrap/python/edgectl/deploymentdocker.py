@@ -29,7 +29,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         return result
 
     def login(self):
-        log.info('Executing IoT Edge \'login\' For Docker Deployment')
+        log.info('Executing \'login\'')
         container_name = self._edge_runtime_container_name
 
         status = self.status()
@@ -43,16 +43,16 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.info('Please use the start command to see' \
                      + ' changes take effect.')
         else:
-            log.info('Stopping Runtime.')
+            log.info('Stopping runtime.')
             self._client.stop(container_name)
             self._client.remove(container_name)
-            log.info('Stopped Runtime.')
-            log.info('Starting Runtime.')
+            log.info('Stopped runtime.')
+            log.info('Starting runtime.')
             self.start()
-            log.info('Starting Runtime.')
+            log.info('Starting runtime.')
 
     def update(self):
-        log.info('Executing IoT Edge \'update\' For Docker Deployment')
+        log.info('Executing \'update\'')
 
         container_name = self._edge_runtime_container_name
 
@@ -67,16 +67,16 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.info('Please use the start command to see' \
                      + ' changes take effect.')
         else:
-            log.info('Stopping Runtime.')
+            log.info('Stopping runtime.')
             self._client.stop(container_name)
             self._client.remove(container_name)
-            log.info('Stopped Runtime.')
-            log.info('Starting Runtime.')
+            log.info('Stopped runtime.')
+            log.info('Starting runtime.')
             self.start()
-            log.info('Starting Runtime.')
+            log.info('Starting runtime.')
 
     def start(self):
-        log.info('Executing IoT Edge \'start\' For Docker Deployment')
+        log.info('Executing \'start\'')
         create_new_container = False
         start_existing_container = False
         container_name = self._edge_runtime_container_name
@@ -85,11 +85,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         image = edge_config.deployment_config.edge_image
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RUNNING:
-            log.error('Edge runtime Is currently running. '
-                      + 'Please stop or restart the IoT Edge runtime and retry.')
+            log.error('Runtime is currently running. '
+                      + 'Please stop or restart the runtime and retry.')
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
-            log.error('Edge runtime Is currently restarting. '
-                      + 'Please stop the IoT Edge runtime and retry.')
+            log.error('Runtime is currently restarting. '
+                      + 'Please stop the runtime and retry.')
         else:
             edge_reg = self.obtain_edge_agent_login()
             username = None
@@ -105,7 +105,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             else:
                 if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
                     create_new_container = True
-                    log.debug('Edge Runtime Container ' + container_name
+                    log.debug('Edge Agent container ' + container_name
                               + ' does not exist.')
                 else:
                     existing = self._client.get_container_by_name(container_name)
@@ -118,19 +118,19 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
         if start_existing_container:
             self._client.start(container_name)
-            print('IoT Edge Runtime Started.')
+            print('Runtime started.')
         elif create_new_container:
             ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
             if ca_cert_file is None:
-                raise RuntimeError('Could Not Find CA Certificate File')
+                raise RuntimeError('Could not find CA certificate file')
 
             ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
             if ca_chain_cert_file is None:
-                raise RuntimeError('Could Not Find CA Chain Certificate File')
+                raise RuntimeError('Could not find CA chain certificate file')
 
             hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
             if hub_cert_dict is None:
-                raise RuntimeError('Could Not Find Edge Hub Certificate.')
+                raise RuntimeError('Could not find Edge Hub certificate.')
 
             nw_name = self._edge_runtime_network_name
             self._client.create_network(nw_name)
@@ -211,40 +211,40 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                              ports_dict,
                              volume_dict,
                              log_config_dict)
-            print('IoT Edge runtime has been started.')
+            print('Runtime started.')
         return
 
     def stop(self):
-        log.info('Executing IoT Edge \'stop\' For Docker Deployment')
+        log.info('Executing \'stop\'')
         container_name = self._edge_runtime_container_name
 
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.error('Edge Runtime Container container_name does not exist.')
+            log.error('Edge Agent container \'%s\' does not exist.' % (container_name,))
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
-            log.error('Edge runtime Is Restarting. Please retry later.')
+            log.error('Runtime is restarting. Please retry later.')
         else:
             if status != self.EDGE_RUNTIME_STATUS_RUNNING:
-                log.info('Edge runtime is already stopped.')
+                log.info('Runtime is already stopped.')
             else:
                 self._client.stop(container_name)
-            log.info('Stopping All Edge Modules.')
+            log.info('Stopping all modules.')
             self._client.stop_by_label(self._edge_agent_container_label)
-            print('IoT Edge runtime has been stopped.')
+            print('Runtime stopped.')
         return
 
     def restart(self):
-        log.info('Executing IoT Edge \'restart\' For Docker Deployment')
+        log.info('Executing \'restart\'')
         container_name = self._edge_runtime_container_name
 
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
             self.start()
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
-            log.error('Edge runtime Is restarting. Please retry later.')
+            log.error('Runtime is restarting. Please retry later.')
         else:
             self._client.restart(container_name)
-            print('IoT Edge runtime has been restarted.')
+            print('Runtime restarted.')
         return
 
     def status(self):
@@ -268,25 +268,28 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         container_name = self._edge_runtime_container_name
 
         status = self._status()
-        log.info('Uninstalling All Edge Modules.')
+        log.info('Uninstalling all modules.')
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.debug('Edge Runtime Container ' + container_name \
-                      + ' does not exist.')
+            log.info('Edge Agent container \'%s\' does not exist.' % (container_name,))
         else:
             self._client.stop(container_name)
             self._client.remove(container_name)
+
         self._client.stop_by_label(self._edge_agent_container_label)
         self._client.remove_by_label(self._edge_agent_container_label)
         return
 
     def uninstall(self):
-        log.info('Executing IoT Edge \'uninstall\' For Docker Deployment')
+        log.info('Executing \'uninstall\'')
         self.uninstall_common()
-        print('IoT Edge runtime uninstalled successfully.')
+        print('Runtime uninstalled successfully.')
         return
 
     def setup(self):
-        log.info('Executing Edge \'setup\' For Docker Deployment')
+        log.info('Executing \'setup\'')
         self.uninstall_common()
-        print('IoT Edge runtime setup successfully.')
+        print('Runtime setup successfully.')
+        print('\n')
+        print('Using configration:\n\n%s' %(self._config_obj,))
+        print('Use \'iotedgectl start\' to start the runtime.')
         return

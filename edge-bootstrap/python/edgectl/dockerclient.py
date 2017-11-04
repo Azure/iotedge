@@ -10,12 +10,12 @@ class EdgeDockerClient(object):
         self._api_client = docker.APIClient()
 
     def login(self, addr, uname, pword):
-        logging.info('Logging into Registry ' + addr \
+        logging.info('Logging into registry ' + addr \
                      + ' using username ' + uname)
         try:
             self._client.login(username=uname, password=pword, registry=addr)
         except docker.errors.APIError as ex:
-            logging.error('Could Not Login To Registry ' + addr \
+            logging.error('Could not login to registry ' + addr \
                       + ' using username ' + uname)
             print(ex)
             raise
@@ -25,36 +25,36 @@ class EdgeDockerClient(object):
             info = self._client.info()
             return info[self._DOCKER_INFO_OS_TYPE_KEY]
         except docker.errors.APIError as ex:
-            logging.error('Could Not Obtain Docker Info')
+            logging.error('Could not obtain Docker info')
             print(ex)
             raise
 
     def pull(self, image, username, password):
-        logging.info('Executing Docker Pull For Image: ' + image)
+        logging.info('Executing pull for image: ' + image)
         is_updated = True
         old_tag = None
         try:
             inspect_dict = self._api_client.inspect_image(image)
             old_tag = inspect_dict['Id']
-            logging.info('Image Exists Locally. Tag: ' + old_tag)
+            logging.info('Image exists locally. Tag: ' + old_tag)
         except docker.errors.APIError as ex:
-            logging.info('Docker image not found locally:' + image)
+            logging.info('Image not found locally: ' + image)
 
         try:
             auth_dict = None
             if username:
                 auth_dict = {'username': username, 'password': password}
             pull_result = self._client.images.pull(image, auth_config=auth_dict)
-            logging.info('Pulled Image: ' + str(pull_result))
+            logging.info('Pulled image: ' + str(pull_result))
             if old_tag:
                 inspect_dict = self._api_client.inspect_image(image)
                 new_tag = inspect_dict['Id']
-                logging.debug('Post Pull Image Tag: ' + new_tag)
+                logging.debug('Post pull image tag: ' + new_tag)
                 if new_tag == old_tag:
                     logging.debug('Image is up to date.')
                     is_updated = False
         except docker.errors.APIError as ex:
-            logging.error('Docker Pull, Inspect Error For Image:' \
+            logging.error('Error inspecting image: ' \
                           + image + ' ' + str(ex))
             raise
 
@@ -71,38 +71,38 @@ class EdgeDockerClient(object):
             return None
 
     def start(self, container_name):
-        logging.info('Starting Container:' + container_name)
+        logging.info('Starting container: ' + container_name)
         try:
             containers = self._client.containers.list(all=True)
             for container in containers:
                 if container_name == container.name:
                     container.start()
         except docker.errors.APIError as ex:
-            logging.error('Could Not Start Container ' + container_name)
+            logging.error('Could not start container ' + container_name)
             print(ex)
             raise
 
     def restart(self, container_name, timeout_int=5):
-        logging.info('Restarting Container:' + container_name)
+        logging.info('Restarting container: ' + container_name)
         try:
             containers = self._client.containers.list(all=True)
             for container in containers:
                 if container_name == container.name:
                     container.restart(timeout=timeout_int)
         except docker.errors.APIError as ex:
-            logging.error('Could Not Retart Container ' + container_name)
+            logging.error('Could not retart container ' + container_name)
             print(ex)
             raise
 
     def stop(self, container_name):
-        logging.info('Stopping Container:' + container_name)
+        logging.info('Stopping container: ' + container_name)
         try:
             containers = self._client.containers.list(all=True)
             for container in containers:
                 if container_name == container.name:
                     container.stop()
         except docker.errors.APIError as ex:
-            logging.error('Could Not Stop Container ' + container_name)
+            logging.error('Could not stop container ' + container_name)
             print(ex)
             raise
 
@@ -115,25 +115,25 @@ class EdgeDockerClient(object):
                     result = container.status
             return result
         except docker.errors.APIError as ex:
-            logging.error('Error Observed While Checking Status For:'
+            logging.error('Error while checking status for: '
                           + container_name)
             print(ex)
             raise
 
     def remove(self, container_name):
-        logging.info('Removing Container:' + container_name)
+        logging.info('Removing container: ' + container_name)
         try:
             containers = self._client.containers.list(all=True)
             for container in containers:
                 if container_name == container.name:
                     container.remove()
         except docker.errors.APIError as ex:
-            logging.error('Could Not Remove Container ' + container_name)
+            logging.error('Could not remove container ' + container_name)
             print(ex)
             raise
 
     def stop_by_label(self, label):
-        logging.info('Stopping Containers By Label:' + label)
+        logging.info('Stopping containers by label: ' + label)
         try:
             filter_dict = {'label': label}
             containers = self._client.containers.list(all=True,
@@ -141,13 +141,13 @@ class EdgeDockerClient(object):
             for container in containers:
                 container.stop()
         except docker.errors.APIError as ex:
-            logging.error('Could Not Stop Containers By Label ' + label)
+            logging.error('Could not stop containers by label ' + label)
             print(ex)
             raise
         return
 
     def remove_by_label(self, label):
-        logging.info('Removing Containers By Label:' + label)
+        logging.info('Removing containers by label: ' + label)
         try:
             filter_dict = {'label': label}
             containers = self._client.containers.list(all=True,
@@ -155,13 +155,13 @@ class EdgeDockerClient(object):
             for container in containers:
                 container.remove()
         except docker.errors.APIError as ex:
-            logging.error('Could Not Remove Containers By Label ' + label)
+            logging.error('Could not remove containers by label ' + label)
             print(ex)
             raise
         return
 
     def create_network(self, network_name):
-        logging.info('Creating Network:' + network_name)
+        logging.info('Creating network: ' + network_name)
         create_network = False
         try:
             networks = self._client.networks.list(names=[network_name])
@@ -174,7 +174,7 @@ class EdgeDockerClient(object):
             if create_network:
                 self._client.networks.create(network_name, driver="bridge")
         except docker.errors.APIError as ex:
-            logging.error('Could Not Create Docker Network:' + network_name)
+            logging.error('Could not create docker network: ' + network_name)
             print(ex)
             raise
 
@@ -202,15 +202,15 @@ class EdgeDockerClient(object):
                                         volumes=volume_dict,
                                         log_config=log_config_dict)
         except docker.errors.ContainerError as ex_ctr:
-            logging.error(container_name + ' Container Exited With Errors!')
+            logging.error(container_name + ' Container exited with errors!')
             print(ex_ctr)
             raise
         except docker.errors.ImageNotFound as ex_img:
-            logging.error('Could Not Execute Docker Run. Image Not Found:' \
+            logging.error('Could not execute docker run. Image not found: ' \
                           + image)
             print(ex_img)
             raise
         except docker.errors.APIError as ex:
-            logging.error('Could Not Execute Docker Run For Image:' + image)
+            logging.error('Could not execute docker run for image: ' + image)
             print(ex)
             raise

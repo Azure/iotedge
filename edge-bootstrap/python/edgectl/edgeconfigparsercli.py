@@ -20,12 +20,8 @@ class EdgeConfigParserCLI(EdgeConfigParser):
         defaults_json = EdgeDefault.get_default_user_input_config_json()
 
         cs = args.connection_string
-        if cs is None:
-            ValueError("Connection String Parameter Cannot Be Empty")
-        else:
-            cs_len = len(cs)
-            if cs_len == 0:
-                ValueError("Invalid Connection String Parameter:" + cs)
+        if cs is None or len(cs) == 0:
+            raise ValueError("Please specify the device connection string with the --connection-string option.")
 
         config = EdgeHostConfig()
         config.schema_version = defaults_json[EC.SCHEMA_KEY]
@@ -41,7 +37,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             hostname = EdgeUtils.get_hostname()
         config.hostname = hostname
 
-        log_level = args.edge_runtime_log_level
+        log_level = args.runtime_log_level
         if log_level is None:
             log_level = EdgeDefault.edge_runtime_default_log_level()
         config.log_level = log_level
@@ -78,7 +74,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
                         deploy_cfg.add_registry(address, username, password)
                     idx = (idx + 1) % 3
 
-            image = args.docker_edge_runtime_image
+            image = args.image
             if image is None:
                 image = docker_deploy_data[EC.EDGE_RUNTIME_IMAGE_KEY]
             deploy_cfg.edge_image = image
@@ -97,7 +93,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
                 deploy_cfg.add_logging_option(opt_key, opt_val)
 
         if deploy_cfg is None:
-            raise ValueError('Unsupported Deployment Type:' \
+            raise ValueError('Unsupported deployment type:' \
                              + self._deployment_type)
 
         config.deployment_config = deploy_cfg

@@ -50,10 +50,8 @@ class EdgeCLI(object):
                             level=getattr(log, level))
 
     @staticmethod
-    def print_help_and_exit():
-        print('Run python ' + EdgeCLI.prog()
-              + '.py --help for more information.')
-        sys.exit(1)
+    def exit(code):
+        sys.exit(code)
 
     @property
     def verbose_level(self):
@@ -87,13 +85,13 @@ class EdgeCLI(object):
         parser = argparse.ArgumentParser(prog=EdgeCLI.prog(),
                                          usage=EdgeCLI.prog() + ' [command] [options]',
                                          formatter_class=argparse.RawTextHelpFormatter,
-                                         description='Azure Edge Control Interface.',
+                                         description='Azure IoT Edge Runtime Control Interface',
                                          epilog='''''')
         parser.add_argument('--version',
                             action='version',
                             version='%s %s' % (EdgeCLI.prog(), self.version(),))
 
-        verbose_help_str = 'Verbose Level. Permitted Values: ' \
+        verbose_help_str = 'Set verbosity. Levels: ' \
                            + ', '.join(EdgeCLI.supported_log_levels()) \
                            + '. Default: ' + EdgeCLI.default_log_level()
 
@@ -103,144 +101,102 @@ class EdgeCLI(object):
                             help=verbose_help_str, metavar='')
 
         subparsers = parser.add_subparsers(title='commands',
-                                           description='Edge Commands',
+                                           description='Azure IoT Edge Commands',
                                            help='sub-command help',
                                            dest='subparser_name')
 
-        cmd_setup = subparsers.add_parser('setup', help='setup --help',
+        cmd_setup = subparsers.add_parser('setup', description='Setup the runtime. This must be run before starting.'
+                                          , help='Setup the runtime. This must be run before starting.',
                                           formatter_class=argparse.RawTextHelpFormatter)
 
         cmd_setup.add_argument('--config-file',
-                               help='Setup the Azure Edge using the specified '
-                               + 'configuration file. Optional.\n'
-                               + 'Users can use their configuration file'
-                               + ' instead of\n'
-                               + 'specifying all of the command line options.'
-                               + ' or using --interactive'
+                               help='Setup the runtime using the specified configuration file. Optional.'
                                , metavar='')
 
         cmd_setup.add_argument('--interactive',
-                               help='Interactively setup the Azure Edge. Optional.'
+                               help='Setup the runtime interactively. Optional.'
                                , action='store_true')
 
         cmd_setup.add_argument('--connection-string',
-                               help='Azure IoT Hub Device Connection string.'
-                               + ' Required.\n'
-                               + 'Note: Use double quotes when supplying'
-                               + ' this input.\n'
-                               + 'Format:HostName=<>;DeviceId=<>;SharedAccessKey=<>'
+                               help='Set the Azure IoT Hub device connection string. Required.\n'
+                               + 'Note: Use double quotes when supplying this input.'
                                , metavar='')
 
         cmd_setup.add_argument('--edge-home-dir',
-                               help='Azure Edge Home Directory. Optional.\n'
-                               + 'If not provided by the user, these'
-                               + ' default directories will be used for:'
-                               + '\n   Linux Hosts - '
-                               + EdgeDefault.get_home_dir(EC.DOCKER_HOST_LINUX)
-                               + '\n   Windows Hosts - '
-                               + EdgeDefault.get_home_dir(EC.DOCKER_HOST_WINDOWS)
+                               help='Set runtime home directory. Optional.\n'
+                               + 'Default:\n'
+                               + '   Linux Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_LINUX) + '\n'
+                               + '   Windows Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_WINDOWS)
                                , metavar='')
 
         cmd_setup.add_argument('--edge-hostname',
-                               help='Edge Runtime DNS hostname (FQDN).\n'
-                               + 'This is optional and typically is only'
-                               + ' required when operating the\n'
-                               + 'Edge as a \'Gateway\' for leaf'
-                               + ' device connectivity.\n'
-                               + 'If unspecified, the OS'
-                               + ' reported hostname will be used.'
+                               help='Set the runtime hostname (FQDN). Optional.\n'
+                               + 'Used when operating the runtime as a \'Gateway\' for leaf devices.'
                                , metavar='')
 
         log_levels = EdgeDefault.edge_runtime_log_levels()
         log_levels = ", ".join(log_levels)
-        cmd_setup.add_argument('--edge-runtime-log-level',
-                               help='Edge Runtime Log Level. Levels: '
-                               + log_levels
-                               + '\nThis is optional and the default is '
-                               + EdgeDefault.edge_runtime_default_log_level()
+        cmd_setup.add_argument('--runtime-log-level',
+                               help='Set runtime log level. Optional.\n'
+                               + 'Levels:  ' + log_levels + '\n'
+                               + 'Default: ' + EdgeDefault.edge_runtime_default_log_level()
                                , metavar='')
 
-        cmd_setup.add_argument('--docker-edge-runtime-image',
-                               help='Azure Edge Agent Image for Docker deployments.'
-                               + ' Optional.\n'
-                               + 'If not provided by the user, the default'
-                               + ' value will be chosen from\n'
-                               + 'this configuration file:\n'
-                               + EdgeDefault.default_user_input_config_relative_file_path()
+        cmd_setup.add_argument('--image',
+                               help='Set the Edge Agent image. Optional.\n'
                                , metavar='')
 
         cmd_setup.add_argument('--docker-registries',
-                               help='Supply a list of registries and their'
-                               + ' credentials. Optional.\n'
-                               + 'The format should be a list of triads. Each'
-                               + ' triad consists \nof a registry address,'
-                               + ' username and password in that order.\n'
-                               + 'Example:\n'
-                               + '--docker-registries reg1 user1 pass1'
-                               + ' reg2 user2 pass2 reg3 user3 pass3\n'
-                               + 'If not provided by the user, the default'
-                               + ' value(s) will be chosen from\n'
-                               + 'this configuration file:\n'
-                               + EdgeDefault.default_user_input_config_relative_file_path()
+                               help='Set a list of registries and their credentials. Optional.\n'
+                               + 'Specified as triples of registry address, username, password.\n'
+                               + 'Example: --docker-registries reg1 user1 pass1'
                                , nargs='+', metavar='')
 
         cmd_setup.add_argument('--docker-uri',
-                               help='This is applicable to docker based'
-                               + ' deployments and is the URI\n'
-                               + 'of the Docker engine. Optional.\n'
-                               + 'If not provided by the user, these defaults'
-                               + ' will be chosen:'
-                               + '\n   Linux Hosts - '
-                               + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX,
-                                                        EC.DOCKER_ENGINE_LINUX)
-                               + '\n   Windows Hosts (Linux VM) - '
-                               + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS,
-                                                        EC.DOCKER_ENGINE_LINUX)
-                               + '\n   Windows Hosts (Native) - '
-                               + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS,
-                                                        EC.DOCKER_ENGINE_WINDOWS)
+                               help='Set docker endpoint uri. Optional.\n'
+                               + 'Default:\n'
+                               + '   Linux Hosts - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + '   Windows Hosts (Linux VM) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + '   Windows Hosts (Native) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_WINDOWS)
                                , metavar='')
 
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords',
-                               help='Do not use passwords for private keys for'
-                               + ' a no prompt experience. Optional.'
+                               help='Do not use passwords for private keys for a no prompt experience. Optional.'
                                , action='store_true')
 
         cmd_setup.set_defaults(func=self.parse_edge_command)
 
-        cmd_start = subparsers.add_parser('start', help='start --help')
+        cmd_start = subparsers.add_parser('start', description="Start the runtime.", help='Start the runtime.')
         cmd_start.set_defaults(func=self.parse_edge_command)
 
-        cmd_restart = subparsers.add_parser('restart', help='restart --help')
+        cmd_restart = subparsers.add_parser('restart', description='Restart the runtime.', help='Restart the runtime.')
         cmd_restart.set_defaults(func=self.parse_edge_command)
 
-        cmd_stop = subparsers.add_parser('stop', help='stop --help')
+        cmd_stop = subparsers.add_parser('stop', description='Stop the runtime.', help='Stop the runtime.')
         cmd_stop.set_defaults(func=self.parse_edge_command)
 
-        cmd_status = subparsers.add_parser('status', help='status --help')
+        cmd_status = subparsers.add_parser('status', description='Report the status of the runtime.', help='Report the status of the runtime.')
         cmd_status.set_defaults(func=self.parse_edge_command)
 
-        cmd_update = subparsers.add_parser('update', help='update --help')
-        cmd_update.add_argument('--image',
-                                help='Specify the new IoT Edge Agent image'
-                                , metavar='')
+        cmd_update = subparsers.add_parser('update', description='Update the Edge Agent image.', help='Update the Edge Agent image.')
+        cmd_update.add_argument('--image', help='Specify the Edge Agent image', metavar='')
 
         cmd_update.set_defaults(func=self.parse_edge_command)
 
-        cmd_uninstall = subparsers.add_parser('uninstall'
-                                              , help='uninstall --help')
+        cmd_uninstall = subparsers.add_parser('uninstall', description='Remove all modules and generated files.'
+                                              , help='Remove all modules and generated files.')
         cmd_uninstall.set_defaults(func=self.parse_edge_command)
 
-        cmd_login = subparsers.add_parser('login'
-                                          , help='login --help')
+        cmd_login = subparsers.add_parser('login', description="Log in to a container registry."
+                                          , help='Log in to a container registry.')
         cmd_login.add_argument('--username',
-                               help='Specify the username of container registry',
+                               help='Specify the username of the container registry',
                                metavar='')
         cmd_login.add_argument('--password',
-                               help='Specify the password of container registry',
+                               help='Specify the password of the container registry',
                                metavar='')
         cmd_login.add_argument('--address',
-                               help='Specify the address of container registry',
+                               help='Specify the address of the container registry. (e.g example.azurecr.io)',
                                metavar='')
 
         cmd_login.set_defaults(func=self.parse_edge_command)
@@ -252,7 +208,6 @@ class EdgeCLI(object):
             args.func(args)
             result = True
         except ValueError:
-            log.error('Error observed when parsing user supplied data')
             raise
 
         return result
@@ -260,14 +215,16 @@ class EdgeCLI(object):
     def parse_edge_command(self, args):
         args.verbose_level = args.verbose_level.upper()
         self.verbose_level = args.verbose_level
-        commands = {'setup'   : self.parse_setup_options,
-                    'start'   : self.parse_command_options_common,
-                    'restart' : self.parse_command_options_common,
-                    'stop'    : self.parse_command_options_common,
-                    'uninstall' : self.parse_uninstall_options,
-                    'status'  : self.parse_command_options_common,
-                    'update'  : self.parse_update_options,
-                    'login'   : self.parse_login_options}
+        commands = {
+            'setup' : self.parse_setup_options,
+            'start' : self.parse_command_options_common,
+            'restart' : self.parse_command_options_common,
+            'stop' : self.parse_command_options_common,
+            'uninstall' : self.parse_uninstall_options,
+            'status' : self.parse_command_options_common,
+            'update' : self.parse_update_options,
+            'login' : self.parse_login_options
+        }
         self.command = args.subparser_name
         commands[args.subparser_name](args)
         return
@@ -286,12 +243,10 @@ class EdgeCLI(object):
     def parse_installed_config_file_options(self, args):
         ins_cfg_file_path = EdgeHostPlatform.get_host_config_file_path()
         if ins_cfg_file_path is None:
-            log.error('Edge runtime has not been configured on this device.' \
-                      + ' Please run \'setup\' before you execute'
-                      + ' \'' + args.subparser_name + '\'.' )
-            self.print_help_and_exit()
+            log.error('Runtime has not been configured on this device.\nPlease run \'%s setup\' first.' % (EdgeCLI.prog(),))
+            self.exit(1)
         else:
-            log.debug('Found Edge Config File: ' + ins_cfg_file_path)
+            log.info('Found config file:' + ins_cfg_file_path)
         ip_type = EC.EdgeConfigInputSources.FILE
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse(ins_cfg_file_path)
@@ -309,8 +264,8 @@ class EdgeCLI(object):
     def present_interactive_menu(self):
         #self.edge_config = EdgeConfigInteractive.present()
         # @todo implementation pending
-        print('Feature Not Yet Supported. Stay tuned!')
-        sys.exit(1)
+        print('Feature not yet supported.')
+        self.exit(1)
 
     def parse_and_validate_user_input(self, args):
         ip_type = EC.EdgeConfigInputSources.CLI
@@ -325,13 +280,13 @@ class EdgeCLI(object):
     def parse_update_options(self, args):
         cmd = args.subparser_name
         if args.image is None:
-            log.error('Please specify new IoT Edge Agent Runtime image with --image option')
+            log.error('Please specify Edge Agent image with the --image option.')
             raise ValueError('Incorrect input options for command: ' + cmd)
         else:
             self.parse_command_options_common(args)
             if self.edge_config.deployment_config.edge_image == args.image:
-                log.info('New IoT Edge Agent image matches existing, nothing to do')
-                raise ValueError('No action taken for command: ' + cmd)
+                log.info('New Edge Agent image matches existing. Skipping update.')
+                self.exit(0)
             else:
                 self.edge_config.deployment_config.edge_image = args.image
                 EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
@@ -343,13 +298,13 @@ class EdgeCLI(object):
     def parse_login_options(self, args):
         cmd = args.subparser_name
         if args.username is None:
-            log.error('Please specify username of container registry')
+            log.error('Please specify username of container registry with the --username option.')
             raise ValueError('Incorrect input options for command: ' + cmd)
         if args.password is None:
-            log.error('Please specify password of container registry')
+            log.error('Please specify password of container registry with the --password option.')
             raise ValueError('Incorrect input options for command: ' + cmd)
         if args.address is None:
-            log.error('Please specify address of container registry')
+            log.error('Please specify address of container registry with the --address option.')
             raise ValueError('Incorrect input options for command: ' + cmd)
         self.parse_command_options_common(args)
         self.edge_config.deployment_config.add_registry(args.address, args.username, args.password)
@@ -364,35 +319,34 @@ class EdgeCLI(object):
         log.debug('Command: ' + cmd)
 
         if args.interactive and args.config_file is not None:
-            log.error('Users cannot use setup options --interactive and' \
-                      ' --config-file at the same time')
+            log.error('--interactive and --config-file options are mutually exclusive.')
             raise ValueError('Incorrect input options for command: ' + cmd)
         elif args.interactive:
             # we are in interactive mode, present menu to user
             try:
                 self.present_interactive_menu()
             except ValueError:
-                log.error('Error observed during interactive menu session')
+                log.error('Error during interactive menu session.')
                 raise
         elif args.config_file is not None:
             # we are in config file mode
             try:
                 self.parse_and_validate_user_input_config_file(args)
             except ValueError:
-                log.error('Error observed when parsing configuration file')
+                log.error('Error when parsing configuration file')
                 raise
         else:
             # we are in manual mode, validate all the supplied args
             try:
                 self.parse_and_validate_user_input(args)
-            except ValueError:
-                log.error('Error observed when validating user input')
+            except ValueError as e:
+                log.error(e)
                 raise
 
         return
 
     def execute_command(self):
-        log.info('Executing Command \'' + self.command + '\'')
+        log.debug('Executing command \'%s\'' % (self.command,))
         edge_cmd = EdgeCommandFactory.create_command(self.command,
                                                      self.edge_config)
         edge_cmd.execute()

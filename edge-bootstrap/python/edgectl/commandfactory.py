@@ -25,11 +25,11 @@ class EdgeCommandFactory(object):
         result = None
         deployment = edge_config.deployment_type
         if deployment not in EdgeDefault.get_supported_deployments():
-            msg = 'Unsupported Deployment: ' + deployment
+            msg = 'Unsupported deployment: ' + deployment
             log.error(msg)
             raise ValueError(msg)
         elif command not in list(EdgeCommandFactory._supported_commands.keys()):
-            msg = 'Unsupported Command: ' + command
+            msg = 'Unsupported command: ' + command
             log.error(msg)
             raise ValueError(msg)
         else:

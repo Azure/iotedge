@@ -64,7 +64,7 @@ class EdgeDeploymentConfigDocker(object):
                             self._uri = value
                             is_valid = True
         if is_valid is False:
-            raise ValueError('Invalid Docker URI: ' + str(value))
+            raise ValueError('Invalid docker Uri: ' + str(value))
 
     @property
     def edge_image(self):
@@ -81,15 +81,15 @@ class EdgeDeploymentConfigDocker(object):
                 if match_obj:
                     is_valid = True
                     self._edge_image = value
-                    log.debug('Found Edge Image:' + self._edge_image)
+                    log.debug('Found Edge Agent image:' + self._edge_image)
                     self._edge_image_repository = match_obj.group(1)
-                    log.debug('Found Edge Repository:' + self._edge_image_repository)
+                    log.debug('Found registry:' + self._edge_image_repository)
                     self._edge_image_name = match_obj.group(2)
-                    log.debug('Found Edge Name:' + self._edge_image_name)
+                    log.debug('Found image name:' + self._edge_image_name)
                     self._edge_image_tag = match_obj.group(3)
-                    log.debug('Found Edge Tag:' + self._edge_image_tag)
+                    log.debug('Found image tag:' + self._edge_image_tag)
         if is_valid is False:
-            raise ValueError('Invalid Edge Image: ' + str(value))
+            raise ValueError('Invalid Edge Agent image: ' + str(value))
 
     @property
     def edge_image_repository(self):
@@ -139,7 +139,7 @@ class EdgeDeploymentConfigDocker(object):
                 is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Docker Logging Driver: ' + str(value))
+            raise ValueError('Invalid docker logging driver: ' + str(value))
 
     @property
     def logging_options(self):
@@ -156,22 +156,22 @@ class EdgeDeploymentConfigDocker(object):
                     is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Docker Logging Option: '
+            raise ValueError('Invalid docker logging option: '
                              + str(option_key) + ' ' + str(option_value))
 
     def __str__(self):
-        result  = 'Deployment Type: ' + self.type + '\n'
-        result += 'URI: ' + self.uri + '\n'
-        result += 'Edge Image: ' + self.edge_image + '\n'
+        result  = 'Deployment Type:\t' + self.type + '\n'
+        result += 'Docker Engine URI:\t' + self.uri + '\n'
+        result += 'Edge Agent Image:\t' + self.edge_image + '\n'
         result += 'Registries:' + '\n'
         for registry in self.registries:
-            result += '  Address: ' + registry['address'] + ', '
+            result += '\t\t\tAddress: ' + registry['address'] + ', '
             result += 'Username: ' + registry['username'] + ', '
-            result += 'Password: ' + registry['password'] + '\n'
-        result += 'Logging Driver: ' + self.logging_driver + '\n'
+            result += 'Password: ' + '******' + '\n'
+        result += 'Logging Driver:\t\t' + self.logging_driver + '\n'
         options = self.logging_options
         for key in options:
-            result += '  ' + str(key) + ': ' + options[key] + '\n'
+            result += '\t\t\t' + str(key) + ': ' + options[key] + '\n'
         return result
 
     def to_dict(self):
@@ -214,7 +214,7 @@ class EdgeHostConfig(object):
     @schema_version.setter
     def schema_version(self, value):
         if value not in EdgeHostConfig._supported_schemas:
-            raise ValueError('Unsupported Schema Version:' + str(value))
+            raise ValueError('Unsupported schema version:' + str(value))
         self._schema_version = value
 
     @property
@@ -239,7 +239,7 @@ class EdgeHostConfig(object):
                 is_valid = True
                 self._connection_string = value
         if is_valid is False:
-            raise ValueError('Invalid Connection String:' + str(value))
+            raise ValueError('Invalid connection string: ' + str(value))
 
     @property
     def hostname(self):
@@ -255,8 +255,8 @@ class EdgeHostConfig(object):
                 is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Hostname. Hostname cannot be empty or' \
-                             + ' greater than 64 characters. ' + str(value))
+            raise ValueError('Invalid hostname. Hostname cannot be empty or' \
+                             + ' greater than 64 characters: ' + str(value))
 
     @property
     def log_level(self):
@@ -270,7 +270,7 @@ class EdgeHostConfig(object):
             is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Log Level:' + str(value))
+            raise ValueError('Invalid log level:' + str(value))
 
     @property
     def deployment_config(self):
@@ -282,7 +282,7 @@ class EdgeHostConfig(object):
             if value.type in EdgeDefault.get_supported_deployments():
                 self._deployment_config = value
         else:
-            raise ValueError('Invalid Deployment Config Object')
+            raise ValueError('Invalid deployment config')
 
     @property
     def deployment_type(self):
@@ -303,7 +303,7 @@ class EdgeHostConfig(object):
             is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid Security Option:' + str(value))
+            raise ValueError('Invalid security option:' + str(value))
 
     def use_self_signed_certificates(self):
         return (self._security_option == EdgeHostConfig.security_option_self_signed)
@@ -317,7 +317,7 @@ class EdgeHostConfig(object):
         if value is None \
             or os.path.exists(value) is False \
             or os.path.isfile(value) is False:
-            raise ValueError('Invalid CA Cert File:' + str(value))
+            raise ValueError('Invalid CA cert file:' + str(value))
         self._ca_cert_path = value
 
     @property
@@ -329,7 +329,7 @@ class EdgeHostConfig(object):
         if value is None \
             or os.path.exists(value) is False \
             or os.path.isfile(value) is False:
-            raise ValueError('Invalid CA Cert File:' + str(value))
+            raise ValueError('Invalid CA cert file:' + str(value))
         self._edge_server_cert_path = value
 
     @property
@@ -349,12 +349,12 @@ class EdgeHostConfig(object):
         self._self_signed_cert_option_force_no_passwords = value
 
     def __str__(self):
-        result  = 'Schema Version: ' + self._schema_version + '\n'
-        result += 'Connection String: ' + self.connection_string + '\n'
-        result += 'Home Directory: ' + self.home_dir + '\n'
-        result += 'Hostname: ' + self.hostname + '\n'
-        result += 'Log Level: ' + self.log_level + '\n'
-        result += 'Security Option: ' + self.security_option + '\n'
+        result  = 'Schema Version:\t\t' + self._schema_version + '\n'
+        result += 'Connection String:\t' + self.connection_string + '\n'
+        result += 'Home Directory:\t\t' + self.home_dir + '\n'
+        result += 'Hostname:\t\t' + self.hostname + '\n'
+        result += 'Log Level:\t\t' + self.log_level + '\n'
+        result += 'Security Option:\t' + self.security_option + '\n'
         if self.deployment_config:
             result += str(self.deployment_config)
         return result

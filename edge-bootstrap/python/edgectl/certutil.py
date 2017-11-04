@@ -50,7 +50,7 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
                             validity_days_from_now,
                             subj_dict):
         if id_str in self._cert_chain:
-            raise ValueError('Duplicate CA Cert Gen Request. ID:' + id_str)
+            raise ValueError('Duplicate CA cert gen request. ID:' + id_str)
         key_obj = self.__create_key_pair(self.TYPE_RSA, self.CA_KEY_LEN)
         csr_obj = self.__create_csr(key_obj,
                                     C=subj_dict['country'],
@@ -83,9 +83,9 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
                                     common_name,
                                     path_len_zero):
         if id_str in self._cert_chain:
-            raise ValueError('Duplicate Intermediate Cert Gen Request. ID:' + id_str)
+            raise ValueError('Duplicate intermediate cert gen request. ID:' + id_str)
         if issuer_id_str not in self._cert_chain:
-            raise KeyError('Invalid Issuer Cert ID:' + issuer_id_str)
+            raise KeyError('Invalid issuer cert ID:' + issuer_id_str)
 
         issuer_cert_dict = self._cert_chain[issuer_id_str]
         issuer_cert = issuer_cert_dict['cert']
@@ -120,9 +120,9 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
                            issuer_id_str,
                            hostname):
         if id_str in self._cert_chain:
-            raise ValueError('Duplicate Server Cert Gen Request. ID:' + id_str)
+            raise ValueError('Duplicate server cert gen request. ID:' + id_str)
         if issuer_id_str not in self._cert_chain:
-            raise KeyError('Invalid Issuer Cert ID:' + issuer_id_str)
+            raise KeyError('Invalid issuer cert ID:' + issuer_id_str)
 
         issuer_cert_dict = self._cert_chain[issuer_id_str]
         issuer_cert = issuer_cert_dict['cert']
@@ -152,9 +152,9 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
 
     def export_cert_artifacts_to_dir(self, id_str, dir_path):
         if os.path.exists(dir_path) is False:
-            raise ValueError('Invalid Directory Name:' + dir_path)
+            raise ValueError('Invalid directory name:' + dir_path)
         elif id_str not in self._cert_chain:
-            raise KeyError('Invalid Cert ID:' + id_str)
+            raise KeyError('Invalid cert ID:' + id_str)
         else:
             cert_dict = self._cert_chain[id_str]
             prefix = id_str
@@ -196,14 +196,14 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
                     ip_file.write(crypto.dump_certificate_request(crypto.FILETYPE_PEM,
                                                                   csr_obj).decode('utf-8'))
             except OSError as ex:
-                logging.error('Error Observed When Export Cert Id: '
+                logging.error('Error when exporting cert ID: '
                               + id_str + '. Errno '
                               + str(ex.errno) + ', Error:' + ex.strerror)
                 raise
 
     def export_pfx_cert(self, id_str, dir_path):
         if id_str not in self._cert_chain:
-            raise KeyError('Invalid Cert ID:' + id_str)
+            raise KeyError('Invalid cert ID:' + id_str)
         else:
             cert_dict = self._cert_chain[id_str]
             cert_obj = cert_dict['cert']
@@ -332,14 +332,13 @@ def check_if_cert_file_exists(dir_path, prefix, sub_dir, suffix='.cert.pem'):
     path = os.path.join(dir_path, prefix, sub_dir, prefix + suffix)
     result = os.path.exists(path)
     if result:
-        logging.debug('Cert File Ok:' + path)
+        logging.debug('Cert file ok:' + path)
     else:
-        logging.debug('Cert File Does Not Exist:' + path)
-
+        logging.debug('Cert file does not exist:' + path)
     return result
 
 def generate_self_signed_certs(certs_dir, host_name):
-    logging.info('Generating Self Signed Certificates At: ' + certs_dir)
+    logging.info('Generating self signed certificates at: ' + certs_dir)
     subj_dict = {'country': 'US',
                  'state': 'Washington',
                  'locality': 'Redmond',
@@ -376,7 +375,7 @@ def generate_self_signed_certs(certs_dir, host_name):
 
 def generate_self_signed_certs_if_needed(certs_dir, host_name):
     if os.path.exists(certs_dir) is False:
-        raise ValueError('Invalid Directory Name:' + certs_dir)
+        raise ValueError('Invalid directory name:' + certs_dir)
 
     path = os.path.realpath(certs_dir)
     device_ca = check_if_cert_file_exists(path, 'edge-device-ca', 'cert')

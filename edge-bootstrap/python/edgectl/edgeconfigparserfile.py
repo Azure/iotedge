@@ -56,18 +56,18 @@ class EdgeConfigParserFile(EdgeConfigParser):
                     deploy_cfg.add_logging_option(opt_key, opt_val)
 
             if docker_cfg is None:
-                raise ValueError('Unsupported Deployment Type:' \
+                raise ValueError('Unsupported deployment type:' \
                                  + deployment_type)
             config.deployment_config = deploy_cfg
             self._deployment_type = deployment_type
             result = config
         except OSError as ex_os:
-            log.error('Error Observed When Reading Edge Config File: ' \
+            log.error('Error when reading config file: ' \
                       + config_file + '. Errno ' + str(ex_os.errno) \
                       + ', Error:' + ex_os.strerror)
             raise
         except ValueError as ex_value:
-            log.error('Error Observed When Parsing Edge Config File: ' \
+            log.error('Error when parsing config file: ' \
                       + config_file)
             raise
 

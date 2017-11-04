@@ -11,7 +11,7 @@ class EdgeUtils:
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path)
         except OSError as ex:
-            log.error('Error Observed When Deleting Home Dir: ' \
+            log.error('Error when deleting home directory: ' \
                       + dir_path + '. Errno ' \
                       + str(ex.errno) + ', Error:' + ex.strerror)
             raise
@@ -22,7 +22,7 @@ class EdgeUtils:
             os.mkdir(dir_path)
         except OSError as ex:
             if ex.errno != errno.EEXIST:
-                log.error('Error Observed When Making Directory:' \
+                log.error('Error when making home directory:' \
                         + dir_path \
                         + ' Errno ' + str(ex.errno) \
                         + ', Error:' + ex.strerror)
@@ -35,7 +35,7 @@ class EdgeUtils:
             hostname = socket.getfqdn()
             return hostname
         except IOError as ex:
-            log.error('Error Observed When Determining Hostname.' \
+            log.error('Error when determining hostname.' \
                         + 'Errno ' + str(ex.errno) \
                         + ', Error:' + ex.strerror)
             raise

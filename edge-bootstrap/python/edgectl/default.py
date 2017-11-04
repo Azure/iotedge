@@ -102,7 +102,7 @@ class EdgeDefault(object):
             path = EdgeDefault._platforms[host]['default_edge_data_dir']
             return path
         else:
-            raise RuntimeError('Unsupported Host Platform ' + host)
+            raise RuntimeError('Unsupported host platform ' + host)
 
     @staticmethod
     def get_platform_home_dir():
@@ -117,7 +117,7 @@ class EdgeDefault(object):
         if os.path.exists(path):
             return os.path.join('.', 'config',
                                 EdgeDefault._edge_ref_config_file)
-        raise ValueError('Default Config File Not Found:' + path)
+        raise ValueError('Default config file not found:' + path)
 
     @staticmethod
     def default_user_input_config_abs_file_path():
@@ -134,7 +134,7 @@ class EdgeDefault(object):
                 data = json.load(input_file)
                 return data
         except IOError as ex:
-            log.error('Error Observed When Reading Default Config File: ' \
+            log.error('Error when reading default config file: ' \
                       + config_file + '. Errno ' + str(ex.errno) \
                       + ', Error:' + ex.strerror)
             raise
