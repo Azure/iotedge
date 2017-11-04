@@ -24,5 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         Iterator NewIterator(ColumnFamilyHandle handle, ReadOptions readOptions);
 
         Iterator NewIterator(ColumnFamilyHandle handle);
+
+        void Compact(ColumnFamilyHandle handle);
     }
 }

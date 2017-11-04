@@ -11,18 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
-        readonly ColumnFamilyHandle handle;
-
+        
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
-            this.handle = Preconditions.CheckNotNull(handle, nameof(handle));
+            this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
         }
+
+        internal ColumnFamilyHandle Handle { get; }        
 
         public Task<Option<byte[]>> Get(byte[] key)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = this.db.Get(key, this.handle);
+            byte[] value = this.db.Get(key, this.Handle);
             Option<byte[]> returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
             return Task.FromResult(returnValue);
         }
@@ -32,20 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            this.db.Put(key, value, this.handle);
+            this.db.Put(key, value, this.Handle);
             return Task.CompletedTask;
         }
 
         public Task Remove(byte[] key)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            this.db.Remove(key, this.handle);
+            this.db.Remove(key, this.Handle);
             return Task.CompletedTask;
         }        
 
         public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
         {
-            using (Iterator iterator = this.db.NewIterator(this.handle))
+            using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
                 iterator.SeekToLast();
                 if (iterator.Valid())
@@ -63,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
         {
-            using (Iterator iterator = this.db.NewIterator(this.handle))
+            using (Iterator iterator = this.db.NewIterator(this.Handle))
             {
                 iterator.SeekToFirst();
                 if (iterator.Valid())
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public Task<bool> Contains(byte[] key)
         {
             Preconditions.CheckNotNull(key, nameof(key));
-            byte[] value = this.db.Get(key, this.handle);
+            byte[] value = this.db.Get(key, this.Handle);
             return Task.FromResult(value != null);
         }
 
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             var readOptions = new ReadOptions();
             readOptions.SetTailing(true);
 
-            Iterator iterator = this.db.NewIterator(this.handle, readOptions);
+            Iterator iterator = this.db.NewIterator(this.Handle, readOptions);
             int counter = 0;
             for (seeker(iterator); iterator.Valid() && counter < batchSize; iterator.Next(), counter++)
             {

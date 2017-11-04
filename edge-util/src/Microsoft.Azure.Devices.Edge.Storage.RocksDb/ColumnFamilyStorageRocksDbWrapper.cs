@@ -62,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
+        public void Compact(ColumnFamilyHandle cf) => this.db.CompactRange(string.Empty, string.Empty, cf);
+
         public IEnumerable<string> ListColumnFamilies()
         {
             lock (columnFamiliesLock)
@@ -111,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         class ColumnFamiliesProvider
         {
+            const string DefaultPartitionName = "default";
             string columnFamiliesFilePath;
 
             public ColumnFamiliesProvider(string columnFamiliesFilePath)
@@ -129,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             public void AddColumnFamily(string entityName) => File.AppendAllLines(this.columnFamiliesFilePath, new List<string> { entityName });
 
-            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(columnFamiliesFilePath).ToList() : Enumerable.Empty<string>();
+            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
         }
     }
 }

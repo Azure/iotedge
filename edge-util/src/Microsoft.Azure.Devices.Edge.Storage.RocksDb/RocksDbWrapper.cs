@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
@@ -45,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             var rocksDbWrapper = new RocksDbWrapper(db, path);
             return rocksDbWrapper;
         }
+
+        public void Compact(ColumnFamilyHandle cf) => this.db.CompactRange(string.Empty, string.Empty, cf);
 
         public IEnumerable<string> ListColumnFamilies() => ListColumnFamilies(this.path);
 

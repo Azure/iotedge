@@ -1,24 +1,42 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Threading;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
     public class DbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "default";
+        static TimeSpan CompactionPeriod = TimeSpan.FromHours(2);
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
+        readonly Timer compactionTimer;
 
         DbStoreProvider(IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
         {
             this.db = db;
             this.entityDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>(entityDbStoreDictionary);
+            this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
+        }
+
+        private void RunCompaction(object state)
+        {
+            Events.StartingCompaction();
+            foreach (KeyValuePair<string, IDbStore> entityDbStore in this.entityDbStoreDictionary)
+            {
+                if(entityDbStore.Value is ColumnFamilyDbStore cfDbStore)
+                {
+                    Events.CompactingStore(entityDbStore.Key);
+                    this.db.Compact(cfDbStore.Handle);
+                }
+            }
         }
 
         public static DbStoreProvider Create(string path, IEnumerable<string> partitionsList)
@@ -76,6 +94,29 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        static class Events
+        {
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DbStoreProvider>();
+            // Use an ID not used by other components
+            const int IdStart = 4000;
+
+            enum EventIds
+            {
+                StartingCompaction = IdStart,
+                StoreCompaction,
+            }
+
+            internal static void StartingCompaction()
+            {
+                Log.LogInformation((int)EventIds.StartingCompaction, $"Starting compaction of stores");
+            }
+
+            internal static void CompactingStore(string storeName)
+            {
+                Log.LogInformation((int)EventIds.StoreCompaction, $"Starting compaction of store {storeName}");
+            }
         }
     }
 }
