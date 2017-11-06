@@ -15,20 +15,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         readonly Client.DeviceClient deviceClient;
         private const uint DeviceClientTimeout = 30000; // ms
-        static readonly ITransientErrorDetectionStrategy TransientDetectionStrategy = new DeviceClientRetryStrategy();
-        static readonly RetryStrategy TransientRetryStrategy = new Util.TransientFaultHandling.ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
-
+      
         DeviceClient(Client.DeviceClient deviceClient)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
         }
 
-        public static async Task<DeviceClient> CreateAsync(EdgeHubConnectionString deviceDetails, IServiceClient deviceAuthorizedServiceClient)
+        public static DeviceClient Create(EdgeHubConnectionString deviceDetails)
         {
             Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
-            Preconditions.CheckNotNull(deviceAuthorizedServiceClient, nameof(deviceAuthorizedServiceClient));
-
-            string moduleString = await ConstructModuleConnectionStringAsync(deviceDetails, deviceAuthorizedServiceClient);
+            
+            string moduleString = ConstructModuleConnectionString(deviceDetails);
 
             Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(moduleString);
             deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
@@ -37,14 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return new DeviceClient(deviceClient);
         }
 
-        static async Task<string> ConstructModuleConnectionStringAsync(EdgeHubConnectionString connectionDetails, IServiceClient deviceAuthorizedServiceClient)
+        static string ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails)
         {
-            var transientRetryPolicy = new RetryPolicy(TransientDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => Events.GetModuleFailed(args);
-            // ReSharper disable once UnusedVariable
-            Module agentModule = await transientRetryPolicy.ExecuteAsync(() => deviceAuthorizedServiceClient.GetModule(Constants.EdgeAgentModuleIdentityName));
-
-            // TODO: should be using agentModule's authentication
             EdgeHubConnectionString agentConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
                 .SetSharedAccessKey(connectionDetails.SharedAccessKey)
                 .SetModuleId(Constants.EdgeAgentModuleIdentityName)
@@ -63,32 +54,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler statusChangedHandler) =>
             this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
-
-        class DeviceClientRetryStrategy : ITransientErrorDetectionStrategy
-        {
-            public bool IsTransient(Exception ex) => !(ex is ArgumentException);
-        }
+        
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClient>();
             const int IdStart = AgentEventIds.DeviceClient;
 
             enum EventIds
             {
-                DeviceClientCreated = IdStart,
-                GetModuleFailed,
+                DeviceClientCreated = IdStart
             }
 
             public static void DeviceClientCreated()
             {
                 Log.LogDebug((int)EventIds.DeviceClientCreated, "Device Client for Agent Module Created.");
-            }
-
-            public static void GetModuleFailed(RetryingEventArgs args)
-            {
-                Log.LogWarning((int)EventIds.GetModuleFailed, args.LastException, "Attempt to get Agent Module from service failed.");
-            }
+            }            
         }
     }
 }

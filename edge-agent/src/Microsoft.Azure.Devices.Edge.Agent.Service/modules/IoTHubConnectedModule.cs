@@ -30,9 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             int maxRestartCount,
             TimeSpan intensiveCareTime,
             int coolOffTimeUnitInSeconds,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            bool usePersistentStorage,
+            string storagePath)
         {
-            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
+            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath);
             this.configSource = new FileBackupConfigSourceModule(
                 Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails)),
                 Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString)),

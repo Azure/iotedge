@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     ISerde<DeploymentConfig> serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    IDeviceClient deviceClient = await c.Resolve<Task<IDeviceClient>>();
+                    IDeviceClient deviceClient = c.Resolve<IDeviceClient>();
                     IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
                     return edgeAgentConnection;
                 })

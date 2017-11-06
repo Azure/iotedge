@@ -47,8 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                 .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                 .Build();
-            IServiceClient serviceClient = new ServiceClient(edgeDeviceConnectionString, edgeDeviceId);
-            IDeviceClient deviceClient = await DeviceClient.CreateAsync(edgeHubConnectionString, serviceClient);
+            IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString);
 
             var moduleDeserializerTypes = new Dictionary<string, Type>
             {
@@ -219,8 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
-                IServiceClient serviceClient = new ServiceClient(edgeDeviceConnectionString, edgeDeviceId);
-                IDeviceClient deviceClient = await DeviceClient.CreateAsync(edgeHubConnectionString, serviceClient);
+                IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {

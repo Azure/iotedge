@@ -9,10 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class AgentModule : Module
     {
@@ -20,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
         readonly int coolOffTimeUnitInSeconds;
+        readonly bool usePersistentStorage;
+        readonly string storagePath;
         const string DockerType = "docker";
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -57,12 +61,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds)
+        public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
+            bool usePersistentStorage, string storagePath)
         {
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
             this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
+            this.usePersistentStorage = usePersistentStorage;
+            this.storagePath = usePersistentStorage ? Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath)) : storagePath;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -96,11 +103,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 c =>
                 {
-                    // Create partition for mma
-                    var partitionsList = new List<string> { Constants.MMAStorePartitionKey };
+                    var loggerFactory = c.Resolve<ILoggerFactory>();
+                    ILogger logger = loggerFactory.CreateLogger(typeof(AgentModule));
 
-                    return new InMemoryDbStoreProvider();
-                    //return Storage.RocksDb.DbStoreProvider.Create(this.storeAndForwardConfiguration.StoragePath, partitionsList);
+                    if (this.usePersistentStorage)
+                    {
+                        // Create partition for mma
+                        var partitionsList = new List<string> { Constants.MMAStorePartitionKey };
+                        try
+                        {
+                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(this.storagePath, partitionsList);
+                            logger.LogInformation($"Created persistent store at {this.storagePath}");
+                            return dbStoreprovider;
+                        }
+                        catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                        {
+                            logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                            return new InMemoryDbStoreProvider();
+                        }
+                    }
+                    else
+                    {
+                        logger.LogInformation($"Using in-memory store");
+                        return new InMemoryDbStoreProvider();
+                    }
                 })
                 .As<IDbStoreProvider>()
                 .SingleInstance();

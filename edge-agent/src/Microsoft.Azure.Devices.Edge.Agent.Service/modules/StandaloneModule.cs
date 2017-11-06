@@ -25,9 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Uri dockerHost, string dockerLoggingDriver,
             IDictionary<string, string> dockerLoggingOptions, string configFilename,
             int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, IConfiguration configuration,
-            EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString)
+            EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString,
+            bool usePersistentStorage, string storagePath)
         {
-            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds);
+            this.agent = new AgentModule(Preconditions.CheckNotNull(dockerHost, nameof(dockerHost)), maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath);
             this.configSource = new FileConfigSourceModule(
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
                 Preconditions.CheckNotNull(configuration, nameof(configuration)),

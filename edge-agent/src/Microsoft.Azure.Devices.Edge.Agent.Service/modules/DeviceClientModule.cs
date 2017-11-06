@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IDeviceClient
             builder.Register(
-                    async c =>
+                    c =>
                     {
-                        IDeviceClient dc = await DeviceClient.CreateAsync(this.connectionDetails, c.Resolve<IServiceClient>());
+                        IDeviceClient dc = DeviceClient.Create(this.connectionDetails);
                         return dc;
                     })
-                .As<Task<IDeviceClient>>()
+                .As<IDeviceClient>()
                 .SingleInstance();
 
             base.Load(builder);

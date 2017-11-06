@@ -17,6 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int ModuleLifecycleCommandFactory = EventIdStart + 1000;
         public const int EdgeAgentConnection = EventIdStart + 1100;
         public const int DeviceClient = EventIdStart + 1200;
-
+        public const int RetryingServiceClient = EventIdStart + 1300;
     }
 }

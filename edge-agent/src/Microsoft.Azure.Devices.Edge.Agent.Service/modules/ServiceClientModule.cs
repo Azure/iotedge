@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IServiceClient
-            builder.Register(c => new ServiceClient(this.edgeDeviceConnectionString, this.connectionDetails.DeviceId))
+            builder.Register(c => new RetryingServiceClient(new ServiceClient(this.edgeDeviceConnectionString, this.connectionDetails.DeviceId)))
                 .As<IServiceClient>()
                 .SingleInstance();
 

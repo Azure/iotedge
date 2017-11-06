@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Net.NetworkInformation;
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
+        const string EdgeAgentStorageFolder = "edgeAgent";
 
         public static int Main()
         {
@@ -45,8 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
             TimeSpan intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
             int coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
+            
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
+
+            bool usePersistentStorage = configuration.GetValue<bool>("UsePersistentStorage", true);
+            string storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();
@@ -69,10 +75,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, deviceConnectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration));
+                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, deviceConnectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration, usePersistentStorage, storagePath));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration, edgeHubConnectionDetails, deviceConnectionString));
+                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration, edgeHubConnectionDetails, deviceConnectionString, usePersistentStorage, storagePath));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");
@@ -122,6 +128,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting Agent.");
                 return 1;
             }
+        }
+
+        static string GetStoragePath(IConfiguration configuration)
+        {
+            string baseStoragePath = configuration.GetValue<string>("StorageFolder");
+            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            {
+                baseStoragePath = Path.GetTempPath();
+            }
+            string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
+            Directory.CreateDirectory(storagePath);
+            return storagePath;
         }
 
         static void CancelProgram(CancellationTokenSource cts, ILogger logger)
