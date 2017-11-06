@@ -146,19 +146,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                throw;
+                Events.EmptyConfig(ex);
             }
             catch(InvalidSchemaVersionException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                throw;
+                Events.InvalidSchemaVersion(ex);
             }
             catch(ConfigFormatException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                throw;
+                Events.InvalidConfigFormat(ex);
             }
             catch(Exception ex)
             {
@@ -176,7 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             enum EventIds
             {
                 AgentCreated = IdStart,
-                PlanExecutionFailed
+                PlanExecutionFailed,
+                EmptyConfig,
+                InvalidSchemaVersion,
+                InvalidConfigFormat
             }
 
             public static void AgentCreated()
@@ -188,7 +191,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
             }
-        }
 
+            public static void EmptyConfig(ConfigEmptyException ex)
+            {
+                Log.LogDebug((int)EventIds.EmptyConfig, ex.Message);
+            }
+
+            public static void InvalidSchemaVersion(InvalidSchemaVersionException ex)
+            {
+                Log.LogWarning((int)EventIds.InvalidSchemaVersion, ex.Message);
+            }
+
+            public static void InvalidConfigFormat(ConfigFormatException ex)
+            {
+                Log.LogWarning((int)EventIds.InvalidConfigFormat, ex.Message);
+            }
+        }
     }
 }

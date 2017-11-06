@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Act
             // Assert
-            await Assert.ThrowsAsync(testException.GetType(), () => agent.ReconcileAsync(token));
+            await agent.ReconcileAsync(token);
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
         }
