@@ -106,12 +106,7 @@ Function docker_build_and_tag_and_push(
     [String]$Tag
 )
 {
-    $Suffix = ""
-    if ($vNext)
-    {
-        $Suffix = "-vnext"
-    }
-    $TagPrefix = "$Registry/azureiotedge/$Name-windows${Suffix}-${Arch}"
+    $TagPrefix = "$Registry/azureiotedge/$Name-windows-${Arch}"
     $FullVersionTag = "${TagPrefix}:$ImageVersion"
     $LatestVersionTag = "${TagPrefix}:latest"
 

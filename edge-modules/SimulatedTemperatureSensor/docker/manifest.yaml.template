@@ -12,7 +12,7 @@ manifests:
       architecture: arm
       os: linux
   -
-    image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-windows-vnext-amd64:__VERSION__
+    image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-windows-amd64:__VERSION__
     platform:
       architecture: amd64
       os: windows
