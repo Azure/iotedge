@@ -3,7 +3,7 @@ import json
 import os
 import platform
 from edgectl.dockerclient import EdgeDockerClient
-
+import edgectl.errors
 import edgectl.edgeconstants as EC
 
 class EdgeDefault(object):
@@ -35,26 +35,66 @@ class EdgeDefault(object):
             'default_edge_conf_dir': 'C:\\ProgramData\\' + _edge_dir,
             'default_edge_data_dir': 'C:\\' + _edge_dir,
             'deployment': {
-                'docker': {
+                EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
                         'default_uri': 'unix:///var/run/docker.sock',
                         'default_module_cert_dir': '/var/run/azure-iot-edge/certs'
                     },
                     EC.DOCKER_ENGINE_WINDOWS: {
                         'default_uri': 'npipe:////./pipe/docker_engine',
-                        'default_module_cert_dir': '\temp\azure-iot-edge\certs'
+                        'default_module_cert_dir': 'C:\\temp\\azure-iot-edge\\certs'
                     }
                 }
             }
         },
-        # @todo darwin
+        EC.DOCKER_HOST_DARWIN: {
+            'supported_deployments': [EC.DEPLOYMENT_DOCKER],
+            'default_deployment': EC.DEPLOYMENT_DOCKER,
+            'default_edge_conf_dir': '/etc/' + _edge_dir,
+            'default_edge_data_dir': '/var/lib/' + _edge_dir,
+            'deployment': {
+                EC.DEPLOYMENT_DOCKER: {
+                    EC.DOCKER_ENGINE_LINUX: {
+                        'default_uri': 'unix:///var/run/docker.sock',
+                        'default_module_cert_dir': '/var/run/azure-iot-edge/certs'
+                    },
+                }
+            }
+        }
     }
     @staticmethod
     def is_platform_supported():
         host = platform.system().lower()
-        if host in EdgeDefault._platforms:
-            return True
-        return False
+        if host not in EdgeDefault._platforms:
+            log.error('Unsupported host platform: %s', host)
+            return False
+        return True
+
+    @staticmethod
+    def is_deployment_supported(deployment_type):
+        result = False
+        log.debug('Checking Edge dependencies for deployment: %s', deployment_type)
+        host = platform.system().lower()
+        if deployment_type not in EdgeDefault._platforms[host]['supported_deployments']:
+            log.error('Unsupported Edge deployment mechanism: %s', deployment_type)
+        else:
+            if deployment_type == EC.DEPLOYMENT_DOCKER:
+                engines = list(EdgeDefault._platforms[host]['deployment'][deployment_type].keys())
+                client = EdgeDockerClient()
+                if client.check_availability() is False:
+                    log.error('Docker is unavailable')
+                else:
+                    try:
+                        engine_os = client.get_os_type()
+                        if engine_os.lower() not in engines:
+                            log.error('Unsupported docker OS type: %s', engine_os)
+                        else:
+                            result = True
+                    except edgectl.errors.EdgeDeploymentError as edge_err:
+                        log.error('Docker get OS type returned errors')
+                        print(edge_err)
+                        result = False
+        return result
 
     @staticmethod
     def get_agent_dir_name():
@@ -98,11 +138,10 @@ class EdgeDefault(object):
 
     @staticmethod
     def get_home_dir(host):
+        path = None
         if EdgeDefault._platforms[host]:
             path = EdgeDefault._platforms[host]['default_edge_data_dir']
-            return path
-        else:
-            raise RuntimeError('Unsupported host platform ' + host)
+        return path
 
     @staticmethod
     def get_platform_home_dir():
@@ -117,7 +156,7 @@ class EdgeDefault(object):
         if os.path.exists(path):
             return os.path.join('.', 'config',
                                 EdgeDefault._edge_ref_config_file)
-        raise ValueError('Default config file not found:' + path)
+        raise edgectl.errors.EdgeFileAccessError('Default config file not found.', path)
 
     @staticmethod
     def default_user_input_config_abs_file_path():
@@ -133,11 +172,14 @@ class EdgeDefault(object):
             with open(config_file, 'r') as input_file:
                 data = json.load(input_file)
                 return data
-        except IOError as ex:
-            log.error('Error when reading default config file: ' \
-                      + config_file + '. Errno ' + str(ex.errno) \
-                      + ', Error:' + ex.strerror)
-            raise
+        except IOError as ex_os:
+            log.error('Error reading defaults config file: %s. Errno: %s, Error %s',
+                      config_file, str(ex_os.errno), ex_os.strerror)
+            raise edgectl.errors.EdgeFileAccessError('Cannot read file', config_file)
+        except ValueError as ex_value:
+            log.error('Could not parse %s. JSON Parser Error: %s', config_file, str(ex_value))
+            log.critical('Edge defaults config file %s is invalid.', config_file)
+            raise edgectl.errors.EdgeFileParseError('Error parsing file', config_file)
 
     @staticmethod
     def edge_runtime_log_levels():

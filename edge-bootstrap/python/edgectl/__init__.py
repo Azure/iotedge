@@ -6,15 +6,13 @@ Invocation flow:
   3. Write status, errors logs to `stdout`
   4. Exit.
 """
-from __future__ import print_function
-import logging as log
+
 import sys
-
-from edgectl.default import EdgeDefault
+import pkg_resources
 from edgectl.edgecli import EdgeCLI
-from edgectl.edgeutils import EdgeUtils
 
-package_name = 'azure-iot-edge-ctl'
+PACKAGE_NAME = 'azure-iot-edge-ctl'
+PROGRAM_NAME = 'iotedgectl'
 
 def coremain():
     """
@@ -22,18 +20,9 @@ def coremain():
     Pre-process args and run the main program.
     Return exit status code.
     """
-    if EdgeDefault.is_platform_supported():
-        cli = EdgeCLI('iotedgectl')
-        try:
-            cli.process_cli_args()
-            cli.execute_command()
-        except Exception as ex:
-            sys.exit(1)
-    else:
-        log.critical('Unsupported Platform. Exiting.')
-        sys.exit(1)
-
-    return
+    version = pkg_resources.require(PACKAGE_NAME)[0].version
+    cli = EdgeCLI(PROGRAM_NAME, version)
+    return cli.execute_user_command()
 
 if __name__ == '__main__':
-    coremain()
+    sys.exit(coremain())

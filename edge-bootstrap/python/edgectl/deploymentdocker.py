@@ -270,7 +270,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         status = self._status()
         log.info('Uninstalling all modules.')
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.info('Edge Agent container \'%s\' does not exist.' % (container_name,))
+            log.debug('Edge Agent container \'%s\' does not exist.' % (container_name,))
         else:
             self._client.stop(container_name)
             self._client.remove(container_name)

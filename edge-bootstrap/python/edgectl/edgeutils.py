@@ -39,3 +39,7 @@ class EdgeUtils:
                         + 'Errno ' + str(ex.errno) \
                         + ', Error:' + ex.strerror)
             raise
+
+    @staticmethod
+    def sanitize_registry_data(address, username, password):
+        return 'Address: {0}, Username: {1}, Password:******'.format(address, username)

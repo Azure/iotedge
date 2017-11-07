@@ -1,5 +1,6 @@
 import json
 import logging as log
+import edgectl.errors
 import edgectl.edgeconstants as EC
 from edgectl.edgeconfig import EdgeHostConfig
 from edgectl.edgeconfig import EdgeDeploymentConfigDocker
@@ -12,12 +13,23 @@ class EdgeConfigParserFile(EdgeConfigParser):
         super(EdgeConfigParserFile, self).__init__(args, None)
 
     def parse(self, config_file=None):
-        result = None
         try:
             if config_file is None:
                 config_file = self._input_args.config_file
             with open(config_file, 'r') as edge_config:
                 data = json.load(edge_config)
+        except ValueError as ex_value:
+            log.error('JSON Parse Error: %s', str(ex_value))
+            log.error('Bad format for Edge config file: %s.', config_file)
+            raise edgectl.errors.EdgeFileParseError('Error parsing file', config_file)
+        except IOError as ex_os:
+            log.error('Error reading config file: %s. Errno: %s, Error: %s',
+                      config_file, str(ex_os.errno), ex_os.strerror)
+            raise edgectl.errors.EdgeFileAccessError('Cannot read file', config_file)
+        return self._parse_data(data, config_file)
+
+    def _parse_data(self, data, config_file):
+        try:
             config = EdgeHostConfig()
             config.schema_version = data[EC.SCHEMA_KEY]
             config.connection_string = data[EC.DEVICE_CONNECTION_STRING_KEY]
@@ -56,19 +68,13 @@ class EdgeConfigParserFile(EdgeConfigParser):
                     deploy_cfg.add_logging_option(opt_key, opt_val)
 
             if docker_cfg is None:
-                raise ValueError('Unsupported deployment type:' \
-                                 + deployment_type)
+                raise ValueError('Unsupported deployment type: %s' % (deployment_type))
             config.deployment_config = deploy_cfg
             self._deployment_type = deployment_type
             result = config
-        except OSError as ex_os:
-            log.error('Error when reading config file: ' \
-                      + config_file + '. Errno ' + str(ex_os.errno) \
-                      + ', Error:' + ex_os.strerror)
-            raise
         except ValueError as ex_value:
-            log.error('Error when parsing config file: ' \
-                      + config_file)
-            raise
+            log.error('Error when parsing config data from file: %s. %s.',
+                      config_file, str(ex_value))
+            raise edgectl.errors.EdgeValueError('Error when parsing config file: %s', config_file)
 
         return result

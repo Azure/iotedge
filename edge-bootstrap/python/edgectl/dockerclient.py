@@ -1,6 +1,7 @@
 from __future__ import print_function
 import logging
 import docker
+from edgectl.errors import EdgeError
 
 class EdgeDockerClient(object):
     _DOCKER_INFO_OS_TYPE_KEY = 'OSType'
@@ -8,6 +9,20 @@ class EdgeDockerClient(object):
     def __init__(self):
         self._client = docker.DockerClient.from_env()
         self._api_client = docker.APIClient()
+
+    def check_availability(self):
+        is_available = False
+        try:
+            info = self._client.info()
+            is_available = True
+        except EdgeError as edge_ex:
+            logging.error('Could not obtain Docker info')
+            print(edge_ex)
+        except Exception as ex:
+            logging.error('Could not connect to docker daemon.')
+            print(ex)
+
+        return is_available
 
     def login(self, addr, uname, pword):
         logging.info('Logging into registry ' + addr \
@@ -25,9 +40,7 @@ class EdgeDockerClient(object):
             info = self._client.info()
             return info[self._DOCKER_INFO_OS_TYPE_KEY]
         except docker.errors.APIError as ex:
-            logging.error('Could not obtain Docker info')
-            print(ex)
-            raise
+            raise EdgeError('Docker daemon returned error.', ex)
 
     def pull(self, image, username, password):
         logging.info('Executing pull for image: ' + image)

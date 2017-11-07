@@ -165,9 +165,11 @@ class EdgeDeploymentConfigDocker(object):
         result += 'Edge Agent Image:\t' + self.edge_image + '\n'
         result += 'Registries:' + '\n'
         for registry in self.registries:
-            result += '\t\t\tAddress: ' + registry['address'] + ', '
-            result += 'Username: ' + registry['username'] + ', '
-            result += 'Password: ' + '******' + '\n'
+            result += '\t\t\t'
+            reg_str = EdgeUtils.sanitize_registry_data(registry['address'],
+                                                       registry['username'],
+                                                       registry['password'])
+            result += reg_str + '\n'
         result += 'Logging Driver:\t\t' + self.logging_driver + '\n'
         options = self.logging_options
         for key in options:
