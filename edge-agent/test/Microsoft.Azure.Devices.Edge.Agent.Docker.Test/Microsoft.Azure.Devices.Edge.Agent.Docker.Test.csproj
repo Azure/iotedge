@@ -22,7 +22,6 @@
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj" />
-    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Core.Test\Microsoft.Azure.Devices.Edge.Agent.Core.Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>

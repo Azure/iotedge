@@ -11,10 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -26,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     [Collection("Docker")]
     public class CreateCommandTest
     {
+
         [Fact]
         [Integration]
         public async Task SmokeTest()
@@ -34,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Name = "test-helloworld";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
-
+            var tempFile = Path.GetTempFileName();
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
@@ -57,7 +56,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         new Dictionary<string, string>
                         {
                             { "EdgeHubConnectionString", fakeConnectionString },
-                            { Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert" }
+                            {Constants.EdgeHostCACertificateFileKey, tempFile },
+                            {Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert" }
+
                         }).Build();
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -88,16 +89,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("1m", container.HostConfig.LogConfig.Config.GetOrElse("max-size", "missing"));
                     Assert.Equal("1", container.HostConfig.LogConfig.Config.GetOrElse("max-file", "missing"));
                     // environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
                     // certificates env variables
                     Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCACertificateFileKey]);
+
+                    // mounts
+                    Assert.True(container.HostConfig.Mounts.Count == 1);
+                    Assert.Equal(container.HostConfig.Mounts[0].Target, "/module.ca.cert");
+                    Assert.Equal(container.HostConfig.Mounts[0].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[0].ReadOnly, true);
                 }
             }
             finally
             {
+                File.Delete(tempFile);
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
         }
@@ -174,15 +182,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string Name = Constants.EdgeHubModuleName;
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
             string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
-
+            var tempFile1 = Path.GetTempFileName();
+            var tempFile2 = Path.GetTempFileName();
+            var tempFile3 = Path.GetTempFileName();
             try
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 {
                     var mountMap = new Dictionary<string, string>()
                     {
+                        {Constants.EdgeHostCACertificateFileKey, tempFile1},
                         {Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert"},
+                        {Constants.EdgeHostHubServerCAChainCertificateFileKey, tempFile2},
                         {Constants.EdgeModuleHubServerCAChainCertificateFileKey, "/module.ca.chain.cert"},
+                        {Constants.EdgeHostHubServerCertificateFileKey, tempFile3},
                         {Constants.EdgeModuleHubServerCertificateFileKey, "/module.server.cert"}
                     };
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
@@ -206,7 +219,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             { "EdgeHubConnectionString", fakeConnectionString },
                             {Docker.Constants.NetworkIdKey, "testnetwork" },
                             {Constants.EdgeDeviceHostNameKey, "testdevice" },
+                            {Constants.EdgeHostHubServerCAChainCertificateFileKey, mountMap[Constants.EdgeHostHubServerCAChainCertificateFileKey] },
                             {Constants.EdgeModuleHubServerCAChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey] },
+                            {Constants.EdgeHostHubServerCertificateFileKey, mountMap[Constants.EdgeHostHubServerCertificateFileKey] },
                             {Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -243,10 +258,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.True(container.HostConfig.LogConfig.Config.Count == 0);
                     // network settings
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
+                    // mounts
+                    Assert.True(container.HostConfig.Mounts.Count == 2);
+                    Assert.Equal(container.HostConfig.Mounts[0].Target, mountMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey]);
+                    Assert.Equal(container.HostConfig.Mounts[0].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[0].ReadOnly, true);
+                    Assert.Equal(container.HostConfig.Mounts[1].Target, mountMap[Constants.EdgeModuleHubServerCertificateFileKey]);
+                    Assert.Equal(container.HostConfig.Mounts[1].Type, "bind");
+                    Assert.Equal(container.HostConfig.Mounts[1].ReadOnly, true);
 
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
                     //environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
@@ -257,6 +280,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             }
             finally
             {
+                File.Delete(tempFile1);
+                File.Delete(tempFile2);
+                File.Delete(tempFile3);
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
         }
@@ -328,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("1m", container.HostConfig.LogConfig.Config.GetOrElse("max-size", "missing"));
                     Assert.Equal("1", container.HostConfig.LogConfig.Config.GetOrElse("max-file", "missing"));
                     // environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    var envMap = container.Config.Env.ToImmutableDictionary(s => s.Split('=', 2)[0], s => s.Split('=', 2)[1]);
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
@@ -338,155 +364,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             {
                 await DockerHelper.Client.CleanupContainerAsync(Name, Image);
             }
-        }
-
-        IEdgeAgentModule CreateMockEdgeAgentModule() => new TestAgentModule(
-            Constants.EdgeAgentModuleName, "docker",
-            new TestConfig("EdgeAgentImage"), new Core.ConfigurationInfo()
-        );
-
-        IEdgeHubModule CreateMockEdgeHubModule() => new TestHubModule(
-            Constants.EdgeHubModuleName, "docker", ModuleStatus.Running,
-            new TestConfig("EdgeAgentImage"), Core.RestartPolicy.Always,
-            new Core.ConfigurationInfo()
-        );
-
-        [Fact]
-        [Unit]
-        public async Task TestMountEdgeHubVolume()
-        {
-            // Arrange
-            const string VolumeName = "vol1";
-            const string VolumePath = "/azure-edge/vol1";
-
-            CreateContainerParameters createContainerParameters = null;
-            var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
-                .ReturnsAsync(new CreateContainerResponse());
-
-            var dockerClient = new Mock<IDockerClient>();
-            dockerClient.SetupGet(c => c.Containers)
-                .Returns(containerOperations.Object);
-
-            var moduleIdentity = new Mock<IModuleIdentity>();
-            moduleIdentity.SetupGet(i => i.ConnectionString)
-                .Returns(string.Empty);
-
-            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
-            runtimeInfo.SetupGet(r => r.Config)
-                .Returns(new DockerRuntimeConfig("1.25", string.Empty));
-
-            var systemModules = new SystemModules(
-                this.CreateMockEdgeAgentModule(),
-                this.CreateMockEdgeHubModule()
-            );
-
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    { Constants.EdgeHubVolumeNameKey, VolumeName },
-                    { Constants.EdgeHubVolumePathKey, VolumePath }
-                }
-            ).Build();
-
-            var configSource = new Mock<IConfigSource>();
-            var deploymentConfig = new DeploymentConfig(
-                "1.0", runtimeInfo.Object, systemModules,
-                ImmutableDictionary<string, IModule>.Empty
-            );
-            var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
-            configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
-                .ReturnsAsync(deploymentConfigInfo);
-            configSource.SetupGet(cs => cs.Configuration)
-                .Returns(configuration);
-
-            // Act
-            var createCommand = await CreateCommand.BuildAsync(
-                dockerClient.Object,
-                new DockerModule(
-                    "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,
-                    new DockerConfig("image1"), new ConfigurationInfo("1234")
-                ),
-                moduleIdentity.Object,
-                new DockerLoggingConfig("json"),
-                configSource.Object,
-                true
-            );
-            await createCommand.ExecuteAsync(CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(createContainerParameters);
-            Assert.Contains($"{VolumeName}:{VolumePath}:ro", createContainerParameters.HostConfig.Binds);
-        }
-
-        [Fact]
-        [Unit]
-        public async Task TestMountModuleVolume()
-        {
-            // Arrange
-            const string VolumeName = "vol1";
-            const string VolumePath = "/azure-edge/vol1";
-
-            CreateContainerParameters createContainerParameters = null;
-            var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
-                .ReturnsAsync(new CreateContainerResponse());
-
-            var dockerClient = new Mock<IDockerClient>();
-            dockerClient.SetupGet(c => c.Containers)
-                .Returns(containerOperations.Object);
-
-            var moduleIdentity = new Mock<IModuleIdentity>();
-            moduleIdentity.SetupGet(i => i.ConnectionString)
-                .Returns(string.Empty);
-
-            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
-            runtimeInfo.SetupGet(r => r.Config)
-                .Returns(new DockerRuntimeConfig("1.25", string.Empty));
-
-            var systemModules = new SystemModules(
-                this.CreateMockEdgeAgentModule(),
-                this.CreateMockEdgeHubModule()
-            );
-
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string>
-                {
-                    { Constants.EdgeModuleVolumeNameKey, VolumeName },
-                    { Constants.EdgeModuleVolumePathKey, VolumePath }
-                }
-            ).Build();
-
-            var configSource = new Mock<IConfigSource>();
-            var deploymentConfig = new DeploymentConfig(
-                "1.0", runtimeInfo.Object, systemModules,
-                ImmutableDictionary<string, IModule>.Empty
-            );
-            var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
-            configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
-                .ReturnsAsync(deploymentConfigInfo);
-            configSource.SetupGet(cs => cs.Configuration)
-                .Returns(configuration);
-
-            // Act
-            var createCommand = await CreateCommand.BuildAsync(
-                dockerClient.Object,
-                new DockerModule(
-                    "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,
-                    new DockerConfig("image1"), new ConfigurationInfo("1234")
-                ),
-                moduleIdentity.Object,
-                new DockerLoggingConfig("json"),
-                configSource.Object,
-                false
-            );
-            await createCommand.ExecuteAsync(CancellationToken.None);
-
-            // Assert
-            Assert.NotNull(createContainerParameters);
-            Assert.Contains($"{VolumeName}:{VolumePath}:ro", createContainerParameters.HostConfig.Binds);
         }
     }
 }

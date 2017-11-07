@@ -24,13 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         readonly static List<string> EdgeCertEnvVarKeysList = new List<string>
         {
+            Constants.EdgeHostCACertificateFileKey,
             Constants.EdgeModuleCACertificateFileKey,
+            Constants.EdgeHostHubServerCAChainCertificateFileKey,
             Constants.EdgeModuleHubServerCAChainCertificateFileKey,
-            Constants.EdgeModuleHubServerCertificateFileKey,
-            Constants.EdgeHubVolumeNameKey,
-            Constants.EdgeModuleVolumeNameKey,
-            Constants.EdgeHubVolumePathKey,
-            Constants.EdgeModuleVolumePathKey
+            Constants.EdgeHostHubServerCertificateFileKey,
+            Constants.EdgeModuleHubServerCertificateFileKey
         };
 
         public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
@@ -39,14 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.createContainerParameters = Preconditions.CheckNotNull(createContainerParameters, nameof(createContainerParameters));
         }
 
-        public static async Task<ICommand> BuildAsync(
-            IDockerClient client,
-            DockerModule module,
-            IModuleIdentity identity,
-            DockerLoggingConfig defaultDockerLoggerConfig,
-            IConfigSource configSource,
-            bool buildForEdgeHub
-        )
+        public static async Task<ICommand> BuildAsync(IDockerClient client, DockerModule module, IModuleIdentity identity, DockerLoggingConfig defaultDockerLoggerConfig, IConfigSource configSource, bool buildForEdgeHub)
         {
             // Validate parameters
             Preconditions.CheckNotNull(client, nameof(client));
@@ -96,16 +88,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {
                 string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
                 string edgeDeviceConnectionString = $"{connectionStringKey}={identity.ConnectionString}";
-                var envVars = new List<string>()
+                
+                if(createContainerParameters.Env != null)
                 {
-                    $"{connectionStringKey}={identity.ConnectionString}"
-                };
+                    // Remove any existing environment variables with the same key.
+                    List<string> envStringsToRemove = createContainerParameters.Env
+                        .Where(e => e.StartsWith($"{connectionStringKey}="))
+                        .ToList();
+                    if (injectForEdgeHub)
+                    {
+                        envStringsToRemove = envStringsToRemove.Concat(createContainerParameters.Env
+                            .Where(e => e.StartsWith($"{Logger.RuntimeLogLevelEnvKey}="))
+                            .ToList()).ToList();
+                    }
+                    envStringsToRemove.ForEach(e => createContainerParameters.Env.Remove(e));
+                }
+                else
+                {
+                    createContainerParameters.Env = new List<string>();
+                }
+                createContainerParameters.Env.Add(edgeDeviceConnectionString);
+
+                // Inject the same log level for edge hub as that of agent
                 if (injectForEdgeHub)
                 {
-                    envVars.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
+                    createContainerParameters.Env.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
                 }
-
-                InjectEnvVars(createContainerParameters, envVars);
             }
         }
 
@@ -189,81 +197,75 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 };
                 createContainerParameters.NetworkingConfig = new NetworkingConfig { EndpointsConfig = endpointsConfig };
             }
-        }
 
-        static void InjectVolume(CreateContainerParameters createContainerParameters, string volumeName, string volumePath, bool readOnly = true)
-        {
-            if (!string.IsNullOrWhiteSpace(volumeName) && !string.IsNullOrWhiteSpace(volumePath))
-            {
-                HostConfig hostConfig = createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
-                hostConfig.Binds = hostConfig.Binds ?? new List<string>();
-
-                string ro = readOnly ? ":ro" : string.Empty;
-                hostConfig.Binds.Add($"{volumeName}:{volumePath}{ro}");
-            }
         }
 
         static void InjectCerts(CreateContainerParameters createContainerParameters, IConfigSource configSource, bool injectForEdgeHub)
         {
+            if (createContainerParameters.Env != null)
+            {
+                foreach (var key in EdgeCertEnvVarKeysList)
+                {
+                    // Remove any existing environment variables with the same key.
+                    List<string> removeStrings = createContainerParameters.Env.Where(e => e.StartsWith($"{key}=")).ToList();
+                    removeStrings.ForEach(e => createContainerParameters.Env.Remove(e));
+                }
+            }
+            else
+            {
+                createContainerParameters.Env = new List<string>();
+            }
+
             createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
-            var varsList = new List<string>();
+            createContainerParameters.HostConfig.Mounts = createContainerParameters.HostConfig.Mounts ?? new List<Mount>();
+            string envString = null;
             if (injectForEdgeHub)
             {
                 // for the EdgeHub we need to inject the CA chain cert that was used to sign the Hub server certificate
+                string caChainSourceFile = configSource.Configuration.GetValue<string>(Constants.EdgeHostHubServerCAChainCertificateFileKey, string.Empty);
                 string moduleCAChainCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCAChainCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCAChainCertFile) == false)
+                if ((caChainSourceFile != string.Empty) && (moduleCAChainCertFile != string.Empty))
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCAChainCertificateFileKey}={moduleCAChainCertFile}");
+                    envString = $"{Constants.EdgeModuleHubServerCAChainCertificateFileKey}={moduleCAChainCertFile}";
+                    createContainerParameters.Env.Add(envString);
+                    addMount(createContainerParameters.HostConfig.Mounts, caChainSourceFile, moduleCAChainCertFile, "bind", true);
                 }
-
                 // for the EdgeHub we also need to inject the Hub server certificate which will be used for TLS connections
                 // from modules and leaf devices
+                string hubCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeHostHubServerCertificateFileKey, string.Empty);
                 string moduleHubCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleHubCertFile) == false)
+                if ((hubCertFile != string.Empty) && (moduleHubCertFile != string.Empty))
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCertificateFileKey}={moduleHubCertFile}");
+                    envString = $"{Constants.EdgeModuleHubServerCertificateFileKey}={moduleHubCertFile}";
+                    createContainerParameters.Env.Add(envString);
+                    addMount(createContainerParameters.HostConfig.Mounts, hubCertFile, moduleHubCertFile, "bind", true);
                 }
-
-                // mount edge hub volume
-                InjectVolume(
-                    createContainerParameters,
-                    configSource.Configuration.GetValue<string>(Constants.EdgeHubVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue<string>(Constants.EdgeHubVolumePathKey, string.Empty),
-                    true
-                );
             }
             else
             {
                 // for all Edge modules, the agent should inject the CA certificate that can be used for Edge Hub server certificate
                 // validation
+                string caSourceFile = configSource.Configuration.GetValue<string>(Constants.EdgeHostCACertificateFileKey, string.Empty);
                 string moduleCACertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleCACertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCACertFile) == false)
+                if ((caSourceFile != string.Empty) && (moduleCACertFile != string.Empty))
                 {
-                    varsList.Add($"{Constants.EdgeModuleCACertificateFileKey}={moduleCACertFile}");
+                    envString = $"{Constants.EdgeModuleCACertificateFileKey}={moduleCACertFile}";
+                    createContainerParameters.Env.Add(envString);
+                    addMount(createContainerParameters.HostConfig.Mounts, caSourceFile, moduleCACertFile, "bind", true);
                 }
-
-                // mount module volume
-                InjectVolume(
-                    createContainerParameters,
-                    configSource.Configuration.GetValue<string>(Constants.EdgeModuleVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue<string>(Constants.EdgeModuleVolumePathKey, string.Empty),
-                    true
-                );
             }
-
-            InjectEnvVars(createContainerParameters, varsList);
         }
 
-        static void InjectEnvVars(
-            CreateContainerParameters createContainerParameters,
-            IEnumerable<string> varsList
-        )
+        static void addMount(IList<Mount> mountsList, string source, string target, string type, bool readOnly)
         {
-            createContainerParameters.Env = createContainerParameters?.Env?.RemoveIntersectionKeys(varsList).ToList() ?? new List<string>();
-            foreach(string envVar in varsList)
+            var mount = new Mount()
             {
-                createContainerParameters.Env.Add(envVar);
-            }
+                Source = source,
+                Target = target,
+                Type = type,
+                ReadOnly = readOnly
+            };
+            mountsList.Add(mount);
         }
 
         static string ObfuscateConnectionStringInCreateContainerParameters(string serializedCreateOptions)
