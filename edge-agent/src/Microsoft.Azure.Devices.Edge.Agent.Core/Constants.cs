@@ -32,15 +32,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeDeviceHostNameKey = "EdgeDeviceHostName";
 
-        public const string EdgeHostCACertificateFileKey = "EdgeHostCACertificateFile";
+        public const string EdgeHubVolumeNameKey = "EdgeHubVolumeName";
+
+        public const string EdgeModuleVolumeNameKey = "EdgeModuleVolumeName";
+
+        public const string EdgeHubVolumePathKey = "EdgeHubVolumePath";
+
+        public const string EdgeModuleVolumePathKey = "EdgeModuleVolumePath";
 
         public const string EdgeModuleCACertificateFileKey = "EdgeModuleCACertificateFile";
 
-        public const string EdgeHostHubServerCAChainCertificateFileKey = "EdgeHostHubServerCAChainCertificateFile";
-
         public const string EdgeModuleHubServerCAChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
-
-        public const string EdgeHostHubServerCertificateFileKey = "EdgeHostHubServerCertificateFile";
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
