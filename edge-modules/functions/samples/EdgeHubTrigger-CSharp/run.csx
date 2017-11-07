@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 public static async Task Run(  
   Message messageReceived, 
   IAsyncCollector<Message> output, 
-  ILogger log)
+  TraceWriter log)
 {
     const int DefaultTemperatureThreshold = 25;
     byte[] messageBytes = messageReceived.GetBytes();
