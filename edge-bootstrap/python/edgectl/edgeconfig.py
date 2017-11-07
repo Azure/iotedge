@@ -55,7 +55,13 @@ class EdgeDeploymentConfigDocker(object):
                             self._uri_port = match_obj.group(3)
                             self._uri = value
                             is_valid = True
-                    elif self._uri_protocol in ['unix://', 'npipe://']:
+                    if self._uri_protocol in ['npipe://']:
+                        # Docker engine on Windows is at a well-known path.
+                        self._uri_endpoint = '\\\\.\\pipe\\docker_engine'
+                        self._uri_port = ''
+                        self._uri = value
+                        is_valid = True
+                    elif self._uri_protocol in ['unix://']:
                         pattern = re.compile(r'^\s*([a-z]+://)(\S+)$')
                         match_obj = pattern.match(value)
                         if match_obj:

@@ -32,8 +32,8 @@ class EdgeDefault(object):
         EC.DOCKER_HOST_WINDOWS: {
             'supported_deployments': [EC.DEPLOYMENT_DOCKER],
             'default_deployment': EC.DEPLOYMENT_DOCKER,
-            'default_edge_conf_dir': 'C:\\ProgramData\\' + _edge_dir,
-            'default_edge_data_dir': 'C:\\' + _edge_dir,
+            'default_edge_conf_dir': os.getenv('PROGRAMDATA') + '\\' + _edge_dir,
+            'default_edge_data_dir': os.getenv('PROGRAMDATA') + '\\' + _edge_dir,
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
@@ -41,8 +41,8 @@ class EdgeDefault(object):
                         'default_module_cert_dir': '/var/run/azure-iot-edge/certs'
                     },
                     EC.DOCKER_ENGINE_WINDOWS: {
-                        'default_uri': 'npipe:////./pipe/docker_engine',
-                        'default_module_cert_dir': 'C:\\temp\\azure-iot-edge\\certs'
+                        'default_uri': 'npipe://./pipe/docker_engine',
+                        'default_module_cert_dir': 'c:\\azure-iot-edge\\certs'
                     }
                 }
             }

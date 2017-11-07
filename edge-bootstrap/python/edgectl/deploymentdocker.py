@@ -193,6 +193,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 key = 'DockerLoggingOptions__' + key
                 env_dict[key] = val
 
+            mounts_list = []
             ports_dict = {}
             volume_dict = {}
             if edge_config.deployment_config.uri_port and \
@@ -201,16 +202,27 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 val = int(edge_config.deployment_config.uri_port)
                 ports_dict[key] = val
             else:
-                key = edge_config.deployment_config.uri_endpoint
-                volume_dict[key] = {'bind': key, 'mode': 'rw'}
+                if self._client.get_os_type() == 'windows':
+                    # Windows needs 'mounts' to mount named pipe to Agent
+                    docker_pipe = edge_config.deployment_config.uri_endpoint
+                    mounts_list.append(docker.types.Mount(target=docker_pipe,
+                                                          source=docker_pipe,
+                                                          type='npipe'))
+                else:
+                    key = edge_config.deployment_config.uri_endpoint
+                    volume_dict[key] = {'bind': key, 'mode': 'rw'}
+
             self._client.run(image,
+                             os_type,
                              container_name,
                              True,
                              env_dict,
                              nw_name,
                              ports_dict,
                              volume_dict,
-                             log_config_dict)
+                             log_config_dict,
+                             mounts_list)
+
             print('Runtime started.')
         return
 

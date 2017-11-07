@@ -185,14 +185,18 @@ class EdgeDockerClient(object):
             else:
                 create_network = True
             if create_network:
-                self._client.networks.create(network_name, driver="bridge")
+                if self.get_os_type() == 'windows':
+                    # default network type in Windows is nat
+                    self._client.networks.create(network_name, driver="nat")
+                else:
+                    self._client.networks.create(network_name, driver="bridge")
         except docker.errors.APIError as ex:
             logging.error('Could not create docker network: ' + network_name)
             print(ex)
             raise
 
-    def run(self, image, container_name, detach_bool, env_dict, nw_name,
-            ports_dict, volume_dict, log_config_dict):
+    def run(self, image, os_type, container_name, detach_bool, env_dict, nw_name,
+            ports_dict, volume_dict, log_config_dict, mounts_list):
         try:
             logging.info('Executing docker run ' + image
                      + ' name:' + container_name
@@ -206,14 +210,25 @@ class EdgeDockerClient(object):
                 logging.info(' volume: ' + key + ':'
                          + volume_dict[key]['bind']
                          + ', ' + volume_dict[key]['mode'])
-            self._client.containers.run(image,
-                                        detach=detach_bool,
-                                        environment=env_dict,
-                                        name=container_name,
-                                        network=nw_name,
-                                        ports=ports_dict,
-                                        volumes=volume_dict,
-                                        log_config=log_config_dict)
+            if os_type == 'windows':
+                self._client.containers.run(image,
+                                            detach=detach_bool,
+                                            environment=env_dict,
+                                            name=container_name,
+                                            network=nw_name,
+                                            ports=ports_dict,
+                                            volumes=volume_dict,
+                                            log_config=log_config_dict,
+                                            mounts=mounts_list)
+            else:
+                self._client.containers.run(image,
+                                            detach=detach_bool,
+                                            environment=env_dict,
+                                            name=container_name,
+                                            network=nw_name,
+                                            ports=ports_dict,
+                                            volumes=volume_dict,
+                                            log_config=log_config_dict)
         except docker.errors.ContainerError as ex_ctr:
             logging.error(container_name + ' Container exited with errors!')
             print(ex_ctr)

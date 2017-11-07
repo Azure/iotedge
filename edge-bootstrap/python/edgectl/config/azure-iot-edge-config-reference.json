@@ -21,7 +21,7 @@
     "type": "docker",
     "docker": {
       "uri": "",
-      "edgeRuntimeImage": "edgepreview.azurecr.io/azureiotedge/edge-agent:1.0.0-preview006",
+      "edgeRuntimeImage": "edgepreview.azurecr.io/azureiotedge/edge-agent:1.0-preview",
       "registries": [
         {
           "address": "edgepreview.azurecr.io",
