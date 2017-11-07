@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             return MainAsync(configuration).Result;
         }
-        
+
         public static async Task<int> MainAsync(IConfiguration configuration)
         {
             string dockerUriConfig = configuration.GetValue<string>("DockerUri");
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
             TimeSpan intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
             int coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
-            
+
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             // build the logger instance for the Program type
             var loggerBuilder = new ContainerBuilder();
-            loggerBuilder.RegisterModule(new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)), 
+            loggerBuilder.RegisterModule(new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),
                 Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))));
             var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
             ILogger logger = loggerFactory.CreateLogger<Program>();
@@ -85,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             logger.LogInformation("Starting module management agent.");
+            LogLogo(logger);
             var cts = new CancellationTokenSource();
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
@@ -146,6 +147,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         {
             logger.LogInformation("Termination requested, closing.");
             cts.Cancel();
+        }
+
+        static void LogLogo(ILogger logger)
+        {
+            logger.LogInformation(@"
+        █████╗ ███████╗██╗   ██╗██████╗ ███████╗
+       ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
+       ███████║  ███╔╝ ██║   ██║██████╔╝█████╗
+       ██╔══██║ ███╔╝  ██║   ██║██╔══██╗██╔══╝
+       ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
+       ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
+██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
+██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
+██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
+██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
+╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
+");
         }
     }
 }

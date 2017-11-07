@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub.");
+            LogLogo(logger);
             var cts = new CancellationTokenSource();
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
 
                 AssemblyLoadContext.Default.Unloading -= OnUnload;
-            }            
+            }
 
             return 0;
         }
@@ -84,6 +85,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             logger.LogInformation("Termination requested, closing.");
             cts.Cancel();
+        }
+
+        static void LogLogo(ILogger logger)
+        {
+            logger.LogInformation(@"
+        █████╗ ███████╗██╗   ██╗██████╗ ███████╗
+       ██╔══██╗╚══███╔╝██║   ██║██╔══██╗██╔════╝
+       ███████║  ███╔╝ ██║   ██║██████╔╝█████╗
+       ██╔══██║ ███╔╝  ██║   ██║██╔══██╗██╔══╝
+       ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
+       ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
+██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
+██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
+██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
+██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
+╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
+");
         }
     }
 }
