@@ -21,6 +21,7 @@ class EdgeCLI(object):
                            'debug', 'info', 'warning', 'error']
     _DEFAULT_LOG_VERBOSE_LEVEL = 'INFO'
     _LOGGING_INITIALIZED = False
+    _DEFAULT_REGISTRY_ADDRESS = 'https://index.docker.io/v1/'
 
     def __init__(self, program_name, version):
         EdgeCLI._PROGRAM_NAME = program_name
@@ -125,7 +126,6 @@ class EdgeCLI(object):
 
     def _process_cli_args(self):
         parser = argparse.ArgumentParser(prog=EdgeCLI._prog(),
-                                         usage='{0} [command] [options]'.format(EdgeCLI._prog()),
                                          formatter_class=argparse.RawTextHelpFormatter,
                                          description='Azure IoT Edge Runtime Control Interface',
                                          epilog='''''')
@@ -229,10 +229,13 @@ class EdgeCLI(object):
                                               help='Remove all modules and generated files.')
         cmd_uninstall.set_defaults(func=self._parse_edge_command)
 
-        cmd_login = subparsers.add_parser('login', description="Log in to a container registry.", help='Log in to a container registry.')
-        cmd_login.add_argument('--username', help='Specify the username of the container registry', required = True)
-        cmd_login.add_argument('--password', help='Specify the password of the container registry', required = True)
-        cmd_login.add_argument('--address', help='Specify the address of the container registry. (e.g. example.azurecr.io)', required = True)
+        cmd_login = subparsers.add_parser('login', description="Log in to a container registry.",
+                                          help='Log in to a container registry.',
+                                          formatter_class=argparse.RawTextHelpFormatter)
+        cmd_login.add_argument('--address', help='Specify the container registry. (e.g. example.azurecr.io)\nDefault: Docker Hub',
+                               required=False, default=EdgeCLI._DEFAULT_REGISTRY_ADDRESS)
+        cmd_login.add_argument('--username', help='Specify the username of the container registry', required=True)
+        cmd_login.add_argument('--password', help='Specify the password of the container registry', required=True)
         cmd_login.set_defaults(func=self._parse_edge_command)
 
         args = parser.parse_args()

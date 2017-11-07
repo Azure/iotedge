@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     [Collection("Docker")]
     public class PullCommandTest
     {
+        static readonly Option<AuthConfig> NoAuth = Option.None<AuthConfig>();
 
         static IEnumerable<object[]> CreateTestData()
         {
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             var module = new DockerModule("test", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, dockerConfig, new ConfigurationInfo());
 
             // Act
-            var command = new PullCommand(client.Object, module, auth);
+            var command = new PullCommand(client.Object, module, Option.Some(auth));
 
             await command.ExecuteAsync(CancellationToken.None);
 
@@ -87,9 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var config = new DockerConfig(Image, String.Empty);
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
-                                        
-                    ICommand pullCommand = new PullCommand(DockerHelper.Client, module, null);
-                    
+
+                    ICommand pullCommand = new PullCommand(DockerHelper.Client, module, NoAuth);
                     await Assert.ThrowsAsync<ImageNotFoundException>(() => pullCommand.ExecuteAsync(cts.Token));
                 }
             }
@@ -113,14 +113,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                                                      It.IsAny<IProgress<JSONMessage>>(),
                                                      It.IsAny<CancellationToken>()))
                                                   .Throws(new DockerApiException(System.Net.HttpStatusCode.NotFound, "FakeResponseBody"));
-                                
+
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
                 var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
-
-
-                ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
+                ICommand pullCommand = new PullCommand(dockerClient.Object, module, NoAuth);
 
                 await Assert.ThrowsAsync<ImageNotFoundException>(() => pullCommand.ExecuteAsync(cts.Token));
             }
@@ -145,9 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
                 var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
-
-
-                ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
+                ICommand pullCommand = new PullCommand(dockerClient.Object, module, NoAuth);
 
                 await Assert.ThrowsAsync<InternalServerErrorException>(() => pullCommand.ExecuteAsync(cts.Token));
             }
@@ -172,9 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
                 var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, new DockerConfig(Name), null);
-
-
-                ICommand pullCommand = new PullCommand(dockerClient.Object, module, null);
+                ICommand pullCommand = new PullCommand(dockerClient.Object, module, NoAuth);
 
                 await Assert.ThrowsAsync<DockerApiException>(() => pullCommand.ExecuteAsync(cts.Token));
             }

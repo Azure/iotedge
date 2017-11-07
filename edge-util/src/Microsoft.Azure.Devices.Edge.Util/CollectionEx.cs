@@ -47,6 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return Option.None<T>();
         }
 
+        public static Option<T> FirstOption<T>(this IEnumerable<T> src, Func<T, bool> predicate)
+        {
+            T t = src.FirstOrDefault(predicate);
+            return EqualityComparer<T>.Default.Equals(t, default(T))
+                ? Option.None<T>()
+                : Option.Some(t);
+        }
+
         /// <summary>
         /// Produces a string representation of an <see cref="IDictionary{TKey,TValue}"/> in the form
         /// <c>(key1, value1), (key2, value2)...</c>. The idea is to use this representation when you

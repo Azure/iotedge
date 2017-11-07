@@ -2,11 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using global::Docker.DotNet.Models;
     using System;
     using System.Collections.Generic;
+    using global::Docker.DotNet.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [Unit]
@@ -15,56 +16,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void CannotParseHostnameFromNullImage()
         {
-            string hostname;
-            Assert.Throws<ArgumentNullException>(
-                () => DockerUtil.TryParseHostnameFromImage(null, out hostname));
+            Assert.Throws<ArgumentNullException>(() => DockerUtil.TryParseDomainFromImage(null, out string hostname));
         }
 
         [Fact]
         public void CannotParseHostnameFromEmptyImage()
         {
-            string hostname;
-            Assert.False(DockerUtil.TryParseHostnameFromImage(string.Empty, out hostname));
+            Assert.False(DockerUtil.TryParseDomainFromImage(string.Empty, out string hostname));
             Assert.Empty(hostname);
         }
 
         [Fact]
-        public void CannotParseMissingHostnameFromImage()
+        public void MissingHostnameReturnsDefault()
         {
-            string hostname;
-            Assert.False(DockerUtil.TryParseHostnameFromImage("nohostname", out hostname));
-            Assert.Empty(hostname);
+            Assert.True(DockerUtil.TryParseDomainFromImage("repo/image", out string hostname));
+            Assert.Equal(Constants.DefaultRegistryAddress, hostname);
         }
 
-        [Fact]
-        public void CanParseHostnameFromImage()
+        [Theory]
+        [InlineData("miyagley/edge-hub", Constants.DefaultRegistryAddress)]
+        [InlineData("edgepreview.azurecr.io/image", "edgepreview.azurecr.io")]
+        [InlineData("edgepreview.azurecr.io/namespace/image", "edgepreview.azurecr.io")]
+        [InlineData("edgepreview.azurecr.io/namespace/image/another", "edgepreview.azurecr.io")]
+        [InlineData("localhost:5000/image", "localhost:5000")]
+        [InlineData("localhost:5000/namespace/image", "localhost:5000")]
+        public void CanParseHostnameFromImage(string image, string expectedHostname)
         {
-            string hostname;
-            Assert.True(DockerUtil.TryParseHostnameFromImage("has/hostname/tricky", out hostname));
-            Assert.Equal("has", hostname);
+            Assert.True(DockerUtil.TryParseDomainFromImage(image, out string hostname));
+            Assert.Equal(expectedHostname, hostname);
         }
 
         [Fact]
         public void ThrowsWhenImageArgumentIsNull()
         {
             var authConfigs = new List<AuthConfig>();
-            Assert.Throws<ArgumentNullException>(
-                () => DockerUtil.FirstAuthConfigOrDefault(null, authConfigs));
+            Assert.Throws<ArgumentNullException>(() => authConfigs.FirstAuthConfig(null));
         }
 
         [Fact]
         public void ReturnsNullWhenAuthConfigListArgumentIsNull()
         {
             var authConfigs = new List<AuthConfig>();
-            Assert.Null(DockerUtil.FirstAuthConfigOrDefault("dontcare", null));
+            Assert.Equal(Option.None<AuthConfig>(), ((IEnumerable<AuthConfig>)null).FirstAuthConfig("dontcare"));
         }
 
         [Fact]
         public void ReturnsNullWhenListIsEmpty()
         {
             var authConfigs = new List<AuthConfig>();
-            AuthConfig found = DockerUtil.FirstAuthConfigOrDefault("hostname/imagename", authConfigs);
-            Assert.Null(found);
+            Option<AuthConfig> found = authConfigs.FirstAuthConfig("hostname/repo/imagename");
+            Assert.False(found.HasValue);
         }
 
         [Fact]
@@ -73,13 +74,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var authConfigs = new List<AuthConfig>
             {
                 new AuthConfig { ServerAddress = "nope" },
-                new AuthConfig { ServerAddress = "hostname" },
+                new AuthConfig { ServerAddress = Constants.DefaultRegistryAddress },
                 new AuthConfig { ServerAddress = "nada" },
                 new AuthConfig { ServerAddress = "hostname" }
             };
 
-            AuthConfig found = DockerUtil.FirstAuthConfigOrDefault("hostname/imagename", authConfigs);
-            Assert.Same(authConfigs[1], found);
+            Option<AuthConfig> found = authConfigs.FirstAuthConfig("hostname/imagename");
+            Assert.Same(authConfigs[1], found.OrDefault());
         }
     }
 }

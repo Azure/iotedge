@@ -16,13 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     {
         readonly IDockerClient client;
         readonly DockerModule module;
-        readonly AuthConfig authConfig;
+        readonly Option<AuthConfig> authConfig;
 
-        public PullCommand(IDockerClient client, DockerModule module, AuthConfig authConfig)
+        public PullCommand(IDockerClient client, DockerModule module, Option<AuthConfig> authConfig)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.module = Preconditions.CheckNotNull(module, nameof(module));
-            this.authConfig = authConfig;
+            this.authConfig = Preconditions.CheckNotNull(authConfig, nameof(authConfig));
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             try
             {
                 await this.client.Images.CreateImageAsync(pullParameters,
-                                                          this.authConfig,
+                                                          this.authConfig.OrDefault(),
                                                           new Progress<JSONMessage>(),
                                                           token);
             }
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                     throw new InternalServerErrorException(image, tag, ex.StatusCode.ToString(), ex);
                 }
                 //otherwise throw
-                throw;                
+                throw;
             }
         }
 

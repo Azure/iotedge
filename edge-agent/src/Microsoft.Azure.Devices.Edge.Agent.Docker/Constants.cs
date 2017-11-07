@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     static class Constants
     {
-        public const string NetworkIdKey = "NetworkId";        
+        public const string NetworkIdKey = "NetworkId";
 
         public const string EdgeAgentCreateOptionsName = "EdgeAgentCreateOptions";
+
+        public const string DefaultRegistryAddress = "https://index.docker.io/v1/";
     }
 }

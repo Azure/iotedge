@@ -62,10 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
 
-        AuthConfig FirstAuthConfigOrDefault(DockerModule module)
-        {
-            var authConfigs = this.configSource.Configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>();
-            return DockerUtil.FirstAuthConfigOrDefault(module.Config.Image, authConfigs);
-        }
+        Option<AuthConfig> FirstAuthConfigOrDefault(DockerModule module) =>
+            this.configSource.Configuration
+                .GetSection("DockerRegistryAuth")
+                .Get<List<AuthConfig>>()
+                .FirstAuthConfig(module.Config.Image);
     }
 }
