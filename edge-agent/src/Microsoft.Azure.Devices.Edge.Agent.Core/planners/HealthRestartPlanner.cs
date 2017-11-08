@@ -57,7 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 var group = await GroupCommand.CreateAsync(
                     // restart the module
-                    await this.commandFactory.RestartAsync(module),
+                    // await this.commandFactory.RestartAsync(module),
+
+                    // TODO: Windows native containers have an outstanding bug where "docker restart"
+                    // doesn't work. But a "docker stop" followed by a "docker start" will work. Putting
+                    // in a temporary workaround to address this. This should be rolled back when the
+                    // Windows bug is fixed.
+                    await this.commandFactory.StopAsync(module),
+                    await this.commandFactory.StartAsync(module),
+
                     // Update restart count and last restart time in store
                     await this.commandFactory.WrapAsync(
                         new UpdateModuleStateCommand(

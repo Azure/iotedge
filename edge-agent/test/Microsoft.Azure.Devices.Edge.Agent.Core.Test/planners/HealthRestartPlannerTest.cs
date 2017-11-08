@@ -841,7 +841,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 .Concat(
                     updateStateChangedModules
                         .Where(d => d.Restart)
-                        .Select(d => new TestRecordType(TestCommandType.TestRestart, d.RunningModule))
+                        .SelectMany(d => new TestRecordType[]
+                        {
+                            new TestRecordType(TestCommandType.TestStop, d.RunningModule),
+                            new TestRecordType(TestCommandType.TestStart, d.RunningModule)
+                        })
                 );
 
             // Act
