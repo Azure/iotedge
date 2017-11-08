@@ -103,7 +103,7 @@ process_args()
             save_next_arg=0
         elif [ $save_next_arg -eq 10 ]; then
             DOCKER_NAMESPACE="$arg"
-            save_next_arg=10
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;

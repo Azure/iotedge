@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26711.1
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -48,7 +48,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{FA2C8688-A8E2-433A-A28D-64836F677EDB}"
 	ProjectSection(SolutionItems) = preProject
 		scripts\linux\buildBranch.sh = scripts\linux\buildBranch.sh
-		scripts\linux\buildDockerImage.sh = scripts\linux\buildDockerImage.sh
+		scripts\linux\buildImage.sh = scripts\linux\buildImage.sh
+		scripts\linux\buildManifest.sh = scripts\linux\buildManifest.sh
 		scripts\linux\downloadAndInstallCert.sh = scripts\linux\downloadAndInstallCert.sh
 		scripts\linux\InstallCert.ps1 = scripts\linux\InstallCert.ps1
 		scripts\linux\installKvPrereqs_Ubuntu.sh = scripts\linux\installKvPrereqs_Ubuntu.sh
