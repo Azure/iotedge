@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     public static class LinqEx
     {
@@ -35,5 +36,46 @@
                 }
             }
         }
+
+        /// <summary>
+        /// Compares <paramref name="first"/> and <paramref name="second"/> and returns
+        /// a new sequence where all values occurring in both sequences have been
+        /// filtered out. Treats the strings in both the sequences as being in the
+        /// format <c>key=value</c> and uses the <c>key</c> for equality comparison.
+        /// </summary>
+        public static IEnumerable<string> RemoveIntersectionKeys(
+            this IEnumerable<string> first,
+            IEnumerable<string> second
+        ) => first.Except(second, StringKeyComparer.DefaultStringKeyComparer);
+
+        /// <summary>
+        /// Compares <paramref name="first"/> and <paramref name="second"/> and returns
+        /// a new sequence where all values occurring in both sequences have been
+        /// filtered out. Uses <paramref name="keySelector"/> to extract a 'key'
+        /// from the value that uniquely identifies the value (this can be used
+        /// to extract a primary key sub-string from a data record for example).
+        /// </summary>
+        public static IEnumerable<string> RemoveIntersectionKeys(
+            this IEnumerable<string> first,
+            IEnumerable<string> second,
+            Func<string, string> keySelector
+        ) => first.Except(second, new StringKeyComparer(keySelector));
+    }
+
+    internal class StringKeyComparer : IEqualityComparer<string>
+    {
+        readonly Func<string, string> keySelector;
+
+        internal readonly static StringKeyComparer DefaultStringKeyComparer = new StringKeyComparer(s => s.Split(new char[] { '=' }, 2)[0]);
+
+        internal StringKeyComparer(Func<string, string> keySelector)
+        {
+            Preconditions.CheckNotNull(keySelector, nameof(keySelector));
+            this.keySelector = s => s == null ? null : keySelector(s);
+        }
+
+        public bool Equals(string x, string y) => this.keySelector(x) == this.keySelector(y);
+
+        public int GetHashCode(string obj) => this.keySelector(obj)?.GetHashCode() ?? 0;
     }
 }
