@@ -217,8 +217,8 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
             path = os.path.join(path, prefix)
             cert_dir = os.path.join(path, 'cert')
             pfx_output_file_name = os.path.join(cert_dir, prefix + '.cert.pfx')
-            with open(pfx_output_file_name, 'w') as pfx_file:
-                pfx_file.write(str(pfx_data))
+            with open(pfx_output_file_name, 'wb') as pfx_file:
+                pfx_file.write(pfx_data)
 
     @staticmethod
     def __create_key_pair(type, key_bit_len):
@@ -306,9 +306,9 @@ class EdgeCertUtilPyOpenSSL(EdgeCertUtil):
         output_dir = os.path.join(output_dir, 'cert')
         EdgeUtils.mkdir_if_needed(output_dir)
         ouput_file_name = os.path.join(output_dir, output_prefix + '.cert.pem')
-        with open(ouput_file_name, 'w') as op_file:
+        with open(ouput_file_name, 'wb') as op_file:
             for file_name in file_names:
-                with open(file_name, 'r') as ip_file:
+                with open(file_name, 'rb') as ip_file:
                     op_file.write(ip_file.read())
 
 

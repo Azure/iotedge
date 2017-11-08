@@ -13,13 +13,16 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     _edge_runtime_network_name = 'azure-iot-edge'
     _edge_agent_container_label = \
             'net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent'
+    _EDGE_VOL_MOUNT_BASE = 'mnt'
+    _EDGE_HUB_VOL_NAME = 'edgehub'
+    _EDGE_MODULE_VOL_NAME = 'edgemodule'
 
     def __init__(self, config_obj):
         EdgeDeploymentCommand.__init__(self, config_obj)
         self._client = EdgeDockerClient()
         return
 
-    def obtain_edge_agent_login(self):
+    def _obtain_edge_agent_login(self):
         result = None
         edge_reg = self._config_obj.deployment_config.edge_image_repository
         for registry in self._config_obj.deployment_config.registries:
@@ -28,20 +31,17 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 break
         return result
 
-    def login(self):
-        log.info('Executing \'login\'')
+    def _recreate_agent_container(self):
         container_name = self._edge_runtime_container_name
-
         status = self.status()
         if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
         elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
-            log.info('Runtime container ' + container_name \
-                     + ' found in stopped state. Please use' \
-                     + ' the start command to see changes take effect.')
+            log.info('Runtime container %s found in stopped state. Please use' \
+                     ' the start command to see changes take effect.',
+                     container_name)
         elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.info('Please use the start command to see' \
-                     + ' changes take effect.')
+            log.info('Please use the start command to see changes take effect.')
         else:
             log.info('Stopping runtime.')
             self._client.stop(container_name)
@@ -50,179 +50,224 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.info('Starting runtime.')
             self.start()
             log.info('Starting runtime.')
+
+    def _mount_certificates_into_agent_container(self):
+        os_type = self._client.get_os_type().lower()
+        if os_type != 'linux':
+            return
+
+        container_name = self._edge_runtime_container_name
+
+        sep = '/'
+        mnt_path = '{0}{1}'.format(sep, self._EDGE_VOL_MOUNT_BASE)
+        # setup module volume with CA cert
+        ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
+        module_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_MODULE_VOL_NAME)
+        self._client.copy_file_to_volume(container_name,
+                                         ca_cert_file['file_name'],
+                                         module_vol_path,
+                                         ca_cert_file['file_path'])
+
+        # setup hub volume CA chain and Edge server certs
+        ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
+        hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
+        hub_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_HUB_VOL_NAME)
+        self._client.copy_file_to_volume(container_name,
+                                         ca_chain_cert_file['file_name'],
+                                         hub_vol_path,
+                                         ca_chain_cert_file['file_path'])
+        self._client.copy_file_to_volume(container_name,
+                                         hub_cert_dict['file_name'],
+                                         hub_vol_path,
+                                         hub_cert_dict['file_path'])
+
+
+    def _setup_certificates(self, env_dict, volume_dict):
+        os_type = self._client.get_os_type().lower()
+        if os_type != 'linux':
+            return
+        # create volumes for mounting certs into hub and all other edge modules
+        self._client.create_volume(self._EDGE_HUB_VOL_NAME)
+        self._client.create_volume(self._EDGE_MODULE_VOL_NAME)
+
+        sep = '/'
+        mnt_path = '{0}{1}'.format(sep, self._EDGE_VOL_MOUNT_BASE)
+        # add volume mounts into edge agent
+        hub_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_HUB_VOL_NAME)
+        volume_dict[self._EDGE_HUB_VOL_NAME] = {'bind': hub_vol_path, 'mode': 'rw'}
+        module_vol_path = \
+            '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_MODULE_VOL_NAME)
+        volume_dict[self._EDGE_MODULE_VOL_NAME] = {'bind': module_vol_path, 'mode': 'rw'}
+
+        # setup env vars describing volume names and paths
+        env_dict['EdgeHubVolumeName'] = self._EDGE_HUB_VOL_NAME
+        env_dict['EdgeHubVolumePath'] = hub_vol_path
+        env_dict['EdgeModuleVolumeName'] = self._EDGE_MODULE_VOL_NAME
+        env_dict['EdgeModuleVolumePath'] = module_vol_path
+
+        # setup env vars describing CA cert location for all edge modules
+        ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
+        env_dict['EdgeModuleCACertificateFile'] = \
+            '{0}{1}{2}'.format(module_vol_path, sep, ca_cert_file['file_name'])
+
+        # setup env vars describing CA cert location for all edge hub
+        ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
+        env_dict['EdgeModuleHubServerCAChainCertificateFile'] = \
+            '{0}{1}{2}'.format(hub_vol_path, sep, ca_chain_cert_file['file_name'])
+        hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
+        env_dict['EdgeModuleHubServerCertificateFile'] = \
+            '{0}{1}{2}'.format(hub_vol_path, sep, hub_cert_dict['file_name'])
+
+    def _setup_registries(self, env_dict):
+        edge_config = self._config_obj
+        idx = 0
+        for registry in edge_config.deployment_config.registries:
+            key = 'DockerRegistryAuth__' + str(idx) + '__serverAddress'
+            val = registry['address']
+            env_dict[key] = val
+
+            key = 'DockerRegistryAuth__' + str(idx) + '__username'
+            val = registry['username']
+            env_dict[key] = val
+
+            key = 'DockerRegistryAuth__' + str(idx) + '__password'
+            val = registry['password']
+            env_dict[key] = val
+            idx = idx + 1
+
+    def _setup_docker_logging(self, env_dict, log_config_dict):
+        edge_config = self._config_obj
+        # set the log driver type
+        log_driver = edge_config.deployment_config.logging_driver
+        env_dict['DockerLoggingDriver'] = log_driver
+        log_config_dict['type'] = log_driver
+
+        # set the log driver option kvp
+        log_opts_dict = edge_config.deployment_config.logging_options
+        log_config_dict['config'] = log_opts_dict
+        opts = list(log_opts_dict.items())
+        for key, val in opts:
+            key = 'DockerLoggingOptions__' + key
+            env_dict[key] = val
+
+    def _setup_docker_uri_endpoint(self, ports_dict, volume_dict, mounts_list):
+        edge_config = self._config_obj
+        # if the uri has a port, create a port mapping else
+        # volume mount the end point (ex. unix socket file)
+        if edge_config.deployment_config.uri_port and \
+                edge_config.deployment_config.uri_port != '':
+            key = edge_config.deployment_config.uri_port + '/tcp'
+            val = int(edge_config.deployment_config.uri_port)
+            ports_dict[key] = val
+        else:
+            if self._client.get_os_type() == 'windows':
+                # Windows needs 'mounts' to mount named pipe to Agent
+                docker_pipe = edge_config.deployment_config.uri_endpoint
+                mounts_list.append(docker.types.Mount(target=docker_pipe,
+                                                      source=docker_pipe,
+                                                      type='npipe'))
+            else:
+                key = edge_config.deployment_config.uri_endpoint
+                volume_dict[key] = {'bind': key, 'mode': 'rw'}
+
+    def _start_agent_container(self):
+        container_name = self._edge_runtime_container_name
+        self._client.start(container_name)
+
+    def _remove_agent_container(self):
+        container_name = self._edge_runtime_container_name
+        self._client.remove(container_name)
+
+    def _pull_freshest_agent_image(self):
+        edge_config = self._config_obj
+        container_name = self._edge_runtime_container_name
+        image = edge_config.deployment_config.edge_image
+        edge_reg = self._obtain_edge_agent_login()
+        username = None
+        password = None
+        if edge_reg:
+            username = edge_reg['username']
+            password = edge_reg['password']
+        is_newer_agent_image = self._client.pull(image, username, password)
+        if is_newer_agent_image:
+            log.debug('Pulled new image %s', image)
+        else:
+            # check if user has updated the agent image by checking image names
+            existing_agent_image = self._client.get_container_by_name(container_name)
+            if existing_agent_image and existing_agent_image.image != image:
+                is_newer_agent_image = True
+
+        return is_newer_agent_image
+
+    def _create_agent_container(self):
+        env_dict = {}
+        log_config_dict = {}
+        ports_dict = {}
+        volume_dict = {}
+        mounts_list = []
+
+        edge_config = self._config_obj
+        # create network for running all edge modules
+        nw_name = self._edge_runtime_network_name
+        self._client.create_network(nw_name)
+
+        # setup base env vars
+        env_dict['DockerUri'] = edge_config.deployment_config.uri
+        env_dict['DeviceConnectionString'] = edge_config.connection_string
+        env_dict['EdgeDeviceHostName'] = edge_config.hostname
+        env_dict['NetworkId'] = nw_name
+        env_dict['RuntimeLogLevel'] = edge_config.log_level
+
+        self._setup_certificates(env_dict, volume_dict)
+        self._setup_registries(env_dict)
+        self._setup_docker_logging(env_dict, log_config_dict)
+        self._setup_docker_uri_endpoint(ports_dict, volume_dict, mounts_list)
+        image = edge_config.deployment_config.edge_image
+        container_name = self._edge_runtime_container_name
+        self._client.create(image, container_name, True, env_dict, nw_name,
+                            ports_dict, volume_dict, log_config_dict,
+                            mounts_list)
+        self._mount_certificates_into_agent_container()
+
+    def login(self):
+        log.info('Executing \'login\'')
+        self._recreate_agent_container()
 
     def update(self):
         log.info('Executing \'update\'')
-
-        container_name = self._edge_runtime_container_name
-
-        status = self.status()
-        if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
-            log.error('Runtime is restarting. Please retry later.')
-        elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
-            log.info('Runtime container ' + container_name \
-                     + ' found in stopped state. Please use' \
-                     + ' the start command to see changes take effect.')
-        elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.info('Please use the start command to see' \
-                     + ' changes take effect.')
-        else:
-            log.info('Stopping runtime.')
-            self._client.stop(container_name)
-            self._client.remove(container_name)
-            log.info('Stopped runtime.')
-            log.info('Starting runtime.')
-            self.start()
-            log.info('Starting runtime.')
+        self._recreate_agent_container()
 
     def start(self):
         log.info('Executing \'start\'')
-        create_new_container = False
-        start_existing_container = False
         container_name = self._edge_runtime_container_name
-        edge_config = self._config_obj
-
-        image = edge_config.deployment_config.edge_image
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RUNNING:
-            log.error('Runtime is currently running. '
-                      + 'Please stop or restart the runtime and retry.')
+            log.error('Runtime is currently running. ' \
+                      'Please stop or restart the runtime and retry.')
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
-            log.error('Runtime is currently restarting. '
-                      + 'Please stop the runtime and retry.')
+            log.error('Runtime is currently restarting. ' \
+                      'Please stop the runtime and retry.')
         else:
-            edge_reg = self.obtain_edge_agent_login()
-            username = None
-            password = None
-            if edge_reg:
-                username = edge_reg['username']
-                password = edge_reg['password']
-            is_updated = self._client.pull(image, username, password)
-            if is_updated:
-                log.debug('Pulled new image ' + image)
+            # here we are either in stopped or unavailable state
+            create_new_container = False
+
+            # pull the latest edge agent image
+            is_newer_agent_image = self._pull_freshest_agent_image()
+            if is_newer_agent_image:
+                # image was updated so remove any existing agent container
                 create_new_container = True
-                self._client.remove(container_name)
+                self._remove_agent_container()
             else:
+                # image was not updated and available locally on the host
                 if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
+                    # have to create a new container since one does not exist
                     create_new_container = True
-                    log.debug('Edge Agent container ' + container_name
-                              + ' does not exist.')
-                else:
-                    existing = self._client.get_container_by_name(container_name)
-                    if existing.image != image:
-                        log.debug('Did not pull new image and container exists with image ' + str(existing.image))
-                        create_new_container = True
-                        self._client.remove(container_name)
-                    else:
-                        start_existing_container = True
+                    log.debug('Edge Agent container %s does not exist.',
+                              container_name)
 
-        if start_existing_container:
-            self._client.start(container_name)
-            print('Runtime started.')
-        elif create_new_container:
-            ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
-            if ca_cert_file is None:
-                raise RuntimeError('Could not find CA certificate file')
-
-            ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
-            if ca_chain_cert_file is None:
-                raise RuntimeError('Could not find CA chain certificate file')
-
-            hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
-            if hub_cert_dict is None:
-                raise RuntimeError('Could not find Edge Hub certificate.')
-
-            nw_name = self._edge_runtime_network_name
-            self._client.create_network(nw_name)
-
-            os_type = self._client.get_os_type()
-            os_type = os_type.lower()
-            module_certs_path = \
-                EdgeDefault.docker_module_cert_mount_dir(os_type)
-            if os_type == 'windows':
-                sep = '\\'
-            else:
-                sep = '/'
-            module_certs_path += sep
-            env_dict = {
-                'DockerUri': edge_config.deployment_config.uri,
-                'DeviceConnectionString': edge_config.connection_string,
-                'EdgeDeviceHostName': edge_config.hostname,
-                'NetworkId': nw_name,
-            }
-            # @todo disable mounting certs for non Linux hosts
-            host = platform.system().lower()
-            if host == 'linux':
-                env_dict['EdgeHostCACertificateFile'] = ca_cert_file['file_path']
-                env_dict['EdgeModuleCACertificateFile'] = module_certs_path + ca_cert_file['file_name']
-                env_dict['EdgeHostHubServerCAChainCertificateFile'] = ca_chain_cert_file['file_path']
-                env_dict['EdgeModuleHubServerCAChainCertificateFile'] = module_certs_path + ca_chain_cert_file['file_name']
-                env_dict['EdgeHostHubServerCertificateFile'] = hub_cert_dict['file_path']
-                env_dict['EdgeModuleHubServerCertificateFile'] = module_certs_path + hub_cert_dict['file_name']
-
-            idx = 0
-            for registry in edge_config.deployment_config.registries:
-                key = 'DockerRegistryAuth__' + str(idx) + '__serverAddress'
-                val = registry['address']
-                env_dict[key] = val
-
-                key = 'DockerRegistryAuth__' + str(idx) + '__username'
-                val = registry['username']
-                env_dict[key] = val
-
-                key = 'DockerRegistryAuth__' + str(idx) + '__password'
-                val = registry['password']
-                env_dict[key] = val
-                idx = idx + 1
-
-            # setup the Edge runtime log level
-            env_dict['RuntimeLogLevel'] = edge_config.log_level
-
-            # set the log driver type
-
-            log_driver = edge_config.deployment_config.logging_driver
-            log_config_dict = {}
-            env_dict['DockerLoggingDriver'] = log_driver
-            log_config_dict['type'] = log_driver
-
-            # set the log driver option kvp
-            log_opts_dict = edge_config.deployment_config.logging_options
-            log_config_dict['config'] = log_opts_dict
-            opts = list(log_opts_dict.items())
-            for key, val in opts:
-                key = 'DockerLoggingOptions__' + key
-                env_dict[key] = val
-
-            mounts_list = []
-            ports_dict = {}
-            volume_dict = {}
-            if edge_config.deployment_config.uri_port and \
-                    edge_config.deployment_config.uri_port != '':
-                key = edge_config.deployment_config.uri_port + '/tcp'
-                val = int(edge_config.deployment_config.uri_port)
-                ports_dict[key] = val
-            else:
-                if self._client.get_os_type() == 'windows':
-                    # Windows needs 'mounts' to mount named pipe to Agent
-                    docker_pipe = edge_config.deployment_config.uri_endpoint
-                    mounts_list.append(docker.types.Mount(target=docker_pipe,
-                                                          source=docker_pipe,
-                                                          type='npipe'))
-                else:
-                    key = edge_config.deployment_config.uri_endpoint
-                    volume_dict[key] = {'bind': key, 'mode': 'rw'}
-
-            self._client.run(image,
-                             os_type,
-                             container_name,
-                             True,
-                             env_dict,
-                             nw_name,
-                             ports_dict,
-                             volume_dict,
-                             log_config_dict,
-                             mounts_list)
-
+            if create_new_container:
+                self._create_agent_container()
+            self._start_agent_container()
             print('Runtime started.')
         return
 
@@ -232,7 +277,8 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.error('Edge Agent container \'%s\' does not exist.' % (container_name,))
+            log.error('Edge Agent container \'%s\' does not exist.',
+                      container_name)
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
         else:
@@ -282,13 +328,17 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         status = self._status()
         log.info('Uninstalling all modules.')
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.debug('Edge Agent container \'%s\' does not exist.' % (container_name,))
+            log.debug('Edge Agent container \'%s\' does not exist.',
+                      container_name)
         else:
             self._client.stop(container_name)
             self._client.remove(container_name)
 
         self._client.stop_by_label(self._edge_agent_container_label)
         self._client.remove_by_label(self._edge_agent_container_label)
+        # create volumes for mounting certs into hub and all other edge modules
+        self._client.remove_volume(self._EDGE_HUB_VOL_NAME, True)
+        self._client.remove_volume(self._EDGE_MODULE_VOL_NAME, True)
         return
 
     def uninstall(self):

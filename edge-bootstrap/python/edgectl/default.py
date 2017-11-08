@@ -13,6 +13,7 @@ class EdgeDefault(object):
     _edge_agent_dir_name = "__AzureIoTEdgeAgent"
     _edge_runtime_log_levels = [EC.EDGE_RUNTIME_LOG_LEVEL_INFO,
                                 EC.EDGE_RUNTIME_LOG_LEVEL_DEBUG]
+    _windows_config_path = os.getenv('PROGRAMDATA') if os.getenv('PROGRAMDATA') is not None else ''
 
     _platforms = {
         EC.DOCKER_HOST_LINUX: {
@@ -32,8 +33,8 @@ class EdgeDefault(object):
         EC.DOCKER_HOST_WINDOWS: {
             'supported_deployments': [EC.DEPLOYMENT_DOCKER],
             'default_deployment': EC.DEPLOYMENT_DOCKER,
-            'default_edge_conf_dir': os.getenv('PROGRAMDATA') + '\\' + _edge_dir,
-            'default_edge_data_dir': os.getenv('PROGRAMDATA') + '\\' + _edge_dir,
+            'default_edge_conf_dir': _windows_config_path + '\\' + _edge_dir,
+            'default_edge_data_dir': _windows_config_path + '\\' + _edge_dir,
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
