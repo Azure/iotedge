@@ -32,6 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         Pooling = true,
                         MaxPoolSize = (uint)connectionPoolSize
                     }
+                },
+                new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
+                {
+                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
+                    {
+                        Pooling = true,
+                        MaxPoolSize = (uint)connectionPoolSize
+                    }
                 }
             };
         }
