@@ -366,7 +366,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating resported properties for device {cloudProxy.identity.Id}"));
+                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.identity.Id}"));
             }
 
             public static void BindCloudListener(CloudProxy cloudProxy)

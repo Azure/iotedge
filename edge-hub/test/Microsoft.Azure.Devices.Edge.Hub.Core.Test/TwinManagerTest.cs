@@ -877,7 +877,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange - setup twin with version
             Twin twin = new Twin("d1") { Version = 1 };
-            twin.Version = 32;
+            twin.Properties.Desired = new TwinCollection { ["$version"] = "32" };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
@@ -904,11 +904,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches what we setup
-            Assert.Equal(cached.Version, twin.Version);
+            Assert.Equal(cached.Properties.Desired.Version, twin.Properties.Desired.Version);
             Assert.Equal(this.twinMessageConverter.FromMessage(received).Version, twin.Version);
 
             // Arrange - setup twin with higher than original version
-            twin.Version = 33;
+            twin.Properties.Desired = new TwinCollection { ["$version"] = "33" };
             twinMessage = this.twinMessageConverter.ToMessage(twin);
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
 
@@ -919,8 +919,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t.Twin; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches new version and device not subsribed
-            Assert.Equal(cached.Version, 33);
-            Assert.Equal(twinInfo.Twin.Version, 33);
+            Assert.Equal(cached.Properties.Desired.Version, 33);
+            Assert.Equal(twinInfo.Twin.Properties.Desired.Version, 33);
             Assert.Equal(twinInfo.SubscribedToDesiredPropertyUpdates, false);
 
             // Assert - verify desired property update callback was not generated (device was not subscribed to updates)
@@ -1085,7 +1085,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void ConnectionReestablishedGetTwinWithDesiredPropertyUpdateSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            Twin twin = new Twin("d1");
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
@@ -1134,7 +1134,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             twin.Version = 33;
             twin.Properties.Desired = new TwinCollection()
             {
-                ["value"] = "something"
+                ["value"] = "something",
+                ["$version"] = 31
             };
             twinMessage = this.twinMessageConverter.ToMessage(twin);
 

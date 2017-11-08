@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
                     () => Option.None<IEntityStore<string, TwinInfo>>()));
             connectionManager.CloudConnectionEstablished += twinManager.ConnectionEstablishedCallback;
+            connectionManager.CloudConnectionLost += twinManager.ConnectionLostCallback;
             return twinManager;
         }
 
@@ -68,12 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         await twinInfo.Match(
                             async (t) =>
                             {
-                                if (t.ReportedPropertiesPatch.Count > 0)
+                                if (t.ReportedPropertiesPatch.Count != 0)
                                 {
                                     IMessage reported = this.twinCollectionConverter.ToMessage(t.ReportedPropertiesPatch);
                                     await this.SendReportedPropertiesToCloudProxy(identity.Id, reported);
                                     await store.Update(identity.Id, u => new TwinInfo(u.Twin, null, u.SubscribedToDesiredPropertyUpdates));
-                                    Events.ReportedPropertiesUpdateToCloudSuccess(identity.Id);
+                                    Events.ReportedPropertiesSyncedToCloudSuccess(identity.Id, t.ReportedPropertiesPatch.Version);
                                 }
                             },
                             () => { return Task.CompletedTask; });
@@ -92,7 +93,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal void ConnectionEstablishedCallback(object sender, IIdentity identity)
         {
+            Events.ConnectionEstablished(identity.Id);
             this.actionBlock.Post(identity);
+        }
+
+        void ConnectionLostCallback(object sender, IIdentity identity)
+        {
+            Events.ConnectionLost(identity.Id);
         }
 
         public async Task<IMessage> GetTwinAsync(string id)
@@ -217,6 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 IMessage twinMessage = await cp.GetTwinAsync();
                 Twin cloudTwin = twinConverter.FromMessage(twinMessage);
+                Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
                 TwinInfo newTwin = new TwinInfo(cloudTwin, null, false);
                 cached = newTwin;
                 await this.TwinStore.Match(
@@ -227,18 +235,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         {
                             // If the new twin is more recent than the cached twin, update the cached copy.
                             // If not, reject the cloud twin
-                            if (cloudTwin.Version > t.Twin.Version)
+                            if ((cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
+                                (cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version))
                             {
+                                Events.UpdateCachedTwin(id,
+                                    t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version,
+                                    t.Twin.Properties.Reported.Version, cloudTwin.Properties.Reported.Version);
                                 cached = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch, t.SubscribedToDesiredPropertyUpdates);
                                 // If the device is subscribed to desired property updates and we are refreshing twin as a result
                                 // of a connection reset or desired property update, send a patch to the downstream device
                                 if (sendDesiredPropertyUpdate && t.SubscribedToDesiredPropertyUpdates)
                                 {
+                                    Events.SendDesiredPropertyUpdateToSubscriber(id,
+                                        t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version);
                                     diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
                                 }
                             }
                             else
                             {
+                                Events.PreserveCachedTwin(id,
+                                    t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version,
+                                    t.Twin.Properties.Reported.Version, cloudTwin.Properties.Reported.Version);
                                 cached = t;
                             }
                             return cached;
@@ -261,9 +278,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 t =>
                 {
                     twinInfo = t;
+                    Events.GetTwinFromStoreWhenOffline(id,
+                        twinInfo.Twin.Properties.Desired.Version,
+                        twinInfo.Twin.Properties.Reported.Version,
+                        e);
                     return Task.CompletedTask;
                 },
-                () => throw new InvalidOperationException($"Error getting twin for device {id}"));
+                () => throw new InvalidOperationException($"Error getting twin for device {id}", e));
             return twinInfo;
         }
 
@@ -283,6 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 ValidateTwinCollectionSize(mergedProperty);
                             }
                             u.Twin.Properties.Reported = mergedProperty;
+                            Events.UpdatedCachedReportedProperties(id, u.Twin.Properties.Reported.Version, cloudVerified);
                             return u;
                         }),
                     () => throw new InvalidOperationException("Missing twin store"));
@@ -311,6 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
                         TwinCollection mergedPatch = new TwinCollection(mergedJson);
+                        Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
                         return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
                     }),
                 () => throw new InvalidOperationException("Missing twin store"));
@@ -328,17 +351,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         Option<TwinInfo> info = await s.Get(id);
                         // If the reported properties patch is not null, we will not attempt to write the reported
                         // properties to the cloud as we are still waiting for a connection established callback
-                        // to sync the local reported proeprties with that of the cloud
-                        info.Match(ti => updatePatch = (ti.ReportedPropertiesPatch.Count != 0), () => false);
+                        // to sync the local reported properties with that of the cloud
+                        updatePatch = info.Map((ti) =>
+                        {
+                            if (ti.ReportedPropertiesPatch.Count != 0)
+                            {
+                                Events.NeedsUpdateCachedReportedPropertiesPatch(id, ti.ReportedPropertiesPatch.Version);
+                                return true;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }).GetOrElse(false);
                     },
                     () => throw new InvalidOperationException("Missing twin store")
                     );
+
+                TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
 
                 if (!updatePatch)
                 {
                     try
                     {
                         await this.SendReportedPropertiesToCloudProxy(id, reportedProperties);
+                        Events.SentReportedPropertiesToCloud(id, reported.Version);
                         cloudVerified = true;
                     }
                     catch (IotHubException e)
@@ -352,10 +389,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
                 }
 
-                TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
                 if (!cloudVerified)
                 {
                     ValidateTwinProperties(JToken.Parse(reported.ToJson()), 1);
+                    Events.ValidatedTwinPropertiesSuccess(id, reported.Version);
                 }
 
                 // Update the local twin's reported properties
@@ -489,7 +526,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 UpdateReportedToCloudException = IdStart,
                 StoreTwinFailed,
-                ReportedPropertiesUpdateToCloudSuccess
+                ReportedPropertiesSyncedToCloudSuccess,
+                ValidatedTwinPropertiesSuccess,
+                SentReportedPropertiesToCloud,
+                NeedsUpdateCachedReportedPropertiesPatch,
+                UpdatingReportedPropertiesPatchCollection,
+                UpdatedCachedReportedProperties,
+                GetTwinFromStoreWhenOffline,
+                GotTwinFromCloudSuccess,
+                UpdateCachedTwin,
+                SendDesiredPropertyUpdateToSubscriber,
+                PreserveCachedTwin,
+                ConnectionLost,
+                ConnectionEstablished
             }
 
             public static void UpdateReportedToCloudException(string identity, Exception e)
@@ -502,9 +551,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.StoreTwinFailed, $"Storing twin for {identity} failed with error {e.GetType()} {e.Message}. Retrieving last stored twin with version {v}, desired version {desired} and reported version {reported}");
             }
 
-            public static void ReportedPropertiesUpdateToCloudSuccess(string identity)
+            public static void ReportedPropertiesSyncedToCloudSuccess(string identity, long version)
             {
-                Log.LogInformation((int)EventIds.ReportedPropertiesUpdateToCloudSuccess, $"Synced cloud's reported properties with edge for {identity}", identity);
+                Log.LogInformation((int)EventIds.ReportedPropertiesSyncedToCloudSuccess, $"Synced cloud's reported properties at version {version} with edge for {identity}");
+            }
+
+            public static void ValidatedTwinPropertiesSuccess(string id, long version)
+            {
+                Log.LogDebug((int)EventIds.ValidatedTwinPropertiesSuccess, $"Successfully validated reported properties of " +
+                    $"twin with id {id} and reported properties version {version}");
+            }
+
+            public static void SentReportedPropertiesToCloud(string id, long version)
+            {
+                Log.LogInformation((int)EventIds.SentReportedPropertiesToCloud, $"Successfully sent reported properties to cloud " +
+                    $"for {id} and reported properties version {version}");
+            }
+
+            public static void NeedsUpdateCachedReportedPropertiesPatch(string id, long version)
+            {
+                Log.LogDebug((int)EventIds.NeedsUpdateCachedReportedPropertiesPatch, $"Collective reported properties needs " +
+                    $"update for {id} and reported properties version {version}");
+            }
+
+            public static void UpdatingReportedPropertiesPatchCollection(string id, long version)
+            {
+                Log.LogDebug((int)EventIds.UpdatingReportedPropertiesPatchCollection, $"Updating collective reported properties " +
+                    $"patch for {id} at version {version}");
+            }
+
+            public static void UpdatedCachedReportedProperties(string id, long reportedVersion, bool cloudVerified)
+            {
+                Log.LogDebug((int)EventIds.UpdatedCachedReportedProperties, $"Updated cached reported property for {id} " +
+                    $"at reported property version {reportedVersion} cloudVerified {cloudVerified}");
+            }
+
+            public static void GetTwinFromStoreWhenOffline(string id, long desiredVersion, long reportedVersion, Exception e)
+            {
+                Log.LogDebug((int)EventIds.GetTwinFromStoreWhenOffline, $"Getting twin for {id} at desired version " +
+                    $"{desiredVersion} reported version {reportedVersion} from local store. Get from cloud threw {e.GetType()} {e.Message}");
+            }
+
+            public static void GotTwinFromCloudSuccess(string id, long desiredVersion, long reportedVersion)
+            {
+                Log.LogDebug((int)EventIds.GotTwinFromCloudSuccess, $"Successfully got twin for {id} from cloud at " +
+                    $"desired version {desiredVersion} reported version {reportedVersion}");
+            }
+
+            public static void UpdateCachedTwin(string id, long cachedDesired, long cloudDesired, long cachedReported, long cloudReported)
+            {
+                Log.LogDebug((int)EventIds.UpdateCachedTwin, $"Updating cached twin for {id} from " +
+                    $"desired version {cachedDesired} to {cloudDesired} and reported version {cachedReported} to " +
+                    $"{cloudReported}");
+            }
+
+            public static void SendDesiredPropertyUpdateToSubscriber(string id, long oldDesiredVersion, long cloudDesiredVersion)
+            {
+                Log.LogDebug((int)EventIds.SendDesiredPropertyUpdateToSubscriber, $"Sending desired property update for {id}" +
+                    $" old desired version {oldDesiredVersion} cloud desired version {cloudDesiredVersion}");
+            }
+
+            public static void PreserveCachedTwin(string id, long cachedDesired, long cloudDesired, long cachedReported, long cloudReported)
+            {
+                Log.LogDebug((int)EventIds.PreserveCachedTwin, $"Local twin for {id} at higher or equal desired version " +
+                    $"{cachedDesired} compared to cloud {cloudDesired} or reported version {cachedReported} compared to cloud" +
+                    $" {cloudReported}");
+            }
+
+            public static void ConnectionLost(string id)
+            {
+                Log.LogDebug((int)EventIds.ConnectionLost, $"ConnectionLost for {id}");
+            }
+
+            public static void ConnectionEstablished(string id)
+            {
+                Log.LogDebug((int)EventIds.ConnectionEstablished, $"ConnectionEstablished for {id}");
             }
         }
     }

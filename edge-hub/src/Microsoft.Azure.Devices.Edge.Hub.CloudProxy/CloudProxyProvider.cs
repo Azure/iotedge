@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudProxyProvider : ICloudProxyProvider
     {
-        const uint DefaultOperationTimeoutMilliseconds = 4 * 60 * 1000; // 4 mins
+        const uint DefaultOperationTimeoutMilliseconds = 60 * 1000; // 1 min
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly bool useDefaultOperationTimeout;
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.ConnectionString);
+            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString);
             if (!tryDeviceClient.Success)
             {
                 Events.ConnectError(identity.Id, tryDeviceClient.Exception);
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return Try.Success(cloudProxy);
         }
 
-        async Task<Try<DeviceClient>> ConnectToIoTHub(string connectionString)
+        async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
@@ -69,7 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, this.transportSettings);
                 if (!useDefaultOperationTimeout)
                 {
-                    deviceClient.OperationTimeoutInMilliseconds = GetOperationTimeoutMilliseconds(connectionString);
+                    uint timeout = GetOperationTimeoutMilliseconds(connectionString);
+                    Events.SetDeviceClientTimeout(id, timeout);
+                    deviceClient.OperationTimeoutInMilliseconds = timeout;
                 }
                 await deviceClient.OpenAsync();
                 return deviceClient;
@@ -114,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 CloudConnectError = IdStart,
-                CloudConnect
+                CloudConnect,
+                SetDeviceClientTimeout
             }
 
             public static void ConnectError(string id, Exception ex)
@@ -125,6 +128,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ConnectSuccess(string id)
             {
                 Log.LogInformation((int)EventIds.CloudConnect, Invariant($"Opened new cloud connection for device {id}"));
+            }
+
+            public static void SetDeviceClientTimeout(string id, uint timeout)
+            {
+                Log.LogDebug((int)EventIds.SetDeviceClientTimeout, Invariant($"Setting device client timeout for {id} to {timeout}"));
             }
         }
     }
