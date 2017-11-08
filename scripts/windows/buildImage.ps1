@@ -30,6 +30,10 @@ Param(
     [ValidateNotNullOrEmpty()]
     [String]$ImageVersion = $Env:BUILD_BUILDNUMBER,
 
+    # Docker Image Namespace
+    [ValidateNotNullOrEmpty()]
+    [String]$ImageNamespace = "microsoft",
+
     # Target architecture
     [ValidateNotNullOrEmpty()]
     [String]$TargetArch = $Env:PROCESSOR_ARCHITECTURE,
@@ -106,9 +110,8 @@ Function docker_build_and_tag_and_push(
     [String]$Tag
 )
 {
-    $TagPrefix = "$Registry/azureiotedge/$Name-windows-${Arch}"
-    $FullVersionTag = "${TagPrefix}:$ImageVersion"
-    $LatestVersionTag = "${TagPrefix}:latest"
+    $TagPrefix = "$Registry/$ImageNamespace/$Name"
+    $FullVersionTag = "${TagPrefix}:$ImageVersion-windows-${Arch}"
 
     echo "Building and Pushing Docker image $Name for $Arch"
     if ($Tag)
@@ -117,7 +120,7 @@ Function docker_build_and_tag_and_push(
     }
     else
     {
-        $docker_build_cmd = "docker build --no-cache -t $FullVersionTag -t $LatestVersionTag"
+        $docker_build_cmd = "docker build --no-cache -t $FullVersionTag"
     }
     if ($Dockerfile)
     {
@@ -141,14 +144,7 @@ Function docker_build_and_tag_and_push(
             Throw "Docker Push Failed With Exit Code $LastExitCode"
         }
 
-        docker push $LatestVersionTag
-        if ($LastExitCode)
-        {
-            Throw "Docker Push Failed With Exit Code $LastExitCode"
-        }
-
         docker rmi $FullVersionTag
-        docker rmi $LatestVersionTag
     }
 }
 

@@ -1,13 +1,13 @@
 #!/bin/bash
 
 ###############################################################################
-# This script creates a new deployment for the device provided as argument,  
+# This script creates a new deployment for the device provided as argument,
 # runs boostrap setup python script and start Edge
 ###############################################################################
 
-###############################################################################                                         
-# Print usage information pertaining to this script and exit                                                            
-############################################################################### 
+###############################################################################
+# Print usage information pertaining to this script and exit
+###############################################################################
 usage()
 {
     echo "$SCRIPT_NAME [options]"
@@ -123,7 +123,7 @@ process_args()
             print_help_and_exit
         fi
     fi
-    
+
     if [ -z ${IOTHUB_HOSTNAME} ]; then
         echo "IoT hostname Parameter Invalid"
         print_help_and_exit
@@ -165,8 +165,8 @@ process_docker_registries() {
         echo "Process docker registries"
         OIFS=$IFS
         IFS=', ' read -r -a docker_registries <<< "$DOCKER_REGISTRIES_CSV"
-        IFS=$OIFS                              
-    fi    
+        IFS=$OIFS
+    fi
 }
 
 ###############################################################################
@@ -204,7 +204,7 @@ fi
 
 RES=0
 
-sudo iotedgectl --verbose INFO setup --connection-string "$device_connection" --docker-edge-runtime-image "$agent_image_name" --docker-uri  "unix:///var/run/docker.sock" --docker-registries ${docker_registries[@]} $edge_hostname
+sudo iotedgectl --verbose INFO setup --connection-string "$device_connection" --image "$agent_image_name" --docker-uri  "unix:///var/run/docker.sock" --docker-registries ${docker_registries[@]} $edge_hostname
 
 if [ $? -gt 0 ]; then
     RES=1
@@ -212,7 +212,7 @@ if [ $? -gt 0 ]; then
     exit $RES
 fi
 
-sudo iotedgectl --verbose INFO start                                                                                 
+sudo iotedgectl --verbose INFO start
 
 if [ $? -gt 0 ]; then
     RES=1

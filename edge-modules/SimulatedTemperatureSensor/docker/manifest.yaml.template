@@ -1,18 +1,18 @@
-image: __REGISTRY__/azureiotedge/simulated-temperature-sensor:__VERSION__
+image: __REGISTRY__/__NAMESPACE__/azureiotedge-simulated-temperature-sensor:__VERSION__
 tags: __TAGS__
 manifests:
   -
-    image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-linux-amd64:__VERSION__
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-simulated-temperature-sensor:__VERSION__-linux-amd64
     platform:
       architecture: amd64
       os: linux
   -
-    image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-linux-arm32v7:__VERSION__
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-simulated-temperature-sensor:__VERSION__-linux-arm32v7
     platform:
       architecture: arm
       os: linux
   -
-    image: __REGISTRY__/azureiotedge/simulated-temperature-sensor-windows-amd64:__VERSION__
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-simulated-temperature-sensor:__VERSION__-windows-amd64
     platform:
       architecture: amd64
       os: windows

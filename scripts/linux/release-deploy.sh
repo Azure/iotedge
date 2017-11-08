@@ -4,9 +4,9 @@
 # This script creates a new deployment for the device provided as argument
 ###############################################################################
 
-###############################################################################                                         
-# Print usage information pertaining to this script and exit                                                            
-############################################################################### 
+###############################################################################
+# Print usage information pertaining to this script and exit
+###############################################################################
 set -e
 
 usage()
@@ -63,10 +63,10 @@ process_args()
     do
         if [ $save_next_arg -eq 1 ]; then
             DEPLOY_TOOL="$arg"
-            save_next_arg=0   
+            save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
             DOCKER_IMAGEVERSION="$arg"
-            save_next_arg=0       
+            save_next_arg=0
         elif [ $save_next_arg -eq 3 ]; then
             IOTHUB_HOSTNAME="$arg"
             save_next_arg=0
@@ -78,7 +78,7 @@ process_args()
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
             DEVICEID="$arg"
-            save_next_arg=0    
+            save_next_arg=0
         elif [ $save_next_arg -eq 7 ]; then
             ARCH="$arg"
             save_next_arg=0
@@ -110,7 +110,7 @@ process_args()
             print_help_and_exit
         fi
     fi
-    
+
     if [ -z ${IOTHUB_HOSTNAME} ]; then
         echo "IoT hostname Parameter Invalid"
         print_help_and_exit
@@ -144,7 +144,7 @@ function parse_config_file()
 
     $(jq -r '.moduleContent."$edgeAgent"."properties.desired".modules={}' edgeConfiguration_release_temp2.json > edgeConfiguration_release_temp3.json)
 
-    cp edgeConfiguration_release_temp3.json $cfg_file 
+    cp edgeConfiguration_release_temp3.json $cfg_file
     rm -f edgeConfiguration_release_temp1.json edgeConfiguration_release_temp2.json edgeConfiguration_release_temp3.json
 }
 
@@ -160,7 +160,7 @@ iothub_connection="HostName=$IOTHUB_HOSTNAME;SharedAccessKeyName=$IOTHUBOWNER_SH
 deploy_tool_path=deploy
 
 rm -rf $deploy_tool_path
-mkdir $deploy_tool_path                                                                                                 
+mkdir $deploy_tool_path
 
 echo Downloading package $DEPLOY_TOOL
 if wget -q $DEPLOY_TOOL; then
@@ -173,7 +173,7 @@ fi
 echo Unzip deploy tool
 deploy_file=$(basename $DEPLOY_TOOL)
 tar -xvf $deploy_file
-rm -f $deploy_file    
+rm -f $deploy_file
 
 echo Set configuration to $DEVICEID
 pushd $deploy_tool_path

@@ -19,6 +19,8 @@ DOTNET_DOWNLOAD_URL=
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
+DEFAULT_DOCKER_NAMESPACE="microsoft"
+DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 
 ###############################################################################
@@ -45,11 +47,12 @@ usage()
     echo "Note: Depending on the options you might have to run this as root or sudo."
     echo ""
     echo "options"
-    echo " -n, --image-name     Image name (e.g. edge-agent)"
+    echo " -i, --image-name     Image name (e.g. edge-agent)"
     echo " -P, --project        Project to build image for (e.g. Microsoft.Azure.Devices.Edge.Agent.Service)"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -u, --username       Docker Registry Username"
     echo " -p, --password       Docker Username's password"
+    echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
@@ -98,6 +101,9 @@ process_args()
         elif [ $save_next_arg -eq 9 ]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 10 ]; then
+            DOCKER_NAMESPACE="$arg"
+            save_next_arg=10
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -109,7 +115,8 @@ process_args()
                 "--dotnet-url" ) save_next_arg=6;;
                 "-t" | "--target-arch" ) save_next_arg=7;;
                 "-P" | "--project" ) save_next_arg=8;;
-                "-n" | "--image-name" ) save_next_arg=9;;
+                "-i" | "--image-name" ) save_next_arg=9;;
+                "-n" | "--namespace" ) save_next_arg=10;;
                 * ) usage;;
             esac
         fi
@@ -196,8 +203,7 @@ docker_build_and_tag_and_push()
 
     echo "Building and pushing Docker image $imagename for $arch"
     docker_build_cmd="docker build --no-cache"
-    docker_build_cmd+=" -t $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:$DOCKER_IMAGEVERSION"
-    docker_build_cmd+=" -t $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:latest"
+    docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
     if [ ! -z "${dockerfile}" ]; then
         docker_build_cmd+=" --file $dockerfile"
     fi
@@ -211,16 +217,10 @@ docker_build_and_tag_and_push()
         echo "Docker build failed with exit code $?"
         exit 1
     else
-        docker push $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:$DOCKER_IMAGEVERSION
+        docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch
         if [ $? -ne 0 ]; then
             echo "Docker push failed with exit code $?"
             exit 1
-        else
-            docker push $DOCKER_REGISTRY/azureiotedge/$imagename-linux-$arch:latest
-            if [ $? -ne 0 ]; then
-                echo "Docker push latest image failed with exit code: $?"
-                exit 1
-            fi
         fi
     fi
 

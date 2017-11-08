@@ -20,6 +20,8 @@ BINDIR=$DIR/../../bin
 
 # Holds the list of tags to apply
 DOCKER_TAGS="[]"
+DEFAULT_DOCKER_NAMESPACE="microsoft"
+DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -33,6 +35,7 @@ usage()
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -u, --username       Docker Registry Username"
     echo " -p, --password       Docker Username's password"
+    echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version."
     echo " -t, --template       Yaml file template for manifest definition."
     echo "     --tags           Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
@@ -71,6 +74,9 @@ process_args()
         elif [ $save_next_arg -eq 6 ]; then
             DOCKER_TAGS="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 7 ]; then
+            DOCKER_NAMESPACE="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -80,6 +86,7 @@ process_args()
                 "-v" | "--image-version" ) save_next_arg=4;;
                 "-t" | "--template" ) save_next_arg=5;;
                        "--tags" ) save_next_arg=6;;
+                "-n" | "--namespace" ) save_next_arg=7;;
                 * ) usage;;
             esac
         fi
@@ -117,7 +124,7 @@ process_args()
 ###############################################################################
 process_args $@
 
-#echo Logging in to Docker registry
+echo Logging in to Docker registry
 docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 if [ $? -ne 0 ]; then
     echo "Docker Login Failed!"
@@ -128,7 +135,7 @@ fi
 manifest=$(mktemp /tmp/manifest.yaml.XXXXXX)
 [ $? -eq 0 ] || exit $?
 
-sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g; s/__TAGS__/${DOCKER_TAGS}/g;" $YAML_TEMPLATE > $manifest
+sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g; s/__TAGS__/${DOCKER_TAGS}/g; s/__NAMESPACE__/${DOCKER_NAMESPACE}/g;" $YAML_TEMPLATE > $manifest
 [ $? -eq 0 ] || exit $?
 
 echo "Build image with following manifest:"
