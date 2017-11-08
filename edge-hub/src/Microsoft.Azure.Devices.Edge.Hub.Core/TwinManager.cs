@@ -378,10 +378,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         Events.SentReportedPropertiesToCloud(id, reported.Version);
                         cloudVerified = true;
                     }
-                    catch (IotHubException e)
-                    {
-                        throw new InvalidOperationException("Error sending reported properties to cloud", e);
-                    }
                     catch (Exception e)
                     {
                         Events.UpdateReportedToCloudException(id, e);
