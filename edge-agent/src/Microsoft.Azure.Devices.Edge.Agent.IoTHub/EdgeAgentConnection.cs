@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // if the twin is empty then throw an appropriate error
                 if (this.desiredProperties.Count == 0)
                 {
-                    throw new ConfigEmptyException("Edge deployment configuration is empty. Please create a deployment.");
+                    throw new ConfigEmptyException("This device has an empty configuration for the Edge agent. Please set a deployment manifest.");
                 }
 
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
