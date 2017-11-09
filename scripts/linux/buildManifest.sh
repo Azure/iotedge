@@ -22,6 +22,7 @@ BINDIR=$DIR/../../bin
 DOCKER_TAGS="[]"
 DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
+DOCKER_IMAGE_NAME=""
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -36,6 +37,7 @@ usage()
     echo " -u, --username       Docker Registry Username"
     echo " -p, --password       Docker Username's password"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
+    echo " -i, --image-name     Docker image name (Optional if specified in template yaml)"
     echo " -v, --image-version  Docker Image Version."
     echo " -t, --template       Yaml file template for manifest definition."
     echo "     --tags           Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
@@ -77,6 +79,9 @@ process_args()
         elif [ $save_next_arg -eq 7 ]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 8 ]; then
+            DOCKER_IMAGE_NAME="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -87,6 +92,7 @@ process_args()
                 "-t" | "--template" ) save_next_arg=5;;
                        "--tags" ) save_next_arg=6;;
                 "-n" | "--namespace" ) save_next_arg=7;;
+                "-i" | "--image-name" ) save_next_arg=8;;
                 * ) usage;;
             esac
         fi
@@ -117,6 +123,9 @@ process_args()
         print_help_and_exit
     fi
 
+    if [[ -z ${DOCKER_IMAGE_NAME} ]]; then
+        echo "Docker image name not set, assuming name in template"
+    fi
 }
 
 ###############################################################################
@@ -135,14 +144,14 @@ fi
 manifest=$(mktemp /tmp/manifest.yaml.XXXXXX)
 [ $? -eq 0 ] || exit $?
 
-sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g; s/__TAGS__/${DOCKER_TAGS}/g; s/__NAMESPACE__/${DOCKER_NAMESPACE}/g;" $YAML_TEMPLATE > $manifest
+sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g; s/__TAGS__/${DOCKER_TAGS}/g; s/__NAMESPACE__/${DOCKER_NAMESPACE}/g; s/__NAME__/${DOCKER_IMAGE_NAME}/g;" $YAML_TEMPLATE > $manifest
 [ $? -eq 0 ] || exit $?
 
 echo "Build image with following manifest:"
 cat $manifest
 
 echo "Done Building And Pushing Docker Images"
-$BINDIR/manifest-tool --debug push from-spec $manifest
+$BINDIR/manifest-tool --debug --ignore-missing push from-spec $manifest
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file
