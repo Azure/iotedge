@@ -11,7 +11,7 @@ import sys
 import pkg_resources
 from edgectl.edgecli import EdgeCLI
 
-PACKAGE_NAME = 'azure-iot-edge-ctl'
+PACKAGE_NAME = 'azure-iot-edge-runtime-ctl'
 PROGRAM_NAME = 'iotedgectl'
 
 def coremain():
