@@ -55,11 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task RemoveDeviceConnection(ConnectedDevice device)
         {
-            device.DeviceProxy.Filter(dp => dp.IsActive)
-                .ForEach(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
+            await device.DeviceProxy.Filter(dp => dp.IsActive)
+                .ForEachAsync(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
 
             await device.CloudProxy.Filter(cp => cp.IsActive)
-                .Match(cp => cp.CloseAsync(), () => Task.FromResult(true));
+                .ForEachAsync(cp => cp.CloseAsync());
 
             Events.RemoveDeviceConnection(device.Identity.Id);
             this.DeviceDisconnected?.Invoke(this, device.Identity);
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class ConnectedDevice
         {
-            // Device Proxy methods are sync coming from the Protocol gateway, 
+            // Device Proxy methods are sync coming from the Protocol gateway,
             // so using traditional locking mechanism for those.
             readonly object deviceProxyLock = new object();
             readonly AsyncLock cloudProxyLock = new AsyncLock();
