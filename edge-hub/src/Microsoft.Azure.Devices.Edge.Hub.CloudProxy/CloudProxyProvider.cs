@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudProxyProvider : ICloudProxyProvider
     {
-        const uint DefaultOperationTimeoutMilliseconds = 60 * 1000; // 1 min
+        const uint DefaultOperationTimeoutMilliseconds = 1 * 60 * 1000; // 1 min
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly bool useDefaultOperationTimeout;
@@ -69,9 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, this.transportSettings);
                 if (!useDefaultOperationTimeout)
                 {
-                    uint timeout = GetOperationTimeoutMilliseconds(connectionString);
-                    Events.SetDeviceClientTimeout(id, timeout);
-                    deviceClient.OperationTimeoutInMilliseconds = timeout;
+                    Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);
+                    deviceClient.OperationTimeoutInMilliseconds = DefaultOperationTimeoutMilliseconds;
                 }
                 await deviceClient.OpenAsync();
                 return deviceClient;
@@ -80,33 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 return Try<DeviceClient>.Failure(ex);
             }
-        }
-
-        internal static uint GetOperationTimeoutMilliseconds(string connectionString)
-        {
-            uint operationTimeoutInMilliseconds = 0;
-            try
-            {
-                // Set the Operation timeout to the duration of the sas token, if any. 
-                // That way if the network connection is lost for a bit, the SDK will retry 
-                // till the connection comes back or the token expires. 
-                var iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
-                string hostName = iotHubConnectionStringBuilder.HostName;
-                if (iotHubConnectionStringBuilder.AuthenticationMethod is DeviceAuthenticationWithToken deviceAuthenticationWithToken)
-                {
-                    SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(hostName, deviceAuthenticationWithToken.Token);
-                    DateTime expiryTime = sharedAccessSignature.ExpiresOn.ToUniversalTime();
-                    if (expiryTime > DateTime.UtcNow)
-                    {
-                        TimeSpan timeSpan = expiryTime - DateTime.UtcNow;
-                        operationTimeoutInMilliseconds = (uint)timeSpan.TotalMilliseconds;
-                    }
-                }
-            }
-            catch // If anything goes wrong, ignore exception and return the default.
-            { }
-            return operationTimeoutInMilliseconds > DefaultOperationTimeoutMilliseconds ? operationTimeoutInMilliseconds : DefaultOperationTimeoutMilliseconds;
-        }
+        }        
 
         static class Events
         {

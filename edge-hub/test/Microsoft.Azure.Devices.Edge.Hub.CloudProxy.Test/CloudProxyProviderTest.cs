@@ -1,13 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -46,24 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceIdentity2 = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
             Try<ICloudProxy> cloudProxy = cloudProxyProvider.Connect(deviceIdentity2, null).Result;
             Assert.False(cloudProxy.Success);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestGetOperationTimeoutMilliseconds()
-        {
-            var tokenExpiryTime = new DateTime(2020, 1, 1);
-            string deviceId = "device_2";
-            string iotHubHostName = "TestHub.azure-devices.net";
-            string sasToken = TokenHelper.CreateSasToken($"{iotHubHostName}/devices/{deviceId}", tokenExpiryTime);
-            IAuthenticationMethod authenticationMethod = new DeviceAuthenticationWithToken(deviceId, sasToken);
-            IotHubConnectionStringBuilder csb = IotHubConnectionStringBuilder.Create(iotHubHostName, authenticationMethod);
-            string connectionString = csb.ToString();
-            
-            uint timeout = CloudProxyProvider.GetOperationTimeoutMilliseconds(connectionString);
-
-            uint timeoutLowerLimit = (uint)(tokenExpiryTime - DateTime.UtcNow).TotalMilliseconds;
-            Assert.InRange<uint>(timeout, timeoutLowerLimit, timeoutLowerLimit + 100);
-        }
+        }        
     }
 }

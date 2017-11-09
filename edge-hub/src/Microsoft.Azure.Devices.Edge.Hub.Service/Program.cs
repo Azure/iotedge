@@ -40,7 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Logger.SetLogLevel(logLevel);
 
             // Set the LoggerFactory used by the Routing code. 
-            Routing.Core.Routing.LoggerFactory = Logger.Factory;
+            if (configuration.GetValue<bool>("EnableRoutingLogging", false))
+            {
+                Routing.Core.Routing.LoggerFactory = Logger.Factory;
+            }
 
             string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
             var certificate = new X509Certificate2(certPath);
