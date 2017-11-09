@@ -23,33 +23,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly IConnectionManager connectionManager;
         readonly ITwinManager twinManager;
+        readonly string edgeDeviceId;
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
-        public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter, IConnectionManager connectionManager, ITwinManager twinManager)
+        public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
+            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
         {
-            message.SystemProperties[Edge.Hub.Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString();
-            IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
-            // Validate message size
-            long messageSize = routingMessage.Size();
-            if (messageSize > MaxMessageSize)
-            {
-                throw new InvalidOperationException($"Message size exceeds maximum allowed size: got {messageSize}, limit {MaxMessageSize}");
-            }
+            Preconditions.CheckNotNull(message, nameof(message));
+            IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             return this.router.RouteAsync(routingMessage);
         }
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
             IEnumerable<IRoutingMessage> routingMessages = Preconditions.CheckNotNull(messages)
-                .Select(m => this.messageConverter.FromMessage(m));
+                .Select(m => this.ProcessMessageInternal(m, true));
             return this.router.RouteAsync(routingMessages);
         }
 
@@ -71,10 +68,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
 
-            IRoutingMessage routingMessage = this.messageConverter.FromMessage(reportedPropertiesMessage);
+            IRoutingMessage routingMessage = this.ProcessMessageInternal(reportedPropertiesMessage, false);
             Task routingSendMessageTask = this.router.RouteAsync(routingMessage);
 
             return Task.WhenAll(cloudSendMessageTask, routingSendMessageTask);
+        }
+
+        private IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
+        {
+            AddEdgeSystemProperties(message);
+            IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
+
+            // Validate message size
+            long messageSize = routingMessage.Size();
+            if (validateSize && messageSize > MaxMessageSize)
+            {
+                throw new InvalidOperationException($"Message size exceeds maximum allowed size: got {messageSize}, limit {MaxMessageSize}");
+            }
+            return routingMessage;
+        }
+
+        internal void AddEdgeSystemProperties(IMessage message)
+        {
+            message.SystemProperties[Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString();
+            if (message.SystemProperties.TryGetValue(Core.SystemProperties.ConnectionDeviceId, out string deviceId))
+            {
+                string edgeHubOriginInterface = deviceId == this.edgeDeviceId
+                    ? Core.Constants.InternalOriginInterface
+                    : Core.Constants.DownstreamOriginInterface;
+                message.SystemProperties[Core.SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
+            }
         }
 
         public async Task<IMessage> GetTwinAsync(string id) => await this.twinManager.GetTwinAsync(id);

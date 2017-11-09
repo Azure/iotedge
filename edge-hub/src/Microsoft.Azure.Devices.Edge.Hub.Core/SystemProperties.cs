@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string ExpiryTimeUtc = "absolute-expiry-time";
         public const string MessageType = "messageType";
         public const string EdgeMessageId = "edgeMessageId";
+        public const string EdgeHubOriginInterface = "edgeHubOriginInterface";
 
         private class OnTheWireSystemPropertyNames
         {

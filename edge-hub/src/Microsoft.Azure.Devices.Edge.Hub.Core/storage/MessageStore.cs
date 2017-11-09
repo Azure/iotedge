@@ -146,10 +146,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     foreach ((long offset, MessageRef msgRef) item in batch)
                     {
                         Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
-                        IMessage message = messageWrapper.Match(
-                            m => this.AddMessageOffset(m.Message, item.offset),
-                            () => throw new InvalidOperationException($"Unable to find message with EdgeMessageId {item.msgRef.EdgeMessageId}"));
-                        messageList.Add(message);
+                        if(!messageWrapper.HasValue)
+                        {
+                            Events.MessageNotFound(item.msgRef.EdgeMessageId);
+                        }
+                        else
+                        {
+                            messageWrapper
+                                .Map(m => this.AddMessageOffset(m.Message, item.offset))
+                                .ForEach(m => messageList.Add(m));
+                        }                        
                     }
 
                     this.startingOffset = batch[batch.Count - 1].offset + 1;
@@ -390,6 +396,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public static void CleanupCompleted(string endpointId, int count)
             {
                 Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
+            }
+
+            internal static void MessageNotFound(string edgeMessageId)
+            {
+                Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, Invariant($"Unable to find message with EdgeMessageId {edgeMessageId}"));
             }
         }
     }

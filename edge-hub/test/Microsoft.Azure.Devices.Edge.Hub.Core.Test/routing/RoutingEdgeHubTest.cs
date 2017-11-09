@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ITwinManager twinManager = Mock.Of<ITwinManager>();
 
             // Test Scenario
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
             var identity = Mock.Of<IIdentity>();
             var messages = new[] { new Message(new byte[0]) };
             await routingEdgeHub.ProcessDeviceMessageBatch(identity, messages);
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Message badMessage = new Message(new byte[300 * 1024]);
 
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
 
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Mock<ITwinManager> twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
             twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult<Core.IMessage>(message));
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
 
             Core.IMessage received = await routingEdgeHub.GetTwinAsync("*");
             twinManager.Verify(x => x.GetTwinAsync("*"), Times.Once);
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message = Mock.Of<Core.IMessage>();
             Core.IMessage received = new Message(new byte[0]);
             twinManager.Setup(t => t.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<Core.IMessage>())).Callback<string, Core.IMessage>((s, m) => received = message).Returns(Task.CompletedTask);
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
 
             await routingEdgeHub.UpdateDesiredPropertiesAsync("*", message);
             twinManager.Verify(x => x.UpdateDesiredPropertiesAsync("*", message), Times.Once);
@@ -225,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ITwinManager twinManager = Mock.Of<ITwinManager>();
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager);
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
             // DeviceListener
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
@@ -250,6 +250,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(responseTask.IsCompleted);
             Assert.Equal(methodRequest.CorrelationId, responseTask.Result.CorrelationId);
             Assert.Equal(200, responseTask.Result.Status);
+        }
+
+        [Fact]
+        public async Task AddEdgeSystemPropertiesTest()
+        {
+            // Create a mock endpoint capable of returning a mock processor
+            var processor = Mock.Of<IProcessor>();
+            var endpoint = new Mock<Endpoint>("myId");
+
+            // Create a mock endpoint executor factory to create the endpoint executor to verify invocation
+            var endpointExecutor = Mock.Of<IEndpointExecutor>();
+            Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
+            var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+
+            // Create a route to map to the message
+            var endpoints = new HashSet<Endpoint> { endpoint.Object };
+            var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoints);
+
+            // Create a router
+            var routerConfig = new RouterConfig(new[] { route });
+            Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
+
+            var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
+
+            // Create mock for IConnectionManager
+            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+
+            // Mock of twin manager
+            ITwinManager twinManager = Mock.Of<ITwinManager>();
+
+            string edgeDeviceId = "testEdgeDevice";
+            // Test Scenario
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, edgeDeviceId);            
+
+            var clientMessage1 = new Message(new byte[0]);
+            clientMessage1.SystemProperties[Core.SystemProperties.ConnectionDeviceId] = edgeDeviceId;
+            routingEdgeHub.AddEdgeSystemProperties(clientMessage1);
+            Assert.True(clientMessage1.SystemProperties.ContainsKey(Core.SystemProperties.EdgeHubOriginInterface));
+            Assert.True(clientMessage1.SystemProperties.ContainsKey(Core.SystemProperties.EdgeMessageId));
+            Assert.Equal(Core.Constants.InternalOriginInterface, clientMessage1.SystemProperties[Core.SystemProperties.EdgeHubOriginInterface]);
+
+            var clientMessage2 = new Message(new byte[0]);
+            clientMessage2.SystemProperties[Core.SystemProperties.ConnectionDeviceId] = "downstreamDevice";
+            routingEdgeHub.AddEdgeSystemProperties(clientMessage2);
+            Assert.True(clientMessage2.SystemProperties.ContainsKey(Core.SystemProperties.EdgeHubOriginInterface));
+            Assert.True(clientMessage2.SystemProperties.ContainsKey(Core.SystemProperties.EdgeMessageId));
+            Assert.Equal(Core.Constants.DownstreamOriginInterface, clientMessage2.SystemProperties[Core.SystemProperties.EdgeHubOriginInterface]);
+
+            var clientMessage3 = new Message(new byte[0]);
+            routingEdgeHub.AddEdgeSystemProperties(clientMessage3);
+            Assert.False(clientMessage3.SystemProperties.ContainsKey(Core.SystemProperties.EdgeHubOriginInterface));
+            Assert.True(clientMessage3.SystemProperties.ContainsKey(Core.SystemProperties.EdgeMessageId));
         }
     }
 }

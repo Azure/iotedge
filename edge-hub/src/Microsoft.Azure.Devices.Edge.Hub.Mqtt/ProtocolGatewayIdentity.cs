@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
@@ -17,5 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public string Id => this.Identity.Id;
 
         public IIdentity Identity { get; }
+
+        public override string ToString() => this.Id;
     }
 }

@@ -12,9 +12,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
         static IRoutingUserAnalyticsLogger userAnalyticsLogger;
         static IRoutingUserMetricLogger userMetricLogger;
 
-        // TODO figure out how to attach this to other logger config
-        public static ILoggerFactory LoggerFactory { get; } = new LoggerFactory();
-
+        public static ILoggerFactory LoggerFactory { get; set; } = new LoggerFactory();
+        
         const int EventIdStart = 9000;
 
         public static class EventIds

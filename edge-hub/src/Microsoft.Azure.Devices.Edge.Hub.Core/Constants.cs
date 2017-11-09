@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -11,6 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string TwinStorePartitionKey = "twins";
         public const string CheckpointStorePartitionKey = "checkpoints";
         public const string SessionStorePartitionKey = "sessions";
+
+        public const string InternalOriginInterface = "internal";
+        public const string DownstreamOriginInterface = "downstream";
 
         public const string ConfigSchemaVersion = "1.0";
     }
