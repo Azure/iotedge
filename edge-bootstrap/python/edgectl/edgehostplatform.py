@@ -134,7 +134,8 @@ class EdgeHostPlatform(object):
             try:
                 EdgeHostPlatform.__get_or_create_edge_config_dir()
                 edge_config_file_path = EdgeDefault.get_host_config_file_path()
-                with open(edge_config_file_path, 'w') as output_file:
+                fd = os.open(edge_config_file_path, os.O_RDWR | os.O_CREAT, 0o600)
+                with os.fdopen(fd, 'wb') as output_file:
                     output_file.write(data)
                 EdgeHostPlatform.__setup_home_dir(edge_home_dir, host_name)
             except IOError as ex:

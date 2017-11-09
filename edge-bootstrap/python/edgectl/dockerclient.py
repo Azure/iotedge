@@ -203,17 +203,17 @@ class EdgeDockerClient(object):
                          ' network: %s', image, container_name,
                          str(detach_bool), nw_name)
             for key in list(env_dict.keys()):
-                logging.info(' env: %s:%s', key, env_dict[key])
+                logging.debug(' env: %s:%s', key, env_dict[key])
             for key in list(ports_dict.keys()):
-                logging.info(' port: %s:%s', key, str(ports_dict[key]))
+                logging.debug(' port: %s:%s', key, str(ports_dict[key]))
             for key in list(volume_dict.keys()):
-                logging.info(' volume: %s:%s, %s', key,
+                logging.debug(' volume: %s:%s, %s', key,
                              volume_dict[key]['bind'], volume_dict[key]['mode'])
             if 'type' in list(log_config_dict.keys()):
-                logging.info(' logging driver: %s', log_config_dict['type'])
+                logging.debug(' logging driver: %s', log_config_dict['type'])
             if 'config' in list(log_config_dict.keys()):
                 for key in list(log_config_dict['config'].keys()):
-                    logging.info(' log opt: %s:%s',
+                    logging.debug(' log opt: %s:%s',
                                  key, log_config_dict['config'][key])
             self._client.containers.create(image,
                                            detach=detach_bool,

@@ -356,9 +356,17 @@ class EdgeHostConfig(object):
     def self_signed_cert_option_force_no_passwords(self, value):
         self._self_signed_cert_option_force_no_passwords = value
 
+    def _sanitize_conn_str(self, conn_str):
+        try:
+            items = [(s[0], s[1] if s[0].lower() != 'sharedaccesskey' else '******') \
+                    for s in map(lambda p: p.split('=', 2), conn_str.split(';'))]
+            return ';'.join(map(lambda p: "%s=%s" % p, items))
+        except:
+            return '******'
+
     def __str__(self):
         result  = 'Schema Version:\t\t' + self._schema_version + '\n'
-        result += 'Connection String:\t' + self.connection_string + '\n'
+        result += 'Connection String:\t' + self._sanitize_conn_str(self.connection_string) + '\n'
         result += 'Home Directory:\t\t' + self.home_dir + '\n'
         result += 'Hostname:\t\t' + self.hostname + '\n'
         result += 'Log Level:\t\t' + self.log_level + '\n'
