@@ -5,11 +5,11 @@ namespace TemperatureFilter
 	using System.IO;
     using System.Collections.Generic;
     using System.Runtime.Loader;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 
@@ -24,6 +24,7 @@ namespace TemperatureFilter
             // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
             string connectionString =
                 Environment.GetEnvironmentVariable("EdgeHubConnectionString");
+            InstallCert();
             Init(connectionString).Wait();
 
             // Wait until the app unloads or is cancelled
@@ -46,21 +47,11 @@ namespace TemperatureFilter
         /// </summary>
         static async Task Init(string connectionString)
         {
-            // Use Mqtt transport settings.
-            string caCertFilePath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            if ((caCertFilePath == null) || (!File.Exists(caCertFilePath))) {
-                // there is no CA cert provided, bypass cert verification
-                Console.WriteLine("Bypassing Certificate Validation.");
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-            }
-            ITransportSettings[] settings = { mqttSetting };
-
             Console.WriteLine("Connection String {0}", connectionString);
 
             // Open a connection to the Edge runtime
             DeviceClient deviceClient =
-                DeviceClient.CreateFromConnectionString(connectionString, settings);
+                DeviceClient.CreateFromConnectionString(connectionString, TransportType.Mqtt_Tcp_Only);
             await deviceClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 
@@ -74,6 +65,31 @@ namespace TemperatureFilter
                 "input1",
                 PrintAndFilterMessages,
                 userContext);
+        }
+
+        /// <summary>
+        /// Add certificate in local cert store for use by client for secure connection to IoT Edge runtime
+        /// </summary>
+        static void InstallCert()
+        {
+            string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+            if (string.IsNullOrWhiteSpace(certPath))
+            {
+                // We cannot proceed further without a proper cert file
+                Console.WriteLine($"Missing path to certificate collection file: {certPath}");
+                throw new InvalidOperationException("Missing path to certificate file.");
+            }
+            else if (!File.Exists(certPath))
+            {
+                // We cannot proceed further without a proper cert file
+                Console.WriteLine($"Missing path to certificate collection file: {certPath}");
+                throw new InvalidOperationException("Missing certificate file.");
+            }
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+            Console.WriteLine("Added Cert: " + certPath);
+            store.Close();
         }
 
         /// <summary>

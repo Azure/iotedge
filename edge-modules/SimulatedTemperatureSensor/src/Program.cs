@@ -6,11 +6,11 @@ namespace SimulatedTemperatureSensor
     using System.IO;
     using System.Net;
     using System.Runtime.Loader;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -27,6 +27,8 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
+            InstallCert();
+
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("config/appsettings.json", optional: true)
@@ -45,17 +47,8 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue<int>("ambientHumidity", 25)
             };
 
-            string caCertFilePath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            if ((caCertFilePath == null) || (!File.Exists(caCertFilePath))) {
-                // there is no CA cert provided, bypass cert verification
-                Console.WriteLine("Bypassing Certificate Validation.");
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-            }
-            ITransportSettings[] settings = { mqttSetting };
-
             Console.WriteLine("Connection String {0}", connectionString);
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, TransportType.Mqtt_Tcp_Only);
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
@@ -69,6 +62,31 @@ namespace SimulatedTemperatureSensor
 
             await SendEvent(deviceClient, messageDelay, sim, cts);
             return 0;
+        }
+
+        /// <summary>
+        /// Add certificate in local cert store for use by client for secure connection to IoT Edge runtime
+        /// </summary>
+        static void InstallCert()
+        {
+            string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+            if (string.IsNullOrWhiteSpace(certPath))
+            {
+                // We cannot proceed further without a proper cert file
+                Console.WriteLine($"Missing path to certificate collection file: {certPath}");
+                throw new InvalidOperationException("Missing path to certificate file.");
+            }
+            else if (!File.Exists(certPath))
+            {
+                // We cannot proceed further without a proper cert file
+                Console.WriteLine($"Missing certificate collection file: {certPath}");
+                throw new InvalidOperationException("Missing certificate file.");
+            }
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+            Console.WriteLine("Added Cert: " + certPath);
+            store.Close();
         }
 
         //Control Message expected to be:

@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["scripts/linux/start.sh"]
+CMD ["/usr/bin/dotnet", "SimulatedTemperatureSensor.dll"]
