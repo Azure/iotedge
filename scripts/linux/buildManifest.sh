@@ -23,6 +23,7 @@ DOCKER_TAGS="[]"
 DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
 DOCKER_IMAGE_NAME=""
+IGNORE_MISSING=""
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -41,6 +42,7 @@ usage()
     echo " -v, --image-version  Docker Image Version."
     echo " -t, --template       Yaml file template for manifest definition."
     echo "     --tags           Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
+    echo "     --ignore-missing Ignore missing images in manifest"
     exit 1;
 }
 
@@ -93,6 +95,7 @@ process_args()
                        "--tags" ) save_next_arg=6;;
                 "-n" | "--namespace" ) save_next_arg=7;;
                 "-i" | "--image-name" ) save_next_arg=8;;
+                       "--ignore-missing" ) IGNORE_MISSING="--ignore-missing";;
                 * ) usage;;
             esac
         fi
@@ -151,7 +154,7 @@ echo "Build image with following manifest:"
 cat $manifest
 
 echo "Done Building And Pushing Docker Images"
-$BINDIR/manifest-tool --debug push from-spec --ignore-missing $manifest
+$BINDIR/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file
