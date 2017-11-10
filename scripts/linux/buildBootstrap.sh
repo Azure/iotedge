@@ -87,3 +87,11 @@ if [[ -z ${EGG_INFO} ]]; then
 else
     cd $ROOT_FOLDER/edge-bootstrap/python && /usr/bin/python setup.py egg_info $EGG_INFO sdist --dist-dir $OUTPUT_DIR $OPTIONS
 fi
+
+echo "Creating wheel"
+if [[ -z ${EGG_INFO} ]]; then
+    cd $ROOT_FOLDER/edge-bootstrap/python && /usr/bin/python setup.py bdist_wheel --dist-dir $OUTPUT_DIR
+else
+    cd $ROOT_FOLDER/edge-bootstrap/python && /usr/bin/python setup.py egg_info $EGG_INFO bdist_wheel --dist-dir $OUTPUT_DIR
+fi
+

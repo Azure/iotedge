@@ -21,10 +21,7 @@ On Windows, make sure the python.exe and python Scripts directory are on your pa
 More information for [installing python on Windows](https://docs.python.org/2/using/windows.html) can be found here.
 
 ### Install the tool
-In a terminal, complete the following steps:
-1. unzip the package
-2. change directory into the unzipped directory
-3. run `pip install .` (may need to run as administrator)
+In a terminal, complete the following steps run `pip install azure-iot-edge-runtime-ctl` (may need to run as administrator)
 
 This should install the `iotedgectl` tool on your path.
 
@@ -236,7 +233,7 @@ The following section goes into details of the various configuration items and l
 
 ### Installation Troubleshooting
 
-#### Raspbian 
+#### Raspbian
 
 On the raspbian platform, you may need to update pip or the setup tools:
 
