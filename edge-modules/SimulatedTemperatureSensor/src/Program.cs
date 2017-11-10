@@ -5,12 +5,14 @@ namespace SimulatedTemperatureSensor
     using System;
     using System.IO;
     using System.Net;
+    using System.Runtime.InteropServices;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -47,8 +49,16 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue<int>("ambientHumidity", 25)
             };
 
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            // Suppress cert validation on Windows for now
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+            ITransportSettings[] settings = { mqttSetting };
+
             Console.WriteLine("Connection String {0}", connectionString);
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, TransportType.Mqtt_Tcp_Only);
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
@@ -69,6 +79,12 @@ namespace SimulatedTemperatureSensor
         /// </summary>
         static void InstallCert()
         {
+            // Suppress cert validation on Windows for now
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return;
+            }
+
             string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
             if (string.IsNullOrWhiteSpace(certPath))
             {

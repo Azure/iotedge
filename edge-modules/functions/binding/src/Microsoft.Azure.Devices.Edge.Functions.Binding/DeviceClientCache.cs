@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using System;
+    using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
 
     class DeviceClientCache
@@ -29,15 +30,24 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         DeviceClient CreateDeviceClient(string connectionString)
         {
-            // get CA certificate
-            string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
-
-            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);  // On Linux only root store worked
-            store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
-            store.Close();
-
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+
+            // Suppress cert validation on Windows for now
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+            else
+            {
+                // get CA certificate
+                string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+
+                X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);  // On Linux only root store worked
+                store.Open(OpenFlags.ReadWrite);
+                store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+                store.Close();
+            }
+
             ITransportSettings[] settings = { mqttSetting };
 
             return DeviceClient.CreateFromConnectionString(connectionString, settings);

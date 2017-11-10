@@ -4,12 +4,14 @@ namespace TemperatureFilter
     using System;
 	using System.IO;
     using System.Collections.Generic;
+    using System.Runtime.InteropServices;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 
@@ -49,9 +51,17 @@ namespace TemperatureFilter
         {
             Console.WriteLine("Connection String {0}", connectionString);
 
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            // Suppress cert validation on Windows for now
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            }
+            ITransportSettings[] settings = { mqttSetting };
+
             // Open a connection to the Edge runtime
             DeviceClient deviceClient =
-                DeviceClient.CreateFromConnectionString(connectionString, TransportType.Mqtt_Tcp_Only);
+                DeviceClient.CreateFromConnectionString(connectionString, settings);
             await deviceClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 
@@ -72,6 +82,12 @@ namespace TemperatureFilter
         /// </summary>
         static void InstallCert()
         {
+            // Suppress cert validation on Windows for now
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return;
+            }
+
             string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
             if (string.IsNullOrWhiteSpace(certPath))
             {
