@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
                     else
                     {
-                        Log.LogError((int)EventIds.AuthError, Invariant($"Unable to authenticate device {id} because the cloud proxy is not active"));
+                        Log.LogInformation((int)EventIds.AuthError, Invariant($"Unable to authenticate device {id}"));
                     }
                 }
                 else

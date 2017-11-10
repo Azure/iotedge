@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json.Linq;
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
@@ -120,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // if the twin is empty then throw an appropriate error
                 if (this.desiredProperties.Count == 0)
                 {
-                    throw new ConfigEmptyException("This device has an empty configuration for the Edge agent. Please set a deployment manifest.");
+                    throw new ConfigEmptyException("This device has an empty configuration for the edge agent. Please set a deployment manifest.");
                 }
 
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
@@ -189,47 +188,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void Created()
             {
-                Log.LogDebug((int)EventIds.Created, "EdgeAgentConnection Created");
+                Log.LogDebug((int)EventIds.Created, "Edge agent connection to IoT Hub set up.");
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
             {
-                Log.LogError((int)EventIds.DesiredPropertiesFailed, exception, "EdgeAgentConnection failed to process desired properties update patch");
+                Log.LogError((int)EventIds.DesiredPropertiesFailed, exception, "Edge agent failed to process desired properties update patch");
             }
 
             public static void ConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
-                Log.LogInformation((int)EventIds.ConnectionStatusChanged, $"Connection status changed from to {status} with reason {reason}");
+                Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
             }
 
             internal static void DesiredPropertiesUpdated()
             {
-                Log.LogDebug((int)EventIds.DesiredPropertiesUpdated, "Edge Agent desired properties updated callback invoked.");
+                Log.LogDebug((int)EventIds.DesiredPropertiesUpdated, "Edge agent desired properties updated callback invoked.");
             }
 
             internal static void DesiredPropertiesPatchApplied()
             {
-                Log.LogDebug((int)EventIds.DesiredPropertiesPatchApplied, "Edge Agent desired properties patch applied successfully.");
+                Log.LogDebug((int)EventIds.DesiredPropertiesPatchApplied, "Edge agent desired properties patch applied successfully.");
             }
 
             internal static void ConnectionStatusChangedHandlingError(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorHandlingConnectionChangeEvent, ex, "Edge agent connection error handing connection change callback.");
+                Log.LogWarning((int)EventIds.ErrorHandlingConnectionChangeEvent, ex, "Edge agent connection error handing connection change callback.");
             }
 
             internal static void TwinRefreshSuccess()
             {
-                Log.LogDebug((int)EventIds.TwinRefreshSuccess, "Updated Edge agent configuration from twin.");
+                Log.LogDebug((int)EventIds.TwinRefreshSuccess, "Updated edge agent configuration from twin.");
             }
 
             internal static void TwinRefreshError(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorRefreshingTwin, ex, "Error refreshing Edge agent configuration from twin.");
+                Log.LogError((int)EventIds.ErrorRefreshingTwin, ex, "Error refreshing edge agent configuration from twin.");
             }
 
             internal static void ErrorUpdatingDeploymentConfig(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorUpdatingDeploymentConfig, ex, "Error updating deployment config from Edge agent desired properties.");
+                Log.LogError((int)EventIds.ErrorUpdatingDeploymentConfig, ex, "Error updating deployment config from edge agent desired properties.");
             }
 
             internal static void EmptyDeploymentConfig()
@@ -239,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             internal static void UpdatedDeploymentConfig()
             {
-                Log.LogDebug((int)EventIds.DeploymentConfigUpdated, "EdgeAgentConnection updated deployment config from desired properties.");
+                Log.LogDebug((int)EventIds.DeploymentConfigUpdated, "Edge agent updated deployment config from desired properties.");
             }
         }
     }

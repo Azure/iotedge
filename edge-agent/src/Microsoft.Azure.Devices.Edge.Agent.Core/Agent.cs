@@ -184,12 +184,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             public static void AgentCreated()
             {
-                Log.LogDebug((int)EventIds.AgentCreated, "Agent Created.");
+                Log.LogDebug((int)EventIds.AgentCreated, "Edge agent created.");
             }
 
             public static void PlanExecutionFailed(Exception ex)
             {
-                Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Agent Plan execution failed.");
+                Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Edge agent plan execution failed.");
             }
 
             public static void EmptyConfig(ConfigEmptyException ex)

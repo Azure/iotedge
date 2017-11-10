@@ -99,22 +99,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
             public static void Created(string filename)
             {
-                Log.LogInformation((int)EventIds.Created, $"FileBackupConfigSource created with filename {filename}");
+                Log.LogInformation((int)EventIds.Created, $"Edge agent config backup created here - {filename}");
             }
 
             public static void SetBackupFailed(Exception exception, string filename)
             {
-                Log.LogError((int)EventIds.SetBackupFailed, exception, $"FileBackupConfigSource failed saving backup module set to {filename}");
+                Log.LogError((int)EventIds.SetBackupFailed, exception, $"Error backing up edge agent config to {filename}");
             }
 
             public static void GetBackupFailed(Exception exception, string filename)
             {
-                Log.LogError((int)EventIds.GetBackupFailed, exception, $"FileBackupConfigSource failed getting backup module set from {filename}");
+                Log.LogError((int)EventIds.GetBackupFailed, exception, $"Failed to read edge agent config from file {filename}");
             }
 
             public static void RestoringFromBackup(Exception exception, string filename)
             {
-                Log.LogWarning((int)EventIds.RestoringFromBackup, exception, $"FileBackupConfigSource using backup module set from {filename}");
+                Log.LogWarning((int)EventIds.RestoringFromBackup, exception, $"Error getting edge agent config. Reading config from backup ({filename}) instead");
             }
 
             enum EventIds

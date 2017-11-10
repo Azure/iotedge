@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -39,6 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            Events.MessageReceived(identity);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             return this.router.RouteAsync(routingMessage);
         }
@@ -65,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(reportedPropertiesMessage, nameof(reportedPropertiesMessage));
-
+            Events.UpdateReportedPropertiesReceived(identity);
             Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
 
             IRoutingMessage routingMessage = this.ProcessMessageInternal(reportedPropertiesMessage, false);
@@ -100,9 +101,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        public async Task<IMessage> GetTwinAsync(string id) => await this.twinManager.GetTwinAsync(id);
+        public Task<IMessage> GetTwinAsync(string id)
+        {
+            Events.GetTwinCallReceived(id);
+            return this.twinManager.GetTwinAsync(id);
+        }
 
-        public async Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection) => await this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
+        public Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection)
+        {
+            Events.UpdateDesiredPropertiesCallReceived(id);
+            return   this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
+        }
 
         protected virtual void Dispose(bool disposing)
         {
@@ -126,11 +135,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 MethodReceived = IdStart,
+                MessageReceived = 1501,
+                ReportedPropertiesUpdateReceived = 1502,
+                DesiredPropertiesUpdateReceived = 1503,
             }
 
             public static void MethodCallReceived(IIdentity identity, string id, string correlationId)
             {
-                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from device/module {identity.Id} for {id} with correlation ID {correlationId}"));
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {identity.Id} for {id} with correlation ID {correlationId}"));
+            }
+
+            internal static void MessageReceived(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from {identity.Id}"));
+            }
+
+            internal static void UpdateReportedPropertiesReceived(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.ReportedPropertiesUpdateReceived, Invariant($"Reported properties update message received from {identity.Id}"));
+            }
+
+            internal static void GetTwinCallReceived(string id)
+            {
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"GetTwin call received from {id ?? string.Empty}"));
+            }
+
+            internal static void UpdateDesiredPropertiesCallReceived(string id)
+            {
+                Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
             }
         }
     }

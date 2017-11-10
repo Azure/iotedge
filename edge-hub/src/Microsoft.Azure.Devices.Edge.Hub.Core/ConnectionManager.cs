@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await existingCloudProxy.Filter(cp => cp.IsActive)
                 .Map(cp => cp.CloseAsync())
                 .GetOrElse(Task.FromResult(true));
-            Events.NewCloudConnection(identity);
+            Events.NewCloudConnection(identity, newCloudProxy);
 
             return newCloudProxy;
         }
@@ -104,9 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // instance to this.devices and return that.
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
-            Try<ICloudProxy> cloudProxyTry = await device.GetOrCreateCloudProxy(
+            Try<ICloudProxy> cloudProxy = await device.GetOrCreateCloudProxy(
                 () => this.GetCloudProxy(device));
-            return cloudProxyTry;
+            Events.GetCloudConnection(identity, cloudProxy);
+            return cloudProxy;
         }
 
         Task<Try<ICloudProxy>> GetCloudProxy(ConnectedDevice device) => this.cloudProxyProvider.Connect(device.Identity,
@@ -153,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if(this.devices.Values.Count(d => d.DeviceProxy.Filter(d1 => d1.IsActive).HasValue) >= this.maxClients)
                 {
-                    throw new EdgeHubConnectionException($"EdgeHub already has maximum allowed clients ({this.maxClients - 1}) connected.");
+                    throw new EdgeHubConnectionException($"Edge hub already has maximum allowed clients ({this.maxClients - 1}) connected.");
                 }
                 return new ConnectedDevice(identity);
             }
@@ -242,22 +243,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 CreateNewCloudConnection = IdStart,
                 NewDeviceConnection,
-                RemoveDeviceConnection
+                RemoveDeviceConnection,
+                CreateNewCloudConnectionError,
+                ObtainedCloudConnection,
+                ObtainCloudConnectionError
             }
 
-            public static void NewCloudConnection(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.CreateNewCloudConnection, Invariant($"New cloud connection created for device {identity.Id}"));
+            public static void NewCloudConnection(IIdentity identity, Try<ICloudProxy> cloudProxy)
+            {                
+                if (cloudProxy.Success)
+                {
+                    Log.LogInformation((int)EventIds.CreateNewCloudConnection, Invariant($"New cloud connection created for device {identity.Id}"));
+                }
+                else
+                {
+                    Log.LogInformation((int)EventIds.CreateNewCloudConnectionError, cloudProxy.Exception, Invariant($"Error creating new device connection for device {identity.Id}"));
+                }
             }
 
             public static void NewDeviceConnection(IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));
+                Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));                
             }
 
             public static void RemoveDeviceConnection(string id)
             {
                 Log.LogInformation((int)EventIds.RemoveDeviceConnection, Invariant($"Device connection removed for device {id}"));
+            }
+
+            internal static void GetCloudConnection(IIdentity identity, Try<ICloudProxy> cloudProxy)
+            {
+                if (cloudProxy.Success)
+                {
+                    Log.LogDebug((int)EventIds.ObtainedCloudConnection, Invariant($"Obtained cloud connection for device {identity.Id}"));
+                }
+                else
+                {
+                    Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudProxy.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
+                }
             }
         }
     }

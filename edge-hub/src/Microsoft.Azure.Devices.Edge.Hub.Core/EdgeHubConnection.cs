@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudProxy> cloudProxyTry = await connectionManager.GetOrCreateCloudConnectionAsync(edgeHubIdentity);
             if (!cloudProxyTry.Success)
             {
-                throw new EdgeHubConnectionException("Edge Hub is unable to connect to IoTHub", cloudProxyTry.Exception);
+                throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
             }
 
             ICloudProxy cloudProxy = cloudProxyTry.Value;
@@ -368,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
-        /// The Edge Hub device proxy, that receives communication for the EdgeHub from the cloud.
+        /// The Edge hub device proxy, that receives communication for the EdgeHub from the cloud.
         /// Currently only receives DesiredProperties updates.
         /// </summary>
         class EdgeHubDeviceProxy : IDeviceProxy
@@ -457,25 +457,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             internal static void Initialized(IIdentity edgeHubIdentity)
             {
-                Log.LogDebug((int)EventIds.Initialized, Invariant($"Established connection for Edge Hub {edgeHubIdentity.Id}"));
+                Log.LogDebug((int)EventIds.Initialized, Invariant($"Established IoT Hub connection for edge hub {edgeHubIdentity.Id}"));
             }
 
             internal static void ErrorUpdatingLastDesiredStatus(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorUpdatingLastDesiredStatus, ex,
-                    Invariant($"Error updating last desired status for Edge Hub"));
+                    Invariant($"Error updating last desired status for edge hub"));
             }
 
             internal static void ErrorHandlingDesiredPropertiesUpdate(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorHandlingDesiredPropertiesUpdate, ex,
-                    Invariant($"Error handling desired properties update for Edge Hub"));
+                    Invariant($"Error handling desired properties update for edge hub"));
             }
 
             internal static void ErrorPatchingDesiredProperties(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorPatchingDesiredProperties, ex,
-                    Invariant($"Error merging desired properties patch with existing desired properties for Edge Hub"));
+                Log.LogWarning((int)EventIds.ErrorPatchingDesiredProperties, ex,
+                    Invariant($"Error merging desired properties patch with existing desired properties for edge hub"));
             }
 
             internal static void ErrorHandlingDeviceConnectedEvent(IIdentity device, Exception ex)
@@ -498,18 +498,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ErrorGettingEdgeHubConfig(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorPatchingDesiredProperties, ex,
+                Log.LogWarning((int)EventIds.ErrorPatchingDesiredProperties, ex,
                     Invariant($"Error getting edge hub config from twin desired properties"));
             }
 
             internal static void GetConfigSuccess()
             {
-                Log.LogInformation((int)EventIds.GetConfigSuccess, Invariant($"Obtained Edge Hub config from module twin"));
+                Log.LogInformation((int)EventIds.GetConfigSuccess, Invariant($"Obtained edge hub config from module twin"));
             }
 
             internal static void PatchConfigSuccess()
             {
-                Log.LogInformation((int)EventIds.PatchConfigSuccess, Invariant($"Obtained Edge Hub config patch update from module twin"));
+                Log.LogInformation((int)EventIds.PatchConfigSuccess, Invariant($"Obtained edge hub config patch update from module twin"));
             }
 
             internal static void ErrorClearingDeviceConnectionStatuses(Exception ex)

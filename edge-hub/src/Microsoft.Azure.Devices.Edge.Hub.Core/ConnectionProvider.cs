@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity));
             if (!cloudProxy.Success)
             {
-                throw new EdgeHubConnectionException($"Unable to connect to IoTHub for device {identity.Id}", cloudProxy.Exception);
+                throw new EdgeHubConnectionException($"Unable to connect to IoT Hub for device {identity.Id}", cloudProxy.Exception);
             }
             IDeviceListener deviceListener = new DeviceMessageHandler(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
             return deviceListener;

@@ -115,24 +115,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             internal static void Initialized()
             {
-                Log.LogInformation((int)EventIds.Initialized, FormattableString.Invariant($"Initialized Edge Hub configuration"));
+                Log.LogInformation((int)EventIds.Initialized, FormattableString.Invariant($"Initialized edge hub configuration"));
             }
 
             internal static void InitializingError(Exception ex)
             {
                 Log.LogError((int)EventIds.InitializeError, ex,
-                    FormattableString.Invariant($"Error initializing Edge Hub configuration"));
+                    FormattableString.Invariant($"Error initializing edge hub configuration"));
             }
 
             internal static void UpdateError(Exception ex)
             {
                 Log.LogError((int)EventIds.UpdateError, ex,
-                    FormattableString.Invariant($"Error updating EdgeHub configuration"));
+                    FormattableString.Invariant($"Error updating edge hub configuration"));
             }
 
             internal static void UpdatingConfig()
             {
-                Log.LogInformation((int)EventIds.UpdatingConfig, "Setting/updating EdgeHub configuration");
+                Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
             }
 
             internal static void RoutesUpdated(IDictionary<string, Route> routes)
@@ -145,18 +145,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
                 else
                 {
-                    Log.LogInformation((int)EventIds.UpdatedRoutes, "Set 0 routes in the EdgeHub");
+                    Log.LogInformation((int)EventIds.UpdatedRoutes, "No routes set in the edge hub");
                 }
             }
 
             internal static void UpdatedStoreAndForwardConfiguration()
             {
-                Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, "Updated StoreAndForward configuration in the EdgeHub");
+                Log.LogInformation((int)EventIds.UpdatedStoreAndForwardConfig, "Updated the edge hub store and forward configuration");
             }
 
             internal static void EmptyConfigReceived()
             {
-                Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty Edge Hub configuration received."));
+                Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty edge hub configuration received. Ignoring..."));
             }
         }
     }

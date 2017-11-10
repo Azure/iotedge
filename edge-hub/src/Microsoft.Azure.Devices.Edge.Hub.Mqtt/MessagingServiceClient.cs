@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -238,12 +238,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void SendMessageFailed(IIdentity identity, Exception exception)
             {
-                Log.LogError((int)EventIds.SendMessageFailure, Invariant($"Message was not sent for device Id {identity.Id} exception {exception}"));
+                Log.LogWarning((int)EventIds.SendMessageFailure, Invariant($"Message was not sent for device Id {identity.Id} exception {exception}"));
             }
 
             public static void SendMethodResponseFailed(IIdentity identity, Exception exception)
             {
-                Log.LogError((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
+                Log.LogWarning((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
             }
         }
     }

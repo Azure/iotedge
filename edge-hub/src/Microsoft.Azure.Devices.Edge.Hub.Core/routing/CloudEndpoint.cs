@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
@@ -86,18 +86,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 }
                                 else
                                 {
+                                    Events.InvalidMessage(ex);
                                     invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
                                 }
 
                                 if (failed.Count > 0)
                                 {
+                                    Events.RetryingMessage(ex);
                                     sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"));
                                 }
                             }
                         },
                         () =>
                         {
-                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException("IoTHub is not connected"));
+                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException("IoT Hub is not connected"));
                             failed.Add(routingMessage);                            
                             return TaskEx.Done;
                         });
@@ -170,7 +172,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 DeviceIdNotFound = IdStart,
-                IoTHubNotConnected
+                IoTHubNotConnected,
+                RetryingMessages,
+                InvalidMessage
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -183,7 +187,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             internal static void IoTHubNotConnected(string id)
             {
-                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active IotHub connection for device {id}"));
+                Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for device {id}"));
+            }
+
+            internal static void RetryingMessage(Exception ex)
+            {
+                // TODO - Add more info to this log message
+                Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+            }
+
+            internal static void InvalidMessage(Exception ex)
+            {
+                // TODO - Add more info to this log message
+                Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
             }
         }
     }

@@ -408,30 +408,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {identity.Id}"));
             }
-
-            public static void MethodResponseReceived(IIdentity identity, string requestId)
-            {
-                Log.LogDebug((int)EventIds.MethodResponseReceived, Invariant($"Received response for call with requestId {requestId} method from device {identity.Id}"));
-            }
-
-            public static void MethodResponseNotMapped(IIdentity identity, string requestId)
-            {
-                Log.LogError((int)EventIds.MethodRequestIdNotMatched, Invariant($"No Request found for received response for call with requestId {requestId} for device {identity.Id}"));
-            }
-
-            public static void MethodResponseTimedout(IIdentity identity, string requestId)
-            {
-                Log.LogDebug((int)EventIds.MethodResponseTimedout, Invariant($"Didn't receive response for call with requestId {requestId} method from device {identity.Id}"));
-            }
-
+            
             public static void StartListening(IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for device {identity.Id}"));
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {identity.Id}"));
             }
 
             internal static void TerminatingErrorReceivingMessage(IIdentity identity, Exception e)
             {
-                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Received {e.GetType()} exception when receiving C2D messages for device {identity.Id}. Closing receive loop."));
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {identity.Id}. Closing receive loop."));
             }
         }
     }

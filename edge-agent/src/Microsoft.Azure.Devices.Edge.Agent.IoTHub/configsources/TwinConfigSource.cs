@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -37,8 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources
 
             enum EventIds
             {
-                Created = IdStart,
-                AgentConfigConversionError
+                Created = IdStart
             }
 
             public static void Created() => Log.LogDebug((int)EventIds.Created, "TwinConfigSource Created");

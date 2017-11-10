@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
@@ -99,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                     }
                                     else
                                     {
+                                        Events.InvalidMessage(ex);
                                         invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
                                     }
                                     Events.ErrorSendingMessages(this.moduleEndpoint, ex);
@@ -107,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                             if (failed.Count > 0)
                             {
+                                Events.RetryingMessages(failed.Count, this.moduleEndpoint.Id);
                                 sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
                             }
                         },
@@ -153,7 +155,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             enum EventIds
             {
                 NoDeviceProxy = IdStart,
-                ErrorSendingMessages
+                ErrorSendingMessages,
+                RetryingMessages,
+                InvalidMessage
             }
 
             public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
@@ -164,6 +168,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ErrorSendingMessages(ModuleEndpoint moduleEndpoint, Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorSendingMessages, ex, Invariant($"Error sending messages to module {moduleEndpoint.moduleId}"));
+            }
+
+            internal static void RetryingMessages(int count, string endpointId)
+            {
+                // TODO - Add more info to this log message
+                Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying {count} messages to {endpointId}."));
+            }
+
+            internal static void InvalidMessage(Exception ex)
+            {
+                // TODO - Add more info to this log message
+                Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
             }
         }
     }

@@ -5,10 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
-    using System.Net;
-    using System.Net.NetworkInformation;
-    using System.Net.Sockets;
     using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
@@ -126,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
             catch (Exception ex)
             {
-                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting Agent.");
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting edge agent.");
                 return 1;
             }
         }

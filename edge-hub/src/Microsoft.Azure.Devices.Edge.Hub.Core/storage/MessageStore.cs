@@ -47,21 +47,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         public void SetTimeToLive(TimeSpan timeSpan)
         {
             this.timeToLive = timeSpan;
+            Events.TTLUpdated(timeSpan);
         }
 
         public async Task AddEndpoint(string endpointId)
         {
             ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(endpointId);
-            this.endpointSequentialStores.TryAdd(endpointId, sequentialStore);
+            if(this.endpointSequentialStores.TryAdd(endpointId, sequentialStore))
+            {
+                Events.SequentialStoreAdded(endpointId);
+            }
         }
 
-        public Task RemoveEndpoint(string endpointId)
+        public async Task RemoveEndpoint(string endpointId)
         {
             if (this.endpointSequentialStores.TryGetValue(endpointId, out ISequentialStore<MessageRef> sequentialStore))
             {
-                this.storeProvider.RemoveStore(sequentialStore);
+                await this.storeProvider.RemoveStore(sequentialStore);
+                Events.SequentialStoreRemoved(endpointId);
             }
-            return Task.CompletedTask;
         }
 
         public async Task<long> Add(string endpointId, IMessage message)
@@ -360,7 +364,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 CleanupTaskStarted,
                 ErrorCleaningMessagesForEndpoint,
                 ErrorCleaningMessages,
-                CleanupCompleted
+                CleanupCompleted,
+                TTLUpdated,
+                SequentialStoreAdded,
+                SequentialStoreRemoved
             }
 
             public static void MessageStoreCreated(MessageStore messageStore)
@@ -375,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public static void CleanupTaskStarted(string endpointId)
             {
-                Log.LogInformation((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
+                Log.LogDebug((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
             }
 
             public static void CleanupTaskInitialized()
@@ -390,12 +397,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public static void ErrorCleaningMessages(Exception ex)
             {
-                Log.LogError((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
+                Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
             }
 
             public static void CleanupCompleted(string endpointId, int count)
             {
-                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
+                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
+            }
+
+            internal static void TTLUpdated(TimeSpan timeSpan)
+            {
+                Log.LogInformation((int)EventIds.TTLUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
+            }
+
+            internal static void SequentialStoreAdded(string endpointId)
+            {
+                Log.LogDebug((int)EventIds.SequentialStoreAdded, $"Added sequential store for endpoint {endpointId}");
+            }
+
+            internal static void SequentialStoreRemoved(string endpointId)
+            {
+                Log.LogDebug((int)EventIds.SequentialStoreRemoved, $"Removed sequential store for endpoint {endpointId}");
             }
 
             internal static void MessageNotFound(string edgeMessageId)

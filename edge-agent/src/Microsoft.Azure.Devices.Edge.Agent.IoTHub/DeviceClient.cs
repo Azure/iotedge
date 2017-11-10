@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void DeviceClientCreated()
             {
-                Log.LogDebug((int)EventIds.DeviceClientCreated, "Device Client for Agent Module Created.");
+                Log.LogDebug((int)EventIds.DeviceClientCreated, "Device client for edge agent created.");
             }            
         }
     }

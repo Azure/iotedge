@@ -67,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
             ICloudListener cloudListener = new CloudListener(this, this.edgeHub, this.Identity);
             this.cloudProxy.BindCloudListener(cloudListener);
+            // This operation is async, but we cannot await in this sync method.
+            // It is fine because the await part of the operation is cleanup and best effort. 
             this.connectionManager.AddDeviceConnection(this.Identity, this);
             Events.BindDeviceProxy(this.Identity);
         }
@@ -228,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             public static void MethodResponseInvalid(IIdentity identity)
             {
-                Log.LogError((int)EventIds.InvalidMethodResponse, Invariant($"Method response address is invalid for device Id {identity.Id}"));
+                Log.LogError((int)EventIds.InvalidMethodResponse, Invariant($"Method response does not contain required property CorrelationId for device Id {identity.Id}"));
             }
 
             public static void MethodResponseReceived(string correlationId)
