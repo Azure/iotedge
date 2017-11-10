@@ -21,13 +21,8 @@
     "type": "docker",
     "docker": {
       "uri": "",
-      "edgeRuntimeImage": "edgepreview.azurecr.io/azureiotedge/edge-agent:1.0-preview",
+      "edgeRuntimeImage": "microsoft/azureiotedge-agent:1.0-preview",
       "registries": [
-        {
-          "address": "edgepreview.azurecr.io",
-          "username": "EdgePreview",
-          "password": "enter-your-password"
-        }
       ],
       "loggingOptions": {
         "log-driver": "json-file",
