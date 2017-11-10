@@ -2,8 +2,10 @@
 
 # This scrips starts the IoT hub service
 
+EdgeHubUser=$(printenv EdgeHubUser)
 EdgeModuleHubServerCertificateFile=$(printenv EdgeModuleHubServerCertificateFile)
 EdgeModuleHubServerCAChainCertificateFile=$(printenv EdgeModuleHubServerCAChainCertificateFile)
+
 # check if the EdgeAgent supplied the hub with the server certificate and its
 # corresponding signing CA cert
 if [[ -z "${EdgeModuleHubServerCertificateFile}" ]] || [[ -z "${EdgeModuleHubServerCAChainCertificateFile}" ]]; then
@@ -12,8 +14,13 @@ if [[ -z "${EdgeModuleHubServerCertificateFile}" ]] || [[ -z "${EdgeModuleHubSer
 else
     echo "Edge Hub Server Certificate File: ${EdgeModuleHubServerCertificateFile}"
     echo "Edge Hub CA Server Certificate File: ${EdgeModuleHubServerCAChainCertificateFile}"
-    export SSL_CERTIFICATE_PATH=$(dirname "${EdgeModuleHubServerCertificateFile}")
-    export SSL_CERTIFICATE_NAME=$(basename "${EdgeModuleHubServerCertificateFile}")
+
+    SSL_CERTIFICATE_PATH=$(dirname "${EdgeModuleHubServerCertificateFile}")
+    export SSL_CERTIFICATE_PATH
+
+    SSL_CERTIFICATE_NAME=$(basename "${EdgeModuleHubServerCertificateFile}")
+    export SSL_CERTIFICATE_NAME
+
     echo "SSL_CERTIFICATE_PATH=${SSL_CERTIFICATE_PATH}"
     echo "SSL_CERTIFICATE_NAME=${SSL_CERTIFICATE_NAME}"
     # copy the CA cert into the ca cert dir
@@ -32,8 +39,8 @@ else
         echo "Failed to Update CA Certificates."
         exit 1
     fi
-    echo "Certificates generated and installed successfully!"
+    echo "Certificates installed successfully!"
 fi
 
 # start service
-exec dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
+runuser -u "$EdgeHubUser" dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll

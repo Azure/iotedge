@@ -4,10 +4,6 @@ ARG EXE_DIR=.
 ENV SSL_CERTIFICATE_PATH=/etc/ssl/certs
 ENV SSL_CERTIFICATE_NAME=edge-server.pfx
 
-# required to expose these ports to external leaf devices
-EXPOSE 443
-EXPOSE 8883
-
 WORKDIR /app
 
 COPY $EXE_DIR/ ./
