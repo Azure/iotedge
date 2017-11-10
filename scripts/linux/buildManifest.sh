@@ -151,7 +151,7 @@ echo "Build image with following manifest:"
 cat $manifest
 
 echo "Done Building And Pushing Docker Images"
-$BINDIR/manifest-tool --debug --ignore-missing push from-spec $manifest
+$BINDIR/manifest-tool --debug push from-spec --ignore-missing $manifest
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file
