@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
@@ -8,11 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     public class CommonModule : Module
     {
+        readonly string productInfo;
         readonly string iothubHostName;
         readonly string deviceId;
 
-        public CommonModule(string iothubHostName, string deviceId)
+        public CommonModule(string productInfo, string iothubHostName, string deviceId)
         {
+            this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
@@ -25,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityFactory
-            builder.Register(c => new IdentityFactory(this.iothubHostName))
+            builder.Register(c => new IdentityFactory(this.iothubHostName, this.productInfo))
                 .As<IIdentityFactory>()
                 .SingleInstance();
 

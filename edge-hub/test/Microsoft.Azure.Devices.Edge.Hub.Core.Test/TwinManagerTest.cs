@@ -1063,7 +1063,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah");
+            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             // Act - trigger callback
             twinManager.ConnectionEstablishedCallback(null, identity);
@@ -1128,7 +1128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(cached.SubscribedToDesiredPropertyUpdates, true);
 
             // Arrange
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah");
+            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             twin = new Twin();
             twin.Version = 33;
@@ -1186,7 +1186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah");
+            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             // Act - cache the twin so that the twin is in the cache but there are no
             // reported properties cached. Then trigger callback

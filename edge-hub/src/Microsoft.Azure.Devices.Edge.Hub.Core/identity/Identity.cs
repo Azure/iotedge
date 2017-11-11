@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     public abstract class Identity : IIdentity
@@ -8,13 +8,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string connectionString,
             AuthenticationScope scope,
             string policyName,
-            string secret)
+            string secret,
+            string productInfo)
         {
             this.IotHubHostName = iotHubHostName;
             this.ConnectionString = connectionString;
             this.Scope = scope;
             this.PolicyName = policyName;
             this.Secret = secret;
+            this.ProductInfo = productInfo;
         }
 
         public string IotHubHostName { get; }
@@ -28,5 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public string PolicyName { get; }
 
         public string Secret { get; }
+
+        public string ProductInfo { get; }
     }
 }

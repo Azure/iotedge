@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 "TestHub.azure-devices.net",
                 "Device_2",
-                "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",                
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
                 true,
                 typeof(ProtocolGatewayIdentity)
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 "TestHub.azure-devices.net",
                 "Device_1",
-                "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
                 true,
                 typeof(UnauthenticatedDeviceIdentity)
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 "TestHub.azure-devices.net",
                 "Device_2",
-                "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken.Substring(0, sasToken.Length - 20),
                 true,
                 typeof(UnauthenticatedDeviceIdentity)
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 "TestHub.azure-devices.net",
                 "Device_2",
-                "127.0.0.1/Device_2/api-version=2016-11-14/DeviceClientType=Microsoft.Azure.Devices.Client/1.2.2",
+                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
                 sasToken,
                 false,
                 typeof(UnauthenticatedDeviceIdentity)

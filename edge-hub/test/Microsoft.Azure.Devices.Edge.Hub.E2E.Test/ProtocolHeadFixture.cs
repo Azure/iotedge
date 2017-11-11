@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-            builder.RegisterModule(new CommonModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
+            builder.RegisterModule(new CommonModule(string.Empty, iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
             builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, routes, false, false, storeAndForwardConfiguration, string.Empty, ConnectionPoolSize, false));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
             setupMocks?.Invoke(builder);

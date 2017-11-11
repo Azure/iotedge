@@ -89,5 +89,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             return dictionary;
         }
+
+        public static TSource ElementAtOrDefault<TSource>(this IEnumerable<TSource> source, int index, TSource defaultValue)
+        {
+            return index >= 0 && index < source.Count() ? source.ElementAt(index) : defaultValue;
+        }
+
+        public static string ElementAtOrEmpty(this IEnumerable<string> source, int index)
+        {
+            return source.ElementAtOrDefault(index, string.Empty);
+        }
     }
 }

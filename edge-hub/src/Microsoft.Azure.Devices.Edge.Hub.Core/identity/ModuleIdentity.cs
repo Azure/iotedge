@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -17,8 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string connectionString, 
             AuthenticationScope scope, 
             string policyName, 
-            string secret)
-            : base(iotHubHostName, connectionString, scope, policyName, secret)
+            string secret,
+            string productInfo)
+            : base(iotHubHostName, connectionString, scope, policyName, secret, productInfo)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));

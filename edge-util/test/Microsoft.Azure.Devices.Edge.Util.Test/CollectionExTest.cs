@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
@@ -92,6 +92,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             };
 
             Assert.Throws<FormatException>(() => stringsList.ToDictionary('='));
+        }
+
+        [Fact]
+        public void TestElementAtOrDefault()
+        {
+            var source = new string[] { "a", "b" };
+
+            Assert.Equal("*", source.ElementAtOrDefault(-1, "*"));
+            Assert.Equal("a", source.ElementAtOrDefault(0, "*"));
+            Assert.Equal("b", source.ElementAtOrDefault(1, "*"));
+            Assert.Equal("*", source.ElementAtOrDefault(2, "*"));
+        }
+
+        [Fact]
+        public void TestElementAtOrEmpty()
+        {
+            var source = new string[] { "a", "b" };
+
+            Assert.Equal(string.Empty, source.ElementAtOrEmpty(-1));
+            Assert.Equal("a", source.ElementAtOrEmpty(0));
+            Assert.Equal("b", source.ElementAtOrEmpty(1));
+            Assert.Equal(string.Empty, source.ElementAtOrEmpty(2));
         }
     }
 }

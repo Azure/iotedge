@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -7,5 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         string Id { get; }
 
         string ConnectionString { get; }
+
+        string ProductInfo { get; }
     }
 }

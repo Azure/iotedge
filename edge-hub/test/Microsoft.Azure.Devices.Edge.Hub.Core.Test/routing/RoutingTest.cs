@@ -533,6 +533,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Guid.NewGuid().ToString(),
             AuthenticationScope.SasToken,
             null,
+            "",
             "");
 
         static IModuleIdentity SetupModuleIdentity(string moduleId, string deviceId) => new ModuleIdentity(
@@ -542,6 +543,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             "",
             AuthenticationScope.SasToken,
             null,
+            "",
             "");
     }
 }

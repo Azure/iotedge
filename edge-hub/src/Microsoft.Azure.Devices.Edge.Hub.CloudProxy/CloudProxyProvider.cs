@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString);
+            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString, identity.ProductInfo);
             if (!tryDeviceClient.Success)
             {
                 Events.ConnectError(identity.Id, tryDeviceClient.Exception);
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return Try.Success(cloudProxy);
         }
 
-        async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString)
+        async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString, string productInfo)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
@@ -72,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);
                     deviceClient.OperationTimeoutInMilliseconds = DefaultOperationTimeoutMilliseconds;
                 }
+                deviceClient.ProductInfo = productInfo;
                 await deviceClient.OpenAsync();
                 return deviceClient;
             }

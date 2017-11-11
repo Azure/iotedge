@@ -114,9 +114,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string iotHubHostName = "iotHubName";
             string edgeDeviceId = "edge";
             string edgeDeviceConnStr = "dummyConnStr";
-            var module1Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module1", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz");
+            var module1Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module1", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz", "");
 
-            var module2Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz");
+            var module2Identity = new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2", edgeDeviceConnStr, AuthenticationScope.SasToken, null, "xyz", "");
 
             var edgeDeviceIdentity = Mock.Of<IDeviceIdentity>(
                 d => d.DeviceId == edgeDeviceId &&
@@ -234,6 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 string.Empty,
                 AuthenticationScope.SasToken,
                 string.Empty,
+                string.Empty,
                 string.Empty);
 
             var module2Identity = new ModuleIdentity(string.Empty,
@@ -241,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 module2Id,
                 string.Empty,
                 AuthenticationScope.SasToken,
+                string.Empty,
                 string.Empty,
                 string.Empty);
 
@@ -282,6 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 module1Id,
                 string.Empty,
                 AuthenticationScope.SasToken,
+                string.Empty,
                 string.Empty,
                 string.Empty);
 
@@ -325,6 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 device,
                 string.Empty,
                 AuthenticationScope.SasToken,
+                string.Empty,
                 string.Empty,
                 string.Empty);
 

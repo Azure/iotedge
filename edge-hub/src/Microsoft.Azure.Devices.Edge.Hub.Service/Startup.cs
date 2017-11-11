@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
     using Autofac;
@@ -94,7 +95,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             // Register modules
-            builder.RegisterModule(new CommonModule(this.iotHubConnectionStringBuilder.HostName, this.iotHubConnectionStringBuilder.DeviceId));            
+            builder.RegisterModule(
+                new CommonModule(
+                    GetProductInfo(),
+                    this.iotHubConnectionStringBuilder.HostName,
+                    this.iotHubConnectionStringBuilder.DeviceId));
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubConnectionStringBuilder.HostName, 
@@ -140,6 +145,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
             return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);            
+        }
+
+        string GetProductInfo()
+        {
+            string name = "Microsoft.Azure.Devices.Edge.Hub";
+            string version = FileVersionInfo.GetVersionInfo(typeof(Startup).Assembly.Location).ProductVersion;
+            return $"{name}/{version}";
         }
 
         string GetStoragePath()
