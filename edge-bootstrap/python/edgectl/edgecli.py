@@ -207,6 +207,74 @@ class EdgeCLI(object):
                                help='Do not prompt for passwords when generating private keys. Optional.',
                                action='store_true')
 
+        cmd_setup.add_argument('--owner-ca-cert-file',
+                               help='Owner CA certificate in X.509 PEM format.\n' \
+                               'Used when operating the runtime as a \'Gateway\' for leaf devices. Optional.',
+                               metavar='')
+
+        cmd_setup.add_argument('--device-ca-cert-file',
+                               help='Device CA certificate in X.509 PEM format.\n' \
+                               'Used when operating the runtime as a \'Gateway\' for leaf devices. Optional.',
+                               metavar='')
+
+        cmd_setup.add_argument('--device-ca-chain-cert-file',
+                               help='Device CA chain certificate in X.509 PEM format.\n' \
+                               'Used when operating the runtime as a \'Gateway\' for leaf devices. Optional.',
+                               metavar='')
+
+        cmd_setup.add_argument('--device-ca-private-key-file',
+                               help='Device CA certificate private key file in PEM format.\n' \
+                               'Used when operating the runtime as a \'Gateway\' for leaf devices. Optional.',
+                               metavar='')
+
+        cmd_setup.add_argument('--device-ca-passphrase-file',
+                               help='Device CA certificate private key passphrase file in ascii text.\n' \
+                               'Users can provide this file or use the --device-ca-passphrase option but not both.',
+                               metavar='')
+
+        cmd_setup.add_argument('--device-ca-passphrase',
+                               help='Device CA certificate private key passphrase in ascii text.\n' \
+                               'Users can use this option to provide the passphrase or use the --device-ca-passphrase-file option but not both.',
+                               metavar='')
+
+        cmd_setup.add_argument('--agent-ca-passphrase-file',
+                               help='Agent CA certificate private key passphrase file in ascii text.\n' \
+                               'Users can provide this file or use the --agent-ca-passphrase option but not both.',
+                               metavar='')
+
+        cmd_setup.add_argument('--agent-ca-passphrase',
+                               help='Agent CA certificate private key passphrase in ascii text.\n' \
+                               'Users can use this option to provide the passphrase or use the --agent-ca-passphrase-file option but not both.',
+                               metavar='')
+
+        subj = EdgeDefault.certificate_subject_dict()
+        cmd_setup.add_argument('-C', '--country',
+                               help='Two letter country code. This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\''.format(subj[EC.SUBJECT_COUNTRY_KEY]), metavar='')
+
+        cmd_setup.add_argument('-ST', '--state',
+                               help='State. This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\''.format(subj[EC.SUBJECT_STATE_KEY]), metavar='')
+
+        cmd_setup.add_argument('-L', '--locality',
+                               help='Locality or city. This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\''.format(subj[EC.SUBJECT_LOCALITY_KEY]), metavar='')
+
+        cmd_setup.add_argument('-OR', '--organization',
+                               help='Organization name. This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\''.format(subj[EC.SUBJECT_ORGANIZATION_KEY]), metavar='')
+
+        cmd_setup.add_argument('-OU', '--organization-unit',
+                               help='Organization unit name. This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\''.format(subj[EC.SUBJECT_ORGANIZATION_UNIT_KEY]), metavar='')
+
+        cmd_setup.add_argument('-CN', '--common-name',
+                               help='Common name used for the Device CA certificate.' \
+                               'This parameter is used when autogenerating certificates. Optional.\n'
+                               'Default: \'{0}\'. ' \
+                               .format(subj[EC.SUBJECT_COMMON_NAME_KEY]),
+                               metavar='')
+
         cmd_setup.set_defaults(func=self._parse_edge_command)
 
         cmd_start = subparsers.add_parser('start', description="Start the runtime.", help='Start the runtime.')

@@ -13,7 +13,16 @@ class EdgeDefault(object):
     _edge_agent_dir_name = "__AzureIoTEdgeAgent"
     _edge_runtime_log_levels = [EC.EDGE_RUNTIME_LOG_LEVEL_INFO,
                                 EC.EDGE_RUNTIME_LOG_LEVEL_DEBUG]
-    _windows_config_path = os.getenv('PROGRAMDATA') if os.getenv('PROGRAMDATA') is not None else ''
+    _windows_config_path = os.getenv('PROGRAMDATA', '%%PROGRAMDATA%%')
+
+    _cert_default_dict = {
+        EC.SUBJECT_COUNTRY_KEY: 'US',
+        EC.SUBJECT_STATE_KEY: 'Washington',
+        EC.SUBJECT_LOCALITY_KEY: 'Redmond',
+        EC.SUBJECT_ORGANIZATION_KEY: 'Default Edge Organization',
+        EC.SUBJECT_ORGANIZATION_UNIT_KEY: 'Edge Unit',
+        EC.SUBJECT_COMMON_NAME_KEY: 'Edge Device CA',
+    }
 
     _platforms = {
         EC.DOCKER_HOST_LINUX: {
@@ -117,6 +126,10 @@ class EdgeDefault(object):
     def get_supported_deployments():
         host = platform.system().lower()
         return EdgeDefault._platforms[host]['supported_deployments']
+
+    @staticmethod
+    def certificate_subject_dict():
+        return EdgeDefault._cert_default_dict
 
     @staticmethod
     def docker_uri(host, engine):

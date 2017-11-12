@@ -8,12 +8,26 @@
     "certificates": {
       "option": "selfSigned",
       "selfSigned": {
-        "forceRegenerate": false,
-        "forceNoPasswords": true
+        "forceNoPasswords": true,
+        "deviceCAPassphraseFile": "",
+        "agentCAPassphraseFile": ""
       },
       "preInstalled": {
+        "forceNoPasswords": true,
+        "ownerCACertificateFilePath": "",
         "deviceCACertificateFilePath": "",
-        "serverCertificateFilePath": ""
+        "deviceCAChainCertificateFilePath": "",
+        "deviceCAPrivateKeyFilePath": "",
+        "deviceCAPassphraseFilePath": "",
+        "agentCAPassphraseFilePath": ""
+      },
+      "subject": {
+        "countryCode": "US",
+        "state": "Washington",
+        "locality": "Redmond",
+        "organization": "Default Edge Organization",
+        "organizationUnit": "Edge Unit",
+        "commonName": "Edge Device CA"
       }
     }
   },
