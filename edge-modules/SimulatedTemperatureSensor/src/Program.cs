@@ -57,7 +57,6 @@ namespace SimulatedTemperatureSensor
             }
             ITransportSettings[] settings = { mqttSetting };
 
-            Console.WriteLine("Connection String {0}", connectionString);
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
@@ -119,19 +118,23 @@ namespace SimulatedTemperatureSensor
 
             try
             {
-                var messageBody = JsonConvert.DeserializeObject<ControlCommand>(messageString);
-                if (messageBody.Command == ControlCommandEnum.reset)
+                ControlCommand[] messages = JsonConvert.DeserializeObject<ControlCommand[]>(messageString);
+                foreach (ControlCommand messageBody in messages)
                 {
-                    reset.Set(true);
-                }
-                else
-                {
-                    //NoOp
+                    if (messageBody.Command == ControlCommandEnum.reset)
+                    {
+                        Console.WriteLine("Resetting temperature sensor..");
+                        reset.Set(true);
+                    }
+                    else
+                    {
+                        //NoOp
+                    }
                 }
             }
-            catch (JsonReaderException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Ignoring control message. Wrong control message exception: [{ex.Message}]");
+                Console.WriteLine($"Failed to deserialize control command with exception: [{ex.Message}]");
             }
 
             return Task.FromResult(MessageResponse.Completed);
