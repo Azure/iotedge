@@ -47,7 +47,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
-            bool usePersistentStorage = configuration.GetValue<bool>("UsePersistentStorage", true);
+            // TODO: The persistent store as implemented right now uses a RocksDB based backend store.
+            // This doesn't work out great for edge agent because RocksDB does not quite support the notion
+            // of deleting records. It performs a soft delete that will get deleted for real at some future
+            // point in time which would have been perfectly fine except that it continues to return the
+            // deleted record during get operations. So we switch to the in-memory version of the store
+            // for now. When we have an alternate persistence implementation we will switch to that.
+            bool usePersistentStorage = false;
+            // bool usePersistentStorage = configuration.GetValue<bool>("UsePersistentStorage", true);
+
             string storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
 
             // build the logger instance for the Program type
