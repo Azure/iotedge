@@ -13,7 +13,7 @@ if not defined BUILD_REPOSITORY_LOCALPATH (
     set BUILD_REPOSITORY_LOCALPATH=%~dp0..\..
 )
 
-if not defined AGENT_WORKFOLDER (
+if not defined AGENT_WORKFOLDER (	
     set AGENT_WORKFOLDER=%ProgramFiles%
 )
 
@@ -23,6 +23,14 @@ if not defined BUILD_BINARIESDIRECTORY (
 
 if not defined CONFIGURATION (
     set CONFIGURATION=Debug
+)
+
+if not defined BUILD_SOURCEVERSION (
+	set BUILD_SOURCEVERSION=''
+)
+
+if not defined BUILD_BUILDID (
+	set BUILD_BUILDID=''
 )
 
 set SLN_PATTERN=Microsoft.Azure.*.sln
@@ -35,6 +43,7 @@ set SRC_SCRIPTS_DIR=%BUILD_REPOSITORY_LOCALPATH%\scripts
 set SRC_BIN_DIR=%BUILD_REPOSITORY_LOCALPATH%\bin
 set TEST_CSPROJ_PATTERN=Microsoft.Azure*Test.csproj
 set FUNCTION_BINDING_CSPROJ_PATTERN=*Binding.csproj
+set VERSIONINFO_FILE_PATH=%BUILD_REPOSITORY_LOCALPATH%\versionInfo.json
 
 if not exist "%BUILD_REPOSITORY_LOCALPATH%" (
     echo Error: %BUILD_REPOSITORY_LOCALPATH% not found
@@ -47,6 +56,23 @@ if not exist "%DOTNET_ROOT_PATH%\dotnet.exe" (
 )
 
 if exist "%BUILD_BINARIESDIRECTORY%" rd /q /s "%BUILD_BINARIESDIRECTORY%"
+
+if exist "%VERSIONINFO_FILE_PATH%" (
+
+	echo.
+	echo Updating versionInfo.json file with the build ID and commit ID.
+	echo.
+
+	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'BUILDNUMBER', %BUILD_BUILDID% | Out-File %VERSIONINFO_FILE_PATH%"
+	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'COMMITID', %BUILD_SOURCEVERSION% | Out-File %VERSIONINFO_FILE_PATH%"
+
+) else (
+
+	echo.
+	echo VersionInfo.json file not found. 
+	echo.
+
+)
 
 echo.
 echo Cleaning and restoring all solutions in repo

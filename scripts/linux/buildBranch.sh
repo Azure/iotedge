@@ -20,6 +20,7 @@ RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_BIN_DIR=$ROOT_FOLDER/bin
+VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 
 # Process script arguments
 PUBLISH_TESTS=${1:-""}
@@ -46,6 +47,22 @@ fi
 
 if [ -z "${CONFIGURATION}" ]; then
     CONFIGURATION="Debug"
+fi
+
+if [ -z "${BUILD_SOURCEVERSION}" ]; then
+    BUILD_SOURCEVERSION=""
+fi
+
+if [ -z "${BUILD_BUILDID}" ]; then
+    BUILD_BUILDID=""
+fi
+
+if [ -f "${VERSIONINFO_FILE_PATH}" ]; then
+    echo "Updating versionInfo.json with build ID and commit ID"
+    sed -i "s/BUILDNUMBER/$BUILD_BUILDID/" $VERSIONINFO_FILE_PATH
+    sed -i "s/COMMITID/$BUILD_SOURCEVERSION/" $VERSIONINFO_FILE_PATH
+else
+    echo "VersionInfo.json file not found."
 fi
 
 echo "Cleaning and restoring all solutions in repo"

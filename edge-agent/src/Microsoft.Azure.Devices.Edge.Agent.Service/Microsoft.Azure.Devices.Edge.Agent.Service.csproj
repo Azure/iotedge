@@ -36,6 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\..\versionInfo.json" Link="versionInfo.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings_agent.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

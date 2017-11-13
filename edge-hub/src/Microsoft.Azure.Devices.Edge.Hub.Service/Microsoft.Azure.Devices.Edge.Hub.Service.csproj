@@ -59,6 +59,9 @@
     <Content Include="..\..\..\kubernetes\edge-hub.yaml" Link="kubernetes\edge-hub.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="..\..\..\versionInfo.json" Link="versionInfo.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

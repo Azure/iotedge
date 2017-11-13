@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
         const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
+        const string VersionInfoFileName = "versionInfo.json";
 
         public static int Main()
         {
@@ -40,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Logger.SetLogLevel(logLevel);
 
             // Set the LoggerFactory used by the Routing code. 
-            if (configuration.GetValue<bool>("EnableRoutingLogging", false))
+            if (configuration.GetValue("EnableRoutingLogging", false))
             {
                 Routing.Core.Routing.LoggerFactory = Logger.Factory;
             }
@@ -54,6 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub.");
+            var versionInfo = VersionInfo.Get(VersionInfoFileName);
+            if (versionInfo != VersionInfo.Empty)
+            {
+                logger.LogInformation($"Version - {versionInfo.ToString()}");
+            }
             LogLogo(logger);
             var cts = new CancellationTokenSource();
 
@@ -103,13 +109,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
        ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
        ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
 
-██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
-██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
-██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
-██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
-██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
-╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
+ ██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
+ ██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
+ ██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
+ ██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
+ ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
+ ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
 ");
-        }
+        }        
     }
 }

@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     {
         const string ConfigFileName = "appsettings_agent.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
+        const string VersionInfoFileName = "versionInfo.json";
 
         public static int Main()
         {
@@ -89,6 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             logger.LogInformation("Starting module management agent.");
+            var versionInfo = VersionInfo.Get(VersionInfoFileName);
+            if (versionInfo != VersionInfo.Empty)
+            {
+                logger.LogInformation($"Version - {versionInfo.ToString()}");
+            }
             LogLogo(logger);
             var cts = new CancellationTokenSource();
 
@@ -163,13 +169,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
        ██║  ██║███████╗╚██████╔╝██║  ██║███████╗
        ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
 
-██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
-██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
-██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
-██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
-██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
-╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
+ ██╗ ██████╗ ████████╗    ███████╗██████╗  ██████╗ ███████╗
+ ██║██╔═══██╗╚══██╔══╝    ██╔════╝██╔══██╗██╔════╝ ██╔════╝
+ ██║██║   ██║   ██║       █████╗  ██║  ██║██║  ███╗█████╗
+ ██║██║   ██║   ██║       ██╔══╝  ██║  ██║██║   ██║██╔══╝
+ ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
+ ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
 ");
-        }
+        }        
     }
 }
