@@ -2,11 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 {
+    using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
-    using System.Collections.Generic;
-    using System.Linq;
     using Xunit;
 
     public class AgentStateTest
@@ -40,6 +40,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         description = ""
                     }
                 }, new AgentState(0, DeploymentStatus.Success)),
+
+                (new
+                {
+                    schemaVersion = "2.0",
+                    lastDesiredVersion = 10,
+                    lastDesiredStatus = new
+                    {
+                        code = 200,
+                        description = ""
+                    }
+                }, new AgentState(10, DeploymentStatus.Success, schemaVersion: "2.0"))
             };
 
             return inputs.Select(r => new object[] { r.input, r.expected });

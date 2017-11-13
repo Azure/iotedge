@@ -324,23 +324,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal class ReportedProperties
         {
+            const string CurrentSchemaVersion = "1.0";
+
             static Dictionary<string, DeviceConnectionStatus> EmptyConnectionStatusesDictionary = new Dictionary<string, DeviceConnectionStatus>();
 
             // When reporting last desired version/status, send empty map of clients so that the patch doesn't touch the 
             // existing values. If we send a null, it will clear out the existing clients.
             public ReportedProperties(long lastDesiredVersion, LastDesiredStatus lastDesiredStatus)
-                : this(lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary) { }
+                : this(CurrentSchemaVersion, lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary) { }
 
             public ReportedProperties(IDictionary<string, DeviceConnectionStatus> clients)
-                : this(null, null, clients) { }
+                : this(CurrentSchemaVersion, null, null, clients) { }
 
             [JsonConstructor]
-            public ReportedProperties(long? lastDesiredVersion, LastDesiredStatus lastDesiredStatus, IDictionary<string, DeviceConnectionStatus> clients)
+            public ReportedProperties(string schemaVersion, long? lastDesiredVersion, LastDesiredStatus lastDesiredStatus, IDictionary<string, DeviceConnectionStatus> clients)
             {
+                this.SchemaVersion = schemaVersion;
                 this.LastDesiredVersion = lastDesiredVersion;
                 this.LastDesiredStatus = lastDesiredStatus;
                 this.Clients = clients;
             }
+
+            [JsonProperty(PropertyName = "schemaVersion")]
+            public string SchemaVersion { get; }
 
             [JsonProperty(PropertyName = "lastDesiredVersion", NullValueHandling = NullValueHandling.Ignore)]
             public long? LastDesiredVersion { get; }

@@ -102,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(0, reportedProperties.Clients.Count);
+            Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             // Simulate a module and a downstream device that connects to Edge Hub.
 
@@ -131,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients[downstreamDeviceId].LastConnectedTimeUtc);
             Assert.Null(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
+            Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             // Update desired propertied and make sure callback is called with valid values
             bool callbackCalled = false;
@@ -173,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(2, reportedProperties.Clients.Count);
+            Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             // Disconnect the downstream device and make sure the reported properties are updated as expected.
             await connectionManager.RemoveDeviceConnection(moduleIdKey);
@@ -186,11 +189,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastConnectedTimeUtc);
             Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
+            Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             // If the edge hub restarts, clear out the connected devices in the reported properties.
             edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
+            Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             await RegistryManagerHelper.RemoveDevice(edgeDeviceId, registryManager);
         }

@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
+                const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
                 const string RuntimeType = "docker";
                 const string MinDockerVersion = "1.25";
@@ -164,6 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 JObject patchJson = JObject.Parse(patch.ToJson());
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
+                    schemaVersion = SchemaVersion,
                     lastDesiredVersion = DesiredVersion,
                     lastDesiredStatus = new
                     {
@@ -219,6 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
+                const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
                 const string RuntimeType = "docker";
                 const string MinDockerVersion = "1.25";
@@ -310,6 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
+                    schemaVersion = SchemaVersion,
                     lastDesiredVersion = DesiredVersion,
                     lastDesiredStatus = new
                     {
@@ -590,6 +594,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
+                const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
                 const string RuntimeType = "docker";
                 const string MinDockerVersion = "1.25";
@@ -675,6 +680,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 JObject patchJson = JObject.Parse(patch.ToJson());
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
+                    schemaVersion = SchemaVersion,
                     lastDesiredVersion = DesiredVersion,
                     lastDesiredStatus = new
                     {
@@ -757,6 +763,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 JObject patchJson = JObject.Parse(patch.ToJson());
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
+                    schemaVersion = "1.0",
                     lastDesiredStatus = new
                     {
                         code = (int)DeploymentStatusCode.Successful

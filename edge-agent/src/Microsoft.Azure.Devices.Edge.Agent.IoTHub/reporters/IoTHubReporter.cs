@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
     public class IoTHubReporter : IReporter
     {
+        const string CurrentReportedPropertiesSchemaVersion = "1.0";
+
         readonly string[] SystemModuleNames = new string[]
         {
             Constants.EdgeAgentModuleName,
@@ -95,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     status,
                     deploymentConfigInfo != null ? (await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime)) : rs.RuntimeInfo,
                     new SystemModules(edgeAgentModule, edgeHubModule),
-                    userModules.ToImmutableDictionary()
+                    userModules.ToImmutableDictionary(),
+                    CurrentReportedPropertiesSchemaVersion
                 ));
 
                 return (reportedState, currentState);
