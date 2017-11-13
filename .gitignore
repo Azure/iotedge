@@ -288,7 +288,7 @@ FakesAssemblies/
 *.opt
 
 .vs/
-.vscode/
+.vscode/launch.json
 
 launchSettings.json
 target/

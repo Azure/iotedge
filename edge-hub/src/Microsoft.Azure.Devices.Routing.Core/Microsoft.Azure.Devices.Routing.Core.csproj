@@ -1,5 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
@@ -23,7 +22,7 @@
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.7.0" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true'">
+  <ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true' And '$(OS)' == 'Windows_NT'">
     <Antlr4 Include="grammar\Condition.g4">
       <Generator>MSBuild:Compile</Generator>
       <CustomToolNamespace>Microsoft.Azure.Devices.Routing.Core.Query</CustomToolNamespace>
@@ -55,8 +54,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="grammar\generated\" />
+    <Antlr4Inputs Include="grammar\*.g4;query\jsonpath\*.g4" />
+    <Antlr4Outputs Include="grammar\generated\**\*.cs" />
+    <Antlr4Outputs Condition="'@(Antlr4Outputs)' == ''" Include="grammar\generated\dummy.cs" />
   </ItemGroup>
+
+  <Target Name="Antlr4CodeGen" BeforeTargets="Antlr4Sources" Inputs="@(Antlr4Inputs)" Outputs="@(Antlr4Outputs)"
+    Condition="'$(BuildingInsideVisualStudio)' != 'true' Or '$(OS)' != 'Windows_NT'">
+    <PropertyGroup>
+      <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar</FullAntlr4ToolLocation>
+    </PropertyGroup>
+    <Exec Command="java -version" EchoOff="true" />
+    <MakeDir Directories="grammar\generated" />
+    <Exec Command="java -jar $(FullAntlr4ToolLocation) %(Antlr4Inputs.Identity) -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o grammar/generated" />
+    <CreateProperty Value="true">  
+      <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />  
+    </CreateProperty>
+  </Target>
+
+  <Target Name="Antlr4Sources" BeforeTargets="CoreCompile">
+    <ItemGroup Condition="'$(Antlr4CodeGenRan)' == 'true'">
+      <Compile Include="grammar\generated\**\*.cs" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />

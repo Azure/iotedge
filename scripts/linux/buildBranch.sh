@@ -14,7 +14,6 @@ SLN_PATTERN='Microsoft.Azure.*.sln'
 CSPROJ_PATTERN='*.csproj'
 TEST_CSPROJ_PATTERN='*Test.csproj'
 FUNCTION_BINDING_CSPROJ_PATTERN='*Binding.csproj'
-ANTLR_PATTERN='*.g4'
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
@@ -56,15 +55,6 @@ while read soln; do
     $DOTNET_ROOT_PATH/dotnet clean --output $BUILD_BINARIESDIRECTORY $soln
     $DOTNET_ROOT_PATH/dotnet restore $soln
 done < <(find $ROOT_FOLDER -type f -name $SLN_PATTERN)
-
-echo "Generating Antlr code files"
-
-while read g4file; do
-    echo "Generating .cs files for - $g4file"
-    OUTPUT_DIR=$(dirname "$g4file")/generated
-    mkdir -p $OUTPUT_DIR
-    java -jar ~/.nuget/packages/antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar $g4file -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o $OUTPUT_DIR
-done < <(find $ROOT_FOLDER -type f -name $ANTLR_PATTERN)
 
 echo "Building all solutions in repo"
 RES=0

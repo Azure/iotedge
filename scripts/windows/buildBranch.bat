@@ -27,7 +27,6 @@ if not defined CONFIGURATION (
 
 set SLN_PATTERN=Microsoft.Azure.*.sln
 set CSPROJ_PATTERN=*.csproj
-set ANTLR_PATTERN=*.g4
 set DOTNET_ROOT_PATH=%AGENT_WORKFOLDER%\dotnet
 set PUBLISH_FOLDER=%BUILD_BINARIESDIRECTORY%\publish
 set SRC_DOCKER_DIR=%BUILD_REPOSITORY_LOCALPATH%\docker
@@ -57,26 +56,6 @@ for /r %%f in (%SLN_PATTERN%) do (
     echo Cleaning and Restoring packages for solution - %%f
     "%DOTNET_ROOT_PATH%\dotnet" clean %%f
     "%DOTNET_ROOT_PATH%\dotnet" restore %%f
-    if !ERRORLEVEL! neq 0 exit /b 1
-)
-
-echo.
-echo Generating Antlr code files
-echo.
-
-set JAVA_COMMAND=java
-where %JAVA_COMMAND% >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    REM Fallback to using IKVM if Java isn't installed. Java is preferred for Antlr codegen
-    REM because it's a lot faster.
-    set "JAVA_COMMAND=%UserProfile%\.nuget\packages\Antlr4.CodeGenerator\4.6.1-beta002\tools\ikvm.exe"
-)
-
-for /r %%a in (%ANTLR_PATTERN%) do (
-    set GENERATED_PATH=%%~dpagenerated
-    echo Generating .cs files for - %%a
-    if not exist "!GENERATED_PATH!" mkdir "!GENERATED_PATH!"
-    "%JAVA_COMMAND%" -jar "%UserProfile%/.nuget/packages/Antlr4.CodeGenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar" %%a -package Microsoft.Azure.Devices.Routing.Core -Dlanguage=CSharp_v4_5 -visitor -listener -o "!GENERATED_PATH!"
     if !ERRORLEVEL! neq 0 exit /b 1
 )
 
