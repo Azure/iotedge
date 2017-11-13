@@ -33,8 +33,7 @@ class EdgeDockerClient(object):
         try:
             self._client.login(username=uname, password=pword, registry=addr)
         except docker.errors.APIError as ex:
-            logging.error('Could not login to registry ' + addr \
-                      + ' using username ' + uname)
+            logging.error('Could not login to registry %s using username %s.', addr, uname)
             print(ex)
             raise
 
@@ -46,15 +45,19 @@ class EdgeDockerClient(object):
             raise EdgeError('Docker daemon returned error.', ex)
 
     def pull(self, image, username, password):
-        logging.info('Executing pull for image: ' + image)
+        logging.info('Executing pull for image: %s', image)
         is_updated = True
         old_tag = None
         try:
+            logging.info('Checking if image exists locally: %s', image)
             inspect_dict = self._api_client.inspect_image(image)
             old_tag = inspect_dict['Id']
-            logging.info('Image exists locally. Tag: ' + old_tag)
+            logging.info('Image exists locally. Tag: %s', old_tag)
         except docker.errors.APIError as ex:
-            logging.info('Image not found locally: ' + image)
+            logging.info('Image not found locally: %s', image)
+            logging.info('Please note it may take some time to download this image.'\
+                         '\nDepending on network conditions and registry server' \
+                         ' availability this may take a few minutes.')
 
         try:
             auth_dict = None
@@ -65,13 +68,12 @@ class EdgeDockerClient(object):
             if old_tag:
                 inspect_dict = self._api_client.inspect_image(image)
                 new_tag = inspect_dict['Id']
-                logging.debug('Post pull image tag: ' + new_tag)
+                logging.debug('Post pull image tag: %s', new_tag)
                 if new_tag == old_tag:
                     logging.debug('Image is up to date.')
                     is_updated = False
         except docker.errors.APIError as ex:
-            logging.error('Error inspecting image: ' \
-                          + image + ' ' + str(ex))
+            logging.error('Error inspecting image: %s. Error: %s', image, str(ex))
             raise
 
         return is_updated
@@ -79,10 +81,13 @@ class EdgeDockerClient(object):
     def get_container_by_name(self, container_name):
         try:
             return self._client.containers.get(container_name)
-        except docker.errors.APIError as ex:
-            logging.error('Could not find container ' + container_name)
-            print (ex)
+        except docker.errors.NotFound as ex_nf:
+            logging.debug('Could not find container %s', container_name)
             return None
+        except docker.errors.APIError as ex:
+            logging.error('Error when getting container: %s', container_name)
+            print(ex)
+            raise
 
     def start(self, container_name):
         logging.info('Starting container: ' + container_name)
@@ -92,7 +97,7 @@ class EdgeDockerClient(object):
                 if container_name == container.name:
                     container.start()
         except docker.errors.APIError as ex:
-            logging.error('Could not start container ' + container_name)
+            logging.error('Could not start container: %s', container_name)
             print(ex)
             raise
 
@@ -104,7 +109,7 @@ class EdgeDockerClient(object):
                 if container_name == container.name:
                     container.restart(timeout=timeout_int)
         except docker.errors.APIError as ex:
-            logging.error('Could not retart container ' + container_name)
+            logging.error('Could not retart container: %s', container_name)
             print(ex)
             raise
 
@@ -116,7 +121,7 @@ class EdgeDockerClient(object):
                 if container_name == container.name:
                     container.stop()
         except docker.errors.APIError as ex:
-            logging.error('Could not stop container ' + container_name)
+            logging.error('Could not stop container: %s', container_name)
             print(ex)
             raise
 
@@ -129,8 +134,7 @@ class EdgeDockerClient(object):
                     result = container.status
             return result
         except docker.errors.APIError as ex:
-            logging.error('Error while checking status for: '
-                          + container_name)
+            logging.error('Error while checking status for: %s', container_name)
             print(ex)
             raise
 
@@ -142,7 +146,7 @@ class EdgeDockerClient(object):
                 if container_name == container.name:
                     container.remove()
         except docker.errors.APIError as ex:
-            logging.error('Could not remove container ' + container_name)
+            logging.error('Could not remove container: %s' + container_name)
             print(ex)
             raise
 
@@ -155,7 +159,7 @@ class EdgeDockerClient(object):
             for container in containers:
                 container.stop()
         except docker.errors.APIError as ex:
-            logging.error('Could not stop containers by label ' + label)
+            logging.error('Could not stop containers by label: %s', label)
             print(ex)
             raise
         return
@@ -169,7 +173,7 @@ class EdgeDockerClient(object):
             for container in containers:
                 container.remove()
         except docker.errors.APIError as ex:
-            logging.error('Could not remove containers by label ' + label)
+            logging.error('Could not remove containers by label: %s', label)
             print(ex)
             raise
         return
@@ -192,7 +196,7 @@ class EdgeDockerClient(object):
                 else:
                     self._client.networks.create(network_name, driver="bridge")
         except docker.errors.APIError as ex:
-            logging.error('Could not create docker network: ' + network_name)
+            logging.error('Could not create docker network: %s' + network_name)
             print(ex)
             raise
 
