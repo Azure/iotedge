@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
@@ -70,16 +70,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register<ISessionStatePersistenceProvider>(
                     c =>
                     {
-                        if (this.isStoreAndForwardEnabled)
-                        {
-                            IEntityStore<string, ISessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey);
-                            return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
-                        }
-                        else
-                        {
-                            return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
-                        }
-
+                        // TODO - Disable SessionState storage for now. Re-enable it when storage serialization/deserialization is fixed.
+                        //if (this.isStoreAndForwardEnabled)
+                        //{
+                        //    IEntityStore<string, ISessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey);
+                        //    return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
+                        //}
+                        //else
+                        //{
+                        //    return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
+                        //}
+                        return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
                     })
                 .As<ISessionStatePersistenceProvider>()
                 .SingleInstance();
