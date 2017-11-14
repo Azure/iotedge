@@ -2,12 +2,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
@@ -29,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(moduleString);
             deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
-
             Events.DeviceClientCreated();
             return new DeviceClient(deviceClient);
         }
@@ -44,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         }
 
         public void Dispose() => this.deviceClient.Dispose();
+
+        public Task OpenAsync() => this.deviceClient.OpenAsync();
 
         public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
             this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, userContext);

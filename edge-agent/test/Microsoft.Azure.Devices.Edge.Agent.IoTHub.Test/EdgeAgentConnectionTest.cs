@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using System.Linq;
 
     public class EdgeAgentConnectionTest
     {
@@ -933,6 +932,83 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.Equal(deploymentConfigInfo.OrDefault().Version, 11);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
+        }
+
+        [Bvt]
+        [Fact(Skip = "Connected status in registry manager seems flaky")]
+        public async Task EdgeAgentConnectionStatusTest()
+        {
+            // Arrange
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            await registryManager.OpenAsync();
+
+            string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();
+
+            var edgeDevice = new Device(edgeDeviceId)
+            {
+                Capabilities = new DeviceCapabilities { IotEdge = true },
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+            };
+            edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
+
+            await SetAgentDesiredProperties(registryManager, edgeDeviceId);
+
+            string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+            EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
+                .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
+                .Build();
+            IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString);
+
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+
+            // Assert
+            Module edgeAgentModule = await registryManager.GetModuleAsync(edgeDevice.Id, Constants.EdgeAgentModuleIdentityName);
+            Assert.NotNull(edgeAgentModule);
+            Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
+
+            IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
+            await Task.Delay(TimeSpan.FromSeconds(30));
+
+            edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
+            Assert.NotNull(edgeAgentModule);
+            Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Connected);
+
+            edgeAgentConnection.Dispose();
+            await Task.Delay(TimeSpan.FromSeconds(30));
+
+            edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
+            Assert.NotNull(edgeAgentModule);
+            Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
         }
     }
 }

@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             var edgeAgentConnection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
             deviceClient.SetConnectionStatusChangedHandler(edgeAgentConnection.OnConnectionStatusChanged);
             await deviceClient.SetDesiredPropertyUpdateCallback(edgeAgentConnection.OnDesiredPropertiesUpdated, null);
+            await deviceClient.OpenAsync();
             Events.Created();
             return edgeAgentConnection;
         }
