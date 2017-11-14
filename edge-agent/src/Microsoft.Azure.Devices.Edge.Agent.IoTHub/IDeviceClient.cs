@@ -17,5 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
 
         void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler statusChangedHandler);
+
+        Task SetMethodHandlerAsync(string methodName, MethodCallback callback, object userContext);
     }
 }

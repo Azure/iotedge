@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -935,7 +936,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Bvt]
-        [Fact(Skip = "Connected status in registry manager seems flaky")]
+        [Fact(Skip = "Connected status update in IoTHub takes 5 mins.")]
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
@@ -997,18 +998,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
             IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromMinutes(7));
 
             edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
             Assert.NotNull(edgeAgentModule);
             Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Connected);
 
             edgeAgentConnection.Dispose();
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromMinutes(7));
 
             edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
             Assert.NotNull(edgeAgentModule);
             Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
+        }
+
+        [Bvt]
+        [Fact]
+        public async Task EdgeAgentPingMethodTest()
+        {
+            // Arrange
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            await registryManager.OpenAsync();
+
+            string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();
+
+            var edgeDevice = new Device(edgeDeviceId)
+            {
+                Capabilities = new DeviceCapabilities { IotEdge = true },
+                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+            };
+            edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
+
+            await SetAgentDesiredProperties(registryManager, edgeDeviceId);
+
+            string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+            EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
+                .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
+                .Build();
+            IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString);
+
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+            Devices.ServiceClient serviceClient = Devices.ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+
+            // Assert
+            await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
+
+            IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
+            Assert.NotNull(methodResult);
+            Assert.Equal(200, methodResult.Status);
+
+            CloudToDeviceMethodResult invalidMethodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("poke"));
+            Assert.NotNull(invalidMethodResult);
+            Assert.Equal(501, invalidMethodResult.Status);
+
+            edgeAgentConnection.Dispose();
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
         }
     }
 }

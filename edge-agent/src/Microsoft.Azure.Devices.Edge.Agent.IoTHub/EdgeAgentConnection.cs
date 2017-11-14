@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
         internal const string ExpectedSchemaVersion = "1.0";
+        const string PingMethodName = "ping";
+        static Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
         readonly IDeviceClient deviceClient;
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
@@ -36,10 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             var edgeAgentConnection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
             deviceClient.SetConnectionStatusChangedHandler(edgeAgentConnection.OnConnectionStatusChanged);
             await deviceClient.SetDesiredPropertyUpdateCallback(edgeAgentConnection.OnDesiredPropertiesUpdated, null);
+            await deviceClient.SetMethodHandlerAsync(PingMethodName, edgeAgentConnection.PingMethodCallback, null);
             await deviceClient.OpenAsync();
             Events.Created();
             return edgeAgentConnection;
         }
+
+        Task<MethodResponse> PingMethodCallback(MethodRequest methodRequest, object userContext) => PingMethodResponse;
 
         async void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
@@ -126,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string desiredPropertiesJson = this.desiredProperties.ToJson();
                 deploymentConfig = this.desiredPropertiesSerDe.Deserialize(desiredPropertiesJson);
             }
-            catch(ConfigEmptyException)
+            catch (ConfigEmptyException)
             {
                 Events.EmptyDeploymentConfig();
                 // TODO: Localize this error?
