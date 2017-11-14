@@ -2,16 +2,23 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule
     {
         [JsonConstructor]
-        public EdgeAgentDockerRuntimeModule(DockerReportedConfig settings, ModuleStatus runtimeStatus, ConfigurationInfo configuration)
+        public EdgeAgentDockerRuntimeModule(
+            DockerReportedConfig settings,
+            ModuleStatus runtimeStatus,
+            DateTime lastStartTimeUtc,
+            ConfigurationInfo configuration
+        )
             : base("docker", settings, configuration)
         {
             this.RuntimeStatus = runtimeStatus;
+            this.LastStartTimeUtc = lastStartTimeUtc;
 
             // You maybe wondering why we are setting this here again even though
             // the base class does this assignment. This is due to a behavior
@@ -24,6 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonProperty(PropertyName = "runtimeStatus")]
         public ModuleStatus RuntimeStatus { get; }
+
+        [JsonProperty(PropertyName = "lastStartTimeUtc")]
+        public DateTime LastStartTimeUtc { get; }
 
         [JsonIgnore]
         public override string Version { get; }

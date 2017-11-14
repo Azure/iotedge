@@ -428,9 +428,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             };
             var dockerClient = Mock.Of<IDockerClient>(dc =>
                 dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)) &&
-                dc.Containers == Mock.Of< IContainerOperations>( co =>
-                    co.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.FromResult(Mock.Of<ContainerInspectResponse>( cir =>
-                        cir.Config == new Config() { Image = "myImage" } && cir.Image == "sha256:foo"))));
+                dc.Containers == Mock.Of<IContainerOperations>(co =>
+                  co.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.FromResult(Mock.Of<ContainerInspectResponse>(cir =>
+                     cir.Config == new Config() { Image = "myImage" }
+                     &&
+                     cir.Image == "sha256:foo"
+                     &&
+                     cir.State == new ContainerState()
+                     {
+                         StartedAt = "2017-11-13T23:44:35.127381Z"
+                     }))));
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
@@ -441,6 +448,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(edgeAgent.Type, "docker");
             Assert.Equal("myImage", edgeAgent.Config.Image);
             Assert.Equal("sha256:foo", (edgeAgent.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal(
+                DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind),
+                edgeAgent.LastStartTimeUtc
+            );
         }
 
         [Fact]

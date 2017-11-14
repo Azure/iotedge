@@ -113,8 +113,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 .Map(response => response.Config?.Labels?.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty) ?? string.Empty)
                 .GetOrElse(string.Empty));
 
+            Option<string> startedAtMaybe = edgeAgentContainer
+                .FlatMap(response => Option.Maybe(response?.State?.StartedAt));
+            DateTime startedAt = startedAtMaybe
+                .Map(s => DateTime.Parse(s, null, DateTimeStyles.RoundtripKind))
+                .GetOrElse(DateTime.MinValue);
+
             // TODO: When we have health checks for Edge Agent the runtime status can potentially be "Unhealthy".
-            return new EdgeAgentDockerRuntimeModule(config, ModuleStatus.Running, configurationInfo);
+            return new EdgeAgentDockerRuntimeModule(
+                config, ModuleStatus.Running, startedAt, configurationInfo
+            );
         }
 
         (

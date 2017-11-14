@@ -18,6 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Option<int> none = Option.None<int>();
             Assert.False(none.HasValue);
+
+            Option<string> maybeNull = Option.Maybe<string>(null);
+            Assert.False(maybeNull.HasValue);
+
+            Option<string> maybeNotNull = Option.Maybe<string>("boo");
+            Assert.True(maybeNotNull.HasValue);
         }
 
         [Fact]
