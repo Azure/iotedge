@@ -49,4 +49,8 @@ echo Unzip and binplace dotnet
 tar -xzf /tmp/$DOTNET_SDK_PACKAGE_NAME -C $DOTNET_ROOT_PATH
 chmod +x $DOTNET_ROOT_PATH/dotnet
 
+echo Install Libsnappy
+sudo apt-get update
+sudo apt-get install -y libsnappy1v5
+
 exit 0

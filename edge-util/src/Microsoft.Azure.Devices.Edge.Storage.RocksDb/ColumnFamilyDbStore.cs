@@ -124,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             if (disposing)
             {
-                // Don't dispose the Db here as we could be just updating routes.
+                // Don't dispose the Db here as we don't know if the caller
+                // meant to dispose just the ColumnFamilyDbStore or the DB.
                 //this.db?.Dispose();
             }
         }

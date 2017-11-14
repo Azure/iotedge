@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+VisualStudioVersion = 15.0.26730.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -173,6 +173,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{8EF9C00D
 		edge-modules\functions\samples\docker\windows\amd64\Dockerfile = edge-modules\functions\samples\docker\windows\amd64\Dockerfile
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test", "edge-util\test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.csproj", "{6367B713-5AAB-451C-8215-F5226C3DC724}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -299,6 +301,10 @@ Global
 		{3EB5B58A-5820-44E7-9558-917C105B940D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3EB5B58A-5820-44E7-9558-917C105B940D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3EB5B58A-5820-44E7-9558-917C105B940D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6367B713-5AAB-451C-8215-F5226C3DC724}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6367B713-5AAB-451C-8215-F5226C3DC724}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -355,6 +361,7 @@ Global
 		{31B0F93F-3E58-4C66-9DCC-24236EA81F16} = {BCAA863C-8BC2-4FB1-9D9E-7BCADBCFC3A5}
 		{A7922DBF-E53A-45AB-86C6-3978ADE5196A} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
 		{8EF9C00D-85BB-49B0-A181-0C7581439816} = {A7922DBF-E53A-45AB-86C6-3978ADE5196A}
+		{6367B713-5AAB-451C-8215-F5226C3DC724} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

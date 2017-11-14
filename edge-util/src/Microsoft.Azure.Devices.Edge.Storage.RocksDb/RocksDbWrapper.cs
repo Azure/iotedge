@@ -75,7 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public void Put(byte[] key, byte[] value, ColumnFamilyHandle handle) => this.db.Put(key, value, handle);
 
-        public void Remove(byte[] key, ColumnFamilyHandle handle) => this.db.Remove(key, handle);
+        public void Remove(byte[] key, ColumnFamilyHandle handle)
+        {
+            // Work around the remove bug in RocksDbSharp. https://github.com/warrenfalk/rocksdb-sharp/issues/35
+            string keyString = key.FromBytes();
+            this.db.Remove(keyString, handle);
+        }
 
         public Iterator NewIterator(ColumnFamilyHandle handle, ReadOptions readOptions) => this.db.NewIterator(handle, readOptions);
 

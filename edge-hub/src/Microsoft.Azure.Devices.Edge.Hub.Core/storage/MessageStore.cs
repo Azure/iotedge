@@ -382,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public static void CleanupTaskStarted(string endpointId)
             {
-                Log.LogDebug((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
+                Log.LogInformation((int)EventIds.CleanupTaskStarted, Invariant($"Started task to cleanup processed and stale messages for endpoint {endpointId}"));
             }
 
             public static void CleanupTaskInitialized()
@@ -402,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public static void CleanupCompleted(string endpointId, int count)
             {
-                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
+                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
             }
 
             internal static void TTLUpdated(TimeSpan timeSpan)
