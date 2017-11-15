@@ -22,7 +22,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0preview12',
+    version='1.0.0preview13',
     description='Azure IoT Edge Runtime Control',
     long_description=long_description,
     url='https://github.com/azure/iot-edge',
