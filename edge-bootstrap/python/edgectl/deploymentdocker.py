@@ -61,7 +61,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         sep = '/'
         mnt_path = '{0}{1}'.format(sep, self._EDGE_VOL_MOUNT_BASE)
         # setup module volume with CA cert
-        ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
+        ca_cert_file = EdgeHostPlatform.get_root_ca_cert_file()
         module_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_MODULE_VOL_NAME)
         self._client.copy_file_to_volume(container_name,
                                          ca_cert_file['file_name'],
@@ -106,7 +106,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         env_dict['EdgeModuleVolumePath'] = module_vol_path
 
         # setup env vars describing CA cert location for all edge modules
-        ca_cert_file = EdgeHostPlatform.get_ca_cert_file()
+        ca_cert_file = EdgeHostPlatform.get_root_ca_cert_file()
         env_dict['EdgeModuleCACertificateFile'] = \
             '{0}{1}{2}'.format(module_vol_path, sep, ca_cert_file['file_name'])
 

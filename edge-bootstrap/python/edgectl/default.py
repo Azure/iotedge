@@ -42,8 +42,8 @@ class EdgeDefault(object):
         EC.DOCKER_HOST_WINDOWS: {
             'supported_deployments': [EC.DEPLOYMENT_DOCKER],
             'default_deployment': EC.DEPLOYMENT_DOCKER,
-            'default_edge_conf_dir': _windows_config_path + '\\' + _edge_dir,
-            'default_edge_data_dir': _windows_config_path + '\\' + _edge_dir,
+            'default_edge_conf_dir': _windows_config_path + '\\' + _edge_dir + '\\config',
+            'default_edge_data_dir': _windows_config_path + '\\' + _edge_dir + '\\data',
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
@@ -114,6 +114,7 @@ class EdgeDefault(object):
     def get_host_config_dir():
         host = platform.system().lower()
         result = EdgeDefault._platforms[host]['default_edge_conf_dir']
+        result = os.path.realpath(result)
         return result
 
     @staticmethod
@@ -155,6 +156,7 @@ class EdgeDefault(object):
         path = None
         if EdgeDefault._platforms[host]:
             path = EdgeDefault._platforms[host]['default_edge_data_dir']
+            path = os.path.realpath(path)
         return path
 
     @staticmethod

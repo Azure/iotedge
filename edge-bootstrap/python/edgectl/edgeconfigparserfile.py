@@ -36,18 +36,40 @@ class EdgeConfigParserFile(EdgeConfigParser):
             config.home_dir = data[EC.HOMEDIR_KEY]
             config.hostname = data[EC.HOSTNAME_KEY]
             config.log_level = data[EC.EDGE_RUNTIME_LOG_LEVEL_KEY]
+            # parse certificate settings
             certs_cfg_data = data[EC.SECURITY_KEY][EC.CERTS_KEY]
-            config.security_option = certs_cfg_data[EC.CERTS_OPTION_KEY]
-            if config.use_self_signed_certificates():
+            security_option = certs_cfg_data[EC.CERTS_OPTION_KEY]
+            subject_dict = {}
+            if EC.CERTS_SUBJECT_KEY in list(certs_cfg_data.keys()):
+                subject_dict = certs_cfg_data[EC.CERTS_SUBJECT_KEY]
+            if security_option == EC.SELFSIGNED_KEY:
                 ss_cert_data = certs_cfg_data[EC.SELFSIGNED_KEY]
-                config.self_signed_cert_option_force_regen = \
-                    ss_cert_data[EC.SELFSIGNED_FORCEREGEN_KEY]
+                dev_pass_file = None
+                agt_pass_file = None
+                if EC.DEVICE_CA_PASSPHRASE_FILE_KEY in list(ss_cert_data.keys()):
+                    dev_pass_file = ss_cert_data[EC.DEVICE_CA_PASSPHRASE_FILE_KEY]
+                if EC.AGENT_CA_PASSPHRASE_FILE_KEY in list(ss_cert_data.keys()):
+                    agt_pass_file = ss_cert_data[EC.AGENT_CA_PASSPHRASE_FILE_KEY]
+                config.set_security_options(ss_cert_data[EC.FORCENOPASSWD_KEY],
+                                            subject_dict,
+                                            device_ca_passphrase_file=dev_pass_file,
+                                            agent_ca_passphrase_file=agt_pass_file)
             else:
-                pre_install_cfg = certs_cfg_data[EC.PREINSTALLED_KEY]
-                config.ca_cert_path = \
-                    pre_install_cfg[EC.PREINSTALLED_DEVICE_CA_CERT_KEY]
-                config.edge_server_cert_path = \
-                    pre_install_cfg[EC.PREINSTALLED_SERVER_CERT_KEY]
+                pre_install = certs_cfg_data[EC.PREINSTALLED_KEY]
+                dev_pass_file = pre_install[EC.DEVICE_CA_PASSPHRASE_FILE_KEY]
+                agt_pass_file = pre_install[EC.AGENT_CA_PASSPHRASE_FILE_KEY]
+                owner_ca_cert_file = pre_install[EC.PREINSTALLED_OWNER_CA_CERT_FILE_KEY]
+                dev_ca_cert_file = pre_install[EC.PREINSTALLED_DEVICE_CA_CERT_FILE_KEY]
+                dev_ca_chain_cert_file = pre_install[EC.PREINSTALLED_DEVICE_CA_CHAIN_CERT_FILE_KEY]
+                dev_ca_pk_file = pre_install[EC.PREINSTALLED_DEVICE_CA_PRIVATE_KEY_FILE_KEY]
+                config.set_security_options(pre_install[EC.FORCENOPASSWD_KEY],
+                                            subject_dict,
+                                            device_ca_passphrase_file=dev_pass_file,
+                                            agent_ca_passphrase_file=agt_pass_file,
+                                            owner_ca_cert_file=owner_ca_cert_file,
+                                            device_ca_cert_file=dev_ca_cert_file,
+                                            device_ca_chain_cert_file=dev_ca_chain_cert_file,
+                                            device_ca_private_key_file=dev_ca_pk_file)
 
             docker_cfg = None
             deployment_type = data[EC.DEPLOYMENT_KEY][EC.DEPLOYMENT_TYPE_KEY]

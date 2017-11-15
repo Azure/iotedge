@@ -88,10 +88,6 @@ class EdgeCLI(object):
             log.basicConfig(format='%(levelname)s: %(message)s',
                             level=getattr(log, level))
 
-    @staticmethod
-    def _exit(code):
-        sys.exit(code)
-
     @property
     def _verbose_level(self):
         return self._verbose_level_str
@@ -153,12 +149,9 @@ class EdgeCLI(object):
                                           formatter_class=argparse.RawTextHelpFormatter)
 
         cmd_setup.add_argument('--config-file',
-                               help='Setup the runtime using the specified configuration file. Optional.',
+                               help='Setup the runtime using the specified configuration file. Optional.\n'
+                               + 'If specified, all other command line inputs will be ignored.',
                                metavar='')
-
-        cmd_setup.add_argument('--interactive',
-                               help='Setup the runtime interactively. Optional.',
-                               action='store_true')
 
         cmd_setup.add_argument('--connection-string',
                                help='Set the Azure IoT Hub device connection string. Required.\n'
@@ -375,25 +368,15 @@ class EdgeCLI(object):
         ip_type = EC.EdgeConfigInputSources.FILE
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse()
-        EdgeHostPlatform.install_edge_by_config_file(args.config_file,
-                                                     self.edge_config.home_dir,
-                                                     self.edge_config.hostname)
+        EdgeHostPlatform.install_edge_by_config_file(self.edge_config,
+                                                     args.config_file)
         return True
-
-    def _present_interactive_menu(self):
-        #self.edge_config = EdgeConfigInteractive.present()
-        # @todo implementation pending
-        print('Feature not yet supported.')
-        self._exit(1)
 
     def _parse_and_validate_user_input(self, args):
         ip_type = EC.EdgeConfigInputSources.CLI
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse()
-        data = self.edge_config.to_json()
-        EdgeHostPlatform.install_edge_by_json_data(data,
-                                                   self.edge_config.home_dir,
-                                                   self.edge_config.hostname)
+        EdgeHostPlatform.install_edge_by_json_data(self.edge_config, True)
         return True
 
     def _parse_update_options(self, args):
@@ -409,10 +392,10 @@ class EdgeCLI(object):
                     log.error('%s', str(ex))
                     log.error('Error setting --image data: %s.', args.image)
                     raise edgectl.errors.EdgeError('Error setting Edge Agent image', ex)
-                EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
-                                                           self.edge_config.home_dir,
-                                                           self.edge_config.hostname)
-                log.info('Updated config file with new image: %s', args.image)
+                EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
+                config_file = EdgeHostPlatform.get_host_config_file_path()
+                log.info('The runtime configuration file %s was updated with' \
+                         ' the new image: %s', config_file, args.image)
 
         return (is_valid, execute_deployment_cmd)
 
@@ -431,27 +414,19 @@ class EdgeCLI(object):
                 log.error('Error setting login data: [%s].', msg)
                 raise edgectl.errors.EdgeError('Error setting login data', ex)
 
-            EdgeHostPlatform.install_edge_by_json_data(self.edge_config.to_json(),
-                                                       self.edge_config.home_dir,
-                                                       self.edge_config.hostname)
-            log.info('Updated config file with new registry: %s', args.address)
+            EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
+            config_file = EdgeHostPlatform.get_host_config_file_path()
+            log.info('The runtime configuration file %s was updated with' \
+                     ' the credentials for registry: %s', config_file, args.address)
+
         return (is_valid, execute_deployment_cmd)
 
     def _parse_setup_options(self, args):
         cmd = args.subparser_name
         log.debug('Command: ' + cmd)
 
-        if args.interactive and args.config_file is not None:
-            log.error('--interactive and --config-file options are mutually exclusive.')
-            is_valid = False
-        elif args.interactive:
-            # we are in interactive mode, present menu to user
-            try:
-                is_valid = self._present_interactive_menu()
-            except edgectl.errors.EdgeValueError as ex:
-                raise edgectl.errors.EdgeError('Error during interactive menu session', ex)
-        elif args.config_file is not None:
-            # we are in config file mode
+        if args.config_file is not None:
+            # we are using options specified in the config file
             try:
                 is_valid = self._parse_and_validate_user_input_config_file(args)
             except edgectl.errors.EdgeValueError as ex_value:
@@ -463,7 +438,7 @@ class EdgeCLI(object):
                           ' and re-run \'%s setup\'', ex_parse.file_name, EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Error when parsing configuration data', ex_parse)
         else:
-            # we are in manual mode, validate all the supplied args
+            # we are using cli options, validate all the supplied args
             try:
                 is_valid = self._parse_and_validate_user_input(args)
             except edgectl.errors.EdgeValueError as ex_value:
@@ -476,4 +451,8 @@ class EdgeCLI(object):
                 if (ex_access.file_name == EdgeDefault.default_user_input_config_abs_file_path()):
                     log.critical('Please restore the config file or reinstall the %s utility.', EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Filesystem access errors', ex_access)
+        if is_valid:
+            config_file = EdgeHostPlatform.get_host_config_file_path()
+            log.info('The runtime configuration file %s was updated with' \
+                     ' the ''setup'' options.', config_file)
         return (is_valid, is_valid)

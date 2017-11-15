@@ -2,6 +2,7 @@ import json
 import logging as log
 import os
 import re
+import edgectl.errors
 import edgectl.edgeconstants as EC
 from edgectl.edgeutils import EdgeUtils
 from edgectl.default  import EdgeDefault
@@ -166,7 +167,7 @@ class EdgeDeploymentConfigDocker(object):
                              + str(option_key) + ' ' + str(option_value))
 
     def __str__(self):
-        result  = 'Deployment Type:\t' + self.type + '\n'
+        result = 'Deployment Type:\t' + self.type + '\n'
         result += 'Docker Engine URI:\t' + self.uri + '\n'
         result += 'Edge Agent Image:\t' + self.edge_image + '\n'
         result += 'Registries:' + '\n'
@@ -196,9 +197,10 @@ class EdgeDeploymentConfigDocker(object):
 class EdgeHostConfig(object):
     _supported_schemas = ['1']
     _default_schema_version = '1'
-    _supported_log_levels = ['info', 'debug']
-    security_option_self_signed = 'selfSigned'
-    security_option_pre_installed = 'preInstalled'
+    _supported_log_levels = [EC.EDGE_RUNTIME_LOG_LEVEL_INFO,
+                             EC.EDGE_RUNTIME_LOG_LEVEL_DEBUG]
+    security_option_self_signed = EC.SELFSIGNED_KEY
+    security_option_pre_installed = EC.PREINSTALLED_KEY
     _supported_security_options = [security_option_self_signed,
                                    security_option_pre_installed]
 
@@ -209,11 +211,17 @@ class EdgeHostConfig(object):
         self._hostname = ''
         self._deployment_config = None
         self._log_level = ''
-        self._security_option = ''
-        self._self_signed_cert_option_force_regen = False
-        self._self_signed_cert_option_force_no_passwords = False
-        self._ca_cert_path = ''
-        self._edge_server_cert_path = ''
+        self._security_option = None
+        self._force_no_passwords = False
+        self._device_ca_passphrase = None
+        self._agent_ca_passphrase = None
+        self._device_ca_passphrase_file_path = ''
+        self._agent_ca_passphrase_file_path = ''
+        self._owner_ca_cert_file_path = ''
+        self._device_ca_cert_file_path = ''
+        self._device_ca_chain_cert_file_path = ''
+        self._device_ca_private_key_file_path = ''
+        self._cert_subject = {}
 
     @property
     def schema_version(self):
@@ -300,6 +308,164 @@ class EdgeHostConfig(object):
         return result
 
     @property
+    def certificate_subject_dict(self):
+        return self._cert_subject
+
+    def _merge(self, subj_dict):
+        default_cert_subject = EdgeDefault.certificate_subject_dict()
+        self._cert_subject = default_cert_subject.copy()
+        if subj_dict:
+            self._cert_subject.update(subj_dict)
+
+    def _validate_passphrases(self, kwargs):
+        try:
+            is_valid_input = False
+
+            args_list = list(kwargs.keys())
+            dca_passphrase = None
+            if 'device_ca_passphrase' in list(args_list) and \
+                    kwargs['device_ca_passphrase']:
+                dca_passphrase = kwargs['device_ca_passphrase']
+            dca_passphrase_file = None
+            if 'device_ca_passphrase_file' in list(args_list) and \
+                    kwargs['device_ca_passphrase_file']:
+                dca_passphrase_file = kwargs['device_ca_passphrase_file']
+            agt_passphrase = None
+            if 'agent_ca_passphrase' in list(args_list) and \
+                    kwargs['agent_ca_passphrase']:
+                agt_passphrase = kwargs['agent_ca_passphrase']
+            agt_passphrase_file = None
+            if 'agent_ca_passphrase_file' in list(args_list) and \
+                    kwargs['agent_ca_passphrase_file']:
+                agt_passphrase_file = kwargs['agent_ca_passphrase_file']
+
+            if dca_passphrase and dca_passphrase_file:
+                log.error('Passphrase and passphrase file both cannot be set' \
+                          ' for Device CA private key')
+            elif agt_passphrase and agt_passphrase_file:
+                log.error('Passphrase and passphrase file both cannot be set' \
+                          ' for Agent CA private key')
+            else:
+                if dca_passphrase:
+                    dev_ca_pass = dca_passphrase
+                elif dca_passphrase_file:
+                    pass_file = dca_passphrase_file
+                    self.device_ca_passphrase_file_path = pass_file
+                    with open(pass_file, 'r') as ip_file:
+                        dev_ca_pass = ip_file.read().rstrip()
+                else:
+                    dev_ca_pass = None
+
+                if agt_passphrase:
+                    ag_ca_pass = agt_passphrase
+                elif agt_passphrase_file:
+                    pass_file = agt_passphrase_file
+                    self.agent_ca_passphrase_file_path = pass_file
+                    with open(pass_file, 'r') as ip_file:
+                        ag_ca_pass = ip_file.read().rstrip()
+                else:
+                    ag_ca_pass = None
+
+                if ag_ca_pass and self._force_no_passwords:
+                    log.error('Inconsistent password options. Force no passwords' \
+                              ' was specified and an Agent CA passphrase was provided.')
+                elif dev_ca_pass and self._force_no_passwords and \
+                        self._security_option == EdgeHostConfig.security_option_self_signed:
+                    log.error('Inconsistent password options. Force no passwords' \
+                              ' was specified and a Device CA passphrase was provided.')
+                else:
+                    self._agent_ca_passphrase = ag_ca_pass
+                    self._device_ca_passphrase = dev_ca_pass
+                    is_valid_input = True
+
+            return is_valid_input
+
+        except IOError as ex_os:
+            log.error('Error reading file: %s. Errno: %s, Error %s',
+                      pass_file, str(ex_os.errno), ex_os.strerror)
+            raise edgectl.errors.EdgeFileAccessError('Cannot read file', pass_file)
+
+
+    def set_security_options(self, force_no_passwords, subject_dict, **kwargs):
+        """
+        Validate and set the security options pertaining to Edge
+        certificate provisioning
+
+        Args:
+            force_no_passwords (bool): Bypass private key password prompts
+            subject_dict (dict):
+              edgectl.edgeconstants.SUBJECT_COUNTRY_KEY: 2 letter country code
+              edgectl.edgeconstants.SUBJECT_STATE_KEY: state
+              edgectl.edgeconstants.SUBJECT_LOCALITY_KEY: locality/city
+              edgectl.edgeconstants.SUBJECT_ORGANIZATION_KEY: organization
+              edgectl.edgeconstants.SUBJECT_ORGANIZATION_UNIT_KEY: organization unit
+              edgectl.edgeconstants.SUBJECT_COMMON_NAME_KEY: device CA common name
+            kwargs:
+              owner_ca_cert_file (str): Path to Owner CA PEM formatted certificate file
+              device_ca_cert_file (str): Path to Device CA PEM formatted certificate file
+              device_ca_chain_cert_file (str): Path to Device CA Chain PEM formatted certificate file
+              device_ca_private_key_file (str): Path to Device CA Private Key PEM formatted file
+              device_ca_passphrase (str): Passphrase in ascii to read the Device CA private key
+              device_ca_passphrase_file (str): Path to a file containing passphrase in ascii
+                                               to read the Device CA private key
+              agent_ca_passphrase (str): Passphrase in ascii to use when generating
+                                         the Edge Agent CA certificate
+              agent_ca_passphrase_file (str): Path to a file containing passphrase in ascii
+                                              to use when generating the Edge Agent CA certificate
+
+        Raises:
+            edgectl.errors.EdgeFileAccessError - Reporting any file access errors
+            ValueError - Any input found to be invalid
+        """
+        security_option = None
+        is_valid_input = False
+        self._force_no_passwords = force_no_passwords
+
+        dca_keys_list = ['owner_ca_cert_file',
+                         'device_ca_cert_file',
+                         'device_ca_chain_cert_file',
+                         'device_ca_private_key_file']
+        count = 0
+        for key in list(dca_keys_list):
+            if key in list(kwargs.keys()):
+                if kwargs[key]:
+                    count += 1
+        security_option = None
+
+        if count == len(dca_keys_list):
+            # all required pre installed data inputs were provided
+            security_option = EdgeHostConfig.security_option_pre_installed
+        elif count == 0:
+            # no pre installed data inputs were provided generate self signed certs
+            security_option = EdgeHostConfig.security_option_self_signed
+        else:
+            log.error('Incorrect input data provided when' \
+                      ' registering Device CA certificate.\n' \
+                      'When registering the Device CA certificate,' \
+                      ' the following should be provided:\n'\
+                      ' - Device CA certificate file\n' \
+                      ' - Device CA''s private key file and it''s passphrase (if any)\n' \
+                      ' - Owner CA certificate file\n' \
+                      ' - Owner CA to Device CA chain certificate file\n')
+        if security_option:
+            log.debug('User certificate option: %s', security_option)
+            self._security_option = security_option
+            self._merge(subject_dict)
+            country = self._cert_subject[EC.SUBJECT_COUNTRY_KEY]
+            self._cert_subject[EC.SUBJECT_COUNTRY_KEY] = country.upper()
+            if len(country) != 2:
+                log.error('Invalid Country Code %s', country)
+            else:
+                if self._security_option == EdgeHostConfig.security_option_pre_installed:
+                    self.owner_ca_cert_file_path = kwargs['owner_ca_cert_file']
+                    self.device_ca_cert_file_path = kwargs['device_ca_cert_file']
+                    self.device_ca_chain_cert_file_path = kwargs['device_ca_chain_cert_file']
+                    self.device_ca_private_key_file_path = kwargs['device_ca_private_key_file']
+                is_valid_input = self._validate_passphrases(kwargs)
+        if is_valid_input is False:
+            raise ValueError('Incorrect certificate options provided')
+
+    @property
     def security_option(self):
         return self._security_option
 
@@ -316,51 +482,119 @@ class EdgeHostConfig(object):
     def use_self_signed_certificates(self):
         return (self._security_option == EdgeHostConfig.security_option_self_signed)
 
-    @property
-    def ca_cert_path(self):
-        return self._ca_cert_path
-
-    @ca_cert_path.setter
-    def ca_cert_path(self, value):
-        if value is None \
-            or os.path.exists(value) is False \
+    @staticmethod
+    def _check_file_path_validity(value):
+        if value is None or os.path.exists(value) is False \
             or os.path.isfile(value) is False:
-            raise ValueError('Invalid CA cert file:' + str(value))
-        self._ca_cert_path = value
+            return False
+        return True
 
     @property
-    def edge_server_cert_path(self):
-        return self._edge_server_cert_path
+    def owner_ca_cert_file_path(self):
+        return self._owner_ca_cert_file_path
 
-    @edge_server_cert_path.setter
-    def edge_server_cert_path(self, value):
-        if value is None \
-            or os.path.exists(value) is False \
-            or os.path.isfile(value) is False:
-            raise ValueError('Invalid CA cert file:' + str(value))
-        self._edge_server_cert_path = value
-
-    @property
-    def self_signed_cert_option_force_regen(self):
-        return self._self_signed_cert_option_force_regen
-
-    @self_signed_cert_option_force_regen.setter
-    def self_signed_cert_option_force_regen(self, value):
-        self._self_signed_cert_option_force_regen = value
+    @owner_ca_cert_file_path.setter
+    def owner_ca_cert_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._owner_ca_cert_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Owner CA cert file:' + str(value))
 
     @property
-    def self_signed_cert_option_force_no_passwords(self):
-        return self._self_signed_cert_option_force_no_passwords
+    def device_ca_cert_file_path(self):
+        return self._device_ca_cert_file_path
 
-    @self_signed_cert_option_force_no_passwords.setter
-    def self_signed_cert_option_force_no_passwords(self, value):
-        self._self_signed_cert_option_force_no_passwords = value
+    @device_ca_cert_file_path.setter
+    def device_ca_cert_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._device_ca_cert_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Device CA cert file:' + str(value))
+
+    @property
+    def device_ca_chain_cert_file_path(self):
+        return self._device_ca_chain_cert_file_path
+
+    @device_ca_chain_cert_file_path.setter
+    def device_ca_chain_cert_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._device_ca_chain_cert_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Device CA Chain cert file:' + str(value))
+
+    @property
+    def device_ca_private_key_file_path(self):
+        return self._device_ca_private_key_file_path
+
+    @device_ca_private_key_file_path.setter
+    def device_ca_private_key_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._device_ca_private_key_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Device CA private key cert file:' + str(value))
+
+    @property
+    def device_ca_passphrase(self):
+        return self._device_ca_passphrase
+
+    @property
+    def agent_ca_passphrase(self):
+        return self._agent_ca_passphrase
+
+    @property
+    def device_ca_passphrase_file_path(self):
+        return self._device_ca_passphrase_file_path
+
+    @device_ca_passphrase_file_path.setter
+    def device_ca_passphrase_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._device_ca_passphrase_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Device CA passphrase file:' + str(value))
+
+    @property
+    def agent_ca_passphrase_file_path(self):
+        return self._agent_ca_passphrase_file_path
+
+    @agent_ca_passphrase_file_path.setter
+    def agent_ca_passphrase_file_path(self, value):
+        if self._check_file_path_validity(value):
+            self._agent_ca_passphrase_file_path = os.path.realpath(value)
+        else:
+            raise ValueError('Invalid Agent CA passphrase file:' + str(value))
+
+    @property
+    def force_no_passwords(self):
+        return self._force_no_passwords
+
+    @force_no_passwords.setter
+    def force_no_passwords(self, value):
+        self._force_no_passwords = value
+
+    def _cert_subject_str(self):
+        result = ''
+        output_keys = [EC.SUBJECT_COUNTRY_KEY, EC.SUBJECT_STATE_KEY,
+                       EC.SUBJECT_LOCALITY_KEY, EC.SUBJECT_ORGANIZATION_KEY,
+                       EC.SUBJECT_ORGANIZATION_UNIT_KEY,
+                       EC.SUBJECT_COMMON_NAME_KEY]
+        input_keys = list(self._cert_subject.keys())
+        input_keys_len = len(input_keys)
+        new_line_idx = 0
+        for output_key in output_keys:
+            if output_key in input_keys:
+                if new_line_idx != 0:
+                    result += ', '
+                else:
+                    result += '\n\t\t\t'
+                new_line_idx = (new_line_idx + 1) % 3
+                result += output_key + ': ' + self._cert_subject[output_key]
+        return result
 
     def _sanitize_conn_str(self, conn_str):
         try:
             items = [(s[0], s[1] if s[0].lower() != 'sharedaccesskey' else '******') \
-                    for s in map(lambda p: p.split('=', 2), conn_str.split(';'))]
-            return ';'.join(map(lambda p: "%s=%s" % p, items))
+                    for s in [p.split('=', 2) for p in conn_str.split(';')]]
+            return ';'.join(["%s=%s" % p for p in items])
         except:
             return '******'
 
@@ -371,28 +605,62 @@ class EdgeHostConfig(object):
         result += 'Hostname:\t\t' + self.hostname + '\n'
         result += 'Log Level:\t\t' + self.log_level + '\n'
         result += 'Security Option:\t' + self.security_option + '\n'
+        result += 'Force No Passwords:\t' + str(self.force_no_passwords) + '\n'
+        if self.use_self_signed_certificates() is False:
+            result += 'Owner CA Cert File:\t\n'
+            result += '\t\t\t' + str(self.owner_ca_cert_file_path) + '\n'
+            result += 'Device CA Cert File:\t\n'
+            result += '\t\t\t' + str(self.device_ca_cert_file_path) + '\n'
+            result += 'Device CA Chain Cert File:\t\n'
+            result += '\t\t\t' + str(self.device_ca_chain_cert_file_path) + '\n'
+            result += 'Device CA Private Key File:\t\n'
+            result += '\t\t\t' + str(self.device_ca_private_key_file_path) + '\n'
+
+        if self.device_ca_passphrase_file_path != '':
+            result += 'Device CA Passphrase File:\n'
+            result += '\t\t\t' + str(self.device_ca_passphrase_file_path) + '\n'
+        if self.agent_ca_passphrase_file_path != '':
+            result += 'Agent CA Passphrase File:\n'
+            result += '\t\t\t' + str(self.agent_ca_passphrase_file_path) + '\n'
+
+        result += 'Certificate Subject:\t' + self._cert_subject_str() + '\n'
         if self.deployment_config:
             result += str(self.deployment_config)
         return result
 
-    def __security_to_dict(self):
-        # handle self signed cert options
-        security_opt_selfsigned = {}
-        security_opt_selfsigned[EC.SELFSIGNED_FORCEREGEN_KEY] = \
-            self._self_signed_cert_option_force_regen
-        security_opt_selfsigned[EC.SELFSIGNED_FORCENOPASSWD_KEY] = \
-            self._self_signed_cert_option_force_no_passwords
-        # pre installed cert options
-        security_opt_preinstalled = {}
-        security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_CERT_KEY] = \
-            self._ca_cert_path
-        security_opt_preinstalled[EC.PREINSTALLED_SERVER_CERT_KEY] = \
-            self._edge_server_cert_path
+    def _security_to_dict(self):
         certs_dict = {}
-        # @todo add support for preinstalled
-        certs_dict[EC.CERTS_OPTION_KEY] = EC.SELFSIGNED_KEY
-        certs_dict[EC.SELFSIGNED_KEY] = security_opt_selfsigned
-        certs_dict[EC.PREINSTALLED_KEY] = security_opt_preinstalled
+        if self.use_self_signed_certificates():
+            # handle self signed cert options
+            security_opt_selfsigned = {}
+            security_opt_selfsigned[EC.FORCENOPASSWD_KEY] = \
+                self.force_no_passwords
+            security_opt_selfsigned[EC.DEVICE_CA_PASSPHRASE_FILE_KEY] = \
+                self.device_ca_passphrase_file_path
+            security_opt_selfsigned[EC.AGENT_CA_PASSPHRASE_FILE_KEY] = \
+                self.agent_ca_passphrase_file_path
+            certs_dict[EC.CERTS_OPTION_KEY] = EC.SELFSIGNED_KEY
+            certs_dict[EC.SELFSIGNED_KEY] = security_opt_selfsigned
+        else:
+            # pre installed cert options
+            security_opt_preinstalled = {}
+            security_opt_preinstalled[EC.PREINSTALLED_OWNER_CA_CERT_FILE_KEY] = \
+                self.owner_ca_cert_file_path
+            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_CERT_FILE_KEY] = \
+                self.device_ca_cert_file_path
+            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_CHAIN_CERT_FILE_KEY] = \
+                self.device_ca_chain_cert_file_path
+            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_PRIVATE_KEY_FILE_KEY] = \
+                self.device_ca_private_key_file_path
+            security_opt_preinstalled[EC.DEVICE_CA_PASSPHRASE_FILE_KEY] = \
+                self.device_ca_passphrase_file_path
+            security_opt_preinstalled[EC.AGENT_CA_PASSPHRASE_FILE_KEY] = \
+                self.agent_ca_passphrase_file_path
+            security_opt_preinstalled[EC.FORCENOPASSWD_KEY] = \
+                self.force_no_passwords
+            certs_dict[EC.CERTS_OPTION_KEY] = EC.PREINSTALLED_KEY
+            certs_dict[EC.PREINSTALLED_KEY] = security_opt_preinstalled
+        certs_dict[EC.CERTS_SUBJECT_KEY] = self._cert_subject
         security_dict = {}
         security_dict[EC.CERTS_KEY] = certs_dict
         return security_dict
@@ -404,7 +672,7 @@ class EdgeHostConfig(object):
         d[EC.HOMEDIR_KEY] = self.home_dir
         d[EC.HOSTNAME_KEY] = self.hostname
         d[EC.EDGE_RUNTIME_LOG_LEVEL_KEY] = self.log_level
-        d[EC.SECURITY_KEY] = self.__security_to_dict()
+        d[EC.SECURITY_KEY] = self._security_to_dict()
         deployment_dict = {}
         deployment_dict[EC.DEPLOYMENT_TYPE_KEY] = self.deployment_type
         deployment_dict[self.deployment_type] = self.deployment_config.to_dict()

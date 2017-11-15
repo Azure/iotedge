@@ -1,24 +1,17 @@
 import logging as log
+import edgectl.commandbase as commandbase
 from edgectl.default  import EdgeDefault
-from edgectl.commandbase import EdgeSetupCommand
-from edgectl.commandbase import EdgeStartCommand
-from edgectl.commandbase import EdgeRestartCommand
-from edgectl.commandbase import EdgeStopCommand
-from edgectl.commandbase import EdgeStatusCommand
-from edgectl.commandbase import EdgeUninstallCommand
-from edgectl.commandbase import EdgeUpdateCommand
-from edgectl.commandbase import EdgeLoginCommand
 from edgectl.deploymentdocker import EdgeDeploymentCommandDocker
 
 class EdgeCommandFactory(object):
-    _supported_commands = {'setup'     : EdgeSetupCommand,
-                           'start'     : EdgeStartCommand,
-                           'restart'   : EdgeRestartCommand,
-                           'stop'      : EdgeStopCommand,
-                           'status'    : EdgeStatusCommand,
-                           'uninstall' : EdgeUninstallCommand,
-                           'update'    : EdgeUpdateCommand,
-                           'login'     : EdgeLoginCommand}
+    _supported_commands = {'setup'     : commandbase.EdgeSetupCommand,
+                           'start'     : commandbase.EdgeStartCommand,
+                           'restart'   : commandbase.EdgeRestartCommand,
+                           'stop'      : commandbase.EdgeStopCommand,
+                           'status'    : commandbase.EdgeStatusCommand,
+                           'uninstall' : commandbase.EdgeUninstallCommand,
+                           'update'    : commandbase.EdgeUpdateCommand,
+                           'login'     : commandbase.EdgeLoginCommand}
 
     @staticmethod
     def create_command(command, edge_config):

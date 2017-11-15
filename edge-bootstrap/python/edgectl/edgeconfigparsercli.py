@@ -1,3 +1,4 @@
+import os
 import json
 import logging as log
 import edgectl.errors
@@ -43,11 +44,6 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             if log_level is None:
                 log_level = EdgeDefault.edge_runtime_default_log_level()
             config.log_level = log_level
-
-            # @todo get security options from user
-            config.security_option = EC.SELFSIGNED_KEY
-            config.self_signed_cert_option_force_no_passwords = \
-                args.auto_cert_gen_force_no_passwords
 
             deploy_cfg = None
             if self._deployment_type == EC.DEPLOYMENT_DOCKER:
@@ -98,6 +94,31 @@ class EdgeConfigParserCLI(EdgeConfigParser):
                 raise ValueError('Unsupported deployment type: %s', self._deployment_type)
 
             config.deployment_config = deploy_cfg
+
+            subj_dict = {}
+            if args.country:
+                subj_dict[EC.SUBJECT_COUNTRY_KEY] = args.country
+            if args.state:
+                subj_dict[EC.SUBJECT_STATE_KEY] = args.state
+            if args.locality:
+                subj_dict[EC.SUBJECT_LOCALITY_KEY] = args.locality
+            if args.organization:
+                subj_dict[EC.SUBJECT_ORGANIZATION_KEY] = args.organization
+            if args.organization_unit:
+                subj_dict[EC.SUBJECT_ORGANIZATION_UNIT_KEY] = args.organization_unit
+            if args.common_name:
+                subj_dict[EC.SUBJECT_COMMON_NAME_KEY] = args.common_name
+
+            config.set_security_options(args.auto_cert_gen_force_no_passwords,
+                                        subj_dict,
+                                        owner_ca_cert_file=args.owner_ca_cert_file,
+                                        device_ca_cert_file=args.device_ca_cert_file,
+                                        device_ca_chain_cert_file=args.device_ca_chain_cert_file,
+                                        device_ca_private_key_file=args.device_ca_private_key_file,
+                                        device_ca_passphrase=args.device_ca_passphrase,
+                                        device_ca_passphrase_file=args.device_ca_passphrase_file,
+                                        agent_ca_passphrase=args.agent_ca_passphrase,
+                                        agent_ca_passphrase_file=args.agent_ca_passphrase_file)
 
             return config
         except ValueError as ex_value:
