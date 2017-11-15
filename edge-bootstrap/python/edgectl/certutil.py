@@ -133,7 +133,7 @@ class EdgeCertUtil(object):
         '''
         result = 0
         try:
-            expiration_date = datetime.strptime(not_after_ts_asn1, "%Y%m%d%H%M%SZ")
+            expiration_date = datetime.strptime(not_after_ts_asn1.decode('utf-8'), "%Y%m%d%H%M%SZ")
             expires_in = expiration_date - datetime.now()
             if expires_in.days > 0:
                 result = min(expires_in.days, validity_days_from_now)
