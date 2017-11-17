@@ -332,6 +332,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         [Fact]
         [Unit]
+        public async Task GetUnknownRuntimeInfoTest()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            // act
+            IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(UnknownRuntimeInfo.Instance);
+
+            // assert
+            Assert.True(reportedRuntimeInfo is DockerReportedUnknownRuntimeInfo);
+            DockerReportedUnknownRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
+            Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
+            Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetNullRuntimeInfoTest()
+        {
+            // Arrange
+            var systemInfoResponse = new SystemInfoResponse
+            {
+                OSType = OperatingSystemType,
+                Architecture = Architecture
+            };
+            var dockerClient = Mock.Of<IDockerClient>(dc =>
+                dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
+            var store = Mock.Of<IEntityStore<string, ModuleState>>();
+            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+
+            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+
+            // act
+            IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(null);
+
+            // assert
+            Assert.True(reportedRuntimeInfo is DockerReportedUnknownRuntimeInfo);
+            DockerReportedUnknownRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
+            Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
+            Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+        }
+
+        [Fact]
+        [Unit]
         public async Task BadRuntimeInfoTest()
         {
             // Arrange
@@ -352,7 +406,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act, assert
-            Assert.Null(await environment.GetUpdatedRuntimeInfoAsync(null));
             Assert.Same(dockerRuntime, await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime));
         }
 

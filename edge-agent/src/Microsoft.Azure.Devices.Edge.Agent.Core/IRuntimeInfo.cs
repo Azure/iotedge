@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public static UnknownRuntimeInfo Instance { get; } = new UnknownRuntimeInfo();
 
-        public string Type => "Unknown";
+        public string Type => Constants.Unknown;
 
         public bool Equals(IRuntimeInfo other) =>
             other != null && object.ReferenceEquals(this, other);

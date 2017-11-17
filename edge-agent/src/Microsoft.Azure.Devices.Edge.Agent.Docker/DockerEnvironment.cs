@@ -18,8 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
     public class DockerEnvironment : IEnvironment
     {
-        const string Unknown = "Unknown";
-
         static readonly IDictionary<string, bool> Labels = new Dictionary<string, bool>
         {
             { $"{CoreConstants.Labels.Owner}={CoreConstants.Owner}", true }
@@ -35,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.store = Preconditions.CheckNotNull(store, nameof(store));
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
 
-            this.OperatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? Unknown : operatingSystemType;
-            this.Architecture = string.IsNullOrWhiteSpace(architecture) ? Unknown : architecture;
+            this.OperatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? CoreConstants.Unknown : operatingSystemType;
+            this.Architecture = string.IsNullOrWhiteSpace(architecture) ? CoreConstants.Unknown : architecture;
         }
 
         public string OperatingSystemType { get; }
@@ -55,12 +53,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo)
         {
-            string type = runtimeInfo?.Type ?? Unknown;
-            if (type == "docker")
+            if (runtimeInfo?.Type == "docker")
             {
-                DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
                 var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
-                runtimeInfo = new DockerReportedRuntimeInfo(type, config, platform);
+                DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
+                runtimeInfo = new DockerReportedRuntimeInfo(runtimeInfo.Type, config, platform);
+            }
+            else if (runtimeInfo == null || runtimeInfo is UnknownRuntimeInfo)
+            {
+                var platform = new DockerPlatformInfo(this.OperatingSystemType, this.Architecture);
+                runtimeInfo = new DockerReportedUnknownRuntimeInfo(platform);
             }
 
             return Task.FromResult(runtimeInfo);
@@ -104,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DockerReportedConfig config = edgeAgentContainer
                 .Map(response =>
                     new DockerReportedConfig(
-                        response.Config?.Image ?? Unknown,
+                        response.Config?.Image ?? CoreConstants.Unknown,
                         Environment.GetEnvironmentVariable(Constants.EdgeAgentCreateOptionsName),
                         response.Image))
                 .GetOrElse(DockerReportedConfig.Unknown);
@@ -136,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         )
         ExtractModuleInfo(ContainerListResponse response)
         {
-            string name = response.Names.FirstOrDefault()?.Substring(1) ?? Unknown;
+            string name = response.Names.FirstOrDefault()?.Substring(1) ?? CoreConstants.Unknown;
             string version = response.Labels.GetOrElse(CoreConstants.Labels.Version, string.Empty);
             Core.RestartPolicy restartPolicy = (Core.RestartPolicy)Enum.Parse(
                 typeof(Core.RestartPolicy),
@@ -152,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     CoreConstants.DefaultDesiredStatus.ToString()
                 )
             );
-            string image = response.Image != null ? response.Image : Unknown;
+            string image = response.Image != null ? response.Image : CoreConstants.Unknown;
             string createOptions = response.Labels.GetOrElse(CoreConstants.Labels.NormalizedCreateOptions, string.Empty);
             var configurationInfo = new ConfigurationInfo(response.Labels.GetOrElse(CoreConstants.Labels.ConfigurationId, string.Empty));
 

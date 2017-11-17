@@ -46,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 
+        public const string Unknown = "Unknown";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

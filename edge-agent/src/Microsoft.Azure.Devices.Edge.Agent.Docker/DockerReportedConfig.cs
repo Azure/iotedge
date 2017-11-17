@@ -6,11 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Collections.Generic;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using CoreConstants = Core.Constants;
 
     [JsonConverter(typeof(DockerReportedConfigJsonConverter))]
     public class DockerReportedConfig : DockerConfig, IEquatable<DockerReportedConfig>
     {
-        public static DockerReportedConfig Unknown = new DockerReportedConfig("Unknown", string.Empty, string.Empty);
+        public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty);
 
         [JsonProperty(PropertyName = "imageHash")]
         public string ImageHash { get; }

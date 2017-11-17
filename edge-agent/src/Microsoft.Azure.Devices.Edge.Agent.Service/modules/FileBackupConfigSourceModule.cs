@@ -24,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string edgeDeviceConnectionString;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
-        const string UnknownType = "Unknown";
         readonly IConfiguration configuration;
 
         public FileBackupConfigSourceModule(EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString, string backupConfigFilePath, IConfiguration config)
@@ -110,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
                         {
                             [DockerType] = typeof(DockerReportedRuntimeInfo),
-                            [UnknownType] = typeof(UnknownRuntimeInfo)
+                            [Constants.Unknown] = typeof(UnknownRuntimeInfo)
                         };
 
                         var edgeAgentDeserializerTypes = new Dictionary<string, Type>
@@ -121,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var edgeHubDeserializerTypes = new Dictionary<string, Type>
                         {
                             [DockerType] = typeof(EdgeHubDockerRuntimeModule),
-                            [UnknownType] = typeof(UnknownEdgeHubModule)
+                            [Constants.Unknown] = typeof(UnknownEdgeHubModule)
                         };
 
                         var moduleDeserializerTypes = new Dictionary<string, Type>

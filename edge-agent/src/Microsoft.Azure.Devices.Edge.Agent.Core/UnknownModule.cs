@@ -6,9 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class UnknownModule : IModule
     {
-        public virtual string Type => "Unknown";
+        public virtual string Type => Constants.Unknown;
 
-        public virtual string Name { get => "Unknown"; set { } }
+        public virtual string Name { get => Constants.Unknown; set { } }
 
         public virtual string Version => string.Empty;
 
