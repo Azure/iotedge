@@ -8,8 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Add an unprivileged user account for running the module
-RUN useradd -ms /bin/bash moduleuser
-USER moduleuser
-
 CMD ["/usr/bin/dotnet", "SimulatedTemperatureSensor.dll"]
