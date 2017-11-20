@@ -300,8 +300,11 @@ class EdgeCLI(object):
         cmd_login.set_defaults(func=self._parse_edge_command)
 
         args = parser.parse_args()
-
-        return args.func(args)
+        if 'func' in vars(args):
+            return args.func(args)
+        else:
+            parser.print_usage()
+            return (False, False)
 
     def _parse_edge_command(self, args):
         args.verbose_level = args.verbose_level.upper()
