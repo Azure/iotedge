@@ -31,7 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .AddEnvironmentVariables()
                 .Build();
 
-            return MainAsync(configuration).Result;
+            try
+            {
+                return MainAsync(configuration).Result;
+            }
+            catch(Exception)
+            {
+                return 1;
+            }
         }
 
         public static async Task<int> MainAsync(IConfiguration configuration)
@@ -100,16 +107,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
 
-            try
+            IContainer container = GetContainer(builder, logger);
+            int returnCode;
+            using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
             {
-                IContainer container = builder.Build();
+                Option<Agent> agentOption = Option.None<Agent>();
 
-                AssemblyLoadContext.Default.Unloading += OnUnload;
-                Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
-
-                using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
+                try
                 {
+
+                    AssemblyLoadContext.Default.Unloading += OnUnload;
+                    Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
+
                     Agent agent = await container.Resolve<Task<Agent>>();
+                    agentOption = Option.Some(agent);
                     while (!cts.Token.IsCancellationRequested)
                     {
                         try
@@ -125,19 +136,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     AssemblyLoadContext.Default.Unloading -= OnUnload;
                     logger.LogInformation("Closing module management agent.");
 
+                    returnCode = 0;
                 }
-                return 0;
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Main thread terminated");
+                    AssemblyLoadContext.Default.Unloading -= OnUnload;
+                    returnCode = 0;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting Agent.");
+                    returnCode = 1;
+                }
+
+                // Attempt to report shutdown of Agent
+                await ReportShutdownAsync(agentOption, logger);
             }
-            catch (OperationCanceledException)
+
+            return returnCode;
+        }
+
+        private static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
+        {
+            using (var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1)))
             {
-                logger.LogInformation("Main thread terminated");
-                AssemblyLoadContext.Default.Unloading -= OnUnload;
-                return 0;
+                try
+                {
+                    await agentOption.ForEachAsync((a) => a.ReportShutdownAsync(closeCts.Token));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
+                }
+            }
+        }
+
+        static IContainer GetContainer(ContainerBuilder builder, ILogger logger)
+        {
+            try
+            {
+                return builder.Build();
             }
             catch (Exception ex)
             {
-                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error starting edge agent.");
-                return 1;
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
+                throw;
             }
         }
 

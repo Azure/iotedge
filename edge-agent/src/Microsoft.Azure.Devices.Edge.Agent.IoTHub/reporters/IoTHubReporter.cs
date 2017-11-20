@@ -149,33 +149,75 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             {
                 await currentState.ForEachAsync(async cs =>
                 {
-                    try
-                    {
                         // diff and prepare patch
-                        JToken currentJson = JToken.FromObject(cs);
-                        JToken reportedJson = JToken.FromObject(rs);
-                        JObject patch = JsonEx.Diff(reportedJson, currentJson);
-
-                        if (patch.HasValues)
-                        {
-                            // send reported props
-                            await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
-
-                            // update our cached copy of reported properties
-                            this.SetReported(cs);
-
-                            Events.UpdatedReportedProperties();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Events.UpdateReportedPropertiesFailed(e);
-
-                        // Swallow the exception as the device could be offline. The reported properties will get updated
-                        // during the next reconcile when we have connectivity.
-                    }
+                        await DiffAndReportAsync(cs, rs);
                 });
             });
+        }
+
+        public async Task ReportShutdown(DeploymentStatus status, CancellationToken token)
+        {
+            Preconditions.CheckNotNull(status, nameof(status));
+            await this.reportedState.ForEachAsync(async (rs) =>
+            {
+                var edgeAgentModule = rs.SystemModules?.EdgeAgent;
+                if (edgeAgentModule is IRuntimeStatusModule runtimeAgent)
+                {
+                    edgeAgentModule = (IEdgeAgentModule)runtimeAgent.WithRuntimeStatus(ModuleStatus.Unknown);
+                }
+                var edgeHubModule = rs.SystemModules?.EdgeHub;
+                if (edgeHubModule is IRuntimeStatusModule runtimeHub)
+                {
+                    edgeHubModule = (IEdgeHubModule)runtimeHub.WithRuntimeStatus(ModuleStatus.Unknown);
+                }
+
+                IDictionary<string, IModule> updateUserModules = (rs.Modules ?? ImmutableDictionary<string, IModule>.Empty)
+                    .Where(m => m.Key != Constants.EdgeAgentModuleName)
+                    .Where(m => m.Key != Constants.EdgeHubModuleName)
+                    .Where(m => m.Value is IRuntimeModule)
+                    .Select(pair =>
+                       {
+                           IModule updatedModule = (pair.Value as IRuntimeModule).WithRuntimeStatus(ModuleStatus.Unknown);
+                           return new KeyValuePair<string, IModule>(pair.Key, updatedModule);
+                       })
+                    .ToDictionary(x => x.Key, x => x.Value);
+
+                var currentState = 
+                    new AgentState(
+                        rs.LastDesiredVersion, status, rs.RuntimeInfo,
+                        new SystemModules((IEdgeAgentModule)edgeAgentModule, (IEdgeHubModule)edgeHubModule),
+                        updateUserModules.ToImmutableDictionary(), rs.SchemaVersion);
+
+                await DiffAndReportAsync(currentState, rs);
+            });
+        }
+
+        internal async Task DiffAndReportAsync(AgentState currentState, AgentState reportedState)
+        {
+            try
+            {
+                JToken currentJson = JToken.FromObject(currentState);
+                JToken reportedJson = JToken.FromObject(reportedState);
+                JObject patch = JsonEx.Diff(reportedJson, currentJson);
+
+                if (patch.HasValues)
+                {
+                    // send reported props
+                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+
+                    // update our cached copy of reported properties
+                    this.SetReported(currentState);
+
+                    Events.UpdatedReportedProperties();
+                }
+            }
+            catch (Exception e)
+            {
+                Events.UpdateReportedPropertiesFailed(e);
+
+                // Swallow the exception as the device could be offline. The reported properties will get updated
+                // during the next reconcile when we have connectivity.
+            }
         }
     }
 

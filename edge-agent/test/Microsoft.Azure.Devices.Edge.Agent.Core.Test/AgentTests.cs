@@ -325,5 +325,58 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Assert
             mockReporter.Verify(r => r.ReportAsync(token, ModuleSet.Empty, null, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
         }
+
+        [Fact]
+        [Unit]
+        public async Task ReportShutdownAsyncReportThrows()
+        {
+            // Arrange
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
+            var runtimeInfo = new Mock<IRuntimeInfo>();
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var token = new CancellationToken();
+
+            mockReporter.Setup(mr => mr.ReportShutdown(It.IsAny<DeploymentStatus>(), token)).Throws<ArgumentNullException>();
+
+            // Act
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+
+            // Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(() => agent.ReportShutdownAsync(token));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ReportShutdownAsyncConfigTest()
+        {
+            // Arrange
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockReporter = new Mock<IReporter>();
+            var runtimeInfo = new Mock<IRuntimeInfo>();
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
+            {
+                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
+            });
+            var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
+            var token = new CancellationToken();
+
+            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(deploymentConfigInfo);
+            mockEnvironment.Setup(e => e.GetModulesAsync(token))
+                .ReturnsAsync(ModuleSet.Empty);
+
+            Agent agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            await agent.ReportShutdownAsync(token);
+
+            // Assert
+            mockReporter.Verify(r => r.ReportShutdown(It.IsAny<DeploymentStatus>(), token));
+        }
     }
 }

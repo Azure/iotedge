@@ -91,5 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             }
         }
 
+        public IModule WithRuntimeStatus(ModuleStatus newStatus) => (IModule)new TestRuntimeModule(
+                this.Name, this.Version, this.RestartPolicy, this.Type,
+                this.DesiredStatus, this.Config, this.ExitCode,
+                this.StatusDescription, this.LastStartTimeUtc,
+                this.LastExitTimeUtc, this.RestartCount, this.LastRestartTimeUtc,
+                newStatus, this.ConfigurationInfo);
     }
 }

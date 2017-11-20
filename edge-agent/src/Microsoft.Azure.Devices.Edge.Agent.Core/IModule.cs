@@ -98,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonProperty(PropertyName = "configuration")]
         ConfigurationInfo ConfigurationInfo { get; }
+
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>

@@ -29,6 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonIgnore]
         public override string Version => string.Empty;
+
+        public IModule WithRuntimeStatus(ModuleStatus newStatus) => Instance;
     }
 
     public class UnknownEdgeAgentModule : UnknownModule, IEdgeAgentModule
@@ -45,5 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonIgnore]
         public override ModuleStatus DesiredStatus => ModuleStatus.Unknown;
+
+        public IModule WithRuntimeStatus(ModuleStatus newStatus) => new UnknownEdgeAgentModule();
+
     }
 }

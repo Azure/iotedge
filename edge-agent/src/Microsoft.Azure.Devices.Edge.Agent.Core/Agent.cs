@@ -168,6 +168,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
+        public async Task ReportShutdownAsync(CancellationToken token)
+        {
+            try
+            {
+                var status = new DeploymentStatus(DeploymentStatusCode.Unknown, "Agent is not running");
+
+                await this.reporter.ReportShutdown(status, token);
+                Events.ReportShutdown();
+            }
+            catch (Exception ex)
+            {
+                Events.ReportShutdownFailed(ex);
+                throw;
+            }
+        }
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
@@ -179,7 +195,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 PlanExecutionFailed,
                 EmptyConfig,
                 InvalidSchemaVersion,
-                InvalidConfigFormat
+                InvalidConfigFormat,
+                ReportShutdown,
+                ReportShutdownFailed
             }
 
             public static void AgentCreated()
@@ -205,6 +223,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             public static void InvalidConfigFormat(ConfigFormatException ex)
             {
                 Log.LogWarning((int)EventIds.InvalidConfigFormat, ex.Message);
+            }
+
+            public static void ReportShutdown()
+            {
+                Log.LogDebug((int)EventIds.ReportShutdown, "Edge agent reporting Edge and module state as unknown.");
+            }
+
+            public static void ReportShutdownFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.ReportShutdownFailed, ex.Message);
             }
         }
     }

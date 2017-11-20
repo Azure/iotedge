@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
     using System.Threading;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         public Task ExecuteAsync(CancellationToken token)
         {
             var parameters = new ContainerStartParameters();
-            return this.client.Containers.StartContainerAsync(this.module.Name, parameters);
+            return this.client.Containers.StartContainerAsync(this.module.Name, parameters, token);
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;

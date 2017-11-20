@@ -114,5 +114,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig).ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
         }
+
+        [Fact]
+        [Unit]
+        public void TestWithRuntimeStatus()
+        {
+            DateTime lastStartTimeUtc = DateTime.Parse(
+              "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
+            );
+            var module = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("booyah", string.Empty, "someSha"), ModuleStatus.Running, lastStartTimeUtc, new ConfigurationInfo("bing"));
+            EdgeAgentDockerRuntimeModule updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
+            EdgeAgentDockerRuntimeModule updatedModule2 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
+
+            Assert.Equal(module, updatedModule1);
+            //Assert.NotEqual(module, updatedModule2);
+            Assert.Equal(updatedModule2.RuntimeStatus, ModuleStatus.Unknown);
+        }
     }
 }

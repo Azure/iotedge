@@ -80,5 +80,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(reportedModule.Equals(TestModule1));
             Assert.False(reportedModule.Equals(ReportedModule1));
         }
+
+        [Fact]
+        [Unit]
+        public static void TestWithRuntimeStatus()
+        {
+            var reportedModule = new TestRuntimeModule(TestModule1.Name, TestModule1.Version, TestModule1.RestartPolicy, TestModule1.Type, ModuleStatus.Running, TestModule1.Config, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
+            TestRuntimeModule updatedModule = (TestRuntimeModule)reportedModule.WithRuntimeStatus(ModuleStatus.Unknown);
+
+            Assert.True(reportedModule.RuntimeStatus != updatedModule.RuntimeStatus);
+            Assert.True(updatedModule.RuntimeStatus == ModuleStatus.Unknown);
+            Assert.Equal(reportedModule.Config, updatedModule.Config);
+            Assert.Equal(reportedModule.ConfigurationInfo, updatedModule.ConfigurationInfo);
+            Assert.Equal(reportedModule.DesiredStatus, updatedModule.DesiredStatus);
+            Assert.Equal(reportedModule.ExitCode, updatedModule.ExitCode);
+            Assert.Equal(reportedModule.LastExitTimeUtc, updatedModule.LastExitTimeUtc);
+            Assert.Equal(reportedModule.LastRestartTimeUtc, updatedModule.LastRestartTimeUtc);
+            Assert.Equal(reportedModule.LastStartTimeUtc, updatedModule.LastStartTimeUtc);
+            Assert.Equal(reportedModule.Name, updatedModule.Name);
+            Assert.Equal(reportedModule.RestartCount, updatedModule.RestartCount);
+            Assert.Equal(reportedModule.RestartPolicy, updatedModule.RestartPolicy);
+            Assert.Equal(reportedModule.StatusDescription, updatedModule.StatusDescription);
+            Assert.Equal(reportedModule.Type, updatedModule.Type);
+            Assert.Equal(reportedModule.Version, updatedModule.Version);
+        }
     }
 }

@@ -117,5 +117,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Assert
             Assert.True(equal);
         }
+
+        [Fact]
+        [Unit]
+        public void TestWithRuntimeStatus()
+        {
+            var module = new EdgeHubDockerRuntimeModule(
+                ModuleStatus.Running, RestartPolicy.Always,
+                new DockerConfig("edg0eHubImage"), 0, string.Empty,
+                DateTime.MinValue, DateTime.MinValue, 0,
+                DateTime.MinValue, ModuleStatus.Running,
+                new ConfigurationInfo("1")
+            );
+            EdgeHubDockerRuntimeModule updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
+            EdgeHubDockerRuntimeModule updatedModule2 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
+
+            Assert.Equal(module, updatedModule1);
+            Assert.NotEqual(module, updatedModule2);
+            Assert.Equal(updatedModule2.RuntimeStatus, ModuleStatus.Unknown);
+        }
     }
 }

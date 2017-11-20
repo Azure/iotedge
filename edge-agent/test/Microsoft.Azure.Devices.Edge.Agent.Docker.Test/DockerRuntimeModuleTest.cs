@@ -668,5 +668,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(Module2.GetHashCode(), Module6.GetHashCode());
             Assert.NotEqual(Module2.GetHashCode(), Module7.GetHashCode());
         }
+
+        [Fact]
+        public void TestWithRuntimeStatus()
+        {
+            DockerRuntimeModule M1 = Module1 as DockerRuntimeModule;
+            DockerRuntimeModule newM1 = (DockerRuntimeModule)M1.WithRuntimeStatus(ModuleStatus.Running);
+            DockerRuntimeModule M2 = Module2 as DockerRuntimeModule;
+            DockerRuntimeModule newM2 = (DockerRuntimeModule)M2.WithRuntimeStatus(ModuleStatus.Stopped);
+
+            Assert.Equal(M1, newM1);
+            Assert.NotEqual(M2, newM2);
+            Assert.Equal(newM2.RuntimeStatus , ModuleStatus.Stopped);
+            Assert.Equal(M2.Config , newM2.Config);
+            Assert.Equal(M2.ConfigurationInfo, newM2.ConfigurationInfo);
+            Assert.Equal(M2.DesiredStatus, newM2.DesiredStatus);
+            Assert.Equal(M2.ExitCode, newM2.ExitCode);
+            Assert.Equal(M2.LastExitTimeUtc, newM2.LastExitTimeUtc);
+            Assert.Equal(M2.LastRestartTimeUtc, newM2.LastRestartTimeUtc);
+            Assert.Equal(M2.LastStartTimeUtc, newM2.LastStartTimeUtc);
+            Assert.Equal(M2.Name, newM2.Name);
+            Assert.Equal(M2.RestartCount, newM2.RestartCount);
+            Assert.Equal(M2.RestartPolicy , newM2.RestartPolicy);
+            Assert.Equal(M2.StatusDescription, newM2.StatusDescription);
+            Assert.Equal(M2.Type, newM2.Type);
+            Assert.Equal(M2.Version, newM2.Version);
+        }
     }
 }

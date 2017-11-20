@@ -12,5 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Reporters
         public static NullReporter Instance { get; } = new NullReporter();
 
         public Task ReportAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status) => Task.CompletedTask;
+
+        public Task ReportShutdown(DeploymentStatus status, CancellationToken token) => Task.CompletedTask;
+
     }
 }

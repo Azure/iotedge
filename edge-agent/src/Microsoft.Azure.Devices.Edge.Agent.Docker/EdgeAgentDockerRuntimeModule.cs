@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
 
-    public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule
+    public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule, IRuntimeStatusModule
     {
         [JsonConstructor]
         public EdgeAgentDockerRuntimeModule(
@@ -46,5 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonProperty(Required = Required.Default, PropertyName = "configuration")]
         public override ConfigurationInfo ConfigurationInfo { get; }
+
+        public IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeAgentDockerRuntimeModule(
+            (DockerReportedConfig)this.Config, newStatus, this.LastStartTimeUtc, this.ConfigurationInfo);
     }
 }

@@ -110,5 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return hashCode;
             }
         }
+
+        public virtual IModule WithRuntimeStatus(ModuleStatus newStatus) => new DockerRuntimeModule(
+                this.Name, this.Version, this.DesiredStatus, this.RestartPolicy,
+                this.Config, this.ExitCode, this.StatusDescription,
+                this.LastStartTimeUtc, this.LastExitTimeUtc, this.RestartCount,
+                this.LastRestartTimeUtc, newStatus, this.ConfigurationInfo);
     }
 }

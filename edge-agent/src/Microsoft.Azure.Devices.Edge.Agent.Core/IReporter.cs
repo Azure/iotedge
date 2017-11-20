@@ -8,5 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     public interface IReporter
     {
         Task ReportAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status);
+
+        Task ReportShutdown(DeploymentStatus status, CancellationToken token);
     }
 }

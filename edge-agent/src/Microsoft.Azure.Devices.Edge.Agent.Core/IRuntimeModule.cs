@@ -1,11 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using Newtonsoft.Json;
 
-    public interface IRuntimeModule : IModule
+    public interface IRuntimeModule : IModule, IRuntimeStatusModule
     {
         [JsonProperty(PropertyName = "exitCode")]
         int ExitCode { get; }

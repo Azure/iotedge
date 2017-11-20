@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {
                 await this.TailLogsAsync(exitCode);
             }
-            await this.client.Containers.RemoveContainerAsync(this.module.Name, parameters);
+            await this.client.Containers.RemoveContainerAsync(this.module.Name, parameters, token);
         }
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;

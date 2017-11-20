@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -831,5 +832,157 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
             }
         }
+
+        [Fact]
+        [Unit]
+        public async void ReportEmptyShutdown()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var environment = new Mock<IEnvironment>();
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object, agentStateSerde.Object);
+
+                // Now use the last reported configuration to report a shutdown
+                await reporter.ReportShutdown(DeploymentStatus.Success, cts.Token);
+
+                // Assert
+                Assert.Null(patch);
+            }
+
+        }
+
+        [Fact]
+        [Unit]
+        public async void ReportShutdown()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                DateTime lastStartTimeUtc = DateTime.Parse(
+                  "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
+                  );
+
+                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, lastStartTimeUtc, new Core.ConfigurationInfo("id"));
+                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash"), 0, "", DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, new Core.ConfigurationInfo("hub"));
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Empty.Modules.ToImmutableDictionary()
+                );
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(edgeAgent, edgeHub),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
+                );
+
+                // prepare IEnvironment mock
+                var environment = new Mock<IEnvironment>();
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(cts.Token)).Returns(Task.FromResult(edgeAgent));
+                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
+                    .ReturnsAsync(new DockerReportedRuntimeInfo(
+                        RuntimeType,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        new DockerPlatformInfo(OperatingSystemType, Architecture))
+                    );
+
+                // build current module set
+                var currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object, agentStateSerde.Object);
+
+                // this should cause all modules to be updated.
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
+
+                // Now use the last reported configuration to report a shutdown
+                await reporter.ReportShutdown(DeploymentStatus.Success, cts.Token);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    systemModules = new Dictionary<string, object>
+                    {
+                        {
+                            edgeAgent.Name,
+                            new
+                            {
+                                runtimeStatus = "unknown"
+                            }
+                        }
+                    },
+                    modules = new Dictionary<string, object>
+                    {
+                        {
+                            currentModuleSet.Modules["mod1"].Name,
+                            new
+                            {
+                                runtimeStatus = "unknown"
+                            }
+                        },
+                        {
+                            currentModuleSet.Modules["mod2"].Name,
+                            new
+                            {
+                                runtimeStatus = "unknown"
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
+
     }
 }

@@ -130,6 +130,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.RestartPolicy = RestartPolicy.Always;
             this.DesiredStatus = ModuleStatus.Running;
         }
+        public virtual IModule WithRuntimeStatus(ModuleStatus newStatus)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 
     public class TestHubModule : TestModule, IEdgeHubModule
@@ -143,4 +147,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Version = string.Empty;
         }
     }
+
 }

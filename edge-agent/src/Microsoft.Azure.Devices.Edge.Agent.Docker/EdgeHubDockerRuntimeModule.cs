@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class EdgeHubDockerRuntimeModule : DockerRuntimeModule, IEdgeHubModule
+    public class EdgeHubDockerRuntimeModule : DockerRuntimeModule, IEdgeHubModule, IRuntimeStatusModule
     {
         public EdgeHubDockerRuntimeModule(
             ModuleStatus desiredStatus,
@@ -61,5 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonIgnore]
         public override string Version { get; }
+
+        public override IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeHubDockerRuntimeModule(
+            this.DesiredStatus, this.RestartPolicy, this.Config, this.ExitCode, this.StatusDescription,
+            this.LastStartTimeUtc, this.LastExitTimeUtc, this.RestartCount, this.LastRestartTimeUtc,
+            newStatus, this.ConfigurationInfo);
     }
 }
