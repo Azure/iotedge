@@ -239,6 +239,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
     def start(self):
         log.info('Executing \'start\'')
+        print('Using configuration:\n\n%s' %(self._config_obj,))
         container_name = self._edge_runtime_container_name
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RUNNING:
@@ -352,6 +353,6 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         self.uninstall_common()
         print('Runtime setup successfully.')
         print('\n')
-        print('Using configration:\n\n%s' %(self._config_obj,))
+        print('Using configuration:\n\n%s' %(self._config_obj,))
         print('Use \'iotedgectl start\' to start the runtime.')
         return
