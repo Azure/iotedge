@@ -1,7 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Client;
 
     static class Utils
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         {
             var copy = new Message(payload);
 
-            foreach (var kv in message.Properties)
+            foreach (KeyValuePair<string, string> kv in message.Properties)
             {
                 copy.Properties.Add(kv.Key, message.Properties[kv.Key]);
             }

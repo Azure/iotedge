@@ -31,10 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             extensions.RegisterExtension<ITriggerBindingProvider>(triggerBindingProvider);
 
             extensions.RegisterBindingRules<EdgeHubAttribute>();
-            var rule = context.AddBindingRule<EdgeHubAttribute>();
+            FluentBindingRule<EdgeHubAttribute> rule = context.AddBindingRule<EdgeHubAttribute>();
             rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder), nameResolver);
 
-            context.AddConverter<Message, string>(MessageConverter);
+            context.AddConverter<Message, string>(this.MessageConverter);
             context.AddConverter<string, Message>(this.ConvertToMessage);
         }
 

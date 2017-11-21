@@ -79,15 +79,15 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return Task.CompletedTask;
             }
 
-            string connectionString = nameResolver.Resolve(DefaultConnectionStringEnvName);
+            string connectionString = this.nameResolver.Resolve(DefaultConnectionStringEnvName);
 
             this.deviceClient = DeviceClientCache.Instance.GetOrCreate(connectionString);
-            return this.deviceClient.SetMessageHandlerAsync(FunctionsMessageHandler, null);
+            return this.deviceClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
         }
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
         {
-            var payload = message.GetBytes();
+            byte[] payload = message.GetBytes();
             if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)

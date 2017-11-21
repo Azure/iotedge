@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
         {
             this.parameter = parameter;
             this.messageProcessor = messageProcessor;
-            this.bindingContract = CreateBindingDataContract();
+            this.bindingContract = this.CreateBindingDataContract();
         }
 
         public IReadOnlyDictionary<string, Type> BindingDataContract => this.bindingContract;

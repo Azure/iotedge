@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 {
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
         public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
         {
             string connectionString = this.nameResolver.Resolve(EdgeHubConnectionString);
-            var client = DeviceClientCache.Instance.GetOrCreate(connectionString);
+            DeviceClient client = DeviceClientCache.Instance.GetOrCreate(connectionString);
 
             return new EdgeHubAsyncCollector(client, attribute);
         }

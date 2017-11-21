@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
@@ -24,6 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         /// <summary>
         /// Gets the EdgeHub message inputName that triggers the function.
         /// </summary>
-        public string InputName { get; private set; }
+        public string InputName { get; }
     }
 }

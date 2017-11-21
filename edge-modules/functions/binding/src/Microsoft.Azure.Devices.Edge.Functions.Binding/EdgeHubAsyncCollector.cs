@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
@@ -27,14 +27,15 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         // Suggested to use 240k instead of 256k to leave padding room for headers.
         const int MaxByteSize = 240 * 1024;
 
-        List<Message> list = new List<Message>();
+        readonly List<Message> list = new List<Message>();
         // total size of bytes in list that we'll be sending in this batch. 
-        int currentByteSize = 0;
+        int currentByteSize;
 
         /// <summary>
         /// Create a sender around the given client. 
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="client">Device Client instance. </param>
+        /// <param name="attribute">Attributes used by EdgeHub when receiving a message from function.</param>
         public EdgeHubAsyncCollector(DeviceClient client, EdgeHubAttribute attribute)
         {
             this.client = client;
@@ -43,9 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         }
 
         /// <summary>
-        /// Add an event. 
+        ///    Add a Message
         /// </summary>
-        /// <param name="item">The event to add</param>
+        /// <param name="message">The event to add</param>
         /// <param name="cancellationToken">a cancellation token. </param>
         /// <returns></returns>
         public async Task AddAsync(Message message, CancellationToken cancellationToken = default(CancellationToken))
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
             lock (this.list)
             {
-                var size = payload.Length;
+                int size = payload.Length;
                 if (size > MaxByteSize)
                 {
                     // Single event is too large to add.
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
                 if (this.list.Count == this.batchSize && batch == null)
                 {
-                    batch = TakeSnapshot();
+                    batch = this.TakeSnapshot();
                 }
             }
 
@@ -114,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         IList<Message> TakeSnapshot()
         {
-            IList<Message> batch = null;
+            IList<Message> batch;
             lock (this.list)
             {
                 batch = this.list.ToList();

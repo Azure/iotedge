@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
     class DeviceClientCache
     {
-        readonly static DeviceClientCache instance = new DeviceClientCache();
         readonly ConcurrentDictionary<string, DeviceClient> clients = new ConcurrentDictionary<string, DeviceClient>();
 
         // Private constructor to ensure single instance
@@ -19,13 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         {
         }
 
-        public static DeviceClientCache Instance => instance;
+        public static DeviceClientCache Instance { get; } = new DeviceClientCache();
 
         public DeviceClient GetOrCreate(string connectionString)
         {
             return this.clients.GetOrAdd(
                 connectionString,
-                client => CreateDeviceClient(connectionString));
+                client => this.CreateDeviceClient(connectionString));
         }
 
         DeviceClient CreateDeviceClient(string connectionString)
@@ -42,9 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 // get CA certificate
                 string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
 
-                X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);  // On Linux only root store worked
+                var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);  // On Linux only root store worked
                 store.Open(OpenFlags.ReadWrite);
-                store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+                store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(certPath)));
                 store.Close();
             }
 

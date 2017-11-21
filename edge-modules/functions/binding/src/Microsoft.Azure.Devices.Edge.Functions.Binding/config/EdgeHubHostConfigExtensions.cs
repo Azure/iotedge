@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
 {
@@ -24,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             }
             
             var extensions = config.GetService<IExtensionRegistry>();
-            var nameResolver = config.GetService<INameResolver>();
 
             var extensionConfig = new EdgeHubExtensionConfigProvider();
             extensions.RegisterExtension<IExtensionConfigProvider>(extensionConfig);
