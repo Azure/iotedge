@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Linq;
+    using System.Web;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -32,7 +33,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Try<IIdentity> GetIdentity(string username, string secret, AuthenticationScope scope, string policyName)
         {
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
+            try
+            {
+                (string iothubHostName, string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
+                if (isModuleIdentity)
+                {
+                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
+                    string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
+                    return new ModuleIdentity(iothubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo);
+                }
+                else
+                {
+                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
+                    string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
+                    return new DeviceIdentity(iothubHostName, deviceId, connectionString, scope, policyName, secret, productInfo);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Try<IIdentity>.Failure(ex);
+            }
+        }
 
+        internal static (string iothubHostName, string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) ParseUserName(string username)
+        {
             // Username is of the form:
             //   username   = iothubHostname "/" deviceId "/" [moduleId "/"] properties
             //   properties = property *("&" property)
@@ -40,46 +64,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // We recognize two property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
-            // We ignore any properties we don't recognize.
+            // We ignore any properties we don't recognize.            
 
             string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
-            if (usernameSegments.Length < 3 ||
-                usernameSegments.Length > 4 ||
-                !usernameSegments.Last().Contains("api-version"))
+            if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
             {
-                var ex = new EdgeHubConnectionException("Username does not contain valid values");
-                return Try<IIdentity>.Failure(ex);
+                return (usernameSegments[0], usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]), false);
             }
-
-            try
+            else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
             {
-                string iothubHostname = usernameSegments[0];
-                string deviceId = usernameSegments[1];
-                bool isModuleIdentity = (usernameSegments.Length == 4);
-
-                // TODO - currently policy is not used, and is not applicable for devices/modules.
-                // Need to check if it should be removed. 
-
-                if (isModuleIdentity)
-                {
-                    string moduleId = usernameSegments[2];
-                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
-                    string productInfo = string.Join(" ", this.callerProductInfo, ParseDeviceClientType(usernameSegments[3])).Trim();
-                    // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
-                    return new ModuleIdentity(iothubHostname, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo);
-                }
-                else
-                {
-                    Preconditions.Equals(usernameSegments.Length, 3);
-                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
-                    string productInfo = string.Join(" ", this.callerProductInfo, ParseDeviceClientType(usernameSegments[2])).Trim();
-                    // IsAuthenticated is always true, except for a special UnauthenticatedIdentity.
-                    return new DeviceIdentity(iothubHostname, deviceId, connectionString, scope, policyName, secret, productInfo);
-                }
+                return (usernameSegments[0], usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]), true);
             }
-            catch (Exception ex)
+            // The Azure ML container is using an older client that returns a device client with the following format -
+            // username = iothubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
+            // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
+            // To allow those clients to work, check for that specific api-version, and version.
+            else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
             {
-                return Try<IIdentity>.Failure(ex);
+                string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
+                return (usernameSegments[0], usernameSegments[1], usernameSegments[2], deviceClientType, true);
+            }
+            else
+            {
+                throw new EdgeHubConnectionException("Username does not contain valid values");
             }
         }
 
