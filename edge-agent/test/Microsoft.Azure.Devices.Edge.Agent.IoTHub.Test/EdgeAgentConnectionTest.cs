@@ -592,8 +592,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -614,15 +612,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
@@ -653,8 +647,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -670,15 +662,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
@@ -709,8 +697,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -723,15 +709,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
@@ -759,8 +741,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -781,15 +761,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
@@ -819,8 +795,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -838,15 +812,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ThrowsAsync(new InvalidOperationException());
 
@@ -877,7 +847,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
             Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = null;
-            object desiredPropertyUpdateCallbackContext;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -898,15 +867,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            deviceClient.Setup(d => d.SetConnectionStatusChangedHandler(It.IsAny<Client.ConnectionStatusChangesHandler>()))
-                .Callback<Client.ConnectionStatusChangesHandler>(handler => connectionStatusChangesHandler = handler);
-            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
-                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) =>
-                {
-                    desiredPropertyUpdateCallback = handler;
-                    desiredPropertyUpdateCallbackContext = context;
-                })
+            deviceClient
+                .Setup(d => d.OpenAsync(It.IsAny<Client.ConnectionStatusChangesHandler>()))
+                .Callback<Client.ConnectionStatusChangesHandler>(connectionHandler => connectionStatusChangesHandler = connectionHandler)
                 .Returns(Task.CompletedTask);
+
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallback(It.IsAny<Client.DesiredPropertyUpdateCallback>(), It.IsAny<object>()))
+                .Callback<Client.DesiredPropertyUpdateCallback, object>((handler, context) => desiredPropertyUpdateCallback = handler)
+                .Returns(Task.CompletedTask);
+
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 

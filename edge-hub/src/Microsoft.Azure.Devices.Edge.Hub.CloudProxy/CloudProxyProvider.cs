@@ -66,21 +66,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
             {
-                DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, this.transportSettings);
-                if (!useDefaultOperationTimeout)
-                {
-                    Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);
-                    deviceClient.OperationTimeoutInMilliseconds = DefaultOperationTimeoutMilliseconds;
-                }
-                deviceClient.ProductInfo = productInfo;
-                await deviceClient.OpenAsync();
-                return deviceClient;
+                // The device SDK doesn't appear to be falling back to WebSocket from TCP,
+                // so we'll do it explicitly until we can get the SDK sorted out.
+                return await Fallback.ExecuteAsync(
+                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[0]),
+                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[1]));
+
+                // TODO: subsequent links will still try AMQP first, then fall back to AMQP over WebSocket. In the worst
+                // case, an edge device might end up with one connection pool for AMQP and one for AMQP over WebSocket. Once
+                // a first connection is made, should subsequent connections only try one protocol (the protocol that the 1st
+                // connection used)?
             }
             catch (Exception ex)
             {
                 return Try<DeviceClient>.Failure(ex);
             }
-        }        
+        }
+
+        async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettings)
+        {
+            Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType());
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new ITransportSettings[] { transportSettings });
+            if (!useDefaultOperationTimeout)
+            {
+                Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);
+                deviceClient.OperationTimeoutInMilliseconds = DefaultOperationTimeoutMilliseconds;
+            }
+            deviceClient.ProductInfo = productInfo;
+
+            await deviceClient.OpenAsync();
+            Events.ConnectedWithTransport(transportSettings.GetTransportType());
+            return deviceClient;
+        }
 
         static class Events
         {
@@ -91,7 +108,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 CloudConnectError = IdStart,
                 CloudConnect,
-                SetDeviceClientTimeout
+                SetDeviceClientTimeout,
+                AttemptingTransport,
+                TransportConnected
+            }
+
+            static string TransportName(TransportType type)
+            {
+                Preconditions.CheckArgument(type == TransportType.Amqp_Tcp_Only || type == TransportType.Amqp_WebSocket_Only);
+                return type == TransportType.Amqp_Tcp_Only ? "AMQP" : "AMQP over WebSocket";
+            }
+
+            public static void AttemptingConnectionWithTransport(TransportType transport)
+            {
+                Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub via {TransportName(transport)}...");
+            }
+
+            public static void ConnectedWithTransport(TransportType transport)
+            {
+                Log.LogInformation((int)EventIds.TransportConnected, $"Connected to IoT Hub via {TransportName(transport)}.");
             }
 
             public static void ConnectError(string id, Exception ex)

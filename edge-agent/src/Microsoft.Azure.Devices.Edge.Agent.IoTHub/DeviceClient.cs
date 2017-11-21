@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -11,24 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class DeviceClient : IDeviceClient
     {
-        readonly Client.DeviceClient deviceClient;
+        Client.DeviceClient deviceClient = null;
+        string moduleConnectionString = string.Empty;
         private const uint DeviceClientTimeout = 30000; // ms
       
-        DeviceClient(Client.DeviceClient deviceClient)
+        DeviceClient(string moduleConnectionString)
         {
-            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
+            this.moduleConnectionString = moduleConnectionString;
         }
 
         public static DeviceClient Create(EdgeHubConnectionString deviceDetails)
         {
             Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
-            
-            string moduleString = ConstructModuleConnectionString(deviceDetails);
-
-            Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(moduleString);
-            deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
             Events.DeviceClientCreated();
-            return new DeviceClient(deviceClient);
+            return new DeviceClient(ConstructModuleConnectionString(deviceDetails));
         }
 
         static string ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails)
@@ -42,7 +39,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public void Dispose() => this.deviceClient.Dispose();
 
-        public Task OpenAsync() => this.deviceClient.OpenAsync();
+        public async Task OpenAsync(ConnectionStatusChangesHandler statusChangedHandler)
+        {
+            // The device SDK doesn't appear to be falling back to WebSocket from TCP,
+            // so we'll do it explicitly until we can get the SDK sorted out.
+            await Fallback.ExecuteAsync(
+                () => this.CreateAndOpenDeviceClient(TransportType.Amqp_Tcp_Only, statusChangedHandler),
+                () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler));
+        }
+
+        async Task CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
+        {
+            Events.AttemptingConnectionWithTransport(transport);
+            this.deviceClient = Client.DeviceClient.CreateFromConnectionString(this.moduleConnectionString, transport);
+            // note: it's important to set the status-changed handler and
+            // timeout value *before* we open a connection to the hub
+            this.deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
+            this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
+            await this.deviceClient.OpenAsync();
+            Events.ConnectedWithTransport(transport);
+        }
 
         public Task SetDesiredPropertyUpdateCallback(DesiredPropertyUpdateCallback onDesiredPropertyChanged, object userContext) =>
             this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, userContext);
@@ -53,10 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
 
-        public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler statusChangedHandler) =>
-            this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
-        
-
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClient>();
@@ -64,13 +76,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             enum EventIds
             {
-                DeviceClientCreated = IdStart
+                AttemptingConnect = IdStart,
+                Connected,
+                DeviceClientCreated
+            }
+
+            static string TransportName(TransportType type)
+            {
+                Preconditions.CheckArgument(type == TransportType.Amqp_Tcp_Only || type == TransportType.Amqp_WebSocket_Only);
+                return type == TransportType.Amqp_Tcp_Only ? "AMQP" : "AMQP over WebSocket";
+            }
+
+            public static void AttemptingConnectionWithTransport(TransportType transport)
+            {
+                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {TransportName(transport)}...");
+            }
+
+            public static void ConnectedWithTransport(TransportType transport)
+            {
+                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {TransportName(transport)}.");
             }
 
             public static void DeviceClientCreated()
             {
                 Log.LogDebug((int)EventIds.DeviceClientCreated, "Device client for edge agent created.");
-            }            
+            }
         }
     }
 }

@@ -36,10 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public static async Task<EdgeAgentConnection> Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
         {
             var edgeAgentConnection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
-            deviceClient.SetConnectionStatusChangedHandler(edgeAgentConnection.OnConnectionStatusChanged);
+            await deviceClient.OpenAsync(edgeAgentConnection.OnConnectionStatusChanged);
             await deviceClient.SetDesiredPropertyUpdateCallback(edgeAgentConnection.OnDesiredPropertiesUpdated, null);
             await deviceClient.SetMethodHandlerAsync(PingMethodName, edgeAgentConnection.PingMethodCallback, null);
-            await deviceClient.OpenAsync();
             Events.Created();
             return edgeAgentConnection;
         }
