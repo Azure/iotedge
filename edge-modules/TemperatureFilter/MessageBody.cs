@@ -4,7 +4,6 @@ namespace TemperatureFilter
 {
     using System;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
     // NOTE: IF CHANGING ANYTHING IN THIS FILE, UPDATE MESSAGEBODY.CS IN SIMULATED TEMPERATURE SENSOR
     // TODO Put message body in a common lib

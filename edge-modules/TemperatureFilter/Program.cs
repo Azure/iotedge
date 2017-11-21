@@ -21,7 +21,7 @@ namespace TemperatureFilter
         const int DefaultTemperatureThreshold = 25;
         static int counter;
 
-        static void Main(string[] args)
+        static void Main()
         {
             // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
             string connectionString =
@@ -51,7 +51,7 @@ namespace TemperatureFilter
         {
             Console.WriteLine("Connection String {0}", connectionString);
 
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             // Suppress cert validation on Windows for now
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -101,9 +101,9 @@ namespace TemperatureFilter
                 Console.WriteLine($"Missing path to certificate collection file: {certPath}");
                 throw new InvalidOperationException("Missing certificate file.");
             }
-            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+            store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(certPath)));
             Console.WriteLine("Added Cert: " + certPath);
             store.Close();
         }

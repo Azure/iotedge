@@ -16,14 +16,13 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Newtonsoft.Json.Serialization;
 
     class Program
     {
         static readonly Random Rnd = new Random();
-        static AtomicBoolean reset = new AtomicBoolean(false);
+        static readonly AtomicBoolean Reset = new AtomicBoolean(false);
 
-        public enum ControlCommandEnum { reset = 0, noop = 1 };
+        public enum ControlCommandEnum { Reset = 0, Noop = 1 };
 
         public static int Main() => MainAsync().Result;
 
@@ -38,18 +37,18 @@ namespace SimulatedTemperatureSensor
                 .Build();
 
             string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
-            var messageDelay = configuration.GetValue<TimeSpan>("MessageDelay", TimeSpan.FromSeconds(5));
-            SimulatorParameters sim = new SimulatorParameters()
+            TimeSpan messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
+            var sim = new SimulatorParameters()
             {
                 MachineTempMin = configuration.GetValue<double>("machineTempMin", 21),
                 MachineTempMax = configuration.GetValue<double>("machineTempMax", 100),
                 MachinePressureMin = configuration.GetValue<double>("machinePressureMin", 1),
                 MachinePressureMax = configuration.GetValue<double>("machinePressureMax", 10),
                 AmbientTemp = configuration.GetValue<double>("ambientTemp", 21),
-                HumidityPercent = configuration.GetValue<int>("ambientHumidity", 25)
+                HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             // Suppress cert validation on Windows for now
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -61,7 +60,7 @@ namespace SimulatedTemperatureSensor
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
-            var userContext = deviceClient;
+            DeviceClient userContext = deviceClient;
             await deviceClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             var cts = new CancellationTokenSource();
@@ -97,9 +96,9 @@ namespace SimulatedTemperatureSensor
                 Console.WriteLine($"Missing certificate collection file: {certPath}");
                 throw new InvalidOperationException("Missing certificate file.");
             }
-            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(X509Certificate2.CreateFromCertFile(certPath)));
+            store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(certPath)));
             Console.WriteLine("Added Cert: " + certPath);
             store.Close();
         }
@@ -112,19 +111,18 @@ namespace SimulatedTemperatureSensor
         {
             byte[] messageBytes = message.GetBytes();
             string messageString = Encoding.UTF8.GetString(messageBytes);
-            DeviceClient deviceClient = userContext as DeviceClient;
 
             Console.WriteLine($"Received message Body: [{messageString}]");
 
             try
             {
-                ControlCommand[] messages = JsonConvert.DeserializeObject<ControlCommand[]>(messageString);
+                var messages = JsonConvert.DeserializeObject<ControlCommand[]>(messageString);
                 foreach (ControlCommand messageBody in messages)
                 {
-                    if (messageBody.Command == ControlCommandEnum.reset)
+                    if (messageBody.Command == ControlCommandEnum.Reset)
                     {
                         Console.WriteLine("Resetting temperature sensor..");
-                        reset.Set(true);
+                        Reset.Set(true);
                     }
                     else
                     {
@@ -143,8 +141,8 @@ namespace SimulatedTemperatureSensor
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
         {
             var response = new MethodResponse((int)HttpStatusCode.OK);
-            reset.Set(true);
-            return Task.FromResult<MethodResponse>(response);
+            Reset.Set(true);
+            return Task.FromResult(response);
         }
 
         /// <summary>
@@ -174,10 +172,10 @@ namespace SimulatedTemperatureSensor
 
             while (!cts.Token.IsCancellationRequested)
             {
-                if (reset)
+                if (Reset)
                 {
                     currentTemp = sim.MachineTempMin;
-                    reset.Set(false);
+                    Reset.Set(false);
                 }
                 if (currentTemp > sim.MachineTempMax)
                 {
