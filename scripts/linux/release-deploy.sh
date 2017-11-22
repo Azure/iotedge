@@ -125,11 +125,6 @@ process_args()
         echo "IotHub owner shared access key name Parameter Invalid"
         print_help_and_exit
     fi
-
-    if [ -z ${DEPLOY_TOOL} ]; then
-        echo "Deploy tool Parameter Invalid"
-        print_help_and_exit
-    fi
 }
 
 function parse_config_file()

@@ -1,12 +1,12 @@
 # escape=`
-FROM microsoft/windowsservercore AS installer-env
+FROM microsoft/windowsservercore:1709 AS installer-env
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 RUN New-SelfSignedCertificate -Subject ('CN={0}' -f $Env:ComputerName) -CertStoreLocation Cert:\CurrentUser\My; `
     CertUtil -ExportPFX -user -p `\"`\" my $Env:ComputerName \edge-server.pfx
 
-FROM microsoft/dotnet:2.0.0-runtime-nanoserver
+FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
 
 ENV SSL_CERTIFICATE_PATH \certs
 ENV SSL_CERTIFICATE_NAME edge-server.pfx

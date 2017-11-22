@@ -42,9 +42,6 @@ Param(
     [ValidateNotNullOrEmpty()]
     [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
 
-    # Use Windows vNext base images
-    [Switch]$vNext,
-
     # Do not push images to the registry
     [Switch]$SkipPush,
 
@@ -151,16 +148,11 @@ Function docker_build_and_tag_and_push(
 Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
 {
     $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
-    $Suffix = ""
-    if ($vNext)
-    {
-        $Suffix = ".vnext"
-    }
 
     docker_build_and_tag_and_push `
         -Name $ProjectName `
         -Arch $TargetArch `
-        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile$Suffix" `
+        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile" `
         -ContextPath $FullProjectPath `
         -BuildArgs "--build-arg EXE_DIR=." `
         -Push:(-not $SkipPush)

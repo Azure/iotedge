@@ -30,9 +30,6 @@ Param(
     [ValidateNotNullOrEmpty()]
     [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
 
-    # Use Windows vNext base images
-    [Switch]$vNext,
-
     # Do not push images to the registry
     [Switch]$SkipPush,
 
@@ -98,12 +95,7 @@ Function docker_build_and_tag_and_push(
     [String]$Tag
 )
 {
-    $Suffix = ""
-    if ($vNext)
-    {
-        $Suffix = "-vnext"
-    }
-    $TagPrefix = "$Registry/azureiotedge/$ImageName-windows${Suffix}-${Arch}"
+    $TagPrefix = "$Registry/azureiotedge/$ImageName-windows-${Arch}"
     $FullVersionTag = "${TagPrefix}:$ImageVersion"
     $LatestVersionTag = "${TagPrefix}:latest"
 
@@ -152,16 +144,11 @@ Function docker_build_and_tag_and_push(
 Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
 {
     $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
-    $Suffix = ""
-    if ($vNext)
-    {
-        $Suffix = ".vnext"
-    }
 
     docker_build_and_tag_and_push `
         -ImageName $ProjectName `
         -Arch $TargetArch `
-        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile$Suffix" `
+        -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile" `
         -ContextPath $FullProjectPath `
         -BuildArgs "--build-arg EXE_DIR=." `
         -Push:(-not $SkipPush)

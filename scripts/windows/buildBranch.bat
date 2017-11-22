@@ -74,6 +74,8 @@ if exist "%VERSIONINFO_FILE_PATH%" (
 
 )
 
+SET RES=0
+
 echo.
 echo Cleaning and restoring all solutions in repo
 echo.
@@ -82,7 +84,10 @@ for /r %%f in (%SLN_PATTERN%) do (
     echo Cleaning and Restoring packages for solution - %%f
     "%DOTNET_ROOT_PATH%\dotnet" clean %%f
     "%DOTNET_ROOT_PATH%\dotnet" restore %%f
-    if !ERRORLEVEL! neq 0 exit /b 1
+    IF !ERRORLEVEL! NEQ 0 (
+        SET RES=!ERRORLEVEL!
+        GOTO END
+    )
 )
 
 echo.
@@ -92,7 +97,10 @@ echo.
 for /r %%f in (%SLN_PATTERN%) do (
     echo Building Solution - %%f
     "%DOTNET_ROOT_PATH%\dotnet" build -c %CONFIGURATION% -o "%BUILD_BINARIESDIRECTORY%" %%f
-    if !ERRORLEVEL! neq 0 exit /b 1
+    IF !ERRORLEVEL! NEQ 0 (
+        SET RES=!ERRORLEVEL!
+        GOTO END
+    )
 )
 
 echo.
@@ -103,16 +111,22 @@ for /f "usebackq" %%f in (`FINDSTR /spmc:"<OutputType>Exe</OutputType>" %CSPROJ_
     echo Publishing Solution - %%f
     for %%i in ("%%f") do set PROJ_NAME=%%~ni
     "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
-    if !ERRORLEVEL! neq 0 exit /b 1
+    IF !ERRORLEVEL! NEQ 0 (
+        SET RES=!ERRORLEVEL!
+        GOTO END
+    )
 )
 
 for /r %BUILD_REPOSITORY_LOCALPATH% %%f in (%FUNCTION_BINDING_CSPROJ_PATTERN%) do (
-        echo Publishing - %%f
-        for %%i in ("%%f") do set PROJ_NAME=%%~ni
+    echo Publishing - %%f
+    for %%i in ("%%f") do set PROJ_NAME=%%~ni
 
-        "%DOTNET_ROOT_PATH%\dotnet" publish -f netstandard2.0 -c %CONFIGURATION% -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
-        if !ERRORLEVEL! neq 0 exit /b 1
+    "%DOTNET_ROOT_PATH%\dotnet" publish -f netstandard2.0 -c %CONFIGURATION% -o %PUBLISH_FOLDER%\!PROJ_NAME! %%f
+    IF !ERRORLEVEL! NEQ 0 (
+        SET RES=!ERRORLEVEL!
+        GOTO END
     )
+)
 
 echo Copying %SRC_DOCKER_DIR% to %PUBLISH_FOLDER%\docker
 xcopy /si %SRC_DOCKER_DIR% %PUBLISH_FOLDER%\docker
@@ -133,7 +147,10 @@ if "!PUBLISH_TESTS!" == "--publish-tests"  (
         echo Publishing - %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!
         for %%i in ("%%f") do set PROJ_NAME=%%~ni
         "%DOTNET_ROOT_PATH%\dotnet" publish -f netcoreapp2.0 -c %CONFIGURATION% -o %RELEASE_TESTS_FOLDER%\target %%f
-        if !ERRORLEVEL! neq 0 exit /b 1
+        IF !ERRORLEVEL! NEQ 0 (
+            SET RES=!ERRORLEVEL!
+            GOTO END
+        )
 
         echo "Copying %%f to %RELEASE_TESTS_FOLDER%\!PROJ_NAME!\"
         xcopy %%f "%RELEASE_TESTS_FOLDER%\!PROJ_NAME!\"
@@ -143,3 +160,7 @@ if "!PUBLISH_TESTS!" == "--publish-tests"  (
     xcopy /si %SRC_SCRIPTS_DIR% %RELEASE_TESTS_FOLDER%\scripts
     xcopy %BUILD_REPOSITORY_LOCALPATH%\Nuget.config %RELEASE_TESTS_FOLDER%
 )
+
+:END
+
+exit /b %RES%
