@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
         readonly RocksDb db;
         readonly ColumnFamiliesProvider columnFamiliesProvider;
-        static object columnFamiliesLock = new object();
+        static readonly object ColumnFamiliesLock = new object();
 
         ColumnFamilyStorageRocksDbWrapper(RocksDb db, ColumnFamiliesProvider columnFamiliesProvider)
         {
@@ -38,17 +38,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public static ColumnFamilyStorageRocksDbWrapper Create(string path, IEnumerable<string> partitionsList)
         {
-            Preconditions.CheckNotNull(partitionsList, nameof(partitionsList));
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
 
             string dbPath = Path.Combine(path, DbFolderName);
             string columnFamiliesFilePath = Path.Combine(path, ColumnFamiliesFileName);
             var columnFamiliesProvider = new ColumnFamiliesProvider(columnFamiliesFilePath);
 
-            lock (columnFamiliesLock)
+            lock (ColumnFamiliesLock)
             {
                 IEnumerable<string> existingColumnFamilies = columnFamiliesProvider.ListColumnFamilies();
-                IEnumerable<string> columnFamiliesList = existingColumnFamilies.Union(partitionsList, StringComparer.OrdinalIgnoreCase).ToList();
+                IEnumerable<string> columnFamiliesList = existingColumnFamilies.Union(Preconditions.CheckNotNull(partitionsList, nameof(partitionsList)), StringComparer.OrdinalIgnoreCase).ToList();
                 var columnFamilies = new ColumnFamilies();
                 foreach (string columnFamilyName in columnFamiliesList)
                 {
@@ -57,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
                 columnFamiliesProvider.SetColumnFamilies(columnFamiliesList);
                 RocksDb db = RocksDb.Open(Options, dbPath, columnFamilies);
-                ColumnFamilyStorageRocksDbWrapper rocksDbWrapper = new ColumnFamilyStorageRocksDbWrapper(db, columnFamiliesProvider);
+                var rocksDbWrapper = new ColumnFamilyStorageRocksDbWrapper(db, columnFamiliesProvider);
                 return rocksDbWrapper;
             }
         }
@@ -66,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public IEnumerable<string> ListColumnFamilies()
         {
-            lock (columnFamiliesLock)
+            lock (ColumnFamiliesLock)
             {
                 return this.columnFamiliesProvider.ListColumnFamilies();
             }
@@ -76,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public ColumnFamilyHandle CreateColumnFamily(ColumnFamilyOptions columnFamilyOptions, string entityName)
         {
-            lock (columnFamiliesLock)
+            lock (ColumnFamiliesLock)
             {
                 this.columnFamiliesProvider.AddColumnFamily(entityName);
                 ColumnFamilyHandle handle = this.db.CreateColumnFamily(columnFamilyOptions, entityName);                
@@ -86,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public void DropColumnFamily(string columnFamilyName)
         {
-            lock (columnFamiliesLock)
+            lock (ColumnFamiliesLock)
             {
                 this.columnFamiliesProvider.RemoveColumnFamily(columnFamilyName);
                 this.db.DropColumnFamily(columnFamilyName);
@@ -119,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         class ColumnFamiliesProvider
         {
             const string DefaultPartitionName = "default";
-            string columnFamiliesFilePath;
+            readonly string columnFamiliesFilePath;
 
             public ColumnFamiliesProvider(string columnFamiliesFilePath)
             {
@@ -137,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             public void AddColumnFamily(string entityName) => File.AppendAllLines(this.columnFamiliesFilePath, new List<string> { entityName });
 
-            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
+            public IEnumerable<string> ListColumnFamilies() => (File.Exists(this.columnFamiliesFilePath)) ? File.ReadAllLines(this.columnFamiliesFilePath).ToList() : new List<string> { DefaultPartitionName };
         }
     }
 }

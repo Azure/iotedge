@@ -14,10 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     public class DbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "default";
-        static TimeSpan CompactionPeriod = TimeSpan.FromHours(2);
+        static readonly TimeSpan CompactionPeriod = TimeSpan.FromHours(2);
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
-        readonly Timer compactionTimer;
+
+        readonly Timer compactionTimer; //TODO: Bug logged to be fixed to proper dispose and test. 
 
         DbStoreProvider(IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
         {
@@ -110,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             internal static void StartingCompaction()
             {
-                Log.LogInformation((int)EventIds.StartingCompaction, $"Starting compaction of stores");
+                Log.LogInformation((int)EventIds.StartingCompaction, "Starting compaction of stores");
             }
 
             internal static void CompactingStore(string storeName)

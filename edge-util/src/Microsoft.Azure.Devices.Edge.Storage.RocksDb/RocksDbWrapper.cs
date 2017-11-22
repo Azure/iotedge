@@ -30,11 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public static RocksDbWrapper Create(string path, IEnumerable<string> partitionsList)
         {
-            Preconditions.CheckNotNull(partitionsList, nameof(partitionsList));
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
 
             IEnumerable<string> existingColumnFamilies = ListColumnFamilies(path);
-            IEnumerable<string> columnFamiliesList = existingColumnFamilies.Union(partitionsList, StringComparer.OrdinalIgnoreCase).ToList();
+            IEnumerable<string> columnFamiliesList = existingColumnFamilies.Union(Preconditions.CheckNotNull(partitionsList, nameof(partitionsList)), StringComparer.OrdinalIgnoreCase).ToList();
             var columnFamilies = new ColumnFamilies();
             foreach (string columnFamilyName in columnFamiliesList)
             {
@@ -53,14 +52,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         static IEnumerable<string> ListColumnFamilies(string path)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
-            // ListColumnFamilies will throw is the DB doesn't exist yet, so wrap it in a try catch.
+            // ListColumnFamilies will throw if the DB doesn't exist yet, so wrap it in a try catch.
             IEnumerable<string> columnFamilies = null;
             try
             {
                 columnFamilies = RocksDb.ListColumnFamilies(Options, path);
             }
             catch
-            { }
+            {
+                // ignored since ListColumnFamilies will throw if the DB doesn't exist yet.
+            }
 
             return columnFamilies ?? Enumerable.Empty<string>();
         }

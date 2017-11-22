@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -19,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }
 
         [Fact]
-        public async Task BasicTest()
+        public async Task BasicTestAsync()
         {
             string entityName = "basicTestEntity";
             var entityStore = new EntityStore<Key, Value>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
@@ -51,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }        
 
         [Fact]
-        public async Task GetFirstLastDefaultTest()
+        public async Task GetFirstLastDefaultTestAsync()
         {
             string entityName = "firstLastTestEntity";
             var entityStore = new EntityStore<Key, Value>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
@@ -63,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }
 
         [Fact]
-        public async Task PutOrUpdateTest()
+        public async Task PutOrUpdateTestAsync()
         {
             string entityName = "purUpdateTestEntity";
             var entityStore = new EntityStore<string, string>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
@@ -76,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }
 
         [Fact]
-        public async Task UpdateTest()
+        public async Task UpdateTestAsync()
         {
             string entityName = "updateTestEntity";
             var entityStore = new EntityStore<string, string>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
