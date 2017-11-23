@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -7,11 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public static class SerDeExtensions
     {
-        static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
-        {
-            TypeNameHandling = TypeNameHandling.Objects
-        };
-
         public static T FromJson<T>(this string json)
         {
             if (string.IsNullOrWhiteSpace(json))
@@ -21,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
             return typeof(T) == typeof(string)
                 ? (T)(object)json
-                : JsonConvert.DeserializeObject<T>(json, Settings);
+                : JsonConvert.DeserializeObject<T>(json);
         }
 
         public static string ToJson(this object value)
@@ -31,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 return string.Empty;
             }
 
-            return value as string ?? JsonConvert.SerializeObject(value, Settings);
+            return value as string ?? JsonConvert.SerializeObject(value);
         }
 
         public static string FromBytes(this byte[] bytes) => bytes == null || bytes.Length == 0

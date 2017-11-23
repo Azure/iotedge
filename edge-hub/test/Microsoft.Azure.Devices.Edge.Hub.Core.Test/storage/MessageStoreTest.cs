@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 {
     using System;
@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
-    using Moq;
     using Xunit;
 
     [Bvt]
@@ -215,6 +214,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");
             return (messageStore, checkpointStore);
+        }
+
+        [Fact]
+        [Unit]
+        public void MessageWrapperRoundtripTest()
+        {
+            var properties = new Dictionary<string, string>
+            {
+                ["Prop1"] = "PropVal1",
+                ["Prop2"] = "PropVal2"
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.CorrelationId] = Guid.NewGuid().ToString(),
+                [SystemProperties.DeviceId] = "device1",
+                [SystemProperties.MessageId] = Guid.NewGuid().ToString()
+            };
+
+            byte[] body = "Test Message Body".ToBody();
+            DateTime enqueueTime = new DateTime(2017, 11, 20, 01, 02, 03);
+            DateTime dequeueTime = new DateTime(2017, 11, 20, 02, 03, 04);
+
+            IMessage message = new Message(
+                TelemetryMessageSource.Instance,
+                body,
+                properties,
+                systemProperties,
+                100,
+                enqueueTime,
+                dequeueTime);
+            var messageWrapper = new MessageStore.MessageWrapper(message, DateTime.UtcNow, 3);
+
+            byte[] messageWrapperBytes = messageWrapper.ToBytes();
+            MessageStore.MessageWrapper retrievedMesssageWrapper = messageWrapperBytes.FromBytes<MessageStore.MessageWrapper>();
+
+            Assert.NotNull(retrievedMesssageWrapper);
+            Assert.Equal(messageWrapper.TimeStamp, retrievedMesssageWrapper.TimeStamp);
+            Assert.Equal(messageWrapper.RefCount, retrievedMesssageWrapper.RefCount);
+            Assert.Equal(messageWrapper.Message, retrievedMesssageWrapper.Message);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
@@ -20,10 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             ITestInterface testObj = new TestClass("Foo") { Prop2 = 100 };
             string json = SerDeExtensions.ToJson(testObj);
-            string expectedJson = @"{""$type"":""Microsoft.Azure.Devices.Edge.Storage.Test.SerDeExtensionsTest+TestClass, Microsoft.Azure.Devices.Edge.Storage.Test"",""Prop1"":""Foo"",""Prop2"":100}";
+            string expectedJson = @"{""Prop1"":""Foo"",""Prop2"":100}";
             Assert.Equal(expectedJson, json);
 
-            ITestInterface jsonConvertedObj = SerDeExtensions.FromJson<ITestInterface>(json);
+            ITestInterface jsonConvertedObj = SerDeExtensions.FromJson<TestClass>(json);
             Assert.NotNull(jsonConvertedObj);
             Assert.Equal("Foo", jsonConvertedObj.GetProp1());
             Assert.Equal(100, jsonConvertedObj.GetProp2());
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             ITestInterface testObj = new TestClass("Foo") { Prop2 = 100 };
             var bytes = SerDeExtensions.ToBytes(testObj);
-            ITestInterface testObj2 = SerDeExtensions.FromBytes<ITestInterface>(bytes);
+            ITestInterface testObj2 = SerDeExtensions.FromBytes<TestClass>(bytes);
             Assert.NotNull(testObj2);
             Assert.Equal(testObj.GetProp1(), testObj2.GetProp1());
             Assert.Equal(testObj.GetProp2(), testObj2.GetProp2());

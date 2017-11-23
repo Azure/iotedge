@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
@@ -17,11 +18,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             TelemetryMessageSource telemetryMessageSource = TelemetryMessageSource.Instance;
             Assert.True(TelemetryMessageSource.Instance.Match(telemetryMessageSource));
-            
+
             Assert.False(TelemetryMessageSource.Instance.Match(TwinChangeEventMessageSource.Instance));
-            
-            Assert.True(TelemetryMessageSource.Instance.Match(ModuleMessageSource));          
-        }        
+
+            Assert.True(TelemetryMessageSource.Instance.Match(ModuleMessageSource));
+        }
 
         [Fact]
         public void TestModuleMessageSource()
@@ -121,7 +122,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [InlineData("/messages/modules/ModId1/*")]
         [InlineData("/messages/modules/ModId1/outputs")]
         [InlineData("/messages/modules/ModId1/outputs/*")]
-        [InlineData("/messages/modules/ModId1/outputs/Op1")]        
+        [InlineData("/messages/modules/ModId1/outputs/Op1")]
         public void TestModuleMessageSourcePatternMatch(string source)
         {
             CustomMessageSource customMessageSource = CustomMessageSource.Create(source);
@@ -141,6 +142,36 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         {
             CustomMessageSource customMessageSource = CustomMessageSource.Create(source);
             Assert.False(customMessageSource.Match(ModuleMessageSource));
+        }
+
+        [Fact]
+        public void MessageSourceRoundtripTest()
+        {
+            string json = JsonConvert.SerializeObject(TelemetryMessageSource.Instance);
+            IMessageSource deserializedMessageSource = JsonConvert.DeserializeObject<CustomMessageSource>(json);
+            Assert.NotNull(deserializedMessageSource);
+            Assert.True(TelemetryMessageSource.Instance.Match(deserializedMessageSource));
+
+            json = JsonConvert.SerializeObject(ModuleMessageSource.Create("module1"));
+            deserializedMessageSource = JsonConvert.DeserializeObject<CustomMessageSource>(json);
+            Assert.NotNull(deserializedMessageSource);
+            Assert.True(TelemetryMessageSource.Instance.Match(deserializedMessageSource));
+
+            json = JsonConvert.SerializeObject(ModuleMessageSource.Create("module1", "output1"));
+            deserializedMessageSource = JsonConvert.DeserializeObject<CustomMessageSource>(json);
+            Assert.NotNull(deserializedMessageSource);
+            Assert.True(TelemetryMessageSource.Instance.Match(deserializedMessageSource));
+
+            json = JsonConvert.SerializeObject(TwinChangeEventMessageSource.Instance);
+            deserializedMessageSource = JsonConvert.DeserializeObject<CustomMessageSource>(json);
+            Assert.NotNull(deserializedMessageSource);
+            Assert.True(TwinChangeEventMessageSource.Instance.Match(deserializedMessageSource));
+
+            IMessageSource customMessageSource = CustomMessageSource.Create("/messages/modules/ModId1/outputs/Op1");
+            json = JsonConvert.SerializeObject(customMessageSource);
+            deserializedMessageSource = JsonConvert.DeserializeObject<CustomMessageSource>(json);
+            Assert.NotNull(deserializedMessageSource);
+            Assert.True(customMessageSource.Match(deserializedMessageSource));
         }
     }
 }

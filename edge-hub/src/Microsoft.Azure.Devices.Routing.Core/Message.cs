@@ -59,7 +59,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
         }
 
-        [JsonConstructor]
         public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
         {
             this.MessageSource = messageSource;
@@ -71,6 +70,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.DequeuedTime = dequeuedTime;
 
             this.messageQueryProvider = new Lazy<IMessageQueryValueProvider>(this.GetMessageQueryProvider);
+        }
+
+        [JsonConstructor]
+        Message(CustomMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
+            : this((IMessageSource)messageSource, body, properties, systemProperties, offset, enqueuedTime, dequeuedTime)
+        {
         }
 
         public QueryValue GetQueryValue(string queryString)

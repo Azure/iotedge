@@ -1,10 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt.Subscription;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Xunit;
@@ -12,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     public class SessionStateTest
     {
         const string MethodPostTopicPrefix = "$iothub/methods/POST/";
+        const string TwinSubscriptionTopicPrefix = @"$iothub/twin/PATCH/properties/desired/";
 
         [Fact]
         [Unit]
@@ -20,12 +25,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
 
-            IReadOnlyList<ISubscriptionRegistration> registrations = sessionState.SubscriptionRegistrations;
+            IReadOnlyDictionary<string, bool> registrations = sessionState.SubscriptionRegistrations;
             IReadOnlyList<ISubscription> subs = sessionState.Subscriptions;
 
             Assert.NotNull(registrations);
             Assert.Equal(registrations.Count, 1);
-            Assert.IsType(typeof(MethodSubscriptionRegistration), registrations[0]);
+            Assert.True(registrations.ContainsKey(MethodPostTopicPrefix));
+            Assert.True(registrations[MethodPostTopicPrefix]);
             Assert.NotNull(subs);
             Assert.Equal(subs.Count, 1);
             Assert.Equal(subs[0].TopicFilter, MethodPostTopicPrefix);
@@ -41,12 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             sessionState.RemoveSubscription(MethodPostTopicPrefix);
 
-            IReadOnlyList<ISubscriptionRegistration> registrations = sessionState.SubscriptionRegistrations;
+            IReadOnlyDictionary<string, bool> registrations = sessionState.SubscriptionRegistrations;
             IReadOnlyList<ISubscription> subs = sessionState.Subscriptions;
 
             Assert.NotNull(registrations);
             Assert.Equal(registrations.Count, 1);
-            Assert.IsType(typeof(MethodSubscriptionDeregistration), registrations[0]);
+            Assert.True(registrations.ContainsKey(MethodPostTopicPrefix));
+            Assert.False(registrations[MethodPostTopicPrefix]);
             Assert.NotNull(subs);
             Assert.Equal(subs.Count, 0);
         }
@@ -59,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             sessionState.AddOrUpdateSubscription("Sometopic", QualityOfService.AtLeastOnce);
             sessionState.ClearRegistrations();
-            IReadOnlyList<ISubscriptionRegistration> registrations = sessionState.SubscriptionRegistrations;
+            IReadOnlyDictionary<string, bool> registrations = sessionState.SubscriptionRegistrations;
 
             Assert.NotNull(registrations);
             Assert.Equal(registrations.Count, 0);
@@ -84,11 +91,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Assert.Equal(copySession.Subscriptions[i].CreationTime, sessionState.Subscriptions[i].CreationTime);
             }
 
-            Assert.Equal(copySession.SubscriptionRegistrations.Count, sessionState.SubscriptionRegistrations.Count);
-            for (int i = 0; i < copySession.SubscriptionRegistrations.Count; i++)
+            Assert.Equal(copySession.SubscriptionRegistrations.Count, sessionState.SubscriptionRegistrations.Count);            
+            foreach(KeyValuePair<string, bool> subscriptionRegistration in copySession.SubscriptionRegistrations)
             {
-                Assert.Equal(copySession.SubscriptionRegistrations[i].GetType(), sessionState.SubscriptionRegistrations[i].GetType());
+                Assert.Equal(subscriptionRegistration.Value, sessionState.SubscriptionRegistrations[subscriptionRegistration.Key]);
             }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task SessionStateSeralizationTest()
+        {
+            SessionState sessionState = new SessionState(false);
+            sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.RemoveSubscription(TwinSubscriptionTopicPrefix);
+
+            Assert.True(sessionState.SubscriptionRegistrations.ContainsKey(MethodPostTopicPrefix));
+            Assert.True(sessionState.SubscriptionRegistrations.ContainsKey(TwinSubscriptionTopicPrefix));
+            Assert.True(sessionState.SubscriptionRegistrations[MethodPostTopicPrefix]);
+            Assert.False(sessionState.SubscriptionRegistrations[TwinSubscriptionTopicPrefix]);
+
+            IEntityStore<string, SessionState> entityStore = new StoreProvider(new InMemoryDbStoreProvider()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
+            string key = Guid.NewGuid().ToString();
+            await entityStore.Put(key, sessionState);
+            Option<SessionState> retrievedSessionStateOption = await entityStore.Get(key);
+            Assert.True(retrievedSessionStateOption.HasValue);
+            SessionState retrievedSessionState = retrievedSessionStateOption.OrDefault();
+            Assert.NotNull(retrievedSessionState);
+            Assert.NotNull(retrievedSessionState.Subscriptions);
+            Assert.NotNull(retrievedSessionState.Subscriptions.FirstOrDefault(s => s.TopicFilter == MethodPostTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(MethodPostTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(TwinSubscriptionTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[MethodPostTopicPrefix]);
+            Assert.False(retrievedSessionState.SubscriptionRegistrations[TwinSubscriptionTopicPrefix]);
         }
     }
 }

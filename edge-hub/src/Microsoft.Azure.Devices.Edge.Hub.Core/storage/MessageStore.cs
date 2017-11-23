@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         public async Task AddEndpoint(string endpointId)
         {
             ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(endpointId);
-            if(this.endpointSequentialStores.TryAdd(endpointId, sequentialStore))
+            if (this.endpointSequentialStores.TryAdd(endpointId, sequentialStore))
             {
                 Events.SequentialStoreAdded(endpointId);
             }
@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     foreach ((long offset, MessageRef msgRef) item in batch)
                     {
                         Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
-                        if(!messageWrapper.HasValue)
+                        if (!messageWrapper.HasValue)
                         {
                             Events.MessageNotFound(item.msgRef.EdgeMessageId);
                         }
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             messageWrapper
                                 .Map(m => this.AddMessageOffset(m.Message, item.offset))
                                 .ForEach(m => messageList.Add(m));
-                        }                        
+                        }
                     }
 
                     this.startingOffset = batch[batch.Count - 1].offset + 1;
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         /// <summary>
         /// Class that contains the message and is stored in the messa
         /// </summary>
-        class MessageWrapper
+        internal class MessageWrapper
         {
             public MessageWrapper(IMessage message)
                 : this(message, DateTime.UtcNow, 1)
@@ -192,6 +192,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
 
             [JsonConstructor]
+            MessageWrapper(Message message, DateTime timeStamp, int refCount)
+                : this((IMessage)message, timeStamp, refCount)
+            {
+            }
+
             public MessageWrapper(IMessage message, DateTime timeStamp, int refCount)
             {
                 Preconditions.CheckArgument(timeStamp != default(DateTime));

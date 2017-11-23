@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
@@ -11,10 +11,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class SessionStateStoragePersistenceProvider : ISessionStatePersistenceProvider
     {
-        readonly IEntityStore<string, ISessionState> sessionStore;
+        readonly IEntityStore<string, SessionState> sessionStore;
         readonly SessionStatePersistenceProvider sessionStatePersistenceProvider;
 
-        public SessionStateStoragePersistenceProvider(IConnectionManager connectionManager, IEntityStore<string, ISessionState> sessionStore)
+        public SessionStateStoragePersistenceProvider(IConnectionManager connectionManager, IEntityStore<string, SessionState> sessionStore)
         {
             this.sessionStore = Preconditions.CheckNotNull(sessionStore, nameof(sessionStore));
             this.sessionStatePersistenceProvider = new SessionStatePersistenceProvider(Preconditions.CheckNotNull(connectionManager, nameof(connectionManager)));
@@ -43,8 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         async Task<ISessionState> GetSessionFromStore(string id)
         {
-            Option<ISessionState> sessionState = await this.sessionStore.Get(id);
-            return sessionState.GetOrElse((ISessionState)null);
+            Option<SessionState> sessionState = await this.sessionStore.Get(id);
+            return sessionState.GetOrElse((SessionState)null);
         }
 
         Task PersistToStore(string id, ISessionState sessionState)
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return Task.CompletedTask;
             }
 
-            return registrationSessionState.ShouldSaveToStore ? this.sessionStore.PutOrUpdate(id, sessionState, u => sessionState) : Task.CompletedTask;
+            return registrationSessionState.ShouldSaveToStore ? this.sessionStore.PutOrUpdate(id, registrationSessionState, u => registrationSessionState) : Task.CompletedTask;
         }
     }
 }
