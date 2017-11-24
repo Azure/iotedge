@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import logging as log
 import sys
+import platform
 import edgectl.errors
 from edgectl.edgehostplatform import EdgeHostPlatform
 from edgectl.edgeconfiginteractive import EdgeConfigInteractive
@@ -85,8 +86,30 @@ class EdgeCLI(object):
     def _setup_logging(level):
         if EdgeCLI._LOGGING_INITIALIZED is False:
             EdgeCLI._LOGGING_INITIALIZED = True
-            log.basicConfig(format='%(levelname)s: %(message)s',
+            format = '%(levelname)s: %(message)s'
+            log.basicConfig(format=format,
                             level=getattr(log, level))
+            """
+            Workaround to avoid red error text for INFO, DEBUG, and WARNING messages in remote PowerShell
+            """
+            if platform.system().lower() == 'windows':
+                class ExclusiveMaxFilter(log.Filter):
+                    def __init__(self, level):
+                        self._level = level
+                    def filter(self, rec):
+                        return rec.levelno < self._level
+
+                log.getLogger().handlers = []
+
+                outHandler = log.StreamHandler(sys.stdout)
+                outHandler.addFilter(ExclusiveMaxFilter(log.ERROR))
+                outHandler.setFormatter(log.Formatter(format))
+                log.getLogger().addHandler(outHandler)
+
+                errHandler = log.StreamHandler(sys.stderr)
+                errHandler.setLevel(log.ERROR)
+                errHandler.setFormatter(log.Formatter(format))
+                log.getLogger().addHandler(errHandler)
 
     @property
     def _verbose_level(self):
