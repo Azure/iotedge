@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public static DbStoreProvider Create(string path, IEnumerable<string> partitionsList)
         {
-            IRocksDb db = ColumnFamilyStorageRocksDbWrapper.Create(path, partitionsList);
+            IRocksDb db = RocksDbWrapper.Create(path, partitionsList);
             IEnumerable<string> columnFamilies = db.ListColumnFamilies();
             IDictionary<string, IDbStore> entityDbStoreDictionary = new Dictionary<string, IDbStore>();
             foreach (string columnFamilyName in columnFamilies)
@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 if (this.entityDbStoreDictionary.TryRemove(partitionName, out IDbStore _))
                 {
-                    // TODO - Check if this deletes the data in the partition. It should as part of compaction.
                     this.db.DropColumnFamily(partitionName);
                 }
             }
@@ -88,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             if (disposing)
             {
                 this.db?.Dispose();
+                this.compactionTimer?.Dispose();
             }
         }
 

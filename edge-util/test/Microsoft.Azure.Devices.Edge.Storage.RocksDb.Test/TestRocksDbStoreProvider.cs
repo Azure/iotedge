@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         public void Dispose()
         {
             this.rocksDbStoreProvider?.Dispose();
-            if (!string.IsNullOrWhiteSpace(this.rocksDbFolder))
+            if (!string.IsNullOrWhiteSpace(this.rocksDbFolder) && Directory.Exists(this.rocksDbFolder))
             {
                 Directory.Delete(this.rocksDbFolder, true);
             }
