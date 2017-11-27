@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -33,8 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public static IDictionary<string, string> ToDictionary(this IReadOnlyDictionary<string, string> readOnlyDictionary)
         {
             Preconditions.CheckNotNull(readOnlyDictionary, nameof(readOnlyDictionary));
-            var properties = readOnlyDictionary as IDictionary<string, string>;
-            if (properties == null)
+            if (!(readOnlyDictionary is IDictionary<string, string> properties))
             {
                 properties = new Dictionary<string, string>();
                 foreach (KeyValuePair<string, string> item in readOnlyDictionary)

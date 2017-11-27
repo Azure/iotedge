@@ -44,8 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 return null;
             }
 
-            var bytes = value as byte[];
-            if (bytes == null)
+            if (!(value is byte[] bytes))
             {
                 string json = value.ToJson();
                 bytes = json.ToBytes();

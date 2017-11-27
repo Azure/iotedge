@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -37,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckNotNull(entityStore, nameof(entityStore));
             Option<(byte[] key, T value)> firstEntry = await entityStore.GetFirstEntry();
             Option<(byte[] key, T value)> lastEntry = await entityStore.GetLastEntry();
-            Func<(byte[] key, T), long> map = e => StoreUtils.GetOffsetFromKey(e.key);
-            long headOffset = firstEntry.Map(map).GetOrElse(DefaultHeadOffset);
-            long tailOffset = lastEntry.Map(map).GetOrElse(DefaultTailOffset);
+            long MapLocalFunction((byte[] key, T) e) => StoreUtils.GetOffsetFromKey(e.key);
+            long headOffset = firstEntry.Map(MapLocalFunction).GetOrElse(DefaultHeadOffset);
+            long tailOffset = lastEntry.Map(MapLocalFunction).GetOrElse(DefaultTailOffset);
             var sequentialStore = new SequentialStore<T>(entityStore, headOffset, tailOffset);
             return sequentialStore;
         }
