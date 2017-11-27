@@ -1,6 +1,4 @@
-FROM microsoft/dotnet:2.0.0-runtime-stretch-arm32v7
-
-ENV EdgeHubUser=root
+FROM azureiotedge/azureiotedge-hub-base:1.0-preview-linux-arm32v7
 
 ARG EXE_DIR=.
 ENV SSL_CERTIFICATE_PATH=/etc/ssl/certs

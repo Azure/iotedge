@@ -6,4 +6,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.6.0-preview-001" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="docker\linux\arm32v7\base\Dockerfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
