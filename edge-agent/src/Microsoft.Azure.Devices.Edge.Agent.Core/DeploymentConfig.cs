@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class DeploymentConfig
@@ -52,12 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 modules.Add(module.Key, module.Value);
             }
+            this.SystemModules.EdgeHub.ForEach(h => modules.Add(h.Name, h));
 
-            if (this.SystemModules.EdgeHub != null)
-            {
-                modules.Add(this.SystemModules.EdgeHub.Name, this.SystemModules.EdgeHub);
-            }
-            return modules.Count == 0 ? ModuleSet.Empty : new ModuleSet(modules);
+            return modules.Count == 0
+                ? ModuleSet.Empty
+                : new ModuleSet(modules);
         }
     }
 
@@ -66,33 +66,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonConstructor]
         public SystemModules(IEdgeAgentModule edgeAgent, IEdgeHubModule edgeHub)
         {
+            this.EdgeAgent = Option.Maybe(edgeAgent);
+            this.EdgeHub = Option.Maybe(edgeHub);
+        }
+
+        public SystemModules(Option<IEdgeAgentModule> edgeAgent, Option<IEdgeHubModule> edgeHub)
+        {
             this.EdgeAgent = edgeAgent;
             this.EdgeHub = edgeHub;
         }
 
         [JsonProperty(PropertyName = "edgeHub")]
-        public IEdgeHubModule EdgeHub { get; }
+        [JsonConverter(typeof(OptionConverter<IEdgeHubModule>))]
+        public Option<IEdgeHubModule> EdgeHub { get; }
 
         [JsonProperty(PropertyName = "edgeAgent")]
-        public IEdgeAgentModule EdgeAgent { get; }
+        [JsonConverter(typeof(OptionConverter<IEdgeAgentModule>))]
+        public Option<IEdgeAgentModule> EdgeAgent { get; }
 
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as SystemModules);
-        }
+        public override bool Equals(object obj) => this.Equals(obj as SystemModules);
 
         public bool Equals(SystemModules other)
         {
             return other != null &&
-                EqualityComparer<IEdgeHubModule>.Default.Equals(EdgeHub, other.EdgeHub) &&
-                EqualityComparer<IEdgeAgentModule>.Default.Equals(EdgeAgent, other.EdgeAgent);
+                EqualityComparer<Option<IEdgeHubModule>>.Default.Equals(EdgeHub, other.EdgeHub) &&
+                EqualityComparer<Option<IEdgeAgentModule>>.Default.Equals(EdgeAgent, other.EdgeAgent);
         }
 
         public override int GetHashCode()
         {
             var hashCode = -874519432;
-            hashCode = hashCode * -1521134295 + EqualityComparer<IEdgeHubModule>.Default.GetHashCode(EdgeHub);
-            hashCode = hashCode * -1521134295 + EqualityComparer<IEdgeAgentModule>.Default.GetHashCode(EdgeAgent);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeHubModule>>.Default.GetHashCode(EdgeHub);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeAgentModule>>.Default.GetHashCode(EdgeAgent);
             return hashCode;
         }
 

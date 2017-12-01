@@ -263,9 +263,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion, deploymentConfig.SchemaVersion);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeAgent.ConfigurationInfo.Id);
+                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeAgent.OrDefault().ConfigurationInfo.Id);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
-                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeHub.ConfigurationInfo.Id);
+                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeHub.OrDefault().ConfigurationInfo.Id);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.Equal(configurationId, deploymentConfig.Modules["mongoserver"].ConfigurationInfo.Id);
@@ -351,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         description = "All good",
                         configuration = new
                         {
-                            id = deploymentConfig.SystemModules.EdgeAgent.ConfigurationInfo.Id
+                            id = deploymentConfig.SystemModules.EdgeAgent.OrDefault().ConfigurationInfo.Id
                         }
                     },
                     edgeHub = new
@@ -360,7 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         description = "All good",
                         configuration = new
                         {
-                            id = deploymentConfig.SystemModules.EdgeHub.ConfigurationInfo.Id
+                            id = deploymentConfig.SystemModules.EdgeHub.OrDefault().ConfigurationInfo.Id
                         }
                     }
                 },
