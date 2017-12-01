@@ -212,7 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await CreateConfigurationAsync(registryManager, configurationId, $"tags.{conditionPropertyName}='{conditionPropertyValue}'", 10);
 
-                await Task.Delay(TimeSpan.FromSeconds(45));
+                // Service takes about 5 mins to sync config to twin
+                await Task.Delay(TimeSpan.FromMinutes(7));
 
                 string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
@@ -250,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
                 IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                await Task.Delay(TimeSpan.FromSeconds(20));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
@@ -273,7 +274,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 var reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                 await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
-                await Task.Delay(TimeSpan.FromSeconds(45));
+
+                // Service takes about 5 mins to sync statistics to config
+                await Task.Delay(TimeSpan.FromMinutes(7));
 
                 var config = await registryManager.GetConfigurationAsync(configurationId);
                 Assert.NotNull(config);

@@ -1,8 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
-    using System.Linq;
     using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -17,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     public class SessionStatePersistenceProviderTest
     {
-        const string MethodPostTopicPrefix = "$iothub/methods/POST/";
         Option<IStoreProvider> sessionStore = Option.Some<IStoreProvider>(new StoreProvider(new InMemoryDbStoreProvider()));
 
         [Fact]
@@ -45,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolgatewayDeviceIdentity identity = new Mock<IProtocolgatewayDeviceIdentity>().Object;
             var sessionProvider = new SessionStatePersistenceProvider(connectionManager.Object);
             ISessionState sessionState = new SessionState(false);
-            sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
@@ -65,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolgatewayDeviceIdentity identity = new Mock<IProtocolgatewayDeviceIdentity>().Object;
             var sessionProvider = new SessionStatePersistenceProvider(connectionManager.Object);
             ISessionState sessionState = new SessionState(false);
-            sessionState.RemoveSubscription(MethodPostTopicPrefix);
+            sessionState.RemoveSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
@@ -99,6 +97,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Task task = sessionProvider.DeleteAsync(identity.Object, It.IsAny<ISessionState>());
 
             Assert.True(task.IsCompleted);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestSetAsync_SetMultipleSubscriptions_ShouldComplete()
+        {
+            var cloudProxy = new Mock<ICloudProxy>();
+            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
+
+            IProtocolgatewayDeviceIdentity identity = new Mock<IProtocolgatewayDeviceIdentity>().Object;
+            var sessionProvider = new SessionStatePersistenceProvider(connectionManager.Object);
+            ISessionState sessionState = new SessionState(false);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.TwinResponseTopicFilter, QualityOfService.AtLeastOnce);
+            Task setTask = sessionProvider.SetAsync(identity, sessionState);
+
+            Assert.True(setTask.IsCompleted);
+            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
         }
     }
 }

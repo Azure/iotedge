@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -10,12 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Logging;
+    using static System.FormattableString;
 
     public class SessionStatePersistenceProvider : ISessionStatePersistenceProvider
     {
         internal const string C2DSubscriptionTopicPrefix = @"messages/devicebound/#";
         internal const string MethodSubscriptionTopicPrefix = @"$iothub/methods/POST/";
         internal const string TwinSubscriptionTopicPrefix = @"$iothub/twin/PATCH/properties/desired/";
+        internal const string TwinResponseTopicFilter = "$iothub/twin/res/#";
 
         readonly IConnectionManager connectionManager;
 
@@ -37,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Task SetAsync(IDeviceIdentity identity, ISessionState sessionState) =>
             sessionState is SessionState registrationSessionState ?
             this.ProcessSessionSubscriptions(identity.Id, registrationSessionState) :
-            Task.CompletedTask;        
+            Task.CompletedTask;
 
         async Task ProcessSessionSubscriptions(string id, SessionState sessionState)
         {
@@ -71,8 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             await cp.RemoveDesiredPropertyUpdatesAsync();
                         }
                     }
-                    else if (topicName.StartsWith(C2DSubscriptionTopicPrefix))
-                    {                        
+                    else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
+                    {
                         if (addSubscription)
                         {
                             cp.StartListening();
@@ -81,17 +83,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     }
                     else
                     {
-                        throw new InvalidOperationException($"Unknown subscription topic name: {topicName}");
+                        // Twin response topic filter is expected, and no action is necessary
+                        // Log any other unknown subscription.
+                        if (!topicName.Equals(TwinResponseTopicFilter))
+                        {
+                            Events.UnknownTopicSubscription(topicName);
+                        }
                     }
                 }
 
                 sessionState.ClearRegistrations();
-            });            
+            });
         }
 
-        public Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState)
+        public Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
+
+        static class Events
         {
-            return TaskEx.Done;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<SessionStatePersistenceProvider>();
+            const int IdStart = MqttEventIds.SessionStatePersistenceProvider;
+
+            enum EventIds
+            {
+                UnknownSubscription = IdStart
+            }
+
+            public static void UnknownTopicSubscription(string topicName)
+            {
+                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName}."));
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     public static class MqttEventIds
@@ -7,5 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const int SasTokenDeviceIdentityProvider = EventIdStart;
         public const int DeviceProxy = EventIdStart + 100;
         public const int MessagingServiceClient = EventIdStart + 200;
+        public const int SessionStatePersistenceProvider = EventIdStart + 300;        
     }
 }
