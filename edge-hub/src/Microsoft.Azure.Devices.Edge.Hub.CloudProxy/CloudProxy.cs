@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             if (connectionStatusChangedHandler != null)
             {
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
-                this.deviceClient.SetConnectionStatusChangesHandler(new ConnectionStatusChangesHandler(connectionStatusChangedHandler));
             }
         }
 
@@ -51,9 +50,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         await this.cloudReceiver.CloseAsync();
                     }
-                    await this.deviceClient.CloseAsync();                    
+                    await this.deviceClient.CloseAsync();
+                    this.deviceClient.Dispose();
+                    Events.Closed(this);
                 }
-                Events.Closed(this);
                 return true;
             }
             catch (Exception ex)

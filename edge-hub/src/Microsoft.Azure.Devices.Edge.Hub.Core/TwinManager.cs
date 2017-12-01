@@ -58,37 +58,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessConnectionEstablishedForDevice(IIdentity identity)
         {
-            // Report pending reported properties up to the cloud
-
-            using (await this.reportedPropertiesLock.LockAsync())
+            try
             {
-                await this.TwinStore.Match(
-                    async (store) =>
-                    {
-                        Option<TwinInfo> twinInfo = await store.Get(identity.Id);
-                        await twinInfo.Match(
-                            async (t) =>
-                            {
-                                if (t.ReportedPropertiesPatch.Count != 0)
+                // Report pending reported properties up to the cloud
+                Events.ProcessConnectionEstablishedForDevice(identity.Id);
+                using (await this.reportedPropertiesLock.LockAsync())
+                {
+                    await this.TwinStore.Match(
+                        async (store) =>
+                        {
+                            Option<TwinInfo> twinInfo = await store.Get(identity.Id);
+                            await twinInfo.Match(
+                                async (t) =>
                                 {
-                                    IMessage reported = this.twinCollectionConverter.ToMessage(t.ReportedPropertiesPatch);
-                                    await this.SendReportedPropertiesToCloudProxy(identity.Id, reported);
-                                    await store.Update(identity.Id, u => new TwinInfo(u.Twin, null, u.SubscribedToDesiredPropertyUpdates));
-                                    Events.ReportedPropertiesSyncedToCloudSuccess(identity.Id, t.ReportedPropertiesPatch.Version);
-                                }
-                            },
-                            () => { return Task.CompletedTask; });
-                    },
-                    () => { return Task.CompletedTask; }
-                    );
-            }
+                                    if (t.ReportedPropertiesPatch.Count != 0)
+                                    {
+                                        IMessage reported = this.twinCollectionConverter.ToMessage(t.ReportedPropertiesPatch);
+                                        await this.SendReportedPropertiesToCloudProxy(identity.Id, reported);
+                                        await store.Update(identity.Id, u => new TwinInfo(u.Twin, null, u.SubscribedToDesiredPropertyUpdates));
+                                        Events.ReportedPropertiesSyncedToCloudSuccess(identity.Id, t.ReportedPropertiesPatch.Version);
+                                    }
+                                },
+                                () => { return Task.CompletedTask; });
+                        },
+                        () => { return Task.CompletedTask; }
+                        );
+                }
 
-            // Refresh local copy of the twin
-            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
-            await cloudProxy.Map<Task>(
-                (cp) =>
-                    this.GetTwinInfoWhenCloudOnlineAsync(identity.Id, cp, true /* send update to device */)
-                ).GetOrElse(Task.CompletedTask);
+                // Refresh local copy of the twin
+                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
+                await cloudProxy.Map<Task>(
+                    async (cp) =>
+                    {
+                        Events.GetTwinOnEstablished(identity.Id);
+                        await this.GetTwinInfoWhenCloudOnlineAsync(identity.Id, cp, true /* send update to device */);
+                    }
+                    ).GetOrElse(Task.CompletedTask);
+            }
+            catch (Exception e)
+            {
+                Events.ConnectionEstablishedCallbackException(identity.Id, e);
+            }
         }
 
         internal void ConnectionEstablishedCallback(object sender, IIdentity identity)
@@ -150,6 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
             await deviceProxy.Match(dp => dp.OnDesiredPropertyUpdates(desired), () => throw new InvalidOperationException($"Device proxy unavailable for device {id}"));
+            TwinCollection patch = this.twinCollectionConverter.FromMessage(desired);
+            Events.SentDesiredPropertiesToDevice(id, patch.Version);
         }
 
         async Task UpdateDesiredPropertiesWithStoreSupportAsync(string id, IMessage desiredProperties)
@@ -182,11 +194,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             // Save the patch only if it is the next one that can be applied
                             if (desired.Version == u.Twin.Properties.Desired.Version + 1)
                             {
+                                Events.InOrderDesiredPropertyPatchReceived(
+                                    id,
+                                    u.Twin.Properties.Desired.Version,
+                                    desired.Version);
                                 string mergedJson = JsonEx.Merge(u.Twin.Properties.Desired, desired, /*treatNullAsDelete*/ true);
                                 u.Twin.Properties.Desired = new TwinCollection(mergedJson);
                             }
                             else
                             {
+                                Events.OutOfOrderDesiredPropertyPatchReceived(
+                                    id,
+                                    u.Twin.Properties.Desired.Version,
+                                    desired.Version);
                                 getTwin = true;
                             }
                             return new TwinInfo(u.Twin, u.ReportedPropertiesPatch, true);
@@ -262,8 +282,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         }),
                     () => throw new InvalidOperationException("Missing twin store"));
             }
-            if (diff != null)
+            if ((diff != null) && (diff.Count != 0))
             {
+                Events.SendDiffToDeviceProxy(diff.ToString(), id);
                 IMessage message = this.twinCollectionConverter.ToMessage(diff);
                 await this.SendDesiredPropertiesToDeviceProxy(id, message);
             }
@@ -534,7 +555,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 SendDesiredPropertyUpdateToSubscriber,
                 PreserveCachedTwin,
                 ConnectionLost,
-                ConnectionEstablished
+                ConnectionEstablished,
+                GetTwinOnEstablished,
+                SendDiffToDeviceProxy,
+                ProcessConnectionEstablishedForDevice,
+                RemoveThisGettingTwin,
+                RemoveThisDoneWithConnectionEstablished,
+                SentDesiredPropertiesToDevice,
+                InOrderDesiredPropertyPatchReceived,
+                OutOfOrderDesiredPropertyPatchReceived,
+                ConnectionEstablishedCallbackException
             }
 
             public static void UpdateReportedToCloudException(string identity, Exception e)
@@ -554,25 +584,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ValidatedTwinPropertiesSuccess(string id, long version)
             {
-                Log.LogDebug((int)EventIds.ValidatedTwinPropertiesSuccess, $"Successfully validated reported properties of " +
+                Log.LogDebug((int)EventIds.ValidatedTwinPropertiesSuccess, "Successfully validated reported properties of " +
                     $"twin with id {id} and reported properties version {version}");
             }
 
             public static void SentReportedPropertiesToCloud(string id, long version)
             {
-                Log.LogInformation((int)EventIds.SentReportedPropertiesToCloud, $"Successfully sent reported properties to cloud " +
+                Log.LogDebug((int)EventIds.SentReportedPropertiesToCloud, "Successfully sent reported properties to cloud " +
                     $"for {id} and reported properties version {version}");
             }
 
             public static void NeedsUpdateCachedReportedPropertiesPatch(string id, long version)
             {
-                Log.LogDebug((int)EventIds.NeedsUpdateCachedReportedPropertiesPatch, $"Collective reported properties needs " +
+                Log.LogDebug((int)EventIds.NeedsUpdateCachedReportedPropertiesPatch, "Collective reported properties needs " +
                     $"update for {id} and reported properties version {version}");
             }
 
             public static void UpdatingReportedPropertiesPatchCollection(string id, long version)
             {
-                Log.LogDebug((int)EventIds.UpdatingReportedPropertiesPatchCollection, $"Updating collective reported properties " +
+                Log.LogDebug((int)EventIds.UpdatingReportedPropertiesPatchCollection, "Updating collective reported properties " +
                     $"patch for {id} at version {version}");
             }
 
@@ -622,6 +652,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void ConnectionEstablished(string id)
             {
                 Log.LogDebug((int)EventIds.ConnectionEstablished, $"ConnectionEstablished for {id}");
+            }
+
+            public static void GetTwinOnEstablished(string id)
+            {
+                Log.LogDebug((int)EventIds.GetTwinOnEstablished, $"Getting twin for {id} on ConnectionEstablished");
+            }
+
+            public static void SendDiffToDeviceProxy(string diff, string id)
+            {
+                Log.LogDebug((int)EventIds.SendDiffToDeviceProxy, $"Sending diff {diff} to {id}");
+            }
+
+            public static void ProcessConnectionEstablishedForDevice(string id)
+            {
+                Log.LogDebug((int)EventIds.ProcessConnectionEstablishedForDevice, $"Processing ConnectionEstablished for device {id}");
+            }
+
+            public static void SentDesiredPropertiesToDevice(string id, long version)
+            {
+                Log.LogDebug((int)EventIds.SentDesiredPropertiesToDevice, $"Sent desired properties at version {version} to device {id}");
+            }
+
+            public static void InOrderDesiredPropertyPatchReceived(string id, long from, long to)
+            {
+                Log.LogDebug((int)EventIds.InOrderDesiredPropertyPatchReceived, "In order desired property patch" +
+                                    $" from {from} to {to} for device {id}");
+            }
+
+            public static void OutOfOrderDesiredPropertyPatchReceived(string id, long from, long to)
+            {
+                Log.LogDebug((int)EventIds.OutOfOrderDesiredPropertyPatchReceived, "Out of order desired property patch" +
+                                    $" from {from} to {to} for device {id}");
+            }
+
+            public static void ConnectionEstablishedCallbackException(string id, Exception e)
+            {
+                Log.LogWarning((int)EventIds.ConnectionEstablishedCallbackException, $"ConnectionEstablished for {id} " +
+                    $"callback hit exception: {e.GetType()} {e.Message}");
             }
         }
     }

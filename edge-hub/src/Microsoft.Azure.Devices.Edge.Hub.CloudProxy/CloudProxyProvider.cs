@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString, identity.ProductInfo);
+            Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString, identity.ProductInfo, connectionStatusChangedHandler);
             if (!tryDeviceClient.Success)
             {
                 Events.ConnectError(identity.Id, tryDeviceClient.Exception);
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return Try.Success(cloudProxy);
         }
 
-        async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString, string productInfo)
+        async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString, string productInfo, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             try
@@ -69,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                 // so we'll do it explicitly until we can get the SDK sorted out.
                 return await Fallback.ExecuteAsync(
-                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[0]),
-                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[1]));
+                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[0], connectionStatusChangedHandler),
+                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[1], connectionStatusChangedHandler));
 
                 // TODO: subsequent links will still try AMQP first, then fall back to AMQP over WebSocket. In the worst
                 // case, an edge device might end up with one connection pool for AMQP and one for AMQP over WebSocket. Once
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettings)
+        async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettings, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType());
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new ITransportSettings[] { transportSettings });
@@ -93,7 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 deviceClient.OperationTimeoutInMilliseconds = DefaultOperationTimeoutMilliseconds;
             }
             deviceClient.ProductInfo = productInfo;
-
+            if (connectionStatusChangedHandler != null)
+            {
+                deviceClient.SetConnectionStatusChangesHandler(new ConnectionStatusChangesHandler(connectionStatusChangedHandler));
+            }
             await deviceClient.OpenAsync();
             Events.ConnectedWithTransport(transportSettings.GetTransportType());
             return deviceClient;
