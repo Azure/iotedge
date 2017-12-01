@@ -5,7 +5,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 
 RUN New-SelfSignedCertificate -Subject ('CN={0}' -f $Env:ComputerName) -CertStoreLocation Cert:\CurrentUser\My; `
     CertUtil -ExportPFX -user -p `\"`\" my $Env:ComputerName \edge-server.pfx; `
-    Invoke-WebRequest https://jiriabits.blob.core.windows.net/files/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
+    Invoke-WebRequest https://edgeblddiag.blob.core.windows.net/dotnet/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
 
 FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
 

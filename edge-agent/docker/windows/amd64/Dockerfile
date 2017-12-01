@@ -3,7 +3,7 @@ FROM microsoft/windowsservercore:1709 AS installer-env
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-RUN Invoke-WebRequest https://jiriabits.blob.core.windows.net/files/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
+RUN Invoke-WebRequest https://edgeblddiag.blob.core.windows.net/dotnet/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
 
 FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
 
