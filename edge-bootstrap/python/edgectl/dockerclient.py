@@ -11,7 +11,16 @@ class EdgeDockerClient(object):
 
     def __init__(self):
         self._client = docker.DockerClient.from_env()
-        self._api_client = docker.APIClient()
+        params_dict = docker.utils.kwargs_from_env()
+        base_url = None
+        tls = None
+        if params_dict:
+            keys_list = list(params_dict.keys())
+            if 'base_url' in keys_list:
+                base_url = params_dict['base_url']
+            if 'tls' in keys_list:
+                tls = params_dict['tls']
+        self._api_client = docker.APIClient(base_url=base_url, tls=tls)
 
     def check_availability(self):
         is_available = False
