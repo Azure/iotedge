@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public async Task ExecuteAsync(CancellationToken token)
         {
-            foreach(var command in this.commandGroup)
+            foreach(ICommand command in this.commandGroup)
             {
                 await command.ExecuteAsync(token);
             }
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public async Task UndoAsync(CancellationToken token)
         {
-            foreach (var command in this.commandGroup)
+            foreach (ICommand command in this.commandGroup)
             {
                 await command.UndoAsync(token);
             }
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         public string Show()
         {
             string showString = "Command Group: (";
-            foreach (var command in this.commandGroup)
+            foreach (ICommand command in this.commandGroup)
             {
                 showString += "[" + command.Show() + "]";
             }

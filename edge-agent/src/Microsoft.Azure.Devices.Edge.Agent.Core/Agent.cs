@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 this.GetCurrentModuleSetAsync(token), this.GetDeploymentConfigInfoAsync()
             );
 
-            var exceptions = new Exception[]
+            IEnumerable<Exception> exceptions = new[]
             {
                 environmentException,
                 configSourceException,
@@ -83,13 +84,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }.Where(e => e != null);
 
             Exception exception = null;
-            if (exceptions.Count() > 1)
+            IList<Exception> exceptionsAsList = exceptions as IList<Exception> ?? exceptions.ToList();
+
+            if (exceptionsAsList.Count() <= 1)
             {
-                exception = new AggregateException(exceptions);
+                if (exceptionsAsList.Any())
+                {
+                    exception = exceptionsAsList.First();
+                }
             }
-            else if (exceptions.Count() > 0)
+            else
             {
-                exception = exceptions.First();
+                exception = new AggregateException(exceptionsAsList);
             }
 
             return (current, deploymentConfigInfo, exception);

@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     if (this.usePersistentStorage)
                     {
                         // Create partition for mma
-                        var partitionsList = new List<string> { Constants.MMAStorePartitionKey };
+                        var partitionsList = new List<string> { Constants.MmaStorePartitionKey };
                         try
                         {
                             IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(this.storagePath, partitionsList);
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IEntityStore<string, RestartState>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>(Constants.MMAStorePartitionKey))
+            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>(Constants.MmaStorePartitionKey))
                 .As<IEntityStore<string, ModuleState>>()
                 .SingleInstance();
 

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         static readonly IDictionary<string, bool> Labels = new Dictionary<string, bool>
         {
-            { $"{CoreConstants.Labels.Owner}={CoreConstants.Owner}", true }
+            { $"{CoreConstants.Labels.Owner}={CoreConstants.OwnerValue}", true }
         };
 
         readonly IDockerClient client;

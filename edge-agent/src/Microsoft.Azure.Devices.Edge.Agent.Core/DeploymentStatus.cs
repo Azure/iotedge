@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public override int GetHashCode()
         {
-            var hashCode = 1291371069;
+            int hashCode = 1291371069;
             hashCode = hashCode * -1521134295 + this.Code.GetHashCode();
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Description);
             return hashCode;

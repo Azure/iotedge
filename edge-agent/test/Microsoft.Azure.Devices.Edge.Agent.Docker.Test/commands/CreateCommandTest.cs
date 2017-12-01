@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         new Dictionary<string, string>
                         {
                             { "EdgeHubConnectionString", fakeConnectionString },
-                            { Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert" }
+                            { Constants.EdgeModuleCaCertificateFileKey, "/module.ca.cert" }
                         }).Build();
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
                     // certificates env variables
-                    Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCACertificateFileKey]);
+                    Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCaCertificateFileKey]);
                 }
             }
             finally
@@ -181,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 {
                     var mountMap = new Dictionary<string, string>()
                     {
-                        {Constants.EdgeModuleCACertificateFileKey, "/module.ca.cert"},
-                        {Constants.EdgeModuleHubServerCAChainCertificateFileKey, "/module.ca.chain.cert"},
+                        {Constants.EdgeModuleCaCertificateFileKey, "/module.ca.cert"},
+                        {Constants.EdgeModuleHubServerCaChainCertificateFileKey, "/module.ca.chain.cert"},
                         {Constants.EdgeModuleHubServerCertificateFileKey, "/module.server.cert"}
                     };
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                             { "EdgeHubConnectionString", fakeConnectionString },
                             {Docker.Constants.NetworkIdKey, "testnetwork" },
                             {Constants.EdgeDeviceHostNameKey, "testdevice" },
-                            {Constants.EdgeModuleHubServerCAChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey] },
+                            {Constants.EdgeModuleHubServerCaChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCaChainCertificateFileKey] },
                             {Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
@@ -251,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
                     // certificates env variables
-                    Assert.Equal("/module.ca.chain.cert", envMap[Constants.EdgeModuleHubServerCAChainCertificateFileKey]);
+                    Assert.Equal("/module.ca.chain.cert", envMap[Constants.EdgeModuleHubServerCaChainCertificateFileKey]);
                     Assert.Equal("/module.server.cert", envMap[Constants.EdgeModuleHubServerCertificateFileKey]);
                 }
             }

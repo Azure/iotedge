@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
-                var modules = new Dictionary<string, IDictionary<string, IModule>>(serializer.Deserialize<IDictionary<string, IDictionary<string, IModule>>>(reader), StringComparer.OrdinalIgnoreCase)
+                Dictionary<string, IModule> modules = new Dictionary<string, IDictionary<string, IModule>>(serializer.Deserialize<IDictionary<string, IDictionary<string, IModule>>>(reader), StringComparer.OrdinalIgnoreCase)
                     .GetOrElse("modules", new Dictionary<string, IModule>())
                     .ToDictionary(pair => pair.Key, pair => { pair.Value.Name = pair.Key; return pair.Value; });
 

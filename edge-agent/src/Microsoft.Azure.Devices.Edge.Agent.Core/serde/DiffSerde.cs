@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
             foreach (JToken xtoken in modules.Children())
             {
                 JToken xtokenFirst = xtoken.First;
-                var name = xtokenFirst.Path.Split('.')[1];
+                string name = xtokenFirst.Path.Split('.')[1];
 
                 if (xtokenFirst.HasValues)
                 {
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Serde
                     {
                         throw new JsonSerializationException($"Could not find right converter given type {converterType.Value<string>()}");
                     }
-                    var module = ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType);
+                    IModule module = ModuleSerde.Instance.Deserialize(xtokenFirst.ToString(), serializeType);
                     module.Name = name;
                     updateList.Add(module);
                 }

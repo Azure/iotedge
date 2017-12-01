@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public static class Constants
     {
-        public const string Owner = "Microsoft.Azure.Devices.Edge.Agent";
+        public const string OwnerValue = "Microsoft.Azure.Devices.Edge.Agent";
 
         // Connection string of the Edge Device.
         public const string EdgeDeviceConnectionStringKey = "EdgeDeviceConnectionString";
@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ModuleIdKey = "ModuleId";
 
-        public const string MMAStorePartitionKey = "mma";
+        public const string MmaStorePartitionKey = "mma";
 
         public const RestartPolicy DefaultRestartPolicy = RestartPolicy.OnUnhealthy;
 
@@ -40,9 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeModuleVolumePathKey = "EdgeModuleVolumePath";
 
-        public const string EdgeModuleCACertificateFileKey = "EdgeModuleCACertificateFile";
+        public const string EdgeModuleCaCertificateFileKey = "EdgeModuleCACertificateFile";
 
-        public const string EdgeModuleHubServerCAChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
+        public const string EdgeModuleHubServerCaChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
 
         public const string EdgeModuleHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
 

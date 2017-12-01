@@ -89,15 +89,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public bool Equals(SystemModules other)
         {
             return other != null &&
-                EqualityComparer<Option<IEdgeHubModule>>.Default.Equals(EdgeHub, other.EdgeHub) &&
-                EqualityComparer<Option<IEdgeAgentModule>>.Default.Equals(EdgeAgent, other.EdgeAgent);
+                EqualityComparer<Option<IEdgeHubModule>>.Default.Equals(this.EdgeHub, other.EdgeHub) &&
+                EqualityComparer<Option<IEdgeAgentModule>>.Default.Equals(this.EdgeAgent, other.EdgeAgent);
         }
 
         public override int GetHashCode()
         {
-            var hashCode = -874519432;
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeHubModule>>.Default.GetHashCode(EdgeHub);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeAgentModule>>.Default.GetHashCode(EdgeAgent);
+            int hashCode = -874519432;
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeHubModule>>.Default.GetHashCode(this.EdgeHub);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<IEdgeAgentModule>>.Default.GetHashCode(this.EdgeAgent);
             return hashCode;
         }
 

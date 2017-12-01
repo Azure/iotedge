@@ -24,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         readonly static List<string> EdgeCertEnvVarKeysList = new List<string>
         {
-            Constants.EdgeModuleCACertificateFileKey,
-            Constants.EdgeModuleHubServerCAChainCertificateFileKey,
+            Constants.EdgeModuleCaCertificateFileKey,
+            Constants.EdgeModuleHubServerCaChainCertificateFileKey,
             Constants.EdgeModuleHubServerCertificateFileKey,
             Constants.EdgeHubVolumeNameKey,
             Constants.EdgeModuleVolumeNameKey,
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             // Inject required Edge parameters
             createContainerParameters.Labels = createContainerParameters.Labels ?? new Dictionary<string, string>();
 
-            createContainerParameters.Labels[Constants.Labels.Owner] = Constants.Owner;
+            createContainerParameters.Labels[Constants.Labels.Owner] = Constants.OwnerValue;
             createContainerParameters.Labels[Constants.Labels.NormalizedCreateOptions] = createOptionsString;
             createContainerParameters.Labels[Constants.Labels.RestartPolicy] = module.RestartPolicy.ToString();
             createContainerParameters.Labels[Constants.Labels.DesiredStatus] = module.DesiredStatus.ToString();
@@ -210,10 +210,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             if (injectForEdgeHub)
             {
                 // for the EdgeHub we need to inject the CA chain cert that was used to sign the Hub server certificate
-                string moduleCAChainCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCAChainCertificateFileKey, string.Empty);
+                string moduleCAChainCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCaChainCertificateFileKey, string.Empty);
                 if (string.IsNullOrWhiteSpace(moduleCAChainCertFile) == false)
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCAChainCertificateFileKey}={moduleCAChainCertFile}");
+                    varsList.Add($"{Constants.EdgeModuleHubServerCaChainCertificateFileKey}={moduleCAChainCertFile}");
                 }
 
                 // for the EdgeHub we also need to inject the Hub server certificate which will be used for TLS connections
@@ -236,10 +236,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {
                 // for all Edge modules, the agent should inject the CA certificate that can be used for Edge Hub server certificate
                 // validation
-                string moduleCACertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleCACertificateFileKey, string.Empty);
+                string moduleCACertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleCaCertificateFileKey, string.Empty);
                 if (string.IsNullOrWhiteSpace(moduleCACertFile) == false)
                 {
-                    varsList.Add($"{Constants.EdgeModuleCACertificateFileKey}={moduleCACertFile}");
+                    varsList.Add($"{Constants.EdgeModuleCaCertificateFileKey}={moduleCACertFile}");
                 }
 
                 // mount module volume

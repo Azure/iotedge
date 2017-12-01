@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -37,7 +37,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         /// the value is <c>null</c>. In this case, when deserializing the JSON, the deserializer
         /// (<see cref="Microsoft.Azure.Devices.Edge.Agent.Core.Serde.DiffSerde"/>) is unable
         /// to construct an <see cref="IModule"/> object from the value <c>null</c>. All it
-        /// can do is populate a set of strings with module names. Hence an <see cref="IImmutableSet{string}"/>.
+        /// can do is populate a set of strings with module names. Hence an <see>
+        ///         <cref>IImmutableSet{string}</cref>
+        ///     </see>
+        ///     .
         /// </remarks>
         public IImmutableSet<string> Removed { get; }
 

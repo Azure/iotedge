@@ -75,12 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             return new Diff(created.Concat(updated).ToList(), removed.ToList());
         }
 
-        public override bool Equals(object obj) => Equals(obj as ModuleSet);
+        public override bool Equals(object obj) => this.Equals(obj as ModuleSet);
 
         public bool Equals(ModuleSet other) => other != null &&
-                   ModuleDictionaryComparer.Equals(Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
+                   ModuleDictionaryComparer.Equals(this.Modules.ToImmutableDictionary(), other.Modules.ToImmutableDictionary());
 
-        public override int GetHashCode() => 1729798618 + ModuleDictionaryComparer.GetHashCode(Modules.ToImmutableDictionary());
+        public override int GetHashCode() => 1729798618 + ModuleDictionaryComparer.GetHashCode(this.Modules.ToImmutableDictionary());
 
         public static bool operator ==(ModuleSet set1, ModuleSet set2) =>
                    ((object)set1 == null && (object)set2 == null)

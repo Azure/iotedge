@@ -14,19 +14,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using DiffState = System.ValueTuple<
         // added modules
-        System.Collections.Generic.IEnumerable<IModule>,
+        System.Collections.Generic.IList<IModule>,
 
         // updated modules because of deployment
-        System.Collections.Generic.IEnumerable<IModule>,
+        System.Collections.Generic.IList<IModule>,
 
         // update modules because runtime state changed
-        System.Collections.Generic.IEnumerable<IRuntimeModule>,
+        System.Collections.Generic.IList<IRuntimeModule>,
 
         // removed modules
-        System.Collections.Generic.IEnumerable<IRuntimeModule>,
+        System.Collections.Generic.IList<IRuntimeModule>,
 
         // modules that are running great
-        System.Collections.Generic.IEnumerable<IRuntimeModule>
+        System.Collections.Generic.IList<IRuntimeModule>
     >;
 
     public class HealthRestartPlanner : IPlanner
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(async module =>
             {
-                var group = await GroupCommand.CreateAsync(
+                ICommand group = await GroupCommand.CreateAsync(
                     // restart the module
                     // await this.commandFactory.RestartAsync(module),
 
@@ -110,8 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             Diff diff = desired.Diff(current);
 
-            IEnumerable<IModule> added = diff.Updated.Where(m => !current.TryGetModule(m.Name, out _));
-            IEnumerable<IRuntimeModule> removed = diff.Removed.Select(name => (IRuntimeModule)current.Modules[name]);
+            IList<IModule> added = diff.Updated.Where(m => !current.TryGetModule(m.Name, out _)).ToList();
+            IList<IRuntimeModule> removed = diff.Removed.Select(name => (IRuntimeModule)current.Modules[name]).ToList();
 
             // We are interested in 2 kinds of "updated" modules:
             //
@@ -123,15 +123,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // We need to be able to distinguish between the two cases because for the latter
             // we want to apply the restart policy and for the former we want to simply
             // re-deploy.
-            IEnumerable<IModule> updateDeployed = diff.Updated.Except(added); // TODO: Should we do module name comparisons below instead of object comparisons? Faster?
+            IList<IModule> updateDeployed = diff.Updated.Except(added).ToList(); // TODO: Should we do module name comparisons below instead of object comparisons? Faster?
 
-            IEnumerable<IRuntimeModule> currentRuntimeModules = current.Modules.Values
+            IList<IRuntimeModule> currentRuntimeModules = current.Modules.Values
                 .Select(m => (IRuntimeModule)m)
                 .Except(removed) // TODO: Should we do module name comparisons below instead of object comparisons? Faster?
-                .Except(updateDeployed.Select(m => current.Modules[m.Name] as IRuntimeModule));
+                .Except(updateDeployed.Select(m => current.Modules[m.Name] as IRuntimeModule)).ToList();
 
-            IEnumerable<IRuntimeModule> updateStateChanged = currentRuntimeModules
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus != ModuleStatus.Running);
+            IList<IRuntimeModule> updateStateChanged = currentRuntimeModules
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus != ModuleStatus.Running).ToList();
 
             // Apart from all of the lists above, there can be modules in "current" where neither
             // the desired state has changed nor the runtime state has changed. For example, a module
@@ -142,8 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // Note that we are only interested in "running" modules. If there's a module that was
             // expected to be in the "stopped" state and continues to be in the "stopped" state, that
             // is not very interesting to us.
-            IEnumerable<IRuntimeModule> runningGreat = currentRuntimeModules
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running);
+            IList<IRuntimeModule> runningGreat = currentRuntimeModules
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running).ToList();
 
             return (added, updateDeployed, updateStateChanged, removed, runningGreat);
         }
@@ -152,7 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
-            var modulesAddedOrUpdated = added.Concat(updateDeployed);
+
+            IList<IModule> modulesAddedOrUpdated = added.Concat(updateDeployed).ToList();
 
             // create "stop" commands for modules that have been updated/removed
             IEnumerable<Task<ICommand>> stopTasks = updateDeployed
@@ -218,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .ToList();
 
             Events.PlanCreated(commands);
-            return new Core.Plan(commands);
+            return new Plan(commands);
         }
     }
 
@@ -230,7 +231,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         enum EventIds
         {
             PlanCreated = IdStart,
-            ScheduledModule = IdStart + 2,
             ClearRestartStats = IdStart + 3
         }
 
