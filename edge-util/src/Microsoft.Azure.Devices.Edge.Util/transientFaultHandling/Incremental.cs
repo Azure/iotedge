@@ -35,35 +35,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class with the specified retry settings.
-        /// </summary>
-        /// <param name="retryCount">The number of retry attempts.</param>
-        /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
-        /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
-        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(null, retryCount, initialInterval, increment)
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class with the specified name and retry settings.
         /// </summary>
-        /// <param name="name">The retry strategy name.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
-        public Incremental(string name, int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(name, retryCount, initialInterval, increment, DefaultFirstFastRetry)
+        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment) : this(retryCount, initialInterval, increment, DefaultFirstFastRetry)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.Incremental" /> class with the specified number of retry attempts, time interval, retry strategy, and fast start option. 
         /// </summary>
-        /// <param name="name">The retry strategy name.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
         /// <param name="initialInterval">The initial interval that will apply for the first retry.</param>
         /// <param name="increment">The incremental time value that will be used to calculate the progressive delay between retries.</param>
         /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
-        public Incremental(string name, int retryCount, TimeSpan initialInterval, TimeSpan increment, bool firstFastRetry) : base(name, firstFastRetry)
+        public Incremental(int retryCount, TimeSpan initialInterval, TimeSpan increment, bool firstFastRetry) : base(firstFastRetry)
         {
             Guard.ArgumentNotNegativeValue(retryCount, "retryCount");
             Guard.ArgumentNotNegativeValue(initialInterval.Ticks, "initialInterval");

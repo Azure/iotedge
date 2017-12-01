@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Util
+namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
@@ -66,7 +66,7 @@
     {
         readonly Func<string, string> keySelector;
 
-        internal readonly static StringKeyComparer DefaultStringKeyComparer = new StringKeyComparer(s => s.Split(new char[] { '=' }, 2)[0]);
+        internal readonly static StringKeyComparer DefaultStringKeyComparer = new StringKeyComparer(s => s.Split(new[] { '=' }, 2)[0]);
 
         internal StringKeyComparer(Func<string, string> keySelector)
         {

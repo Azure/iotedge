@@ -37,17 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         }
 
         public ExponentialBackoff(int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff)
-            : this(null, retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
+            : this(retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
         {
         }
 
-        public ExponentialBackoff(string name, int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff)
-            : this(name, retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
-        {
-        }
-
-        public ExponentialBackoff(string name, int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff, bool firstFastRetry)
-            : base(name, firstFastRetry)
+        public ExponentialBackoff(int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff, bool firstFastRetry)
+            : base(firstFastRetry)
         {
             Guard.ArgumentNotNegativeValue(retryCount, "retryCount");
             Guard.ArgumentNotNegativeValue(minBackoff.Ticks, "minBackoff");

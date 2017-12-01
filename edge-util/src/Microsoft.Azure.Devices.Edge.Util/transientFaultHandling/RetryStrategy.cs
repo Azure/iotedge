@@ -94,21 +94,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         }
 
         /// <summary>
-        /// Gets the name of the retry strategy.
-        /// </summary>
-        public string Name
-        {
-            get;
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="T:Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryStrategy" /> class. 
         /// </summary>
-        /// <param name="name">The name of the retry strategy.</param>
         /// <param name="firstFastRetry">true to immediately retry in the first attempt; otherwise, false. The subsequent retries will remain subject to the configured retry interval.</param>
-        protected RetryStrategy(string name, bool firstFastRetry)
+        protected RetryStrategy(bool firstFastRetry)
         {
-            this.Name = name;
             this.FastFirstRetry = firstFastRetry;
         }
 

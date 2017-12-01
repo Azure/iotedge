@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Common.ErrorHandling
         }
 
         public ExponentialBackoffStrategy(string name, int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff, bool firstFastRetry)
-            : base(name, firstFastRetry)
+            : base(firstFastRetry)
         {
             Contract.Assert(retryCount >= 0, "retryCount");
             Contract.Assert(minBackoff.Ticks >= 0, "minBackoff");

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static string Humanize(this TimeSpan ts)
         {
-            string str = "";
+            string str;
             if (ts.TotalSeconds > 60.0)
             {
                 str = string.Format("{0:D2}m:{1:D2}s", ts.Minutes, ts.Seconds);

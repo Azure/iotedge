@@ -1,9 +1,7 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
-    using System;
     using System.IO;
-    using System.Runtime.ExceptionServices;
     using System.Threading.Tasks;
 
     public class DiskFile

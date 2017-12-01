@@ -188,6 +188,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static Option<T> None<T>() => new Option<T>(default(T), false);
 
         public static Option<T> Maybe<T>(T value) where T : class =>
-            value == null ? Option.None<T>() : Option.Some(value);
+            value == null ? None<T>() : Some(value);
     }
 }

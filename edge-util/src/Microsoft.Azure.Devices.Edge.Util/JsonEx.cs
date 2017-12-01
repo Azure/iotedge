@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
-    using System.Collections.Generic;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using System.Linq;
@@ -34,15 +33,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 return patchToken;
             }
 
-            JObject patch = (JObject)patchToken;
-            JObject baseline = (JObject)baselineToken;
-            JObject result = new JObject(baseline);
+            var patch = (JObject)patchToken;
+            var baseline = (JObject)baselineToken;
+            var result = new JObject(baseline);
 
             foreach (JProperty patchProp in patch.Properties())
             {
                 if (IsValidToken(patchProp.Value))
                 {
-                    var baselineProp = baseline.Property(patchProp.Name);
+                    JProperty baselineProp = baseline.Property(patchProp.Name);
                     if (baselineProp != null && patchProp.Value.Type != JTokenType.Null)
                     {
                         JToken nestedResult = Merge(baselineProp.Value, patchProp.Value, treatNullAsDelete);
@@ -91,27 +90,27 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static JObject Diff(JToken fromToken, JToken toToken)
         {
-            JObject patch = new JObject();
+            var patch = new JObject();
 
             // both 'from' and 'to' must be objects
             if (fromToken.Type != JTokenType.Object || toToken.Type != JTokenType.Object)
                 return patch;
 
-            JObject from = (JObject)fromToken;
-            JObject to = (JObject)toToken;
+            var from = (JObject)fromToken;
+            var to = (JObject)toToken;
 
             foreach (JProperty fromProp in from.Properties())
             {
                 if (IsValidToken(fromProp.Value))
                 {
-                    var toProp = to.Property(fromProp.Name);
+                    JProperty toProp = to.Property(fromProp.Name);
                     if (toProp != null)
                     {
                         // if this property exists in 'to' and is an object then do a
                         // recursive deep diff
                         if (fromProp.Value.Type == JTokenType.Object && toProp.Value.Type == JTokenType.Object)
                         {
-                            var obj = Diff(fromProp.Value, toProp.Value);
+                            JObject obj = Diff(fromProp.Value, toProp.Value);
 
                             // if something was added in 'obj' then there's a diff to be
                             // patched in this sub-object
@@ -142,11 +141,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
             }
 
-            foreach (var toProp in to.Properties())
+            foreach (JProperty toProp in to.Properties())
             {
                 if (IsValidToken(toProp.Value))
                 {
-                    var fromProp = from.Property(toProp.Name);
+                    JProperty fromProp = from.Property(toProp.Name);
 
                     // if this property exists in 'to' but not in 'from' then
                     // add it to 'patch'

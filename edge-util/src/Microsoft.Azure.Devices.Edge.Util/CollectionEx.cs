@@ -69,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="strings">The source list of strings.</param>
         /// <param name="separators">Collection of separator characters to use as string delimiters.</param>
-        /// <returns>An <see cref="IDictionary{string, string}"/> containing the keys/values parsed
-        /// using the list of separators as delimiters.</returns>
+        /// <returns>An &lt;see cref="IDictionary&lt;string, string"/&gt; containing the keys/values parsed
+        ///  using the list of separators as delimiters.</returns>
         public static IDictionary<string, string> ToDictionary(this IEnumerable<string> strings, params char[] separators)
         {
             var dictionary = new Dictionary<string, string>();
@@ -90,12 +90,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return dictionary;
         }
 
-        public static TSource ElementAtOrDefault<TSource>(this IEnumerable<TSource> source, int index, TSource defaultValue)
+        public static TSource ElementAtOrDefault<TSource>(this ICollection<TSource> source, int index, TSource defaultValue)
         {
             return index >= 0 && index < source.Count() ? source.ElementAt(index) : defaultValue;
         }
 
-        public static string ElementAtOrEmpty(this IEnumerable<string> source, int index)
+        public static string ElementAtOrEmpty(this ICollection<string> source, int index)
         {
             return source.ElementAtOrDefault(index, string.Empty);
         }

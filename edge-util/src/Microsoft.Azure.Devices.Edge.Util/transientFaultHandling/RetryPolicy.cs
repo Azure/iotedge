@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
         /// <param name="delay">The delay that indicates how long the current thread will be suspended before the next iteration is invoked.</param>
         protected virtual void OnRetrying(int retryCount, Exception lastError, TimeSpan delay)
         {
-            this.Retrying?.Invoke(this, new RetryingEventArgs(retryCount, delay, lastError));
+            this.Retrying?.Invoke(this, new RetryingEventArgs(retryCount, lastError));
         }
     }
 }
