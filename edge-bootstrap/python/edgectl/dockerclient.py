@@ -210,7 +210,8 @@ class EdgeDockerClient(object):
             raise
 
     def create(self, image, container_name, detach_bool, env_dict, nw_name,
-               ports_dict, volume_dict, log_config_dict, mounts_list):
+               ports_dict, volume_dict, log_config_dict, mounts_list,
+               restart_policy_dict):
         try:
             logging.info('Executing docker create %s  name: %s  detach: %s' \
                          ' network: %s', image, container_name,
@@ -236,7 +237,8 @@ class EdgeDockerClient(object):
                                            ports=ports_dict,
                                            volumes=volume_dict,
                                            log_config=log_config_dict,
-                                           mounts=mounts_list)
+                                           mounts=mounts_list,
+                                           restart_policy=restart_policy_dict)
         except docker.errors.ContainerError as ex_ctr:
             logging.error('Container exited with errors: %s', container_name)
             print(ex_ctr)

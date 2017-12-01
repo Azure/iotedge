@@ -205,6 +205,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         ports_dict = {}
         volume_dict = {}
         mounts_list = []
+        restart_policy_dict = { 'Name': 'always' }
 
         edge_config = self._config_obj
         # create network for running all edge modules
@@ -226,7 +227,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         container_name = self._edge_runtime_container_name
         self._client.create(image, container_name, True, env_dict, nw_name,
                             ports_dict, volume_dict, log_config_dict,
-                            mounts_list)
+                            mounts_list, restart_policy_dict)
         self._mount_certificates_into_agent_container()
 
     def login(self):
