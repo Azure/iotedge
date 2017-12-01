@@ -273,29 +273,31 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             print('Runtime started.')
         return
 
+    def _stop(self):
+        status = self._status()
+        if status != self.EDGE_RUNTIME_STATUS_RUNNING:
+            log.info('Runtime is already stopped.')
+        else:
+            self._client.stop(self._edge_runtime_container_name)
+        log.info('Stopping all modules.')
+        self._client.stop_by_label(self._edge_agent_container_label)
+
     def stop(self):
         log.info('Executing \'stop\'')
-        container_name = self._edge_runtime_container_name
 
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
             log.error('Edge Agent container \'%s\' does not exist.',
-                      container_name)
+                      self._edge_runtime_container_name)
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
         else:
-            if status != self.EDGE_RUNTIME_STATUS_RUNNING:
-                log.info('Runtime is already stopped.')
-            else:
-                self._client.stop(container_name)
-            log.info('Stopping all modules.')
-            self._client.stop_by_label(self._edge_agent_container_label)
+            self._stop()
             print('Runtime stopped.')
         return
 
     def restart(self):
         log.info('Executing \'restart\'')
-        container_name = self._edge_runtime_container_name
 
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
@@ -303,7 +305,8 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         elif status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
         else:
-            self._client.restart(container_name)
+            self._stop()
+            self._client.restart(self._edge_runtime_container_name)
             print('Runtime restarted.')
         return
 
