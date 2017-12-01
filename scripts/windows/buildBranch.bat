@@ -63,8 +63,8 @@ if exist "%VERSIONINFO_FILE_PATH%" (
 	echo Updating versionInfo.json file with the build ID and commit ID.
 	echo.
 
-	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'BUILDNUMBER', %BUILD_BUILDID% | Out-File %VERSIONINFO_FILE_PATH%"
-	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'COMMITID', %BUILD_SOURCEVERSION% | Out-File %VERSIONINFO_FILE_PATH%"
+	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'BUILDNUMBER', '%BUILD_BUILDID%' | Out-File %VERSIONINFO_FILE_PATH%"
+	powershell -Command "(gc %VERSIONINFO_FILE_PATH%) -replace 'COMMITID', '%BUILD_SOURCEVERSION%' | Out-File %VERSIONINFO_FILE_PATH%"
 
 ) else (
 

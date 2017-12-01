@@ -5,6 +5,9 @@
     [ValidateNotNullOrEmpty()]
     [String]$NugetUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",
 
+    [ValidateNotNullOrEmpty()]
+    [String]$PythonUrl = "https://www.python.org/ftp/python/2.7.14/python-2.7.14.msi",
+
     [Switch]$Release
 )
 
@@ -34,6 +37,16 @@ New-Item -ItemType Directory -Force -Path $baseFolder
 $packageExe = Join-Path -Path $baseFolder -ChildPath "nuget.exe"
 $webclient = New-Object System.Net.WebClient
 $webclient.DownloadFile($NugetUrl, $packageExe)
+
+if ($PythonUrl -like "http*") # We need to update the build config for the SDL build once this is checked in
+{
+    $baseFolder = Join-Path -Path $env:AGENT_WORKFOLDER -ChildPath "python"
+    New-Item -ItemType Directory -Force -Path $baseFolder
+    $packageMsi = Join-Path -Path $baseFolder -ChildPath "python.msi"
+    $webclient = New-Object System.Net.WebClient
+    $webclient.DownloadFile($PythonUrl, $packageMsi)
+    cmd /c start /wait msiexec /passive /package $packageMsi
+}
 
 if (-not $Release)
 {

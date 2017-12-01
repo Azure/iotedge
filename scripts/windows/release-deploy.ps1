@@ -35,7 +35,7 @@ if (-not $ImageVersion)
 
 function update_config_file($cfg_file)
 {
-    $config = Get-Content .\edgeConfiguration.json | % { $_ -replace "//.*$","" } | ConvertFrom-Json
+    $config = Get-Content $cfg_file | % { $_ -replace "//.*$","" } | ConvertFrom-Json
 
     $config.moduleContent.'$edgeAgent'.'properties.desired'.systemModules.edgeAgent.settings.image = 
         $script:agent_image_name
@@ -51,18 +51,21 @@ function update_config_file($cfg_file)
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-$script:agent_image_name="edgebuilds.azurecr.io/azureiotedge/edge-agent-windows-amd64:$ImageVersion"
-$script:edgehub_image_name="edgebuilds.azurecr.io/azureiotedge/edge-hub-windows-amd64:$ImageVersion"
-$iothub_connection="HostName=$IoTHubHostname;SharedAccessKeyName=$AccessKeyName;SharedAccessKey=$AccessKey"
-$deploy_tool_path=deploy
+$script:agent_image_name = "edgebuilds.azurecr.io/azureiotedge/edge-agent-windows-amd64:$ImageVersion"
+$script:edgehub_image_name = "edgebuilds.azurecr.io/azureiotedge/edge-hub-windows-amd64:$ImageVersion"
+$iothub_connection = "HostName=$IoTHubHostname;SharedAccessKeyName=$AccessKeyName;SharedAccessKey=$AccessKey"
+$deploy_tool_path = ".\deploy"
 
-Remove-Item -Path $deploy_tool_path -Recurse -Force
+if (Test-Path $deploy_tool_path)
+{
+    Remove-Item -Path $deploy_tool_path -Recurse -Force
+}
 mkdir $deploy_tool_path
 
 echo "Downloading package $DeployTool"
 $DeployToolDownload = ".\deploy.zip"
 Invoke-WebRequest -Uri $DeployTool -OutFile $DeployToolDownload
-Expand-Archive -Path $DeployToolDownload -DestinationPath $deploy_tool_path
+Expand-Archive -Path $DeployToolDownload -DestinationPath ".\"
 
 echo "Set configuration to $DeviceId"
 pushd $deploy_tool_path
@@ -71,7 +74,10 @@ $ConfigurationFilePath = "edgeConfiguration.json"
 
 update_config_file $ConfigurationFilePath
 
-./edge.cmd configSet -d $DeviceId -c ConfigurationFilePath -l $iothub_connection
+$dotnet = Join-Path -Path $env:AGENT_WORKFOLDER -ChildPath "dotnet"
+$env:PATH = ("{1};{0}" -f $env:PATH, $dotnet)
+
+./edge.cmd configSet -d $DeviceId -c $ConfigurationFilePath -l $iothub_connection
 if ($LastExitCode)
 {
     Throw "Error running deployment RES = $LastExitCode"

@@ -60,20 +60,18 @@ $iothub_connection = "HostName=$IoTHubHostname;SharedAccessKeyName=$AccessKeyNam
 
 echo "Bootstrap Edge"
 
-pushd edge-bootstrap
+$env:PATH += ";C:\Data\ProgramData\pyiotedge;C:\Data\ProgramData\pyiotedge\scripts;c:\python27\scripts"
 
 $EdgeCtlPath = "EdgeCtl"
 Expand-Archive -Path $EdgeCtl -DestinationPath $EdgeCtlPath
 
-pushd $EdgeCtlPath
+pushd $EdgeCtlPath\azure-iot-edge-runtime-ctl-*
 pip install -U .
 popd
 
 echo 'Clean up'
 Remove-Item -Path $EdgeCtl -Force
 Remove-Item -Path $EdgeCtlPath -Force -Recurse
-
-popd
 
 if (-not $EdgeHostname)
 {
@@ -84,8 +82,8 @@ iotedgectl --verbose INFO setup `
     --connection-string $device_connection `
     --image $agent_image_name `
     --docker-uri "npipe://./pipe/docker_engine" `
-    --docker-registries ($DockerRegistriesCsv -Split ",") `
-    $EdgeHostname
+    --docker-registries ($DockerRegistriesCsv -Split ",") 
+    #`    $EdgeHostname
 
 if ($LastExitCode)
 {
