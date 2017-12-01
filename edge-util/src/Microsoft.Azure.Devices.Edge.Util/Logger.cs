@@ -44,13 +44,23 @@ namespace Microsoft.Azure.Devices.Edge.Util
             var levelSwitch = new LoggingLevelSwitch();
             levelSwitch.MinimumLevel = logLevel;
             Serilog.Core.Logger loggerConfig = new LoggerConfiguration()
-                .MinimumLevel.ControlledBy(levelSwitch)
-                .Enrich.FromLogContext()
-                .WriteTo.Console(
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] - {Message}{NewLine}{Exception}"
-                )
-                .CreateLogger();
-
+                    .MinimumLevel.ControlledBy(levelSwitch)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console(
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}"
+                    )
+                    .CreateLogger();
+            if (levelSwitch.MinimumLevel <= LogEventLevel.Debug)
+            {
+                // Overwrite with richer content if less then debug
+                loggerConfig = new LoggerConfiguration()
+                    .MinimumLevel.ControlledBy(levelSwitch)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console(
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}"
+                    )
+                    .CreateLogger();
+            }
             ILoggerFactory factory = new LoggerFactory()
                 .AddSerilog(loggerConfig);
 
