@@ -55,15 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
-            // TODO: The persistent store as implemented right now uses a RocksDB based backend store.
-            // This doesn't work out great for edge agent because RocksDB does not quite support the notion
-            // of deleting records. It performs a soft delete that will get deleted for real at some future
-            // point in time which would have been perfectly fine except that it continues to return the
-            // deleted record during get operations. So we switch to the in-memory version of the store
-            // for now. When we have an alternate persistence implementation we will switch to that.
-            bool usePersistentStorage = false;
-            // bool usePersistentStorage = configuration.GetValue<bool>("UsePersistentStorage", true);
-
+            bool usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
             string storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
 
             // build the logger instance for the Program type
@@ -76,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
             string edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
             IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
-            var edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
+            EdgeHubConnectionString edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
                 .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
                 .SetGatewayHostName(edgeDeviceHostName)
                 .Build();
@@ -97,10 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             logger.LogInformation("Starting module management agent.");
-            var versionInfo = VersionInfo.Get(VersionInfoFileName);
+            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
-                logger.LogInformation($"Version - {versionInfo.ToString()}");
+                logger.LogInformation($"Version - {versionInfo}");
             }
             LogLogo(logger);
             var cts = new CancellationTokenSource();
@@ -109,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             IContainer container = GetContainer(builder, logger);
             int returnCode;
-            using (IConfigSource configSource = await container.Resolve<Task<IConfigSource>>())
+            using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
             {
                 Option<Agent> agentOption = Option.None<Agent>();
 
@@ -159,16 +151,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         private static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
         {
-            using (var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1)))
+            var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+            try
             {
-                try
-                {
-                    await agentOption.ForEachAsync((a) => a.ReportShutdownAsync(closeCts.Token));
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
-                }
+                await agentOption.ForEachAsync((a) => a.ReportShutdownAsync(closeCts.Token));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
             }
         }
 

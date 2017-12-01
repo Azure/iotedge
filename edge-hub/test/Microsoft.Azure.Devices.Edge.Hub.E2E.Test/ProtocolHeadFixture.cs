@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
-    using System.IO;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;

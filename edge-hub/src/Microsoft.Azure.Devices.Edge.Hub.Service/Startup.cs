@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder;
         readonly string edgeHubConnectionString;
 
+        // ReSharper disable once UnusedParameter.Local
         public Startup(IHostingEnvironment env)
         {
             this.Configuration = new ConfigurationBuilder()
@@ -97,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Register modules
             builder.RegisterModule(
                 new CommonModule(
-                    GetProductInfo(),
+                    this.GetProductInfo(),
                     this.iotHubConnectionStringBuilder.HostName,
                     this.iotHubConnectionStringBuilder.DeviceId));
             builder.RegisterModule(
@@ -136,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             if(isEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.Configuration.GetSection("storeAndForward");
-                timeToLiveSecs = storeAndForwardConfigurationSection.GetValue<int>("timeToLiveSecs", defaultTtl);
+                timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
 
                 if(usePersistentStorage)
                 {

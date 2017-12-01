@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -18,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly MessageAddressConversionConfiguration conversionConfiguration;
         readonly IConfiguration mqttSettingsConfiguration;
+        //TODO: This causes reSharperWarning. Remove this TODO once code below are uncommented. 
+        // ReSharper disable once NotAccessedField.Local
         readonly bool isStoreAndForwardEnabled;
 
         public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration, bool isStoreAndForwardEnabled)

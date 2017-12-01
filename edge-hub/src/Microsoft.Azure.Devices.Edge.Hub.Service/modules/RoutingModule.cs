@@ -175,8 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     async c =>
                     {
-                        IEndpointExecutorFactory endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
-                        RouterConfig routerConfig = c.Resolve<RouterConfig>();
+                        var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                        var routerConfig = c.Resolve<RouterConfig>();
                         Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory);
                         return router;
                     })
@@ -256,8 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                    c =>
                    {
-                       ICheckpointStore checkpointStore = c.Resolve<ICheckpointStore>();
-                       IDbStoreProvider dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                       var checkpointStore = c.Resolve<ICheckpointStore>();
+                       var dbStoreProvider = c.Resolve<IDbStoreProvider>();
                        IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                        IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
                        return messageStore;
@@ -269,8 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     c =>
                     {
-                        EndpointExecutorConfig endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
-                        IMessageStore messageStore = c.Resolve<IMessageStore>();
+                        var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
+                        var messageStore = c.Resolve<IMessageStore>();
                         IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1), messageStore);
                         return endpointExecutorFactory;
                     })
@@ -281,9 +281,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     async c =>
                     {
-                        ICheckpointStore checkpointStore = c.Resolve<ICheckpointStore>();
-                        RouterConfig routerConfig = c.Resolve<RouterConfig>();
-                        IEndpointExecutorFactory endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                        var checkpointStore = c.Resolve<ICheckpointStore>();
+                        var routerConfig = c.Resolve<RouterConfig>();
+                        var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
                         return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
                     })
                     .As<Task<Router>>()
@@ -303,7 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                     if (this.useTwinConfig)
                     {
-                        IIdentityFactory identityFactory = c.Resolve<IIdentityFactory>();
+                        var identityFactory = c.Resolve<IIdentityFactory>();
                         Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
                         if (!edgeHubIdentity.Success)
                         {

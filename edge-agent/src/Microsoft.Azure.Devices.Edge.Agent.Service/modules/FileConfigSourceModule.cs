@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    ISerde<DeploymentConfigInfo> serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                     IConfigSource config = await FileConfigSource.Create(
                         this.configFilename,
                         this.configuration,

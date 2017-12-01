@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
-    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;

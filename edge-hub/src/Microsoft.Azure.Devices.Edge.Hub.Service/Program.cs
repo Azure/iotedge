@@ -55,10 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Starting Edge Hub.");
-            var versionInfo = VersionInfo.Get(VersionInfoFileName);
+            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
-                logger.LogInformation($"Version - {versionInfo.ToString()}");
+                logger.LogInformation($"Version - {versionInfo}");
             }
             LogLogo(logger);
             var cts = new CancellationTokenSource();

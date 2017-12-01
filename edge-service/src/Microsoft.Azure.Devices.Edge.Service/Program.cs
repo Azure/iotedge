@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Service
+namespace Microsoft.Azure.Devices.Edge.Service
 {
     using Microsoft.Extensions.Configuration;
     using System.Linq;
@@ -20,13 +20,13 @@
                 .Build();
 
             // start up the hub
-            var hubTask = HubService.MainAsync(configuration);
+            Task<int> hubTask = HubService.MainAsync(configuration);
 
             // start up the edge agent
-            var agentTask = AgentService.MainAsync(configuration);
+            Task<int> agentTask = AgentService.MainAsync(configuration);
 
             // wait for both to terminate
-            var results = await Task.WhenAll(agentTask, hubTask);
+            int[] results = await Task.WhenAll(agentTask, hubTask);
 
             return results.Aggregate((acc, n) => acc + n);
         }

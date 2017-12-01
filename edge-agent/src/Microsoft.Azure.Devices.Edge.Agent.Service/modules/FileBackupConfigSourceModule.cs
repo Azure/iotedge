@@ -81,8 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    ISerde<DeploymentConfig> serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    IDeviceClient deviceClient = c.Resolve<IDeviceClient>();
+                    var serde = c.Resolve<ISerde<DeploymentConfig>>();
+                    var deviceClient = c.Resolve<IDeviceClient>();
                     IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
                     return edgeAgentConnection;
                 })
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        ISerde<DeploymentConfigInfo> serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                        var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         IEdgeAgentConnection edgeAgentConnection = await c.Resolve<Task<IEdgeAgentConnection>>();
                         var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
                         IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde);
