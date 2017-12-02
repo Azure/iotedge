@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
+    using System;
     using System.Collections.Generic;
+    // ReSharper disable once RedundantUsingDirective
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -11,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    
 
     public class CreateCommand : ICommand
     {
@@ -20,17 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         {
             {"8883/tcp", new PortBinding {HostPort="8883" } },
             {"443/tcp", new PortBinding {HostPort="443" } }
-        };
-
-        readonly static List<string> EdgeCertEnvVarKeysList = new List<string>
-        {
-            Constants.EdgeModuleCaCertificateFileKey,
-            Constants.EdgeModuleHubServerCaChainCertificateFileKey,
-            Constants.EdgeModuleHubServerCertificateFileKey,
-            Constants.EdgeHubVolumeNameKey,
-            Constants.EdgeModuleVolumeNameKey,
-            Constants.EdgeHubVolumePathKey,
-            Constants.EdgeModuleVolumePathKey
         };
 
         public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
@@ -95,7 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
             {
                 string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
-                string edgeDeviceConnectionString = $"{connectionStringKey}={identity.ConnectionString}";
                 var envVars = new List<string>()
                 {
                     $"{connectionStringKey}={identity.ConnectionString}"
@@ -116,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 createContainerParameters.HostConfig = createContainerParameters.HostConfig ?? new HostConfig();
                 createContainerParameters.HostConfig.PortBindings = createContainerParameters.HostConfig.PortBindings ?? new Dictionary<string, IList<PortBinding>>();
 
-                foreach (var binding in EdgeHubPortBinding)
+                foreach (KeyValuePair<string, PortBinding> binding in EdgeHubPortBinding)
                 {
                     IList<PortBinding> current = createContainerParameters.HostConfig.PortBindings.GetOrElse(binding.Key, () => new List<PortBinding>());
                     current.Add(binding.Value);
@@ -210,15 +201,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             if (injectForEdgeHub)
             {
                 // for the EdgeHub we need to inject the CA chain cert that was used to sign the Hub server certificate
-                string moduleCAChainCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCaChainCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCAChainCertFile) == false)
+                string moduleCaChainCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleHubServerCaChainCertificateFileKey, string.Empty);
+                if (string.IsNullOrWhiteSpace(moduleCaChainCertFile) == false)
                 {
-                    varsList.Add($"{Constants.EdgeModuleHubServerCaChainCertificateFileKey}={moduleCAChainCertFile}");
+                    varsList.Add($"{Constants.EdgeModuleHubServerCaChainCertificateFileKey}={moduleCaChainCertFile}");
                 }
 
                 // for the EdgeHub we also need to inject the Hub server certificate which will be used for TLS connections
                 // from modules and leaf devices
-                string moduleHubCertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleHubServerCertificateFileKey, string.Empty);
+                string moduleHubCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleHubServerCertificateFileKey, string.Empty);
                 if (string.IsNullOrWhiteSpace(moduleHubCertFile) == false)
                 {
                     varsList.Add($"{Constants.EdgeModuleHubServerCertificateFileKey}={moduleHubCertFile}");
@@ -227,27 +218,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 // mount edge hub volume
                 InjectVolume(
                     createContainerParameters,
-                    configSource.Configuration.GetValue<string>(Constants.EdgeHubVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue<string>(Constants.EdgeHubVolumePathKey, string.Empty),
-                    true
+                    configSource.Configuration.GetValue(Constants.EdgeHubVolumeNameKey, string.Empty),
+                    configSource.Configuration.GetValue(Constants.EdgeHubVolumePathKey, string.Empty)
                 );
             }
             else
             {
                 // for all Edge modules, the agent should inject the CA certificate that can be used for Edge Hub server certificate
                 // validation
-                string moduleCACertFile = configSource.Configuration.GetValue<string>(Constants.EdgeModuleCaCertificateFileKey, string.Empty);
-                if (string.IsNullOrWhiteSpace(moduleCACertFile) == false)
+                string moduleCaCertFile = configSource.Configuration.GetValue(Constants.EdgeModuleCaCertificateFileKey, string.Empty);
+                if (string.IsNullOrWhiteSpace(moduleCaCertFile) == false)
                 {
-                    varsList.Add($"{Constants.EdgeModuleCaCertificateFileKey}={moduleCACertFile}");
+                    varsList.Add($"{Constants.EdgeModuleCaCertificateFileKey}={moduleCaCertFile}");
                 }
 
                 // mount module volume
                 InjectVolume(
                     createContainerParameters,
-                    configSource.Configuration.GetValue<string>(Constants.EdgeModuleVolumeNameKey, string.Empty),
-                    configSource.Configuration.GetValue<string>(Constants.EdgeModuleVolumePathKey, string.Empty),
-                    true
+                    configSource.Configuration.GetValue(Constants.EdgeModuleVolumeNameKey, string.Empty),
+                    configSource.Configuration.GetValue(Constants.EdgeModuleVolumePathKey, string.Empty)
                 );
             }
 
@@ -256,10 +245,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         static void InjectEnvVars(
             CreateContainerParameters createContainerParameters,
-            IEnumerable<string> varsList
+            IList<string> varsList
         )
         {
-            createContainerParameters.Env = createContainerParameters?.Env?.RemoveIntersectionKeys(varsList).ToList() ?? new List<string>();
+            createContainerParameters.Env = createContainerParameters.Env?.RemoveIntersectionKeys(varsList).ToList() ?? new List<string>();
             foreach(string envVar in varsList)
             {
                 createContainerParameters.Env.Add(envVar);
@@ -270,8 +259,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         {
             var scrubbed = JsonConvert.DeserializeObject<CreateContainerParameters>(serializedCreateOptions);
             scrubbed.Env = scrubbed.Env?
-                .Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******")
-                .Select((env, i) => env.IndexOf(Constants.IotHubConnectionStringKey) == -1 ? env : $"{Constants.IotHubConnectionStringKey}=******")
+                .Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey, StringComparison.Ordinal) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******")
+                .Select((env, i) => env.IndexOf(Constants.IotHubConnectionStringKey, StringComparison.Ordinal) == -1 ? env : $"{Constants.IotHubConnectionStringKey}=******")
                 .ToList();
             return JsonConvert.SerializeObject(scrubbed);
         }

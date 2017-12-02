@@ -140,14 +140,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             string name = response.Names.FirstOrDefault()?.Substring(1) ?? CoreConstants.Unknown;
             string version = response.Labels.GetOrElse(CoreConstants.Labels.Version, string.Empty);
-            Core.RestartPolicy restartPolicy = (Core.RestartPolicy)Enum.Parse(
+            var restartPolicy = (Core.RestartPolicy)Enum.Parse(
                 typeof(Core.RestartPolicy),
                 response.Labels.GetOrElse(
                     CoreConstants.Labels.RestartPolicy,
                     CoreConstants.DefaultRestartPolicy.ToString()
                 )
             );
-            ModuleStatus desiredStatus = (ModuleStatus)Enum.Parse(
+            var desiredStatus = (ModuleStatus)Enum.Parse(
                 typeof(ModuleStatus),
                 response.Labels.GetOrElse(
                     CoreConstants.Labels.DesiredStatus,
@@ -182,12 +182,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             string lastExitTimeStr = inspected?.State?.FinishedAt;
             DateTime lastExitTime = DateTime.MinValue;
-            if (lastExitTime != null)
+
+            if (!string.IsNullOrEmpty(lastExitTimeStr))
             {
                 lastExitTime = DateTime.Parse(lastExitTimeStr, null, DateTimeStyles.RoundtripKind);
             }
 
-            return (exitCode, statusDescription, lastStartTime, lastExitTime, inspected.Image);
+            return (exitCode, statusDescription, lastStartTime, lastExitTime, inspected?.Image);
         }
 
         internal async Task<IModule> ContainerToModuleAsync(ContainerListResponse response)
@@ -214,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             // Figure out module stats and runtime status
             ModuleState moduleState = (await this.store.Get(name)).GetOrElse(new ModuleState(0, lastExitTime));
-            ModuleStatus runtimeStatus = ToRuntimeStatus(inspected.State, restartPolicy, moduleState.RestartCount, lastExitTime);
+            ModuleStatus runtimeStatus = this.ToRuntimeStatus(inspected.State, restartPolicy, moduleState.RestartCount, lastExitTime);
 
             if (name == CoreConstants.EdgeHubModuleName)
             {
@@ -292,14 +293,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Log.LogInformation((int)EventIds.InvalidContainerStatus, $"Encountered an unrecognized container state from Docker - {status}");
         }
 
-        static bool EdgeAgentContainerNotFoundReported = false;
+        static bool edgeAgentContainerNotFoundReported;
 
         public static void EdgeAgentContainerNotFound(DockerContainerNotFoundException ex)
         {
-            if (EdgeAgentContainerNotFoundReported == false)
+            if (edgeAgentContainerNotFoundReported == false)
             {
                 Log.LogWarning((int)EventIds.EdgeAgentContainerNotFound, $"No container for edge agent was found with the name {CoreConstants.EdgeAgentModuleName} - {ex.Message}");
-                EdgeAgentContainerNotFoundReported = true;
+                edgeAgentContainerNotFoundReported = true;
             }
         }
     }

@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         /// For more information: https://github.com/docker/distribution/blob/master/reference/reference.go
         /// </summary>
         /// <param name="image"></param>
-        /// <param name="hostname"></param>
+        /// <param name="domain"></param>
         /// <returns></returns>
         public static bool TryParseDomainFromImage(string image, out string domain)
         {
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string[] parts = Preconditions.CheckNotNull(image).Split('/');
             if (parts.Length > 1)
             {
-                var maybeDomain = parts[0];
+                string maybeDomain = parts[0];
                 if (maybeDomain.Contains(".") || maybeDomain.Contains(":"))
                 {
                     // Contains a '.' or ':' in the first component

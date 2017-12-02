@@ -21,18 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("architecture")]
         public string Architecture { get; }
 
-        public override bool Equals(object obj) => Equals(obj as DockerPlatformInfo);
+        public override bool Equals(object obj) => this.Equals(obj as DockerPlatformInfo);
 
         public bool Equals(DockerPlatformInfo other) =>
-                   other != null &&
-                   OperatingSystemType == other.OperatingSystemType &&
-                   Architecture == other.Architecture;
+                   other != null && this.OperatingSystemType == other.OperatingSystemType && this.Architecture == other.Architecture;
 
         public override int GetHashCode()
         {
-            var hashCode = 577840947;
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(OperatingSystemType);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Architecture);
+            int hashCode = 577840947;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.OperatingSystemType);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Architecture);
             return hashCode;
         }
 

@@ -41,9 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public override int GetHashCode()
         {
-            var hashCode = 1110516558;
+            int hashCode = 1110516558;
             hashCode = hashCode * -1521134295 + base.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(ImageHash);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.ImageHash);
             return hashCode;
         }
 
@@ -69,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
-                JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings();
                 JObject obj = JObject.Load(reader);
 
                 // Pull out JToken values from json

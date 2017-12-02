@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class EdgeHubDockerRuntimeModule : DockerRuntimeModule, IEdgeHubModule, IRuntimeStatusModule
+    public class EdgeHubDockerRuntimeModule : DockerRuntimeModule, IEdgeHubModule
     {
         public EdgeHubDockerRuntimeModule(
             ModuleStatus desiredStatus,

@@ -22,18 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("loggingOptions")]
         public string LoggingOptions { get; }
 
-        public override bool Equals(object obj) => Equals(obj as DockerRuntimeConfig);
+        public override bool Equals(object obj) => this.Equals(obj as DockerRuntimeConfig);
 
         public bool Equals(DockerRuntimeConfig other) =>
-            other != null &&
-                   MinDockerVersion == other.MinDockerVersion &&
-                   LoggingOptions == other.LoggingOptions;
+            other != null && this.MinDockerVersion == other.MinDockerVersion && this.LoggingOptions == other.LoggingOptions;
 
         public override int GetHashCode()
         {
-            var hashCode = 1638046857;
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(MinDockerVersion);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(LoggingOptions);
+            int hashCode = 1638046857;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.MinDockerVersion);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.LoggingOptions);
             return hashCode;
         }
 

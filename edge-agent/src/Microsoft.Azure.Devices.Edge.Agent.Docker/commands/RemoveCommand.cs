@@ -42,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                     var parameters = new ContainerLogsParameters
                     {
                         ShowStdout = true,
-                        Tail = RemoveCommand.LogLinesToPull
+                        Tail = LogLinesToPull
                     };
-                    cts.CancelAfter(RemoveCommand.WaitForLogs);
-                    using (var stream = await this.client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
+                    cts.CancelAfter(WaitForLogs);
+                    using (Stream stream = await this.client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
                     {
                         bool firstLine = true;
                         using (var reader = new StreamReader(stream))
@@ -54,10 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                             {
                                 if (firstLine)
                                 {
-                                    Logger.LogError($"Last {RemoveCommand.LogLinesToPull} log lines from container {this.module.Name}:");
+                                    Logger.LogError($"Last {LogLinesToPull} log lines from container {this.module.Name}:");
                                     firstLine = false;
                                 }
-                                var line = await reader.ReadLineAsync();
+                                string line = await reader.ReadLineAsync();
                                 Logger.LogError(line);
                             }
                         }

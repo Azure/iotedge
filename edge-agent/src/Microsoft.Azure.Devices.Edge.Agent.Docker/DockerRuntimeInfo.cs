@@ -23,18 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("settings")]
         public DockerRuntimeConfig Config { get; }
 
-        public override bool Equals(object obj) => Equals(obj as DockerRuntimeInfo);
+        public override bool Equals(object obj) => this.Equals(obj as DockerRuntimeInfo);
 
         public bool Equals(IRuntimeInfo other) => this.Equals(other as DockerRuntimeInfo);
 
         public bool Equals(DockerRuntimeInfo other) =>
-            other != null &&
-                   Type == other.Type &&
+            other != null && this.Type == other.Type &&
                    EqualityComparer<DockerRuntimeConfig>.Default.Equals(this.Config, other.Config);
 
         public override int GetHashCode()
         {
-            var hashCode = -466193572;
+            int hashCode = -466193572;
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Type);
             hashCode = hashCode * -1521134295 + EqualityComparer<DockerRuntimeConfig>.Default.GetHashCode(this.Config);
             return hashCode;

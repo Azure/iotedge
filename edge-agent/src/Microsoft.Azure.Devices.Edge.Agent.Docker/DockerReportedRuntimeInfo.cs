@@ -19,18 +19,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("platform")]
         public DockerPlatformInfo Platform { get; }
 
-        public override bool Equals(object obj) => Equals(obj as DockerReportedRuntimeInfo);
+        public override bool Equals(object obj) => this.Equals(obj as DockerReportedRuntimeInfo);
 
         public bool Equals(DockerReportedRuntimeInfo other) =>
                    other != null &&
                    base.Equals(other) &&
-                   EqualityComparer<DockerPlatformInfo>.Default.Equals(Platform, other.Platform);
+                   EqualityComparer<DockerPlatformInfo>.Default.Equals(this.Platform, other.Platform);
 
         public override int GetHashCode()
         {
-            var hashCode = 2079518418;
+            int hashCode = 2079518418;
             hashCode = hashCode * -1521134295 + base.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<DockerPlatformInfo>.Default.GetHashCode(Platform);
+            hashCode = hashCode * -1521134295 + EqualityComparer<DockerPlatformInfo>.Default.GetHashCode(this.Platform);
             return hashCode;
         }
 

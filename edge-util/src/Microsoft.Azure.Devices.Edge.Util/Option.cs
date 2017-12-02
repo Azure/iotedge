@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
     using System.Globalization;
     using System.Threading.Tasks;
 
@@ -19,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             this.HasValue = hasValue;
         }
 
+        [Pure]
         public bool Equals(Option<T> other)
         {
             if (!this.HasValue && !other.HasValue)
@@ -32,12 +34,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return false;
         }
 
+        [Pure]
         public override bool Equals(object obj) => obj is Option<T> && this.Equals((Option<T>)obj);
 
+        [Pure]
         public static bool operator ==(Option<T> opt1, Option<T> opt2) => opt1.Equals(opt2);
 
+        [Pure]
         public static bool operator !=(Option<T> opt1, Option<T> opt2) => !opt1.Equals(opt2);
 
+        [Pure]
         public override int GetHashCode()
         {
             if (this.HasValue)
@@ -47,9 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return 0;
         }
 
+        [Pure]
         public override string ToString() =>
             this.Map(v => v != null ? string.Format(CultureInfo.InvariantCulture, "Some({0})", v) : "Some(null)").GetOrElse("None");
 
+        [Pure]
         public IEnumerable<T> ToEnumerable()
         {
             if (this.HasValue)
@@ -58,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        [Pure]
         public IEnumerator<T> GetEnumerator()
         {
             if (this.HasValue)
@@ -66,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        [Pure]
         public bool Contains(T value)
         {
             if (this.HasValue)
@@ -79,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// Evaluates to true if and only if the option has a value and <paramref name="predicate"/>
         /// returns <c>true</c>.
         /// </summary>
+        [Pure]
         public bool Exists(Func<T, bool> predicate) => this.HasValue && predicate(this.Value);
 
         /// <summary>
@@ -87,14 +98,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="alternative"></param>
         /// <returns></returns>
+        [Pure]
         public T GetOrElse(T alternative) => this.HasValue ? this.Value : alternative;
 
+        [Pure]
         public T GetOrElse(Func<T> alternativeMaker) => this.HasValue ? this.Value : alternativeMaker();
 
+        [Pure]
         public Option<T> Else(Option<T> alternativeOption) => this.HasValue ? this : alternativeOption;
 
+        [Pure]
         public Option<T> Else(Func<Option<T>> alternativeMaker) => this.HasValue ? this : alternativeMaker();
 
+        [Pure]
         public T OrDefault() => this.HasValue ? this.Value : default(T);
 
         /// <summary>
@@ -102,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// then it invokes <paramref name="none"/>.
         /// </summary>
         /// <returns>The value returned by either <paramref name="some"/> or <paramref name="none"/>.</returns>
+        [Pure]
         public TResult Match<TResult>(Func<T, TResult> some, Func<TResult> none) => this.HasValue ? some(this.Value) : none();
 
         /// <summary>
@@ -117,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        [Pure]
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
 
         /// <summary>
@@ -124,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// calling the <paramref name="mapping"/> callback. Returns <see cref="Option.None{T}"/>
         /// if there is no value.
         /// </summary>
+        [Pure]
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
         {
             return this.Match(
@@ -132,6 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             );
         }
 
+        [Pure]
         public Option<TResult> FlatMap<TResult>(Func<T, Option<TResult>> mapping) => this.Match(
             some: mapping,
             none: Option.None<TResult>
@@ -164,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// }
         /// </code>
         /// </remarks>
+        [Pure]
         public Option<T> Filter(Func<T, bool> predicate)
         {
             Option<T> original = this;

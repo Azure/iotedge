@@ -62,7 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             unchecked
             {
+                //We are ignoring this here because, we only change the name of the module on Creation. This
+                //is needed because the name is not part of the body of Json equivalent to IModule, it is on the key of the json.
+                // ReSharper disable NonReadonlyMemberInGetHashCode
                 int hashCode = (this.Name != null ? this.Name.GetHashCode() : 0);
+                // ReSharper restore NonReadonlyMemberInGetHashCode
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;

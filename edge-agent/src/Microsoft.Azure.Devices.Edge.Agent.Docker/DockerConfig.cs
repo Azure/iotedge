@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
-        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions));
+        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
@@ -79,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
-                JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings();
                 JObject obj = JObject.Load(reader);
 
                 // Pull out JToken values from json

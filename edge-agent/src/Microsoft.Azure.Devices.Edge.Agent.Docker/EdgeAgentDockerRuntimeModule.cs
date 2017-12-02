@@ -13,12 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DockerReportedConfig settings,
             ModuleStatus runtimeStatus,
             DateTime lastStartTimeUtc,
-            ConfigurationInfo configuration
-        )
+            ConfigurationInfo configuration)
             : base("docker", settings, configuration)
         {
             this.RuntimeStatus = runtimeStatus;
             this.LastStartTimeUtc = lastStartTimeUtc;
+            this.Version = string.Empty;
+            this.DesiredStatus = ModuleStatus.Unknown;
+            this.RestartPolicy = RestartPolicy.Never;
 
             // You maybe wondering why we are setting this here again even though
             // the base class does this assignment. This is due to a behavior

@@ -22,20 +22,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public string Type => CoreConstants.Unknown;
 
-        public override bool Equals(object obj) => Equals(obj as DockerReportedUnknownRuntimeInfo);
+        public override bool Equals(object obj) => this.Equals(obj as DockerReportedUnknownRuntimeInfo);
 
         public bool Equals(DockerReportedUnknownRuntimeInfo other) =>
                    other != null &&
-                   base.Equals(other) &&
-                   EqualityComparer<DockerPlatformInfo>.Default.Equals(Platform, other.Platform);
+                   EqualityComparer<DockerPlatformInfo>.Default.Equals(this.Platform, other.Platform);
 
         public bool Equals(IRuntimeInfo other) => this.Equals(other as DockerReportedUnknownRuntimeInfo);
 
         public override int GetHashCode()
         {
-            var hashCode = 2079518418;
-            hashCode = hashCode * -1521134295 + base.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<DockerPlatformInfo>.Default.GetHashCode(Platform);
+            int hashCode = 2079518418;
+            hashCode = hashCode * -1521134295;
+            hashCode = hashCode * -1521134295 + EqualityComparer<DockerPlatformInfo>.Default.GetHashCode(this.Platform);
             return hashCode;
         }
 
