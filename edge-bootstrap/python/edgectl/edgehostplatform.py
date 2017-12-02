@@ -261,12 +261,16 @@ class EdgeHostPlatform(object):
             device_ca_phrase = edge_config.device_ca_passphrase
             if device_ca_phrase is None or device_ca_phrase == '':
                 bypass_opts = ['--device-ca-passphrase', '--device-ca-passphrase-file']
-                device_ca_phrase = EdgeHostPlatform._prompt_password('Edge Device', bypass_opts)
+                device_ca_phrase = EdgeHostPlatform._prompt_password('Edge Device',
+                                                                     bypass_opts,
+                                                                     'deviceCAPassphraseFilePath')
 
             agent_ca_phrase = edge_config.agent_ca_passphrase
             if agent_ca_phrase is None or agent_ca_phrase == '':
                 bypass_opts = ['--agent-ca-passphrase', '--agent-ca-passphrase-file']
-                agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent', bypass_opts)
+                agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent',
+                                                                    bypass_opts,
+                                                                    'agentCAPassphraseFilePath')
 
         cert_util = EdgeCertUtil()
         cert_util.create_root_ca_cert('edge-device-ca',
@@ -284,7 +288,9 @@ class EdgeHostPlatform(object):
             agent_ca_phrase = edge_config.agent_ca_passphrase
             if agent_ca_phrase is None or agent_ca_phrase == '':
                 bypass_opts = ['--agent-ca-passphrase', '--agent-ca-passphrase-file']
-                agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent', bypass_opts)
+                agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent',
+                                                                    bypass_opts,
+                                                                    'agentCAPassphraseFilePath')
 
         cert_util = EdgeCertUtil()
         cert_util.set_root_ca_cert('edge-device-ca',
@@ -335,7 +341,7 @@ class EdgeHostPlatform(object):
         return result
 
     @staticmethod
-    def _prompt_password(cert_type, bypass_options):
+    def _prompt_password(cert_type, bypass_options, config_file_setting):
         options_str = ''
         options_len = len(bypass_options)
         index = 0
@@ -347,16 +353,22 @@ class EdgeHostPlatform(object):
                 options_str += '.'
             index += 1
 
+        config_file_setting = '"security.certificates.<option>.' + config_file_setting + '"'
         print('\n',
               '\n********************************************************************************'
-              '\nYou are being prompted to enter a passphrase for the',
-              cert_type, 'private key.',
-              '\n\nTo prevent this prompt from appearing, enter the passphrase via the command',
-              '\nline options', options_str,
-              '\n - If you choose not to supply any passphrases, use command line option',
+              '\nPlease enter a passphrase for the', cert_type, 'private key.',
+              '\n\nTo prevent this prompt from appearing, input the required passphrase',
+              '\nor generate the private key without a passphrase.',
+              '\n\n When using the command line options to setup the IoT Edge runtime:',
+              '\n - Enter the passphrase via the command line options:',
+              '\n  ', options_str,
+              '\n - When opting not to use a passphrase, use command line option:',
               '\n   --auto-cert-gen-force-no-passwords.',
-              '\n - If using --config-file to setup the runtime, setup the input file',
-              '\n   with the same options described above.'
+              '\n\n When using the --config-file to setup the runtime:',
+              '\n - Set the input passphrase file via JSON configuration item:',
+              '\n  ', config_file_setting,
+              '\n - When opting not to use a passphrase, set JSON configuration item:',
+              '\n   "security.certificates.<option>.forceNoPasswords" to true.'
               '\n********************************************************************************')
         return EdgeUtils.prompt_password(cert_type,
                                          EdgeHostPlatform._min_passphrase_len,
