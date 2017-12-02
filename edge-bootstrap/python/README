@@ -49,24 +49,24 @@ common installation problems.
 How To Run:
 -----------
 
-The main commands to to operate the IoT Edge runtime are: setup, start,
+The main commands to operate the IoT Edge runtime are: setup, start,
 restart, stop, status, update, login and uninstall.
 
--  **setup**: This command accepts users input to configure the runtime.
+-  **setup**: This command accepts user input to configure the runtime.
    The required configuration files and certificates to operate the IoT
-   Edge are created as part of this step. Users can setup the IoT Edge
-   either by using an input configuration file or specify the
-   configuration items via command line args. When running this command,
-   a user may need to run this with admin (sudo) privileges. The output
-   of this command is a configuration file in JSON format. This file is
-   created in these directory paths on the host:
+   Edge are created as part of this step. The IoT Edge can be setup
+   either by using an input configuration file and --config-file) or specify the
+   various configuration options via command line (CLI) args. The 'setup' command,
+   may need to run with admin (sudo) privileges. The output
+   of this command is a configuration file in JSON format. This configuration
+   file is created in these directory paths on the host:
 
 ::
 
     IoT Edge Configuration Host Paths:
     ----------------------------------
         Linux:   /etc/azure-iot-edge
-        Windows: %PROGRAMDATA%\azure-iot-edge
+        Windows: %PROGRAMDATA%\azure-iot-edge\config
         MacOS:   /etc/azure-iot-edge
 
 -  **start**: This command starts the IoT Edge runtime. This downloads
@@ -78,8 +78,10 @@ restart, stop, status, update, login and uninstall.
    modules are stopped and not removed.
 
 -  **restart**: This command restarts the IoT Edge runtime and behaves
-   like start if the Edge runtime does not exist. If a runtime is
-   active, it will be stopped and restarted again.
+   like start if the Edge runtime does not exist on the host. If a runtime is
+   active, it will be stopped along with any modules deployed by the
+   Edge runtime. Subsequently, the Edge runtime and all other modules will be
+   restarted again.
 
 -  **status**: Prints the current state of the IoT Edge runtime.
 
@@ -125,7 +127,7 @@ Setup the IoT Edge Runtime Using Manually Specified Command Line Args
 
     $> iotedgectl setup --connection-string "HostName=<>;DeviceId=<>;SharedAccessKey=<>"
     Note: When specifying the connection string ensure that it is surrounded by double quotes ".
-    In general anything with a semi colon should be put into quotes.
+    In general, anything with a semicolon should be put into quotes.
 
 Start the IoT Edge Runtime
 
@@ -167,17 +169,20 @@ IoT Edge Home Directory Description
 
 The IoT Edge runtime needs a directory on the host machine in order to
 execute. This directory will contain the necessary configuration files,
-certificates and module specific files. Lets call this the
-*EDGEHOMEDIR*. If users do not specify a value for the *EDGEHOMEDIR*,
-these default directories will be used to setup/start/stop the IoT Edge
-runtime.
+certificates and module specific files. This is called the *EDGEHOMEDIR*.
+To configure the directory path of the EDGEHOMEDIR, the CLI option
+'iotedgectl setup --edge-home-dir <path>' can be used.
+In case it is unspecified, the default directories listed below will be used
+as the EDGEHOMEDIR. An absolute directory path is required when using the
+--config-file option to setup the Edge runtime (see below).
+In both cases, if the directory does not exist, it will be created.
 
 ::
 
     Default Host Paths:
     -------------------
         Linux:   /var/lib/azure-iot-edge
-        Windows: %PROGRAMDATA%\azure-iot-edge
+        Windows: %PROGRAMDATA%\azure-iot-edge\data
         MacOS:   /var/lib/azure-iot-edge
 
 As the IoT Edge runtime is executed, the following file system structure
@@ -199,34 +204,47 @@ IoT Edge Host Configuration File Description
 
 The following section describes the various configuration items required
 to setup the IoT Edge. \* When using the command line options to setup
-the IoT Edge, this file is auto generated. \* When users use the
---config-file to setup their IoT Edge device, they would have to provide
-this configuration file with appropriate input data.
+the IoT Edge, this file is auto generated. \* When using the
+--config-file to setup the IoT Edge device, a configuration file with
+appropriate input data would have to provided.
 
 ::
 
       // Config file format schema; Users should not need to modify this.
       "schemaVersion": "1",
 
-      // User's IoTHub Device Connection string in the format listed below.
+      // IoTHub Device Connection string in the format listed below.
+      // A connection string is required when using the --config-file option
+      // to setup the Edge runtime.
       "deviceConnectionString": "HostName=<>;DeviceId=<>;SharedAccessKey=<>",
 
-      // Path to the IoT Edge home dir, if left empty, a default home dir will be used
+      // Absolute path to the IoT Edge home dir.
+      // An absolute directory path is required when using the --config-file option
+      // to setup the Edge runtime.
+      // If the specified directory does not exist, it will be created.
+      // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
       "homeDir": "<EDGEHOMEDIR>",
 
       // IoT Edge device's DNS name;
       // Specifying a FQDN is only required when operating the
       // IoT Edge as a 'Gateway' for leaf device connectivity.
-      // If a FQDN is unavailable, the host name could be used. If left blank,
-      // the utility will determine the FQDN if available or the machine name.
-      // This hostname value is needed for certificate
-      // generation for the Edge Hub server. This certificate is used to enable
-      // TLS connections from IoT Edge modules and leaf devices.
+      // If a FQDN is unavailable, the host name (or machine name) could be used.
+      // This typically occurs when the host is not domain registered such as
+      // a device on a home Wifi network. This should work just fine for Edge module
+      // to Edge Hub communication but may not work for leaf device connectivity.
+      // This hostname value is needed specifically to name the Edge Hub server
+      // and is also used to generate the Edge Hub server certificate.
+      // This server certificate is used to enable TLS connections from IoT Edge
+      // modules and leaf devices.
+      // The DNS host name is required when using the --config-file option
+      // to setup the Edge runtime.
       "hostName": "<Hostname>",
 
       // Log level setting for IoT Edge runtime diagnostics. "info" and "debug".
-      // are the supported levels and default is info. Users should only
-      // modify this for debugging purposes.
+      // are the supported levels and default is info. This should only
+      // modified for debugging purposes.
+      // A log level is required when using the --config-file option
+      // to setup the Edge runtime.
       "logLevel": "info",
 
       // Configuration settings for the IoT Edge Runtime
@@ -237,33 +255,99 @@ this configuration file with appropriate input data.
         //    (selfSigned)                intended for development purposes
         //                                and quick start type scenarios.
         //
-        //  - Pre Installed Certificates: When this is enabled, users are
-        //    (preInstalled)              expected to supply the "Device CA"
-        //                                and "Owner CA" certificates and
-        //                                their corresponding certificate chain
-        //                                and finally an optional passphrase to
-        //                                access the Device CA private key.
+        //  - Pre Installed Certificates: When this is enabled, it is expected
+        //    (preInstalled)              that the "Device CA" and "Owner CA"
+        //                                certificates and their corresponding
+        //                                certificate chain be provided. Additionally,
+        //                                the Device CA private key and its
+        //                                optional passphrase should be provided.
         //                                This is more of a real world setup
         //                                where the IoT Edge is configured to run
         //                                as a gateway.
-        //    - Certificate Subject       This are values that are used with generating
-        //                                any certificates required for operating
-        //                                the IoT Edge.
+        //
         // The "option" key below selects any of the modes listed above.
+        // An option is required when using the --config-file option
+        // to setup the Edge runtime.
         "certificates": {
           "option": "selfSigned",
           "selfSigned": {
+            // If the boolean value of forceNoPasswords is true,
+            // it is not required to supply valid paths
+            // to the Edge Device or Edge Agent private key
+            // passphrase (password) files described below.
             "forceNoPasswords": true
-          },
-          "preInstalled": {
-            "forceNoPasswords": true,
-            "ownerCACertificateFilePath": "",
-            "deviceCACertificateFilePath": "",
-            "deviceCAChainCertificateFilePath": "",
-            "deviceCAPrivateKeyFilePath": "",
+
+            // Absolute path to the passphrase file for the Edge Device private key.
+            // The passphrase must be between 4 - 1023 characters in length and the
+            // file should be a regular ascii text file containing the passphrase.
             "deviceCAPassphraseFilePath": "",
+
+            // Absolute path to the passphrase file for the Edge Agent private key.
+            // The passphrase must be between 4 - 1023 characters in length and the
+            // file should be a regular ascii text file containing the passphrase.
             "agentCAPassphraseFilePath": ""
           },
+          "preInstalled": {
+            // Absolute path to the Edge Owner CA certificate file in X.509 PEM format.
+            // An absolute file path is required when using the --config-file option
+            // and 'preInstalled' is the certificate option selected
+            // to setup the Edge runtime.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            "ownerCACertificateFilePath": "",
+
+            // Absolute path to the Edge Device CA certificate file in X.509 PEM format
+            // An absolute file path is required when using the --config-file option
+            // and 'preInstalled' is the certificate option selected
+            // to setup the Edge runtime.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            "deviceCACertificateFilePath": "",
+
+            // Absolute path to the Edge Device CA certificate chain file in X.509 PEM format.
+            // This is the certificate chain from the Owner CA up to and including the
+            // Device CA certificate.
+            // An absolute file path is required when using the --config-file option
+            // and 'preInstalled' is the certificate option selected
+            // to setup the Edge runtime.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            "deviceCAChainCertificateFilePath": "",
+
+            // Absolute path to the Edge Device CA certificate's private key
+            // file in X.509 PEM format.
+            // An absolute file path is required when using the --config-file option
+            // and 'preInstalled' is the certificate option selected
+            // to setup the Edge runtime.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            // Note: If a passphrase was used to generate the private key,
+            // the passphrase must be provided via the deviceCAPassphraseFilePath
+            // option described below.
+            "deviceCAPrivateKeyFilePath": "",
+
+            // Absolute path to the passphrase file for the Edge Device private key.
+            // The passphrase must be between 4 - 1023 characters in length and the
+            // file should be regular ascii text file containing the passphrase.
+            // This would need to be provided only if the Edge Device CA private
+            // was created with a passphrase.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            "deviceCAPassphraseFilePath": "",
+
+            // If the boolean value of forceNoPasswords is true,
+            // it is not required to supply valid paths
+            // to the Edge Agent private key password (passphrase) file.
+            "forceNoPasswords": true
+
+            // Absolute path to the passphrase file for the Edge Agent private key.
+            // The passphrase must be between 4 - 1023 characters in length and the
+            // file should be a regular ascii text file containing the passphrase.
+            // For Windows paths, use \\ as the path separator. Example: C:\\path\\file.ext
+            "agentCAPassphraseFilePath": ""
+          },
+          // Certificate subject data.
+          // These are values that are used when auto generating
+          // any certificates required for operating the IoT Edge.
+          // These values can be modified as needed
+          // and the values for all the fields can be empty strings.
+          // These values are not when using the preInstalled certificate
+          // option, rather they are determined from the Device CA certificate.
           "subject": {
             "countryCode": "US",
             "state": "Washington",
@@ -278,6 +362,8 @@ this configuration file with appropriate input data.
       "deployment": {
 
         // Currently "docker" is the only deployment type supported.
+        // Specifying this value is required when using the --config-file option
+        // to setup the Edge runtime.
         "type": "docker",
 
         // Docker host settings
@@ -286,21 +372,25 @@ this configuration file with appropriate input data.
           // will use to communicate with the daemon. Please note this may not be
           // the same docker URI end point that a user might use on their host.
           // This is true when running Linux containers on Windows.
-          // Under normal circumstances users should not have modify this.
+          // A valid URI is required when using the --config-file option
+          // to setup the Edge runtime.
           "uri": "unix:///var/run/docker.sock",
 
-          // IoT Edge runtime image; Users may have to update this as newer images
-          // are released over time either by a manual edit or the **update** command.
+          // IoT Edge runtime image; This value may need to be updated as newer
+          // images are released over time either by updating the config file and
+          // using --config-file or the **update** command.
+          // A runtime image is required when using the --config-file option
+          // to setup the Edge runtime.
           "edgeRuntimeImage": "edge_repository_address/edge_image_name:version",
 
-          // Users can add registries in this array for their custom modules.
+          // Docker registries can be added in this array for custom modules.
           // If there is no username or password associated with a registry,
-          // users do not need to add any data here.
+          // there is no need to add any data here.
           // NOTE: This is a temporary configuration item required by the IoT Edge
-          // Longer term, users would be able to manage their repositories and
-          // credentials in the cloud using the IoTHub portal.
-          // Users can manually add their credentials in their configuration file
-          // or use the **login** command.
+          // Longer term, it will be possible to manage registries and
+          // credentials using the IoTHub portal.
+          // Adding a registry to the array can be done either by updating the
+          // config file and using --config-file or the **login** command.
           "registries": [
             {
               "address": "example-repository-address-1",
@@ -317,6 +407,8 @@ this configuration file with appropriate input data.
           // Logging options for the IoT Edge runtime. The format complies with
           // the docker schema described here:
           // https://docs.docker.com/engine/admin/logging/overview/
+          // Appropriate log configuration values are required when using the
+          // --config-file option to setup the Edge runtime.
           "loggingOptions": {
             "log-driver": "json-file",
             "log-opts": {

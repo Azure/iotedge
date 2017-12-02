@@ -211,12 +211,22 @@ class EdgeCLI(object):
                                + 'Example: --docker-registries reg1 user1 pass1'
                                , nargs='+', metavar='')
 
-        cmd_setup.add_argument('--docker-uri',
-                               help='Set docker endpoint uri. Optional.\n'
+        cmd_setup.add_argument('--docker-uri', '--edge-runtime-docker-uri',
+                               help='Set docker endpoint URI for the IoT Edge runtime. Optional.\n'
                                + 'Default:\n'
                                + '   Linux Hosts - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX) + '\n'
                                + '   Windows Hosts (Linux VM) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_LINUX) + '\n'
-                               + '   Windows Hosts (Native) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_WINDOWS),
+                               + '   Windows Hosts (Native) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_DARWIN, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + 'Note: This is strictly the URI that the Edge runtime will use to interact with docker daemon.\n'
+                               + 'The URI is determined by the underlying container technology being used by the docker daemon.\n'
+                               + '  - Specifically, these could be Linux based containers or Windows based containers.\n'
+                               + 'Sub note: Windows hosts are able to run both Linux and Windows containers but not vice versa.\n'
+                               + 'In most cases, the Edge runtime docker URI is the same as the host docker daemon URI\n'
+                               + 'but that may not always be the case. For example, if the docker host is Windows or\n'
+                               + 'Windows Subsystem for Linux (WSL), the docker URI could be tcp://x.y.z.w:2375.\n'
+                               + 'However, the underlying container technology could be Linux based and thus\n'
+                               + 'the Edge runtime docker URI would be: ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX),
                                metavar='')
 
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords',
