@@ -1,17 +1,4 @@
-﻿<#
-.Synopsis
-	Install a cert from KeyVault into the CurrentUser\my location
-.Description
-	This script downloads a certificate from KeyVault and then installs into the Current user
-.Parameters
-	VaultName - KeyVault to query for the certificate
-	CertificateName - Name of the certificate in KeyVault
-.Example
-	Run
-	.\InstallCertFromKeyVault.ps1 -VaultName iotdrsoneboxadmin -CertificateName iotdrsadmin
- #>
-
-Param([Parameter(Mandatory=$true)] [string]$VaultName,
+﻿Param([Parameter(Mandatory=$true)] [string]$VaultName,
 	  [Parameter(Mandatory=$true)] [string]$CertificateName)
 
 function DownloadAndInstallCertificate($VaultName, $CertificateName)
@@ -30,4 +17,8 @@ function DownloadAndInstallCertificate($VaultName, $CertificateName)
 	$certStore.Close();
 }
 
+Write-Host "Downloading and installing certificate"
+
 DownloadAndInstallCertificate $VaultName $CertificateName
+
+Write-Host "Done"
