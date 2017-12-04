@@ -43,9 +43,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             // The device SDK doesn't appear to be falling back to WebSocket from TCP,
             // so we'll do it explicitly until we can get the SDK sorted out.
-            await Fallback.ExecuteAsync(
-                () => this.CreateAndOpenDeviceClient(TransportType.Amqp_Tcp_Only, statusChangedHandler),
-                () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler));
+            try
+            {
+                await Fallback.ExecuteAsync(
+                    () => this.CreateAndOpenDeviceClient(TransportType.Amqp_Tcp_Only, statusChangedHandler),
+                    () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler));
+            }
+            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            {
+                Events.DeviceConnectionError(ex);
+                throw;
+            }
         }
 
         async Task CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
@@ -78,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 AttemptingConnect = IdStart,
                 Connected,
-                DeviceClientCreated
+                DeviceClientCreated,
+                DeviceConnectionError,
             }
 
             static string TransportName(TransportType type)
@@ -100,6 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void DeviceClientCreated()
             {
                 Log.LogDebug((int)EventIds.DeviceClientCreated, "Device client for edge agent created.");
+            }
+
+            internal static void DeviceConnectionError(Exception ex)
+            {
+                Log.LogError((int)EventIds.DeviceConnectionError, ex, "Error creating a device to cloud connection");
             }
         }
     }

@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorRefreshingTwin,
                 TwinRefreshSuccess,
                 ErrorHandlingConnectionChangeEvent,
-                EmptyDeploymentConfig
+                EmptyDeploymentConfig,
             }
 
             public static void Created()
