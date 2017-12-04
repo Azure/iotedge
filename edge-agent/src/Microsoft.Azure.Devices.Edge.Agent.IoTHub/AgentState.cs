@@ -75,13 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public override int GetHashCode()
         {
-            var hashCode = -1995647028;
-            hashCode = hashCode * -1521134295 + LastDesiredVersion.GetHashCode();
-            hashCode = hashCode * -1521134295 + SchemaVersion.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<DeploymentStatus>.Default.GetHashCode(LastDesiredStatus);
-            hashCode = hashCode * -1521134295 + EqualityComparer<IRuntimeInfo>.Default.GetHashCode(RuntimeInfo);
+            int hashCode = -1995647028;
+            hashCode = hashCode * -1521134295 + this.LastDesiredVersion.GetHashCode();
+            hashCode = hashCode * -1521134295 + this.SchemaVersion.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<DeploymentStatus>.Default.GetHashCode(this.LastDesiredStatus);
+            hashCode = hashCode * -1521134295 + EqualityComparer<IRuntimeInfo>.Default.GetHashCode(this.RuntimeInfo);
             hashCode = hashCode * -1521134295 + this.SystemModules.GetHashCode();
-            hashCode = hashCode * -1521134295 + StringModuleDictionaryComparer.GetHashCode(Modules.ToImmutableDictionary());
+            hashCode = hashCode * -1521134295 + StringModuleDictionaryComparer.GetHashCode(this.Modules.ToImmutableDictionary());
             return hashCode;
         }
 

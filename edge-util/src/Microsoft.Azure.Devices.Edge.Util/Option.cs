@@ -134,7 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        [Pure]
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
 
         /// <summary>

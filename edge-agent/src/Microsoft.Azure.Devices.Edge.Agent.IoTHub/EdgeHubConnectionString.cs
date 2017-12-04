@@ -100,15 +100,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 return this;
             }
 
-            public EdgeHubConnectionStringBuilder SetModuleId(string moduleId)
+            public EdgeHubConnectionStringBuilder SetModuleId(string moduleIdValue)
             {
-                this.moduleId = moduleId;
+                this.moduleId = moduleIdValue;
                 return this;
             }
 
-            public EdgeHubConnectionStringBuilder SetSharedAccessKey(string sharedAccessKey)
+            public EdgeHubConnectionStringBuilder SetSharedAccessKey(string sharedAccessKeyValue)
             {
-                this.sharedAccessKey = sharedAccessKey;
+                this.sharedAccessKey = sharedAccessKeyValue;
                 return this;
             }
 

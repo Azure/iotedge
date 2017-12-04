@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as RuntimePlatform);
+            return this.Equals(obj as RuntimePlatform);
         }
 
         public bool Equals(RuntimePlatform other)
@@ -37,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public override int GetHashCode()
         {
-            var hashCode = 577840947;
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(OperatingSystem);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Architecture);
+            int hashCode = 577840947;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.OperatingSystem);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Architecture);
             return hashCode;
         }
 

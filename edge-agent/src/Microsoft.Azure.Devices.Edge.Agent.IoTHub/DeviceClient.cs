@@ -12,8 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class DeviceClient : IDeviceClient
     {
-        Client.DeviceClient deviceClient = null;
-        string moduleConnectionString = string.Empty;
+        Client.DeviceClient deviceClient;
+        string moduleConnectionString;
         private const uint DeviceClientTimeout = 30000; // ms
       
         DeviceClient(string moduleConnectionString)

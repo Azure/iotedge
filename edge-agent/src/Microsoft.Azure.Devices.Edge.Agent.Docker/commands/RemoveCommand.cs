@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                         Tail = LogLinesToPull
                     };
                     cts.CancelAfter(WaitForLogs);
-                    using (Stream stream = await this.client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
+                    using (Stream stream = await client.Containers.GetContainerLogsAsync(this.module.Name, parameters, cts.Token))
                     {
                         bool firstLine = true;
                         using (var reader = new StreamReader(stream))
