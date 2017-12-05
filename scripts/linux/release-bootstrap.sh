@@ -41,7 +41,7 @@ print_help_and_exit()
 ###############################################################################
 check_arch()
 {
-    if [ -z ${ARCH} ]; then
+    if [ -z "${ARCH}" ]; then
         if [ "x86_64" == "$(uname -m)" ]; then
             ARCH="amd64"
         else
@@ -115,7 +115,7 @@ process_args()
         fi
     done
 
-    if [ -z ${DOCKER_IMAGEVERSION} ]; then
+    if [ -z "${DOCKER_IMAGEVERSION}" ]; then
         if [ ! -z "${BUILD_BUILDNUMBER}" ]; then
             DOCKER_IMAGEVERSION=$BUILD_BUILDNUMBER
         else
@@ -124,32 +124,32 @@ process_args()
         fi
     fi
 
-    if [ -z ${IOTHUB_HOSTNAME} ]; then
+    if [ -z "${IOTHUB_HOSTNAME}" ]; then
         echo "IoT hostname Parameter Invalid"
         print_help_and_exit
     fi
 
-    if [ -z ${DEVICEID} ]; then
+    if [ -z "${DEVICEID}" ]; then
         echo "DeviceID Parameter Invalid"
         print_help_and_exit
     fi
 
-    if [ -z ${DEVICE_SHARED_ACCESS_KEY} ]; then
+    if [ -z "${DEVICE_SHARED_ACCESS_KEY}" ]; then
         echo "Device shared access key Parameter Invalid"
         print_help_and_exit
     fi
 
-    if [ -z ${IOTHUBOWNER_SHARED_ACCESS_KEY} ]; then
+    if [ -z "${IOTHUBOWNER_SHARED_ACCESS_KEY}" ]; then
         echo "IotHub owner shared access key Parameter Invalid"
         print_help_and_exit
     fi
 
-    if [ -z ${IOTHUBOWNER_SHARED_ACCESS_KEY_NAME} ]; then
+    if [ -z "${IOTHUBOWNER_SHARED_ACCESS_KEY_NAME}" ]; then
         echo "IotHub owner shared access key name Parameter Invalid"
         print_help_and_exit
     fi
 
-    if [ -z ${DOCKER_REGISTRIES_CSV} ]; then
+    if [ -z "${DOCKER_REGISTRIES_CSV}" ]; then
         echo "Docker registries csv Parameter Invalid"
         print_help_and_exit
     fi
@@ -175,9 +175,8 @@ process_docker_registries() {
 process_args "$@"
 check_arch
 
-agent_image_name="edgebuilds.azurecr.io/azureiotedge/edge-agent-linux-$ARCH:$DOCKER_IMAGEVERSION"
+agent_image_name="edgebuilds.azurecr.io/microsoft/azureiotedge-agent:$DOCKER_IMAGEVERSION-linux-$ARCH"
 device_connection="HostName=$IOTHUB_HOSTNAME;DeviceId=$DEVICEID;SharedAccessKey=$DEVICE_SHARED_ACCESS_KEY"
-iothub_connection="HostName=$IOTHUB_HOSTNAME;SharedAccessKeyName=$IOTHUBOWNER_SHARED_ACCESS_KEY_NAME;SharedAccessKey=$IOTHUBOWNER_SHARED_ACCESS_KEY"
 
 echo Bootstrap Edge
 
@@ -198,23 +197,25 @@ rm -rf $edge_ctl_file_name
 popd
 
 edge_hostname=
-if [ ! -z ${EDGE_HOSTNAME} ]; then
+if [ ! -z "${EDGE_HOSTNAME}" ]; then
     edge_hostname="--edge-hostname $EDGE_HOSTNAME"
 fi
 
 RES=0
 
-sudo iotedgectl --verbose INFO setup --connection-string "$device_connection" --image "$agent_image_name" --docker-uri  "unix:///var/run/docker.sock" --docker-registries ${docker_registries[@]} $edge_hostname
-
-if [ $? -gt 0 ]; then
+args=(--verbose INFO setup --connection-string "$device_connection" \
+      --image "$agent_image_name" --docker-uri unix:///var/run/docker.sock \
+      --docker-registries "${docker_registries[@]}" "$edge_hostname" \
+      --auto-cert-gen-force-no-passwords)
+echo "Executing sudo iotedgectl ${args[*]}"
+if ! sudo iotedgectl "${args[@]}"; then
     RES=1
     echo "Error running setup RES = $RES"
     exit $RES
 fi
 
-sudo iotedgectl --verbose INFO start
-
-if [ $? -gt 0 ]; then
+command="sudo iotedgectl --verbose INFO start"
+if ! $command; then
     RES=1
     echo "Error running start RES = $RES"
 fi

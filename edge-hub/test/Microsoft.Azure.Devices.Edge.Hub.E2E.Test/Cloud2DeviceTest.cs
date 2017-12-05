@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Message message = this.CreateMessage(out string payload);
                 await serviceClient.SendAsync(deviceName, message);
 
-                // Wait to make sure message is not received because of ClockSkewAdjustment 
+                // Wait to make sure message is not received because of ClockSkewAdjustment
                 await Task.Delay(ClockSkewAdjustment);
 
                 ITransportSettings[] settings = this.GetTransportSettings();

@@ -26,16 +26,14 @@ else
     # copy the CA cert into the ca cert dir
     command="cp ${EdgeModuleHubServerCAChainCertificateFile} /usr/local/share/ca-certificates/edge-chain-ca.crt"
     echo "Executing: ${command}"
-    ${command}
-    if [ $? -ne 0 ]; then
+    if ! $command; then
         echo "Failed to Copy Edge Chain CA Certificate."
         exit 1
     fi
     # register the newly added CA cert
     command="update-ca-certificates"
     echo "Executing: ${command}"
-    ${command}
-    if [ $? -ne 0 ]; then
+    if ! $command; then
         echo "Failed to Update CA Certificates."
         exit 1
     fi

@@ -1,4 +1,4 @@
-#!/bin/bash                                                                                                                                      
+#!/bin/bash
 
 usage()
 {
@@ -32,23 +32,22 @@ shift $((OPTIND-1))
 
 if [ -z "${APP_SP_NAME}" ] || [ -z "${APP_SP_SECRET}" ] || [ -z "${APP_TENANT_ID}" ] || [ -z "${CERT_NAME}" ] || [ -z "${KEYVAULT_NAME}" ]; then
     usage
-fi                               
-							   
-BASEDIR=$(dirname "$0")                                                                                                                          
-CERT_PATH=$AGENT_WORKFOLDER/iotedgetestcert.pfx                                                                                                  
-                                                   
-# Login to KeyVault using App Service Principal												   
+fi
+
+BASEDIR=$(dirname "$0")
+
+# Login to KeyVault using App Service Principal
 echo Logging in to KeyVault using App Service Principal
 az login --service-principal -u $APP_SP_NAME --tenant $APP_TENANT_ID -p $APP_SP_SECRET 
-echo Done logging in       
-	   
-# Download the Cert					
-echo Downloading cert from KeyVault	
+echo Done logging in
+
+# Download the Cert
+echo Downloading cert from KeyVault
 keyVaultCertSecret="$(az keyvault secret show --name $CERT_NAME --vault-name $KEYVAULT_NAME)"
-keyVaultCert="$(echo $keyVaultCertSecret | jq -r '.value')"	
+keyVaultCert="$(echo $keyVaultCertSecret | jq -r '.value')"
 echo Done downloading cert from KeyVault
-				   
-# Install the Cert				   
+
+# Install the Cert
 echo Installing Cert
 powershell -command "$BASEDIR/InstallCert.ps1 -CertificateValue $keyVaultCert"
 echo Done installing Cert.
