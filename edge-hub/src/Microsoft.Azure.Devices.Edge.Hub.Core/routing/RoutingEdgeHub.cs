@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         private IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
         {
-            AddEdgeSystemProperties(message);
+            this.AddEdgeSystemProperties(message);
             IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
 
             // Validate message size

@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
         {
-            lock(deviceConnLock)
+            lock(this.deviceConnLock)
             {
                 if(this.devices.Values.Count(d => d.DeviceProxy.Filter(d1 => d1.IsActive).HasValue) >= this.maxClients)
                 {

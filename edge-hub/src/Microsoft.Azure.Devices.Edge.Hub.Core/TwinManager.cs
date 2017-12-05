@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             using (await this.twinLock.LockAsync())
             {
                 IMessage twinMessage = await cp.GetTwinAsync();
-                Twin cloudTwin = twinConverter.FromMessage(twinMessage);
+                Twin cloudTwin = this.twinConverter.FromMessage(twinMessage);
                 Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
                 TwinInfo newTwin = new TwinInfo(cloudTwin, null, false);
                 cached = newTwin;

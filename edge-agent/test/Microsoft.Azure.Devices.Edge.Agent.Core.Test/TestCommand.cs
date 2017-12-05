@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             if (this.throwOnExecute)
             {
-                throw new ArgumentException(module.Name);
+                throw new ArgumentException(this.module.Name);
             }
 
             foreach (TestPlanRecorder r in this.recorder)

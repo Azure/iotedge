@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         public async Task TestInvokeMethod()
         {
             var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
-            ActionExecutingContext actionExecutingContext = GetActionExecutingContextMock(identity);
+            ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
 
             var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
             DirectMethodRequest receiveDirectMethodRequest;
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         public async Task TestInvokeMethodOnModule()
         {
             var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
-            ActionExecutingContext actionExecutingContext = GetActionExecutingContextMock(identity);
+            ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
 
             var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
             DirectMethodRequest receiveDirectMethodRequest;

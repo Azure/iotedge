@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["101"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["102"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["102"] = "overwritten value"
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["106"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -273,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -284,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["107"] = "value"
             };
 
-            results = await RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -293,31 +293,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task Setup(DesiredPropertyUpdateCallback callback, Twin twinPatch, Func<Twin, Task> afterSetup, Func<Task> afterCallback)
         {
-            if (rm == null)
+            if (this.rm == null)
             {
                 string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
 
-                rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-                (deviceName, deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+                this.rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+                (this.deviceName, this.deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, this.rm);
 
                 var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                 {
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
                 };
                 ITransportSettings[] settings = { mqttSetting };
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
-                await deviceClient.OpenAsync();
+                this.deviceClient = DeviceClient.CreateFromConnectionString(this.deviceConnectionString, settings);
+                await this.deviceClient.OpenAsync();
             }
-            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(callback, afterCallback);
+            await this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(callback, afterCallback);
             await afterSetup(twinPatch);
         }
 
         async Task Teardown()
         {
-            await deviceClient.CloseAsync();
-            await RegistryManagerHelper.RemoveDevice(deviceName, rm);
-            await rm.CloseAsync();
-            rm = null;
+            await this.deviceClient.CloseAsync();
+            await RegistryManagerHelper.RemoveDevice(this.deviceName, this.rm);
+            await this.rm.CloseAsync();
+            this.rm = null;
         }
 
         async Task<Tuple<TwinCollection, TwinCollection>> RunTestCase(CancellationTokenSource cts, Twin twinPatch, bool teardown)
@@ -327,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Twin updatedCloudTwin = new Twin();
             TwinCollection localMergedTwinProperties = new TwinCollection();
 
-            await Setup(async (diff, ctx) =>
+            await this.Setup(async (diff, ctx) =>
             {
                 desiredPropertyPatch = diff;
                 Func<Task> next = (Func<Task>)ctx;
@@ -338,16 +338,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             async (p) => // after setup
             {
                 // fetch the newly minted twin
-                originalCloudTwin = await deviceClient.GetTwinAsync();
+                originalCloudTwin = await this.deviceClient.GetTwinAsync();
 
-                Twin rmTwin = await rm.GetTwinAsync(deviceName);
+                Twin rmTwin = await this.rm.GetTwinAsync(this.deviceName);
 
                 // updated twin in the cloud with the patch
-                await rm.UpdateTwinAsync(deviceName, p, rmTwin.ETag);
+                await this.rm.UpdateTwinAsync(this.deviceName, p, rmTwin.ETag);
             },
             async () => // after callback
             {
-                updatedCloudTwin = await deviceClient.GetTwinAsync();
+                updatedCloudTwin = await this.deviceClient.GetTwinAsync();
 
                 // replicate the patch operation locally
                 string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, desiredPropertyPatch, true);
@@ -361,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (teardown)
             {
-                await Teardown();
+                await this.Teardown();
             }
 
             cts.Dispose();

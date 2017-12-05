@@ -316,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             Message GetMessage(string id)
             {
-                var temp = new Temperature(-10 + rand.Next(40), rand.Next(0, 50) > 40 ? "Invalid" : "F");
+                var temp = new Temperature(-10 + this.rand.Next(40), this.rand.Next(0, 50) > 40 ? "Invalid" : "F");
                 byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(temp));
                 var message = new Message(payloadBytes);
                 message.Properties.Add("testId", id);

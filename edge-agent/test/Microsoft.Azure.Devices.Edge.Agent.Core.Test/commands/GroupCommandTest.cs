@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
             await g.ExecuteAsync(token);
 
-            AssertCommands(recorder, commandList, moduleExecutionList);
+            this.AssertCommands(recorder, commandList, moduleExecutionList);
         }
 
         [Theory]
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
             await g.ExecuteAsync(token);
 
-            AssertCommands(recorder, commandList, moduleExecutionList);
+            this.AssertCommands(recorder, commandList, moduleExecutionList);
         }
 
         [Theory]
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
             await g.UndoAsync(token);
 
-            AssertUndo(recorder, commandList, moduleExecutionList);
+            this.AssertUndo(recorder, commandList, moduleExecutionList);
         }
 
         [Theory]

@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await configUpdater.Init(configSource);
 
             IMqttConnectionProvider mqttConnectionProvider = await this.container.Resolve<Task<IMqttConnectionProvider>>();
-            this.protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>());
+            this.protocolHead = new MqttProtocolHead(this.container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, this.container.Resolve<IDeviceIdentityProvider>(), this.container.Resolve<ISessionStatePersistenceProvider>());
 
             await this.protocolHead.StartAsync();
         }

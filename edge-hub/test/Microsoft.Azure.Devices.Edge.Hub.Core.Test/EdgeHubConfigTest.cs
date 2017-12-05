@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             var baseStoreAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             var baseConfig = new EdgeHubConfig(schemaVersion, baseRoutes, baseStoreAndForwardConfiguration);
-            ValidateConfig(
+            this.ValidateConfig(
                 baseConfig,
                 new Dictionary<string, Route>
                 {
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var patch1StoreAndForwardConfiguration = new StoreAndForwardConfiguration(200);
             var patch1Config = new EdgeHubConfig(schemaVersion, patch1Routes, patch1StoreAndForwardConfiguration);
             baseConfig.ApplyDiff(patch1Config);
-            ValidateConfig(
+            this.ValidateConfig(
                 baseConfig,
                 new Dictionary<string, Route>
                 {
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             var patch2Config = new EdgeHubConfig(schemaVersion, patch2Routes, null);
             baseConfig.ApplyDiff(patch2Config);
-            ValidateConfig(
+            this.ValidateConfig(
                 baseConfig,
                 new Dictionary<string, Route>
                 {
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var patch3StoreAndForwardConfiguration = new StoreAndForwardConfiguration(300);
             var patch3Config = new EdgeHubConfig(schemaVersion, null, patch3StoreAndForwardConfiguration);
             baseConfig.ApplyDiff(patch3Config);
-            ValidateConfig(
+            this.ValidateConfig(
                 baseConfig,
                 new Dictionary<string, Route>
                 {
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var patch4Config = new EdgeHubConfig(schemaVersion, null, null);
             baseConfig.ApplyDiff(patch3Config);
-            ValidateConfig(
+            this.ValidateConfig(
                 baseConfig,
                 new Dictionary<string, Route>
                 {

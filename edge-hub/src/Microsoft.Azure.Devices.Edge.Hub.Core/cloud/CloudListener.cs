@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
 		public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.deviceProxy.InvokeMethodAsync(request);
 
-		public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHub.UpdateDesiredPropertiesAsync(identity.Id, desiredProperties);
+		public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHub.UpdateDesiredPropertiesAsync(this.identity.Id, desiredProperties);
 
 		public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendC2DMessageAsync(message);
 	}
