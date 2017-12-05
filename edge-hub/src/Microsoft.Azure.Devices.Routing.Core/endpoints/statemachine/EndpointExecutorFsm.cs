@@ -443,6 +443,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             // Copy the initial send message command to keep the uncompleted TaskCompletionSource
             if (thisPtr.currentCheckpointCommand.Result.Failed.Count > 0)
             {
+                TimeSpan retryAfter;
                 // PartialFailures should always have an exception object filled out
                 Exception innerException = thisPtr.currentCheckpointCommand.Result.SendFailureDetails.GetOrElse(DefaultSendFailureDetails).RawException;
 
@@ -450,8 +451,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 // 2. Change the Command type to Fail or Dead depending on retry
                 thisPtr.currentSendCommand = thisPtr.currentSendCommand.Copy(thisPtr.currentCheckpointCommand.Result.Failed);
 
-                TimeSpan retryAfter;
-                if (thisPtr.ShouldRetry(innerException, out retryAfter))
+                bool shouldRetry = thisPtr.ShouldRetry(innerException, out retryAfter);
+                Events.CheckRetryInnerException(thisPtr, innerException, shouldRetry);
+                if (shouldRetry)
                 {
                     next = Commands.Fail(retryAfter);
                 }
@@ -584,6 +586,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
+                CheckRetryInnerException
             }
 
             public static void StateEnter(EndpointExecutorFsm fsm)
@@ -685,6 +688,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 Log.LogError((int)EventIds.CheckpointFailure, ex, "[CheckpointFailure] Checkpointing failed. CheckpointOffset: {0}, {1}",
                     fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
+            }
+
+            public static void CheckRetryInnerException(EndpointExecutorFsm fsm, Exception ex, bool retry)
+            {
+                Log.LogDebug((int)EventIds.CheckRetryInnerException, ex, $"[CheckRetryInnerException] Decision to retry exception of type {ex.GetType()} is {retry}");
             }
 
             public static void Retry(EndpointExecutorFsm fsm)

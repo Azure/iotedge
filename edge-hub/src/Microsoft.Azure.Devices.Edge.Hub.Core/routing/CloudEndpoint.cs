@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                                 if (failed.Count > 0)
                                 {
-                                    Events.RetryingMessage(ex);
+                                    Events.RetryingMessage(routingMessage, ex);
                                     sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"));
                                 }
                             }
@@ -113,6 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var succeeded = new List<IRoutingMessage>();
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
+                Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
+                    Devices.Routing.Core.Util.Option.None<SendFailureDetails>();
 
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
@@ -125,9 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     succeeded.AddRange(res.Succeeded);
                     failed.AddRange(res.Failed);
                     invalid.AddRange(res.InvalidDetailsList);
+                    sendFailureDetails = res.SendFailureDetails;
                 }
 
-                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, null);
+                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid,
+                    sendFailureDetails.GetOrElse(null));
             }
 
             public Task CloseAsync(CancellationToken token)
@@ -140,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public ITransientErrorDetectionStrategy ErrorDetectionStrategy => new ErrorDetectionStrategy(this.IsTransientException);
 
-            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException;
+            bool IsTransientException(Exception ex) => ex is EdgeHubIOException || ex is EdgeHubConnectionException;
 
             Util.Option<ICloudProxy> GetCloudProxy(IRoutingMessage routingMessage)
             {
@@ -190,10 +194,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for device {id}"));
             }
 
-            internal static void RetryingMessage(Exception ex)
+            internal static void RetryingMessage(IRoutingMessage message, Exception ex)
             {
-                // TODO - Add more info to this log message
-                Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                if (message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
+                {
+                    string id = message.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
+                        ? $"{deviceId}/{moduleId}"
+                        : deviceId;
+
+                    // TODO - Add more info to this log message
+                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message from {id} to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                }
             }
 
             internal static void InvalidMessage(Exception ex)

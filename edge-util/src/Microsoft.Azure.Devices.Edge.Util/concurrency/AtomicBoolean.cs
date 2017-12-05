@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 {
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 
         public AtomicBoolean() : this(false) { }
 
-        public bool Get() => this.underlying != 0;
+        public bool Get() => Interlocked.Exchange(ref this.underlying, this.underlying) != 0;
 
         public void Set(bool value) => Interlocked.Exchange(ref this.underlying, value ? 1 : 0);
 

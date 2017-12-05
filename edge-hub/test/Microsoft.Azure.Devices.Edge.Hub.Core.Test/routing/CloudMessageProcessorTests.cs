@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.NotEmpty(resultBatch.Succeeded);
             Assert.NotEmpty(resultBatch.Failed);
             Assert.Empty(resultBatch.InvalidDetailsList);
-            Assert.False(resultBatch.SendFailureDetails.HasValue);
+            Assert.True(resultBatch.SendFailureDetails.HasValue);
         }
     }
 }
