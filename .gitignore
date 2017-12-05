@@ -289,6 +289,8 @@ FakesAssemblies/
 
 .vs/
 .vscode/launch.json
+.vscode/settings.json
+.vscode/tags
 
 launchSettings.json
 target/

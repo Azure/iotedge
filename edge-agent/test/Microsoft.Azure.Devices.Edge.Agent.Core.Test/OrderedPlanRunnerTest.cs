@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
 
-    public class PlanTest
+    public class OrderedPlanRunnerTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
 
@@ -47,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             var token = new CancellationToken();
 
-            await plan1.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(plan1, token);
             Assert.All(commandList,
                 command =>
                 {
@@ -55,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     Assert.NotNull(c);
                     Assert.True(c.CommandExecuted);
                 });
-            recordKeeper.ForEach( r => Assert.Equal(moduleExecutionList, r.ExecutionList));
+            recordKeeper.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
         }
 
         [Fact]
@@ -84,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             };
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
-            await plan1.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(plan1, token);
             Assert.All(commandList,
                 command =>
                 {
@@ -92,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     Assert.NotNull(c);
                     Assert.True(c.CommandExecuted);
                 });
-            factory.Recorder.ForEach( r => Assert.Equal(moduleExecutionList, r.ExecutionList));
+            factory.Recorder.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
         }
 
         [Fact]
@@ -128,21 +130,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             };
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
-            AggregateException ex = await Assert.ThrowsAsync< AggregateException>(async () => await plan1.ExecuteAsync(token));
+            var planRunner = new OrderedPlanRunner();
+            AggregateException ex = await Assert.ThrowsAsync<AggregateException>(async () => await planRunner.ExecuteAsync(plan1, token));
 
-            Assert.True(ex.InnerExceptions.Count == commandList.Count/2);
+            Assert.True(ex.InnerExceptions.Count == commandList.Count / 2);
             Assert.True(commandList.Where(command =>
                 {
                     var c = command as TestCommand;
                     Assert.NotNull(c);
                     return c.CommandExecuted;
-                }).Count() == commandList.Count/2);
+                }).Count() == commandList.Count / 2);
             Assert.True(commandList.Where(command =>
             {
                 var c = command as TestCommand;
                 Assert.NotNull(c);
                 return !c.CommandExecuted;
-            }).Count() == commandList.Count/2);
+            }).Count() == commandList.Count / 2);
 
             factory.Recorder.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
         }

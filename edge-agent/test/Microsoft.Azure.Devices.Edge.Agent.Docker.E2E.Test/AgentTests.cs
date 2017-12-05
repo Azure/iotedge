@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var systemModules = new SystemModules(null, null);
 
                 // Start up the agent and run a "reconcile".
-                var dockerLoggingOptions = new Dictionary<string,string>
+                var dockerLoggingOptions = new Dictionary<string, string>
                 {
                     {"max-size", "1m"},
                     {"max-file", "1" }
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
-                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), reporter, moduleIdentityLifecycleManager.Object);
+                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter, moduleIdentityLifecycleManager.Object);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

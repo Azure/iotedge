@@ -28,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             var addExecutionList = new List<TestRecordType>();
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
-            await addPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addPlan, token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
         }
@@ -54,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
             Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
-            await addPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addPlan, token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
         }
@@ -78,7 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestCreate, stoppedModule),
             };
             Plan addStoppedPlan = await planner.PlanAsync(addStopped, ModuleSet.Empty, moduleIdentities);
-            await addStoppedPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addStoppedPlan, token);
 
             factory.Recorder.ForEach(r => Assert.Equal(addStoppedExecutionList, r.ExecutionList));
         }
@@ -106,7 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
             Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
-            await addPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addPlan, token);
 
             factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
         }
@@ -127,7 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
             };
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
-            await addPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addPlan, token);
 
             factory.Recorder.ForEach(r => Assert.Equal(removeExecutionList, r.ExecutionList));
         }
@@ -179,7 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStart, desiredModules[2]),
             };
             Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
-            await addPlan.ExecuteAsync(token);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(addPlan, token);
 
             //Weak confirmation: no assumed order.
             factory.Recorder.ForEach(recorder => Assert.All(updateExecutionList, r => Assert.True(recorder.ExecutionList.Contains(r))));

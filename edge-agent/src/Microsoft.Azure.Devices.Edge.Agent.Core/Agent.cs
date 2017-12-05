@@ -16,15 +16,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         readonly IEnvironment environment;
         readonly IPlanner planner;
+        readonly IPlanRunner planRunner;
         readonly IReporter reporter;
         readonly IConfigSource configSource;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
 
-        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IReporter reporter, IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
+        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IPlanRunner planRunner, IReporter reporter, IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
+            this.planRunner = Preconditions.CheckNotNull(planRunner, nameof(planRunner));
             this.reporter = Preconditions.CheckNotNull(reporter, nameof(reporter));
             this.moduleIdentityLifecycleManager = Preconditions.CheckNotNull(moduleIdentityLifecycleManager, nameof(moduleIdentityLifecycleManager));
             Events.AgentCreated();
@@ -39,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 current = await this.environment.GetModulesAsync(token);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 ex = e;
             }
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 ex = e;
             }
@@ -128,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     {
                         try
                         {
-                            await plan.ExecuteAsync(token);
+                            await this.planRunner.ExecuteAsync(plan, token);
 
                             // get post plan execution state
                             updated = await this.environment.GetModulesAsync(token);
@@ -148,25 +150,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
             }
-            catch(ConfigEmptyException ex)
+            catch (ConfigEmptyException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
                 Events.EmptyConfig(ex);
             }
-            catch(InvalidSchemaVersionException ex)
+            catch (InvalidSchemaVersionException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
                 Events.InvalidSchemaVersion(ex);
             }
-            catch(ConfigFormatException ex)
+            catch (ConfigFormatException ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
                 Events.InvalidConfigFormat(ex);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
                 await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);

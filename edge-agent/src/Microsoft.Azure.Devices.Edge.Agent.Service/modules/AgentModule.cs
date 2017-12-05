@@ -169,6 +169,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
+            // IPlanRunner
+            builder.Register(c => new OrderedPlanRunner())
+                .As<IPlanner>()
+                .SingleInstance();
+
             // Task<Agent>
             builder.Register(
                 async c =>
@@ -176,12 +181,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var configSource = c.Resolve<Task<IConfigSource>>();
                     var environment = c.Resolve<Task<IEnvironment>>();
                     var planner = c.Resolve<Task<IPlanner>>();
+                    var planRunner = c.Resolve<IPlanRunner>();
                     var reporter = c.Resolve<Task<IReporter>>();
                     var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                     return new Agent(
                         await configSource,
                         await environment,
                         await planner,
+                        planRunner,
                         await reporter,
                         moduleIdentityLifecycleManager);
                 })
