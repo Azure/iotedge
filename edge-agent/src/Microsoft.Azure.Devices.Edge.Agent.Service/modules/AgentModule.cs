@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IPlanRunner
             builder.Register(c => new OrderedPlanRunner())
-                .As<IPlanner>()
+                .As<IPlanRunner>()
                 .SingleInstance();
 
             // Task<Agent>
