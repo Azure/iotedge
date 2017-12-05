@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task GetModulesRetryTest()
         {
             // Arrange
-            Mock<IServiceClient> underlying = new Mock<IServiceClient>();
+            var underlying = new Mock<IServiceClient>();
             underlying.SetupSequence(c => c.GetModules())
                 .Throws(new InvalidOperationException())
                 .Returns(Task.FromResult(Enumerable.Empty<Module>()));
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task GetModuleRetryTest()
         {
             // Arrange
-            Mock<IServiceClient> underlying = new Mock<IServiceClient>();
+            var underlying = new Mock<IServiceClient>();
             underlying.SetupSequence(c => c.GetModule(It.IsAny<string>()))
                 .Throws(new InvalidOperationException())
                 .Returns(Task.FromResult(new Module("d1", "m1")));
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CreateModulesRetryTest()
         {
             // Arrange
-            Mock<IServiceClient> underlying = new Mock<IServiceClient>();
+            var underlying = new Mock<IServiceClient>();
             underlying.SetupSequence(c => c.CreateModules(It.IsAny<IEnumerable<string>>()))
                 .Throws(new InvalidOperationException())
                 .Returns(Task.FromResult(new Module[] { new Module("d1", "m1") }));
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task GetModuleThrowsTest()
         {
             // Arrange
-            Mock<IServiceClient> underlying = new Mock<IServiceClient>();
+            var underlying = new Mock<IServiceClient>();
             underlying.Setup(c => c.GetModules())
                 .ThrowsAsync(new InvalidOperationException());
             var serviceClient = new RetryingServiceClient(underlying.Object);
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task GetModulesRetryUnauthorizedThrowsTest()
         {
             // Arrange
-            Mock<IServiceClient> underlying = new Mock<IServiceClient>();
+            var underlying = new Mock<IServiceClient>();
             underlying.SetupSequence(c => c.GetModules())
                 .Throws(new UnauthorizedException("Unauthorized!"))
                 .Returns(Task.FromResult(Enumerable.Empty<Module>()));

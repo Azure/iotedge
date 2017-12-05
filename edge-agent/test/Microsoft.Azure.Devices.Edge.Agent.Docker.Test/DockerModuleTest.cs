@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         static IEnumerable<string> GetJsonTestCases(string subset)
         {
-            JArray val = (JArray)TestJsonInputs.GetValue(subset);
+            var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
         }
 
@@ -369,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [MemberData(nameof(GetValidJsonInputs))]
         public void TestDeserializeValidJson(string inputJson)
         {
-            DockerModule module = ModuleSerde.Instance.Deserialize<DockerModule>(inputJson);
+            var module = ModuleSerde.Instance.Deserialize<DockerModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
         }
@@ -420,7 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string json = ModuleSerde.Instance.Serialize(module);
 
             // Assert
-            DockerModule mod2 = ModuleSerde.Instance.Deserialize<DockerModule>(json);
+            var mod2 = ModuleSerde.Instance.Deserialize<DockerModule>(json);
             Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k1=v1"""));
             Assert.True(JsonConvert.SerializeObject(mod2.Config.CreateOptions).Contains(@"""k2=v2"""));
         }

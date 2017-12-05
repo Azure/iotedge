@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
 
-            IProtocolgatewayDeviceIdentity identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
             var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
 
-            IProtocolgatewayDeviceIdentity identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
             var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.RemoveSubscription(MethodPostTopicPrefix);
@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
 
-            SessionState retrievedSessionState = storedSession as SessionState;
+            var retrievedSessionState = storedSession as SessionState;
             Assert.NotNull(retrievedSessionState);
             Assert.Equal(2, retrievedSessionState.Subscriptions.Count);
             Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);            

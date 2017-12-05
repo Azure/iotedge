@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
 		public Twin FromMessage(IMessage message)
 		{
-			Twin twin = new Twin();
+			var twin = new Twin();
             twin.Properties = message.Body.FromBytes<TwinProperties>();
             if (message.SystemProperties.TryGetValue(SystemProperties.Version, out string versionString)
                 && long.TryParse(versionString, out long version))

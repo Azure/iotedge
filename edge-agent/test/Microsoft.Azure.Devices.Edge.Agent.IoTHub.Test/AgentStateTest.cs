@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string json = JsonConvert.SerializeObject(input);
 
             // Act
-            AgentState state = JsonConvert.DeserializeObject<AgentState>(json);
+            var state = JsonConvert.DeserializeObject<AgentState>(json);
 
             // Assert
             Assert.Equal(expected, state);

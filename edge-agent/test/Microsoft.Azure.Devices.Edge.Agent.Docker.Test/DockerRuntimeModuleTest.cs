@@ -465,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 ");
         static IEnumerable<string> GetJsonTestCases(string subset)
         {
-            JArray val = (JArray)TestJsonInputs.GetValue(subset);
+            var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
         }
 
@@ -599,7 +599,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [MemberData(nameof(GetValidJsonInputs))]
         public void TestDeserializeValidJson(string inputJson)
         {
-            DockerRuntimeModule module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
+            var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
         }
@@ -608,7 +608,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [MemberData(nameof(GetValidStatusInputs))]
         public void TestDeserializeValidStatus(string inputJson)
         {
-            DockerRuntimeModule module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
+            var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
             Assert.NotNull(module);
         }
 
@@ -672,10 +672,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void TestWithRuntimeStatus()
         {
-            DockerRuntimeModule M1 = Module1 as DockerRuntimeModule;
-            DockerRuntimeModule newM1 = (DockerRuntimeModule)M1.WithRuntimeStatus(ModuleStatus.Running);
-            DockerRuntimeModule M2 = Module2 as DockerRuntimeModule;
-            DockerRuntimeModule newM2 = (DockerRuntimeModule)M2.WithRuntimeStatus(ModuleStatus.Stopped);
+            var M1 = Module1 as DockerRuntimeModule;
+            var newM1 = (DockerRuntimeModule)M1.WithRuntimeStatus(ModuleStatus.Running);
+            var M2 = Module2 as DockerRuntimeModule;
+            var newM2 = (DockerRuntimeModule)M2.WithRuntimeStatus(ModuleStatus.Stopped);
 
             Assert.Equal(M1, newM1);
             Assert.NotEqual(M2, newM2);

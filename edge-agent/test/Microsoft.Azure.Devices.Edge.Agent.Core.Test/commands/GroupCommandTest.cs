@@ -15,12 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     {
         static IEnumerable<object[]> CreateTestData()
         {
-            ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo();
+            var DefaultConfigurationInfo = new ConfigurationInfo();
 
             Option<TestPlanRecorder> recordKeeper1 = Option.Some(new TestPlanRecorder());
             Option<TestPlanRecorder> recordKeeper2 = Option.Some(new TestPlanRecorder());
             Option<TestPlanRecorder> recordKeeper3 = Option.Some(new TestPlanRecorder());
-            List<TestCommandType> tt = new List<TestCommandType>
+            var tt = new List<TestCommandType>
             {
                 TestCommandType.TestCreate,
                 TestCommandType.TestCreate,
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                 TestCommandType.TestCreate,
                 TestCommandType.TestCreate
             };
-            List<TestModule> tm = new List<TestModule>{
+            var tm = new List<TestModule>{
                 new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
                 new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
                 new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             List<ICommand> commandList
             )
         {
-            GroupCommand g = new GroupCommand(commandList.ToArray());
+            var g = new GroupCommand(commandList.ToArray());
 
             var token = new CancellationToken();
 
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
 
             string showString = g.Show();
 
-            foreach(var command in commandList)
+            foreach(ICommand command in commandList)
             {
                 Assert.True(showString.Contains(command.Show()));
             }

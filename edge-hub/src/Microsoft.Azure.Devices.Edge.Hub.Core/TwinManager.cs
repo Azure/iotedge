@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            TwinManager twinManager = new TwinManager(connectionManager, messageConverterProvider.Get<TwinCollection>(), messageConverterProvider.Get<Twin>(),
+            var twinManager = new TwinManager(connectionManager, messageConverterProvider.Get<TwinCollection>(), messageConverterProvider.Get<Twin>(),
                 storeProvider.Match(
                     s => Option.Some(s.GetEntityStore<string, TwinInfo>(Constants.TwinStorePartitionKey)),
                     () => Option.None<IEntityStore<string, TwinInfo>>()));
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 IMessage twinMessage = await cp.GetTwinAsync();
                 Twin cloudTwin = this.twinConverter.FromMessage(twinMessage);
                 Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
-                TwinInfo newTwin = new TwinInfo(cloudTwin, null, false);
+                var newTwin = new TwinInfo(cloudTwin, null, false);
                 cached = newTwin;
                 await this.TwinStore.Match(
                     (s) => s.PutOrUpdate(
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         u =>
                         {
                             string mergedJson = JsonEx.Merge(u.Twin.Properties.Reported, reported, /*treatNullAsDelete*/ true);
-                            TwinCollection mergedProperty = new TwinCollection(mergedJson);
+                            var mergedProperty = new TwinCollection(mergedJson);
                             if (!cloudVerified)
                             {
                                 ValidateTwinCollectionSize(mergedProperty);
@@ -353,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     u =>
                     {
                         string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
-                        TwinCollection mergedPatch = new TwinCollection(mergedJson);
+                        var mergedPatch = new TwinCollection(mergedJson);
                         Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
                         return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
                     }),
@@ -504,7 +504,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
         {
-            foreach (var kvp in ((JObject)properties).Properties())
+            foreach (JProperty kvp in ((JObject)properties).Properties())
             {
                 ValidatePropertyNameAndLength(kvp.Name);
 

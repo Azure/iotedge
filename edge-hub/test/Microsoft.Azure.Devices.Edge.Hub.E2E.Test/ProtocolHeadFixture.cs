@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                                 id =>
                                 {
                                     deviceidentity = id;
-                                    var identity = (deviceidentity as ProtocolGatewayIdentity).Identity;
+                                    IIdentity identity = (deviceidentity as ProtocolGatewayIdentity).Identity;
                                     deviceListener.Setup(p => p.Identity).Returns(identity);
                                     deviceListener.Setup(p => p.BindDeviceProxy(It.IsAny<IDeviceProxy>())).Callback<IDeviceProxy>(
                                         async deviceProxy =>

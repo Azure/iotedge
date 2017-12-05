@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             if (this.methodCallTaskCompletionSources.TryRemove(correlationId.ToLowerInvariant(), out TaskCompletionSource<DirectMethodResponse> taskCompletion))
             {
-                var directMethodResponse = !message.Properties.TryGetValue(SystemProperties.StatusCode, out string statusCode)
+                DirectMethodResponse directMethodResponse = !message.Properties.TryGetValue(SystemProperties.StatusCode, out string statusCode)
                     || !int.TryParse(statusCode, out int statusCodeValue)
                     ? new DirectMethodResponse(correlationId, null, GenericBadRequest)
                     : new DirectMethodResponse(correlationId, message.Body, statusCodeValue);

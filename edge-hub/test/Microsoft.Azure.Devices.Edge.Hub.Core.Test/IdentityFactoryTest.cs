@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<IIdentity> identityTry = identityFactory.GetWithConnectionString(deviceConnectionstring);
             Assert.True(identityTry.Success);
             Assert.NotNull(identityTry.Value);
-            IModuleIdentity identity = identityTry.Value as IModuleIdentity;
+            var identity = identityTry.Value as IModuleIdentity;
             Assert.NotNull(identity);
             Assert.Equal(deviceConnectionstring, identity.ConnectionString);
             Assert.Equal(deviceId, identity.DeviceId);

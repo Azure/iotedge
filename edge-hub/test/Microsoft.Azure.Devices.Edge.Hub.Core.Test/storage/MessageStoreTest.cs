@@ -234,8 +234,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             };
 
             byte[] body = "Test Message Body".ToBody();
-            DateTime enqueueTime = new DateTime(2017, 11, 20, 01, 02, 03);
-            DateTime dequeueTime = new DateTime(2017, 11, 20, 02, 03, 04);
+            var enqueueTime = new DateTime(2017, 11, 20, 01, 02, 03);
+            var dequeueTime = new DateTime(2017, 11, 20, 02, 03, 04);
 
             IMessage message = new Message(
                 TelemetryMessageSource.Instance,
@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             var messageWrapper = new MessageStore.MessageWrapper(message, DateTime.UtcNow, 3);
 
             byte[] messageWrapperBytes = messageWrapper.ToBytes();
-            MessageStore.MessageWrapper retrievedMesssageWrapper = messageWrapperBytes.FromBytes<MessageStore.MessageWrapper>();
+            var retrievedMesssageWrapper = messageWrapperBytes.FromBytes<MessageStore.MessageWrapper>();
 
             Assert.NotNull(retrievedMesssageWrapper);
             Assert.Equal(messageWrapper.TimeStamp, retrievedMesssageWrapper.TimeStamp);

@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             JToken json = JToken.Parse(JsonConvert.SerializeObject(module));
 
             // Assert
-            var expected = JToken.FromObject(new
+            JToken expected = JToken.FromObject(new
             {
                 runtimeStatus = "running",
                 lastStartTimeUtc = lastStartTimeUtc,
@@ -123,8 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
               "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
             );
             var module = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("booyah", string.Empty, "someSha"), ModuleStatus.Running, lastStartTimeUtc, new ConfigurationInfo("bing"));
-            EdgeAgentDockerRuntimeModule updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
-            EdgeAgentDockerRuntimeModule updatedModule2 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
+            var updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
+            var updatedModule2 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
 
             Assert.Equal(module, updatedModule1);
             //Assert.NotEqual(module, updatedModule2);

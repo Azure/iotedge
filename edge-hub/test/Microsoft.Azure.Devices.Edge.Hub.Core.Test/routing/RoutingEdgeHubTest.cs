@@ -50,10 +50,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Mock.Get(messageConverter).Setup(mc => mc.FromMessage(It.IsAny<Core.IMessage>())).Returns(message);
 
             // Create mock for IConnectionManager
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
 
             // Mock of twin manager
-            ITwinManager twinManager = Mock.Of<ITwinManager>();
+            var twinManager = Mock.Of<ITwinManager>();
 
             // Test Scenario
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
@@ -89,17 +89,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
 
             // Create mock for IConnectionManager
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
 
             // Mock of twin manager
-            ITwinManager twinManager = Mock.Of<ITwinManager>();
+            var twinManager = Mock.Of<ITwinManager>();
 
             // Mock of identity
-            IIdentity identity = Mock.Of<IIdentity>();
+            var identity = Mock.Of<IIdentity>();
 
             var messageConverter = new RoutingMessageConverter();
 
-            Message badMessage = new Message(new byte[300 * 1024]);
+            var badMessage = new Message(new byte[300 * 1024]);
 
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
@@ -141,8 +141,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
 
             var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
-            Mock<ITwinManager> twinManager = new Mock<ITwinManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
             twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult<Core.IMessage>(message));
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
@@ -178,8 +178,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
 
             var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
-            Mock<ITwinManager> twinManager = new Mock<ITwinManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
             Core.IMessage received = new Message(new byte[0]);
             twinManager.Setup(t => t.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<Core.IMessage>())).Callback<string, Core.IMessage>((s, m) => received = message).Returns(Task.CompletedTask);
@@ -218,11 +218,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
 
             // Create mock for IConnectionManager
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
             Mock.Get(connectionManager).Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
 
             // Mock of twin manager
-            ITwinManager twinManager = Mock.Of<ITwinManager>();
+            var twinManager = Mock.Of<ITwinManager>();
 
             // RoutingEdgeHub
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
@@ -276,10 +276,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var messageConverter = Mock.Of<Core.IMessageConverter<IMessage>>();
 
             // Create mock for IConnectionManager
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
 
             // Mock of twin manager
-            ITwinManager twinManager = Mock.Of<ITwinManager>();
+            var twinManager = Mock.Of<ITwinManager>();
 
             string edgeDeviceId = "testEdgeDevice";
             // Test Scenario

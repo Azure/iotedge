@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         {
             string entityName = "testEntity";
             var entityStore = new EntityStore<byte[], Item>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
-            var sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
             long offset = await sequentialStore.Append(new Item { Prop1 = 10 });
             Assert.Equal(0, offset);
 
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         {
             string entityName = "basicTestEntity";
             var entityStore = new EntityStore<byte[], Item>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
-            var sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
             var tasks = new List<Task>();
             for (int i = 0; i < 10; i++)
             {
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         {
             string entityName = "removeTestEntity";
             var entityStore = new EntityStore<byte[], Item>(this.rocksDbStoreProvider.GetColumnStoreFamily(entityName), entityName);
-            var sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
             for (int i = 0; i < 10; i++)
             {
                 long offset = await sequentialStore.Append(new Item { Prop1 = i });

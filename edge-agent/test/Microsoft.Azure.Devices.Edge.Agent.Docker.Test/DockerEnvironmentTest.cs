@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             using (var cts = new CancellationTokenSource(Timeout))
             {
-                var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
+                DockerEnvironment environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                 ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                 Assert.Equal(0, modules.Modules.Count);
             }
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 SystemInfoResponse systemInfo = await Client.System.GetSystemInfoAsync(cts.Token);
 
                 // Act
-                var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
+                DockerEnvironment environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
 
                 // Assert
                 Assert.Equal(systemInfo.OSType, environment.OperatingSystemType);
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    var credential = "fake";
+                    string credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.Containers.CreateContainerAsync(createParams);
 
                     // Check that only containers created via command are listed in the environment
-                    var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
+                    DockerEnvironment environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.Equal(1, modules.Modules.Count);
                     Assert.Equal(module.Name, modules.Modules.First().Value.Name);
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 {
                     await Client.CleanupContainerAsync(Name, Image);
 
-                    var createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
+                    string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
                     var config = new DockerConfig(Image, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     string moduleKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("moduleKey"));
-                    var credential = "fake";
+                    string credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await create.ExecuteAsync(cts.Token);
 
                     // check that the environment variables are being returned
-                    var environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
+                    DockerEnvironment environment = await DockerEnvironment.CreateAsync(Client, RestartStateStore, RestartManager);
                     ModuleSet modules = await environment.GetModulesAsync(cts.Token);
                     Assert.NotNull(modules.Modules[Name]);
                     Assert.True(((DockerRuntimeModule)modules.Modules[Name]).Config.CreateOptions.Env.Contains("k1=v1"));
@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime LastExitTime = LastStartTime.AddDays(1);
             // Arrange
-            var id = Guid.NewGuid().ToString();
+            string id = Guid.NewGuid().ToString();
             var containerListResponse = new ContainerListResponse
             {
                 Image = "localhost:5000/sensor:v2",
@@ -222,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dc.System == Mock.Of<ISystemOperations>(so => so.GetSystemInfoAsync(default(CancellationToken)) == Task.FromResult(systemInfoResponse)));
 
             // Act
-            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
+            DockerEnvironment dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
             IModule module = await dockerEnvironment.ContainerToModuleAsync(containerListResponse);
 
             // Assert
@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var inputRuntimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.13", string.Empty));
 
             // Act
-            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
+            DockerEnvironment dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient, RestartStateStore, RestartManager);
             IRuntimeInfo outputRuntimeInfo = await dockerEnvironment.GetUpdatedRuntimeInfoAsync(inputRuntimeInfo);
 
             // Assert
@@ -317,14 +317,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dr.Type == "docker" &&
                 dr.Config == new Mock<DockerRuntimeConfig>("1.25", "").Object);
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime);
 
             // assert
             Assert.True(reportedRuntimeInfo is DockerReportedRuntimeInfo);
-            DockerReportedRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
+            var dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
             Assert.NotNull(dockerReported.Config);
@@ -345,14 +345,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(UnknownRuntimeInfo.Instance);
 
             // assert
             Assert.True(reportedRuntimeInfo is DockerReportedUnknownRuntimeInfo);
-            DockerReportedUnknownRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
+            var dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
         }
@@ -372,14 +372,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(null);
 
             // assert
             Assert.True(reportedRuntimeInfo is DockerReportedUnknownRuntimeInfo);
-            DockerReportedUnknownRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
+            var dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
         }
@@ -403,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dr.Type == "not docker" &&
                 dr.Config == null);
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act, assert
             Assert.Same(dockerRuntime, await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime));
@@ -428,14 +428,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 dr.Type == "docker" &&
                 dr.Config == null);
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetUpdatedRuntimeInfoAsync(dockerRuntime);
 
             //. assert
             Assert.True(reportedRuntimeInfo is DockerReportedRuntimeInfo);
-            DockerReportedRuntimeInfo dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
+            var dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
             Assert.True(string.IsNullOrEmpty(dockerReported.Config.MinDockerVersion));
@@ -461,9 +461,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
-            EdgeAgentDockerRuntimeModule edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
+            var edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
             Assert.NotNull(edgeAgent);
             Assert.Equal(edgeAgent.Type, "docker");
             Assert.Equal(DockerReportedConfig.Unknown, edgeAgent.Config);
@@ -494,9 +494,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
+            DockerEnvironment environment = await DockerEnvironment.CreateAsync(dockerClient, store, restartPolicyManager);
 
-            EdgeAgentDockerRuntimeModule edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
+            var edgeAgent = await environment.GetEdgeAgentModuleAsync(CancellationToken.None) as EdgeAgentDockerRuntimeModule;
             Assert.NotNull(edgeAgent);
             Assert.Equal(edgeAgent.Type, "docker");
             Assert.Equal("myImage", edgeAgent.Config.Image);
@@ -555,7 +555,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 .ReturnsAsync(inspectContainerResponse);
 
             // Act
-            var dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient.Object, entityStore.Object, restartPolicyManager.Object);
+            DockerEnvironment dockerEnvironment = await DockerEnvironment.CreateAsync(dockerClient.Object, entityStore.Object, restartPolicyManager.Object);
             ModuleSet modules = await dockerEnvironment.GetModulesAsync(CancellationToken.None);
 
             // Assert

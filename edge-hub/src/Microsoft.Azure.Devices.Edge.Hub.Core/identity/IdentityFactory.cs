@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Web;
     using Microsoft.Azure.Devices.Client;
@@ -164,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             var kvsep = new char[] { '=' };
 
-            var parms = queryParams
+            Dictionary<string, string> parms = queryParams
                 .Split('&')                             // split input string into params
                 .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
                 .GroupBy(s => s[0])                     // group duplicates (by key) together...

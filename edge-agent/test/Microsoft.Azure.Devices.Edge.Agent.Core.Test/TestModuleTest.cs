@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         static IEnumerable<string> GetJsonTestCases(string subset)
         {
-            JArray val = (JArray)TestJsonInputs.GetValue(subset);
+            var val = (JArray)TestJsonInputs.GetValue(subset);
             return val.Children().Select(token => token.ToString());
         }
 
@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [MemberData(nameof(GetValidJsonInputs))]
         public void TestDeserializeValidJson(string inputJson)
         {
-            TestModule module = ModuleSerde.Instance.Deserialize<TestModule>(inputJson);
+            var module = ModuleSerde.Instance.Deserialize<TestModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
         }

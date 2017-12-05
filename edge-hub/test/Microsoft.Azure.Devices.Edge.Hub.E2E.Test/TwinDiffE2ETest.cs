@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(101)]
         public async void AddPropertySuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["101"] = "value"
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(102)]
         public async void OverwritePropertySuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["102"] = "value"
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(103)]
         public async void UnchangedPropertySuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["103"] = new TwinCollection()
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(104)]
         public async void RemovePropertySuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["104"] = new TwinCollection()
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(105)]
         public async void NonexistantRemovePropertySuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["105"] = new TwinCollection()
@@ -222,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(106)]
         public async void OverwriteValueWithObjectSuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["106"] = "value"
@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Fact, TestPriority(107)]
         public async void OverwriteObjectWithValueSuccess()
         {
-            Twin twinPatch = new Twin();
+            var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
             {
                 ["107"] = new TwinCollection()
@@ -322,15 +322,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task<Tuple<TwinCollection, TwinCollection>> RunTestCase(CancellationTokenSource cts, Twin twinPatch, bool teardown)
         {
-            TwinCollection desiredPropertyPatch = new TwinCollection();
-            Twin originalCloudTwin = new Twin();
-            Twin updatedCloudTwin = new Twin();
-            TwinCollection localMergedTwinProperties = new TwinCollection();
+            var desiredPropertyPatch = new TwinCollection();
+            var originalCloudTwin = new Twin();
+            var updatedCloudTwin = new Twin();
+            var localMergedTwinProperties = new TwinCollection();
 
             await this.Setup(async (diff, ctx) =>
             {
                 desiredPropertyPatch = diff;
-                Func<Task> next = (Func<Task>)ctx;
+                var next = (Func<Task>)ctx;
                 await next();
                 cts.Cancel();
             },

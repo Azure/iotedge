@@ -263,7 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         public void ProductInfoTest(string username, string productInfo)
         {
             IIdentityFactory factory = new IdentityFactory(Hostname);
-            var identity = factory.GetWithSasToken(username, SasToken).Value;
+            IIdentity identity = factory.GetWithSasToken(username, SasToken).Value;
             Assert.Equal(productInfo, identity.ProductInfo);
         }
 

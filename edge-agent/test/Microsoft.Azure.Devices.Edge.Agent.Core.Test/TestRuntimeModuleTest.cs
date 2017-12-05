@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public static void TestEquality()
         {
-            var reportedModuleReference = ReportedModule1;
+            TestRuntimeModule reportedModuleReference = ReportedModule1;
 
             Assert.False(ReportedModule1.Equals(null));
             Assert.True(ReportedModule1.Equals(reportedModuleReference));
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public static void TestWithRuntimeStatus()
         {
             var reportedModule = new TestRuntimeModule(TestModule1.Name, TestModule1.Version, TestModule1.RestartPolicy, TestModule1.Type, ModuleStatus.Running, TestModule1.Config, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-            TestRuntimeModule updatedModule = (TestRuntimeModule)reportedModule.WithRuntimeStatus(ModuleStatus.Unknown);
+            var updatedModule = (TestRuntimeModule)reportedModule.WithRuntimeStatus(ModuleStatus.Unknown);
 
             Assert.True(reportedModule.RuntimeStatus != updatedModule.RuntimeStatus);
             Assert.True(updatedModule.RuntimeStatus == ModuleStatus.Unknown);

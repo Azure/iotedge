@@ -14,8 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Unit]
         public void TestCreateInstance_ShouldThrowWhithNullArguments()
         {
-            var connectionString = "fake";
-            var moduleName = "module1";
+            string connectionString = "fake";
+            string moduleName = "module1";
 
             Assert.Throws<ArgumentNullException>(() => new ModuleIdentity(null, connectionString));
             Assert.Throws<ArgumentNullException>(() => new ModuleIdentity(moduleName, null));
@@ -25,8 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Unit]
         public void TestEquals_ShouldReturnTrue()
         {
-            var moduleName = "module1";
-            var authMechanism = "fake";
+            string moduleName = "module1";
+            string authMechanism = "fake";
 
             var m1 = new ModuleIdentity(moduleName, authMechanism);
             var m2 = new ModuleIdentity(moduleName, authMechanism);
@@ -39,11 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Unit]
         public void TestEquals_SameReference_ShouldReturnTrue()
         {
-            var moduleName = "module1";
-            var authMechanism = "fake";
+            string moduleName = "module1";
+            string authMechanism = "fake";
 
             var m1 = new ModuleIdentity(moduleName, authMechanism);
-            var m2 = m1;
+            ModuleIdentity m2 = m1;
 
             Assert.True(m1.Equals(m2));
             Assert.True(m2.Equals(m1));
@@ -53,8 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Unit]
         public void TestEquals_WithDifferentModuleId_ShouldReturnFalse()
         {
-            var moduleName = "module";
-            var authMechanism = "fake";
+            string moduleName = "module";
+            string authMechanism = "fake";
 
             var m1 = new ModuleIdentity(moduleName + "1", authMechanism);
             var m2 = new ModuleIdentity(moduleName + "2", authMechanism);

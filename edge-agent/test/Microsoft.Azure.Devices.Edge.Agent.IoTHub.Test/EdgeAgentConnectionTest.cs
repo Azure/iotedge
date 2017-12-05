@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
-            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
             var twinContent = new TwinContent();
             cc.ModuleContent["$edgeAgent"] = twinContent;
             var dp = new
@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string conditionPropertyValue = Guid.NewGuid().ToString();
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
 
             try
             {
@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
                 edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
 
-                var twin = await registryManager.GetTwinAsync(edgeDeviceId);
+                Twin twin = await registryManager.GetTwinAsync(edgeDeviceId);
                 twin.Tags[conditionPropertyName] = conditionPropertyValue;
                 await registryManager.UpdateTwinAsync(edgeDeviceId, twin, twin.ETag);
                 await registryManager.GetTwinAsync(edgeDeviceId, "$edgeAgent");
@@ -272,13 +272,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Modules["asa"]);
                 Assert.Equal(configurationId, deploymentConfig.Modules["asa"].ConfigurationInfo.Id);
 
-                var reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
+                TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                 await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
                 // Service takes about 5 mins to sync statistics to config
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                var config = await registryManager.GetConfigurationAsync(configurationId);
+                Configuration config = await registryManager.GetConfigurationAsync(configurationId);
                 Assert.NotNull(config);
                 Assert.NotNull(config.Statistics);
                 Assert.True(config.Statistics.ContainsKey("targetedCount"));
@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static async Task<Configuration> CreateConfigurationAsync(RegistryManager registryMananger, string configurationId, string targetCondition, int priority)
         {
-            Configuration configuration = new Configuration(configurationId)
+            var configuration = new Configuration(configurationId)
             {
                 Labels = new Dictionary<string, string>
                 {
@@ -331,7 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
         {
-            var deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+            DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
             var reportedProperties = new
             {
                 lastDesiredVersion = deploymentConfigInfo.Version,
@@ -407,7 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         static TwinContent GetEdgeAgentConfiguration()
         {
-            TwinContent edgeAgent = new TwinContent();
+            var edgeAgent = new TwinContent();
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -479,7 +479,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         static TwinContent GetEdgeHubConfiguration()
         {
-            TwinContent edgeHub = new TwinContent();
+            var edgeHub = new TwinContent();
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -501,7 +501,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         static TwinContent GetTwinConfiguration(string moduleName)
         {
-            TwinContent configuration = new TwinContent();
+            var configuration = new TwinContent();
             configuration.TargetContent = new TwinCollection();
             configuration.TargetContent["name"] = moduleName;
             return configuration;
@@ -509,7 +509,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
-            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
             var twinContent = new TwinContent();
             cc.ModuleContent["$edgeAgent"] = twinContent;
             var dp = new
@@ -627,7 +627,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             // Act
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
 
@@ -677,11 +677,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Throws<FormatException>();
 
             // Act
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
 
-            var deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+            Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
@@ -721,11 +721,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .ReturnsAsync(twin);
 
             // Act
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
 
-            var deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+            Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
@@ -776,10 +776,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             // Act
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
-            var deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+            Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
@@ -827,10 +827,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             // Act
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
-            var deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+            Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
@@ -885,7 +885,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
-            var connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = await EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
 
             // this will cause the initial desired props to get set in the connection object
@@ -914,7 +914,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();
@@ -991,7 +991,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid().ToString();

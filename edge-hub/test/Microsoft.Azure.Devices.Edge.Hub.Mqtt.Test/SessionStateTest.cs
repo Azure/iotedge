@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task SessionStateSeralizationTest()
         {
-            SessionState sessionState = new SessionState(false);
+            var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             sessionState.RemoveSubscription(TwinSubscriptionTopicPrefix);
 

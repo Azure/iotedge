@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void TwinManagerConstructorVerifiesArguments()
         {
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
             Assert.Throws<ArgumentNullException>(() => new TwinManager(null, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore));
             Assert.Throws<ArgumentNullException>(() => new TwinManager(connectionManager, null, this.twinMessageConverter, this.twinStore));
             Assert.Throws<ArgumentNullException>(() => new TwinManager(connectionManager, this.twinCollectionMessageConverter, null, this.twinStore));
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void TwinManagerConstructorWithValidArgumentsSucceeds()
         {
-            IConnectionManager connectionManager = Mock.Of<IConnectionManager>();
+            var connectionManager = Mock.Of<IConnectionManager>();
             Assert.NotNull(new TwinManager(connectionManager, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore));
             Assert.NotNull(new TwinManager(connectionManager, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>()));
         }
@@ -51,17 +51,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -87,17 +87,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinWhenCloudOfflineSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
             await twinManager.GetTwinAsync(deviceId);
@@ -120,17 +120,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinPassthroughWhenTwinNotStoredSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
 
             string deviceId = "device";
 
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateDesiredPropertiesWhenTwinStoredVersionPlus1Success()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Desired = new TwinCollection()
             {
                 ["name"] = "original",
@@ -154,27 +154,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             bool receivedCallback = false;
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedCallback = true)
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
             IMessage received = await twinManager.GetTwinAsync(deviceId);
 
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -195,29 +195,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateDesiredPropertiesWhenTwinNotStoredVersionPlus1Success()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             bool getTwinCalled = false;
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Callback(() => getTwinCalled = true).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             bool receivedCallback = false;
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedCallback = true)
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 1
@@ -241,27 +241,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateDesiredPropertiesPassthroughSuccess()
         {
             // Arrange
-            TwinCollection received = new TwinCollection();
+            var received = new TwinCollection();
 
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>((m) =>
                 { received = this.twinCollectionMessageConverter.FromMessage(m); })
                 .Returns(Task.CompletedTask);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
 
             // Act
             await twinManager.UpdateDesiredPropertiesAsync(deviceId, collectionMessage);
@@ -276,24 +276,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange
             IMessage receivedMessage = null;
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Callback<IMessage>((m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, Option.None<IEntityStore<string, TwinInfo>>());
 
             // Act
             await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage);
@@ -307,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Reported = new TwinCollection()
             {
                 ["name"] = "oldvalue",
@@ -316,25 +316,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             IMessage receivedMessage = null;
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Callback<IMessage>((m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             bool storeMiss = false;
             bool storeHit = false;
@@ -376,23 +376,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenCloudOfflineTwinNotStoredSuccess()
         {
             // Arrange
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value"
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             bool storeMiss = false;
             bool storeHit = false;
@@ -412,28 +412,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenCloudOfflineTwinStoredSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Reported = new TwinCollection()
             {
                 ["name"] = "oldvalue"
             };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value"
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             bool storeMiss = false;
             bool storeHit = false;
@@ -459,12 +459,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            TwinCollection patch = new TwinCollection()
+            var patch = new TwinCollection()
             {
                 ["name"] = null,
                 ["newname"] = "value"
             };
-            TwinCollection merged = new TwinCollection()
+            var merged = new TwinCollection()
             {
                 ["newname"] = "value"
             };
@@ -488,7 +488,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenCloudOfflineMalformedPropertiesThrows()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Reported = new TwinCollection()
             {
                 ["name"] = "oldvalue",
@@ -496,22 +496,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             bool storeMiss = false;
             bool storeHit = false;
@@ -537,7 +537,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            TwinCollection patch = new TwinCollection()
+            var patch = new TwinCollection()
             {
                 ["name"] = null,
                 ["malformed"] = 4503599627370496,
@@ -552,7 +552,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenCloudOfflineTooLargeCollectionThrows()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Reported = new TwinCollection()
             {
                 ["name"] = "oldvalue",
@@ -560,15 +560,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["large"] = new byte[4 * 1024],
@@ -576,7 +576,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage collectionMessage = this.twinCollectionMessageConverter.ToMessage(collection);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             bool storeMiss = false;
             bool storeHit = false;
@@ -602,7 +602,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            TwinCollection patch = new TwinCollection()
+            var patch = new TwinCollection()
             {
                 ["name"] = null,
                 ["large"] = new byte[5 * 1024],
@@ -617,16 +617,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void AllOperationsWhenCloudOfflineTwinNotStoredThrows()
         {
             // Arrange
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -635,7 +635,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             string deviceId = "device";
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             // Act and Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage));
@@ -646,19 +646,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateDesiredPropertiesWhenDeviceProxyOfflineThrows()
         {
             // Arrange
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -673,17 +673,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinDoesNotOverwriteSavedReportedPropertiesSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -708,7 +708,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
 
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "newvalue"
             };
@@ -744,23 +744,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinWhenStorePutFailsReturnsLastKnownSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            Mock<IEntityStore<string, TwinInfo>> mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
+            var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Returns(Task.CompletedTask);
 
             Option<IEntityStore<string, TwinInfo>> twinStore = Option.Some<IEntityStore<string, TwinInfo>>(mockTwinStore.Object);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
 
             string deviceId = "device";
 
@@ -779,7 +779,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.FromResult(Option.Some<TwinInfo>(new TwinInfo(twin, null, false))));
 
             // Arrange - change what the cloud returns
-            Twin newTwin = new Twin("d1") { Version = 1 };
+            var newTwin = new Twin("d1") { Version = 1 };
             IMessage newTwinMessage = this.twinMessageConverter.ToMessage(twin);
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(newTwinMessage));
 
@@ -795,30 +795,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenStoreThrowsFailure()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            Mock<IEntityStore<string, TwinInfo>> mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
+            var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Returns(Task.CompletedTask);
 
             Option<IEntityStore<string, TwinInfo>> twinStore = Option.Some<IEntityStore<string, TwinInfo>>(mockTwinStore.Object);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
 
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Throws(new Exception("Out of space"));
             mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.None<TwinInfo>());
 
             string deviceId = "device";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "newvalue",
                 ["$version"] = 33
@@ -832,18 +832,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinRejectsLowerVersionTwinsSuccess()
         {
             // Arrange - setup twin with version
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Version = 32;
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockProxy = new Mock<ICloudProxy>();
+            var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -876,25 +876,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void GetTwinDoesNotGeneratesDesiredPropertyUpdateIfNotSusbribedSuccess()
         {
             // Arrange - setup twin with version
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             twin.Properties.Desired = new TwinCollection { ["$version"] = "32" };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
 
             bool receivedCallback = false;
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedCallback = true);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -931,7 +931,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void DesiredPropertyFetchesTwinWithCallbackSuccess()
         {
             // Arrange - make a twin with a version
-            Twin twin = new Twin("d1");
+            var twin = new Twin("d1");
             twin.Version = 32;
             twin.Properties.Desired = new TwinCollection()
             {
@@ -940,22 +940,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
 
-            TwinCollection receivedPatch = new TwinCollection();
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var receivedPatch = new TwinCollection();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedPatch = this.twinCollectionMessageConverter.FromMessage(m))
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -970,12 +970,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(cached.Version, 32);
 
             // Arrange - make a patch with original version - 1. setup get twin to return a twin with higher version
-            TwinCollection desired = new TwinCollection()
+            var desired = new TwinCollection()
             {
                 ["$version"] = 30
             };
             IMessage twinCollectionMessage = this.twinCollectionMessageConverter.ToMessage(desired);
-            Twin latest = new Twin();
+            var latest = new Twin();
             twin.Version = 33;
             twin.Properties.Desired = new TwinCollection()
             {
@@ -998,19 +998,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void ConnectionReestablishedReportedPropertiesSyncSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
-            TwinCollection reported = new TwinCollection()
+            var reported = new TwinCollection()
             {
                 ["value"] = "first"
             };
@@ -1053,7 +1053,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(cached.ReportedPropertiesPatch.ToJson(), reported.ToJson());
 
             // Arrange - make cloud online
-            TwinCollection onlineReported = new TwinCollection();
+            var onlineReported = new TwinCollection();
             callbackReceived = false;
             mockCloudProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m =>
@@ -1063,7 +1063,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             // Act - trigger callback
             twinManager.ConnectionEstablishedCallback(null, identity);
@@ -1085,16 +1085,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void ConnectionReestablishedGetTwinWithDesiredPropertyUpdateSuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1");
+            var twin = new Twin("d1");
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
 
-            TwinCollection receivedPatch = new TwinCollection();
+            var receivedPatch = new TwinCollection();
             bool callbackReceived = false;
-            Mock<IDeviceProxy> mockDeviceProxy = new Mock<IDeviceProxy>();
+            var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m =>
                 {
@@ -1104,15 +1104,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
-            TwinCollection desired = new TwinCollection()
+            var desired = new TwinCollection()
             {
                 ["$version"] = 30
             };
@@ -1128,7 +1128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(cached.SubscribedToDesiredPropertyUpdates, true);
 
             // Arrange
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             twin = new Twin();
             twin.Version = 33;
@@ -1161,20 +1161,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void ConnectionReestablishedDoesNotSyncReportedPropertiesWhenEmptySuccess()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
-            Mock<ICloudProxy> mockCloudProxy = new Mock<ICloudProxy>();
+            var mockCloudProxy = new Mock<ICloudProxy>();
             bool getTwinReceived = false;
             mockCloudProxy.Setup(t => t.GetTwinAsync())
                 .Callback(() => getTwinReceived = true)
                 .Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
 
-            Mock<IConnectionManager> connectionManager = new Mock<IConnectionManager>();
+            var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
-            TwinManager twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device";
 
@@ -1186,7 +1186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            DeviceIdentity identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
 
             // Act - cache the twin so that the twin is in the cache but there are no
             // reported properties cached. Then trigger callback

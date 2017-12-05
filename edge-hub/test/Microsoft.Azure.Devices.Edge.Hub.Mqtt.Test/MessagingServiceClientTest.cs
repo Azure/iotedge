@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -490,7 +490,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             // Arrange
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = MakeDeviceListenerSpy();
+            Mock<IDeviceListener> deviceListener = MakeDeviceListenerSpy();
             var payload = new Mock<IByteBuffer>();
             payload.Setup(p => p.Release()).Returns(true);
 
@@ -509,7 +509,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             // Arrange
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var deviceListener = MakeDeviceListenerSpy();
+            Mock<IDeviceListener> deviceListener = MakeDeviceListenerSpy();
             var payload = new Mock<IByteBuffer>();
             payload.Setup(p => p.Release()).Returns(true);
             Exception expectedException = null;

@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var (factory, store, restartManager, planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var (factory, store, restartManager, planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 "mod1", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
                 0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
             IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
 
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IRuntimeModule[] removedModules = GetRemoveTestData();
 
             ModuleSet removeRunning = ModuleSet.Create(removedModules);
-            var expectedExecutionList = removedModules.SelectMany(m => new TestRecordType[]
+            List<TestRecordType> expectedExecutionList = removedModules.SelectMany(m => new TestRecordType[]
             {
                 new TestRecordType(TestCommandType.TestStop, m),
                 new TestRecordType(TestCommandType.TestRemove, m)
@@ -399,13 +399,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Arrange
             var (factory, store, restartManager, planner) = CreatePlanner();
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployTestData();
-            var moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
             // build "current" and "desired" module sets
-            var currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray());
-            var desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
+            ModuleSet currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray());
+            ModuleSet desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
 
             // build expected execution list
-            var expectedExecutionList = data.SelectMany(d => new TestRecordType[]
+            IEnumerable<TestRecordType> expectedExecutionList = data.SelectMany(d => new TestRecordType[]
             {
                 new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
                 new TestRecordType(TestCommandType.TestPull, d.UpdatedModule),
@@ -818,21 +818,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             (IRuntimeModule RunningModule, bool Restart)[] updateStateChangedModules = GetUpdateStateChangeTestData();
 
             // build "current" and "desired" module sets
-            var currentModuleSet = ModuleSet.Create(updateDeployModules
+            ModuleSet currentModuleSet = ModuleSet.Create(updateDeployModules
                 .Select(d => d.RunningModule)
                 .Concat(removedModules)
                 .Concat(updateStateChangedModules.Select(m => m.RunningModule))
                 .ToArray()
             );
-            var desiredModuleSet = ModuleSet.Create(updateDeployModules
+            ModuleSet desiredModuleSet = ModuleSet.Create(updateDeployModules
                 .Select(d => d.UpdatedModule)
                 .Concat(updateStateChangedModules.Select(m => m.RunningModule))
                 .ToArray()
             );
-            var moduleIdentities = GetModuleIdentities(updateDeployModules.Select(d => d.UpdatedModule).ToList());
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(updateDeployModules.Select(d => d.UpdatedModule).ToList());
 
             // build expected execution list
-            var expectedExecutionList = updateDeployModules
+            IEnumerable<TestRecordType> expectedExecutionList = updateDeployModules
                 .SelectMany(d => new TestRecordType[]
                 {
                     new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
@@ -882,8 +882,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             store.Setup(s => s.Contains(It.IsAny<string>()))
                 .Returns(() => Task.FromResult(true));
 
-            var currentModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
-            var desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
+            ModuleSet currentModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
+            ModuleSet desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
 
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty);
@@ -896,9 +896,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
         {
-            var credential = "fake";
+            string credential = "fake";
             IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
-            foreach (var module in modules)
+            foreach (IModule module in modules)
             {
                 var identity = new Mock<IModuleIdentity>();
                 identity.Setup(id => id.ConnectionString).Returns(credential);

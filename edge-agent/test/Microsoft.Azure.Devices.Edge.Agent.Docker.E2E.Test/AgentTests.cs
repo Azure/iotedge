@@ -85,16 +85,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // TODO: Fix this up with a real reporter. But before we can do that we need to use
                 // the real configuration source that talks to IoT Hub above.
-                var reporter = NullReporter.Instance;
+                NullReporter reporter = NullReporter.Instance;
 
-                var restartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
-                var restartManager = new Mock<IRestartPolicyManager>().Object;
+                IEntityStore<string, ModuleState> restartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
+                IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
-                var environment = await DockerEnvironment.CreateAsync(client, restartStateStore, restartManager);
+                DockerEnvironment environment = await DockerEnvironment.CreateAsync(client, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
 
-                var credential = "fake";
+                string credential = "fake";
                 var identity = new Mock<IModuleIdentity>();
                 identity.Setup(id => id.ConnectionString).Returns(credential);
                 identity.Setup(id => id.Name).Returns(testConfig.Name);

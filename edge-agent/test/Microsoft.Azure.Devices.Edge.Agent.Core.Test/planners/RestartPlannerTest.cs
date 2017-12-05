@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
 
             var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
             ModuleSet addStopped = ModuleSet.Create(stoppedModule);
 
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
             var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
 
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
             IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
-            var moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
 
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
             };
 
-            var moduleIdentities = GetModuleIdentities(desiredModules);
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(desiredModules);
             var planner = new RestartPlanner(factory);
 
             ModuleSet currentSet = ModuleSet.Create(currentModules.ToArray());
@@ -213,9 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
         {
-            var credential = "fake";
+            string credential = "fake";
             IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
-            foreach (var module in modules)
+            foreach (IModule module in modules)
             {
                 var identity = new Mock<IModuleIdentity>();
                 identity.Setup(id => id.ConnectionString).Returns(credential);

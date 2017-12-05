@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
+                    string primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
 
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("1m", container.HostConfig.LogConfig.Config.GetOrElse("max-size", "missing"));
                     Assert.Equal("1", container.HostConfig.LogConfig.Config.GetOrElse("max-file", "missing"));
                     // environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    var credential = "fake";
+                    string credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
 
@@ -216,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
+                    string primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
 
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     Assert.Equal("testdevice", container.NetworkSettings.Networks.GetOrElse("testnetwork", new EndpointSettings()).Aliases.FirstOrDefault());
                     //environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
@@ -300,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
+                    string primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("fakePrimaryKey"));
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
 
@@ -328,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.Equal("1m", container.HostConfig.LogConfig.Config.GetOrElse("max-size", "missing"));
                     Assert.Equal("1", container.HostConfig.LogConfig.Config.GetOrElse("max-file", "missing"));
                     // environment variables
-                    var envMap = container.Config.Env.ToDictionary('=');
+                    IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
                     Assert.Equal(fakeConnectionString, envMap[Constants.IotHubConnectionStringKey]);
@@ -382,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 this.CreateMockEdgeHubModule()
             );
 
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            IConfigurationRoot configuration = new ConfigurationBuilder().AddInMemoryCollection(
                 new Dictionary<string, string>
                 {
                     { Constants.EdgeHubVolumeNameKey, VolumeName },
@@ -402,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 .Returns(configuration);
 
             // Act
-            var createCommand = await CreateCommand.BuildAsync(
+            ICommand createCommand = await CreateCommand.BuildAsync(
                 dockerClient.Object,
                 new DockerModule(
                     "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,
@@ -451,7 +451,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 this.CreateMockEdgeHubModule()
             );
 
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            IConfigurationRoot configuration = new ConfigurationBuilder().AddInMemoryCollection(
                 new Dictionary<string, string>
                 {
                     { Constants.EdgeModuleVolumeNameKey, VolumeName },
@@ -471,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 .Returns(configuration);
 
             // Act
-            var createCommand = await CreateCommand.BuildAsync(
+            ICommand createCommand = await CreateCommand.BuildAsync(
                 dockerClient.Object,
                 new DockerModule(
                     "mod1", "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHub = Mock.Of<IEdgeHub>();
             var identity = Mock.Of<IDeviceIdentity>();
             string messageId = "messageId";
-            FeedbackStatus status = FeedbackStatus.Complete;
+            var status = FeedbackStatus.Complete;
 
             var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, cloudProxy);
             await deviceListener.ProcessMessageFeedbackAsync(messageId, status);
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task InvokeMethodTest()
         {
-            var deviceMessageHandler = this.GetDeviceMessageHandler();
+            DeviceMessageHandler deviceMessageHandler = this.GetDeviceMessageHandler();
             var methodRequest = new DirectMethodRequest("device10", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             Task<DirectMethodResponse> responseTask = deviceMessageHandler.InvokeMethodAsync(methodRequest);
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task InvokeMethodTimeoutTest()
         {
-            var deviceMessageHandler = this.GetDeviceMessageHandler();
+            DeviceMessageHandler deviceMessageHandler = this.GetDeviceMessageHandler();
             var methodRequest = new DirectMethodRequest("device10", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             Task<DirectMethodResponse> responseTask = deviceMessageHandler.InvokeMethodAsync(methodRequest);
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task InvokedMethodMismatchedResponseTest()
         {
-            var deviceMessageHandler = this.GetDeviceMessageHandler();            
+            DeviceMessageHandler deviceMessageHandler = this.GetDeviceMessageHandler();            
             var methodRequest = new DirectMethodRequest("device10", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             Task<DirectMethodResponse> responseTask = deviceMessageHandler.InvokeMethodAsync(methodRequest);

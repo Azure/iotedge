@@ -23,10 +23,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task TestGetModulesIdentity_WithEmptyDiff_ShouldReturnEmptyIdentities()
         {
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -42,11 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             const string Name = "test-filters";
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string deviceSharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryDeviceAccessKey"));
             string moduleSharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryModuleAccessKey"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(deviceSharedAccessKey)
                 .Build();
 
@@ -79,10 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceModuleIdentity.Authentication.Type = AuthenticationType.Sas;
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -116,10 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceModuleIdentity.Authentication = null;
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname.fake.com";
-            var deviceId = "deviceId";
+            string hostname = "hostname.fake.com";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
+            IotHubConnectionStringBuilder connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -150,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task TestGetModulesIdentity_WithUpdatedModules_AuthTypeNotSas_ShouldUpdateIdentities()
         {
             const string Name = "test-filters";
-            var primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
-            var secondaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("secondarySymmetricKey"));
+            string primaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
+            string secondaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("secondarySymmetricKey"));
 
             var serviceModuleIdentity = new Module("device1", Name);
             serviceModuleIdentity.Authentication = new AuthenticationMechanism();
@@ -163,10 +163,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceModuleIdentity.Authentication.X509Thumbprint = thumbprint;
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname.fake.com";
-            var deviceId = "deviceId";
+            string hostname = "hostname.fake.com";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
+            IotHubConnectionStringBuilder connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -204,10 +204,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceModuleIdentity.Authentication.SymmetricKey = null;
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname.fake.com";
-            var deviceId = "deviceId";
+            string hostname = "hostname.fake.com";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryAccessKey"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
             Assert.True(modulesIdentities.Count() == 1);
-            var connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
+            IotHubConnectionStringBuilder connectionString = IotHubConnectionStringBuilder.Create(modulesIdentities.First().Value.ConnectionString);
             Assert.NotNull(connectionString.SharedAccessKey);
         }
 
@@ -248,10 +248,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceModuleIdentity.Authentication.SymmetricKey = symmetricKey;
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -280,10 +280,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 
@@ -310,10 +310,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             var serviceClient = new Mock<IServiceClient>();
-            var hostname = "hostname";
-            var deviceId = "deviceId";
+            string hostname = "hostname";
+            string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
-            var connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
+            EdgeHubConnectionString connectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(hostname, deviceId)
                 .SetSharedAccessKey(sharedAccessKey)
                 .Build();
 

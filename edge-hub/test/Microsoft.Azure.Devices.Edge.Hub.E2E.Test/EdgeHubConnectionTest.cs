@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             Devices.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Devices.IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            var registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
 
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice("testHubEdgeDevice1", iotHubConnectionString, registryManager, true, false);
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var twinManager = new TwinManager(connectionManager, twinCollectionMessageConverter, twinMessageConverter, Option.Some(twinStore));
 
             // Create Edge Hub connection
-            var edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
 
             // Get and Validate EdgeHubConfig
             Option<EdgeHubConfig> edgeHubConfigOption = await edgeHubConnection.GetConfig();
@@ -110,13 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
             string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
             Try<IIdentity> moduleIdentity = identityFactory.GetWithConnectionString(moduleConnectionstring);
-            IDeviceProxy moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+            var moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
 
             string downstreamDeviceId = "device1";
             sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
             string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
             Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
-            IDeviceProxy downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+            var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
 
             // Connect the module and downstream device and make sure the reported properties are updated as expected.
             await connectionManager.AddDeviceConnection(moduleIdentity.Value, moduleProxy);
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task SetDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
             var twinContent = new TwinContent();
             cc.ModuleContent["$edgeHub"] = twinContent;
 
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task UpdateDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            ConfigurationContent cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
             var twinContent = new TwinContent();
             cc.ModuleContent["$edgeHub"] = twinContent;
 

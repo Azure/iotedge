@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 "connstring=hostname=foo"
             };
 
-            var dictionary = stringsList.ToDictionary('=');
+            IDictionary<string, string> dictionary = stringsList.ToDictionary('=');
 
             Assert.NotNull(dictionary);
             Assert.Equal(4, dictionary.Count);

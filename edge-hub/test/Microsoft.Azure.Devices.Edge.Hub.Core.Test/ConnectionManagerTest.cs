@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IIdentity, Action<ConnectionStatus, ConnectionStatusChangeReason>>((i, c) => callback = c)
                 .ReturnsAsync(Try.Success(cloudProxy));
 
-            Mock<IDeviceProxy> deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
+            var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
             deviceProxy.Setup(d => d.CloseAsync(It.Is<Exception>(e => e is EdgeHubConnectionException))).Returns(Task.CompletedTask);
             deviceProxy.SetupGet(d => d.IsActive).Returns(true);
 

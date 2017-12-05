@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var update = new TaskCompletionSource<IMessage>();
             var cloudListener = new Mock<ICloudListener>();
-            var deviceConnectionStringKey = "device2ConnStrKey";
+            string deviceConnectionStringKey = "device2ConnStrKey";
             cloudListener.Setup(x => x.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback((IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);

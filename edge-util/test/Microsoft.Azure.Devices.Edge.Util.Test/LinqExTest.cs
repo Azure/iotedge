@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Util.Test
+namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System;
@@ -64,14 +64,14 @@
                 "k3=v32"
             };
 
-            var result1 = seq1.RemoveIntersectionKeys(seq2);
+            IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2);
             Assert.True(result1.SequenceEqual(new string[]
             {
                 "k1=v1",
                 "k4=v4"
             }));
 
-            var result2 = seq2.RemoveIntersectionKeys(seq1);
+            IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1);
             Assert.True(result2.SequenceEqual(new string[]
             {
                 "pk1=v1",
@@ -109,7 +109,7 @@
 
             Func<string, string> keySelector = s => s;
 
-            var result1 = seq1.RemoveIntersectionKeys(seq2, keySelector);
+            IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2, keySelector);
             Assert.True(result1.SequenceEqual(new string[]
             {
                 "k1=v1",
@@ -118,7 +118,7 @@
                 "k4=v4"
             }));
 
-            var result2 = seq2.RemoveIntersectionKeys(seq1, keySelector);
+            IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1, keySelector);
             Assert.True(result2.SequenceEqual(new string[]
             {
                 "pk1=v1",

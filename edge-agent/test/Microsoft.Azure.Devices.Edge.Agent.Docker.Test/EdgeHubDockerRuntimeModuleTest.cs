@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             JToken json = JToken.Parse(JsonConvert.SerializeObject(module));
 
             // Assert
-            var expected = JToken.Parse(@"
+            JToken expected = JToken.Parse(@"
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void TestJsonDeerialize()
         {
             // Arrange
-            var json = @"
+            string json = @"
 {
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 }";
 
             // Act
-            EdgeHubDockerRuntimeModule actual = JsonConvert.DeserializeObject<EdgeHubDockerRuntimeModule>(json);
+            var actual = JsonConvert.DeserializeObject<EdgeHubDockerRuntimeModule>(json);
 
             // Assert
             var expected = new EdgeHubDockerRuntimeModule(
@@ -129,8 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue, ModuleStatus.Running,
                 new ConfigurationInfo("1")
             );
-            EdgeHubDockerRuntimeModule updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
-            EdgeHubDockerRuntimeModule updatedModule2 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
+            var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
+            var updatedModule2 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);
 
             Assert.Equal(module, updatedModule1);
             Assert.NotEqual(module, updatedModule2);

@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -287,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
                     schemaVersion = SchemaVersion,
@@ -428,7 +428,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -477,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
                     modules = new Dictionary<string, object>
@@ -557,7 +557,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -605,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
-                var reportedState = AgentState.Empty;
+                AgentState reportedState = AgentState.Empty;
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -653,7 +653,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     DateTime.UtcNow - TimeSpan.FromHours(1), DateTime.MinValue,
                     0, DateTime.MinValue, ModuleStatus.Running, new Core.ConfigurationInfo("1")
                 );
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -734,7 +734,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
-                var reportedState = AgentState.Empty;
+                AgentState reportedState = AgentState.Empty;
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -795,7 +795,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Arrange
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
-                var reportedState = AgentState.Empty;
+                AgentState reportedState = AgentState.Empty;
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -919,7 +919,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     );
 
                 // build current module set
-                var currentModuleSet = ModuleSet.Create(
+                ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
                         "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
                         new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
@@ -948,7 +948,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(new
                 {
                     systemModules = new Dictionary<string, object>

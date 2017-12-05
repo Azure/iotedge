@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         public void ObjectToBytesRoundtripTest()
         {
             ITestInterface testObj = new TestClass("Foo") { Prop2 = 100 };
-            var bytes = SerDeExtensions.ToBytes(testObj);
+            byte[] bytes = SerDeExtensions.ToBytes(testObj);
             ITestInterface testObj2 = SerDeExtensions.FromBytes<TestClass>(bytes);
             Assert.NotNull(testObj2);
             Assert.Equal(testObj.GetProp1(), testObj2.GetProp1());
