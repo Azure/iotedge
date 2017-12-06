@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     {
         static IEnumerable<object[]> CreateTestData()
         {
-            var DefaultConfigurationInfo = new ConfigurationInfo();
+            var defaultConfigurationInfo = new ConfigurationInfo();
 
             Option<TestPlanRecorder> recordKeeper1 = Option.Some(new TestPlanRecorder());
             Option<TestPlanRecorder> recordKeeper2 = Option.Some(new TestPlanRecorder());
@@ -29,11 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
                 TestCommandType.TestCreate
             };
             var tm = new List<TestModule>{
-                new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo),
+                new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo),
+                new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo),
+                new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo),
+                new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, defaultConfigurationInfo)
             };
             (Option<TestPlanRecorder> recorder, List<TestRecordType> moduleExecutionList, List<ICommand> commandList)[] testInputRecords =
             {

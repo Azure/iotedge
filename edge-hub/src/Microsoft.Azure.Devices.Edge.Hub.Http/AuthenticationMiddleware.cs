@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Logging;

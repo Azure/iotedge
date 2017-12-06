@@ -18,11 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class TwinDiffE2ETest
     {
-        ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         const string DeviceNamePrefix = "E2E_twin_";
         string deviceName;
-        RegistryManager rm = null;
-        DeviceClient deviceClient = null;
+        RegistryManager rm;
+        DeviceClient deviceClient;
         string deviceConnectionString;
 
         [Fact, TestPriority(101)]

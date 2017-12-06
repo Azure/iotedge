@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 {
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
-                    var config = new DockerConfig(Image, String.Empty);
+                    var config = new DockerConfig(Image, string.Empty);
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
 
                     ICommand pullCommand = new PullCommand(DockerHelper.Client, module, NoAuth);

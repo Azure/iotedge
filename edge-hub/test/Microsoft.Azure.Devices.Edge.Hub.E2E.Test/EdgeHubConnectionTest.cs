@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -110,13 +111,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
             string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
             Try<IIdentity> moduleIdentity = identityFactory.GetWithConnectionString(moduleConnectionstring);
-            var moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+            var moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
             string downstreamDeviceId = "device1";
             sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
             string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
             Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
-            var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive == true);
+            var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
             // Connect the module and downstream device and make sure the reported properties are updated as expected.
             await connectionManager.AddDeviceConnection(moduleIdentity.Value, moduleProxy);

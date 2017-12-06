@@ -18,9 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             string schemaVersion = "2.0";
             var route1 = new Route("r1", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            var route2 = new Route("r2", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>()); ;
-            var route3 = new Route("r3", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>()); ;
-            var route4 = new Route("r4", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>()); ;
+            var route2 = new Route("r2", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route3 = new Route("r3", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route4 = new Route("r4", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
 
             var baseRoutes = new Dictionary<string, Route>
             {
@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 },
                 TimeSpan.FromSeconds(300));
 
-            var patch4Config = new EdgeHubConfig(schemaVersion, null, null);
             baseConfig.ApplyDiff(patch3Config);
             this.ValidateConfig(
                 baseConfig,

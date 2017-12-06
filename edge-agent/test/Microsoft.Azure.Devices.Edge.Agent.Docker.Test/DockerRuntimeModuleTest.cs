@@ -22,9 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config2 = new DockerReportedConfig("image2:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
 
         static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
-        static readonly IModule Module1a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module1A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
         static readonly IModule Module2 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
-        static readonly IModule Module2a = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
+        static readonly IModule Module2A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
         static readonly IModule Module3 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
         static readonly IModule Module4 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, -1, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
         static readonly IModule Module5 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 35 minutes", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
@@ -657,8 +657,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void TestHashCode()
         {
-            Assert.Equal(Module1.GetHashCode(), Module1a.GetHashCode());
-            Assert.Equal(Module2.GetHashCode(), Module2a.GetHashCode());
+            Assert.Equal(Module1.GetHashCode(), Module1A.GetHashCode());
+            Assert.Equal(Module2.GetHashCode(), Module2A.GetHashCode());
 
             Assert.NotEqual(Module1.GetHashCode(), Module2.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module8.GetHashCode());
@@ -672,27 +672,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void TestWithRuntimeStatus()
         {
-            var M1 = Module1 as DockerRuntimeModule;
-            var newM1 = (DockerRuntimeModule)M1.WithRuntimeStatus(ModuleStatus.Running);
-            var M2 = Module2 as DockerRuntimeModule;
-            var newM2 = (DockerRuntimeModule)M2.WithRuntimeStatus(ModuleStatus.Stopped);
+            var m1 = Module1 as DockerRuntimeModule;
+            var newM1 = (DockerRuntimeModule)m1.WithRuntimeStatus(ModuleStatus.Running);
+            var m2 = Module2 as DockerRuntimeModule;
+            var newM2 = (DockerRuntimeModule)m2.WithRuntimeStatus(ModuleStatus.Stopped);
 
-            Assert.Equal(M1, newM1);
-            Assert.NotEqual(M2, newM2);
+            Assert.Equal(m1, newM1);
+            Assert.NotEqual(m2, newM2);
             Assert.Equal(newM2.RuntimeStatus , ModuleStatus.Stopped);
-            Assert.Equal(M2.Config , newM2.Config);
-            Assert.Equal(M2.ConfigurationInfo, newM2.ConfigurationInfo);
-            Assert.Equal(M2.DesiredStatus, newM2.DesiredStatus);
-            Assert.Equal(M2.ExitCode, newM2.ExitCode);
-            Assert.Equal(M2.LastExitTimeUtc, newM2.LastExitTimeUtc);
-            Assert.Equal(M2.LastRestartTimeUtc, newM2.LastRestartTimeUtc);
-            Assert.Equal(M2.LastStartTimeUtc, newM2.LastStartTimeUtc);
-            Assert.Equal(M2.Name, newM2.Name);
-            Assert.Equal(M2.RestartCount, newM2.RestartCount);
-            Assert.Equal(M2.RestartPolicy , newM2.RestartPolicy);
-            Assert.Equal(M2.StatusDescription, newM2.StatusDescription);
-            Assert.Equal(M2.Type, newM2.Type);
-            Assert.Equal(M2.Version, newM2.Version);
+            Assert.Equal(m2.Config , newM2.Config);
+            Assert.Equal(m2.ConfigurationInfo, newM2.ConfigurationInfo);
+            Assert.Equal(m2.DesiredStatus, newM2.DesiredStatus);
+            Assert.Equal(m2.ExitCode, newM2.ExitCode);
+            Assert.Equal(m2.LastExitTimeUtc, newM2.LastExitTimeUtc);
+            Assert.Equal(m2.LastRestartTimeUtc, newM2.LastRestartTimeUtc);
+            Assert.Equal(m2.LastStartTimeUtc, newM2.LastStartTimeUtc);
+            Assert.Equal(m2.Name, newM2.Name);
+            Assert.Equal(m2.RestartCount, newM2.RestartCount);
+            Assert.Equal(m2.RestartPolicy , newM2.RestartPolicy);
+            Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
+            Assert.Equal(m2.Type, newM2.Type);
+            Assert.Equal(m2.Version, newM2.Version);
         }
     }
 }

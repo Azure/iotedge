@@ -28,16 +28,16 @@ namespace Microsoft.Azure.Devices.Common.ErrorHandling
         }
 
         public ExponentialBackoffStrategy(int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff)
-            : this(null, retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
+            : this(retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
         {
         }
 
         public ExponentialBackoffStrategy(string name, int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff)
-            : this(name, retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
+            : this(retryCount, minBackoff, maxBackoff, deltaBackoff, DefaultFirstFastRetry)
         {
         }
 
-        public ExponentialBackoffStrategy(string name, int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff, bool firstFastRetry)
+        public ExponentialBackoffStrategy(int retryCount, TimeSpan minBackoff, TimeSpan maxBackoff, TimeSpan deltaBackoff, bool firstFastRetry)
             : base(firstFastRetry)
         {
             Contract.Assert(retryCount >= 0, "retryCount");

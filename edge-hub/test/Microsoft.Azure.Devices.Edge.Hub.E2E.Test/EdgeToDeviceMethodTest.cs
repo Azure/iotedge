@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Xunit;
 
-    [Bvt, E2e]
+    [Bvt, E2E]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class EdgeToDeviceMethodTest

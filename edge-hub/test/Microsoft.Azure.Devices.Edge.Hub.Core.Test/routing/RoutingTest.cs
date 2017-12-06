@@ -1,30 +1,31 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Text;
-  using System.Threading.Tasks;
-  using Microsoft.Azure.Devices.Client;
-  using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
-  using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-  using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-  using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
-  using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
-  using Microsoft.Azure.Devices.Edge.Storage;
-  using Microsoft.Azure.Devices.Edge.Util;
-  using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-  using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-  using Microsoft.Azure.Devices.Routing.Core;
-  using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-  using Microsoft.Azure.Devices.Shared;
-  using Moq;
-  using Newtonsoft.Json;
-  using Xunit;
-  using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-  using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
-  using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
+    using Microsoft.Azure.Devices.Shared;
+    using Moq;
+    using Newtonsoft.Json;
+    using Xunit;
+    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
+    using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
   [Integration]
   public class RoutingTest

@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Web;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 

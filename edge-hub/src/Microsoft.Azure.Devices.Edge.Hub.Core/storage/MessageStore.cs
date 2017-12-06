@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         public void SetTimeToLive(TimeSpan timeSpan)
         {
             this.timeToLive = timeSpan;
-            Events.TTLUpdated(timeSpan);
+            Events.TtlUpdated(timeSpan);
         }
 
         public async Task AddEndpoint(string endpointId)
@@ -370,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 ErrorCleaningMessagesForEndpoint,
                 ErrorCleaningMessages,
                 CleanupCompleted,
-                TTLUpdated,
+                TtlUpdated,
                 SequentialStoreAdded,
                 SequentialStoreRemoved
             }
@@ -410,9 +410,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {count} messages from queue for endpoint {endpointId}"));
             }
 
-            internal static void TTLUpdated(TimeSpan timeSpan)
+            internal static void TtlUpdated(TimeSpan timeSpan)
             {
-                Log.LogInformation((int)EventIds.TTLUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
+                Log.LogInformation((int)EventIds.TtlUpdated, $"Updated message store TTL to {timeSpan.TotalSeconds} seconds");
             }
 
             internal static void SequentialStoreAdded(string endpointId)

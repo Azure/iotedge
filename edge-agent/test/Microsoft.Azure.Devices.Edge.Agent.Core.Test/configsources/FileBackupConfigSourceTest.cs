@@ -15,16 +15,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     public class FileBackupConfigSourceTest : IDisposable
     {
         const string TestType = "test";
-        static readonly ConfigurationInfo configurationInfo = new ConfigurationInfo();
-        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), configurationInfo);
-        static readonly TestRuntimeInfo testRuntimeInfo = new TestRuntimeInfo("test");
+        static readonly ConfigurationInfo ConfigurationInfo = new ConfigurationInfo();
+        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), ConfigurationInfo);
+        static readonly TestRuntimeInfo TestRuntimeInfo = new TestRuntimeInfo("test");
         static readonly TestConfig Config1 = new TestConfig("image1");
-        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, configurationInfo);
-        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, configurationInfo);
-        static readonly IDictionary<string, IModule> modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
-        static readonly DeploymentConfig ValidConfig1 = new DeploymentConfig("1.0", testRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), modules1);
+        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo);
+        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ConfigurationInfo);
+        static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
+        static readonly DeploymentConfig ValidConfig1 = new DeploymentConfig("1.0", TestRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), Modules1);
         static readonly DeploymentConfigInfo ValidConfigInfo1 = new DeploymentConfigInfo(0, ValidConfig1);
-        static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(modules1) { [EdgeHubModule.Name] = EdgeHubModule });
+        static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule });
 
         readonly string tempFileName;
 

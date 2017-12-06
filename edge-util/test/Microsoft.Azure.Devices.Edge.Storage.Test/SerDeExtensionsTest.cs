@@ -114,11 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             public long GetProp2() => this.Prop2;
 
-            public TestClass()
-                : this(null)
-            {
-            }
-
             [JsonConstructor]
             public TestClass(string prop1)
             {

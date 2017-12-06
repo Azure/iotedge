@@ -22,8 +22,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
         [InlineData("123abc")]
         public void JsonPathValidator_Success(string jsonPath)
         {
-            string errorDetails;
-            Assert.True(JsonPathValidator.IsSupportedJsonPath(jsonPath, out errorDetails));
+            Assert.True(JsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
         }
 
         [Theory, Unit]
@@ -53,8 +52,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
         {
             string jsonPath = "message.Weather.HistoricalData[0].Temperature[1]";
 
-            string errorDetails;
-            bool isSupported = JsonPathValidator.IsSupportedJsonPath(jsonPath, out errorDetails);
+            bool isSupported = JsonPathValidator.IsSupportedJsonPath(jsonPath, out _);
 
             Assert.True(isSupported);
         }

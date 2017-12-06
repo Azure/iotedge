@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;

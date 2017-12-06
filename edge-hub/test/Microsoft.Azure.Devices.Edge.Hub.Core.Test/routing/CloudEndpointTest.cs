@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var routingMessage = Mock.Of<IRoutingMessage>();
-            var cloudProxy = Mock.Of<ICloudProxy>(c => c.IsActive == true);
+            var cloudProxy = Mock.Of<ICloudProxy>(c => c.IsActive);
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> {{"connectionDeviceId", "myConnectionDeviceId"}});

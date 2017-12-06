@@ -75,9 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void TestMergeAllCases()
         {
-            var nullType = new Dictionary<string, string>();
-            nullType = null;
-
             // Arrange
             var baseline = new
             {
@@ -89,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     {
                         level3 = "value3"
                     },
-                    level6 = nullType,
+                    level6 = (Dictionary<string, string>)null,
                 },
                 overwrite = new
                 {
@@ -103,13 +100,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 name = new
                 {
                     level0 = "nochange", // unchanged
-                    level1 = nullType, // existing in base. remove property, only if treatNullAsDelete = true
+                    level1 = (Dictionary<string, string>)null, // existing in base. remove property, only if treatNullAsDelete = true
                     level2 = new
                     {
                         level3 = "newvalue3" // existing in base, update property
                     },
                     level4 = "value4", // non existant in base, add new property
-                    level5 = nullType // ignore, unless treatNullAsDelete = false
+                    level5 = (Dictionary<string, string>)null // ignore, unless treatNullAsDelete = false
                 },
                 overwrite = "yes", // overwrite object with value
                 create = new // overwrite value with object
@@ -120,28 +117,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             var removeAll = new
             {
-                name = nullType,
-                overwrite = nullType,
-                create = nullType
+                name = (Dictionary<string, string>)null,
+                overwrite = (Dictionary<string, string>)null,
+                create = (Dictionary<string, string>)null
             };
 
             var removeAllInefficient = new
             {
                 name = new
                 {
-                    level0 = nullType,
-                    level1 = nullType,
+                    level0 = (Dictionary<string, string>)null,
+                    level1 = (Dictionary<string, string>)null,
                     level2 = new
                     {
-                        level3 = nullType,
+                        level3 = (Dictionary<string, string>)null,
                     },
-                    level6 = nullType,
+                    level6 = (Dictionary<string, string>)null,
                 },
                 overwrite = new
                 {
-                    level1 = nullType,
+                    level1 = (Dictionary<string, string>)null,
                 },
-                create = nullType,
+                create = (Dictionary<string, string>)null,
             };
 
             var mergedExcludeNull = new
@@ -154,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                         level3 = "newvalue3"
                     },
                     level4 = "value4",
-                    level6 = nullType
+                    level6 = (Dictionary<string, string>)null
                 },
                 overwrite = "yes",
                 create = new
@@ -168,14 +165,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 name = new
                 {
                     level0 = "nochange",
-                    level1 = nullType,
+                    level1 = (Dictionary<string, string>)null,
                     level2 = new
                     {
                         level3 = "newvalue3"
                     },
                     level4 = "value4",
-                    level5 = nullType,
-                    level6 = nullType
+                    level5 = (Dictionary<string, string>)null,
+                    level6 = (Dictionary<string, string>)null
                 },
                 overwrite = "yes",
                 create = new
@@ -247,9 +244,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void TestDiffAllCases()
         {
-            var nullType = new Dictionary<string, string>();
-            nullType = null;
-
             // Arrange
             var baseline = new
             {
@@ -261,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     {
                         level3 = "value3"
                     },
-                    level6 = nullType,
+                    level6 = (Dictionary<string, string>)null,
                 },
                 overwrite = new
                 {
@@ -275,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 name = new
                 {
                     //["level0"] = "nochange", // unchanged
-                    level1 = nullType, // existing in base. remove property
+                    level1 = (Dictionary<string, string>)null, // existing in base. remove property
                     level2 = new
                     {
                         level3 = "newvalue3" // existing in base, update property
@@ -299,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                         level3 = "newvalue3"
                     },
                     level4 = "value4",
-                    level6 = nullType,
+                    level6 = (Dictionary<string, string>)null,
                 },
                 overwrite = "yes",
                 create = new
@@ -310,9 +304,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             var removeAll = new
             {
-                name = nullType,
-                overwrite = nullType,
-                create = nullType
+                name = (Dictionary<string, string>)null,
+                overwrite = (Dictionary<string, string>)null,
+                create = (Dictionary<string, string>)null
             };
 
             var emptyBaseline = new { };

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -52,8 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         static string GetRandomString(int length)
         {
             var rand = new Random();
-            const string chars = "abcdefghijklmnopqrstuvwxyz";
-            return new string(Enumerable.Repeat(chars, length)
+            const string Chars = "abcdefghijklmnopqrstuvwxyz";
+            return new string(Enumerable.Repeat(Chars, length)
               .Select(s => s[rand.Next(s.Length)]).ToArray());
         }
 

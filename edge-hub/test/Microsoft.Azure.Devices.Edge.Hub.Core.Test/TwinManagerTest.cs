@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Xunit;
     using System.Linq;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     [Unit]
     public class TwinManagerTest

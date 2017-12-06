@@ -18,8 +18,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.JsonPath
         [InlineData("tags.root.level1.level2.level3.level4")]
         public void TwinChangeJsonPathValidator_Success(string jsonPath)
         {
-            string errorDetails;
-            Assert.True(TwinChangeJsonPathValidator.IsSupportedJsonPath(jsonPath, out errorDetails));
+            Assert.True(TwinChangeJsonPathValidator.IsSupportedJsonPath(jsonPath, out _));
         }
 
         [Theory, Unit]

@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     /// <summary>
     /// The <c>IAuthenticator</c> is responsible for authenticating a given device/module.

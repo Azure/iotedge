@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -28,10 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
 
             var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
-            DirectMethodRequest receiveDirectMethodRequest;
             var edgeHub = new Mock<IEdgeHub>();
             edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<IIdentity>(i => i == identity), It.IsAny<DirectMethodRequest>()))
-                .Callback<IIdentity, DirectMethodRequest>((i, d) => receiveDirectMethodRequest = d)
+                .Callback<IIdentity, DirectMethodRequest>((i, d) => { })
                 .ReturnsAsync(directMethodResponse);
 
             var validator = new Mock<IValidator<Http.MethodRequest>>();
@@ -63,10 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
 
             var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), new byte[0], 200);
-            DirectMethodRequest receiveDirectMethodRequest;
             var edgeHub = new Mock<IEdgeHub>();
             edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<IIdentity>(i => i == identity), It.IsAny<DirectMethodRequest>()))
-                .Callback<IIdentity, DirectMethodRequest>((i, d) => receiveDirectMethodRequest = d)
+                .Callback<IIdentity, DirectMethodRequest>((i, d) => { })
                 .ReturnsAsync(directMethodResponse);
 
             var validator = new Mock<IValidator<Http.MethodRequest>>();

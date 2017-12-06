@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     public class IdentityTest
     {

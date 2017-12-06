@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
 	using System.Threading.Tasks;
 	using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+	using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 	using Microsoft.Azure.Devices.Edge.Util;
 
 	class CloudListener : ICloudListener

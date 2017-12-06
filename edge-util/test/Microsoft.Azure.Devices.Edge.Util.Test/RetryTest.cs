@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Exception caughtException = null;
             try
             {
-                string returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
+                await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
             }
             catch(InvalidOperationException ex)
             {

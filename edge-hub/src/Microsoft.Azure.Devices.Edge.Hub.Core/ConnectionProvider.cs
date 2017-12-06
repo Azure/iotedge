@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ConnectionProvider : IConnectionProvider

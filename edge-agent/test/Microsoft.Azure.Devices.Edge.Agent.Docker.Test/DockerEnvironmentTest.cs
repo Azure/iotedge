@@ -188,8 +188,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public async Task ContainerToModuleTest()
         {
             const string StatusText = "Running for 1 second";
-            DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
-            DateTime LastExitTime = LastStartTime.AddDays(1);
+            DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
+            DateTime lastExitTime = lastStartTime.AddDays(1);
             // Arrange
             string id = Guid.NewGuid().ToString();
             var containerListResponse = new ContainerListResponse
@@ -206,8 +206,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 {
                     Status = StatusText,
                     ExitCode = 0,
-                    StartedAt = LastStartTime.ToString("o"),
-                    FinishedAt = LastExitTime.ToString("o")
+                    StartedAt = lastStartTime.ToString("o"),
+                    FinishedAt = lastExitTime.ToString("o")
                 }
             };
 
@@ -238,8 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(ModuleStatus.Running, dockerModule.DesiredStatus);
             Assert.Equal(0, dockerModule.ExitCode);
             Assert.Equal(StatusText, dockerModule.StatusDescription);
-            Assert.Equal(LastStartTime, dockerModule.LastStartTimeUtc);
-            Assert.Equal(LastExitTime, dockerModule.LastExitTimeUtc);
+            Assert.Equal(lastStartTime, dockerModule.LastStartTimeUtc);
+            Assert.Equal(lastExitTime, dockerModule.LastExitTimeUtc);
             Assert.Equal(OperatingSystemType, dockerEnvironment.OperatingSystemType);
             Assert.Equal(Architecture, dockerEnvironment.Architecture);
         }
@@ -249,8 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public async Task GetUpdatedRuntimeInfoAsyncTest()
         {
 
-            DateTime LastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
-            DateTime LastExitTime = LastStartTime.AddDays(1);
+            DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
+            DateTime lastExitTime = lastStartTime.AddDays(1);
 
             // Arrange
             var systemInfoResponse = new SystemInfoResponse

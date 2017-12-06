@@ -272,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(testPlan));
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet))
-                .Returns(Task.FromResult((IImmutableDictionary<String, IModuleIdentity>)ImmutableDictionary<String, IModuleIdentity>.Empty));
+                .Returns(Task.FromResult((IImmutableDictionary<string, IModuleIdentity>)ImmutableDictionary<string, IModuleIdentity>.Empty));
             mockReporter.Setup(r => r.ReportAsync(token, currentSet, deploymentConfigInfo, DeploymentStatus.Success))
                 .Returns(Task.CompletedTask);
 
@@ -325,7 +325,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var runtimeInfo = new Mock<IRuntimeInfo>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var token = new CancellationToken();
 
@@ -353,7 +352,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var runtimeInfo = new Mock<IRuntimeInfo>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var token = new CancellationToken();
 
@@ -376,7 +374,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var runtimeInfo = new Mock<IRuntimeInfo>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
 
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>

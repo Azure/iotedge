@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
-    using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.IIdentity;
+    using IIdentity = Microsoft.Azure.Devices.Edge.Hub.Core.Identity.IIdentity;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
 

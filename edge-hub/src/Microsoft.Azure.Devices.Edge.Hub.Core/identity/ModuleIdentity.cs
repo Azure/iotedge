@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Core
+namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
-    using static System.FormattableString;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -36,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public string ModuleId { get; }
 
-        public override string Id => Invariant($"{this.DeviceId}/{this.ModuleId}");
+        public override string Id => FormattableString.Invariant($"{this.DeviceId}/{this.ModuleId}");
 
         public override string ToString() => this.asString.Value;
     }

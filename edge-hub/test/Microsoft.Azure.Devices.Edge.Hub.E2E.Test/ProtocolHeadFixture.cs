@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         IProtocolHead protocolHead;
         IContainer container;
-        static readonly ProtocolHeadFixture instance = new ProtocolHeadFixture();
+        static readonly ProtocolHeadFixture Instance = new ProtocolHeadFixture();
 
         readonly IList<string> inboundTemplates = new List<string>()
         {
@@ -72,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public static ProtocolHeadFixture GetInstance()
         {
-            return instance;
+            return Instance;
         }
 
         private ProtocolHeadFixture()

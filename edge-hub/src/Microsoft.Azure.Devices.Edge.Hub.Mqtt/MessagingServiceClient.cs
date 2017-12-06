@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Logging;

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
@@ -16,8 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
     public class SessionStatePersistenceProviderTest
     {
-        Option<IStoreProvider> sessionStore = Option.Some<IStoreProvider>(new StoreProvider(new InMemoryDbStoreProvider()));
-
         [Fact]
         [Unit]
         public void TestCreate_ShouldReturn_Session()

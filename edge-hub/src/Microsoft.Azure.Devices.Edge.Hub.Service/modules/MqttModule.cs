@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;

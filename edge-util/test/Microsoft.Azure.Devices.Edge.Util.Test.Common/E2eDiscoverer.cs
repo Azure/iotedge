@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ---------------------------------------------------------------
 
@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     using Xunit.Abstractions;
     using Xunit.Sdk;
 
-    public class E2eDiscoverer : ITraitDiscoverer
+    public class E2EDiscoverer : ITraitDiscoverer
     {
         public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
         {

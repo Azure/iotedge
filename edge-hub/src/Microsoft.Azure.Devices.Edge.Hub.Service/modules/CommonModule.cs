@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class CommonModule : Module
