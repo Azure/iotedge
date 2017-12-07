@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Text;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;

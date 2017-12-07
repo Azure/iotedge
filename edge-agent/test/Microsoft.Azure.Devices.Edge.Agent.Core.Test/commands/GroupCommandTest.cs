@@ -84,6 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             await Assert.ThrowsAsync<ArgumentNullException>(async () => await GroupCommand.CreateAsync(null));
         }
 
+        // Disabling this reSharper Error. commandList is being used on Assert All. 
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void AssertCommands(Option<TestPlanRecorder> recordKeeper, List<ICommand> commandList, List<TestRecordType> recordlist)
         {
             Assert.All(commandList, command =>
@@ -95,6 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             recordKeeper.ForEach(r => Assert.Equal(recordlist, r.ExecutionList));
         }
 
+        // Disabling this reSharper Error. commandList is being used on Assert All. 
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         void AssertUndo(Option<TestPlanRecorder> recordKeeper, List<ICommand> commandList, List<TestRecordType> recordlist)
         {
             Assert.All(commandList, command =>

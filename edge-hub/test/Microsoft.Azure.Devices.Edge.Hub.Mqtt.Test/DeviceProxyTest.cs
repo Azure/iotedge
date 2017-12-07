@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Collections.Generic;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;

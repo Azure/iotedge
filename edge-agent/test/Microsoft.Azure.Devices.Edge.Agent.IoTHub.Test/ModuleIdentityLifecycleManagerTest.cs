@@ -58,13 +58,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             createdModuleIdentity.Authentication.SymmetricKey.PrimaryKey = moduleSharedAccessKey;
             var updatedServiceIdentities = new[] { createdModuleIdentity};
 
+            // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
+            // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).Returns(Task.FromResult(updatedServiceIdentities));
+            // ReSharper restore PossibleMultipleEnumeration
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
+            // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
+            // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name)), Times.Once());
+            // ReSharper restore PossibleMultipleEnumeration
             Assert.True(modulesIdentities.Count() == 1);
         }
 
@@ -290,11 +296,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var serviceIdentities = new List<Microsoft.Azure.Devices.Module>();
             serviceIdentities.Add(serviceModuleIdentity);
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
+            // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
+            // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Setup(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
+            // ReSharper restore PossibleMultipleEnumeration
 
             await new ModuleIdentityLifecycleManager(serviceClient.Object, connectionDetails).GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
 
+            // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
+            // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Verify(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name)), Times.Once);
+            // ReSharper restore PossibleMultipleEnumeration
         }
 
         [Fact]

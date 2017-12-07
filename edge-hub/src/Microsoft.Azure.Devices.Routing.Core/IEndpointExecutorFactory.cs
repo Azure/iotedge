@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
 

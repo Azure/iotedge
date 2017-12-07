@@ -3,9 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 {
     using System;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
     using Xunit;
 
     public class ModuleIdentityTest

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;

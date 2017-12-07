@@ -294,6 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
                 catch (Exception)
                 {
+                    // ignored
                 }
 
                 try
@@ -302,6 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
                 catch (Exception)
                 {
+                    // ignored
                 }
             }
         }

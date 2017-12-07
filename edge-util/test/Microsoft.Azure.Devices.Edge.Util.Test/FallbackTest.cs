@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;

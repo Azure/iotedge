@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 

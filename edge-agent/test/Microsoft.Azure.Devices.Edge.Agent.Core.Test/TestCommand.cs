@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public Task<ICommand> WrapAsync(ICommand command)
         {
             this.Recorder.ForEach(r => r.CommandWrapped(command));
-            return Task.FromResult<ICommand>(command);
+            return Task.FromResult(command);
         }
     }
 
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             foreach (TestPlanRecorder r in this.Recorder)
                 r.CommandWrapped(command);
 
-            return Task.FromResult<ICommand>(command);
+            return Task.FromResult(command);
         }
     }
     public class TestCommand : ICommand

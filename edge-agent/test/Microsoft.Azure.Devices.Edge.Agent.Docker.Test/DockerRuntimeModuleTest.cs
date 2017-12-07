@@ -682,7 +682,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(m2, newM2);
             Debug.Assert(newM2 != null, nameof(newM2) + " != null");
             Assert.Equal(newM2.RuntimeStatus , ModuleStatus.Stopped);
-            Assert.Equal(m2?.Config , newM2.Config);
+            Assert.Equal(m2.Config , newM2.Config);
             Assert.Equal(m2.ConfigurationInfo, newM2.ConfigurationInfo);
             Assert.Equal(m2.DesiredStatus, newM2.DesiredStatus);
             Assert.Equal(m2.ExitCode, newM2.ExitCode);

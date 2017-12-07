@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             IRuntimeModule[] removedModules = GetRemoveTestData();
 
-            ModuleSet removeRunning = ModuleSet.Create(removedModules);
+            ModuleSet removeRunning = ModuleSet.Create(removedModules.ToArray<IModule>());
             List<TestRecordType> expectedExecutionList = removedModules.SelectMany(m => new[]
             {
                 new TestRecordType(TestCommandType.TestStop, m),
@@ -401,7 +401,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployTestData();
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
             // build "current" and "desired" module sets
-            ModuleSet currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray());
+            ModuleSet currentModuleSet = ModuleSet.Create(data.Select(d => d.RunningModule).ToArray<IModule>());
             ModuleSet desiredModuleSet = ModuleSet.Create(data.Select(d => d.UpdatedModule).ToArray());
 
             // build expected execution list
@@ -822,7 +822,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 .Select(d => d.RunningModule)
                 .Concat(removedModules)
                 .Concat(updateStateChangedModules.Select(m => m.RunningModule))
-                .ToArray()
+                .ToArray<IModule>()
             );
             ModuleSet desiredModuleSet = ModuleSet.Create(updateDeployModules
                 .Select(d => d.UpdatedModule)
@@ -872,18 +872,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var (factory, store, _, planner) = CreatePlanner();
 
             // derive list of "running great" modules from GetUpdateStateChangeTestData()
-            IEnumerable<IRuntimeModule> runningGreatModules = GetUpdateStateChangeTestData()
+            IList<IRuntimeModule> runningGreatModules = GetUpdateStateChangeTestData()
                 .Where(d => d.Restart == false)
                 .Select(d => d.RunningModule)
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running);
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running)
+                .ToList();
 
             // have the "store" return true when the "Contains" call happens to check if a module has
             // records in the store with stats
             store.Setup(s => s.Contains(It.IsAny<string>()))
                 .Returns(() => Task.FromResult(true));
 
-            ModuleSet currentModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
-            ModuleSet desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray());
+            ModuleSet currentModuleSet = ModuleSet.Create(runningGreatModules.ToArray<IModule>());
+            ModuleSet desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray<IModule>());
 
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty);

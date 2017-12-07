@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public void ThrowsWhenImageArgumentIsNull()
         {
             var authConfigs = new List<AuthConfig>();
+            authConfigs.Add(new AuthConfig()); //Adding something so we don't have an empty list. reSharper warns if List is empty.
             Assert.Throws<ArgumentNullException>(() => authConfigs.FirstAuthConfig(null));
         }
 
@@ -62,6 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void ReturnsNullWhenListIsEmpty()
         {
+            // The test needs an empty list. 
+            // ReSharper disable once CollectionNeverUpdated.Local
             var authConfigs = new List<AuthConfig>();
             Option<AuthConfig> found = authConfigs.FirstAuthConfig("hostname/repo/imagename");
             Assert.False(found.HasValue);

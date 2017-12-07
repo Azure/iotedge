@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 	using Microsoft.Azure.Devices.Edge.Storage;
 	using Microsoft.Azure.Devices.Shared;
 	using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
 
     public class TwinMessageConverter : IMessageConverter<Twin>
 	{

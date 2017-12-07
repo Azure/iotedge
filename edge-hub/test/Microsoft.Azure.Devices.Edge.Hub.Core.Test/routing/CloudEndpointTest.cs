@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;

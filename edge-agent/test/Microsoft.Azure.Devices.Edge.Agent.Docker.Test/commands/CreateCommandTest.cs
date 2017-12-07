@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 {
     using System;
-    using System.IO;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
