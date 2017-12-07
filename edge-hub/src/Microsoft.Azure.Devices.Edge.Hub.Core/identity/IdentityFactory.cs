@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         {
             // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
 
-            var kvsep = new char[] { '=' };
+            var kvsep = new[] { '=' };
 
             Dictionary<string, string> parms = queryParams
                 .Split('&')                             // split input string into params

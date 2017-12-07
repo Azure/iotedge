@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateTestAsync()
         {
-            var partitionsList1 = new string[]
+            var partitionsList1 = new[]
             {
                 "Partition1",
                 "Partition2",
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
                 Assert.NotNull(rocksDbStoreProvider);
             }
 
-            var partitionsList2 = new string[]
+            var partitionsList2 = new[]
             {
                 "Partition3",
                 "Partition4"

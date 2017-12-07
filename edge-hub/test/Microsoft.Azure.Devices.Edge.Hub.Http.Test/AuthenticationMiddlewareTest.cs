@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Net.Http.Headers;
     using Moq;
     using Xunit;
-    using Microsoft.Extensions.Caching.Memory;
 
     [Unit]
     public class AuthenticationMiddlewareTest
@@ -33,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
@@ -53,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -65,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string id = "device_2/module_1";
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new string[] { "sasToken1", "sasToken2" }));
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new[] { "sasToken1", "sasToken2" }));
 
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
@@ -74,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -86,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string id = "device_2/module_1";
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new string[] { "sasToken1" }));
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new[] { "sasToken1" }));
 
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
@@ -95,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -117,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -139,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -162,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new Mock<IIdentityFactory>();
             identityFactory.Setup(i => i.GetWithSasToken(It.Is<string>(d => d == "TestHub.azure-devices.net/" + id), It.IsAny<string>())).Returns(Try.Success(identity));
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net", new MemoryCache(new MemoryCacheOptions()));
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory.Object, "TestHub.azure-devices.net");
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);

@@ -16,21 +16,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     {
         const string TestType = "test";
         static readonly ConfigurationInfo ConfigurationInfo = new ConfigurationInfo();
-        static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), ConfigurationInfo);
-        static readonly TestRuntimeInfo TestRuntimeInfo = new TestRuntimeInfo("test");
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo);
         static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ConfigurationInfo);
         static readonly IDictionary<string, IModule> Modules1 = new Dictionary<string, IModule> { ["mod1"] = ValidModule1 };
-        static readonly DeploymentConfig ValidConfig1 = new DeploymentConfig("1.0", TestRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), Modules1);
-        static readonly DeploymentConfigInfo ValidConfigInfo1 = new DeploymentConfigInfo(0, ValidConfig1);
         static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule });
 
         static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo);
         static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ConfigurationInfo);
         static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
-        static readonly DeploymentConfig ValidConfig2 = new DeploymentConfig("1.0", TestRuntimeInfo, new SystemModules(EdgeAgentModule, EdgeHubModule), Modules2);
-        static readonly DeploymentConfigInfo ValidConfigInfo2 = new DeploymentConfigInfo(0, ValidConfig2);
         static readonly ModuleSet ValidSet2 = new ModuleSet(new Dictionary<string, IModule>(Modules2) { [EdgeHubModule.Name] = EdgeHubModule });
 
         static readonly string InvalidJson1 = "{\"This is a terrible string\"}";

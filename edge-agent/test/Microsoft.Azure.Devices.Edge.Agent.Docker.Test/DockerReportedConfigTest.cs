@@ -15,9 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerReportedConfig Config4 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
         static readonly DockerReportedConfig Config5 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foobar");
 
-        static readonly DockerReportedConfig Config10 = new DockerReportedConfig("image1:42", @"{""Env"": [""k11=v11"", ""k22=v22""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
-        static readonly DockerReportedConfig Config11 = new DockerReportedConfig("image1:42", @"{""Env"": [""k33=v33"", ""k44=v44""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
-
         [Fact]
         [Unit]
         public void TestEquality()

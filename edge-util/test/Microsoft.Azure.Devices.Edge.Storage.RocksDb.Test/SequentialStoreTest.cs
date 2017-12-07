@@ -40,11 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             var tasks = new List<Task>();
             for (int i = 0; i < 10; i++)
             {
+                int i1 = i;
                 tasks.Add(Task.Run(async () =>
                 {
                     for (int j = 0; j < 1000; j++)
                     {
-                        long offset = await sequentialStore.Append(new Item { Prop1 = i * 10 + j });
+                        long offset = await sequentialStore.Append(new Item { Prop1 = i1 * 10 + j });
                         Assert.True(offset <= 10000);
                     }
                 }));

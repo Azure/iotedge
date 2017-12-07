@@ -43,7 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-            string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                 .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                 .Build();
@@ -215,7 +214,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Service takes about 5 mins to sync config to twin
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
@@ -646,9 +644,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Arrange
             var deviceClient = new Mock<IDeviceClient>();
             var serde = new Mock<ISerde<DeploymentConfig>>();
-            var runtime = new Mock<IRuntimeInfo>();
-            var edgeAgent = new Mock<IEdgeAgentModule>();
-            var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
             var twin = new Twin
             {
@@ -696,9 +691,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Arrange
             var deviceClient = new Mock<IDeviceClient>();
             var serde = new Mock<ISerde<DeploymentConfig>>();
-            var runtime = new Mock<IRuntimeInfo>();
-            var edgeAgent = new Mock<IEdgeAgentModule>();
-            var edgeHub = new Mock<IEdgeHubModule>();
+
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
             var twin = new Twin
             {
@@ -798,17 +791,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
-            var twin = new Twin
-            {
-                Properties = new TwinProperties
-                {
-                    Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
-                    {
-                        { "$version", 10 }
-                    }).ToString()),
-                    Reported = new TwinCollection()
-                }
-            };
+
             var deploymentConfig = new DeploymentConfig(
                 "1.0", runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
@@ -928,7 +911,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-            string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                 .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                 .Build();
@@ -1005,7 +987,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-            string edgeDeviceConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                 .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                 .Build();

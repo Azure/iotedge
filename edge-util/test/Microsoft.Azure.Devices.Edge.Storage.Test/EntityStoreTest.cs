@@ -84,9 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
 
             var keys = new List<int>();
+            List<int> keys1 = keys;
             await entityStore.IterateBatch(100, (key, value) =>
             {
-                keys.Add(key);
+                keys1.Add(key);
                 return Task.CompletedTask;
             });
 

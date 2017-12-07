@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class Cloud2DeviceTest
     {
-        readonly ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
         const string MessagePropertyName = "property1";
         const string DeviceNamePrefix = "E2E_c2d_";

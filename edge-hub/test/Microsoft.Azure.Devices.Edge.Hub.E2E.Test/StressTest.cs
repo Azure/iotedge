@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
@@ -20,8 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest
     {
-        ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
-
         [Fact, TestPriority(301)]
         public async Task SingleSenderSingleReceiverTest()
         {
@@ -250,7 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         class Module
         {
             readonly DeviceClient deviceClient;
-            readonly Random rand = new Random();
             ISet<int> received;
 
             Module(DeviceClient deviceClient)
@@ -316,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             Message GetMessage(string id)
             {
-                var temp = new Temperature(-10 + this.rand.Next(40), this.rand.Next(0, 50) > 40 ? "Invalid" : "F");
+                var temp = new Temperature();
                 byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(temp));
                 var message = new Message(payloadBytes);
                 message.Properties.Add("testId", id);
@@ -328,14 +324,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             class Temperature
             {
-                public Temperature(double value, string unit)
-                {
-                    this.Value = value;
-                    this.Unit = unit;
-                }
-
-                public double Value { get; }
-                public string Unit { get; }
             }
         }
     }

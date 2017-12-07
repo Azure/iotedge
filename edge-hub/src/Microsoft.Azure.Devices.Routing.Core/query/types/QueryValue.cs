@@ -213,13 +213,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Types
 
         static int Compare(QueryValue value1, QueryValue value2)
         {
-            Debug.Assert(value1 != null);
-
             if (value2 == null)
             {
                 return 1;
             }
 
+            Debug.Assert(value1 != null, nameof(value1) + " != null");
+            // ReSharper disable once PossibleNullReferenceException
             if (value1.ValueType == QueryValueType.None || value2.ValueType == QueryValueType.None)
             {
                 return ReferenceEquals(value1, value2) ? -1 :

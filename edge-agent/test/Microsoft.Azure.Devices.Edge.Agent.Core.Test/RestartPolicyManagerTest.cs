@@ -651,7 +651,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Mock<IRuntimeModule> module = CreateMockRuntimeModule(restartPolicy, runtimeStatus, restartCount, getLastExitTimeUtc());
 
             // Act
-            IEnumerable<IRuntimeModule> result = manager.ApplyRestartPolicy(new IRuntimeModule[] { module.Object });
+            IEnumerable<IRuntimeModule> result = manager.ApplyRestartPolicy(new[] { module.Object });
             int count = result.Count();
 
             // Assert
@@ -664,7 +664,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             var manager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
             Mock<IRuntimeModule> module = CreateMockRuntimeModule(RestartPolicy.Always, ModuleStatus.Unknown, 0, DateTime.MinValue);
-            Assert.Throws<ArgumentException>(() => manager.ApplyRestartPolicy(new IRuntimeModule[] { module.Object }).ToList());
+            Assert.Throws<ArgumentException>(() => manager.ApplyRestartPolicy(new[] { module.Object }).ToList());
         }
     }
 }

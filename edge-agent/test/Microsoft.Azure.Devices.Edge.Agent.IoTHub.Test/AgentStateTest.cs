@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }, new AgentState(10, DeploymentStatus.Success, schemaVersion: "2.0"))
             };
 
-            return inputs.Select(r => new object[] { r.input, r.expected });
+            return inputs.Select(r => new[] { r.input, r.expected });
         }
 
         [Theory]

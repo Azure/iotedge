@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ---------------------------------------------------------------
 
@@ -93,7 +93,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         public override async Task CloseAsync()
         {
             await base.CloseAsync();
-            await this.messageStore?.RemoveEndpoint(this.Endpoint.Id);
+            if (this.messageStore != null)
+                await this.messageStore?.RemoveEndpoint(this.Endpoint.Id);
             await (this.sendMessageTask ?? Task.CompletedTask);            
         }
 
@@ -105,7 +106,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             enum EventIds
             {
                 AddMessageSuccess = IdStart,
-                AddMessageFailure,
                 StartSendMessagesPump,
                 SendMessagesError,
                 SendMessagesSuccess,

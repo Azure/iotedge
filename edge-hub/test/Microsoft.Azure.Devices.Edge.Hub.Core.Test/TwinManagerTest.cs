@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(storeMiss, true);
 
             // Act
-            IMessage received = await twinManager.GetTwinAsync(deviceId);
+            await twinManager.GetTwinAsync(deviceId);
 
             // Assert
             await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { storeHit = true; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
@@ -172,8 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
-            string deviceId = "device";
-            IMessage received = await twinManager.GetTwinAsync(deviceId);
+            string deviceId = "device";           
 
             var collection = new TwinCollection()
             {
@@ -780,7 +779,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.FromResult(Option.Some<TwinInfo>(new TwinInfo(twin, null, false))));
 
             // Arrange - change what the cloud returns
-            var newTwin = new Twin("d1") { Version = 1 };
             IMessage newTwinMessage = this.twinMessageConverter.ToMessage(twin);
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(newTwinMessage));
 
@@ -976,7 +974,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 ["$version"] = 30
             };
             IMessage twinCollectionMessage = this.twinCollectionMessageConverter.ToMessage(desired);
-            var latest = new Twin();
             twin.Version = 33;
             twin.Properties.Desired = new TwinCollection()
             {

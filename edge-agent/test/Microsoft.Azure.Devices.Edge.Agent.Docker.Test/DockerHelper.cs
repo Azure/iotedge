@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
     public static class DockerHelper
     {
-        const int BufferSize = 1 << 19;
         static readonly Lazy<IDockerClient> LazyClient = new Lazy<IDockerClient>(GetDockerClient);
 
         public static IDockerClient Client { get; } = LazyClient.Value;

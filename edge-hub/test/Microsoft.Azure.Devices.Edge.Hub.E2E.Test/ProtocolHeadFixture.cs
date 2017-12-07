@@ -116,7 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         async c =>
                         {
                             IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
-                            var connectionProvider = new ConnectionProvider(c.Resolve<IConnectionManager>(), edgeHub);
 
                             var mqtt = new Mock<IMqttConnectionProvider>();
                             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener.Object, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>());
@@ -126,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                                 id =>
                                 {
                                     deviceidentity = id;
-                                    IIdentity identity = (deviceidentity as ProtocolGatewayIdentity).Identity;
+                                    IIdentity identity = ((ProtocolGatewayIdentity)deviceidentity).Identity;
                                     deviceListener.Setup(p => p.Identity).Returns(identity);
                                     deviceListener.Setup(p => p.BindDeviceProxy(It.IsAny<IDeviceProxy>())).Callback<IDeviceProxy>(
                                         async deviceProxy =>

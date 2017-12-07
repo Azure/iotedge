@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
             this.messagesCleaner = new CleanupProcessor(this);
-            Events.MessageStoreCreated(this);
+            Events.MessageStoreCreated();
         }
 
         public void SetTimeToLive(TimeSpan timeSpan)
@@ -192,6 +192,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
 
             [JsonConstructor]
+            // Disabling this warning since we use this constructor on Deserialization.
+            // ReSharper disable once UnusedMember.Local
             MessageWrapper(Message message, DateTime timeStamp, int refCount)
                 : this((IMessage)message, timeStamp, refCount)
             {
@@ -375,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 SequentialStoreRemoved
             }
 
-            public static void MessageStoreCreated(MessageStore messageStore)
+            public static void MessageStoreCreated()
             {
                 Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store"));
             }

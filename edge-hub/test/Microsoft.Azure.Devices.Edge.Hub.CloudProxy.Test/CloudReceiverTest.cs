@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class CloudReceiverTest
     {
         const string MethodName = "MethodName";
-        const string InvalidRequestId = "100";
         const string RequestId = "1";
         const int StatusCode = 200;
         static readonly byte[] Data = new byte[0];

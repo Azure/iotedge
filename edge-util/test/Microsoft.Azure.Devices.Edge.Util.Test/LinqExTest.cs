@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void TestRemoveIntersectionKeysDefault()
         {
-            var seq1 = new string[]
+            var seq1 = new[]
             {
                 "k1=v1",
                 "k2=v2",
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 "k6=v6"
             };
 
-            var seq2 = new string[]
+            var seq2 = new[]
             {
                 "pk1=v1",
                 "pk2=v2",
@@ -65,14 +65,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             };
 
             IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2);
-            Assert.True(result1.SequenceEqual(new string[]
+            Assert.True(result1.SequenceEqual(new[]
             {
                 "k1=v1",
                 "k4=v4"
             }));
 
             IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1);
-            Assert.True(result2.SequenceEqual(new string[]
+            Assert.True(result2.SequenceEqual(new[]
             {
                 "pk1=v1",
                 "pk2=v2",
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void TestRemoveIntersectionKeysWithKeySelector()
         {
-            var seq1 = new string[]
+            var seq1 = new[]
             {
                 "k1=v1",
                 "k2=v2",
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 "k6=v6"
             };
 
-            var seq2 = new string[]
+            var seq2 = new[]
             {
                 "pk1=v1",
                 "pk2=v2",
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Func<string, string> keySelector = s => s;
 
             IEnumerable<string> result1 = seq1.RemoveIntersectionKeys(seq2, keySelector);
-            Assert.True(result1.SequenceEqual(new string[]
+            Assert.True(result1.SequenceEqual(new[]
             {
                 "k1=v1",
                 "k2=v2",
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             }));
 
             IEnumerable<string> result2 = seq2.RemoveIntersectionKeys(seq1, keySelector);
-            Assert.True(result2.SequenceEqual(new string[]
+            Assert.True(result2.SequenceEqual(new[]
             {
                 "pk1=v1",
                 "pk2=v2",

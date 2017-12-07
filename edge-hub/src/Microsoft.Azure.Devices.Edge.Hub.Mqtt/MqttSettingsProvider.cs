@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         readonly IConfiguration mqttSettings;
 
-        public MqttSettingsProvider(IConfiguration mqttSettings, string mqttSettingsSectionName = "appSettings")
+        public MqttSettingsProvider(IConfiguration mqttSettings)
         {            
             this.mqttSettings = Preconditions.CheckNotNull(mqttSettings, nameof(mqttSettings));            
         }

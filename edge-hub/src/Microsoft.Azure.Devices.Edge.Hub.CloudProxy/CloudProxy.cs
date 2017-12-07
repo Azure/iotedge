@@ -175,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
             readonly ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>> methodCalls;
-            readonly AtomicLong correlationId = new AtomicLong();
             Option<Task> receiveMessageTask = Option.None<Task>();
 
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
@@ -329,9 +328,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ReceiveError,
                 ReceiverStopped,
                 MethodReceived,
-                MethodResponseReceived,
-                MethodRequestIdNotMatched,
-                MethodResponseTimedout,
                 StartListening
             }
 

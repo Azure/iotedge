@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettings, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType());
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new ITransportSettings[] { transportSettings });
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new[] { transportSettings });
             if (!this.useDefaultOperationTimeout)
             {
                 Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);

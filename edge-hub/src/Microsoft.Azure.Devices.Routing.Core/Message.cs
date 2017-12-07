@@ -73,6 +73,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         }
 
         [JsonConstructor]
+        // ReSharper disable once UnusedMember.Local
         Message(CustomMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
             : this((IMessageSource)messageSource, body, properties, systemProperties, offset, enqueuedTime, dequeuedTime)
         {

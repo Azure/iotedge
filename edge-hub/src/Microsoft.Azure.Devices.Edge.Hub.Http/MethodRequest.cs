@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System;
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     {
         const int DeviceMethodDefaultResponseTimeoutInSeconds = 30;
 
-        byte[] payloadBytes = null;
+        byte[] payloadBytes;
 
         public MethodRequest()
         {

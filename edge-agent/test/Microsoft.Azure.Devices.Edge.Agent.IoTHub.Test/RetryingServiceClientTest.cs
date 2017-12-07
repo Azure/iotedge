@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var underlying = new Mock<IServiceClient>();
             underlying.SetupSequence(c => c.CreateModules(It.IsAny<IEnumerable<string>>()))
                 .Throws(new InvalidOperationException())
-                .Returns(Task.FromResult(new Module[] { new Module("d1", "m1") }));
+                .Returns(Task.FromResult(new[] { new Module("d1", "m1") }));
             var serviceClient = new RetryingServiceClient(underlying.Object);
 
             // Act

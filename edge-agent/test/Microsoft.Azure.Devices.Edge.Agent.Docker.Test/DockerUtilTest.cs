@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void CannotParseHostnameFromNullImage()
         {
-            Assert.Throws<ArgumentNullException>(() => DockerUtil.TryParseDomainFromImage(null, out string hostname));
+            Assert.Throws<ArgumentNullException>(() => DockerUtil.TryParseDomainFromImage(null, out string _));
         }
 
         [Fact]
@@ -56,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void ReturnsNullWhenAuthConfigListArgumentIsNull()
         {
-            var authConfigs = new List<AuthConfig>();
             Assert.Equal(Option.None<AuthConfig>(), ((IEnumerable<AuthConfig>)null).FirstAuthConfig("dontcare"));
         }
 

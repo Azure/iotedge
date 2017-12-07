@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void TestElementAtOrDefault()
         {
-            var source = new string[] { "a", "b" };
+            var source = new[] { "a", "b" };
 
             Assert.Equal("*", source.ElementAtOrDefault(-1, "*"));
             Assert.Equal("a", source.ElementAtOrDefault(0, "*"));
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void TestElementAtOrEmpty()
         {
-            var source = new string[] { "a", "b" };
+            var source = new[] { "a", "b" };
 
             Assert.Equal(string.Empty, source.ElementAtOrEmpty(-1));
             Assert.Equal("a", source.ElementAtOrEmpty(0));

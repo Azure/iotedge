@@ -335,7 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection reported, bool cloudVerified)
         {
-            TwinInfo twinInfo = await this.GetTwinInfoWithStoreSupportAsync(id);
+            await this.GetTwinInfoWithStoreSupportAsync(id);
             await this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported, cloudVerified);
         }
 
@@ -452,6 +452,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyNameMaxLength}");
             }
 
+            // Disabling Possible Null Referece, since name is being tested above.
+            // ReSharper disable once PossibleNullReferenceException
             for (int index = 0; index < name.Length; index++)
             {
                 char ch = name[index];
@@ -543,7 +545,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 UpdateReportedToCloudException = IdStart,
-                StoreTwinFailed,
                 ReportedPropertiesSyncedToCloudSuccess,
                 ValidatedTwinPropertiesSuccess,
                 SentReportedPropertiesToCloud,
@@ -560,8 +561,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 GetTwinOnEstablished,
                 SendDiffToDeviceProxy,
                 ProcessConnectionEstablishedForDevice,
-                RemoveThisGettingTwin,
-                RemoveThisDoneWithConnectionEstablished,
                 SentDesiredPropertiesToDevice,
                 InOrderDesiredPropertyPatchReceived,
                 OutOfOrderDesiredPropertyPatchReceived,
@@ -571,11 +570,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void UpdateReportedToCloudException(string identity, Exception e)
             {
                 Log.LogInformation((int)EventIds.UpdateReportedToCloudException, $"Updating reported properties for {identity} in cloud failed with error {e.GetType()} {e.Message}");
-            }
-
-            public static void StoreTwinFailed(string identity, Exception e, long v, long desired, long reported)
-            {
-                Log.LogDebug((int)EventIds.StoreTwinFailed, $"Storing twin for {identity} failed with error {e.GetType()} {e.Message}. Retrieving last stored twin with version {v}, desired version {desired} and reported version {reported}");
             }
 
             public static void ReportedPropertiesSyncedToCloudSuccess(string identity, long version)

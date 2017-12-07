@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
@@ -28,8 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             RequestDelegate next,
             IAuthenticator authenticator,
             IIdentityFactory identityFactory,
-            string iotHubName,
-            IMemoryCache memoryCache)
+            string iotHubName)
         {
             this.next = next;
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));

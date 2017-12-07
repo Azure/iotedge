@@ -156,7 +156,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    string moduleKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("moduleKey"));
                     string credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
                     identity.Setup(id => id.ConnectionString).Returns(credential);
@@ -248,9 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public async Task GetUpdatedRuntimeInfoAsyncTest()
         {
-
-            DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
-            DateTime lastExitTime = lastStartTime.AddDays(1);
 
             // Arrange
             var systemInfoResponse = new SystemInfoResponse
@@ -500,7 +496,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(edgeAgent);
             Assert.Equal(edgeAgent.Type, "docker");
             Assert.Equal("myImage", edgeAgent.Config.Image);
-            Assert.Equal("sha256:foo", (edgeAgent.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal("sha256:foo", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(
                 DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind),
                 edgeAgent.LastStartTimeUtc
@@ -550,7 +546,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             dockerClient.SetupGet(c => c.Containers).Returns(containerOperations.Object);
             containerOperations.Setup(c => c.ListContainersAsync(It.IsAny<ContainersListParameters>(), CancellationToken.None))
-                .ReturnsAsync(new ContainerListResponse[] { containerListResponse });
+                .ReturnsAsync(new[] { containerListResponse });
             containerOperations.Setup(c => c.InspectContainerAsync(containerListResponse.ID, CancellationToken.None))
                 .ReturnsAsync(inspectContainerResponse);
 

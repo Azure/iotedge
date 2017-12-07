@@ -354,11 +354,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             return GetJsonTestCases("throwsException").Select(s => new object[] { s });
         }
 
-        static IEnumerable<object[]> GetValidEnvJsonInputs()
-        {
-            return GetJsonTestCases("validEnvJson").Select(s => new object[] { s });
-        }
-
         static IEnumerable<object[]> GetInvalidEnvJsonInputs()
         {
             return GetJsonTestCases("invalidEnvJson").Select(s => new object[] { s });

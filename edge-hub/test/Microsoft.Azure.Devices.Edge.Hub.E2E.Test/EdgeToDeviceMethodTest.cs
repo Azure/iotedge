@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class EdgeToDeviceMethodTest
     {
-        ProtocolHeadFixture head = ProtocolHeadFixture.GetInstance();
         const string DeviceNamePrefix = "E2E_DirectMethods_";
         const string MethodName = "WriteToConsole";
         const string DataAsJson = "{\"MethodPayload\":\"Payload\"}";

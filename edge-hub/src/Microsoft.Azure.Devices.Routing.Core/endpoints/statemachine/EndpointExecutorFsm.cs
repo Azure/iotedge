@@ -452,7 +452,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 thisPtr.currentSendCommand = thisPtr.currentSendCommand.Copy(thisPtr.currentCheckpointCommand.Result.Failed);
 
                 bool shouldRetry = thisPtr.ShouldRetry(innerException, out retryAfter);
-                Events.CheckRetryInnerException(thisPtr, innerException, shouldRetry);
+                Events.CheckRetryInnerException(innerException, shouldRetry);
                 if (shouldRetry)
                 {
                     next = Commands.Fail(retryAfter);
@@ -690,7 +690,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     fsm.Status.CheckpointerStatus.Offset, GetContextString(fsm));
             }
 
-            public static void CheckRetryInnerException(EndpointExecutorFsm fsm, Exception ex, bool retry)
+            public static void CheckRetryInnerException(Exception ex, bool retry)
             {
                 Log.LogDebug((int)EventIds.CheckRetryInnerException, ex, $"[CheckRetryInnerException] Decision to retry exception of type {ex.GetType()} is {retry}");
             }

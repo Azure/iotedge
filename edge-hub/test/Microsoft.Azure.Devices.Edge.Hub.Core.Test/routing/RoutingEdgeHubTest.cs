@@ -257,7 +257,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public async Task AddEdgeSystemPropertiesTest()
         {
             // Create a mock endpoint capable of returning a mock processor
-            var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
 
             // Create a mock endpoint executor factory to create the endpoint executor to verify invocation

@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -282,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -423,7 +423,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -552,7 +552,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -642,7 +642,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 
@@ -914,7 +914,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
                     .ReturnsAsync(new DockerReportedRuntimeInfo(
                         RuntimeType,
-                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo).Config,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                         new DockerPlatformInfo(OperatingSystemType, Architecture))
                     );
 

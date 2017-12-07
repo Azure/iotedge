@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Security.Authentication;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -115,28 +114,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         static IEnumerable<string[]> GetIdentityWithProductInfoInputs()
         {
-            yield return new string[]
+            yield return new[]
             {   // happy path
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
                 $"abc {ProductInfo}"
             };
 
-            yield return new string[]
+            yield return new[]
             {   // no DeviceClientType
                 "abc",
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
                 "abc"
             };
 
-            yield return new string[]
+            yield return new[]
             {   // no caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {   // no DeviceClientType OR caller product info
                 string.Empty,
                 $"{Hostname}/{DeviceId}/{ApiVersion}",
@@ -149,61 +148,61 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string devicePrefix = $"{Hostname}/{DeviceId}/{ApiVersion}";
             string modulePrefix = $"{Hostname}/{DeviceId}/{ModuleId}/{ApiVersion}";
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{devicePrefix}",
                 string.Empty
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{modulePrefix}",
                 string.Empty
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{devicePrefix}&DeviceClientType=",
                 string.Empty
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{modulePrefix}&DeviceClientType=",
                 string.Empty
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{modulePrefix}&{DeviceClientType}",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{Hostname}/{DeviceId}/{DeviceClientType}&{ApiVersion}",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{Hostname}/{DeviceId}/{ModuleId}/{DeviceClientType}&{ApiVersion}",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}&DeviceClientType=abc123",
                 ProductInfo
             };
 
-            yield return new string[]
+            yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}=abc123",
                 $"{ProductInfo}=abc123"
@@ -212,14 +211,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         static IEnumerable<string[]> GetBadUsernameInputs()
         {
-            yield return new string[] { "missingEverythingAfterHostname" };
-            yield return new string[] { "hostname/missingEverthingAfterDeviceId" };
-            yield return new string[] { "hostname/deviceId/missingApiVersionProperty" };
-            yield return new string[] { "hostname/deviceId/moduleId/missingApiVersionProperty" };
-            yield return new string[] { "hostname/deviceId/moduleId/stillMissingApiVersionProperty&DeviceClientType=whatever" };
-            yield return new string[] { "hostname/deviceId/moduleId/DeviceClientType=whatever&stillMissingApiVersionProperty" };
-            yield return new string[] { "hostname/deviceId/moduleId/DeviceClientType=stillMissingApiVersionProperty" };
-            yield return new string[] { "hostname/deviceId/moduleId/api-version=whatever/tooManySegments" };
+            yield return new[] { "missingEverythingAfterHostname" };
+            yield return new[] { "hostname/missingEverthingAfterDeviceId" };
+            yield return new[] { "hostname/deviceId/missingApiVersionProperty" };
+            yield return new[] { "hostname/deviceId/moduleId/missingApiVersionProperty" };
+            yield return new[] { "hostname/deviceId/moduleId/stillMissingApiVersionProperty&DeviceClientType=whatever" };
+            yield return new[] { "hostname/deviceId/moduleId/DeviceClientType=whatever&stillMissingApiVersionProperty" };
+            yield return new[] { "hostname/deviceId/moduleId/DeviceClientType=stillMissingApiVersionProperty" };
+            yield return new[] { "hostname/deviceId/moduleId/api-version=whatever/tooManySegments" };
         }
 
         [Theory]
@@ -239,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 Assert.NotNull(identity.Value);
                 Assert.IsType(expectedType, identity.Value);
-                Assert.Equal(iotHubHostName, (identity.Value as Identity).IotHubHostName);
+                Assert.Equal(iotHubHostName, ((Identity)identity.Value).IotHubHostName);
                 Assert.Equal(ProductInfo, identity.Value.ProductInfo);
             }
             else

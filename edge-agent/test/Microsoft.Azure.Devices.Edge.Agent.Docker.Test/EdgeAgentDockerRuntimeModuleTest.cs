@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
             Assert.Equal("someImage", edgeAgent.Config.Image);
-            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
         }
 
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal("docker", edgeAgent.Type);
             Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
             Assert.Equal("someImage", edgeAgent.Config.Image);
-            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
         }
 
