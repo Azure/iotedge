@@ -205,6 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.CommandUndone = false;
         }
 
+        public string Id => this.Show();
+
         public string Show() => $"TestCommand {this.type.ToString()}:{this.module.Name}";
 
         public Task ExecuteAsync(CancellationToken token)

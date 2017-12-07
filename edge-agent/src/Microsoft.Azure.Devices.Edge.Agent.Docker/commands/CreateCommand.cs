@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    
+
 
     public class CreateCommand : ICommand
     {
@@ -24,12 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {"8883/tcp", new PortBinding {HostPort="8883" } },
             {"443/tcp", new PortBinding {HostPort="443" } }
         };
+        readonly Lazy<string> id;
 
         public CreateCommand(IDockerClient client, CreateContainerParameters createContainerParameters)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.createContainerParameters = Preconditions.CheckNotNull(createContainerParameters, nameof(createContainerParameters));
+            this.id = new Lazy<string>(() => Hash.CreateSha256(JsonConvert.SerializeObject(this.createContainerParameters)));
         }
+
+        // We use the hash code of the JSONified representation of the create parameters as the
+        // unique "ID" for this command.
+        public string Id => this.id.Value;
 
         public static async Task<ICommand> BuildAsync(
             IDockerClient client,
@@ -249,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         )
         {
             createContainerParameters.Env = createContainerParameters.Env?.RemoveIntersectionKeys(varsList).ToList() ?? new List<string>();
-            foreach(string envVar in varsList)
+            foreach (string envVar in varsList)
             {
                 createContainerParameters.Env.Add(envVar);
             }

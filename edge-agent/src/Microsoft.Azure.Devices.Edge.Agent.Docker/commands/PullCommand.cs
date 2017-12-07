@@ -25,6 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.authConfig = Preconditions.CheckNotNull(authConfig, nameof(authConfig));
         }
 
+        public string Id => $"PullCommand({this.module.Config.Image})";
+
         public async Task ExecuteAsync(CancellationToken token)
         {
             string[] imageParts = this.module.Config.Image.Split(':');
@@ -55,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
             catch (DockerApiException ex)
             {
-                if(ex.StatusCode == HttpStatusCode.NotFound)
+                if (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new ImageNotFoundException(image, tag, ex.StatusCode.ToString(), ex);
                 }

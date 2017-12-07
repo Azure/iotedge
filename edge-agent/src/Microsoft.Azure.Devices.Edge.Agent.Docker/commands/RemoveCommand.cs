@@ -25,6 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.module = Preconditions.CheckNotNull(module, nameof(module));
         }
 
+        public string Id => $"RemoveCommand({this.module.Name})";
+
         async Task<long> GetModuleExitCode()
         {
             ContainerInspectResponse containerInfo = await this.client.Containers.InspectContainerAsync(this.module.Name);
@@ -64,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError($"Unable to get logs from module {this.module.Name} - {ex.Message}");
             }

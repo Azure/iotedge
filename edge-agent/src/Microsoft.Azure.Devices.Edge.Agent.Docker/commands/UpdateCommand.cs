@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.create = Preconditions.CheckNotNull(create, nameof(create));
         }
 
+        public string Id => this.remove.Id + this.create.Id;
+
         public static async Task<ICommand> BuildAsync(IDockerClient client, DockerModule current, DockerModule next, IModuleIdentity identity, DockerLoggingConfig dockerLoggerConfig, IConfigSource configSource)
         {
             Preconditions.CheckNotNull(client, nameof(client));

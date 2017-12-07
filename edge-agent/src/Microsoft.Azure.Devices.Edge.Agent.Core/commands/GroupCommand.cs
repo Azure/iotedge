@@ -2,6 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
+    using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -9,11 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
     public class GroupCommand : ICommand
     {
         readonly ICommand[] commandGroup;
+        readonly Lazy<string> id;
 
         public GroupCommand(params ICommand[] group)
         {
             this.commandGroup = Preconditions.CheckNotNull(group, nameof(group));
+            this.id = new Lazy<string>(() => this.commandGroup.Aggregate("", (prev, command) => command.Id + prev));
         }
+
+        // We use the sum of the IDs of the underlying commands as the id for this group
+        // command.
+        public string Id => this.id.Value;
 
         public static Task<ICommand> CreateAsync(params ICommand[] commandgroup)
         {
@@ -22,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public async Task ExecuteAsync(CancellationToken token)
         {
-            foreach(ICommand command in this.commandGroup)
+            foreach (ICommand command in this.commandGroup)
             {
                 await command.ExecuteAsync(token);
             }

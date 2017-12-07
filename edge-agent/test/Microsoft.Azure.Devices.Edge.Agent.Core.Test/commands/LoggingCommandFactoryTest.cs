@@ -22,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         {
         }
 
+        public string Id => this.Show();
+
         public Task ExecuteAsync(CancellationToken token) => throw new ArgumentException();
 
         public Task UndoAsync(CancellationToken token) => throw new ArgumentException();
@@ -138,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();
 
-            // mock the command factory method being tested, 
+            // mock the command factory method being tested,
             // have the mock return an appropriate command that should be decorated by the LoggingCommandFactory
             factoryMock.Setup(commandMethodBeingTested)
                 .Returns(commandBeingDecorated);

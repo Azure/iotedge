@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface ICommand : IShowable
     {
+        string Id { get; }
+
         Task ExecuteAsync(CancellationToken token);
 
         Task UndoAsync(CancellationToken token);

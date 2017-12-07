@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             this.module = Preconditions.CheckNotNull(module, nameof(module));
         }
 
+        public string Id => $"StartCommand({this.module.Name})";
+
         public Task ExecuteAsync(CancellationToken token)
         {
             var parameters = new ContainerStartParameters();

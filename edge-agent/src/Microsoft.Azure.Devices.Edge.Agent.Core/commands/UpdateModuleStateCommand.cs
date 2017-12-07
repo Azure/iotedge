@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
             this.state = Preconditions.CheckNotNull(state, nameof(state));
         }
 
+        public string Id => $"UpdateModuleStateCommand({this.module.Name}, [{this.state.RestartCount}, {this.state.LastRestartTimeUtc.ToString("o")}])";
+
         public Task ExecuteAsync(CancellationToken token) => this.store.PutOrUpdate(this.module.Name, this.state, _ => this.state);
 
         public string Show() => $"Update health stats for module {this.module.Name}";

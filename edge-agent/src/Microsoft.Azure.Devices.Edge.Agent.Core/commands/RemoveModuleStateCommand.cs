@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
             this.store = Preconditions.CheckNotNull(store, nameof(store));
         }
 
+        public string Id => $"RemoveModuleStateCommand({this.module.Name})";
+
         public Task ExecuteAsync(CancellationToken token) => this.store.Remove(this.module.Name);
 
         public string Show() => $"Reset health stats for module {this.module.Name}";

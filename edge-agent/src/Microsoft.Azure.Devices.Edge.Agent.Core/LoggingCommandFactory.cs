@@ -48,6 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             }
 
+            // Since we are simply wrapping another command we have no independent identifier
+            // of our own. We delegate to our underlying command.
+            public string Id => this.underlying.Id;
+
             public async Task ExecuteAsync(CancellationToken token)
             {
                 try
