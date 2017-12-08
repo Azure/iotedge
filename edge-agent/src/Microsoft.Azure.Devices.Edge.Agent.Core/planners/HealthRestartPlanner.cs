@@ -79,6 +79,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return restart;
         }
 
+        async Task<IEnumerable<ICommand>> ProcessAddedUpdatedModules(
+            IList<IModule> modules,
+            Func<IModule, Task<ICommand>> createUpdateCommandMaker
+        )
+        {
+            // new modules become a command group containing:
+            //   pull & create followed by a start command if the desired
+            //   status is "running"
+            IEnumerable<Task<ICommand[]>> addedTasks = modules.Select(m =>
+            {
+                var tasks = new Task<ICommand>[m.DesiredStatus == ModuleStatus.Running ? 3 : 2];
+                tasks[0] = this.commandFactory.PullAsync(m);
+                tasks[1] = createUpdateCommandMaker(m);
+                if (m.DesiredStatus == ModuleStatus.Running)
+                {
+                    tasks[2] = this.commandFactory.StartAsync(m);
+                }
+                return Task.WhenAll(tasks);
+            });
+
+            // build GroupCommands from each command set
+            var commands = (await Task.WhenAll(addedTasks))
+                .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
+
+            return await Task.WhenAll(commands);
+        }
+
         async Task<IEnumerable<ICommand>> ResetStatsForHealthyModulesAsync(IEnumerable<IRuntimeModule> modules)
         {
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
@@ -153,8 +180,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
 
-            IList<IModule> modulesAddedOrUpdated = added.Concat(updateDeployed).ToList();
-
             // create "stop" commands for modules that have been updated/removed
             IEnumerable<Task<ICommand>> stopTasks = updateDeployed
                 .Concat(removed)
@@ -172,36 +197,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Select(m => this.commandFactory.WrapAsync(new RemoveModuleStateCommand(m, this.store)));
             IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
-            // create "pull" commands for modules that have been added/updated
-            IEnumerable<Task<ICommand>> pullTasks = modulesAddedOrUpdated.Select(m => this.commandFactory.PullAsync(m));
-            IEnumerable<ICommand> pull = await Task.WhenAll(pullTasks);
-
-            // create "create" commands for modules that have been added
-            IEnumerable<Task<ICommand>> createTasks = added
-                .Select( m => this.commandFactory.CreateAsync(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name))));
-            IEnumerable<ICommand> create = await Task.WhenAll(createTasks);
-
-            // create "update" commands for modules that have been updated
-            IEnumerable<Task<ICommand>> updateTasks = updateDeployed
-                .Select(m =>
+            // create pull, create, update and start commands for added/updated modules
+            var addedCommands = await this.ProcessAddedUpdatedModules(
+                added,
+                m => this.commandFactory.CreateAsync(
+                        new ModuleWithIdentity(
+                            m, moduleIdentities.GetValueOrDefault(m.Name)
+                        )
+                    )
+            );
+            var updatedCommands = await this.ProcessAddedUpdatedModules(
+                updateDeployed,
+                m =>
                 {
                     current.TryGetModule(m.Name, out IModule currentModule);
-                    return this.commandFactory.UpdateAsync(currentModule, new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)));
-                });
-            IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
-
-            // create "start" commands for modules that have been added/updated and where the
-            // status desired is "Running"; this handles the case where someone adds/updates a
-            // module to the deployment but has the desired "status" field as "Stopped"
-            IEnumerable<Task<ICommand>> startTasks = modulesAddedOrUpdated
-                .Where(m => m.DesiredStatus == ModuleStatus.Running)
-                .Select(m => this.commandFactory.StartAsync(m));
-            IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
+                    return this.commandFactory.UpdateAsync(
+                        currentModule,
+                        new ModuleWithIdentity(
+                            m, moduleIdentities.GetValueOrDefault(m.Name)
+                        )
+                    );
+                }
+            );
 
             // apply restart policy for modules that are not in the deployment list and aren't running
             IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged);
             IEnumerable<ICommand> restart = await Task.WhenAll(restartTasks);
-
 
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
             // for more than "IntensiveCareTime" & still have an entry for them in the store
@@ -210,10 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IList<ICommand> commands = stop
                 .Concat(remove)
                 .Concat(removeState)
-                .Concat(pull)
-                .Concat(create)
-                .Concat(update)
-                .Concat(start)
+                .Concat(addedCommands)
+                .Concat(updatedCommands)
                 .Concat(restart)
                 .Concat(resetHealthStatus)
                 .ToList();
