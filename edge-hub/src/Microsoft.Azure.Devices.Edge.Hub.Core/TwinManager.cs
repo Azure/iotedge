@@ -255,7 +255,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         {
                             // If the new twin is more recent than the cached twin, update the cached copy.
                             // If not, reject the cloud twin
-                            if ((cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
+                            if ((t.Twin == null) ||
+                                (cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
                                 (cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version))
                             {
                                 Events.UpdateCachedTwin(id,
@@ -334,7 +335,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(string id, TwinCollection reported, bool cloudVerified)
         {
-            await this.GetTwinInfoWithStoreSupportAsync(id);
+            try
+            {
+                await this.GetTwinInfoWithStoreSupportAsync(id);
+            }
+            catch (Exception e)
+            {
+                // If we fail to find the twin in the twin store, then we simply store the reported property
+                // patch and wait for the next GetTwin or ConnectionEstablished callback to fetch the twin
+
+                Events.MissingTwinOnUpdateReported(id, e);
+                throw new TwinNotFoundException("Twin unavailable", e);
+            }
             await this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported, cloudVerified);
         }
 
@@ -345,91 +357,111 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 () => this.SendReportedPropertiesToCloudProxy(id, reportedProperties));
         }
 
-        async Task UpdateReportedPropertiesPatch(string id, TwinCollection reportedProperties)
+        async Task UpdateReportedPropertiesPatchAsync(string id, TwinInfo newTwinInfo, TwinCollection reportedProperties)
         {
-            await this.TwinStore.Match(
-                (s) => s.Update(
-                    id,
-                    u =>
-                    {
-                        string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
-                        var mergedPatch = new TwinCollection(mergedJson);
-                        Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
-                        return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
-                    }),
-                () => throw new InvalidOperationException("Missing twin store"));
+            try
+            {
+                using (await this.twinLock.LockAsync())
+                {
+                    await this.TwinStore.Match(
+                        (s) => s.PutOrUpdate(
+                            id,
+                            newTwinInfo,
+                            u =>
+                            {
+                                string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
+                                var mergedPatch = new TwinCollection(mergedJson);
+                                Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
+                                return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
+                            }),
+                        () => throw new InvalidOperationException("Missing twin store"));
+                }
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error updating twin patch for device {id}", e);
+            }
         }
 
         async Task UpdateReportedPropertiesWithStoreSupportAsync(string id, IMessage reportedProperties)
         {
-            using (await this.reportedPropertiesLock.LockAsync())
+            try
             {
-                bool updatePatch = false;
-                bool cloudVerified = false;
-                await this.TwinStore.Match(
-                    async (s) =>
-                    {
-                        Option<TwinInfo> info = await s.Get(id);
-                        // If the reported properties patch is not null, we will not attempt to write the reported
-                        // properties to the cloud as we are still waiting for a connection established callback
-                        // to sync the local reported properties with that of the cloud
-                        updatePatch = info.Map((ti) =>
-                        {
-                            if (ti.ReportedPropertiesPatch.Count != 0)
-                            {
-                                Events.NeedsUpdateCachedReportedPropertiesPatch(id, ti.ReportedPropertiesPatch.Version);
-                                return true;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }).GetOrElse(false);
-                    },
-                    () => throw new InvalidOperationException("Missing twin store")
-                    );
-
-                TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
-
-                if (!updatePatch)
+                using (await this.reportedPropertiesLock.LockAsync())
                 {
+                    bool updatePatch = false;
+                    bool cloudVerified = false;
+                    await this.TwinStore.Match(
+                        async (s) =>
+                        {
+                            Option<TwinInfo> info = await s.Get(id);
+                            // If the reported properties patch is not null, we will not attempt to write the reported
+                            // properties to the cloud as we are still waiting for a connection established callback
+                            // to sync the local reported properties with that of the cloud
+                            updatePatch = info.Map((ti) =>
+                                {
+                                    if (ti.ReportedPropertiesPatch.Count != 0)
+                                    {
+                                        Events.NeedsUpdateCachedReportedPropertiesPatch(id, ti.ReportedPropertiesPatch.Version);
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        return false;
+                                    }
+                                }).GetOrElse(false);
+                        },
+                        () => throw new InvalidOperationException("Missing twin store")
+                        );
+
+                    TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
+
+                    if (!updatePatch)
+                    {
+                        try
+                        {
+                            await this.SendReportedPropertiesToCloudProxy(id, reportedProperties);
+                            Events.SentReportedPropertiesToCloud(id, reported.Version);
+                            cloudVerified = true;
+                        }
+                        catch (Exception e)
+                        {
+                            Events.UpdateReportedToCloudException(id, e);
+                            updatePatch = true;
+                        }
+                    }
+
+                    if (!cloudVerified)
+                    {
+                        ValidateTwinProperties(JToken.Parse(reported.ToJson()), 1);
+                        Events.ValidatedTwinPropertiesSuccess(id, reported.Version);
+                    }
+
+                    // Update the local twin's reported properties and swallow the exception if we failed
+                    // to cache the twin
                     try
                     {
-                        await this.SendReportedPropertiesToCloudProxy(id, reportedProperties);
-                        Events.SentReportedPropertiesToCloud(id, reported.Version);
-                        cloudVerified = true;
+                        await this.ExecuteOnTwinStoreResultAsync(
+                            id,
+                            (t) => this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported, cloudVerified),
+                            () => this.UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(id, reported, cloudVerified));
                     }
-                    catch (Exception e)
+                    catch (TwinNotFoundException) { }
+
+                    if (updatePatch)
                     {
-                        Events.UpdateReportedToCloudException(id, e);
-                        updatePatch = true;
+                        // Update the collective patch of reported properties
+                        await this.UpdateReportedPropertiesPatchAsync(
+                            id,
+                            new TwinInfo(null, reported, false) /* only used when twin was not previously cached */,
+                            reported);
                     }
                 }
-
-                if (!cloudVerified)
-                {
-                    ValidateTwinProperties(JToken.Parse(reported.ToJson()), 1);
-                    Events.ValidatedTwinPropertiesSuccess(id, reported.Version);
-                }
-
-                // Update the local twin's reported properties
-                // At this point, if we are offline and if we somehow missed caching the twin before we
-                // went offline, we would call UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync and
-                // it would throw because it was unable to get the twin. This might not be acceptable as we
-                // never want a reported properties update to fail even if we are offline. TBD.   
-                await this.ExecuteOnTwinStoreResultAsync(
-                    id,
-                    (t) => this.UpdateReportedPropertiesWhenTwinStoreHasTwinAsync(id, reported, cloudVerified),
-                    () => this.UpdateReportedPropertiesWhenTwinStoreNeedsTwinAsync(id, reported, cloudVerified));
-
-                if (updatePatch)
-                {
-                    // Update the collective patch of reported properties
-                    await this.ExecuteOnTwinStoreResultAsync(
-                        id,
-                        (t) => this.UpdateReportedPropertiesPatch(id, reported),
-                        () => throw new InvalidOperationException($"Missing cached twin for device {id}"));
-                }
+            }
+            catch (Exception e)
+            {
+                Events.UpdateReportedPropertiesFailed(id, e);
+                throw; /* we only throw if we were unable to write to the db */
             }
         }
 
@@ -563,7 +595,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 SentDesiredPropertiesToDevice,
                 InOrderDesiredPropertyPatchReceived,
                 OutOfOrderDesiredPropertyPatchReceived,
-                ConnectionEstablishedCallbackException
+                ConnectionEstablishedCallbackException,
+                MissingTwinOnUpdateReported,
+                UpdateReportedPropertiesFailed
             }
 
             public static void UpdateReportedToCloudException(string identity, Exception e)
@@ -684,6 +718,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogWarning((int)EventIds.ConnectionEstablishedCallbackException, $"ConnectionEstablished for {id} " +
                     $"callback hit exception: {e.GetType()} {e.Message}");
+            }
+
+            public static void MissingTwinOnUpdateReported(string id, Exception e)
+            {
+                Log.LogDebug((int)EventIds.MissingTwinOnUpdateReported, $"Failed to find twin for {id}" +
+                    $" while updating reported properties with error {e.Message}");
+            }
+
+            public static void UpdateReportedPropertiesFailed(string id, Exception e)
+            {
+                Log.LogWarning((int)EventIds.UpdateReportedPropertiesFailed, "Failed to update reported " +
+                    $" properties for {id} with error {e.Message}");
             }
         }
     }
