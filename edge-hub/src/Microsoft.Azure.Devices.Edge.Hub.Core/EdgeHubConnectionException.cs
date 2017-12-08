@@ -2,8 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.IO;
 
-    public class EdgeHubConnectionException : Exception
+    public class EdgeHubConnectionException : IOException
     {
         public EdgeHubConnectionException(string message)
             : this(message, null)
