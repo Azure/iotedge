@@ -61,11 +61,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         {
                             this.hasMessagesInQueue.Reset();
                             IEnumerable<IMessage> messages = await iterator.GetNext(BatchSize);
-                            foreach (IMessage message in messages)
+                            IEnumerable<IMessage> messagesAsList = messages as IList<IMessage> ?? messages.ToList();
+                            foreach (IMessage message in messagesAsList)
                             {
                                 await this.SendToTplHead(message);
                             }
-                            Events.SendMessagesSuccess(this, messages);
+                            Events.SendMessagesSuccess(this, messagesAsList);
                         }
                     }
                     catch (Exception ex)

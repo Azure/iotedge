@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 // Refresh local copy of the twin
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
-                await cloudProxy.Map<Task>(
+                await cloudProxy.Map(
                     async (cp) =>
                     {
                         Events.GetTwinOnEstablished(identity.Id);
@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             TwinCollection diff = null;
             // Used for returning value to caller
-            TwinInfo cached = null;
+            TwinInfo cached;
 
             using (await this.twinLock.LockAsync())
             {
@@ -433,14 +433,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task SendReportedPropertiesToCloudProxy(string id, IMessage reported)
+        Task SendReportedPropertiesToCloudProxy(string id, IMessage reported)
         {
             Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-            await cloudProxy.Match(
-                async (cp) =>
-                {
-                    await cp.UpdateReportedPropertiesAsync(reported);
-                }, () => throw new InvalidOperationException($"Cloud proxy unavailable for device {id}"));
+            if (!cloudProxy.HasValue)
+            {
+                throw new InvalidOperationException($"Cloud proxy unavailable for device {id}");
+            }
+            return cloudProxy.ForEachAsync(cp => cp.UpdateReportedPropertiesAsync(reported));
         }
 
         static void ValidatePropertyNameAndLength(string name)

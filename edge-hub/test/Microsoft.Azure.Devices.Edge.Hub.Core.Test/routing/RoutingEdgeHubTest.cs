@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var connectionManager = Mock.Of<IConnectionManager>();
             var twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
-            twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult<Core.IMessage>(message));
+            twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(message));
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
 
             Core.IMessage received = await routingEdgeHub.GetTwinAsync("*");

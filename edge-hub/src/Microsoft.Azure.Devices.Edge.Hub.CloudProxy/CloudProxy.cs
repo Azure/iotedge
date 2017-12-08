@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -174,7 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly ICloudListener cloudListener;
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
-            readonly ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>> methodCalls;
             Option<Task> receiveMessageTask = Option.None<Task>();
 
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
@@ -188,7 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
                 IMessageConverter<TwinCollection> converter = cloudProxy.messageConverterProvider.Get<TwinCollection>();
                 this.desiredUpdateHandler = new DesiredPropertyUpdateHandler(cloudListener, converter);
-                this.methodCalls = new ConcurrentDictionary<string, TaskCompletionSource<MethodResponse>>();                
             }
 
             public void StartListening()

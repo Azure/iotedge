@@ -53,9 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             await Task.WhenAll(tasks);
 
             IEnumerable<(long offset, Item item)> batch = await sequentialStore.GetBatch(0, 10000);
-            Assert.Equal(10000, batch.Count());
+            IEnumerable<(long offset, Item item)> batchItems = batch as IList<(long offset, Item item)> ?? batch.ToList();
+            Assert.Equal(10000, batchItems.Count());
             int counter = 0;
-            foreach ((long offset, Item item) batchItem in batch)
+            foreach ((long offset, Item item) batchItem in batchItems)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
@@ -74,36 +75,40 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             }
 
             IEnumerable<(long offset, Item item)> batch = await sequentialStore.GetBatch(0, 100);
-            Assert.Equal(10, batch.Count());
+            IEnumerable<(long offset, Item item)> batchItemsAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
+            Assert.Equal(10, batchItemsAsList.Count());
             int counter = 0;
-            foreach ((long offset, Item item) batchItem in batch)
+            foreach ((long offset, Item item) batchItem in batchItemsAsList)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
             batch = await sequentialStore.GetBatch(0, 100);
-            Assert.Equal(9, batch.Count());
+            IEnumerable<(long offset, Item item)> items = batch as IList<(long offset, Item item)> ?? batch.ToList();
+            Assert.Equal(9, items.Count());
             counter = 1;
-            foreach ((long offset, Item item) batchItem in batch)
+            foreach ((long offset, Item item) batchItem in items)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
             batch = await sequentialStore.GetBatch(0, 100);
-            Assert.Equal(9, batch.Count());
+            IEnumerable<(long offset, Item item)> batchItems = batch as IList<(long offset, Item item)> ?? batch.ToList();
+            Assert.Equal(9, batchItems.Count());
             counter = 1;
-            foreach ((long offset, Item item) batchItem in batch)
+            foreach ((long offset, Item item) batchItem in batchItems)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 1));
             batch = await sequentialStore.GetBatch(0, 100);
-            Assert.Equal(8, batch.Count());
+            IEnumerable<(long offset, Item item)> batchAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
+            Assert.Equal(8, batchAsList.Count());
             counter = 2;
-            foreach ((long offset, Item item) batchItem in batch)
+            foreach ((long offset, Item item) batchItem in batchAsList)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }

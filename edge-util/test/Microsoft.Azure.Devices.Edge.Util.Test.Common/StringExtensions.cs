@@ -23,10 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         public static string GenerateUniqueString(IEnumerable<string> existingStrings, int size, Random rng, string alphabet)
         {
             string str;
+            IEnumerable<string> existingStringsAsList = existingStrings as IList<string> ?? existingStrings.ToList();
             do
             {
                 str = GenerateString(size, rng, alphabet);
-            } while (existingStrings.Contains(str));
+            } while (existingStringsAsList.Contains(str));
 
             return str;
         }

@@ -437,11 +437,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             public Task SendMessageOnOutput(IMessage message) => this.SendMessageOnOutput(message, this.outputName);
 
-            public Task SendMessageOnOutput(IMessage message, string outputName)
+            public Task SendMessageOnOutput(IMessage message, string outputNameArg)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
-                message.SystemProperties[SystemProperties.OutputName] = outputName;
+                message.SystemProperties[SystemProperties.OutputName] = outputNameArg;
                 return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
 

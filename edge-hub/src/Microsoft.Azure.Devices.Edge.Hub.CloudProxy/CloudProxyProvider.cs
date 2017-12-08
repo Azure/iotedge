@@ -83,10 +83,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettings, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
+        async Task<DeviceClient> CreateAndOpenDeviceClient(string id, string connectionString, string productInfo, ITransportSettings transportSettingsParam, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
-            Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType());
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new[] { transportSettings });
+            Events.AttemptingConnectionWithTransport(transportSettingsParam.GetTransportType());
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, new[] { transportSettingsParam });
             if (!this.useDefaultOperationTimeout)
             {
                 Events.SetDeviceClientTimeout(id, DefaultOperationTimeoutMilliseconds);
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 deviceClient.SetConnectionStatusChangesHandler(new ConnectionStatusChangesHandler(connectionStatusChangedHandler));
             }
             await deviceClient.OpenAsync();
-            Events.ConnectedWithTransport(transportSettings.GetTransportType());
+            Events.ConnectedWithTransport(transportSettingsParam.GetTransportType());
             return deviceClient;
         }
 

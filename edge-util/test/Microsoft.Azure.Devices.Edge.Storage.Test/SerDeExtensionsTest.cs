@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public void StringToBytesTest()
         {
-            byte[] bytes = SerDeExtensions.ToBytes((string)null);
+            byte[] bytes = SerDeExtensions.ToBytes(null);
             Assert.NotNull(bytes);
             Assert.Equal(0, bytes.Length);
 

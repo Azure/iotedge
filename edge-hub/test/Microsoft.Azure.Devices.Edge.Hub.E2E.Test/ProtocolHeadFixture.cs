@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IDictionary<string, string> routes = null)
+        public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IDictionary<string, string> routesInput = null)
         {
             var deviceListener = new Mock<IDeviceListener>();
             IConnectionManager connectionManager = null;
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return (connectionManager, deviceListener);
         }
 
-        public async Task StartMqttHead(IDictionary<string, string> routes, Action<ContainerBuilder> setupMocks)
+        public async Task StartMqttHead(IDictionary<string, string> routesInput, Action<ContainerBuilder> setupMocks)
         {
             const int ConnectionPoolSize = 10;
             string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");

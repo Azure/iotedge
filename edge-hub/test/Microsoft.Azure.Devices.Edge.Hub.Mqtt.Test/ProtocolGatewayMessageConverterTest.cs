@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
                 m => 
                     m.Address == @"devices/Device_6/messages/events/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
-                    m.Payload == Payload &&
+                    m.Payload.Equals(Payload) &&
                     m.Properties == properties
                 );
 
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessage = Mock.Of<IProtocolGatewayMessage>(
                 m =>
                     m.Address == @"devices/Device_6/modules/SensorModule/messages/events/%24.cid=Corrid1&%24.mid=MessageId1&Foo=Bar&Prop2=Value2&Prop3=Value3/" &&
-                    m.Payload == Payload &&
+                    m.Payload.Equals(Payload) &&
                     m.Properties == properties
                 );
 

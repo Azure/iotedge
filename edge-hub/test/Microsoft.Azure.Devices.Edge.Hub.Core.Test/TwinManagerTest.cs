@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -280,7 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Callback<IMessage>((m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -321,7 +321,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage>((m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -380,7 +380,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -421,7 +421,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -498,7 +498,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -562,7 +562,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -621,7 +621,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -678,7 +678,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -749,7 +749,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -758,9 +758,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Returns(Task.CompletedTask);
 
-            Option<IEntityStore<string, TwinInfo>> twinStore = Option.Some<IEntityStore<string, TwinInfo>>(mockTwinStore.Object);
+            Option<IEntityStore<string, TwinInfo>> twinStoreForTest = Option.Some(mockTwinStore.Object);
 
-            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStoreForTest);
 
             string deviceId = "device";
 
@@ -776,7 +776,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Out of space"));
             mockTwinStore.Setup(t => t.Get(It.IsAny<string>()))
                 .Callback(() => getCalled = true)
-                .Returns(Task.FromResult(Option.Some<TwinInfo>(new TwinInfo(twin, null, false))));
+                .Returns(Task.FromResult(Option.Some(new TwinInfo(twin, null, false))));
 
             // Arrange - change what the cloud returns
             IMessage newTwinMessage = this.twinMessageConverter.ToMessage(twin);
@@ -799,7 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -808,9 +808,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Returns(Task.CompletedTask);
 
-            Option<IEntityStore<string, TwinInfo>> twinStore = Option.Some<IEntityStore<string, TwinInfo>>(mockTwinStore.Object);
+            Option<IEntityStore<string, TwinInfo>> twinStoreValue = Option.Some(mockTwinStore.Object);
 
-            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStore);
+            var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStoreValue);
 
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Throws(new Exception("Out of space"));
@@ -837,7 +837,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockProxy = new Mock<ICloudProxy>();
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -881,7 +881,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             bool receivedCallback = false;
             var mockDeviceProxy = new Mock<IDeviceProxy>();
@@ -941,7 +941,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             var receivedPatch = new TwinCollection();
             var mockDeviceProxy = new Mock<IDeviceProxy>();
@@ -1001,7 +1001,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
@@ -1088,7 +1088,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             var receivedPatch = new TwinCollection();
             bool callbackReceived = false;
@@ -1167,7 +1167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockCloudProxy.Setup(t => t.GetTwinAsync())
                 .Callback(() => getTwinReceived = true)
                 .Returns(Task.FromResult(twinMessage));
-            Option<ICloudProxy> cloudProxy = Option.Some<ICloudProxy>(mockCloudProxy.Object);
+            Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);

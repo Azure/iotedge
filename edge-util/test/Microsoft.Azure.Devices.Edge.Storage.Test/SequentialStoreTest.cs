@@ -46,9 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await Task.WhenAll(tasks);
 
                 IEnumerable<(long offset, Item item)> batch = await sequentialStore.GetBatch(0, 10000);
-                Assert.Equal(10000, batch.Count());
+                IEnumerable<(long offset, Item item)> batchAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
+                Assert.Equal(10000, batchAsList.Count());
                 int counter = 0;
-                foreach ((long offset, Item item) batchItem in batch)
+                foreach ((long offset, Item item) batchItem in batchAsList)
                 {
                     Assert.Equal(counter++, batchItem.offset);
                 }

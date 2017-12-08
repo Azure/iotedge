@@ -45,20 +45,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 for (int i = 0; i < 5; i++)
                 {
                     IEnumerable<IMessage> batch = await module1Iterator.GetNext(1000);
-                    Assert.Equal(1000, batch.Count());
+                    IEnumerable<IMessage> batchItemsAsList = batch as IList<IMessage> ?? batch.ToList();
+                    Assert.Equal(1000, batchItemsAsList.Count());
                     for (int j = 0; j < 1000; j++)
                     {
-                        Assert.Equal((((i * 1000) + j) * 2).ToString(), batch.ElementAt(j).SystemProperties[Core.SystemProperties.MessageId]);
+                        Assert.Equal((((i * 1000) + j) * 2).ToString(), batchItemsAsList.ElementAt(j).SystemProperties[Core.SystemProperties.MessageId]);
                     }
                 }
 
                 for (int i = 0; i < 5; i++)
                 {
                     IEnumerable<IMessage> batch = await module2Iterator.GetNext(1000);
-                    Assert.Equal(1000, batch.Count());
+                    IEnumerable<IMessage> batchItemsAsList2 = batch as IList<IMessage> ?? batch.ToList();
+                    Assert.Equal(1000, batchItemsAsList2.Count());
                     for (int j = 0; j < 1000; j++)
                     {
-                        Assert.Equal((((i * 1000) + j) * 2 + 1).ToString(), batch.ElementAt(j).SystemProperties[Core.SystemProperties.MessageId]);
+                        Assert.Equal((((i * 1000) + j) * 2 + 1).ToString(), batchItemsAsList2.ElementAt(j).SystemProperties[Core.SystemProperties.MessageId]);
                     }
                 }
             }

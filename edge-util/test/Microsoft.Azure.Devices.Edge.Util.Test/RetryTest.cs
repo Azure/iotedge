@@ -30,12 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             int counter = 0;
             Func<Task<string>> func = () => Task.FromResult((counter++ > 3) ? "Foo" : throw new InvalidOperationException());
-            Func<string, bool> isValid = null;
-            Func<Exception, bool> continueOnException = null;
+
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
             int retryCount = 5;
 
-            string returnedValue = await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
+            string returnedValue = await Retry.Do(func, null, null, retryInterval, retryCount);
             Assert.NotNull(returnedValue);
             Assert.Equal("Foo", returnedValue);
         }
@@ -44,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public async Task ValueNotFoundTest()
         {
             int counter = 0;
-            Func<Task<string>> func = () => Task.FromResult((counter++ > 5) ? "Foo" : (string)null);
+            Func<Task<string>> func = () => Task.FromResult((counter++ > 5) ? "Foo" : null);
             Func<string, bool> isValid = (val) => val != null;
             Func<Exception, bool> continueOnException = (ex) => true;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
@@ -59,15 +58,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             int counter = 0;
             Func<Task<string>> func = () => { counter++; throw new InvalidOperationException(); };
-            Func<string, bool> isValid = null;
-            Func<Exception, bool> continueOnException = null;
             TimeSpan retryInterval = TimeSpan.FromMilliseconds(2);
             int retryCount = 5;
 
             Exception caughtException = null;
             try
             {
-                await Retry.Do(func, isValid, continueOnException, retryInterval, retryCount);
+                await Retry.Do(func, null, null, retryInterval, retryCount);
             }
             catch(InvalidOperationException ex)
             {
