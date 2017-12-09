@@ -17,13 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IDeviceClient
-            builder.Register(
-                    c =>
-                    {
-                        IDeviceClient dc = DeviceClient.Create(this.connectionDetails);
-                        return dc;
-                    })
+            builder.Register(c => DeviceClient.Create(this.connectionDetails) as IDeviceClient)
                 .As<IDeviceClient>()
                 .SingleInstance();
 

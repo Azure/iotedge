@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Try<DeviceClient> tryDeviceClient = await this.ConnectToIoTHub(identity.Id, identity.ConnectionString, identity.ProductInfo, connectionStatusChangedHandler);
             if (!tryDeviceClient.Success)
             {
-                Events.ConnectError(identity.Id, tryDeviceClient.Exception);
                 return Try<ICloudProxy>.Failure(tryDeviceClient.Exception);
             }
 
@@ -64,13 +63,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<Try<DeviceClient>> ConnectToIoTHub(string id, string connectionString, string productInfo, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
+
+            var connectWithTransport = new Func<ITransportSettings, Task<DeviceClient>>(
+                transport => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, transport, connectionStatusChangedHandler));
+
             try
             {
                 // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                 // so we'll do it explicitly until we can get the SDK sorted out.
                 return await Fallback.ExecuteAsync(
-                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[0], connectionStatusChangedHandler),
-                    () => this.CreateAndOpenDeviceClient(id, connectionString, productInfo, this.transportSettings[1], connectionStatusChangedHandler));
+                    () => connectWithTransport(this.transportSettings[0]),
+                    () => connectWithTransport(this.transportSettings[1]),
+                    ex => Events.ConnectError(id, ex));
 
                 // TODO: subsequent links will still try AMQP first, then fall back to AMQP over WebSocket. In the worst
                 // case, an edge device might end up with one connection pool for AMQP and one for AMQP over WebSocket. Once
@@ -134,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ConnectError(string id, Exception ex)
             {
-                Log.LogError((int)EventIds.CloudConnectError, ex, Invariant($"Error opening cloud connection for device {id}"));
+                Log.LogDebug((int)EventIds.CloudConnectError, ex, Invariant($"Error opening cloud connection for device {id}"));
             }
 
             public static void ConnectSuccess(string id)

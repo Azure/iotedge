@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        public async Task FallbackFunctionsCanReturnTask()
+        public async Task FallbackFunctionsCanReturnPlainTask()
         {
             int touched = 0;
             await Fallback.ExecuteAsync(
@@ -63,6 +63,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 () => { ++touched; throw new Exception(); },
                 () => { ++touched; return Task.CompletedTask; });
             Assert.Equal(3, touched);
+        }
+
+        [Fact]
+        public async Task FallbackSignalsIfPrimaryThrows()
+        {
+            int signaled = 0;
+            await Fallback.ExecuteAsync(
+                () => throw new Exception(),
+                () => Task.CompletedTask,
+                ex => ++signaled);
+            Assert.Equal(1, signaled);
+        }
+
+        [Fact]
+        public async Task FallbackSignalsIfSecondaryThrows()
+        {
+            int signaled = 0;
+
+            try
+            {
+                await Fallback.ExecuteAsync(
+                    () => throw new Exception(),
+                    () => throw new Exception(),
+                    ex => ++signaled);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            Assert.Equal(2, signaled);
         }
     }
 }

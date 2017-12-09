@@ -33,14 +33,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.reportedProperties = Option.None<TwinCollection>();
         }
 
-        public static async Task<EdgeAgentConnection> Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
+        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
         {
-            var edgeAgentConnection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
-            await deviceClient.OpenAsync(edgeAgentConnection.OnConnectionStatusChanged);
-            await deviceClient.SetDesiredPropertyUpdateCallback(edgeAgentConnection.OnDesiredPropertiesUpdated, null);
-            await deviceClient.SetMethodHandlerAsync(PingMethodName, edgeAgentConnection.PingMethodCallback, null);
-            Events.Created();
-            return edgeAgentConnection;
+            var connection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
+
+            // launch a background task to initiate the connection to IoT Hub (don't wait for it to complete)
+            deviceClient.OpenAsync(
+                connection.OnConnectionStatusChanged,
+                connection.OnDesiredPropertiesUpdated,
+                PingMethodName, connection.PingMethodCallback);
+
+            return connection;
         }
 
         Task<MethodResponse> PingMethodCallback(MethodRequest methodRequest, object userContext) => PingMethodResponse;
@@ -178,8 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             enum EventIds
             {
-                Created = IdStart,
-                DesiredPropertiesFailed,
+                DesiredPropertiesFailed = IdStart,
                 ConnectionStatusChanged,
                 DesiredPropertiesPatchApplied,
                 DesiredPropertiesUpdated,
@@ -188,12 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorRefreshingTwin,
                 TwinRefreshSuccess,
                 ErrorHandlingConnectionChangeEvent,
-                EmptyDeploymentConfig,
-            }
-
-            public static void Created()
-            {
-                Log.LogDebug((int)EventIds.Created, "Edge agent connection to IoT Hub set up.");
+                EmptyDeploymentConfig
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)

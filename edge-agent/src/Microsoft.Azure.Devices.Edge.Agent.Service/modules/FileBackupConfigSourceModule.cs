@@ -77,27 +77,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<ISerde<ModuleSet>>()
                 .SingleInstance();
 
-            // Task<IEdgeAgentConnection>
+            // IEdgeAgentConnection
             builder.Register(
-                async c =>
+                c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClient = c.Resolve<IDeviceClient>();
-                    IEdgeAgentConnection edgeAgentConnection = await EdgeAgentConnection.Create(deviceClient, serde);
+                    IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
                     return edgeAgentConnection;
                 })
-                .As<Task<IEdgeAgentConnection>>()
+                .As<IEdgeAgentConnection>()
                 .SingleInstance();
 
             // Task<IConfigSource>
             builder.Register(
-                    async c =>
+                    c =>
                     {
                         var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                        IEdgeAgentConnection edgeAgentConnection = await c.Resolve<Task<IEdgeAgentConnection>>();
+                        var edgeAgentConnection = c.Resolve<IEdgeAgentConnection>();
                         var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
                         IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde);
-                        return backupConfigSource;
+                        return Task.FromResult(backupConfigSource);
                     })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         };
 
                         return new IoTHubReporter(
-                            await c.Resolve<Task<IEdgeAgentConnection>>(),
+                            c.Resolve<IEdgeAgentConnection>(),
                             await c.Resolve<Task<IEnvironment>>(),
                             new TypeSpecificSerDe<AgentState>(deserializerTypesMap)
                         ) as IReporter;
