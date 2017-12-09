@@ -79,46 +79,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
                 SendFailureDetails sendFailureDetails = null;
 
-                await this.GetDeviceProxy()
-                    .Match(
-                        async d =>
-                        {
-                            foreach (IRoutingMessage routingMessage in routingMessages)
-                            {
-                                IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                                try
-                                {
-                                    await d.SendMessageAsync(message, this.moduleEndpoint.Input);
-                                    succeeded.Add(routingMessage);
-                                }
-                                catch (Exception ex)
-                                {
-                                    if (IsRetryable(ex))
-                                    {
-                                        failed.Add(routingMessage);
-                                    }
-                                    else
-                                    {
-                                        Events.InvalidMessage(ex);
-                                        invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
-                                    }
-                                    Events.ErrorSendingMessages(this.moduleEndpoint, ex);
-                                }
-                            }
+                Util.Option<IDeviceProxy> deviceProxy = this.GetDeviceProxy();
 
-                            if (failed.Count > 0)
-                            {
-                                Events.RetryingMessages(failed.Count, this.moduleEndpoint.Id);
-                                sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
-                            }
-                        },
-                        () =>
+                if (!deviceProxy.HasValue)
+                {
+                    failed.AddRange(routingMessages);
+                    sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
+                    Events.NoDeviceProxy(this.moduleEndpoint);
+                }
+                else
+                {
+                    foreach (IRoutingMessage routingMessage in routingMessages)
+                    {
+                        IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
+                        try
                         {
-                            failed.AddRange(routingMessages);
-                            sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
-                            Events.NoDeviceProxy(this.moduleEndpoint);
-                            return TaskEx.Done;
-                        });
+                            await deviceProxy.ForEachAsync(dp => dp.SendMessageAsync(message, this.moduleEndpoint.Input));
+                            succeeded.Add(routingMessage);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (IsRetryable(ex))
+                            {
+                                failed.Add(routingMessage);
+                            }
+                            else
+                            {
+                                Events.InvalidMessage(ex);
+                                invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                            }
+                            Events.ErrorSendingMessages(this.moduleEndpoint, ex);
+                        }
+                    }
+
+                    if (failed.Count > 0)
+                    {
+                        Events.RetryingMessages(failed.Count, this.moduleEndpoint.Id);
+                        sendFailureDetails = new SendFailureDetails(FailureKind.Transient, new EdgeHubIOException($"Error sending message to module {this.moduleEndpoint.moduleId}"));
+                    }
+                }
 
                 return new SinkResult<IRoutingMessage>(succeeded, failed, sendFailureDetails);
             }

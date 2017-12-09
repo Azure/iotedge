@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -99,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Throws<InvalidOperationException>(() => baseConfig.ApplyDiff(patch5Config));
         }
 
+        [AssertionMethod]
         void ValidateConfig(EdgeHubConfig edgeHubConfig, IDictionary<string, Route> expectedRoutes, TimeSpan expectedTimeSpan)
         {
             Assert.NotNull(edgeHubConfig);

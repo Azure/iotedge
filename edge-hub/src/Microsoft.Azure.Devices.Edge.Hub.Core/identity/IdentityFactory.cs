@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
                 (AuthenticationScope scope, string policyName, string secret) parsedResult = GetConnectionStringAuthDetails(iotHubConnectionStringBuilder);
                 IIdentity identity = string.IsNullOrWhiteSpace(iotHubConnectionStringBuilder.ModuleId)
-                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo) as IIdentity
+                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo)
                     : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo) as IIdentity;
                 return Try.Success(identity);
             }

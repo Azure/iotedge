@@ -17,6 +17,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             var entityStore = new EntityStore<Key, Value>(new InMemoryDbStore(), "testEntity");
             await entityStore.Put(new Key { Type = "A", Id = 1 }, new Value { Prop1 = "Foo", Prop2 = 10 });
+
+            //act/assert to validate key.
+            Option<(Key key, Value value)> itemRetrieved = await entityStore.GetFirstEntry();
+
+            Assert.True(itemRetrieved.HasValue);
+
+            itemRetrieved.ForEach(
+                pair =>
+                {
+                    Assert.Equal("A", pair.key.Type);
+                    Assert.Equal(1, pair.key.Id);
+                });
+            
+
             await entityStore.Put(new Key { Type = "A", Id = 2 }, new Value { Prop1 = "Foo", Prop2 = 20 });
             await entityStore.Put(new Key { Type = "A", Id = 3 }, new Value { Prop1 = "Foo", Prop2 = 30 });
             await entityStore.Put(new Key { Type = "B", Id = 1 }, new Value { Prop1 = "Bar", Prop2 = 10 });
@@ -109,13 +123,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
         }
 
-        class Key
+        public class Key
         {
             public string Type { get; set; }
             public int Id { get; set; }
         }
 
-        class Value
+        public class Value
         {
             public string Prop1 { get; set; }
             public int Prop2 { get; set; }

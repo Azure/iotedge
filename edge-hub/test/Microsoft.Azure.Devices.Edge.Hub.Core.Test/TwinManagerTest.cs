@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device4";
-            IMessage received = await twinManager.GetTwinAsync(deviceId);
+            await twinManager.GetTwinAsync(deviceId);
 
             var collection = new TwinCollection()
             {
@@ -387,7 +387,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             string deviceId = "device9";
-            TwinCollection collection = new TwinCollection()
+            var collection = new TwinCollection()
             {
                 ["name"] = "value"
             };
@@ -805,7 +805,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void UpdateReportedPropertiesWhenStoreThrowsFailure()
         {
             // Arrange
-            Twin twin = new Twin("d1") { Version = 1 };
+            var twin = new Twin("d1") { Version = 1 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -816,7 +816,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
-            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some<TwinInfo>(new TwinInfo(twin, new TwinCollection(), false)));
+            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some(new TwinInfo(twin, new TwinCollection(), false)));
             mockTwinStore.Setup(t => t.Update(It.IsAny<string>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Throws(new InvalidOperationException("Out of space"));
 

@@ -87,13 +87,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             Assert.Equal("updateValue", value.OrDefault());
         }
 
-        class Key
+        public class Key
         {
             public string Type { get; set; }
             public int Id { get; set; }
         }
 
-        class Value
+        public class Value
         {
             public string Prop1 { get; set; }
             public int Prop2 { get; set; }

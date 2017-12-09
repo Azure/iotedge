@@ -171,14 +171,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         .Map(e => this.PatchDesiredProperties(e, twinCollection))
                         .GetOrElse(() => this.GetConfigInternal());
 
-                    await edgeHubConfig.Map(async config =>
+                    await edgeHubConfig.ForEachAsync(async config =>
                     {
                         if (this.configUpdateCallback != null)
                         {
                             await this.configUpdateCallback(config);
                         }
-                    })
-                    .GetOrElse(Task.CompletedTask);
+                    });
                 }
             }
             catch (Exception ex)

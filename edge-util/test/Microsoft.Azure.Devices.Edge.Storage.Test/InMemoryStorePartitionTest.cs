@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System.Threading.Tasks;
@@ -61,21 +61,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
             }
 
-            int counter = 11;
-            await inMemoryStorePartition.IterateBatch($"key{counter}".ToBytes(), 20, (key, value) =>
+            int[] counter = { 11 };
+            await inMemoryStorePartition.IterateBatch($"key{counter[0]}".ToBytes(), 20, (key, value) =>
             {
-                Assert.Equal($"key{counter}", key.FromBytes<string>());
-                Assert.Equal($"val{counter}", value.FromBytes<string>());
-                counter++;
+                Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
+                Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
+                counter[0]++;
                 return Task.CompletedTask;
             });
 
-            counter = 61;
-            await inMemoryStorePartition.IterateBatch($"key{counter}".ToBytes(), 20, (key, value) =>
+            counter[0] = 61;
+            await inMemoryStorePartition.IterateBatch($"key{counter[0]}".ToBytes(), 20, (key, value) =>
             {
-                Assert.Equal($"key{counter}", key.FromBytes<string>());
-                Assert.Equal($"val{counter}", value.FromBytes<string>());
-                counter++;
+                Assert.Equal($"key{counter[0]}", key.FromBytes<string>());
+                Assert.Equal($"val{counter[0]}", value.FromBytes<string>());
+                counter[0]++;
                 return Task.CompletedTask;
             });
         }

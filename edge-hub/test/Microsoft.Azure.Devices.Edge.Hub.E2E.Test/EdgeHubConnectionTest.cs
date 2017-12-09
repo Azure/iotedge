@@ -193,7 +193,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
 
             // If the edge hub restarts, clear out the connected devices in the reported properties.
-            edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);

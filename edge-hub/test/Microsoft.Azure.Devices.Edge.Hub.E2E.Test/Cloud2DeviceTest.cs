@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
@@ -205,6 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return message;
         }
 
+        [AssertionMethod]
         async Task VerifyReceivedC2DMessage(DeviceClient deviceClient, string payload, string p1Value)
         {
             Client.Message receivedMessage = await deviceClient.ReceiveAsync();

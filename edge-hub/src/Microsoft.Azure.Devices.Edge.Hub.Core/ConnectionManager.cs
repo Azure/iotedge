@@ -42,8 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             await currentDeviceProxy
                 .Filter(dp => dp.IsActive)
-                .Map(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")))
-                .GetOrElse(Task.CompletedTask);
+                .ForEachAsync(dp => dp.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
             this.DeviceConnected?.Invoke(this, identity);
         }
 
@@ -90,8 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // If the existing cloud proxy had an active connection then close it since we
             // now have a new connected cloud proxy.
             await existingCloudProxy.Filter(cp => cp.IsActive)
-                .Map(cp => cp.CloseAsync())
-                .GetOrElse(Task.FromResult(true));
+                .ForEachAsync(cp => cp.CloseAsync());
             Events.NewCloudConnection(identity, newCloudProxy);
 
             return newCloudProxy;

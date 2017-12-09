@@ -2,10 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
-    using System.Text;
-    using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
+    using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -15,6 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
+    using System;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Threading.Tasks.Dataflow;
 
     public class TwinManager : ITwinManager
     {
@@ -64,11 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ProcessConnectionEstablishedForDevice(identity.Id);
                 using (await this.reportedPropertiesLock.LockAsync())
                 {
-                    await this.TwinStore.Match(
+                    await this.TwinStore.ForEachAsync(
                         async (store) =>
                         {
                             Option<TwinInfo> twinInfo = await store.Get(identity.Id);
-                            await twinInfo.Match(
+                            await twinInfo.ForEachAsync(
                                 async (t) =>
                                 {
                                     if (t.ReportedPropertiesPatch.Count != 0)
@@ -78,22 +79,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                         await store.Update(identity.Id, u => new TwinInfo(u.Twin, null, u.SubscribedToDesiredPropertyUpdates));
                                         Events.ReportedPropertiesSyncedToCloudSuccess(identity.Id, t.ReportedPropertiesPatch.Version);
                                     }
-                                },
-                                () => { return Task.CompletedTask; });
-                        },
-                        () => { return Task.CompletedTask; }
-                        );
+                                });
+                        });
                 }
 
                 // Refresh local copy of the twin
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
-                await cloudProxy.Map(
+                await cloudProxy.ForEachAsync(
                     async (cp) =>
                     {
                         Events.GetTwinOnEstablished(identity.Id);
                         await this.GetTwinInfoWhenCloudOnlineAsync(identity.Id, cp, true /* send update to device */);
                     }
-                    ).GetOrElse(Task.CompletedTask);
+                    );
             }
             catch (Exception e)
             {
@@ -146,7 +144,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         internal async Task ExecuteOnTwinStoreResultAsync(string id, Func<TwinInfo, Task> twinStoreHit, Func<Task> twinStoreMiss)
         {
             Option<TwinInfo> cached = await this.TwinStore.Match(s => s.Get(id), () => throw new InvalidOperationException("Missing twin store"));
-            await cached.Match(c => twinStoreHit(c), () => twinStoreMiss());
+
+            if (!cached.HasValue)
+            {
+                await twinStoreMiss();
+            }
+            else
+            {
+                await cached.ForEachAsync(c => twinStoreHit(c));
+            }
         }
 
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)
@@ -158,8 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task SendDesiredPropertiesToDeviceProxy(string id, IMessage desired)
         {
-            Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
-            await deviceProxy.Match(dp => dp.OnDesiredPropertyUpdates(desired), () => throw new InvalidOperationException($"Device proxy unavailable for device {id}"));
+            IDeviceProxy deviceProxy = this.connectionManager.GetDeviceConnection(id)
+                .Expect(() => new InvalidOperationException($"Device proxy unavailable for device {id}"));
+            await deviceProxy.OnDesiredPropertyUpdates(desired);
             TwinCollection patch = this.twinCollectionConverter.FromMessage(desired);
             Events.SentDesiredPropertiesToDevice(id, patch.Version);
         }
@@ -186,41 +193,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IMessage message = this.twinCollectionConverter.ToMessage(desired);
             using (await this.twinLock.LockAsync())
             {
-                await this.TwinStore.Match(
-                    (s) => s.Update(
-                        id,
-                        u =>
+                IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
+
+                await twinStore.Update(
+                    id,
+                    u =>
+                    {
+                        // Save the patch only if it is the next one that can be applied
+                        if (desired.Version == u.Twin.Properties.Desired.Version + 1)
                         {
-                            // Save the patch only if it is the next one that can be applied
-                            if (desired.Version == u.Twin.Properties.Desired.Version + 1)
-                            {
-                                Events.InOrderDesiredPropertyPatchReceived(
-                                    id,
-                                    u.Twin.Properties.Desired.Version,
-                                    desired.Version);
-                                string mergedJson = JsonEx.Merge(u.Twin.Properties.Desired, desired, /*treatNullAsDelete*/ true);
-                                u.Twin.Properties.Desired = new TwinCollection(mergedJson);
-                            }
-                            else
-                            {
-                                Events.OutOfOrderDesiredPropertyPatchReceived(
-                                    id,
-                                    u.Twin.Properties.Desired.Version,
-                                    desired.Version);
-                                getTwin = true;
-                            }
-                            return new TwinInfo(u.Twin, u.ReportedPropertiesPatch, true);
-                        }),
-                    () => throw new InvalidOperationException("Missing twin store"));
+                            Events.InOrderDesiredPropertyPatchReceived(
+                                id,
+                                u.Twin.Properties.Desired.Version,
+                                desired.Version);
+                            string mergedJson = JsonEx.Merge(u.Twin.Properties.Desired, desired, /*treatNullAsDelete*/ true);
+                            u.Twin.Properties.Desired = new TwinCollection(mergedJson);
+                        }
+                        else
+                        {
+                            Events.OutOfOrderDesiredPropertyPatchReceived(
+                                id,
+                                u.Twin.Properties.Desired.Version,
+                                desired.Version);
+                            getTwin = true;
+                        }
+                        return new TwinInfo(u.Twin, u.ReportedPropertiesPatch, true);
+                    });
             }
 
             // Refresh local copy of the twin since we received an out-of-order patch
             if (getTwin)
             {
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-                await cloudProxy.Map<Task>(
-                        cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, true /* send update to device */)
-                    ).GetOrElse(Task.CompletedTask);
+                await cloudProxy.ForEachAsync(cp => this.GetTwinInfoWhenCloudOnlineAsync(id, cp, true /* send update to device */));
             }
             else
             {
@@ -247,41 +252,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
                 var newTwin = new TwinInfo(cloudTwin, null, false);
                 cached = newTwin;
-                await this.TwinStore.Match(
-                    (s) => s.PutOrUpdate(
-                        id,
-                        newTwin,
-                        t =>
+
+                IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
+
+                await twinStore.PutOrUpdate(
+                    id,
+                    newTwin,
+                    t =>
+                    {
+                        // If the new twin is more recent than the cached twin, update the cached copy.
+                        // If not, reject the cloud twin
+                        if ((t.Twin == null) ||
+                            (cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
+                            (cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version))
                         {
-                            // If the new twin is more recent than the cached twin, update the cached copy.
-                            // If not, reject the cloud twin
-                            if ((t.Twin == null) ||
-                                (cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
-                                (cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version))
+                            if (t.Twin != null)
                             {
-                                Events.UpdateCachedTwin(id,
-                                    t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version,
-                                    t.Twin.Properties.Reported.Version, cloudTwin.Properties.Reported.Version);
+                                Events.UpdateCachedTwin(
+                                    id,
+                                    t.Twin.Properties.Desired.Version,
+                                    cloudTwin.Properties.Desired.Version,
+                                    t.Twin.Properties.Reported.Version,
+                                    cloudTwin.Properties.Reported.Version);
                                 cached = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch, t.SubscribedToDesiredPropertyUpdates);
                                 // If the device is subscribed to desired property updates and we are refreshing twin as a result
                                 // of a connection reset or desired property update, send a patch to the downstream device
                                 if (sendDesiredPropertyUpdate && t.SubscribedToDesiredPropertyUpdates)
                                 {
-                                    Events.SendDesiredPropertyUpdateToSubscriber(id,
-                                        t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version);
+                                    Events.SendDesiredPropertyUpdateToSubscriber(
+                                        id,
+                                        t.Twin.Properties.Desired.Version,
+                                        cloudTwin.Properties.Desired.Version);
                                     diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
                                 }
                             }
-                            else
-                            {
-                                Events.PreserveCachedTwin(id,
-                                    t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version,
-                                    t.Twin.Properties.Reported.Version, cloudTwin.Properties.Reported.Version);
-                                cached = t;
-                            }
-                            return cached;
-                        }),
-                    () => throw new InvalidOperationException("Missing twin store"));
+                        }
+                        else
+                        {
+                            Events.PreserveCachedTwin(id,
+                                t.Twin.Properties.Desired.Version, cloudTwin.Properties.Desired.Version,
+                                t.Twin.Properties.Reported.Version, cloudTwin.Properties.Reported.Version);
+                            cached = t;
+                        }
+                        return cached;
+                    });
             }
             if ((diff != null) && (diff.Count != 0))
             {
@@ -314,8 +328,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.twinLock.LockAsync())
             {
-                await this.TwinStore.Match(
-                    (s) => s.Update(
+                IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
+                await twinStore.Update(
                         id,
                         u =>
                         {
@@ -328,8 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             u.Twin.Properties.Reported = mergedProperty;
                             Events.UpdatedCachedReportedProperties(id, u.Twin.Properties.Reported.Version, cloudVerified);
                             return u;
-                        }),
-                    () => throw new InvalidOperationException("Missing twin store"));
+                        });
             }
         }
 
@@ -352,9 +365,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task UpdateReportedPropertiesAsync(string id, IMessage reportedProperties)
         {
-            await this.TwinStore.Match(
-                (s) => this.UpdateReportedPropertiesWithStoreSupportAsync(id, reportedProperties),
-                () => this.SendReportedPropertiesToCloudProxy(id, reportedProperties));
+            if (!this.TwinStore.HasValue)
+            {
+                await this.SendReportedPropertiesToCloudProxy(id, reportedProperties);
+            }
+            else
+            {
+                await this.UpdateReportedPropertiesWithStoreSupportAsync(id, reportedProperties);
+            }
         }
 
         async Task UpdateReportedPropertiesPatchAsync(string id, TwinInfo newTwinInfo, TwinCollection reportedProperties)
@@ -363,8 +381,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 using (await this.twinLock.LockAsync())
                 {
-                    await this.TwinStore.Match(
-                        (s) => s.PutOrUpdate(
+                    IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
+                    
+                    await twinStore.PutOrUpdate(
                             id,
                             newTwinInfo,
                             u =>
@@ -373,8 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 var mergedPatch = new TwinCollection(mergedJson);
                                 Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
                                 return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
-                            }),
-                        () => throw new InvalidOperationException("Missing twin store"));
+                            });
                 }
             }
             catch (Exception e)
@@ -389,30 +407,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 using (await this.reportedPropertiesLock.LockAsync())
                 {
-                    bool updatePatch = false;
+                    bool updatePatch;
                     bool cloudVerified = false;
-                    await this.TwinStore.Match(
-                        async (s) =>
+                    IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
+
+                    Option<TwinInfo> info = await twinStore.Get(id);
+                    // If the reported properties patch is not null, we will not attempt to write the reported
+                    // properties to the cloud as we are still waiting for a connection established callback
+                    // to sync the local reported properties with that of the cloud
+                    updatePatch = info.Map((ti) =>
                         {
-                            Option<TwinInfo> info = await s.Get(id);
-                            // If the reported properties patch is not null, we will not attempt to write the reported
-                            // properties to the cloud as we are still waiting for a connection established callback
-                            // to sync the local reported properties with that of the cloud
-                            updatePatch = info.Map((ti) =>
-                                {
-                                    if (ti.ReportedPropertiesPatch.Count != 0)
-                                    {
-                                        Events.NeedsUpdateCachedReportedPropertiesPatch(id, ti.ReportedPropertiesPatch.Version);
-                                        return true;
-                                    }
-                                    else
-                                    {
-                                        return false;
-                                    }
-                                }).GetOrElse(false);
-                        },
-                        () => throw new InvalidOperationException("Missing twin store")
-                        );
+                            if (ti.ReportedPropertiesPatch.Count != 0)
+                            {
+                                Events.NeedsUpdateCachedReportedPropertiesPatch(id, ti.ReportedPropertiesPatch.Version);
+                                return true;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }).GetOrElse(false);
+
 
                     TwinCollection reported = this.twinCollectionConverter.FromMessage(reportedProperties);
 
@@ -506,6 +521,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        [AssertionMethod]
         static void ValidateIntegerValue(string name, long value)
         {
             if (value > TwinPropertyMaxSafeValue || value < TwinPropertyMinSafeValue)

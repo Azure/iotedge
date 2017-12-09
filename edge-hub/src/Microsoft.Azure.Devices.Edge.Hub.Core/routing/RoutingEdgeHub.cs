@@ -75,17 +75,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             return Task.WhenAll(cloudSendMessageTask, routingSendMessageTask);
         }
 
+
+        private static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
+        {
+            long messageSize = messageToBeValidated.Size();
+            if (messageSize > MaxMessageSize)
+            {
+                throw new InvalidOperationException($"Message size exceeds maximum allowed size: got {messageSize}, limit {MaxMessageSize}");
+            }
+        }
+
         private IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
         {
             this.AddEdgeSystemProperties(message);
             IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
 
             // Validate message size
-            long messageSize = routingMessage.Size();
-            if (validateSize && messageSize > MaxMessageSize)
+            if (validateSize)
             {
-                throw new InvalidOperationException($"Message size exceeds maximum allowed size: got {messageSize}, limit {MaxMessageSize}");
+                ValidateMessageSize(routingMessage);
             }
+
             return routingMessage;
         }
 

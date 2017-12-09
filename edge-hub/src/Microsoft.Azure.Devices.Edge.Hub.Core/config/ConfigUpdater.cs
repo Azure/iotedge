@@ -30,18 +30,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 {
                     configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
                     Option<EdgeHubConfig> edgeHubConfig = await configProvider.GetConfig();
-                    await edgeHubConfig.Match(
-                        async config =>
-                        {
-                            await this.UpdateRoutes(config.Routes, false);
-                            this.UpdateStoreAndForwardConfig(config.StoreAndForwardConfiguration);
-                            Events.Initialized();
-                        },
-                        () =>
-                        {
-                            Events.EmptyConfigReceived();
-                            return Task.CompletedTask;
-                        });
+
+                    if (!edgeHubConfig.HasValue)
+                    {
+                        Events.EmptyConfigReceived();
+                    }
+                    else
+                    {
+                        await edgeHubConfig.ForEachAsync(ehc => this.UpdateRoutes(ehc.Routes, false));
+                        edgeHubConfig.ForEach(ehc => this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration));
+                        Events.Initialized();
+                    }                    
                 }
             }
             catch (Exception ex)

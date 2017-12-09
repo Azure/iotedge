@@ -256,13 +256,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             public static async Task<Module> CreateAndConnect(string connectionString)
             {
-                var settings = new[]
+
+                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
                 {
-                    new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-                    {
-                        RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-                    }
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
                 };
+                ITransportSettings[] settings = { mqttSetting };
 
                 DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
                 await moduleClient.OpenAsync();

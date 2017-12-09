@@ -33,42 +33,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         private class OnTheWireSystemPropertyNames
         {
-            public const string ExpiryTimeUtc = "$.exp";
-            public const string CorrelationId = "$.cid";
-            public const string MessageId = "$.mid";
-            public const string To = "$.to";
-            public const string UserId = "$.uid";
-            public const string Ack = "ack";
-            public const string OutputName = "$.on";
-            public const string ConnectionDeviceId = "$.cdid";
-            public const string ConnectionModuleId = "$.cmid";
-            public const string ContentType = "$.ct";
-            public const string ContentEncoding = "$.ce";
-            public const string MessageSchema = "$.schema";
+            public const string ExpiryTimeUtcOnTheWireName = "$.exp";
+            public const string CorrelationIdOnTheWireName = "$.cid";
+            public const string MessageIdOnTheWireName = "$.mid";
+            public const string ToOnTheWireName = "$.to";
+            public const string UserIdOnTheWireName = "$.uid";
+            public const string AckOnTheWireName = "ack";
+            public const string OutputNameOnTheWireName = "$.on";
+            public const string ConnectionDeviceIdOnTheWireName = "$.cdid";
+            public const string ConnectionModuleIdOnTheWireName = "$.cmid";
+            public const string ContentTypeOnTheWireName = "$.ct";
+            public const string ContentEncodingOnTheWireName = "$.ce";
+            public const string MessageSchemaOnTheWireName = "$.schema";
         }
 
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
-            { OnTheWireSystemPropertyNames.ExpiryTimeUtc, ExpiryTimeUtc },
-            { OnTheWireSystemPropertyNames.CorrelationId, CorrelationId },
-            { OnTheWireSystemPropertyNames.MessageId, MessageId },
-            { OnTheWireSystemPropertyNames.To, To },
-            { OnTheWireSystemPropertyNames.UserId, UserId },
-            { OnTheWireSystemPropertyNames.Ack, Ack },
-            { OnTheWireSystemPropertyNames.OutputName, OutputName },
-            { OnTheWireSystemPropertyNames.ContentType, ContentType },
-            { OnTheWireSystemPropertyNames.ContentEncoding, ContentEncoding },
-            { OnTheWireSystemPropertyNames.MessageSchema, MessageSchema }
+            { OnTheWireSystemPropertyNames.ExpiryTimeUtcOnTheWireName, ExpiryTimeUtc },
+            { OnTheWireSystemPropertyNames.CorrelationIdOnTheWireName, CorrelationId },
+            { OnTheWireSystemPropertyNames.MessageIdOnTheWireName, MessageId },
+            { OnTheWireSystemPropertyNames.ToOnTheWireName, To },
+            { OnTheWireSystemPropertyNames.UserIdOnTheWireName, UserId },
+            { OnTheWireSystemPropertyNames.AckOnTheWireName, Ack },
+            { OnTheWireSystemPropertyNames.OutputNameOnTheWireName, OutputName },
+            { OnTheWireSystemPropertyNames.ContentTypeOnTheWireName, ContentType },
+            { OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName, ContentEncoding },
+            { OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName, MessageSchema }
         };
 
         public static readonly Dictionary<string, string> OutgoingSystemPropertiesMap = new Dictionary<string, string>
         {
-            { MessageId, OnTheWireSystemPropertyNames.MessageId },
-            { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceId  },
-            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleId },
-            { ContentType, OnTheWireSystemPropertyNames.ContentType },
-            { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncoding },
-            { MessageSchema, OnTheWireSystemPropertyNames.MessageSchema }
+            { MessageId, OnTheWireSystemPropertyNames.MessageIdOnTheWireName },
+            { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName  },
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName },
+            { ContentType, OnTheWireSystemPropertyNames.ContentTypeOnTheWireName },
+            { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName },
+            { MessageSchema, OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName }
         };        
     }
 }

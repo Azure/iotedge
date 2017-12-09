@@ -22,10 +22,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
         static readonly ISet<Endpoint> NoEndpoints = ImmutableHashSet<Endpoint>.Empty;
 
         readonly object sync = new object();
+        // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
         readonly AtomicReference<ImmutableDictionary<string, CompiledRoute>> compiledRoutes;
         readonly IRouteCompiler compiler;
         readonly Option<CompiledRoute> fallback;
 
+        // Because we are only reading here, it doesn't matter that it is under a lock
         // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
         public ISet<Route> Routes
         {
@@ -57,6 +59,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
         {
             var endpoints = new HashSet<Endpoint>();
 
+            // Because we are only reading here, it doesn't matter that it is under a lock
+            // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
             ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
             foreach (CompiledRoute compiledRoute in snapshot.Values.Where(cr => cr.Route.Source.Match(message.MessageSource)))
             {

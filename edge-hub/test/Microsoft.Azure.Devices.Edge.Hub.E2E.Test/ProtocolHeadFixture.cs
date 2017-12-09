@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     .As<Task<IMqttConnectionProvider>>()
                     .SingleInstance();
             };
-            await this.StartMqttHead(routes, mockSetup);
+            await this.StartMqttHead(this.routes, mockSetup);
             return (connectionManager, deviceListener);
         }
 
@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             builder.RegisterModule(new CommonModule(string.Empty, iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId));
-            builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, routes, false, false, storeAndForwardConfiguration, string.Empty, ConnectionPoolSize, false));
+            builder.RegisterModule(new RoutingModule(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString, this.routes, false, false, storeAndForwardConfiguration, string.Empty, ConnectionPoolSize, false));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
             setupMocks?.Invoke(builder);
             this.container = builder.Build();

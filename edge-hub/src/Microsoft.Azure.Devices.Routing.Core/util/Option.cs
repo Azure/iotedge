@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
     using System.Globalization;
 
     public struct Option<T> : IEquatable<Option<T>>
@@ -107,6 +108,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util
             );
         }
 
+        [Pure]
         public Option<T> Filter(Func<T, bool> predicate)
         {
             Option<T> original = this;

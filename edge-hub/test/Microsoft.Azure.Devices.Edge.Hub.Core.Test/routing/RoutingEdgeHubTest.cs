@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
 
-            badMessage = new Message(new byte[1], new Dictionary<string, string> { }, badProperties);
+            badMessage = new Message(new byte[1], new Dictionary<string, string>(), badProperties);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
         }

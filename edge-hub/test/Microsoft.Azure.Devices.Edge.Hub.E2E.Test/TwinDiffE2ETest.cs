@@ -363,8 +363,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await this.Teardown();
             }
 
-            cts.Dispose();
-
             return new Tuple<TwinCollection, TwinCollection>(localMergedTwinProperties, updatedCloudTwin.Properties.Desired);
         }
     }

@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             });
 
             // build GroupCommands from each command set
-            var commands = (await Task.WhenAll(addedTasks))
+            IEnumerable<Task<ICommand>> commands = (await Task.WhenAll(addedTasks))
                 .Select(cmds => this.commandFactory.WrapAsync(new GroupCommand(cmds)));
 
             return await Task.WhenAll(commands);
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // create pull, create, update and start commands for added/updated modules
-            var addedCommands = await this.ProcessAddedUpdatedModules(
+            IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
                 added,
                 m => this.commandFactory.CreateAsync(
                         new ModuleWithIdentity(
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                         )
                     )
             );
-            var updatedCommands = await this.ProcessAddedUpdatedModules(
+            IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
                 m =>
                 {

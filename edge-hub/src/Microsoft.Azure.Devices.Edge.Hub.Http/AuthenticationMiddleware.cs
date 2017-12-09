@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return LogAndReturnFailure("Invalid Authorization header. Only SharedAccessSignature is supported.");
             }
 
-            SharedAccessSignature sharedAccessSignature = null;
+            SharedAccessSignature sharedAccessSignature;
             try
             {
                 sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);

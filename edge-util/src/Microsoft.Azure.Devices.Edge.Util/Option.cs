@@ -98,20 +98,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="alternative"></param>
         /// <returns></returns>
-        [Pure]
         public T GetOrElse(T alternative) => this.HasValue ? this.Value : alternative;
 
-        [Pure]
         public T GetOrElse(Func<T> alternativeMaker) => this.HasValue ? this.Value : alternativeMaker();
 
-        [Pure]
         public Option<T> Else(Option<T> alternativeOption) => this.HasValue ? this : alternativeOption;
 
-        [Pure]
         public Option<T> Else(Func<Option<T>> alternativeMaker) => this.HasValue ? this : alternativeMaker();
 
         [Pure]
         public T OrDefault() => this.HasValue ? this.Value : default(T);
+
+        public T Expect<TException>(Func<TException> exception)
+            where TException : Exception
+        {
+            return this.HasValue
+                ? this.Value
+                : throw exception();
+        }
 
         /// <summary>
         /// If the option has a value then it invokes <paramref name="some"/>. If there is no value
