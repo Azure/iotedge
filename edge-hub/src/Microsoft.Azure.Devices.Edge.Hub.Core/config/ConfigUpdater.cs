@@ -37,8 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                     else
                     {
-                        await edgeHubConfig.ForEachAsync(ehc => this.UpdateRoutes(ehc.Routes, false));
-                        edgeHubConfig.ForEach(ehc => this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration));
+                        await edgeHubConfig.ForEachAsync(async ehc =>
+                        {
+                            await this.UpdateRoutes(ehc.Routes, false);
+                            this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                        });
                         Events.Initialized();
                     }                    
                 }

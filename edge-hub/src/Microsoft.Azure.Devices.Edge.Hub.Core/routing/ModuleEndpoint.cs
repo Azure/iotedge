@@ -92,24 +92,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     foreach (IRoutingMessage routingMessage in routingMessages)
                     {
                         IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
-                        try
+                        await deviceProxy.ForEachAsync(async dp =>
                         {
-                            await deviceProxy.ForEachAsync(dp => dp.SendMessageAsync(message, this.moduleEndpoint.Input));
-                            succeeded.Add(routingMessage);
-                        }
-                        catch (Exception ex)
-                        {
-                            if (IsRetryable(ex))
+                            try
                             {
-                                failed.Add(routingMessage);
+                                await dp.SendMessageAsync(message, this.moduleEndpoint.Input);
+                                succeeded.Add(routingMessage);
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                Events.InvalidMessage(ex);
-                                invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                                if (IsRetryable(ex))
+                                {
+                                    failed.Add(routingMessage);
+                                }
+                                else
+                                {
+                                    Events.InvalidMessage(ex);
+                                    invalid.Add(new InvalidDetails<IRoutingMessage>(routingMessage, FailureKind.None));
+                                }
+                                Events.ErrorSendingMessages(this.moduleEndpoint, ex);
                             }
-                            Events.ErrorSendingMessages(this.moduleEndpoint, ex);
-                        }
+                        });
                     }
 
                     if (failed.Count > 0)
