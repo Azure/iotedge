@@ -22,6 +22,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceConnectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
         }
 
+        // Modules in IoTHub can be created in one of two ways - 1. single deployment:
+        // This can be done using the registry manager's
+        // ApplyConfigurationContentOnDeviceAsync method. This call will create all
+        // modules in the provided deployment json, but does not create the module
+        // credentials. After a single deployment, GetModuleIdentitiesAsync will update
+        // such modules in the service by calling UpdateModuleAsync, prompting the
+        // service to create and return credentials for them. The single deployment also
+        // stamps each module with its twin (provided by the deployment json) at module
+        // creation time. 2. at-scale deployment: This can be done via the portal on the
+        // Edge blade. This type of deployment waits for a module identity to be
+        // created, before stamping it with its twin. In this type of deployment, the
+        // EdgeAgent needs to create the modules identities. This is also handled in
+        // GetModuleIdentitiesAsync. When the deployment detects that a module has been
+        // created, it stamps it with the deployed twin. The service creates the
+        // $edgeAgent and $edgeHub twin when it creates the Edge Device, so their twins
+        // are always available for stamping with either a single deployment or at-scale
+        // deployment.
+
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
@@ -57,8 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IEnumerable<string> removeIdentities = removedModuleIdentites.Where(m => modulesDict.ContainsKey(m)
                 && string.Equals(modulesDict.GetValueOrDefault(m).ManagedBy, ManagedByEdgeHubValue, StringComparison.OrdinalIgnoreCase));
 
-            // Update any identities that don't have Sas auth type or where the keys are null (this will happen for single device deployments,
-            // where the identities of modules are created, but the auth keys are not set)
+            // Update any identities that don't have SAS auth type or where the keys are null (this will happen for single device deployments,
+            // where the identities of modules are created, but the auth keys are not set).
             IEnumerable<Module> updateIdentities = modulesAsList.Where(
                 m => m.Authentication == null
                     || m.Authentication.Type != AuthenticationType.Sas
