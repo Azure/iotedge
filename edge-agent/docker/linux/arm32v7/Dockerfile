@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.0.0-runtime-stretch-arm32v7
+FROM azureiotedge/azureiotedge-agent-base:1.0-preview-linux-arm32v7
 
 ARG EXE_DIR=.
 

@@ -47,7 +47,7 @@ usage()
     echo "Note: You might have to run this as root or sudo."
     echo "Note: This script is only applicable on ARM architectures."
     echo ""
-    echo " -i, --image-name     Image name (azureiotedge-module-base or azureiotedge-hub-base)"
+    echo " -i, --image-name     Image name (azureiotedge-module-base, azureiotedge-agent-base, or azureiotedge-hub-base)"
     echo " -d, --project-dir    Project directory (required)."
     echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
@@ -106,7 +106,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]]; then
+    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]]; then
         echo "Docker image name must be azureiotedge-module-base or azureiotedge-hub-base"
         print_help_and_exit
     fi
