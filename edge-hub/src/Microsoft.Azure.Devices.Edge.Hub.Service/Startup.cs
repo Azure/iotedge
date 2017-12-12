@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
@@ -25,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Startup : IStartup
     {
+        const string VersionInfoFileName = "versionInfo.json";
         const string ConfigFileName = "appsettings_hub.json";
         const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         const string EdgeHubStorageFolder = "edgeHub";
@@ -41,11 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.edgeHubConnectionString = this.Configuration.GetValue<string>("IotHubConnectionString");
             this.iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(this.edgeHubConnectionString);
+            this.VersionInfo = VersionInfo.Get(VersionInfoFileName);
         }
 
         public IConfigurationRoot Configuration { get; }
 
         internal IContainer Container { get; private set; }
+
+        public VersionInfo VersionInfo { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
@@ -78,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var routes = this.Configuration.GetSection("routes").Get<Dictionary<string, string>>();
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
-            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");                        
+            IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -103,16 +108,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.iotHubConnectionStringBuilder.DeviceId));
             builder.RegisterModule(
                 new RoutingModule(
-                    this.iotHubConnectionStringBuilder.HostName, 
-                    this.iotHubConnectionStringBuilder.DeviceId, 
+                    this.iotHubConnectionStringBuilder.HostName,
+                    this.iotHubConnectionStringBuilder.DeviceId,
                     this.edgeHubConnectionString,
-                    routes, 
+                    routes,
                     storeAndForward.isEnabled,
                     storeAndForward.usePersistentStorage,
                     storeAndForward.config,
                     storeAndForward.storagePath,
                     connectionPoolSize,
-                    useTwinConfig));
+                    useTwinConfig,
+                    this.VersionInfo));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
@@ -134,18 +140,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool usePersistentStorage = this.Configuration.GetValue<bool>("usePersistentStorage");
             int timeToLiveSecs = defaultTtl;
             string storagePath = string.Empty;
-            if(isEnabled)
+            if (isEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.Configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
 
-                if(usePersistentStorage)
+                if (usePersistentStorage)
                 {
                     storagePath = this.GetStoragePath();
                 }
             }
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);            
+            return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 
         string GetProductInfo()
@@ -158,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         string GetStoragePath()
         {
             string baseStoragePath = this.Configuration.GetValue<string>("storageFolder");
-            if(string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
             {
                 baseStoragePath = Path.GetTempPath();
             }

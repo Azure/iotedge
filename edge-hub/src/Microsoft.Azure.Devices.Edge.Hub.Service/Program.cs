@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
-            // Set the LoggerFactory used by the Routing code. 
+            // Set the LoggerFactory used by the Routing code.
             if (configuration.GetValue("EnableRoutingLogging", false))
             {
                 Routing.Core.Routing.LoggerFactory = Logger.Factory;
@@ -116,6 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
  ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
  ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
 ");
-        }        
+        }
     }
 }

@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string storagePath;
         readonly string edgeHubConnectionString;
         readonly bool useTwinConfig;
+        readonly VersionInfo versionInfo;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             string storagePath,
             int connectionPoolSize,
-            bool useTwinConfig)
+            bool useTwinConfig,
+            VersionInfo versionInfo)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -60,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storagePath = storagePath;
             this.connectionPoolSize = connectionPoolSize;
             this.useTwinConfig = useTwinConfig;
+            this.versionInfo = versionInfo ?? VersionInfo.Empty;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -195,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     c =>
                     {
-                        // Endpoint executor config values - 
+                        // Endpoint executor config values -
                         // ExponentialBackoff - minBackoff = 10s, maxBackoff = 600s, delta (used to add randomness to backoff) - 10s (default)
                         // Num of retries = 75 for total retry period of about 12 hours.
                         // Revive period - period for which the endpoint should be considered dead if it doesn't respond - 1 min (we want to try continuously till the message expires)
@@ -314,7 +317,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                         var twinManager = c.Resolve<ITwinManager>();
-                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
+                            edgeHubIdentity.Value, twinManager, connectionManager,
+                            routeFactory, twinCollectionMessageConverter,
+                            twinMessageConverter, this.versionInfo
+                        );
                         return edgeHubConnection;
                     }
                     else

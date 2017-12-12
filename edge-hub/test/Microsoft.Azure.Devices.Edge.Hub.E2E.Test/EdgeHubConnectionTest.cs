@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await registryManager.OpenAsync();
 
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice("testHubEdgeDevice1", iotHubConnectionString, registryManager, true, false);
-            
+
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
             var identityFactory = new IdentityFactory(iothubHostName);
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
@@ -66,8 +66,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             IEntityStore<string, TwinInfo> twinStore = storeProvider.GetEntityStore<string, TwinInfo>("twins");
             var twinManager = new TwinManager(connectionManager, twinCollectionMessageConverter, twinMessageConverter, Option.Some(twinStore));
 
+            var versionInfo = new VersionInfo("v1", "b1", "c1");
+
             // Create Edge Hub connection
-            EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(
+                edgeHubIdentity.Value, twinManager, connectionManager,
+                routeFactory, twinCollectionMessageConverter,
+                twinMessageConverter, versionInfo
+            );
 
             // Get and Validate EdgeHubConfig
             Option<EdgeHubConfig> edgeHubConfigOption = await edgeHubConnection.GetConfig();
@@ -104,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(0, reportedProperties.Clients.Count);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
+            Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
             // Simulate a module and a downstream device that connects to Edge Hub.
 
@@ -134,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.Null(reportedProperties.Clients[downstreamDeviceId].LastDisconnectTimeUtc);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
+            Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
             // Update desired propertied and make sure callback is called with valid values
             bool callbackCalled = false;
@@ -177,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients);
             Assert.Equal(2, reportedProperties.Clients.Count);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
+            Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
             // Disconnect the downstream device and make sure the reported properties are updated as expected.
             await connectionManager.RemoveDeviceConnection(moduleIdKey);
@@ -191,11 +200,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Assert.NotNull(reportedProperties.Clients[moduleIdKey].LastDisconnectTimeUtc);
             Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
+            Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
             // If the edge hub restarts, clear out the connected devices in the reported properties.
             reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
             Assert.Null(reportedProperties.Clients);
             Assert.Equal("1.0", reportedProperties.SchemaVersion);
+            Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
             await RegistryManagerHelper.RemoveDevice(edgeDeviceId, registryManager);
         }
@@ -260,6 +271,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string patch = JsonConvert.SerializeObject(desiredProperties);
             twinContent.TargetContent = new TwinCollection(patch);
             await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
-        }        
+        }
     }
 }

@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
         readonly IMessageConverter<Twin> twinMessageConverter;
+        readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
 
@@ -35,21 +36,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Twin> twinMessageConverter)
+            IMessageConverter<Twin> twinMessageConverter,
+            VersionInfo versionInfo)
         {
             this.edgeHubIdentity = edgeHubIdentity;
             this.twinManager = twinManager;
             this.twinCollectionMessageConverter = twinCollectionMessageConverter;
             this.twinMessageConverter = twinMessageConverter;
             this.routeFactory = routeFactory;
+            this.versionInfo = versionInfo ?? VersionInfo.Empty;
         }
 
-        public static async Task<EdgeHubConnection> Create(IIdentity edgeHubIdentity,
+        public static async Task<EdgeHubConnection> Create(
+            IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Twin> twinMessageConverter)
+            IMessageConverter<Twin> twinMessageConverter,
+            VersionInfo versionInfo
+        )
         {
             Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(twinManager, nameof(twinManager));
@@ -65,7 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             ICloudProxy cloudProxy = cloudProxyTry.Value;
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter);
+            var edgeHubConnection = new EdgeHubConnection(
+                edgeHubIdentity, twinManager, routeFactory,
+                twinCollectionMessageConverter, twinMessageConverter,
+                versionInfo ?? VersionInfo.Empty
+            );
             cloudProxy.BindCloudListener(new CloudListener(edgeHubConnection));
 
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
@@ -215,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                var edgeHubReportedProperties = new ReportedProperties(desiredVersion, desiredStatus);
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
@@ -277,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     [client.Id] = GetDeviceConnectionStatus()
                 };
-                var edgeHubReportedProperties = new ReportedProperties(connectedDevices);
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
@@ -293,7 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                var edgeHubReportedProperties = new ReportedProperties(null);
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, null);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
@@ -328,21 +338,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             static Dictionary<string, DeviceConnectionStatus> EmptyConnectionStatusesDictionary = new Dictionary<string, DeviceConnectionStatus>();
 
-            // When reporting last desired version/status, send empty map of clients so that the patch doesn't touch the 
+            // When reporting last desired version/status, send empty map of clients so that the patch doesn't touch the
             // existing values. If we send a null, it will clear out the existing clients.
-            public ReportedProperties(long lastDesiredVersion, LastDesiredStatus lastDesiredStatus)
-                : this(CurrentSchemaVersion, lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary) { }
+            public ReportedProperties(VersionInfo versionInfo, long lastDesiredVersion, LastDesiredStatus lastDesiredStatus)
+                : this(versionInfo, CurrentSchemaVersion, lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary)
+            {
+            }
 
-            public ReportedProperties(IDictionary<string, DeviceConnectionStatus> clients)
-                : this(CurrentSchemaVersion, null, null, clients) { }
+            public ReportedProperties(VersionInfo versionInfo, IDictionary<string, DeviceConnectionStatus> clients)
+                : this(versionInfo, CurrentSchemaVersion, null, null, clients) { }
 
             [JsonConstructor]
-            public ReportedProperties(string schemaVersion, long? lastDesiredVersion, LastDesiredStatus lastDesiredStatus, IDictionary<string, DeviceConnectionStatus> clients)
+            public ReportedProperties(
+                VersionInfo versionInfo, string schemaVersion,
+                long? lastDesiredVersion, LastDesiredStatus lastDesiredStatus,
+                IDictionary<string, DeviceConnectionStatus> clients
+            )
             {
                 this.SchemaVersion = schemaVersion;
                 this.LastDesiredVersion = lastDesiredVersion;
                 this.LastDesiredStatus = lastDesiredStatus;
                 this.Clients = clients;
+                this.VersionInfo = versionInfo ?? VersionInfo.Empty;
             }
 
             [JsonProperty(PropertyName = "schemaVersion")]
@@ -356,6 +373,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             [JsonProperty(PropertyName = "clients")]
             public IDictionary<string, DeviceConnectionStatus> Clients { get; }
+
+            [JsonProperty(PropertyName = "version")]
+            public VersionInfo VersionInfo { get; }
         }
 
         internal class LastDesiredStatus
