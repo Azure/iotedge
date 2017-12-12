@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     {
                         try
                         {
-                            await this.planRunner.ExecuteAsync(plan, token);
+                            await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
 
                             // get post plan execution state
                             updated = await this.environment.GetModulesAsync(token);

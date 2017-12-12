@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
 
-        public string Show() => $"docker create {ObfuscateConnectionStringInCreateContainerParameters(JsonConvert.SerializeObject(this.createContainerParameters))}";
+        public string Show() => $"docker create --name {this.createContainerParameters.Name} {this.createContainerParameters.Image}";
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
@@ -259,16 +259,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             {
                 createContainerParameters.Env.Add(envVar);
             }
-        }
-
-        static string ObfuscateConnectionStringInCreateContainerParameters(string serializedCreateOptions)
-        {
-            var scrubbed = JsonConvert.DeserializeObject<CreateContainerParameters>(serializedCreateOptions);
-            scrubbed.Env = scrubbed.Env?
-                .Select((env, i) => env.IndexOf(Constants.EdgeHubConnectionStringKey, StringComparison.Ordinal) == -1 ? env : $"{Constants.EdgeHubConnectionStringKey}=******")
-                .Select((env, i) => env.IndexOf(Constants.IotHubConnectionStringKey, StringComparison.Ordinal) == -1 ? env : $"{Constants.IotHubConnectionStringKey}=******")
-                .ToList();
-            return JsonConvert.SerializeObject(scrubbed);
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -170,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IPlanRunner
-            builder.Register(c => new OrderedPlanRunner())
+            builder.Register(c => new OrderedRetryPlanRunner(this.maxRestartCount, this.coolOffTimeUnitInSeconds, SystemTime.Instance))
                 .As<IPlanRunner>()
                 .SingleInstance();
 

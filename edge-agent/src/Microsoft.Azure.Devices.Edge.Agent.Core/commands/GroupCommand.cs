@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -46,13 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public string Show()
         {
-            string showString = "Command Group: (";
-            foreach (ICommand command in this.commandGroup)
-            {
-                showString += "[" + command.Show() + "]";
-            }
-            showString += ")";
-            return showString;
+            IEnumerable<string> commandDescriptions = this.commandGroup.Select(command => $"[{command.Show()}]");
+            return $"Command Group: (\n  {string.Join("\n  ", commandDescriptions)}\n)";
         }
+
+        public override string ToString() => this.Show();
     }
 }

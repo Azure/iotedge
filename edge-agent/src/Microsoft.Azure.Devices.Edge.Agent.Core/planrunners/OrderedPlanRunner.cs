@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 {
     using System;
     using System.Collections.Generic;
@@ -11,20 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class OrderedPlanRunner : IPlanRunner
     {
-        public async Task ExecuteAsync(Plan plan, CancellationToken token)
+        public async Task ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
             Option<List<Exception>> failures = Option.None<List<Exception>>();
-            Events.PlanExecStarted();
+            Events.PlanExecStarted(deploymentId);
             foreach (ICommand command in plan.Commands)
             {
-                // TODO add rollback on failure?
                 try
                 {
                     await command.ExecuteAsync(token);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.PlanExecStepFailed(command);
+                    Events.PlanExecStepFailed(deploymentId, command);
                     if (!failures.HasValue)
                     {
                         failures = Option.Some(new List<Exception>());
@@ -32,14 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     failures.ForEach(f => f.Add(ex));
                 }
             }
+
+            Events.PlanExecEnded(deploymentId);
             failures.ForEach(f => throw new AggregateException(f));
-            Events.PlanExecEnded();
         }
 
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<OrderedPlanRunner>();
-            const int IdStart = AgentEventIds.PlanRunner;
+            const int IdStart = AgentEventIds.OrderedPlanRunner;
 
             enum EventIds
             {
@@ -48,20 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 PlanExecEnded
             }
 
-            public static void PlanExecStarted()
-            {
-                Log.LogInformation((int)EventIds.PlanExecStarted, "Plan execution started");
-            }
+            public static void PlanExecStarted(long deploymentId) =>
+                Log.LogInformation((int)EventIds.PlanExecStarted, $"Plan execution started for deployment {deploymentId}");
 
-            public static void PlanExecStepFailed(ICommand command)
-            {
-                Log.LogError((int)EventIds.PlanExecStepFailed, $"Step failed, continuing execution. Failure on {command.Show()}");
-            }
+            public static void PlanExecStepFailed(long deploymentId, ICommand command) =>
+                Log.LogError((int)EventIds.PlanExecStepFailed, $"Step failed in deployment {deploymentId}, continuing execution. Failure on {command.Show()}");
 
-            public static void PlanExecEnded()
-            {
-                Log.LogInformation((int)EventIds.PlanExecEnded, "Plan execution ended");
-            }
+            public static void PlanExecEnded(long deploymentId) =>
+                Log.LogInformation((int)EventIds.PlanExecEnded, $"Plan execution ended for deployment {deploymentId}");
         }
     }
 }

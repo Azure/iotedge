@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Act
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, token);
+            await planRunner.ExecuteAsync(1, addPlan, token);
 
             // Assert
             factory.Recorder.ForEach(r => Assert.Equal(expectedExecutionList, r.ExecutionList));
@@ -81,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
         }
@@ -102,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(addExecutionList, r.ExecutionList));
         }
@@ -130,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
             factory.Recorder.ForEach(r => Assert.Equal(updateExecutionList, r.ExecutionList));
         }
@@ -152,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
             factory.Recorder.ForEach(r =>
             {
@@ -248,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             }).ToList();
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(addPlan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
             factory.Recorder.ForEach(r =>
             {
@@ -416,7 +417,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(plan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
             factory.Recorder.ForEach(r =>
@@ -858,7 +859,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(plan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
             factory.Recorder.ForEach(r => Assert.Equal(0, expectedExecutionList.Except(r.ExecutionList).Count()));
@@ -889,7 +890,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Act
             Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(plan, CancellationToken.None);
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
             factory.Recorder.ForEach(r => Assert.Equal(runningGreatModules.Count(), r.WrappedCommmandList.Count));

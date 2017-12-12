@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                         // NOTE: This is a "special" command in that it doesn't come from an "ICommandFactory". This
                         // command clears the health stats from the store.
                         resetHealthStats.Add(await this.commandFactory.WrapAsync(new RemoveModuleStateCommand(module, this.store)));
-                        Events.ClearedRestartStats(module, this.intensiveCareTime);
+                        Events.ClearingRestartStats(module, this.intensiveCareTime);
                     }
                 }
             }
@@ -255,12 +255,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         public static void PlanCreated(IList<ICommand> commands)
         {
-            Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} commands.");
+            Log.LogDebug((int)EventIds.PlanCreated, $"HealthRestartPlanner created Plan, with {commands.Count} command(s).");
         }
 
-        public static void ClearedRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)
+        public static void ClearingRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)
         {
-            Log.LogInformation((int)EventIds.ClearRestartStats, $"HealthRestartPlanner cleared restart stats for module '{module.Name}' as it has been running healthy for {intensiveCareTime}.");
+            Log.LogInformation((int)EventIds.ClearRestartStats, $"HealthRestartPlanner is clearing restart stats for module '{module.Name}' as it has been running healthy for {intensiveCareTime}.");
         }
     }
 }

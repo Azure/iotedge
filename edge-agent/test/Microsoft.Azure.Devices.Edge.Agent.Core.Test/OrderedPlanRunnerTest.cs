@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
 
     public class OrderedPlanRunnerTest
     {
@@ -48,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
 
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(plan1, token);
+            await planRunner.ExecuteAsync(1, plan1, token);
             Assert.All(commandList,
                 command =>
                 {
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
             var planRunner = new OrderedPlanRunner();
-            await planRunner.ExecuteAsync(plan1, token);
+            await planRunner.ExecuteAsync(1, plan1, token);
             Assert.All(commandList,
                 command =>
                 {
@@ -131,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
             var planRunner = new OrderedPlanRunner();
-            AggregateException ex = await Assert.ThrowsAsync<AggregateException>(async () => await planRunner.ExecuteAsync(plan1, token));
+            AggregateException ex = await Assert.ThrowsAsync<AggregateException>(async () => await planRunner.ExecuteAsync(1, plan1, token));
 
             Assert.True(ex.InnerExceptions.Count == commandList.Count / 2);
             Assert.True(commandList.Where(command =>

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -69,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
             mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success), Times.Once);
-            mockPlanRunner.Verify(r => r.ExecuteAsync(Plan.Empty, token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, Plan.Empty, token), Times.Never);
         }
 
         [Fact]
@@ -99,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         static IEnumerable<object[]> GetExceptionsToTest()
@@ -157,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await agent.ReconcileAsync(token);
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         [Fact]
@@ -188,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         [Fact]
@@ -226,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         [Fact]
@@ -312,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Assert
             mockReporter.Verify(r => r.ReportAsync(token, null, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         [Fact]
@@ -339,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             // Assert
             mockReporter.Verify(r => r.ReportAsync(token, ModuleSet.Empty, null, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
-            mockPlanRunner.Verify(r => r.ExecuteAsync(It.IsAny<Plan>(), token), Times.Never);
+            mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
         [Fact]
