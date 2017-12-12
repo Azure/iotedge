@@ -25,13 +25,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
         readonly IConfiguration configuration;
+        readonly VersionInfo versionInfo;
 
-        public FileBackupConfigSourceModule(EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString, string backupConfigFilePath, IConfiguration config)
+        public FileBackupConfigSourceModule(
+            EdgeHubConnectionString connectionDetails,
+            string edgeDeviceConnectionString,
+            string backupConfigFilePath,
+            IConfiguration config,
+            VersionInfo versionInfo
+        )
         {
             this.connectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
+            this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -139,7 +147,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return new IoTHubReporter(
                             c.Resolve<IEdgeAgentConnection>(),
                             await c.Resolve<Task<IEnvironment>>(),
-                            new TypeSpecificSerDe<AgentState>(deserializerTypesMap)
+                            new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
+                            this.versionInfo
                         ) as IReporter;
                     }
                 )

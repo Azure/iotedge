@@ -24,16 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         readonly object sync;
         Option<AgentState> reportedState;
         readonly ISerde<AgentState> agentStateSerde;
+        readonly VersionInfo versionInfo;
 
         public IoTHubReporter(
             IEdgeAgentConnection edgeAgentConnection,
             IEnvironment environment,
-            ISerde<AgentState> agentStateSerde
+            ISerde<AgentState> agentStateSerde,
+            VersionInfo versionInfo
         )
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
             this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.agentStateSerde = Preconditions.CheckNotNull(agentStateSerde, nameof(agentStateSerde));
+            this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
 
             this.sync = new object();
             this.reportedState = Option.None<AgentState>();
@@ -92,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     deploymentConfigInfo != null ? (await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime)) : rs.RuntimeInfo,
                     new SystemModules(edgeAgentModule, edgeHubModule),
                     userModules.ToImmutableDictionary(),
-                    CurrentReportedPropertiesSchemaVersion
+                    CurrentReportedPropertiesSchemaVersion,
+                    this.versionInfo
                 ));
 
                 return (agentState, currentState);
@@ -114,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             {
                 (agentState, currentState) = await this.BuildStatesAsync(token, moduleSet, deploymentConfigInfo, status);
             }
-            catch(Exception ex) when (!ex.IsFatal())
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.BuildStateFailed(ex);
 
@@ -130,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 {
                     await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
                 }
-                catch(Exception ex2) when (!ex.IsFatal())
+                catch (Exception ex2) when (!ex.IsFatal())
                 {
                     Events.UpdateErrorInfoFailed(ex2);
                 }
@@ -143,8 +147,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             {
                 await currentState.ForEachAsync(async cs =>
                 {
-                        // diff and prepare patch
-                        await this.DiffAndReportAsync(cs, rs);
+                    // diff and prepare patch
+                    await this.DiffAndReportAsync(cs, rs);
                 });
             });
         }
@@ -184,7 +188,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 new AgentState(
                     agentState.LastDesiredVersion, status, agentState.RuntimeInfo,
                     new SystemModules(edgeAgentModule, edgeHubModule),
-                    updateUserModules.ToImmutableDictionary(), agentState.SchemaVersion);
+                    updateUserModules.ToImmutableDictionary(),
+                    agentState.SchemaVersion, this.versionInfo);
 
             return this.DiffAndReportAsync(currentState, agentState);
         }

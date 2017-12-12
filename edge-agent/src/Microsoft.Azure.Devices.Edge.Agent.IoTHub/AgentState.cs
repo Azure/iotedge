@@ -23,10 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IRuntimeInfo runtimeInfo = null,
             SystemModules systemModules = null,
             IDictionary<string, IModule> modules = null,
-            string schemaVersion = ""
+            string schemaVersion = "",
+            VersionInfo version = null
         )
         {
             this.SchemaVersion = schemaVersion ?? string.Empty;
+            this.Version = version ?? VersionInfo.Empty;
             this.LastDesiredVersion = lastDesiredVersion;
             this.LastDesiredStatus = lastDesiredStatus ?? DeploymentStatus.Unknown;
             this.RuntimeInfo = runtimeInfo;
@@ -36,6 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         [JsonProperty(PropertyName = "schemaVersion")]
         public string SchemaVersion { get; }
+
+        [JsonProperty(PropertyName = "version")]
+        public VersionInfo Version { get; }
 
         [JsonProperty(PropertyName = "lastDesiredVersion")]
         [DefaultValue(0)]
@@ -59,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.RuntimeInfo,
             this.SystemModules.Clone(),
             this.Modules.ToImmutableDictionary(),
-            this.SchemaVersion
+            this.SchemaVersion,
+            this.Version
         );
 
         public override bool Equals(object obj) => this.Equals(obj as AgentState);
@@ -68,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                    other != null &&
                    this.LastDesiredVersion == other.LastDesiredVersion &&
                    this.SchemaVersion == other.SchemaVersion &&
+                   EqualityComparer<VersionInfo>.Default.Equals(this.Version, other.Version) &&
                    EqualityComparer<DeploymentStatus>.Default.Equals(this.LastDesiredStatus, other.LastDesiredStatus) &&
                    EqualityComparer<IRuntimeInfo>.Default.Equals(this.RuntimeInfo, other.RuntimeInfo) &&
                    this.SystemModules.Equals(other.SystemModules) &&
@@ -78,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             int hashCode = -1995647028;
             hashCode = hashCode * -1521134295 + this.LastDesiredVersion.GetHashCode();
             hashCode = hashCode * -1521134295 + this.SchemaVersion.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<VersionInfo>.Default.GetHashCode(this.Version);
             hashCode = hashCode * -1521134295 + EqualityComparer<DeploymentStatus>.Default.GetHashCode(this.LastDesiredStatus);
             hashCode = hashCode * -1521134295 + EqualityComparer<IRuntimeInfo>.Default.GetHashCode(this.RuntimeInfo);
             hashCode = hashCode * -1521134295 + this.SystemModules.GetHashCode();

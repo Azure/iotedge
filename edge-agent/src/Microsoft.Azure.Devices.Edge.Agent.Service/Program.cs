@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 return MainAsync(configuration).Result;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return 1;
             }
@@ -73,23 +73,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SetGatewayHostName(edgeDeviceHostName)
                 .Build();
 
+            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             var dockerUri = new Uri(dockerUriConfig);
             var builder = new ContainerBuilder();
 
             switch (configSourceConfig.ToLower())
             {
                 case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, edgeHubConnectionDetails, deviceConnectionString, backupConfigFilePath, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration, usePersistentStorage, storagePath));
+                    builder.RegisterModule(new IotHubConnectedModule(
+                        dockerUri, dockerLoggingDriver, dockerLoggingOptions,
+                        edgeHubConnectionDetails, deviceConnectionString,
+                        backupConfigFilePath, maxRestartCount,
+                        intensiveCareTime, coolOffTimeUnitInSeconds,
+                        configuration, usePersistentStorage, storagePath, versionInfo
+                    ));
                     break;
                 case "standalone":
-                    builder.RegisterModule(new StandaloneModule(dockerUri, dockerLoggingDriver, dockerLoggingOptions, "config.json", maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, configuration, edgeHubConnectionDetails, deviceConnectionString, usePersistentStorage, storagePath));
+                    builder.RegisterModule(new StandaloneModule(
+                        dockerUri, dockerLoggingDriver, dockerLoggingOptions,
+                        "config.json", maxRestartCount, intensiveCareTime,
+                        coolOffTimeUnitInSeconds, configuration,
+                        edgeHubConnectionDetails, deviceConnectionString,
+                        usePersistentStorage, storagePath
+                    ));
                     break;
                 default:
                     throw new Exception("ConfigSource not Supported.");
             }
 
             logger.LogInformation("Starting module management agent.");
-            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
                 logger.LogInformation($"Version - {versionInfo}");
@@ -211,6 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
  ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
  ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
 ");
-        }        
+        }
     }
 }
