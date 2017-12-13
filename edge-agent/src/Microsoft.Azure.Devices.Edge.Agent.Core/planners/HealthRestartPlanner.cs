@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(async module =>
             {
-                ICommand group = await GroupCommand.CreateAsync(
+                ICommand group = new GroupCommand(
                     // restart the module
                     // await this.commandFactory.RestartAsync(module),
 

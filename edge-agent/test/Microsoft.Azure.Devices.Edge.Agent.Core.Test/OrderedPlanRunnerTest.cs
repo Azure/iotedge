@@ -6,11 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Xunit;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Moq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
 
     public class OrderedPlanRunnerTest
     {
@@ -149,6 +150,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             }).Count() == commandList.Count / 2);
 
             factory.Recorder.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
+        }
+
+        Mock<ICommand> MakeMockCommand(string id, Action callback = null)
+        {
+            callback = callback ?? (() => { });
+
+            var command = new Mock<ICommand>();
+            command.SetupGet(c => c.Id).Returns(id);
+            command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
+                .Callback(callback)
+                .Returns(Task.CompletedTask);
+            command.Setup(c => c.Show())
+                .Returns(id);
+            return command;
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestOrderedPlanRunnerCancellation()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var commands = new[]
+            {
+                this.MakeMockCommand("c1"),
+                this.MakeMockCommand("c2", () => cts.Cancel()),
+                this.MakeMockCommand("c3"),
+            };
+            var plan = new Plan(commands.Select(c => c.Object).ToList());
+            var planRunner = new OrderedPlanRunner();
+
+            // Act
+            await planRunner.ExecuteAsync(1, plan, cts.Token);
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
     }
 }

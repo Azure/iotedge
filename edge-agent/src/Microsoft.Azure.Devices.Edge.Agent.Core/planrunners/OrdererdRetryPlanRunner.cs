@@ -70,6 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 {
                     try
                     {
+                        if (token.IsCancellationRequested)
+                        {
+                            Events.PlanExecCancelled(deploymentId);
+                            break;
+                        }
+
                         var (shouldRun, runCount, coolOffPeriod, elapsedTime) = this.ShouldRunCommand(command);
                         if (shouldRun)
                         {
@@ -154,11 +160,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 OldDeployment,
                 SkippingCommand,
                 PlanExecStepFailed,
-                PlanExecEnded
+                PlanExecEnded,
+                Cancelled,
             }
 
             public static void PlanExecStarted(long deploymentId) =>
                 Log.LogInformation((int)EventIds.PlanExecStarted, $"Plan execution started for deployment {deploymentId}");
+
+            public static void PlanExecCancelled(long deploymentId) =>
+                Log.LogInformation((int)EventIds.Cancelled, $"Plan execution for deployment {deploymentId} was cancelled");
 
             public static void NewDeployment(long deploymentId) =>
                 Log.LogDebug((int)EventIds.NewDeployment, $"Received new deployment {deploymentId}");

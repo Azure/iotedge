@@ -24,15 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         // command.
         public string Id => this.id.Value;
 
-        public static Task<ICommand> CreateAsync(params ICommand[] commandgroup)
-        {
-            return Task.FromResult(new GroupCommand(commandgroup) as ICommand);
-        }
-
         public async Task ExecuteAsync(CancellationToken token)
         {
             foreach (ICommand command in this.commandGroup)
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 await command.ExecuteAsync(token);
             }
         }
@@ -41,6 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
         {
             foreach (ICommand command in this.commandGroup)
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 await command.UndoAsync(token);
             }
         }

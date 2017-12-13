@@ -313,11 +313,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             badCommand.Verify(c => c.ExecuteAsync(token), Times.Exactly(4));
         }
 
-        Mock<ICommand> MakeMockCommandThatWorks(string id)
+        Mock<ICommand> MakeMockCommandThatWorks(string id, Action callback = null)
         {
+            callback = callback ?? (() => { });
+
             var command = new Mock<ICommand>();
             command.SetupGet(c => c.Id).Returns(id);
             command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
+                .Callback(callback)
                 .Returns(Task.CompletedTask);
             command.Setup(c => c.Show())
                 .Returns(id);
@@ -333,6 +336,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             command.Setup(c => c.Show())
                 .Returns(id);
             return command;
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestOrderedRetryPlanRunnerCancellation()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var commands = new[]
+            {
+                this.MakeMockCommandThatWorks("c1"),
+                this.MakeMockCommandThatWorks("c2", () => cts.Cancel()),
+                this.MakeMockCommandThatWorks("c3"),
+            };
+            var plan = new Plan(commands.Select(c => c.Object).ToList());
+            var systemTime = new Mock<ISystemTime>();
+            const int CoolOffTimeInSeconds = 10;
+            const int MaxRunCount = 2;
+            var runner = new OrderedRetryPlanRunner(MaxRunCount, CoolOffTimeInSeconds, systemTime.Object);
+
+            // Act
+            await runner.ExecuteAsync(1, plan, cts.Token);
+
+            // Assert
+            commands[0].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[1].Verify(m => m.ExecuteAsync(cts.Token), Times.Once());
+            commands[2].Verify(m => m.ExecuteAsync(cts.Token), Times.Never());
         }
     }
 }
