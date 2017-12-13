@@ -125,21 +125,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 return (true, -1, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
-            var (RunCount, LastRunTimeUtc) = this.commandRunStatus[command.Id];
+            var (runCount, lastRunTimeUtc) = this.commandRunStatus[command.Id];
 
             // if this command has been run maxRunCount times already then don't
             // run it anymore
-            if (RunCount == this.maxRunCount)
+            if (runCount == this.maxRunCount)
             {
-                return (false, RunCount, TimeSpan.MinValue, TimeSpan.MinValue);
+                return (false, runCount, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
             TimeSpan coolOffPeriod = TimeSpan.FromSeconds(
-                this.coolOffTimeUnitInSeconds * Math.Pow(2, RunCount)
+                this.coolOffTimeUnitInSeconds * Math.Pow(2, runCount)
             );
-            TimeSpan elapsedTime = this.systemTime.UtcNow - LastRunTimeUtc;
+            TimeSpan elapsedTime = this.systemTime.UtcNow - lastRunTimeUtc;
 
-            return (elapsedTime > coolOffPeriod, RunCount, coolOffPeriod, elapsedTime);
+            return (elapsedTime > coolOffPeriod, runCount, coolOffPeriod, elapsedTime);
         }
 
         static class Events
