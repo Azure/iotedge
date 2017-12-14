@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
@@ -590,11 +591,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             client
                 .Setup(cl => cl.OpenAsync(
-                    It.IsAny<Client.ConnectionStatusChangesHandler>(),
-                    It.IsAny<Client.DesiredPropertyUpdateCallback>(),
-                    It.IsAny<string>(),It.IsAny<Client.MethodCallback>()))
+                        It.IsAny<Client.ConnectionStatusChangesHandler>(),
+                        It.IsAny<Client.DesiredPropertyUpdateCallback>(),
+                        It.IsAny<string>(),
+                        It.IsAny<Client.MethodCallback>()
+                    )
+                )
                 .Callback<Client.ConnectionStatusChangesHandler, Client.DesiredPropertyUpdateCallback, string, Client.MethodCallback>(
-                    (statusChanges, propertyUpdates, methodName, methodCallback) => callback(statusChanges, propertyUpdates))
+                    (statusChanges, propertyUpdates, methodName, methodCallback) => callback(statusChanges, propertyUpdates)
+                )
                 .Returns(Task.CompletedTask);
         }
 
@@ -794,6 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var runtime = new Mock<IRuntimeInfo>();
             var edgeAgent = new Mock<IEdgeAgentModule>();
             var edgeHub = new Mock<IEdgeHubModule>();
+            var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
 
             var deploymentConfig = new DeploymentConfig(
@@ -810,16 +816,82 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
+            retryStrategy.Setup(rs => rs.GetShouldRetry())
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => false);
+
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object, Option.Some(retryStrategy.Object));
             Assert.NotNull(connectionStatusChangesHandler);
-            connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
+            connectionStatusChangesHandler.Invoke(
+                Client.ConnectionStatus.Connected,
+                Client.ConnectionStatusChangeReason.Connection_Ok
+            );
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.True(deploymentConfigInfo.OrDefault().Exception.HasValue);
             Assert.IsType(typeof(InvalidOperationException), deploymentConfigInfo.OrDefault().Exception.OrDefault());
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetDeploymentConfigInfoAsyncRetriesWhenGetTwinThrows()
+        {
+            // Arrange
+            var deviceClient = new Mock<IDeviceClient>();
+            var serde = new Mock<ISerde<DeploymentConfig>>();
+            var runtime = new Mock<IRuntimeInfo>();
+            var edgeAgent = new Mock<IEdgeAgentModule>();
+            var edgeHub = new Mock<IEdgeHubModule>();
+            var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
+            Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
+
+            var deploymentConfig = new DeploymentConfig(
+                "1.0", runtime.Object,
+                new SystemModules(edgeAgent.Object, edgeHub.Object),
+                ImmutableDictionary<string, IModule>.Empty
+            );
+
+            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+
+            serde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                .Returns(deploymentConfig);
+
+            retryStrategy.SetupSequence(rs => rs.GetShouldRetry())
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => true);
+
+            var twin = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = new TwinCollection(JObject.FromObject(new Dictionary<string, object>
+                    {
+                        { "$version", 10 },
+
+                        // This is here to prevent the "empty" twin error from being thrown.
+                        { "MoreStuff", "MoreStuffHereToo" }
+                    }).ToString()),
+                    Reported = new TwinCollection()
+                }
+            };
+            deviceClient.SetupSequence(d => d.GetTwinAsync())
+                .ThrowsAsync(new InvalidOperationException())
+                .ReturnsAsync(twin);
+
+            // Act
+            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object, Option.Some(retryStrategy.Object));
+            Assert.NotNull(connectionStatusChangesHandler);
+            connectionStatusChangesHandler.Invoke(
+                Client.ConnectionStatus.Connected,
+                Client.ConnectionStatusChangeReason.Connection_Ok
+            );
+            Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
+
+            // Assert
+            Assert.True(deploymentConfigInfo.HasValue);
+            Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
+            Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
         [Fact]

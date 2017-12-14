@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
@@ -17,25 +18,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     {
         internal const string ExpectedSchemaVersion = "1.0";
         const string PingMethodName = "ping";
-        static Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
+        static readonly Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
         readonly IDeviceClient deviceClient;
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
         TwinCollection desiredProperties;
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
+        readonly RetryStrategy retryStrategy;
 
-        EdgeAgentConnection(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
+        static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
+        static readonly RetryStrategy TransientRetryStrategy =
+            new Util.TransientFaultHandling.ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
+        EdgeAgentConnection(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe, Option<RetryStrategy> retryStrategy)
         {
             this.deviceClient = deviceClient;
             this.desiredPropertiesSerDe = desiredPropertiesSerDe;
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
+            this.retryStrategy = retryStrategy.GetOrElse(TransientRetryStrategy);
         }
 
-        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe)
+        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe) =>
+            Create(deviceClient, desiredPropertiesSerDe, Option.Some(TransientRetryStrategy));
+
+        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe, Option<RetryStrategy> retryStrategy)
         {
-            var connection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe);
+            var connection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe, retryStrategy);
 
             // launch a background task to initiate the connection to IoT Hub (don't wait for it to complete)
             deviceClient.OpenAsync(
@@ -87,13 +97,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                Twin twin = await this.deviceClient.GetTwinAsync();
+                // if GetTwinAsync fails its possible that it might be due to transient network errors or because
+                // we are getting throttled by IoT Hub; if we didn't attempt a retry then this object would be
+                // stuck in an "error" state till either the connection status on the underlying device connection
+                // changes or we receive a patch deployment; doing an exponential back-off retry here allows us to
+                // recover from this situation
+                var retryPolicy = new RetryPolicy(AllButFatalErrorDetectionStrategy, this.retryStrategy);
+                retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
+                Twin twin = await retryPolicy.ExecuteAsync(() => this.deviceClient.GetTwinAsync());
+
                 this.desiredProperties = twin.Properties.Desired;
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
                 Events.TwinRefreshSuccess();
             }
-            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
                 Events.TwinRefreshError(ex);
@@ -190,7 +208,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorRefreshingTwin,
                 TwinRefreshSuccess,
                 ErrorHandlingConnectionChangeEvent,
-                EmptyDeploymentConfig
+                EmptyDeploymentConfig,
+                RetryingGetTwin
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -241,6 +260,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void UpdatedDeploymentConfig()
             {
                 Log.LogDebug((int)EventIds.DeploymentConfigUpdated, "Edge agent updated deployment config from desired properties.");
+            }
+
+            internal static void RetryingGetTwin(RetryingEventArgs args)
+            {
+                Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
             }
         }
     }
