@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in1");
             Assert.NotNull(endpoint);
-            
+
             var moduleEndpoint = endpoint as ModuleEndpoint;
             Assert.NotNull(moduleEndpoint);
             Assert.Equal("Device1/alertLogic/in1", moduleEndpoint.Id);
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
         [Theory]
         [InlineData("upstream")]
-        [InlineData("FooBar")]
+        [InlineData("PascalCase")]
         [InlineData("")]
         [InlineData(null)]
         public void TestCreateSystemEndpointInvalidCases(string systemEndpoint)

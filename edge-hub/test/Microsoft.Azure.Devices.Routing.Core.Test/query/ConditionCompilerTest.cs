@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 new object[] { "substring(none, 1, 1) = 'a'", Bool.Undefined },
 
                 new object[] { "substring('hello', 0, 5) = 'hello'", Bool.True },
-                new object[] { "substring('hello', 0, 4) = 'hell'", Bool.True },
+                new object[] { "substring('start', 0, 4) = 'star'", Bool.True },
                 new object[] { "substring('hello', 1, 4) = 'ello'", Bool.True },
                 new object[] { "substring('hello', 4, 1) = 'o'", Bool.True },
                 new object[] { "substring('hello', 4, 0) = ''", Bool.True },

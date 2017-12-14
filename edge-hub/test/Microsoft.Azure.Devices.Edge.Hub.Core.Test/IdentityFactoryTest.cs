@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void GetIdentityTest()
         {
             string iothubHostName = "iothub1.azure.net";
-            string callerProductInfo = "foobar";
+            string callerProductInfo = "productinfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
 
             var identityFactory = new IdentityFactory(iothubHostName, callerProductInfo);
@@ -115,11 +115,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Theory]
         [InlineData("iotHub1/device1")]
-        [InlineData("iotHub1/device1/fooBar")]
+        [InlineData("iotHub1/device1/camelCase")]
         [InlineData("iotHub1/device1/api-version")]
-        [InlineData("iotHub1/device1/module1/fooBar")]
+        [InlineData("iotHub1/device1/module1/camelCase")]
         [InlineData("iotHub1/device1/module1/api-version")]
-        [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003/foobar")]
+        [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003/test")]
         [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client")]
         [InlineData("iotHub1/device1/module1")]
         public void ParseUserNameErrorTest(string username)

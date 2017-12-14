@@ -441,9 +441,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             cloudProviderMock.Setup(p => p.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<CloudConnectionStatus>>()))
                 .ReturnsAsync(() => Try.Success(GetCloudConnectionMock()));
 
-            var deviceIdentity1 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device1" && d.ConnectionString == "foobar");
-            var deviceIdentity2 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device2" && d.ConnectionString == "foobar");
-            var deviceIdentity3 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device3" && d.ConnectionString == "foobar");
+            var deviceIdentity1 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device1" && d.ConnectionString == "connstr");
+            var deviceIdentity2 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device2" && d.ConnectionString == "connstr");
+            var deviceIdentity3 = Mock.Of<IDeviceIdentity>(d => d.Id == "Device3" && d.ConnectionString == "connstr");
 
             var deviceProxy1 = Mock.Of<IDeviceProxy>(d => d.IsActive);
             var deviceProxy2 = Mock.Of<IDeviceProxy>(d => d.IsActive);
