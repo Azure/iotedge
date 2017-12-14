@@ -2,7 +2,6 @@ from __future__ import print_function
 import json
 import logging as log
 import os
-from shutil import copy2
 import sys
 import edgectl.errors
 import edgectl.edgeconstants as EC
@@ -10,33 +9,81 @@ from edgectl.certutil import EdgeCertUtil
 from edgectl.default  import EdgeDefault
 from edgectl.edgeutils import EdgeUtils
 
+
 class EdgeHostPlatform(object):
     _min_passphrase_len = 4
     _max_passphrase_len = 1023
 
     @staticmethod
+    def _read_json_config_file(json_config_file):
+        try:
+            with open(json_config_file, 'r') as input_file:
+                data = json.load(input_file)
+                return data
+        except IOError as ex_os:
+            msg = 'Error reading config file: {0}. Errno: {1}, Error {2}'.format(json_config_file,
+                                                                                 str(ex_os.errno),
+                                                                                 ex_os.strerror)
+            log.error(msg)
+            raise edgectl.errors.EdgeFileAccessError(msg, json_config_file)
+        except ValueError as ex_value:
+            msg = 'Could not parse {0}. JSON Parser Error: {1}'.format(json_config_file,
+                                                                       str(ex_value))
+            log.error(msg)
+            raise edgectl.errors.EdgeFileParseError(msg, json_config_file)
+
+    @staticmethod
+    def _get_host_config_dir():
+        edge_config_dir = None
+        result = None
+        log.debug('Searching Edge config dir in env var %s', EC.ENV_EDGECONFIGDIR)
+        env_config_dir = os.getenv(EC.ENV_EDGECONFIGDIR, None)
+        if env_config_dir and env_config_dir.strip() != '':
+            edge_config_dir = os.path.realpath(env_config_dir)
+        else:
+            meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+            log.debug('Searching Edge config dir in config file %s', meta_config_file_path)
+            if meta_config_file_path and os.path.exists(meta_config_file_path):
+                data = EdgeHostPlatform._read_json_config_file(meta_config_file_path)
+                config_dir = data[EC.CONFIG_DIR_KEY]
+                if config_dir != '':
+                    edge_config_dir = os.path.realpath(config_dir)
+            else:
+                edge_config_dir = EdgeDefault.get_host_config_dir()
+                log.debug('Using default Edge config dir %s', edge_config_dir)
+
+        if edge_config_dir and os.path.isdir(edge_config_dir):
+            log.debug('Found config directory: %s', edge_config_dir)
+            result = edge_config_dir
+
+        return result
+
+    @staticmethod
     def get_host_config_file_path():
         result = None
-        edge_config_file_path = EdgeDefault.get_host_config_file_path()
-        if edge_config_file_path and os.path.exists(edge_config_file_path):
-            result = edge_config_file_path
+        edge_config_dir = EdgeHostPlatform._get_host_config_dir()
+
+        if edge_config_dir:
+            edge_config_file_path = os.path.join(edge_config_dir,
+                                                 EdgeDefault.get_config_file_name())
+            if os.path.exists(edge_config_file_path):
+                result = edge_config_file_path
         return result
 
     @staticmethod
-    def get_home_dir():
+    def _get_edge_home_dir():
         result = None
-        edge_config_file_path = EdgeDefault.get_host_config_file_path()
+        edge_config_file_path = EdgeHostPlatform.get_host_config_file_path()
         if edge_config_file_path:
-            with open(edge_config_file_path, 'r') as input_file:
-                data = json.load(input_file)
-                result = data[EC.HOMEDIR_KEY]
-                result = os.path.realpath(result)
+            data = EdgeHostPlatform._read_json_config_file(edge_config_file_path)
+            result = data[EC.HOMEDIR_KEY]
+            result = os.path.realpath(result)
         return result
 
     @staticmethod
-    def get_certs_dir():
+    def _get_certs_dir():
         result = None
-        home_dir = EdgeHostPlatform.get_home_dir()
+        home_dir = EdgeHostPlatform._get_edge_home_dir()
         if home_dir:
             certs_dir = os.path.join(home_dir, 'certs')
             if os.path.exists(certs_dir):
@@ -46,7 +93,7 @@ class EdgeHostPlatform(object):
     @staticmethod
     def get_root_ca_cert_file():
         result = None
-        certs_dir = EdgeHostPlatform.get_certs_dir()
+        certs_dir = EdgeHostPlatform._get_certs_dir()
         if certs_dir:
             prefix = 'edge-device-ca'
             certs_dir = os.path.join(certs_dir,
@@ -65,7 +112,7 @@ class EdgeHostPlatform(object):
     @staticmethod
     def get_ca_chain_cert_file():
         result = None
-        certs_dir = EdgeHostPlatform.get_certs_dir()
+        certs_dir = EdgeHostPlatform._get_certs_dir()
         if certs_dir:
             prefix = 'edge-chain-ca'
             certs_dir = os.path.join(certs_dir,
@@ -83,7 +130,7 @@ class EdgeHostPlatform(object):
     @staticmethod
     def get_hub_cert_file():
         result = None
-        certs_dir = EdgeHostPlatform.get_certs_dir()
+        certs_dir = EdgeHostPlatform._get_certs_dir()
         if certs_dir:
             prefix = 'edge-hub-server'
             hub_certs_dir = os.path.join(certs_dir, prefix)
@@ -102,7 +149,7 @@ class EdgeHostPlatform(object):
     @staticmethod
     def get_hub_cert_pfx_file():
         result = None
-        certs_dir = EdgeHostPlatform.get_certs_dir()
+        certs_dir = EdgeHostPlatform._get_certs_dir()
         if certs_dir:
             prefix = 'edge-hub-server'
             certs_dir = os.path.join(certs_dir,
@@ -119,55 +166,85 @@ class EdgeHostPlatform(object):
 
     @staticmethod
     def install_edge_by_config_file(edge_config, ip_config_file_path):
-        try:
-            EdgeHostPlatform._get_or_create_edge_config_dir()
-            edge_config_file_path = EdgeDefault.get_host_config_file_path()
-            copy2(ip_config_file_path, edge_config_file_path)
-            EdgeHostPlatform._setup_home_dir(edge_config, True)
-        except IOError as ex:
-            log.error('Error copying user config file: %s.' \
-                      ' Errno: %s, Error: %s', ip_config_file_path,
-                      str(ex.errno), ex.strerror)
-            raise edgectl.errors.EdgeFileAccessError('Cannot copy file', ip_config_file_path)
+        edge_config_file_path = EdgeHostPlatform._setup_edge_config_dir(edge_config)
+        config_data = None
+        with open(ip_config_file_path, 'r') as input_file:
+            config_data = input_file.read()
+        EdgeHostPlatform._create_config_file(edge_config_file_path, config_data, 'Edge config file')
+        EdgeHostPlatform._setup_home_dir(edge_config, True)
 
     @staticmethod
     def install_edge_by_json_data(edge_config, force_regen_certs_bool):
-        try:
-            json_data = edge_config.to_json()
-            EdgeHostPlatform._get_or_create_edge_config_dir()
-            edge_config_file_path = EdgeDefault.get_host_config_file_path()
-            fd = os.open(edge_config_file_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            with os.fdopen(fd, 'w') as output_file:
-                output_file.write(json_data)
-            EdgeHostPlatform._setup_home_dir(edge_config, force_regen_certs_bool)
-        except IOError as ex:
-            log.error('Error writing to config file: %s.' \
-                      ' Errno: %s, Error: %s', edge_config_file_path,
-                      str(ex.errno), ex.strerror)
-            msg = 'Cannot write configuration data to file'
-            raise edgectl.errors.EdgeFileAccessError(msg, edge_config_file_path)
+        json_data = edge_config.to_json()
+        edge_config_file_path = EdgeHostPlatform._setup_edge_config_dir(edge_config)
+        EdgeHostPlatform._create_config_file(edge_config_file_path, json_data, 'Edge config file')
+        EdgeHostPlatform._setup_home_dir(edge_config, force_regen_certs_bool)
 
     @staticmethod
     def uninstall_edge(home_dir):
-        EdgeHostPlatform._delete_edge_config_dir()
-        EdgeHostPlatform._delete_home_dir(home_dir)
+        EdgeHostPlatform._clear_edge_config_dir()
+        EdgeHostPlatform._clear_home_dir(home_dir)
+
+    @staticmethod
+    def _create_dir(dir_path, dir_type):
+        try:
+            EdgeUtils.mkdir_if_needed(dir_path)
+        except OSError as ex:
+            msg = 'Error creating {0} directory {1}'.format(dir_type, dir_path)
+            log.error(msg)
+            raise edgectl.errors.EdgeFileAccessError(msg, dir_path)
+
+    @staticmethod
+    def _delete_dir(dir_path, dir_type):
+        try:
+            EdgeUtils.delete_dir(dir_path)
+        except OSError as ex:
+            msg = 'Error deleting {0} directory {1}'.format(dir_type, dir_path)
+            log.error(msg)
+            raise edgectl.errors.EdgeFileAccessError(msg, dir_path)
+
+    @staticmethod
+    def _create_config_file(file_path, data, file_type_diagnostic):
+        try:
+            log.debug('Creating Config File: %s', file_path)
+            fd = os.open(file_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as output_file:
+                output_file.write(data)
+        except OSError as ex:
+            msg = 'Error creating {0}: {1}. ' \
+                  'Errno: {2}, Error: {3}'.format(file_type_diagnostic,
+                                                  file_path, str(ex.errno), ex.strerror)
+            log.error(msg)
+            raise edgectl.errors.EdgeFileAccessError(msg, file_path)
+
+    @staticmethod
+    def _delete_config_file(file_path, file_type_diagnostic):
+        try:
+            if os.path.exists(file_path):
+                os.unlink(file_path)
+        except OSError as ex:
+            msg = 'Error deleteing {0}: {1}. ' \
+                  'Errno: {2}, Error: {3}'.format(file_type_diagnostic,
+                                                  file_path, str(ex.errno), ex.strerror)
+            log.error(msg)
+            raise edgectl.errors.EdgeFileAccessError(msg, file_path)
 
     @staticmethod
     def _setup_home_dir(edge_config, force_regen_certs_bool):
         home_dir = edge_config.home_dir
         # setup edge directory structure
         home_dir_path = os.path.realpath(home_dir)
-        if os.path.exists(home_dir_path) is False:
+        if os.path.isdir(home_dir_path) is False:
             log.debug('Edge home dir not setup, creating dir: %s', home_dir_path)
-        EdgeUtils.mkdir_if_needed(home_dir_path)
+            EdgeHostPlatform._create_dir(home_dir_path, 'Edge home')
         certs_dir = os.path.join(home_dir_path, 'certs')
-        EdgeUtils.mkdir_if_needed(certs_dir)
+        if os.path.isdir(certs_dir) is False:
+            log.debug('Edge certs dir not setup, creating dir: %s', certs_dir)
+            EdgeHostPlatform._create_dir(certs_dir, 'Edge certs')
         modules_path = os.path.join(home_dir_path, 'modules')
-        EdgeUtils.mkdir_if_needed(modules_path)
-        edge_agent_dir = os.path.join(modules_path,
-                                        EdgeDefault.get_agent_dir_name())
-        EdgeUtils.mkdir_if_needed(edge_agent_dir)
-
+        if os.path.isdir(modules_path) is False:
+            log.debug('Edge modules dir not setup, creating dir: %s', modules_path)
+            EdgeHostPlatform._create_dir(modules_path, 'Edge modules')
         if edge_config.use_self_signed_certificates():
             EdgeHostPlatform._generate_self_signed_certs_if_needed(edge_config,
                                                                    certs_dir,
@@ -176,43 +253,61 @@ class EdgeHostPlatform(object):
             EdgeHostPlatform._generate_certs_using_device_ca_if_needed(edge_config,
                                                                        certs_dir,
                                                                        force_regen_certs_bool)
-
     @staticmethod
-    def _delete_home_dir(home_dir):
+    def _clear_home_dir(home_dir):
         home_dir_path = os.path.realpath(home_dir)
         if os.path.exists(home_dir_path):
-            log.debug('Deleting Home Dir: %s', home_dir_path)
+            log.debug('Clearing Home Dir: %s', home_dir_path)
             path = os.path.join(home_dir_path, 'certs')
-            EdgeUtils.delete_dir(path)
+            EdgeHostPlatform._delete_dir(path, 'certs')
             path = os.path.join(home_dir_path, 'modules')
-            EdgeUtils.delete_dir(path)
+            EdgeHostPlatform._delete_dir(path, 'modules')
 
     @staticmethod
-    def _get_or_create_edge_config_dir():
-        result = None
-        edge_config_dir = EdgeDefault.get_host_config_dir()
-        log.debug('Found config directory: %s', edge_config_dir)
-        if os.path.exists(edge_config_dir):
-            result = edge_config_dir
+    def _setup_meta_edge_config_dir(edge_config_dir):
+        meta_config_dir = EdgeDefault.get_host_meta_conf_dir()
+        if os.path.isdir(meta_config_dir) is False:
+            log.info('Meta config directory does not exist.' \
+                     'Creating directory: %s', meta_config_dir)
+            EdgeHostPlatform._create_dir(meta_config_dir, 'Edge meta config')
+        if edge_config_dir is None:
+            edge_config_dir = ''
+        meta_config_dict = {EC.CONFIG_DIR_KEY: edge_config_dir}
+        json_data = json.dumps(meta_config_dict, indent=2, sort_keys=True)
+        meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+        EdgeHostPlatform._create_config_file(meta_config_file_path,
+                                             json_data,
+                                             'Edge meta config file')
+
+    @staticmethod
+    def _clear_edge_meta_config_dir():
+        meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+        log.debug('Deleting meta Edge config file: %s', meta_config_file_path)
+        EdgeHostPlatform._delete_config_file(meta_config_file_path, 'Edge meta config')
+
+    @staticmethod
+    def _setup_edge_config_dir(edge_config):
+        edge_config_dir = edge_config.config_dir
+        if edge_config.config_dir_source == EC.EdgeConfigDirInputSource.USER_PROVIDED:
+            EdgeHostPlatform._setup_meta_edge_config_dir(edge_config_dir)
         else:
-            try:
-                log.info('Config directory does not exist.' \
-                         'Creating directory: %s', edge_config_dir)
-                EdgeUtils.mkdir_if_needed(edge_config_dir)
-                result = edge_config_dir
-            except OSError as ex:
-                log.error('Error creating config directory: %s' \
-                          ' Errno: %s, Error: %s', edge_config_dir,
-                          str(ex.errno), ex.strerror)
-                raise edgectl.errors.EdgeFileAccessError('Cannot create dir',
-                                                         edge_config_dir)
-        return result
+            EdgeHostPlatform._clear_edge_meta_config_dir()
+
+        if os.path.exists(edge_config_dir) is False:
+            log.info('IoT Edge Config directory does not exist.' \
+                     'Creating directory: %s', edge_config_dir)
+            EdgeHostPlatform._create_dir(edge_config_dir, 'Edge config')
+
+        edge_config_file_path = os.path.join(edge_config_dir,
+                                             EdgeDefault.get_config_file_name())
+        return edge_config_file_path
 
     @staticmethod
-    def _delete_edge_config_dir():
-        edge_config_dir = EdgeDefault.get_host_config_dir()
-        log.debug('Deleting Edge Config Dir: %s', edge_config_dir)
-        EdgeUtils.delete_dir(edge_config_dir)
+    def _clear_edge_config_dir():
+        edge_config_file_path = EdgeHostPlatform.get_host_config_file_path()
+        log.debug('Deleting Edge config file: %s', edge_config_file_path)
+        EdgeHostPlatform._delete_config_file(edge_config_file_path, 'Edge config')
+        EdgeHostPlatform._clear_edge_meta_config_dir()
 
     @staticmethod
     def _generate_self_signed_certs_if_needed(edge_config, certs_dir, force_regen_certs_bool):

@@ -206,6 +206,8 @@ class EdgeHostConfig(object):
 
     def __init__(self):
         self._schema_version = EdgeHostConfig._default_schema_version
+        self._config_dir = ''
+        self._config_dir_source = EC.EdgeConfigDirInputSource.NONE
         self._home_dir = ''
         self._connection_string = ''
         self._hostname = ''
@@ -234,12 +236,37 @@ class EdgeHostConfig(object):
         self._schema_version = value
 
     @property
+    def config_dir(self):
+        return self._config_dir
+
+    @config_dir.setter
+    def config_dir(self, value):
+        if value and value.strip() != '':
+            self._config_dir = value
+        else:
+            raise ValueError('Invalid configuration directory: ' + value)
+
+    @property
+    def config_dir_source(self):
+        return self._config_dir_source
+
+    @config_dir_source.setter
+    def config_dir_source(self, value):
+        if isinstance(value, EC.EdgeConfigDirInputSource):
+            self._config_dir_source = value
+        else:
+            raise ValueError('Invalid configuration directory input source: ' + str(value))
+
+    @property
     def home_dir(self):
         return self._home_dir
 
     @home_dir.setter
     def home_dir(self, value):
-        EdgeUtils.mkdir_if_needed(value)
+        if value and value.strip() != '':
+            self._home_dir = value
+        else:
+            raise ValueError('Invalid home directory: ' + value)
         self._home_dir = value
 
     @property
@@ -453,15 +480,17 @@ class EdgeHostConfig(object):
             self._merge(subject_dict)
             country = self._cert_subject[EC.SUBJECT_COUNTRY_KEY]
             self._cert_subject[EC.SUBJECT_COUNTRY_KEY] = country.upper()
-            if len(country) != 2:
-                log.error('Invalid Country Code %s', country)
+            if self._security_option == EdgeHostConfig.security_option_self_signed:
+                if len(country) != 2:
+                    msg = 'Invalid certificate country code {0}. Length should be 2 characters.'.format(country)
+                    log.error(msg)
+                    raise ValueError(msg)
             else:
-                if self._security_option == EdgeHostConfig.security_option_pre_installed:
-                    self.owner_ca_cert_file_path = kwargs['owner_ca_cert_file']
-                    self.device_ca_cert_file_path = kwargs['device_ca_cert_file']
-                    self.device_ca_chain_cert_file_path = kwargs['device_ca_chain_cert_file']
-                    self.device_ca_private_key_file_path = kwargs['device_ca_private_key_file']
-                is_valid_input = self._validate_passphrases(kwargs)
+                self.owner_ca_cert_file_path = kwargs['owner_ca_cert_file']
+                self.device_ca_cert_file_path = kwargs['device_ca_cert_file']
+                self.device_ca_chain_cert_file_path = kwargs['device_ca_chain_cert_file']
+                self.device_ca_private_key_file_path = kwargs['device_ca_private_key_file']
+            is_valid_input = self._validate_passphrases(kwargs)
         if is_valid_input is False:
             raise ValueError('Incorrect certificate options provided')
 
@@ -599,8 +628,9 @@ class EdgeHostConfig(object):
             return '******'
 
     def __str__(self):
-        result  = 'Schema Version:\t\t' + self._schema_version + '\n'
+        result = 'Schema Version:\t\t' + self._schema_version + '\n'
         result += 'Connection String:\t' + self._sanitize_conn_str(self.connection_string) + '\n'
+        result += 'Config Directory:\t' + self.config_dir + '\n'
         result += 'Home Directory:\t\t' + self.home_dir + '\n'
         result += 'Hostname:\t\t' + self.hostname + '\n'
         result += 'Log Level:\t\t' + self.log_level + '\n'
@@ -622,8 +652,8 @@ class EdgeHostConfig(object):
         if self.agent_ca_passphrase_file_path != '':
             result += 'Agent CA Passphrase File:\n'
             result += '\t\t\t' + str(self.agent_ca_passphrase_file_path) + '\n'
-
-        result += 'Certificate Subject:\t' + self._cert_subject_str() + '\n'
+        if self._security_option == EdgeHostConfig.security_option_self_signed:
+            result += 'Certificate Subject:\t' + self._cert_subject_str() + '\n'
         if self.deployment_config:
             result += str(self.deployment_config)
         return result
@@ -669,6 +699,8 @@ class EdgeHostConfig(object):
         d = {}
         d[EC.SCHEMA_KEY] = self._schema_version
         d[EC.DEVICE_CONNECTION_STRING_KEY] = self.connection_string
+        if self.config_dir_source == EC.EdgeConfigDirInputSource.USER_PROVIDED:
+            d[EC.CONFIG_DIR_KEY] = self.config_dir
         d[EC.HOMEDIR_KEY] = self.home_dir
         d[EC.HOSTNAME_KEY] = self.hostname
         d[EC.EDGE_RUNTIME_LOG_LEVEL_KEY] = self.log_level

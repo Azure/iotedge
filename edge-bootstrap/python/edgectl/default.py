@@ -8,7 +8,9 @@ import edgectl.edgeconstants as EC
 
 class EdgeDefault(object):
     _edge_dir = 'azure-iot-edge'
-    _edge_config_file = 'config.json'
+    _edge_config_file_name = 'config.json'
+    _edge_meta_dir_name = '.iotedgectl'
+    _edge_meta_config_file = 'config.json'
     _edge_ref_config_file = 'azure-iot-edge-config-reference.json'
     _edge_agent_dir_name = "__AzureIoTEdgeAgent"
     _edge_runtime_log_levels = [EC.EDGE_RUNTIME_LOG_LEVEL_INFO,
@@ -30,6 +32,7 @@ class EdgeDefault(object):
             'default_deployment': EC.DEPLOYMENT_DOCKER,
             'default_edge_conf_dir': '/etc/' + _edge_dir,
             'default_edge_data_dir': '/var/lib/' + _edge_dir,
+            'default_edge_meta_dir_env': 'HOME',
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
@@ -44,6 +47,7 @@ class EdgeDefault(object):
             'default_deployment': EC.DEPLOYMENT_DOCKER,
             'default_edge_conf_dir': _windows_config_path + '\\' + _edge_dir + '\\config',
             'default_edge_data_dir': _windows_config_path + '\\' + _edge_dir + '\\data',
+            'default_edge_meta_dir_env': 'USERPROFILE',
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
@@ -62,6 +66,7 @@ class EdgeDefault(object):
             'default_deployment': EC.DEPLOYMENT_DOCKER,
             'default_edge_conf_dir': '/etc/' + _edge_dir,
             'default_edge_data_dir': '/var/lib/' + _edge_dir,
+            'default_edge_meta_dir_env': 'HOME',
             'deployment': {
                 EC.DEPLOYMENT_DOCKER: {
                     EC.DOCKER_ENGINE_LINUX: {
@@ -72,6 +77,7 @@ class EdgeDefault(object):
             }
         }
     }
+
     @staticmethod
     def is_platform_supported():
         host = platform.system().lower()
@@ -111,17 +117,103 @@ class EdgeDefault(object):
         return EdgeDefault._edge_agent_dir_name
 
     @staticmethod
+    def get_config_dir(host):
+        return EdgeDefault._platforms[host]['default_edge_conf_dir']
+
+    @staticmethod
+    def get_meta_conf_file_path_help_menu(host):
+        env_var = EdgeDefault._platforms[host]['default_edge_meta_dir_env']
+        sep = '/'
+        if host == EC.DOCKER_ENGINE_WINDOWS:
+            env_var = '%%' + env_var + '%%'
+            sep = '\\'
+        else:
+            env_var = '$' + env_var
+        meta_dir = env_var + sep + EdgeDefault._edge_meta_dir_name
+        return meta_dir
+
+    @staticmethod
+    def get_meta_conf_dir(host):
+        env_var = EdgeDefault._platforms[host]['default_edge_meta_dir_env']
+        dir_name = os.getenv(env_var, None)
+        if dir_name and dir_name.strip() != '':
+            meta_dir = os.path.realpath(dir_name)
+            meta_dir = os.path.join(dir_name, EdgeDefault._edge_meta_dir_name)
+        else:
+            msg = 'Could not find user home dir via env variable {0}'.format(env_var)
+            log.error(msg)
+            raise edgectl.errors.EdgeValueError(msg)
+        return meta_dir
+
+    @staticmethod
+    def get_host_meta_conf_dir():
+        host = platform.system().lower()
+        return EdgeDefault.get_meta_conf_dir(host)
+
+    @staticmethod
+    def get_meta_conf_file_path(host):
+        meta_dir = EdgeDefault.get_meta_conf_dir(host)
+        meta_conf_file = os.path.join(meta_dir, EdgeDefault._edge_meta_config_file)
+        return os.path.realpath(meta_conf_file)
+
+    @staticmethod
+    def get_host_meta_conf_file_path():
+        host = platform.system().lower()
+        return EdgeDefault.get_meta_conf_file_path(host)
+
+    @staticmethod
     def get_host_config_dir():
         host = platform.system().lower()
-        result = EdgeDefault._platforms[host]['default_edge_conf_dir']
-        result = os.path.realpath(result)
-        return result
+        return os.path.realpath(EdgeDefault.get_config_dir(host))
+
+    @staticmethod
+    def choose_platform_config_dir(user_input_path, user_input_option):
+        """
+        Utility function that chooses a Edge config directory in the
+        precedence order of:
+        1) Env variable EDGECONFIGDIR
+        2) User input via user_input_path
+        3) Default Path
+
+        Args:
+            user_input_path: (string) A user supplied config dir path. Can be None or ''.
+            user_input_option: (enum EdgeConfigDirInputSource member):
+                               Use NONE when user_input_path is None or empty
+
+        Return:
+            Tuple:
+               [0]: Path to the Edge config dir.
+               [1]: An EdgeConfigDirInputSource enum member indicating which dir was chosen
+        """
+        edge_config_dir = None
+        choice = None
+
+        env_config_dir = os.getenv(EC.ENV_EDGECONFIGDIR, None)
+        if env_config_dir and env_config_dir.strip() != '':
+            edge_config_dir = os.path.realpath(env_config_dir)
+            log.info('Using environment variable %s as IoT Edge configuration dir: %s',
+                     EC.ENV_EDGECONFIGDIR, edge_config_dir)
+            choice = EC.EdgeConfigDirInputSource.ENV
+        elif user_input_path and user_input_path.strip() != '':
+            edge_config_dir = os.path.realpath(user_input_path)
+            log.info('Using user configured IoT Edge configuration dir: %s', edge_config_dir)
+            choice = user_input_option
+        else:
+            edge_config_dir = EdgeDefault.get_host_config_dir()
+            log.info('Using default IoT Edge configuration dir: %s', edge_config_dir)
+            choice = EC.EdgeConfigDirInputSource.DEFAULT
+
+        return (edge_config_dir, choice)
 
     @staticmethod
     def get_host_config_file_path():
         edge_conf_dir = EdgeDefault.get_host_config_dir()
-        result = os.path.join(edge_conf_dir, EdgeDefault._edge_config_file)
-        return result
+        edge_conf_file_name = EdgeDefault.get_config_file_name()
+        return os.path.join(edge_conf_dir, edge_conf_file_name)
+
+    @staticmethod
+    def get_config_file_name():
+        return EdgeDefault._edge_config_file_name
 
     @staticmethod
     def get_supported_deployments():
@@ -156,13 +248,12 @@ class EdgeDefault(object):
         path = None
         if EdgeDefault._platforms[host]:
             path = EdgeDefault._platforms[host]['default_edge_data_dir']
-            path = os.path.realpath(path)
         return path
 
     @staticmethod
     def get_platform_home_dir():
         plat = platform.system().lower()
-        return EdgeDefault.get_home_dir(plat)
+        return os.path.realpath(EdgeDefault.get_home_dir(plat))
 
     @staticmethod
     def default_user_input_config_relative_file_path():

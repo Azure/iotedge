@@ -30,6 +30,12 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             config.schema_version = defaults_json[EC.SCHEMA_KEY]
             config.connection_string = cs
 
+            cfg_src = EC.EdgeConfigDirInputSource.USER_PROVIDED
+            cfg_dir_opt = EdgeDefault.choose_platform_config_dir(args.edge_config_dir, cfg_src)
+
+            config.config_dir = cfg_dir_opt[0]
+            config.config_dir_source = cfg_dir_opt[1]
+
             home_dir = args.edge_home_dir
             if home_dir is None:
                 home_dir = EdgeDefault.get_platform_home_dir()

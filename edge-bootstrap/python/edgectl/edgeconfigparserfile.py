@@ -2,6 +2,7 @@ import json
 import logging as log
 import edgectl.errors
 import edgectl.edgeconstants as EC
+from edgectl.default import EdgeDefault
 from edgectl.edgeconfig import EdgeHostConfig
 from edgectl.edgeconfig import EdgeDeploymentConfigDocker
 from edgectl.edgeconfigparser import EdgeConfigParser
@@ -33,6 +34,17 @@ class EdgeConfigParserFile(EdgeConfigParser):
             config = EdgeHostConfig()
             config.schema_version = data[EC.SCHEMA_KEY]
             config.connection_string = data[EC.DEVICE_CONNECTION_STRING_KEY]
+
+            edge_config_dir = None
+            cfg_src = EC.EdgeConfigDirInputSource.NONE
+            if EC.CONFIG_DIR_KEY in list(data.keys()):
+                edge_config_dir = data[EC.CONFIG_DIR_KEY]
+                cfg_src = EC.EdgeConfigDirInputSource.USER_PROVIDED
+
+            cfg_dir_opt = EdgeDefault.choose_platform_config_dir(edge_config_dir, cfg_src)
+            config.config_dir = cfg_dir_opt[0]
+            config.config_dir_source = cfg_dir_opt[1]
+
             config.home_dir = data[EC.HOMEDIR_KEY]
             config.hostname = data[EC.HOSTNAME_KEY]
             config.log_level = data[EC.EDGE_RUNTIME_LOG_LEVEL_KEY]

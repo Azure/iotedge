@@ -3,6 +3,7 @@ from enum import Enum
 # JSON Edge Config Constants
 SCHEMA_KEY = 'schemaVersion'
 DEVICE_CONNECTION_STRING_KEY = 'deviceConnectionString'
+CONFIG_DIR_KEY = 'configDir'
 HOMEDIR_KEY = 'homeDir'
 HOSTNAME_KEY = 'hostName'
 EDGE_RUNTIME_LOG_LEVEL_KEY = 'logLevel'
@@ -46,6 +47,8 @@ DOCKER_HOST_DARWIN = 'darwin'
 DOCKER_ENGINE_LINUX = 'linux'
 DOCKER_ENGINE_WINDOWS = 'windows'
 
+ENV_EDGECONFIGDIR = 'EDGECONFIGDIR'
+
 # Edge Log Level Log Constants
 EDGE_RUNTIME_LOG_LEVEL_INFO = 'info'
 EDGE_RUNTIME_LOG_LEVEL_DEBUG = 'debug'
@@ -54,3 +57,10 @@ EDGE_RUNTIME_LOG_LEVEL_DEBUG = 'debug'
 class EdgeConfigInputSources(Enum):
     FILE = 1
     CLI = 2
+
+# Edge config file directory input sources
+class EdgeConfigDirInputSource(Enum):
+    ENV = 'env'
+    USER_PROVIDED = 'userProvided'
+    DEFAULT = 'default'
+    NONE = ''

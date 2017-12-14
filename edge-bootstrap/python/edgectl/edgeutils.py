@@ -22,7 +22,7 @@ class EdgeUtils:
             if os.path.exists(dir_path):
                 shutil.rmtree(dir_path, onerror=EdgeUtils._remove_readonly)
         except OSError as ex:
-            log.error('Error when deleting home directory: ' \
+            log.error('Error deleting directory: ' \
                       + dir_path + '. Errno ' \
                       + str(ex.errno) + ', Error:' + ex.strerror)
             raise
@@ -33,7 +33,7 @@ class EdgeUtils:
             os.makedirs(dir_path)
         except OSError as ex:
             if ex.errno != errno.EEXIST:
-                log.error('Error when making home directory:' \
+                log.error('Error creating directory:' \
                         + dir_path \
                         + ' Errno ' + str(ex.errno) \
                         + ', Error:' + ex.strerror)

@@ -181,11 +181,30 @@ class EdgeCLI(object):
                                + 'Note: Use double quotes when supplying this input.',
                                metavar='')
 
+        cmd_setup.add_argument('--edge-config-dir',
+                               help='Set runtime configuration directory. Optional.\n'
+                               + 'Note: If the configuration directory value is provided, it is saved in\n'
+                               + 'the ' + EdgeCLI._prog() + ' configuration file located in the following directories:\n'
+                               + '   Linux Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_LINUX) + '\n'
+                               + '   Windows Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_DARWIN) + '\n'
+                               + 'Instead of using this option, an environment variable "' + EC.ENV_EDGECONFIGDIR +'"\n'
+                               + 'can be set with an absolute path to a home directory.\n'
+                               + 'If environment variable "' + EC.ENV_EDGECONFIGDIR +'" is set and this option is specified,\n'
+                               + 'the environment variable will take precedence and the supplied directory value will be ignored.\n'
+                               + 'If none of these are provided, the following directories will be used as the default\n'
+                               + 'IoT Edge configuration directory:\n'
+                               + '   Linux Hosts - ' + EdgeDefault.get_config_dir(EC.DOCKER_HOST_LINUX) + '\n'
+                               + '   Windows Hosts - ' + EdgeDefault.get_config_dir(EC.DOCKER_HOST_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.get_config_dir(EC.DOCKER_HOST_DARWIN),
+                               metavar='')
+
         cmd_setup.add_argument('--edge-home-dir',
                                help='Set runtime home directory. Optional.\n'
                                + 'Default:\n'
                                + '   Linux Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_LINUX) + '\n'
-                               + '   Windows Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_WINDOWS),
+                               + '   Windows Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.get_home_dir(EC.DOCKER_HOST_DARWIN),
                                metavar='')
 
         cmd_setup.add_argument('--edge-hostname',
@@ -229,7 +248,7 @@ class EdgeCLI(object):
                                + 'the Edge runtime docker URI would be: ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX),
                                metavar='')
 
-        cmd_setup.add_argument('--auto-cert-gen-force-no-passwords',
+        cmd_setup.add_argument('--auto-cert-gen-force-no-passwords', '--nopass',
                                help='Do not prompt for passwords when generating private keys. Optional.',
                                action='store_true')
 
@@ -255,22 +274,24 @@ class EdgeCLI(object):
 
         cmd_setup.add_argument('--device-ca-passphrase-file',
                                help='Device CA certificate private key passphrase file in ascii text.\n' \
-                               'Users can provide this file or use the --device-ca-passphrase option but not both.',
+                               'Either provide the passphrase file or use the --device-ca-passphrase option but not both.',
                                metavar='')
 
         cmd_setup.add_argument('--device-ca-passphrase',
                                help='Device CA certificate private key passphrase in ascii text.\n' \
-                               'Users can use this option to provide the passphrase or use the --device-ca-passphrase-file option but not both.',
+                               'Use this option to provide the passphrase or use the\n' \
+                               '--device-ca-passphrase-file option but not both.',
                                metavar='')
 
         cmd_setup.add_argument('--agent-ca-passphrase-file',
                                help='Agent CA certificate private key passphrase file in ascii text.\n' \
-                               'Users can provide this file or use the --agent-ca-passphrase option but not both.',
+                               'Either provide the passphrase or use the --agent-ca-passphrase option but not both.',
                                metavar='')
 
         cmd_setup.add_argument('--agent-ca-passphrase',
                                help='Agent CA certificate private key passphrase in ascii text.\n' \
-                               'Users can use this option to provide the passphrase or use the --agent-ca-passphrase-file option but not both.',
+                               'Use this option to provide the passphrase or use the\n' \
+                               '--agent-ca-passphrase-file option but not both.',
                                metavar='')
 
         subj = EdgeDefault.certificate_subject_dict()
@@ -295,8 +316,8 @@ class EdgeCLI(object):
                                'Default: \'{0}\''.format(subj[EC.SUBJECT_ORGANIZATION_UNIT_KEY]), metavar='')
 
         cmd_setup.add_argument('-CN', '--common-name',
-                               help='Common name used for the Device CA certificate.' \
-                               'This parameter is used when autogenerating certificates. Optional.\n'
+                               help='Common name used for the Device CA certificate. This parameter is used when autogenerating\n' \
+                               'certificates. Optional.\n' \
                                'Default: \'{0}\'. ' \
                                .format(subj[EC.SUBJECT_COMMON_NAME_KEY]),
                                metavar='')
