@@ -84,10 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return LogAndReturnFailure("Invalid Authorization header. Only SharedAccessSignature is supported.");
             }
 
-            SharedAccessSignature sharedAccessSignature;
             try
             {
-                sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
                 if (sharedAccessSignature.IsExpired())
                 {
                     return LogAndReturnFailure("SharedAccessSignature is expired");
@@ -104,7 +103,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             }
             string moduleId = moduleIds.First();
 
-            string userName = $"{this.iotHubName}/{moduleId}";
+            if (!context.Request.Query.TryGetValue("api-version", out StringValues apiVersions) || apiVersions.Count == 0)
+            {
+                return LogAndReturnFailure("Query string does not contain api-version");
+            }
+            string apiVersion = apiVersions.First();
+
+            string userName = $"{this.iotHubName}/{moduleId}/api-version={apiVersion}";
             Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(userName, authHeader);
             if (!identityTry.Success)
             {
