@@ -157,8 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     string id = routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                         ? $"{deviceId}/{moduleId}"
                         : deviceId;
-                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id)
-                        .Filter(c => c.IsActive);
+                    Util.Option<ICloudProxy> cloudProxy = this.cloudEndpoint.cloudProxyGetterFunc(id);                        
                     if(!cloudProxy.HasValue)
                     {
                         Events.IoTHubNotConnected(id);

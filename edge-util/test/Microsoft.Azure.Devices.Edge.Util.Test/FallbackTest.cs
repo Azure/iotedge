@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -14,40 +15,48 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public async Task FallbackInvokesPrimaryNotSecondary()
         {
             bool secondary = false;
-            int result = await Fallback.ExecuteAsync(
+            Try<int> result = await Fallback.ExecuteAsync(
                 () => Task.FromResult(1),
                 () => { secondary = true; return Task.FromResult(2); });
-            Assert.Equal(1, result);
+            Assert.True(result.Success);
+            Assert.Equal(1, result.Value);
             Assert.False(secondary);
         }
 
         [Fact]
         public async Task FallbackInvokesSecondaryIfPrimaryThrows()
         {
-            int result = await Fallback.ExecuteAsync(
+            Try<int> result = await Fallback.ExecuteAsync(
                 () => throw new Exception(),
                 () => Task.FromResult(2));
-            Assert.Equal(2, result);
+            Assert.True(result.Success);
+            Assert.Equal(2, result.Value);
         }
 
-        class SecondaryException : Exception { }
-
         [Fact]
-        public async Task FallbackThrowsIfSecondaryThrows()
+        public async Task FallbackFailsIfPrimaryAndSecondaryThrow()
         {
-            Func<Task> test = async () => await Fallback.ExecuteAsync<int>(
-                () => throw new Exception(),
-                () => throw new SecondaryException());
-            await Assert.ThrowsAsync<SecondaryException>(test);
+            var exception1 = new Exception();
+            var exception2 = new SecondaryException();
+            Try<int> result = await Fallback.ExecuteAsync<int>(
+                () => throw exception1,
+                () => throw exception2);
+            Assert.False(result.Success);
+            Assert.IsType<AggregateException>(result.Exception);
+            var aggregateException = result.Exception as AggregateException;
+            Assert.NotNull(aggregateException);
+            Assert.NotNull(aggregateException.InnerExceptions);
+            Assert.Equal(2, aggregateException.InnerExceptions.Count);
+            Assert.True(aggregateException.InnerExceptions.Contains(exception1));
+            Assert.True(aggregateException.InnerExceptions.Contains(exception2));
         }
 
         [Fact]
         public async Task FallbackThrowsIfPrimaryThrowsFatalException()
         {
-            Func<Task> test = async () => await Fallback.ExecuteAsync(
+            await Assert.ThrowsAsync<OutOfMemoryException>(() => Fallback.ExecuteAsync(
                 () => throw new OutOfMemoryException(),
-                () => Task.FromResult(2));
-            await Assert.ThrowsAsync<OutOfMemoryException>(test);
+                () => Task.FromResult(2)));
         }
 
         [Fact]
@@ -63,37 +72,56 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 () => { ++touched; throw new Exception(); },
                 () => { ++touched; return Task.CompletedTask; });
             Assert.Equal(3, touched);
-        }
 
-        [Fact]
-        public async Task FallbackSignalsIfPrimaryThrows()
-        {
-            int signaled = 0;
-            await Fallback.ExecuteAsync(
+            Try<bool> result = await Fallback.ExecuteAsync(
                 () => throw new Exception(),
-                () => Task.CompletedTask,
-                ex => ++signaled);
-            Assert.Equal(1, signaled);
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => { ++touched; return Task.CompletedTask; },
+                () => throw new Exception(),
+                () => { ++touched; return Task.CompletedTask; });
+            Assert.True(result.Success);
+            Assert.True(result.Value);
+            Assert.Equal(4, touched);
         }
 
         [Fact]
-        public async Task FallbackSignalsIfSecondaryThrows()
+        public async Task FallbackAcceptsMultipleOptions()
         {
-            int signaled = 0;
-
-            try
-            {
-                await Fallback.ExecuteAsync(
-                    () => throw new Exception(),
-                    () => throw new Exception(),
-                    ex => ++signaled);
-            }
-            catch
-            {
-                // ignored
-            }
-
-            Assert.Equal(2, signaled);
+            Try<int> result = await Fallback.ExecuteAsync(
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => throw new Exception(),
+                () => Task.FromResult(2));
+            Assert.True(result.Success);
+            Assert.Equal(2, result.Value);
         }
+
+        [Fact]
+        public async Task FallbackFailsIfMultipleOptionsAllThrow()
+        {
+            var exception1 = new InvalidOperationException();
+            var exception2 = new ArgumentException();
+            var exception3 = new IOException();
+            Try<bool> result = await Fallback.ExecuteAsync(
+                () => throw exception1,
+                () => throw exception2,
+                () => throw exception3);
+            Assert.False(result.Success);
+            Assert.IsType<AggregateException>(result.Exception);
+            var aggregateException = result.Exception as AggregateException;
+            Assert.NotNull(aggregateException);
+            Assert.NotNull(aggregateException.InnerExceptions);
+            Assert.Equal(3, aggregateException.InnerExceptions.Count);
+            Assert.True(aggregateException.InnerExceptions.Contains(exception1));
+            Assert.True(aggregateException.InnerExceptions.Contains(exception2));
+            Assert.True(aggregateException.InnerExceptions.Contains(exception3));
+        }
+
+        class SecondaryException : Exception { }
     }
 }

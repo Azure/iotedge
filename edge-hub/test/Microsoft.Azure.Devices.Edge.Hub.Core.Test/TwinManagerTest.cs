@@ -1069,7 +1069,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
 
             // Act - trigger callback
             twinManager.ConnectionEstablishedCallback(null, identity);
@@ -1134,7 +1134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(cached.SubscribedToDesiredPropertyUpdates, true);
 
             // Arrange
-            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
 
             twin = new Twin();
             twin.Version = 33;
@@ -1192,7 +1192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 })
                 .Returns(Task.CompletedTask);
 
-            var identity = new DeviceIdentity("blah", deviceId, "blah", AuthenticationScope.DeviceKey, "blah", "blah", "blah");
+            var identity = Mock.Of<IIdentity>(i => i.Id == "blah");
 
             // Act - cache the twin so that the twin is in the cache but there are no
             // reported properties cached. Then trigger callback

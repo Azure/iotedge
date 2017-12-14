@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -382,10 +381,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<IMessage>())).Callback<IMessage>(m => iotHub.ReceivedMessages.Add(m)).Returns(Task.CompletedTask);
             cloudProxy.SetupGet(c => c.IsActive).Returns(true);
+            var cloudConnection = Mock.Of<ICloudConnection>(c => c.IsActive && c.CloudProxy == Option.Some(cloudProxy.Object));
 
-            var cloudProxyProvider = new Mock<ICloudProxyProvider>();
-            cloudProxyProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<ConnectionStatus, ConnectionStatusChangeReason>>())).ReturnsAsync(Try.Success(cloudProxy.Object));
-            IConnectionManager connectionManager = new ConnectionManager(cloudProxyProvider.Object);
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<CloudConnectionStatus>>())).ReturnsAsync(Try.Success(cloudConnection));
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
@@ -535,7 +535,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             AuthenticationScope.SasToken,
             null,
             "",
-            "");
+            "",
+            Option.None<string>());
 
         static IModuleIdentity SetupModuleIdentity(string moduleId, string deviceId) => new ModuleIdentity(
             "",
@@ -545,6 +546,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             AuthenticationScope.SasToken,
             null,
             "",
-            "");
+            "",
+            Option.None<string>());
     }
 }

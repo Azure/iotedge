@@ -4,15 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface ICloudProxyProvider
+    public interface ICloudConnectionProvider
     {
         /// <summary>
-        /// Connect sets up the CloudProxy
+        /// Connect sets up the connection to the cloud
         /// </summary>
-        Task<Try<ICloudProxy>> Connect(IIdentity identity, Action<ConnectionStatus, ConnectionStatusChangeReason> connectionStatusChangedHandler);
+        Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<CloudConnectionStatus> connectionStatusChangedHandler);
     }
 }

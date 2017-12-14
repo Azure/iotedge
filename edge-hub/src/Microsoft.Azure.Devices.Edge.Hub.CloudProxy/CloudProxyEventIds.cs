@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     public static class CloudProxyEventIds
@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         const int EventIdStart = 3000;
         public const int CloudProxy = EventIdStart;
         public const int CloudReceiver = EventIdStart + 100;
-        public const int CloudProxyProvider = EventIdStart + 200;
+        public const int CloudConnectionProvider = EventIdStart + 200;
+        public const int CloudConnection = EventIdStart + 300;
     }
 }

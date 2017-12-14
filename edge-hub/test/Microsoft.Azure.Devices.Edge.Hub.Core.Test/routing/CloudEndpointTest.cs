@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Fact]
         public void CloudEndpoint_MembersTest()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();            
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var cloudProxy = Mock.Of<ICloudProxy>();
             string cloudEndpointId = Guid.NewGuid().ToString();
 
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudProxy = Mock.Of<ICloudProxy>(c => c.IsActive);
             string cloudEndpointId = Guid.NewGuid().ToString();
 
-            Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> {{"connectionDeviceId", "myConnectionDeviceId"}});
+            Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> { { "connectionDeviceId", "myConnectionDeviceId" } });
             Mock.Get(cloudProxy).Setup(cp => cp.SendMessageAsync(It.IsAny<IMessage>())).Returns(Task.FromResult(true));
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Option.Some(cloudProxy), routingMessageConverter);
 

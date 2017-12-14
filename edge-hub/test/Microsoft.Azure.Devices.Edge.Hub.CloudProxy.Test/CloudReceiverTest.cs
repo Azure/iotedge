@@ -2,8 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
-    using System;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -27,18 +25,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var cloudListener = new Mock<ICloudListener>();
             cloudListener.Setup(p => p.CallMethodAsync(It.IsAny<DirectMethodRequest>())).Returns(Task.FromResult(new DirectMethodResponse(RequestId, Data, StatusCode)));
             var messageConverter = new Mock<IMessageConverterProvider>();
-            var identity = new Mock<IIdentity>();
+            var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
 
-            string key = Convert.ToBase64String(Encoding.UTF8.GetBytes("token"));
-            DeviceClient deviceClient = DeviceClient.Create("127.0.0.1", new DeviceAuthenticationWithRegistrySymmetricKey("device1", key));
-
-            var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Object, (s, r) => { });
+            var deviceClient = Mock.Of<IDeviceClient>();
+            var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Id, (s) => { });
 
             var cloudReceiver = new CloudProxy.CloudReceiver(cloudProxy, cloudListener.Object);
 
             MethodResponse methodResponse = await cloudReceiver.MethodCallHandler(new MethodRequest(MethodName, Data), null);
             cloudListener.Verify(p => p.CallMethodAsync(It.Is<DirectMethodRequest>(x => x.Name == MethodName && x.Data == Data)), Times.Once);
             Assert.NotNull(methodResponse);
-        }        
+        }
     }
 }

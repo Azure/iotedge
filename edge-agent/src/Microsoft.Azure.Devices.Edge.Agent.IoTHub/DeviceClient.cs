@@ -56,11 +56,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     async () =>
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
-                        // so we'll do it explicitly until we can get the SDK sorted out.
-                        await Fallback.ExecuteAsync(
+                        // so we'll do it explicitly until we can get the SDK sorted out.                        
+                        Try<bool> result = await Fallback.ExecuteAsync(
                             () => this.CreateAndOpenDeviceClient(TransportType.Amqp_Tcp_Only, statusChangedHandler),
-                            () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler),
-                            Events.DeviceConnectionError);
+                            () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler));
+                        if (!result.Success)
+                        {
+                            Events.DeviceConnectionError(result.Exception);
+                            throw result.Exception;
+                        }
                         await this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
                         await this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
                     },

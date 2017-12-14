@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         public void GetIdentityTest()
-        {            
+        {
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "foobar";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
@@ -75,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(connectionString1, identityTry1.Value.ConnectionString);
             Assert.Equal("device1", identityTry1.Value.Id);
             Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry1.Value.ProductInfo);
+            Assert.Equal(iothubHostName, (identityTry1.Value as DeviceIdentity)?.IotHubHostName);
 
             string username2 = "edgeHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2";
             string connectionString2 = $"HostName={iothubHostName};DeviceId=device1;ModuleId=module1;SharedAccessSignature={sasToken}";
@@ -84,30 +85,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(connectionString2, identityTry2.Value.ConnectionString);
             Assert.Equal("device1/module1", identityTry2.Value.Id);
             Assert.Equal($"{callerProductInfo} customDeviceClient2", identityTry2.Value.ProductInfo);
+            Assert.Equal(iothubHostName, (identityTry2.Value as ModuleIdentity)?.IotHubHostName);
         }
 
         [Fact]
         public void ParseUserNameTest()
         {
             string username1 = "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1";
-            (string iothubHostName1, string deviceId1, string moduleId1, string deviceClientType1, bool isModuleIdentity1) = IdentityFactory.ParseUserName(username1);
-            Assert.Equal("iotHub1", iothubHostName1);
+            (string deviceId1, string moduleId1, string deviceClientType1, bool isModuleIdentity1) = IdentityFactory.ParseUserName(username1);
             Assert.Equal("device1", deviceId1);
             Assert.Equal(string.Empty, moduleId1);
             Assert.Equal("customDeviceClient1", deviceClientType1);
             Assert.False(isModuleIdentity1);
 
             string username2 = "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2";
-            (string iothubHostName2, string deviceId2, string moduleId2, string deviceClientType2, bool isModuleIdentity2) = IdentityFactory.ParseUserName(username2);
-            Assert.Equal("iotHub1", iothubHostName2);
+            (string deviceId2, string moduleId2, string deviceClientType2, bool isModuleIdentity2) = IdentityFactory.ParseUserName(username2);
             Assert.Equal("device1", deviceId2);
             Assert.Equal("module1", moduleId2);
             Assert.Equal("customDeviceClient2", deviceClientType2);
             Assert.True(isModuleIdentity2);
 
             string username3 = "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-            (string iothubHostName3, string deviceId3, string moduleId3, string deviceClientType3, bool isModuleIdentity3) = IdentityFactory.ParseUserName(username3);
-            Assert.Equal("iotHub1", iothubHostName3);
+            (string deviceId3, string moduleId3, string deviceClientType3, bool isModuleIdentity3) = IdentityFactory.ParseUserName(username3);
             Assert.Equal("device1", deviceId3);
             Assert.Equal("module1", moduleId3);
             Assert.Equal("Microsoft.Azure.Devices.Client/1.5.1-preview-003", deviceClientType3);

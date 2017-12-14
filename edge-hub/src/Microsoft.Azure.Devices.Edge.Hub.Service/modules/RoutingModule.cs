@@ -131,13 +131,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Core.IMessageConverterProvider>()
                 .SingleInstance();
 
-            // ICloudProxyProvider
-            builder.Register(c => new CloudProxyProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, !this.isStoreAndForwardEnabled))
-                .As<ICloudProxyProvider>()
+            // IDeviceClientProvider
+            builder.Register(c => new DeviceClientProvider())
+                .As<IDeviceClientProvider>()
+                .SingleInstance();
+
+            // ICloudConnectionProvider
+            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IDeviceClientProvider>()))
+                .As<ICloudConnectionProvider>()
                 .SingleInstance();
 
             // IConnectionManager
-            builder.Register(c => new ConnectionManager(c.Resolve<ICloudProxyProvider>()))
+            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>()))
                 .As<IConnectionManager>()
                 .SingleInstance();
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     /// </summary>
     public interface ICloudProxy
     {
+        bool IsActive { get; }
+
         Task<bool> CloseAsync();
 
         Task SendMessageAsync(IMessage message);
@@ -29,8 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         Task<IMessage> GetTwinAsync();
 
         void BindCloudListener(ICloudListener cloudListener);
-
-        bool IsActive { get; }
 
         Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus);
 

@@ -17,8 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             AuthenticationScope scope,
             string policyName,
             string secret,
-            string productInfo)
-            : base(iotHubHostName, connectionString, scope, policyName, secret, productInfo)
+            string productInfo,
+            Option<string> token)
+            : base(iotHubHostName, connectionString, scope, policyName, secret, productInfo, token)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.asString = new Lazy<string>(

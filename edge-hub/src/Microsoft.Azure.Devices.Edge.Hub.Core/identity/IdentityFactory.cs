@@ -35,18 +35,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
             try
             {
-                (string iothubHostName, string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
+                (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
                 if (isModuleIdentity)
                 {
                     string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
                     string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-                    return new ModuleIdentity(iothubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo);
+                    return new ModuleIdentity(this.iotHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
                 }
                 else
                 {
                     string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
                     string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-                    return new DeviceIdentity(iothubHostName, deviceId, connectionString, scope, policyName, secret, productInfo);
+                    return new DeviceIdentity(this.iotHubHostName, deviceId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
                 }
             }
             catch (Exception ex)
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             }
         }
 
-        internal static (string iothubHostName, string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) ParseUserName(string username)
+        internal static (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) ParseUserName(string username)
         {
             // Username is of the form:
             //   username   = iothubHostname "/" deviceId "/" [moduleId "/"] properties
@@ -69,11 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
             if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
             {
-                return (usernameSegments[0], usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]), false);
+                return (usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]), false);
             }
             else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
             {
-                return (usernameSegments[0], usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]), true);
+                return (usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]), true);
             }
             // The Azure ML container is using an older client that returns a device client with the following format -
             // username = iothubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
             {
                 string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-                return (usernameSegments[0], usernameSegments[1], usernameSegments[2], deviceClientType, true);
+                return (usernameSegments[1], usernameSegments[2], deviceClientType, true);
             }
             else
             {
@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
                 (AuthenticationScope scope, string policyName, string secret) parsedResult = GetConnectionStringAuthDetails(iotHubConnectionStringBuilder);
                 IIdentity identity = string.IsNullOrWhiteSpace(iotHubConnectionStringBuilder.ModuleId)
-                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo)
-                    : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo) as IIdentity;
+                    ? new DeviceIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo, Option.None<string>()) as IIdentity
+                    : new ModuleIdentity(iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, connectionString, parsedResult.scope, parsedResult.policyName, parsedResult.secret, this.callerProductInfo, Option.None<string>());
                 return Try.Success(identity);
             }
             catch (Exception ex)
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         static (AuthenticationScope scope, string policyName, string secret) GetConnectionStringAuthDetails(IotHubConnectionStringBuilder iotHubConnectionStringBuilder)
         {
-            switch(iotHubConnectionStringBuilder.AuthenticationMethod)
+            switch (iotHubConnectionStringBuilder.AuthenticationMethod)
             {
                 case DeviceAuthenticationWithToken auth:
                     return (AuthenticationScope.SasToken, null, auth.Token);

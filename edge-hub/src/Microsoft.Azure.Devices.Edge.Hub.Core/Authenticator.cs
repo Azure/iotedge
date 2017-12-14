@@ -27,8 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // If 'identity' represents an Edge module then its device id MUST match the authenticator's
             // 'edgeDeviceId'. In other words the authenticator for one edge device cannot authenticate
             // modules belonging to a different edge device.
-            var moduleIdentity = identity as IModuleIdentity;
-            if (moduleIdentity != null && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
+            if (identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
                 Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
                 return false;
