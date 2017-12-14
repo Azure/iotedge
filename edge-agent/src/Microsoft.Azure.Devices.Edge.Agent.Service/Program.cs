@@ -26,92 +26,128 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static int Main()
         {
-            IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(ConfigFileName)
-                .AddEnvironmentVariables()
-                .Build();
-
             try
             {
+                IConfigurationRoot configuration = new ConfigurationBuilder()
+                    .AddJsonFile(ConfigFileName)
+                    .AddEnvironmentVariables()
+                    .Build();
+
                 return MainAsync(configuration).Result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.Error.WriteLine(ex);
                 return 1;
             }
         }
 
         public static async Task<int> MainAsync(IConfiguration configuration)
         {
-            string dockerUriConfig = configuration.GetValue<string>("DockerUri");
-            string configSourceConfig = configuration.GetValue<string>("ConfigSource");
             string dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
             Dictionary<string, string> dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
-            string backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
-            int maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
-            TimeSpan intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
-            int coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
 
-            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);
-
-            bool usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
-            string storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
-
-            // build the logger instance for the Program type
-            var loggerBuilder = new ContainerBuilder();
-            loggerBuilder.RegisterModule(new LoggingModule(Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),
-                Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))));
-            var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
-            ILogger logger = loggerFactory.CreateLogger<Program>();
-
-            string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
-            string edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-            IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
-            EdgeHubConnectionString edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
-                .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
-                .SetGatewayHostName(edgeDeviceHostName)
-                .Build();
-
-            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
-            var dockerUri = new Uri(dockerUriConfig);
-            var builder = new ContainerBuilder();
-
-            switch (configSourceConfig.ToLower())
-            {
-                case "iothubconnected":
-                    builder.RegisterModule(new IotHubConnectedModule(
-                        dockerUri, dockerLoggingDriver, dockerLoggingOptions,
-                        edgeHubConnectionDetails, deviceConnectionString,
-                        backupConfigFilePath, maxRestartCount,
-                        intensiveCareTime, coolOffTimeUnitInSeconds,
-                        configuration, usePersistentStorage, storagePath, versionInfo
-                    ));
-                    break;
-                case "standalone":
-                    builder.RegisterModule(new StandaloneModule(
-                        dockerUri, dockerLoggingDriver, dockerLoggingOptions,
-                        "config.json", maxRestartCount, intensiveCareTime,
-                        coolOffTimeUnitInSeconds, configuration,
-                        edgeHubConnectionDetails, deviceConnectionString,
-                        usePersistentStorage, storagePath
-                    ));
-                    break;
-                default:
-                    throw new Exception("ConfigSource not Supported.");
-            }
+            // Bring up the logger before anything else so we can log errors ASAP
+            ILogger logger = SetupLogger(configuration, dockerLoggingDriver, dockerLoggingOptions);
 
             logger.LogInformation("Starting module management agent.");
+
+            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
                 logger.LogInformation($"Version - {versionInfo}");
             }
             LogLogo(logger);
+
+            Uri dockerUri;
+            string configSourceConfig;
+            string backupConfigFilePath;
+            int maxRestartCount;
+            TimeSpan intensiveCareTime;
+            int coolOffTimeUnitInSeconds;
+            bool usePersistentStorage;
+            string storagePath;
+            string deviceConnectionString;
+            string edgeDeviceHostName;
+
+            try
+            {
+                dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
+                configSourceConfig = configuration.GetValue<string>("ConfigSource");
+                backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
+                maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
+                intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
+                coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
+                usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
+                storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
+                deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+                edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error reading the Agent's configuration.");
+                return 1;
+            }
+
+            EdgeHubConnectionString edgeHubConnectionDetails;
+
+            try
+            {
+                IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
+                edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
+                    .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
+                    .SetGatewayHostName(edgeDeviceHostName)
+                    .Build();
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error generating Agent's connection string.");
+                return 1;
+            }
+
+            IContainer container;
+
+            try
+            {
+                var builder = new ContainerBuilder();
+
+                switch (configSourceConfig.ToLower())
+                {
+                    case "iothubconnected":
+                        builder.RegisterModule(new IotHubConnectedModule(
+                            dockerUri, dockerLoggingDriver, dockerLoggingOptions,
+                            edgeHubConnectionDetails, deviceConnectionString,
+                            backupConfigFilePath, maxRestartCount,
+                            intensiveCareTime, coolOffTimeUnitInSeconds,
+                            configuration, usePersistentStorage, storagePath, versionInfo
+                        ));
+                        break;
+                    case "standalone":
+                        builder.RegisterModule(new StandaloneModule(
+                            dockerUri, dockerLoggingDriver, dockerLoggingOptions,
+                            "config.json", maxRestartCount, intensiveCareTime,
+                            coolOffTimeUnitInSeconds, configuration,
+                            edgeHubConnectionDetails, deviceConnectionString,
+                            usePersistentStorage, storagePath
+                        ));
+                        break;
+                    default:
+                        throw new Exception($"ConfigSource '{configSourceConfig}' not supported.");
+                }
+
+                container = builder.Build();
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
+                return 1;
+            }
+
             var cts = new CancellationTokenSource();
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
 
-            IContainer container = GetContainer(builder, logger);
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
             {
@@ -161,6 +197,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return returnCode;
         }
 
+        static ILogger SetupLogger(IConfiguration configuration, string dockerLoggingDriver, Dictionary<string, string> dockerLoggingOptions)
+        {
+            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+            Logger.SetLogLevel(logLevel);
+
+            var loggerBuilder = new ContainerBuilder();
+            loggerBuilder.RegisterModule(
+                new LoggingModule(
+                    Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),
+                    Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))));
+            var loggerFactory = loggerBuilder.Build().Resolve<ILoggerFactory>();
+            ILogger logger = loggerFactory.CreateLogger<Program>();
+
+            return logger;
+        }
+
         private static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
         {
             var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
@@ -172,19 +224,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             catch (Exception ex)
             {
                 logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
-            }
-        }
-
-        static IContainer GetContainer(ContainerBuilder builder, ILogger logger)
-        {
-            try
-            {
-                return builder.Build();
-            }
-            catch (Exception ex)
-            {
-                logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
-                throw;
             }
         }
 
