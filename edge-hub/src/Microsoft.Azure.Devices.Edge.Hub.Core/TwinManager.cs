@@ -86,12 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Refresh local copy of the twin
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(identity.Id);
                 await cloudProxy.ForEachAsync(
-                    async (cp) =>
+                    async cp =>
                     {
                         Events.GetTwinOnEstablished(identity.Id);
                         await this.GetTwinInfoWhenCloudOnlineAsync(identity.Id, cp, true /* send update to device */);
-                    }
-                    );
+                    });
             }
             catch (Exception e)
             {
@@ -382,7 +381,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 using (await this.twinLock.LockAsync())
                 {
                     IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
-                    
+
                     await twinStore.PutOrUpdate(
                             id,
                             newTwinInfo,
@@ -732,8 +731,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ConnectionEstablishedCallbackException(string id, Exception e)
             {
-                Log.LogWarning((int)EventIds.ConnectionEstablishedCallbackException, $"ConnectionEstablished for {id} " +
-                    $"callback hit exception: {e.GetType()} {e.Message}");
+                Log.LogWarning(
+                    (int)EventIds.ConnectionEstablishedCallbackException,
+                    $"Error in connection established callback for client {id} - {e.GetType()} {e.Message}");
             }
 
             public static void MissingTwinOnUpdateReported(string id, Exception e)

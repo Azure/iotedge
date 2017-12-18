@@ -31,7 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task CompleteAsync(string messageId) => this.underlyingDeviceClient.CompleteAsync(messageId);
 
-        public void Dispose() => this.underlyingDeviceClient?.Dispose();
+        public void Dispose()
+        {
+            this.isActive.Set(false);
+            this.underlyingDeviceClient?.Dispose();
+        }
 
         public Task<Twin> GetTwinAsync() => this.underlyingDeviceClient.GetTwinAsync();
 

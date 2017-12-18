@@ -128,6 +128,74 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(getTokenTask.Result, identity2.Token.OrDefault());
         }
 
+        [Fact]
+        [Unit]
+        public async Task CloudConnectionCallbackTest()
+        {
+            int receivedConnectedStatusCount = 0;
+            ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
+
+            IDeviceClient GetMockedDeviceClient()
+            {
+                var deviceClient = new Mock<IDeviceClient>();
+                deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
+                deviceClient.Setup(dc => dc.CloseAsync())
+                    .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
+                    .Returns(Task.FromResult(true));
+
+                deviceClient.Setup(dc => dc.SetConnectionStatusChangesHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+                    .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
+
+                deviceClient.Setup(dc => dc.OpenAsync())
+                    .Callback(() =>
+                    {
+                        int currentCount = receivedConnectedStatusCount;
+                        Assert.NotNull(connectionStatusChangesHandler);
+                        connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+                        Assert.Equal(receivedConnectedStatusCount, currentCount);
+                    })
+                    .Returns(Task.CompletedTask);
+                return deviceClient.Object;
+            }
+
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<string>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+                .Returns(() => GetMockedDeviceClient());
+
+            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+
+            void ConnectionStatusHandler(CloudConnectionStatus status)
+            {
+                if (status == CloudConnectionStatus.ConnectionEstablished)
+                {
+                    receivedConnectedStatusCount++;
+                }
+            }
+
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
+
+            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, deviceClientProvider.Object);
+
+            IIdentity identity1 = GetMockIdentityWithToken();
+            Assert.Equal(receivedConnectedStatusCount, 0);
+            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(identity1);
+            Assert.True(cloudProxy1.IsActive);
+            Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
+            Assert.Equal(receivedConnectedStatusCount, 1);
+
+            connectionStatusChangesHandler?.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            Assert.Equal(receivedConnectedStatusCount, 2);
+
+            IIdentity identity2 = GetMockIdentityWithToken();
+            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(identity2);
+            Assert.True(cloudProxy2.IsActive);
+            Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
+            Assert.Equal(receivedConnectedStatusCount, 3);
+
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            Assert.Equal(receivedConnectedStatusCount, 4);
+        }
+
         static async Task GetCloudConnectionTest(Func<IIdentity> identityGenerator, IDeviceClientProvider deviceClientProvider)
         {
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };

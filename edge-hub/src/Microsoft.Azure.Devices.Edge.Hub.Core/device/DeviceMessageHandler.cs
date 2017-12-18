@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     || !int.TryParse(statusCode, out int statusCodeValue)
                     ? new DirectMethodResponse(correlationId, null, GenericBadRequest)
                     : new DirectMethodResponse(correlationId, message.Body, statusCodeValue);
-                
+
                 Events.MethodResponseReceived(correlationId);
                 taskCompletion.SetResult(directMethodResponse);
             }
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 }
                 else
                 {
-                    taskCompletionSource.SetException(new EdgeHubIOException("Message not completed by Module"));
+                    taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
                 return Task.CompletedTask;
             }
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-		public Task<IMessage> GetTwinAsync() => this.edgeHub.GetTwinAsync(this.Identity.Id);
+        public Task<IMessage> GetTwinAsync() => this.edgeHub.GetTwinAsync(this.Identity.Id);
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
 

@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -115,6 +116,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             Assert.True(setTask.IsCompleted);
             cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
+        }
+
+        public static IEnumerable<object[]> GetSubscriptionTopics()
+        {
+            var theoryData = new List<object[]>();
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix, SessionStatePersistenceProvider.SubscriptionTopic.TwinDesiredProperties });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}/somemorestuff", SessionStatePersistenceProvider.SubscriptionTopic.TwinDesiredProperties });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix}", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, SessionStatePersistenceProvider.SubscriptionTopic.Method });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}/somemorestuff", SessionStatePersistenceProvider.SubscriptionTopic.Method });
+            theoryData.Add(new object[] { $"SomeStartingStuff/{SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix}", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix, SessionStatePersistenceProvider.SubscriptionTopic.C2D });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}/somemorestuff", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix}", SessionStatePersistenceProvider.SubscriptionTopic.C2D });
+
+            theoryData.Add(new object[] { SessionStatePersistenceProvider.TwinResponseTopicFilter, SessionStatePersistenceProvider.SubscriptionTopic.TwinResponse });
+            theoryData.Add(new object[] { $"{SessionStatePersistenceProvider.TwinResponseTopicFilter}/somemorestuff", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { $"devices/device1/{SessionStatePersistenceProvider.TwinResponseTopicFilter}", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+
+            theoryData.Add(new object[] { "devices/device1/modules/module1/#", SessionStatePersistenceProvider.SubscriptionTopic.ModuleMessage });
+            theoryData.Add(new object[] { "devices/device1/modules/module1/", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules//#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices//modules/module1/#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/modules/module1/#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/device1/module1/#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/modules/#", SessionStatePersistenceProvider.SubscriptionTopic.ModuleMessage });
+            theoryData.Add(new object[] { "/devices/device1/modules/module1/#", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+            theoryData.Add(new object[] { "devices/device1/modules/module1", SessionStatePersistenceProvider.SubscriptionTopic.Unknown });
+
+            return theoryData;
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetSubscriptionTopics))]
+        public void GetSubscriptionTopicTest(string topicName, object subscriptionTopicObject)
+        {
+            var subscriptionTopic = (SessionStatePersistenceProvider.SubscriptionTopic)subscriptionTopicObject;
+            Assert.Equal(SessionStatePersistenceProvider.GetSubscriptionTopic(topicName), subscriptionTopic);
         }
     }
 }

@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock tokenUpdateLock = new AsyncLock();
         readonly IDeviceClientProvider deviceClientProvider;
 
+        bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
         Option<ICloudProxy> cloudProxy;
 
@@ -74,10 +75,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             using (await this.identityUpdateLock.LockAsync())
             {
+                // Disable callbacks while we update the cloud proxy.
+                // TODO - instead of this, make convert Option<ICloudProxy> CloudProxy to Task<Option<ICloudProxy>> GetCloudProxy
+                // which can be awaited when an update is in progress.
+                this.callbacksEnabled = false;
                 try
                 {
                     // First check if there is an existing cloud proxy
-                    ICloudProxy proxy = await this.cloudProxy.Map(
+                    (ICloudProxy proxy, bool newProxyCreated) = await this.cloudProxy.Map(
                         async cp =>
                         {
                             // If the identity has a token, and we have a tokenGetter, that means
@@ -91,9 +96,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                     {
                                         tg.SetResult(t);
                                         this.tokenGetter = Option.None<TaskCompletionSource<string>>();
+                                        Events.NewTokenObtained(newIdentity.IotHubHostName, newIdentity.Id, t);
                                     });
                                 });
-                                return cp;
+                                return (cp, false);
                             }
                             // Else this is a new connection for the same device Id. So open a new connection,
                             // and if that is successful, close the existing one.
@@ -101,17 +107,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             {
                                 ICloudProxy newCloudProxy = await this.GetCloudProxyAsync(newIdentity);
                                 await cp.CloseAsync();
-                                return newCloudProxy;
+                                return (newCloudProxy, true);
                             }
                         })
                         // No existing cloud proxy, so just create a new one.
-                        .GetOrElse(() => this.GetCloudProxyAsync(newIdentity));
+                        .GetOrElse(async () => (await this.GetCloudProxyAsync(newIdentity), true));
 
                     // Set identity only after successfully opening cloud proxy
                     // That way, if a we have one existing connection for a deviceA,
                     // and a new connection for deviceA comes in with an invalid key/token,
                     // the existing connection is not affected.
                     this.cloudProxy = Option.Some(proxy);
+                    // Callbacks are disabled when updating identities, so explicitly invoke the
+                    // connection status changed handler callback. 
+                    if (newProxyCreated)
+                    {
+                        this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.ConnectionEstablished);
+                    }
                     Events.UpdatedCloudConnection(newIdentity);
                     return proxy;
                 }
@@ -119,6 +131,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     Events.CreateException(ex, newIdentity);
                     throw;
+                }
+                finally
+                {
+                    this.callbacksEnabled = true;
                 }
             }
         }
@@ -185,17 +201,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         void InternalConnectionStatusChangesHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
-            if (status == ConnectionStatus.Connected)
+            // Don't invoke the callbacks if callbacks are not enabled, i.e. when the
+            // cloudProxy is being updated. That is because this method can be called before
+            // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
+            if (this.callbacksEnabled)
             {
-                this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.ConnectionEstablished);
-            }
-            else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
-            {
-                this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.DisconnectedTokenExpired);
-            }
-            else
-            {
-                this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.Disconnected);
+                if (status == ConnectionStatus.Connected)
+                {
+                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.ConnectionEstablished);
+                }
+                else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+                {
+                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.DisconnectedTokenExpired);
+                }
+                else
+                {
+                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.Disconnected);
+                }
             }
         }
 
@@ -214,22 +236,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return currentToken;
             }
 
-            Events.SafeCreateNewToken(id);
-            using (await this.tokenUpdateLock.LockAsync())
-            {
-                TaskCompletionSource<string> tcs = this.tokenGetter
-                    .GetOrElse(
-                        () =>
-                        {
-                            var taskCompletionSource = new TaskCompletionSource<string>();
-                            this.tokenGetter = Option.Some(taskCompletionSource);
-                            this.connectionStatusChangedHandler(CloudConnectionStatus.TokenNearExpiry);
-                            return taskCompletionSource;
-                        });
-                string newToken = await tcs.Task;
-                Events.NewTokenObtained(iotHub, id, newToken);
-                return newToken;
-            }
+            // No need to lock here as the lock is being held by the refresher.
+            TaskCompletionSource<string> tcs = this.tokenGetter
+                .GetOrElse(
+                    () =>
+                    {
+                        Events.SafeCreateNewToken(id);
+                        var taskCompletionSource = new TaskCompletionSource<string>();
+                        this.tokenGetter = Option.Some(taskCompletionSource);
+                        this.connectionStatusChangedHandler(CloudConnectionStatus.TokenNearExpiry);
+                        return taskCompletionSource;
+                    });
+            string newToken = await tcs.Task;
+            return newToken;
         }
 
 
@@ -259,9 +278,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             protected override async Task<string> SafeCreateNewToken(string iotHub, int suggestedTimeToLive)
             {
-                // No need to lock here as GetNewToken is thread safe
-                this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token);
-                return this.token;
+                using (await this.cloudConnection.tokenUpdateLock.LockAsync())
+                {
+                    this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token);
+                    return this.token;
+                }
             }
         }
 
@@ -279,9 +300,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             protected override async Task<string> SafeCreateNewToken(string iotHub, int suggestedTimeToLive)
             {
-                // No need to lock here as GetNewToken is thread safe
-                this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token);
-                return this.token;
+                using (await this.cloudConnection.tokenUpdateLock.LockAsync())
+                {
+                    this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token);
+                    return this.token;
+                }
             }
         }
 
@@ -325,17 +348,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void GetNewToken(string id)
             {
-                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Getting new token for {id}."));
+                Log.LogDebug((int)EventIds.CreateNewToken, Invariant($"Getting new token for {id}."));
             }
 
             internal static void UsingExistingToken(string id)
             {
-                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Existing token found for {id}."));
+                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"New token requested by client {id}, but using existing token as it is usable."));
             }
 
             internal static void SafeCreateNewToken(string id)
             {
-                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Existing token not found for {id}. Getting new token from the connected client..."));
+                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Existing token not found for {id}. Getting new token from the client..."));
             }
 
             internal static void CreateException(Exception ex, IIdentity identity)

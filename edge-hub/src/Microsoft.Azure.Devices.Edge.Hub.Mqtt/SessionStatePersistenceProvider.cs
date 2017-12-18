@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System.Collections.Generic;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         internal const string MethodSubscriptionTopicPrefix = @"$iothub/methods/POST/";
         internal const string TwinSubscriptionTopicPrefix = @"$iothub/twin/PATCH/properties/desired/";
         internal const string TwinResponseTopicFilter = "$iothub/twin/res/#";
+        static readonly Regex ModuleMessageTopicRegex = new Regex("^devices/.+/modules/.+/#$");
 
         readonly IConnectionManager connectionManager;
 
@@ -51,44 +53,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     string topicName = subscriptionRegistration.Key;
                     bool addSubscription = subscriptionRegistration.Value;
 
-                    if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
+                    switch (GetSubscriptionTopic(topicName))
                     {
-                        if (addSubscription)
-                        {
-                            await cp.SetupCallMethodAsync();
-                        }
-                        else
-                        {
-                            await cp.RemoveCallMethodAsync();
-                        }
-                    }
-                    else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
-                    {
-                        if (addSubscription)
-                        {
-                            await cp.SetupDesiredPropertyUpdatesAsync();
-                        }
-                        else
-                        {
-                            await cp.RemoveDesiredPropertyUpdatesAsync();
-                        }
-                    }
-                    else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
-                    {
-                        if (addSubscription)
-                        {
-                            cp.StartListening();
-                        }
-                        // No way to stop listening to C2D messages right now.
-                    }
-                    else
-                    {
-                        // Twin response topic filter is expected, and no action is necessary
-                        // Log any other unknown subscription.
-                        if (!topicName.Equals(TwinResponseTopicFilter))
-                        {
+                        case SubscriptionTopic.Method:
+                            if (addSubscription)
+                            {
+                                await cp.SetupCallMethodAsync();
+                            }
+                            else
+                            {
+                                await cp.RemoveCallMethodAsync();
+                            }
+                            break;
+
+                        case SubscriptionTopic.TwinDesiredProperties:
+                            if (addSubscription)
+                            {
+                                await cp.SetupDesiredPropertyUpdatesAsync();
+                            }
+                            else
+                            {
+                                await cp.RemoveDesiredPropertyUpdatesAsync();
+                            }
+                            break;
+
+                        case SubscriptionTopic.C2D:
+                            if (addSubscription)
+                            {
+                                cp.StartListening();
+                            }
+                            // No way to stop listening to C2D messages right now.
+                            break;
+
+                        case SubscriptionTopic.TwinResponse:
+                            // No action required
+                            break;
+
+                        case SubscriptionTopic.ModuleMessage:
+                            // No action required
+                            break;
+
+                        default:
                             Events.UnknownTopicSubscription(topicName);
-                        }
+                            break;
                     }
                 }
 
@@ -96,7 +103,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             });
         }
 
+
         public Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
+
+        internal static SubscriptionTopic GetSubscriptionTopic(string topicName)
+        {
+            if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
+            {
+                return SubscriptionTopic.Method;
+            }
+            else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
+            {
+                return SubscriptionTopic.TwinDesiredProperties;
+            }
+            else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
+            {
+                return SubscriptionTopic.C2D;
+            }
+            else if (topicName.Equals(TwinResponseTopicFilter))
+            {
+                return SubscriptionTopic.TwinResponse;
+            }
+            else if (ModuleMessageTopicRegex.IsMatch(topicName))
+            {
+                return SubscriptionTopic.ModuleMessage;
+            }
+            else
+            {
+                return SubscriptionTopic.Unknown;
+            }
+        }
+
+        internal enum SubscriptionTopic
+        {
+            Method,
+            TwinDesiredProperties,
+            C2D,
+            TwinResponse,
+            ModuleMessage,
+            Unknown
+        }
 
         static class Events
         {
