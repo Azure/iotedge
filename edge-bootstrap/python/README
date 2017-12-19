@@ -54,32 +54,43 @@ restart, stop, status, update, login and uninstall.
 
 -  **setup**: This command accepts user input to configure the runtime.
    The required configuration files and certificates to operate the IoT
-   Edge are created as part of this step. The IoT Edge can be setup
-   either by using an input configuration file and --config-file) or specify the
-   various configuration options via command line (CLI) arguments. If using the
+   Edge are created as part of this step.
+
+   The IoT Edge can be setup either by using an input configuration file and
+   command line (CLI) argument --config-file or by specifying the
+   various configuration values via the *setup* CLI arguments. If using the
    --config-file argument, all other CLI arguments will be ignored.
-   The 'setup' command, may need to run with admin (sudo) privileges. One resulting
-   output of this command is a configuration file generated in JSON format.
-   The directory where this file is generated is configurable and if
+
+   The 'setup' command, may need to run with admin (sudo) privileges. One
+   resulting output of this command is a configuration file generated in JSON
+   format. The directory where this file is generated is configurable and if
    unspecified, default paths (see below) will be used.
+
    There are 3 ways the Edge config directory is set, here they are in the order
    of precedence:
-   1) Environment variable EDGECONFIGDIR - When using this, an absolute path
-   to a directory on the host must be specified as the value of this variable.
-   2) iotedgectl CLI options to specify a directory path.
-      2a) --config-file: Configure the input JSON file as described in this document below.
-      2b) --edge-config-dir:  When using this option, an absolute path
-                              to a directory on the host must be specified.
-      Note: If both the environment variable and either CLI option is specified,
-      the environment variable will take precedence and the CLI option will be ignored.
-   3) If none of the above are set, the following default paths will be chosen:
-::
 
-    Default IoT Edge Configuration Host Paths:
-    ----------------------------------
-        Linux:   /etc/azure-iot-edge
-        Windows: %PROGRAMDATA%\azure-iot-edge\config
-        MacOS:   /etc/azure-iot-edge
+    1. Environment variable **EDGECONFIGDIR** - When using this, an absolute
+       path to a directory on the host must be specified as the value of this
+       variable.
+
+    2. iotedgectl CLI options to specify a directory path.
+
+     * --config-file: Configure the input JSON config file with the directory path as described in this document below.
+
+     * --edge-config-dir: When using this option, an absolute path to a directory on the host must be specified.
+
+     *Note*: If both the environment variable and either CLI option is specified,
+     the environment variable will take precedence and the CLI option will be ignored.
+
+    3. If none of the above are set, the following default paths will be chosen:
+
+     ::
+
+        Default IoT Edge Configuration Host Paths:
+        ------------------------------------------
+            Linux:   /etc/azure-iot-edge
+            Windows: %PROGRAMDATA%\azure-iot-edge\config
+            MacOS:   /etc/azure-iot-edge
 
 
 -  **start**: This command starts the IoT Edge runtime. This command downloads
@@ -117,65 +128,66 @@ restart, stop, status, update, login and uninstall.
    active and running, the Edge Agent will be stopped and the existing
    instance will be removed and restarted with the new credentials.
 
-Print Help and Exit
+Here are a few sample command invocations:
 
-::
+* Print Help and Exit
+
+ ::
 
     $> iotedgectl --help
 
-Setup the IoT Edge Runtime using a IoT Edge Host Configuration file.
-Please see the `IoT Edge Host Configuration File
-Description <#edge-host-configuration-file-description>`__
+* Setup the IoT Edge Runtime using a IoT Edge Host Configuration file. Please see the `IoT Edge Host Configuration File Description <#edge-host-configuration-file-description>`__
 
-::
+ ::
 
     $> iotedgectl setup --help
     $> iotedgectl setup --config-file edge_config.json
     $> iotedgectl setup --verbose DEBUG --config-file edge_config.json
     Note: When specifying the homeDir path on Windows please use "C:\\example\\edge-home"
 
-Setup the IoT Edge Runtime using manually specified command line arguments
+* Setup the IoT Edge Runtime using manually specified command line arguments
 
-::
+ ::
 
     $> iotedgectl setup --connection-string "HostName=<>;DeviceId=<>;SharedAccessKey=<>"
     Note: When specifying the connection string ensure that it is surrounded by double quotes ".
     In general, anything with a semicolon should be put into quotes.
 
-Start the IoT Edge Runtime
+* Start the IoT Edge Runtime
 
-::
+ ::
 
     $> iotedgectl start
     $> iotedgectl --verbose INFO start
 
-Restart the IoT Edge Runtime
+* Restart the IoT Edge Runtime
 
-::
+ ::
 
     $> iotedgectl restart
     $> iotedgectl --verbose INFO restart
 
-Stop the IoT Edge Runtime
+* Stop the IoT Edge Runtime
 
-::
+ ::
 
     $> iotedgectl stop
     $> iotedgectl --verbose INFO stop
 
-Uninstall the IoT Edge Runtime
+* Uninstall the IoT Edge Runtime
 
-::
+ ::
 
     $> iotedgectl uninstall
     $> iotedgectl --verbose DEBUG uninstall
 
-Print the current status of the IoT Edge Runtime
+* Print the current status of the IoT Edge Runtime
 
-::
+ ::
 
     $> iotedgectl status
     $> iotedgectl --verbose INFO status
+
 
 IoT Edge Home Directory Description
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,9 +198,7 @@ certificates and module specific files. This is called the *EDGEHOMEDIR*.
 To configure the directory path of the EDGEHOMEDIR, the CLI option
 'iotedgectl setup --edge-home-dir <path>' can be used.
 In case it is unspecified, the default directories listed below will be used
-as the EDGEHOMEDIR. An absolute directory path is required when using the
---config-file option to setup the Edge runtime (see below).
-In both cases, if the directory does not exist, it will be created.
+as the EDGEHOMEDIR:
 
 ::
 
@@ -197,6 +207,10 @@ In both cases, if the directory does not exist, it will be created.
         Linux:   /var/lib/azure-iot-edge
         Windows: %PROGRAMDATA%\azure-iot-edge\data
         MacOS:   /var/lib/azure-iot-edge
+
+When using the --config-file option, an absolute directory path is required to setup the Edge runtime (see below).
+
+*Note*: If the directory does not exist, it will be created.
 
 As the IoT Edge runtime is executed, the following file system structure
 is created under *EDGEHOMEDIR*.
@@ -458,4 +472,3 @@ libraries require development packages not installed by default:
 ::
 
     sudo apt-get install python2.7-dev libffi-dev libssl-dev
-
