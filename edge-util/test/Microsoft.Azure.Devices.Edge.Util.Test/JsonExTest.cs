@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
 
+    [Unit]
     public class JsonExTest
     {
         [Fact]
-        [Unit]
         public void TestStripMetadata()
         {
             // Arrange
@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
-        [Unit]
         public void TestStripMetadata2()
         {
             // Arrange
