@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace TemperatureFilter
 {
@@ -13,6 +14,7 @@ namespace TemperatureFilter
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     class Program
@@ -24,8 +26,14 @@ namespace TemperatureFilter
         static void Main()
         {
             // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
-            string connectionString =
-                Environment.GetEnvironmentVariable("EdgeHubConnectionString");
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/appsettings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
+
             InstallCert();
             Init(connectionString).Wait();
 
