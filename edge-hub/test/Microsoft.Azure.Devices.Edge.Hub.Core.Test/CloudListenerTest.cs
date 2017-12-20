@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 	using System.Text;
 	using System.Threading.Tasks;
 	using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-	using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 	using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 	using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 	using Moq;
@@ -55,7 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 		{
 			var edgeHub = Mock.Of<IEdgeHub>();
 		    var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
-            var deviceProxy = Mock.Of<IDeviceProxy>();
 			string testMethod = "testMethod";
 			var testByteArray = new byte[] { 0x00, 0x01, 0x02 };
 			string id = "1";
