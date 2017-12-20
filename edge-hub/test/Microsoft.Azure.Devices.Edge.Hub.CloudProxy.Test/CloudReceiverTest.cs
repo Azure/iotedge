@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
 
             var deviceClient = Mock.Of<IDeviceClient>();
-            var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Id, (s) => { });
+            var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Id, (id, s) => { });
 
             var cloudReceiver = new CloudProxy.CloudReceiver(cloudProxy, cloudListener.Object);
 

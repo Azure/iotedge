@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            ICloudListener cloudListener = new CloudListener(this, this.edgeHub, this.Identity);
+            ICloudListener cloudListener = new CloudListener(this.edgeHub, this.Identity.Id);
             this.cloudProxy.BindCloudListener(cloudListener);
             // This operation is async, but we cannot await in this sync method.
             // It is fine because the await part of the operation is cleanup and best effort. 

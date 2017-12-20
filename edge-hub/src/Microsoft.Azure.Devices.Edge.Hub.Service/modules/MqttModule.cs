@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -72,17 +73,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register<ISessionStatePersistenceProvider>(
                     c =>
                     {
-                        // TODO - Disable SessionState storage for now. Re-enable it when storage serialization/deserialization is fixed.
-                        //if (this.isStoreAndForwardEnabled)
-                        //{
-                        //    IEntityStore<string, ISessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, ISessionState>(Core.Constants.SessionStorePartitionKey);
-                        //    return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
-                        //}
-                        //else
-                        //{
-                        //    return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
-                        //}
-                        return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
+                        if (this.isStoreAndForwardEnabled)
+                        {
+                            IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
+                            return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
+                        }
+                        else
+                        {
+                            return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
+                        }
                     })
                 .As<ISessionStatePersistenceProvider>()
                 .SingleInstance();

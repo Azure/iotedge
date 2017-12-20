@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         const int TokenExpiryBufferPercentage = 8; // Assuming a standard token for 1 hr, we set expiry time to around 5 mins.
         const uint OperationTimeoutMilliseconds = 1 * 60 * 1000; // 1 min
 
-        readonly Action<CloudConnectionStatus> connectionStatusChangedHandler;
+        readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
         readonly ITransportSettings[] transportSettingsList;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly AsyncLock identityUpdateLock = new AsyncLock();
@@ -36,8 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         bool callbacksEnabled = true;
         Option<TaskCompletionSource<string>> tokenGetter;
         Option<ICloudProxy> cloudProxy;
+        Option<IIdentity> identity;
 
-        public CloudConnection(Action<CloudConnectionStatus> connectionStatusChangedHandler,
+        public CloudConnection(Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
             IDeviceClientProvider deviceClientProvider)
@@ -118,11 +119,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     // and a new connection for deviceA comes in with an invalid key/token,
                     // the existing connection is not affected.
                     this.cloudProxy = Option.Some(proxy);
+                    this.identity = Option.Some(newIdentity);
                     // Callbacks are disabled when updating identities, so explicitly invoke the
                     // connection status changed handler callback. 
                     if (newProxyCreated)
                     {
-                        this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.ConnectionEstablished);
+                        this.connectionStatusChangedHandler?.Invoke(newIdentity.Id, CloudConnectionStatus.ConnectionEstablished);
                     }
                     Events.UpdatedCloudConnection(newIdentity);
                     return proxy;
@@ -188,12 +190,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             if (newIdentity is IModuleIdentity moduleIdentity)
             {
-                var tokenRefresher = new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this);
+                var tokenRefresher = new ModuleTokenRefresher(moduleIdentity.DeviceId, moduleIdentity.ModuleId, token, this, newIdentity);
                 return tokenRefresher;
             }
             else if (newIdentity is IDeviceIdentity deviceIdentity)
             {
-                var tokenRefresher = new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this);
+                var tokenRefresher = new DeviceTokenRefresher(deviceIdentity.DeviceId, token, this, newIdentity);
                 return tokenRefresher;
             }
             throw new InvalidOperationException($"Invalid client identity type {newIdentity.GetType()}");
@@ -206,17 +208,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
             if (this.callbacksEnabled)
             {
+                IIdentity currentIdentity = this.identity.Expect(() => new InvalidOperationException("Identity for cloud connection not found"));
+
                 if (status == ConnectionStatus.Connected)
                 {
-                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.ConnectionEstablished);
+                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.ConnectionEstablished);
                 }
                 else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
                 {
-                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.DisconnectedTokenExpired);
+                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
                 }
                 else
                 {
-                    this.connectionStatusChangedHandler?.Invoke(CloudConnectionStatus.Disconnected);
+                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.Disconnected);
                 }
             }
         }
@@ -227,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// can be completed later.
         /// Note - Don't use this.Identity in this method, as it may not have been set yet!
         /// </summary>
-        async Task<string> GetNewToken(string iotHub, string id, string currentToken)
+        async Task<string> GetNewToken(string iotHub, string id, string currentToken, IIdentity currentIdentity)
         {
             Events.GetNewToken(id);
             if (IsTokenUsable(iotHub, currentToken))
@@ -244,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         Events.SafeCreateNewToken(id);
                         var taskCompletionSource = new TaskCompletionSource<string>();
                         this.tokenGetter = Option.Some(taskCompletionSource);
-                        this.connectionStatusChangedHandler(CloudConnectionStatus.TokenNearExpiry);
+                        this.connectionStatusChangedHandler(currentIdentity.Id, CloudConnectionStatus.TokenNearExpiry);
                         return taskCompletionSource;
                     });
             string newToken = await tcs.Task;
@@ -268,19 +272,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             readonly CloudConnection cloudConnection;
             string token;
+            IIdentity identity;
 
-            public DeviceTokenRefresher(string deviceId, string token, CloudConnection cloudConnection)
+            public DeviceTokenRefresher(string deviceId, string token, CloudConnection cloudConnection, IIdentity identity)
                 : base(deviceId, TokenTimeToLiveSeconds, TokenExpiryBufferPercentage)
             {
                 this.cloudConnection = cloudConnection;
                 this.token = token;
+                this.identity = identity;
             }
 
             protected override async Task<string> SafeCreateNewToken(string iotHub, int suggestedTimeToLive)
             {
                 using (await this.cloudConnection.tokenUpdateLock.LockAsync())
                 {
-                    this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token);
+                    this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token, this.identity);
                     return this.token;
                 }
             }
@@ -290,19 +296,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             readonly CloudConnection cloudConnection;
             string token;
+            IIdentity identity;
 
-            public ModuleTokenRefresher(string deviceId, string moduleId, string token, CloudConnection cloudConnection)
+            public ModuleTokenRefresher(string deviceId, string moduleId, string token, CloudConnection cloudConnection, IIdentity identity)
                 : base(deviceId, moduleId, TokenTimeToLiveSeconds, TokenExpiryBufferPercentage)
             {
                 this.cloudConnection = cloudConnection;
                 this.token = token;
+                this.identity = identity;
             }
 
             protected override async Task<string> SafeCreateNewToken(string iotHub, int suggestedTimeToLive)
             {
                 using (await this.cloudConnection.tokenUpdateLock.LockAsync())
                 {
-                    this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token);
+                    this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token, this.identity);
                     return this.token;
                 }
             }

@@ -115,16 +115,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         await c.CreateOrUpdateAsync(device.Identity);
                         return Try.Success(c);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         return Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Error updating identity for device {device.Identity.Id}", ex));
                     }
                 })
-                .GetOrElse(() => this.cloudConnectionProvider.Connect(device.Identity, (status) => this.CloudConnectionStatusChangedHandler(device, status)));
+                .GetOrElse(() => this.cloudConnectionProvider.Connect(device.Identity, (identity, status) => this.CloudConnectionStatusChangedHandler(identity, status)));
 
-        async void CloudConnectionStatusChangedHandler(ConnectedDevice device,
+        async void CloudConnectionStatusChangedHandler(string deviceId,
             CloudConnectionStatus connectionStatus)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            if (!this.devices.TryGetValue(deviceId, out ConnectedDevice device))
+            {
+                throw new InvalidOperationException($"Device {deviceId} not found in the list of connected devices");
+            }
+
             switch (connectionStatus)
             {
                 case CloudConnectionStatus.TokenNearExpiry:

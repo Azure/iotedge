@@ -18,12 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
 		Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> message);
 
-		Task<DirectMethodResponse> InvokeMethodAsync(IIdentity identity, DirectMethodRequest methodRequest);
+		Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest);
 
 		Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage);
 
 		Task<IMessage> GetTwinAsync(string id);
 
 		Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection);
+
+	    Task SendC2DMessageAsync(string id, IMessage message);
 	}
 }

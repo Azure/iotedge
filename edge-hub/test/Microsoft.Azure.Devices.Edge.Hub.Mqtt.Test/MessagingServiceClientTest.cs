@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     [Unit]
     public class MessagingServiceClientTest
     {
-        static readonly Mock<IIdentity> Identity = new Mock<IIdentity>();
+        static readonly IIdentity MockIdentity = Mock.Of<IIdentity>(i => i.Id == "device1");
         static readonly Mock<IMessagingChannel<IProtocolGatewayMessage>> Channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
         static readonly Mock<IEdgeHub> EdgeHub = new Mock<IEdgeHub>();
         static readonly Mock<IConnectionManager> ConnectionManager = new Mock<IConnectionManager>();
@@ -361,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
+            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter);
 
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
@@ -371,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 });
             cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
 
-            var deviceListner = new DeviceMessageHandler(Identity.Object, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -395,7 +395,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
+            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
                 (mid, status) =>
@@ -403,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     Assert.Equal(FeedbackStatus.Reject, status);
                 });
             cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
-            var deviceListner = new DeviceMessageHandler(Identity.Object, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -427,7 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
+            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
                 (mid, status) =>
@@ -435,7 +435,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     Assert.Equal(FeedbackStatus.Abandon, status);
                 });
             cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
-            var deviceListner = new DeviceMessageHandler(Identity.Object, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -459,7 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, Identity.Object, messageConverter);
+            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.CloseAsync()).Callback(
                 () =>
@@ -467,7 +467,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
                 });
             cloudProxy.Setup(d => d.BindCloudListener(It.IsAny<ICloudListener>()));
-            var deviceListner = new DeviceMessageHandler(Identity.Object, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, ConnectionManager.Object, cloudProxy.Object);
             var messagingServiceClient = new Mqtt.MessagingServiceClient(deviceListner, messageConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))

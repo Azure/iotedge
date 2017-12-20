@@ -51,11 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             return this.router.RouteAsync(routingMessages);
         }
 
-        public Task<DirectMethodResponse> InvokeMethodAsync(IIdentity identity, DirectMethodRequest methodRequest)
+        public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)
         {
             Preconditions.CheckNotNull(methodRequest, nameof(methodRequest));
 
-            Events.MethodCallReceived(identity, methodRequest.Id, methodRequest.CorrelationId);
+            Events.MethodCallReceived(id, methodRequest.Id, methodRequest.CorrelationId);
             Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(methodRequest.Id);
             return deviceProxy.Match(
                 dp => dp.InvokeMethodAsync(methodRequest),
@@ -75,8 +75,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             return Task.WhenAll(cloudSendMessageTask, routingSendMessageTask);
         }
 
+        public Task SendC2DMessageAsync(string id, IMessage message)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Preconditions.CheckNotNull(message, nameof(message));
 
-        private static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
+            Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
+            if (!deviceProxy.HasValue)
+            {
+                Events.UnableToSendC2DMessageNoDeviceConnection(id);
+            }
+
+            return deviceProxy.ForEachAsync(d => d.SendC2DMessageAsync(message));
+        }
+
+        static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
         {
             long messageSize = messageToBeValidated.Size();
             if (messageSize > MaxMessageSize)
@@ -148,11 +161,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 MessageReceived = 1501,
                 ReportedPropertiesUpdateReceived = 1502,
                 DesiredPropertiesUpdateReceived = 1503,
+                DeviceConnectionNotFound
             }
 
-            public static void MethodCallReceived(IIdentity identity, string id, string correlationId)
+            public static void MethodCallReceived(string fromId, string toId, string correlationId)
             {
-                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {identity.Id} for {id} with correlation ID {correlationId}"));
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {fromId} for {toId} with correlation ID {correlationId}"));
             }
 
             internal static void MessageReceived(IIdentity identity)
@@ -173,6 +187,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void UpdateDesiredPropertiesCallReceived(string id)
             {
                 Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
+            }
+
+            public static void UnableToSendC2DMessageNoDeviceConnection(string id)
+            {
+                Log.LogWarning((int)EventIds.DeviceConnectionNotFound, Invariant($"Unable to send C2D message to device {id} as an active device connection was not found."));
             }
         }
     }

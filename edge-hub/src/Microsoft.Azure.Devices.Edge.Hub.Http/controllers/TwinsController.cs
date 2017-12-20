@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity, directMethodRequest);
+            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
             Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
             var methodResult = new MethodResult

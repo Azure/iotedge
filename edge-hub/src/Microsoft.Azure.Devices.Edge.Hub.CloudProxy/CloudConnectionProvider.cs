@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             };
         }
 
-        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<CloudConnectionStatus> connectionStatusChangedHandler)
+        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 

@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var edgeHub = Mock.Of<IEdgeHub>();
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var edgeHub = Mock.Of<IEdgeHub>();
@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var edgeHub = Mock.Of<IEdgeHub>();
@@ -225,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var edgeHub = Mock.Of<IEdgeHub>();

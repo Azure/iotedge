@@ -16,17 +16,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 		[Fact]
 		public async Task TestProcessMessage()
 		{
-			var deviceProxy = new Mock<IDeviceProxy>();
-			var edgeHub = Mock.Of<IEdgeHub>();
-			var identity = Mock.Of<IIdentity>();
+			var edgeHub = new Mock<IEdgeHub>();
+			var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
 
 			IMessage sentMessage = null;
-			deviceProxy.Setup(r => r.SendC2DMessageAsync(It.IsAny<IMessage>()))
+			edgeHub.Setup(r => r.SendC2DMessageAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
 				.Returns(Task.FromResult(true))
-				.Callback<IMessage>(m => sentMessage = m);
+				.Callback<string, IMessage>((id, m) => sentMessage = m);
 
-
-			var cloudListener = new CloudListener(deviceProxy.Object, edgeHub, identity);
+			var cloudListener = new CloudListener(edgeHub.Object, identity.Id);
 
 			var payload = new byte[] { 1, 2, 3 };
 			IMessage message = new Message(payload);
@@ -39,15 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 		public async Task OnDesiredPropertyUpdatesForwardsToEdgeHub()
 		{
 			var edgeHub = new Mock<IEdgeHub>();
-			var identity = Mock.Of<IIdentity>();
-			IMessage actual = null;
-			var deviceProxy = Mock.Of<IDeviceProxy>();
+		    var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
+            IMessage actual = null;
 			edgeHub.Setup(r => r.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
 				.Callback<string, IMessage>((s, m) => actual = m)
 				.Returns(Task.FromResult(true));
 
 			var expected = new Message(Encoding.UTF8.GetBytes("{\"abc\":\"xyz\"}"));
-			var cloudListener = new CloudListener(deviceProxy, edgeHub.Object, identity);
+			var cloudListener = new CloudListener(edgeHub.Object, identity.Id);
 			await cloudListener.OnDesiredPropertyUpdates(expected);
 
 			Assert.Equal(expected, actual);
@@ -57,16 +54,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 		public async Task CallMethodAsync_InvokesDeviceProxy()
 		{
 			var edgeHub = Mock.Of<IEdgeHub>();
-			var identity = Mock.Of<IIdentity>();
-			var deviceProxy = Mock.Of<IDeviceProxy>();
+		    var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
+            var deviceProxy = Mock.Of<IDeviceProxy>();
 			string testMethod = "testMethod";
 			var testByteArray = new byte[] { 0x00, 0x01, 0x02 };
 			string id = "1";
 			var request = new DirectMethodRequest(id, testMethod, testByteArray, TimeSpan.FromSeconds(30));
 
-			var cloudListener = new CloudListener(deviceProxy, edgeHub, identity);
+			var cloudListener = new CloudListener(edgeHub, identity.Id);
 			await cloudListener.CallMethodAsync(request);
-			Mock.Get(deviceProxy).Verify(dp => dp.InvokeMethodAsync(request), Times.Once);
+			Mock.Get(edgeHub).Verify(eh => eh.InvokeMethodAsync(identity.Id, request), Times.Once);
 		}
 	}
 }

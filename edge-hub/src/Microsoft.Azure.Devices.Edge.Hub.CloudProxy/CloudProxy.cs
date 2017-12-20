@@ -21,11 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         readonly IDeviceClient deviceClient;
         readonly IMessageConverterProvider messageConverterProvider;
-        readonly Action<CloudConnectionStatus> connectionStatusChangedHandler;
+        readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
         readonly string clientId;
         CloudReceiver cloudReceiver;
 
-        public CloudProxy(IDeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, string clientId, Action<CloudConnectionStatus> connectionStatusChangedHandler)
+        public CloudProxy(IDeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, string clientId, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 if (ex is UnauthorizedException)
                 {
-                    this.connectionStatusChangedHandler(CloudConnectionStatus.DisconnectedTokenExpired);
+                    this.connectionStatusChangedHandler(this.clientId, CloudConnectionStatus.DisconnectedTokenExpired);
                 }
             }
             catch (Exception e)

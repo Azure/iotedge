@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             });
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(converters, ConnectionPoolSize, new DeviceClientProvider());
             var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
-            Try<ICloudConnection> cloudConnection = await cloudConnectionProvider.Connect(deviceIdentity, s => { });
+            Try<ICloudConnection> cloudConnection = await cloudConnectionProvider.Connect(deviceIdentity, (_, __) => { });
             Assert.True(cloudConnection.Success);
             Assert.True(cloudConnection.Value.IsActive);
             Assert.True(cloudConnection.Value.CloudProxy.HasValue);

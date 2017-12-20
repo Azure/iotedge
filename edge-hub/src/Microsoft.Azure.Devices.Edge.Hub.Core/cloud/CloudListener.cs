@@ -2,28 +2,24 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
-	using System.Threading.Tasks;
-	using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-	using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-	using Microsoft.Azure.Devices.Edge.Util;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
-	class CloudListener : ICloudListener
+    class CloudListener : ICloudListener
 	{
-		readonly IDeviceProxy deviceProxy;
 		readonly IEdgeHub edgeHub;
-		readonly IIdentity identity;
+		readonly string clientId;
 
-		public CloudListener(IDeviceProxy deviceProxy, IEdgeHub edgeHub, IIdentity identity)
+		public CloudListener(IEdgeHub edgeHub, string clientId)
 		{
-			this.deviceProxy = Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
 			this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
-			this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
+			this.clientId = Preconditions.CheckNotNull(clientId, nameof(clientId));
 		}
 
-		public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.deviceProxy.InvokeMethodAsync(request);
+		public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.edgeHub.InvokeMethodAsync(this.clientId, request);
 
-		public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHub.UpdateDesiredPropertiesAsync(this.identity.Id, desiredProperties);
+		public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHub.UpdateDesiredPropertiesAsync(this.clientId, desiredProperties);
 
-		public Task ProcessMessageAsync(IMessage message) => this.deviceProxy.SendC2DMessageAsync(message);
+		public Task ProcessMessageAsync(IMessage message) => this.edgeHub.SendC2DMessageAsync(this.clientId, message);
 	}
 }
