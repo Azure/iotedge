@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -111,6 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             boostrap.Group(parentEventLoopGroup, this.eventLoopGroup)
                 .Option(ChannelOption.SoBacklog, listenBacklogSize)
+                // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
+                // Fixes "address is already in use" errors
+                .Option(ChannelOption.SoReuseaddr, true)
                 .ChildOption(ChannelOption.Allocator, PooledByteBufferAllocator.Default)
                 .ChildOption(ChannelOption.AutoRead, false)
                 // channel that accepts incoming connections
