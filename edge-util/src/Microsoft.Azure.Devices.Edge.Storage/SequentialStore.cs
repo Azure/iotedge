@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize)
         {
-            Preconditions.CheckRange(startingOffset, 0, nameof(startingOffset));
+            Preconditions.CheckRange(startingOffset, this.headOffset, nameof(startingOffset));
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
 
             var batch = new List<(long, T)>();

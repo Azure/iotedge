@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -84,7 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
-            batch = await sequentialStore.GetBatch(0, 100);
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sequentialStore.GetBatch(0, 100));
+
+            batch = await sequentialStore.GetBatch(1, 100);
             IEnumerable<(long offset, Item item)> items = batch as IList<(long offset, Item item)> ?? batch.ToList();
             Assert.Equal(9, items.Count());
             counter = 1;
@@ -94,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
-            batch = await sequentialStore.GetBatch(0, 100);
+            batch = await sequentialStore.GetBatch(1, 100);
             IEnumerable<(long offset, Item item)> batchItems = batch as IList<(long offset, Item item)> ?? batch.ToList();
             Assert.Equal(9, batchItems.Count());
             counter = 1;
@@ -104,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 1));
-            batch = await sequentialStore.GetBatch(0, 100);
+            batch = await sequentialStore.GetBatch(2, 100);
             IEnumerable<(long offset, Item item)> batchAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
             Assert.Equal(8, batchAsList.Count());
             counter = 2;
