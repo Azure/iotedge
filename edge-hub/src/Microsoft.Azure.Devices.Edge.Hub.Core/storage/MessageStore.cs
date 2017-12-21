@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             try
             {
                 long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
-                Events.MessageAdded(offset, edgeMessageId, endpointId, messageCount);
+                Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
                 return offset;
             }
             catch(Exception)
