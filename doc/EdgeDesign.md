@@ -27,15 +27,15 @@ Edge Runtime
 
 The IoT Edge Runtime manages high-value services running on devices and enables communication between them. It allows workflows running on devices to be configured, deployed and monitored from the cloud - securely and at scale.
 
-### Module Management Agent
+### Edge Agent
 
-  The module management agent is designed to communicate with IoT Hub in order to manage the state of the Edge device (install, launch and monitor modules).
+  The edge agent is designed to communicate with IoT Hub in order to manage the state of the Edge device (install, launch and monitor modules).
   
 #### Assemblies
 
 - **Microsoft.Azure.Devices.Edge.Agent.Core**
 
-  The core functionality of the module management agent
+  The core functionality of the agent
 
 - **Microsoft.Azure.Devices.Edge.Agent.Docker**
 
@@ -43,13 +43,19 @@ The IoT Edge Runtime manages high-value services running on devices and enables 
 
 - **Microsoft.Azure.Devices.Edge.Agent.IoTHub**
 
-  IoT Hub hosts the device twin of the module management agent. Through the model of eventual consistency, the IoT Hub twin acts as an interactive configuration interface for the module management agent.
+  IoT Hub hosts the device twin of the edge agent. Through the model of eventual consistency, the IoT Hub twin acts as an interactive configuration interface for the edge agent.
 
 - **Microsoft.Azure.Devices.Edge.Agent.Service**
 
-  The service is a long-running application that hosts the module management agent.
+  The service is a long-running application that hosts the edge  agent.
 
 ### Edge Hub
+
+Class Diagram:
+
+![Edge Hub Class Diagram](./images/EdgeHubClassDiagram.png)
+
+EdgeHubClassDiagram.PNG
 
 #### Assemblies
 
@@ -71,7 +77,7 @@ The IoT Edge Runtime manages high-value services running on devices and enables 
 
 - **Microsoft.Azure.Devices.Hub.Service**
 
-  The service is a long-running application that hosts the module management agent.
+  The service is a long-running application that hosts the edge hub.
 
 - **Microsoft.Azure.Devices.Routing.Core**
 
