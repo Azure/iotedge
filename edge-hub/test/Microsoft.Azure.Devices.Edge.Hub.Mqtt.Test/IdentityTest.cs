@@ -4,12 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System;
     using System.Collections.Generic;
     using System.Text;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Xunit;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
 
     public class IdentityTest
     {
@@ -57,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             yield return new object[]
             {
                 $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
+                DeviceId,
                 Hostname,
                 SasToken,
                 true,
@@ -66,28 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             yield return new object[]
             {
                 $"{Hostname}/{DeviceId}/{ModuleId}/{ApiVersion}&{DeviceClientType}",
+                $"{DeviceId}/{ModuleId}",
                 Hostname,
                 SasToken,
                 true,
                 typeof(ModuleIdentity)
-            };
-
-            yield return new object[]
-            {
-                Hostname,
-                Hostname,
-                SasToken,
-                false,
-                typeof(EdgeHubConnectionException)
-            };
-
-            yield return new object[]
-            {
-                $"{Hostname}/{DeviceId}/{ApiVersion}&{DeviceClientType}",
-                Hostname,
-                SasToken.Substring(0, SasToken.Length - 20),
-                false,
-                typeof(FormatException)
             };
         }
 
@@ -147,64 +132,75 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string devicePrefix = $"{Hostname}/{DeviceId}/{ApiVersion}";
             string modulePrefix = $"{Hostname}/{DeviceId}/{ModuleId}/{ApiVersion}";
+            string clientId = $"{DeviceId}/{ModuleId}";
 
             yield return new[]
             {
                 $"{devicePrefix}",
+                DeviceId,
                 string.Empty
             };
 
             yield return new[]
             {
                 $"{modulePrefix}",
+                clientId,
                 string.Empty
             };
 
             yield return new[]
             {
                 $"{devicePrefix}&DeviceClientType=",
+                DeviceId,
                 string.Empty
             };
 
             yield return new[]
             {
                 $"{modulePrefix}&DeviceClientType=",
+                clientId,
                 string.Empty
             };
 
             yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}",
+                DeviceId,
                 ProductInfo
             };
 
             yield return new[]
             {
                 $"{modulePrefix}&{DeviceClientType}",
+                clientId,
                 ProductInfo
             };
 
             yield return new[]
             {
                 $"{Hostname}/{DeviceId}/{DeviceClientType}&{ApiVersion}",
+                DeviceId,
                 ProductInfo
             };
 
             yield return new[]
             {
                 $"{Hostname}/{DeviceId}/{ModuleId}/{DeviceClientType}&{ApiVersion}",
+                clientId,
                 ProductInfo
             };
 
             yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}&DeviceClientType=abc123",
+                DeviceId,
                 ProductInfo
             };
 
             yield return new[]
             {
                 $"{devicePrefix}&{DeviceClientType}=abc123",
+                DeviceId,
                 $"{ProductInfo}=abc123"
             };
         }
@@ -224,46 +220,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Theory]
         [Unit]
         [MemberData(nameof(GetIdentityInputs))]
-        public void GetIdentityTest(string value,
+        public async Task GetIdentityTest(string value,
+            string clientId,
             string iotHubHostName,
             string token,
             bool success,
             Type expectedType)
         {
-            IIdentityFactory factory = new IdentityFactory(iotHubHostName);
-            Try<IIdentity> identity = factory.GetWithSasToken(value, token);
+            IIdentity identity = await GetIdentity(iotHubHostName, clientId, value, token);
             Assert.NotNull(identity);
-            Assert.Equal(success, identity.Success);
-            if (identity.Success)
-            {
-                Assert.NotNull(identity.Value);
-                Assert.IsType(expectedType, identity.Value);
-                Assert.Equal(iotHubHostName, ((Identity)identity.Value).IotHubHostName);
-                Assert.Equal(ProductInfo, identity.Value.ProductInfo);
-            }
-            else
-            {
-                Assert.IsType(expectedType, identity.Exception);
-            }
+
+            Assert.NotNull(identity);
+            Assert.IsType(expectedType, identity);
+            Assert.Equal(iotHubHostName, ((Identity)identity).IotHubHostName);
+            Assert.Equal(ProductInfo, identity.ProductInfo);
         }
+
 
         [Theory]
         [Unit]
         [MemberData(nameof(GetIdentityWithProductInfoInputs))]
-        public void GetIdentityWithProductInfoTest(string productInfo, string username, string result)
+        public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result)
         {
-            IIdentityFactory factory = new IdentityFactory(Hostname, productInfo);
-            Try<IIdentity> identity = factory.GetWithSasToken(username, SasToken);
-            Assert.Equal(result, identity.Value.ProductInfo);
+            IIdentity identity = await GetIdentity(Hostname, DeviceId, username, SasToken, productInfo);
+            Assert.NotNull(identity);
+            Assert.Equal(result, identity.ProductInfo);
         }
 
         [Theory]
         [Unit]
         [MemberData(nameof(GetUsernameInputs))]
-        public void ProductInfoTest(string username, string productInfo)
+        public async Task ProductInfoTest(string username, string clientId, string productInfo)
         {
-            IIdentityFactory factory = new IdentityFactory(Hostname);
-            IIdentity identity = factory.GetWithSasToken(username, SasToken).Value;
+            IIdentity identity = await GetIdentity(Hostname, clientId, username, SasToken);
+            Assert.NotNull(identity);
             Assert.Equal(productInfo, identity.ProductInfo);
         }
 
@@ -272,25 +262,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetBadUsernameInputs))]
         public void NegativeUsernameTest(string username)
         {
-            IIdentityFactory factory = new IdentityFactory(Hostname);
-            Assert.Throws<EdgeHubConnectionException>(() => factory.GetWithSasToken(username, SasToken).Value);
+            Assert.Throws<EdgeHubConnectionException>(() => SasTokenDeviceIdentityProvider.ParseUserName(username));
         }
 
         [Theory]
         [Unit]
         [MemberData(nameof(GetModuleIdentityInputs))]
-        public void GetModuleIdentityTest(string value,
+        public async Task GetModuleIdentityTest(string value,
             string iotHubHostName,
             string token,
             string deviceId,
             string moduleId)
         {
-            IIdentityFactory factory = new IdentityFactory(iotHubHostName);
-            Try<IIdentity> identity = factory.GetWithSasToken(value, token);
+            IIdentity identity = await GetIdentity(iotHubHostName, $"{deviceId}/{moduleId}", value, token);
             Assert.NotNull(identity);
-            Assert.Equal(true, identity.Success);
-            Assert.NotNull(identity.Value);
-            var hubModuleIdentity = identity.Value as IModuleIdentity;
+            var hubModuleIdentity = identity as IModuleIdentity;
             Assert.NotNull(hubModuleIdentity);
             Assert.Equal(deviceId, hubModuleIdentity.DeviceId);
             Assert.Equal(moduleId, hubModuleIdentity.ModuleId);
@@ -309,6 +295,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string connectionString = IdentityFactory.GetConnectionString(iotHubHostName, deviceId, AuthenticationScope.SasToken, policyName, secret);
             Assert.Equal(expectedConnectionString, connectionString);
+        }
+
+        static async Task<IIdentity> GetIdentity(string iotHubHostName, string deviceId, string userName, string token, string productInfo = "")
+        {
+            var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IIdentity>()) == Task.FromResult(true));
+            var factory = new IdentityFactory(iotHubHostName, productInfo);
+            var sasTokenIdentityProvider = new SasTokenDeviceIdentityProvider(authenticator, factory);
+
+            ProtocolGateway.Identity.IDeviceIdentity deviceIdentity = await sasTokenIdentityProvider.GetAsync(deviceId, userName, token, null);
+            Assert.NotNull(deviceIdentity);
+            IIdentity identity = (deviceIdentity as ProtocolGatewayIdentity)?.Identity;
+            return identity;
         }
     }
 }

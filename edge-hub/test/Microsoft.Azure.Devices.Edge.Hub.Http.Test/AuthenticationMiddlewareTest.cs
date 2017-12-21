@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var httpContext = new DefaultHttpContext();
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new[] { "sasToken1", "sasToken2" }));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("invalidSasToken"));
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var httpContext = new DefaultHttpContext();
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}", expired: true);
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
-        public async Task InvalidAuthenticateRequestTest_NoApiVersion()
+        public async Task AuthenticateRequestTest_NoApiVersion_Success()
         {
             string iothubHostName = "TestHub.azure-devices.net";
             string deviceId = "device_2";
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var httpContext = new DefaultHttpContext();
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
 
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
@@ -173,8 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
-            Assert.False(result.success);
-            Assert.Equal("Query string does not contain api-version", result.message);
+            Assert.True(result.success);
+            Assert.Equal("", result.message);
         }
 
         [Fact]
@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
-            httpContext.Request.Headers.Add(HttpConstants.ModuleIdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
 
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(false);

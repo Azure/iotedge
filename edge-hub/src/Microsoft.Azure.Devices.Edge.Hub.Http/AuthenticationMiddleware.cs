@@ -97,20 +97,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 return LogAndReturnFailure($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}");
             }
 
-            if (!context.Request.Headers.TryGetValue(HttpConstants.ModuleIdHeaderKey, out StringValues moduleIds) || moduleIds.Count == 0)
+            if (!context.Request.Headers.TryGetValue(HttpConstants.IdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
             {
                 return LogAndReturnFailure("Request header does not contain ModuleId");
             }
-            string moduleId = moduleIds.First();
-
-            if (!context.Request.Query.TryGetValue("api-version", out StringValues apiVersions) || apiVersions.Count == 0)
+            string clientId = clientIds.First();
+            string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (clientIdParts?.Length != 2)
             {
-                return LogAndReturnFailure("Query string does not contain api-version");
+                return LogAndReturnFailure("Id header doesn't contain device Id and module Id as expected.");
             }
-            string apiVersion = apiVersions.First();
+            string deviceId = clientIdParts[0];
+            string moduleId = clientIdParts[1];
 
-            string userName = $"{this.iotHubName}/{moduleId}/api-version={apiVersion}";
-            Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(userName, authHeader);
+            Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, true, authHeader);
             if (!identityTry.Success)
             {
                 return LogAndReturnFailure("Unable to get identity for the device", identityTry.Exception);

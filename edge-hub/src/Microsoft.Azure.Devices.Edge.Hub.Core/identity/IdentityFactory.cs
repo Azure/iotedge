@@ -3,11 +3,15 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
+    /// <summary>
+    /// The <c>IdentityFactory</c> is responsible for creating <see cref="Identity"/> instances
+    /// given device/module credentials. Implementations of this interface are expected to
+    /// derive the right kind of identity instance (<see cref="DeviceIdentity"/> or <see cref="ModuleIdentity"/>)
+    /// by examining the credentials.
+    /// </summary>
     public class IdentityFactory : IIdentityFactory
     {
         readonly string iotHubHostName;
@@ -24,20 +28,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             this.callerProductInfo = callerProductInfo;
         }
 
-        public Try<IIdentity> GetWithSasToken(string username, string password) => this.GetIdentity(username, password, AuthenticationScope.SasToken, null);
+        public Try<IIdentity> GetWithSasToken(
+            string deviceId,
+            string moduleId,
+            string deviceClientType,
+            bool isModuleIdentity,
+            string token) =>
+            this.GetIdentity(deviceId, moduleId, deviceClientType, isModuleIdentity, token, AuthenticationScope.SasToken, null);
 
-        public Try<IIdentity> GetWithHubKey(string username, string keyName, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.HubKey, keyName);
+        public Try<IIdentity> GetWithHubKey(
+            string deviceId,
+            string moduleId,
+            string deviceClientType,
+            bool isModuleIdentity,
+            string keyName,
+            string keyValue) => this.GetIdentity(deviceId, moduleId, deviceClientType, isModuleIdentity, keyValue, AuthenticationScope.HubKey, keyName);
 
-        public Try<IIdentity> GetWithDeviceKey(string username, string keyValue) => this.GetIdentity(username, keyValue, AuthenticationScope.DeviceKey, null);
+        public Try<IIdentity> GetWithDeviceKey(
+            string deviceId,
+            string moduleId,
+            string deviceClientType,
+            bool isModuleIdentity,
+            string keyValue) => this.GetIdentity(deviceId, moduleId, deviceClientType, isModuleIdentity, keyValue, AuthenticationScope.DeviceKey, null);
 
-        Try<IIdentity> GetIdentity(string username, string secret, AuthenticationScope scope, string policyName)
+        Try<IIdentity> GetIdentity(string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity, string secret, AuthenticationScope scope, string policyName)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
+            deviceClientType = deviceClientType ?? string.Empty;
+
             try
             {
-                (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
                 if (isModuleIdentity)
                 {
+                    Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
                     string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
                     string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
                     return new ModuleIdentity(this.iotHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
@@ -52,41 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             catch (Exception ex)
             {
                 return Try<IIdentity>.Failure(ex);
-            }
-        }
-
-        internal static (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) ParseUserName(string username)
-        {
-            // Username is of the form:
-            //   username   = iothubHostname "/" deviceId "/" [moduleId "/"] properties
-            //   properties = property *("&" property)
-            //   property   = name "=" value
-            // We recognize two property names:
-            //   "api-version" [mandatory]
-            //   "DeviceClientType" [optional]
-            // We ignore any properties we don't recognize.            
-
-            string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
-            if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
-            {
-                return (usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]), false);
-            }
-            else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
-            {
-                return (usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]), true);
-            }
-            // The Azure ML container is using an older client that returns a device client with the following format -
-            // username = iothubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
-            // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
-            // To allow those clients to work, check for that specific api-version, and version.
-            else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
-            {
-                string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-                return (usernameSegments[1], usernameSegments[2], deviceClientType, true);
-            }
-            else
-            {
-                throw new EdgeHubConnectionException("Username does not contain valid values");
             }
         }
 
@@ -156,24 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
                 default:
                     throw new InvalidOperationException($"Unexpected AuthenticationScope username: {scope}");
             }
-        }
-
-        static string ParseDeviceClientType(string queryParams)
-        {
-            // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
-
-            var kvsep = new[] { '=' };
-
-            Dictionary<string, string> parms = queryParams
-                .Split('&')                             // split input string into params
-                .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
-                .GroupBy(s => s[0])                     // group duplicates (by key) together...
-                .Select(s => s.First())                 // ...and keep only the first one
-                .ToDictionary(                          // convert to Dictionary<string, string>
-                    s => s[0],
-                    s => s.ElementAtOrEmpty(1));
-
-            return parms.ContainsKey("DeviceClientType") ? Uri.UnescapeDataString(parms["DeviceClientType"]) : string.Empty;
         }
     }
 }
