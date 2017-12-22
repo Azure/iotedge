@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Storage.Test\Microsoft.Azure.Devices.Edge.Storage.Test.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Util.Test\Microsoft.Azure.Devices.Edge.Util.Test.csproj" />
   </ItemGroup>
 

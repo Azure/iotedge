@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -14,10 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task<bool> Remove(TK key, Func<TV, bool> predicate);
 
-        Task<bool> Update(TK key, Func<TV, TV> updator);
+        Task<TV> Update(TK key, Func<TV, TV> updator);
 
-        Task PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator);
+        Task<TV> PutOrUpdate(TK key, TV putValue, Func<TV, TV> valueUpdator);
 
-        Task FindOrPut(TK key, TV putValue);
+        Task<TV> FindOrPut(TK key, TV putValue);
     }
 }

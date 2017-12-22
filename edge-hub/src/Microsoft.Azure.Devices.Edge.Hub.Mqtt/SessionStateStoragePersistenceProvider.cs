@@ -55,7 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return Task.CompletedTask;
             }
 
-            return registrationSessionState.ShouldSaveToStore ? this.sessionStore.PutOrUpdate(id, registrationSessionState, u => registrationSessionState) : Task.CompletedTask;
+            return registrationSessionState.ShouldSaveToStore
+                ? this.sessionStore.Put(id, registrationSessionState)
+                : Task.CompletedTask;
         }
     }
 }

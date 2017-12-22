@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             });
             return batch;
         }
-        
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)

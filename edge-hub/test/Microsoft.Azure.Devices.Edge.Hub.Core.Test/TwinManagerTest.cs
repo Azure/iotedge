@@ -766,8 +766,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
+            TwinInfo putValue = null;
             mockTwinStore.Setup(t => t.PutOrUpdate(It.IsAny<string>(), It.IsAny<TwinInfo>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
-                .Returns(Task.CompletedTask);
+                .Callback<string, TwinInfo, Func<TwinInfo, TwinInfo>>((s, p, u) => putValue = p)
+                .Returns(Task.FromResult(putValue));
 
             Option<IEntityStore<string, TwinInfo>> twinStoreForTest = Option.Some(mockTwinStore.Object);
 

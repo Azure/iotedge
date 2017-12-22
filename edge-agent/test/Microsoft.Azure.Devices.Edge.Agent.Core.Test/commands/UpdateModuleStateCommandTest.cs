@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             var state = new ModuleState(0, DateTime.UtcNow);
 
             var store = new Mock<IEntityStore<string, ModuleState>>();
-            store.Setup(s => s.PutOrUpdate("module1", state, It.IsAny<Func<ModuleState, ModuleState>>()))
+            store.Setup(s => s.Put("module1", state))
                 .Returns(Task.CompletedTask);
 
             var cmd = new UpdateModuleStateCommand(module.Object, store.Object, state);

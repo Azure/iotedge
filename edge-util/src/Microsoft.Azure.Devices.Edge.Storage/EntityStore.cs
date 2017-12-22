@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
@@ -64,52 +64,55 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public Task<bool> Update(TK key, Func<TV, TV> updator)
+        public async Task<TV> Update(TK key, Func<TV, TV> updator)
         {
             Preconditions.CheckNotNull(updator, nameof(updator));
-            return this.PutOrUpdate(key, Option.None<TV>(), Option.Some(updator));
+            using (await this.keyLockProvider.GetLock(key).LockAsync())
+            {
+                byte[] keyBytes = key.ToBytes();
+                byte[] existingValueBytes = (await this.dbStore.Get(keyBytes)).Expect(() => new InvalidOperationException("Value not found in store"));
+                var existingValue = existingValueBytes.FromBytes<TV>();
+                TV updatedValue = updator(existingValue);
+                await this.dbStore.Put(keyBytes, updatedValue.ToBytes());
+                return updatedValue;
+            }
         }
 
-        public Task PutOrUpdate(TK key, TV value, Func<TV, TV> updator)
+        public async Task<TV> PutOrUpdate(TK key, TV value, Func<TV, TV> updator)
         {
             Preconditions.CheckNotNull(updator, nameof(updator));
-            return this.PutOrUpdate(key, Option.Some(value), Option.Some(updator));
+            using (await this.keyLockProvider.GetLock(key).LockAsync())
+            {
+                byte[] keyBytes = key.ToBytes();
+                Option<byte[]> existingValueBytes = await this.dbStore.Get(keyBytes);
+                TV newValue = await existingValueBytes.Map(
+                    async e =>
+                    {
+                        var existingValue = e.FromBytes<TV>();
+                        TV updatedValue = updator(existingValue);
+                        await this.dbStore.Put(keyBytes, updatedValue.ToBytes());
+                        return updatedValue;
+                    }).GetOrElse(
+                    async () =>
+                    {
+                        await this.dbStore.Put(keyBytes, value.ToBytes());
+                        return value;
+                    });
+                return newValue;
+            }
         }
 
-        public Task FindOrPut(TK key, TV value)
-        {
-            return this.PutOrUpdate(key, Option.Some(value), Option.None<Func<TV, TV>>());
-        }
-
-        async Task<bool> PutOrUpdate(TK key, Option<TV> value, Option<Func<TV, TV>> updator)
+        public async Task<TV> FindOrPut(TK key, TV value)
         {
             using (await this.keyLockProvider.GetLock(key).LockAsync())
             {
                 byte[] keyBytes = key.ToBytes();
                 Option<byte[]> existingValueBytes = await this.dbStore.Get(keyBytes);
-                return await existingValueBytes.Match(
-                    async evb =>
-                    {
-                        return await updator.Match(
-                            async u =>
-                            {
-                                var existingValue = evb.FromBytes<TV>();
-                                TV updatedValue = u(existingValue);
-                                await this.dbStore.Put(keyBytes, updatedValue.ToBytes());
-                                return true;
-                            },
-                            () => Task.FromResult(false));
-                    },
-                    async () =>
-                    {
-                        return await value.Match(
-                            async v =>
-                            {
-                                await this.dbStore.Put(keyBytes, v.ToBytes());
-                                return true;
-                            },
-                            () => Task.FromResult(false));
-                    });
+                if (!existingValueBytes.HasValue)
+                {
+                    await this.dbStore.Put(keyBytes, value.ToBytes());
+                }
+                return existingValueBytes.Map(e => e.FromBytes<TV>()).GetOrElse(value);
             }
         }
 

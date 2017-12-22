@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public string Id => $"UpdateModuleStateCommand({this.module.Name}, [{this.state.RestartCount}, {this.state.LastRestartTimeUtc.ToString("o")}])";
 
-        public Task ExecuteAsync(CancellationToken token) => this.store.PutOrUpdate(this.module.Name, this.state, _ => this.state);
+        public Task ExecuteAsync(CancellationToken token) => this.store.Put(this.module.Name, this.state);
 
         public string Show() => $"Update health stats for module {this.module.Name}";
 
