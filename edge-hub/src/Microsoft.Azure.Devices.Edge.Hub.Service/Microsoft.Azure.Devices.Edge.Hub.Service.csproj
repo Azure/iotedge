@@ -3,11 +3,21 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CodeCoverage</Configurations>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <TreatSpecificWarningsAsErrors />
+  <!--
+    Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
+    See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
+    That setting seems to break the "Open Test" context menu in VS IDE, so we'll use a dedicated configuration for code coverage.
+    -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'CodeCoverage|AnyCPU' ">
+    <IntermediateOutputPath>obj\CodeCoverage</IntermediateOutputPath>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\CodeCoverage</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -67,6 +77,19 @@
   <ItemGroup>
     <Content Update="..\..\docker\linux\arm32v7\base\Dockerfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>linux\arm32v7\base\Dockerfile</Link>
+    </Content>
+    <Content Update="..\..\docker\manifest.yaml.template">
+      <Link>manifest.yaml.template</Link>
+    </Content>
+    <Content Update="..\..\docker\linux\amd64\Dockerfile">
+      <Link>linux\amd64\Dockerfile</Link>
+    </Content>
+    <Content Update="..\..\docker\linux\arm32v7\Dockerfile">
+      <Link>linux\arm32v7\Dockerfile</Link>
+    </Content>
+    <Content Update="..\..\docker\windows\amd64\Dockerfile">
+      <Link>windows\amd64\Dockerfile</Link>
     </Content>
   </ItemGroup>
 
