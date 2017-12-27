@@ -3,9 +3,10 @@ import logging as log
 import os
 import re
 import edgectl.errors
-import edgectl.edgeconstants as EC
-from edgectl.edgeutils import EdgeUtils
-from edgectl.default  import EdgeDefault
+from edgectl.config.edgeconstants import EdgeConfigDirInputSource
+from edgectl.config.edgeconstants import EdgeConstants as EC
+from edgectl.config.default import EdgeDefault
+from edgectl.utils import EdgeUtils
 
 
 class EdgeDeploymentConfigDocker(object):
@@ -207,7 +208,7 @@ class EdgeHostConfig(object):
     def __init__(self):
         self._schema_version = EdgeHostConfig._default_schema_version
         self._config_dir = ''
-        self._config_dir_source = EC.EdgeConfigDirInputSource.NONE
+        self._config_dir_source = EdgeConfigDirInputSource.NONE
         self._home_dir = ''
         self._connection_string = ''
         self._hostname = ''
@@ -252,7 +253,7 @@ class EdgeHostConfig(object):
 
     @config_dir_source.setter
     def config_dir_source(self, value):
-        if isinstance(value, EC.EdgeConfigDirInputSource):
+        if isinstance(value, EdgeConfigDirInputSource):
             self._config_dir_source = value
         else:
             raise ValueError('Invalid configuration directory input source: ' + str(value))
@@ -699,7 +700,7 @@ class EdgeHostConfig(object):
         d = {}
         d[EC.SCHEMA_KEY] = self._schema_version
         d[EC.DEVICE_CONNECTION_STRING_KEY] = self.connection_string
-        if self.config_dir_source == EC.EdgeConfigDirInputSource.USER_PROVIDED:
+        if self.config_dir_source == EdgeConfigDirInputSource.USER_PROVIDED:
             d[EC.CONFIG_DIR_KEY] = self.config_dir
         d[EC.HOMEDIR_KEY] = self.home_dir
         d[EC.HOSTNAME_KEY] = self.hostname

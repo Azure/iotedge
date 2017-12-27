@@ -4,9 +4,10 @@ import os
 from datetime import datetime
 from shutil import copy2
 from OpenSSL import crypto
+from edgectl.config import EdgeConstants as EC
 import edgectl.errors
-import edgectl.edgeconstants as EC
-from edgectl.edgeutils import EdgeUtils
+from edgectl.utils.edgeutils import EdgeUtils
+
 
 class EdgeCertUtil(object):
     TYPE_RSA = 0

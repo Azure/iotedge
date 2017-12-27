@@ -2,11 +2,12 @@ from __future__ import print_function
 import logging as log
 import platform
 import docker
-import edgectl.edgeconstants as EC
+from edgectl.config import EdgeConstants as EC
+from edgectl.config import EdgeDefault
+from edgectl.deployment import EdgeDeploymentCommand
 from edgectl.dockerclient import EdgeDockerClient
-from edgectl.default import EdgeDefault
-from edgectl.commandbase import EdgeDeploymentCommand
 from edgectl.edgehostplatform import EdgeHostPlatform
+
 
 class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     _edge_runtime_container_name = 'edgeAgent'

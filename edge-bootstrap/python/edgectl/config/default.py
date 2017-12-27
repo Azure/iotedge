@@ -2,9 +2,11 @@ import logging as log
 import json
 import os
 import platform
-from edgectl.dockerclient import EdgeDockerClient
 import edgectl.errors
-import edgectl.edgeconstants as EC
+from edgectl.config.edgeconstants import EdgeConfigDirInputSource
+from edgectl.config.edgeconstants import EdgeConstants as EC
+from edgectl.dockerclient import EdgeDockerClient
+
 
 class EdgeDefault(object):
     _edge_dir = 'azure-iot-edge'
@@ -193,7 +195,7 @@ class EdgeDefault(object):
             edge_config_dir = os.path.realpath(env_config_dir)
             log.info('Using environment variable %s as IoT Edge configuration dir: %s',
                      EC.ENV_EDGECONFIGDIR, edge_config_dir)
-            choice = EC.EdgeConfigDirInputSource.ENV
+            choice = EdgeConfigDirInputSource.ENV
         elif user_input_path and user_input_path.strip() != '':
             edge_config_dir = os.path.realpath(user_input_path)
             log.info('Using user configured IoT Edge configuration dir: %s', edge_config_dir)
@@ -201,7 +203,7 @@ class EdgeDefault(object):
         else:
             edge_config_dir = EdgeDefault.get_host_config_dir()
             log.info('Using default IoT Edge configuration dir: %s', edge_config_dir)
-            choice = EC.EdgeConfigDirInputSource.DEFAULT
+            choice = EdgeConfigDirInputSource.DEFAULT
 
         return (edge_config_dir, choice)
 
@@ -258,8 +260,7 @@ class EdgeDefault(object):
     @staticmethod
     def default_user_input_config_relative_file_path():
         script_dir_path = os.path.dirname(os.path.realpath(__file__))
-        path = os.path.join(script_dir_path, 'config',
-                            EdgeDefault._edge_ref_config_file)
+        path = os.path.join(script_dir_path, EdgeDefault._edge_ref_config_file)
         if os.path.exists(path):
             return os.path.join('.', 'config',
                                 EdgeDefault._edge_ref_config_file)
@@ -268,8 +269,7 @@ class EdgeDefault(object):
     @staticmethod
     def default_user_input_config_abs_file_path():
         script_dir_path = os.path.dirname(os.path.realpath(__file__))
-        path = os.path.join(script_dir_path, 'config',
-                            EdgeDefault._edge_ref_config_file)
+        path = os.path.join(script_dir_path, EdgeDefault._edge_ref_config_file)
         return os.path.realpath(path)
 
     @staticmethod

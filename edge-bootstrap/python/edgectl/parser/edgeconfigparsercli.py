@@ -1,13 +1,12 @@
-import os
-import json
 import logging as log
+from edgectl.config import EdgeConfigDirInputSource
+from edgectl.config import EdgeConstants as EC
+from edgectl.config import EdgeDeploymentConfigDocker
+from edgectl.config import EdgeHostConfig
+from edgectl.config import EdgeDefault
 import edgectl.errors
-from edgectl.edgeutils import EdgeUtils
-from edgectl.edgeconfig import EdgeHostConfig
-from edgectl.edgeconfig import EdgeDeploymentConfigDocker
-from edgectl.edgeconfigparser import EdgeConfigParser
-from edgectl.default import EdgeDefault
-import edgectl.edgeconstants as EC
+from edgectl.utils import EdgeUtils
+from edgectl.parser.edgeconfigparser import EdgeConfigParser
 
 
 class EdgeConfigParserCLI(EdgeConfigParser):
@@ -30,7 +29,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             config.schema_version = defaults_json[EC.SCHEMA_KEY]
             config.connection_string = cs
 
-            cfg_src = EC.EdgeConfigDirInputSource.USER_PROVIDED
+            cfg_src = EdgeConfigDirInputSource.USER_PROVIDED
             cfg_dir_opt = EdgeDefault.choose_platform_config_dir(args.edge_config_dir, cfg_src)
 
             config.config_dir = cfg_dir_opt[0]

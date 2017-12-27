@@ -3,14 +3,14 @@ import argparse
 import logging as log
 import sys
 import platform
+from edgectl.config import EdgeConfigInputSources
+from edgectl.config import EdgeConstants as EC
+from edgectl.config import EdgeDefault
+from edgectl.deployment import EdgeCommandFactory
 import edgectl.errors
 from edgectl.edgehostplatform import EdgeHostPlatform
-from edgectl.edgeconfiginteractive import EdgeConfigInteractive
-from edgectl.edgeconfigparserfactory import EdgeConfigParserFactory
-from edgectl.commandfactory import EdgeCommandFactory
-from edgectl.default import EdgeDefault
-from edgectl.edgeutils import EdgeUtils
-import edgectl.edgeconstants as EC
+from edgectl.parser import EdgeConfigParserFactory
+from edgectl.utils import EdgeUtils
 
 
 class EdgeCLI(object):
@@ -415,14 +415,14 @@ class EdgeCLI(object):
             log.error('Runtime has not been configured on this device.\nPlease run \'%s setup\' first.', EdgeCLI._prog())
         else:
             log.debug('Found config File: %s', ins_cfg_file_path)
-            ip_type = EC.EdgeConfigInputSources.FILE
+            ip_type = EdgeConfigInputSources.FILE
             parser = EdgeConfigParserFactory.create_parser(ip_type, args)
             self.edge_config = parser.parse(ins_cfg_file_path)
             result = True
         return result
 
     def _parse_and_validate_user_input_config_file(self, args):
-        ip_type = EC.EdgeConfigInputSources.FILE
+        ip_type = EdgeConfigInputSources.FILE
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse()
         EdgeHostPlatform.install_edge_by_config_file(self.edge_config,
@@ -430,7 +430,7 @@ class EdgeCLI(object):
         return True
 
     def _parse_and_validate_user_input(self, args):
-        ip_type = EC.EdgeConfigInputSources.CLI
+        ip_type = EdgeConfigInputSources.CLI
         parser = EdgeConfigParserFactory.create_parser(ip_type, args)
         self.edge_config = parser.parse()
         EdgeHostPlatform.install_edge_by_json_data(self.edge_config, True)

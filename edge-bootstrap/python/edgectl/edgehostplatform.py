@@ -4,10 +4,11 @@ import logging as log
 import os
 import sys
 import edgectl.errors
-import edgectl.edgeconstants as EC
-from edgectl.certutil import EdgeCertUtil
-from edgectl.default  import EdgeDefault
-from edgectl.edgeutils import EdgeUtils
+from edgectl.config import EdgeConfigDirInputSource
+from edgectl.config import EdgeConstants as EC
+from edgectl.config import EdgeDefault
+from edgectl.utils import EdgeCertUtil
+from edgectl.utils import EdgeUtils
 
 
 class EdgeHostPlatform(object):
@@ -288,7 +289,7 @@ class EdgeHostPlatform(object):
     @staticmethod
     def _setup_edge_config_dir(edge_config):
         edge_config_dir = edge_config.config_dir
-        if edge_config.config_dir_source == EC.EdgeConfigDirInputSource.USER_PROVIDED:
+        if edge_config.config_dir_source == EdgeConfigDirInputSource.USER_PROVIDED:
             EdgeHostPlatform._setup_meta_edge_config_dir(edge_config_dir)
         else:
             EdgeHostPlatform._clear_edge_meta_config_dir()

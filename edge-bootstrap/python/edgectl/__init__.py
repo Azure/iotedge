@@ -9,7 +9,7 @@ Invocation flow:
 
 import sys
 import pkg_resources
-from edgectl.edgecli import EdgeCLI
+from edgectl.cli import EdgeCLI
 
 PACKAGE_NAME = 'azure-iot-edge-runtime-ctl'
 PROGRAM_NAME = 'iotedgectl'
