@@ -40,32 +40,32 @@ class EdgeCommand(object):
 
 class EdgeSetupCommand(EdgeCommand):
     def execute(self):
-        self._obj.setup()
+        return self._obj.setup()
 
 class EdgeStartCommand(EdgeCommand):
     def execute(self):
-        self._obj.start()
+        return self._obj.start()
 
 class EdgeStopCommand(EdgeCommand):
     def execute(self):
-        self._obj.stop()
+        return self._obj.stop()
 
 class EdgeRestartCommand(EdgeCommand):
     def execute(self):
-        self._obj.restart()
+        return self._obj.restart()
 
 class EdgeStatusCommand(EdgeCommand):
     def execute(self):
-        self._obj.status()
+        return self._obj.status()
 
 class EdgeUninstallCommand(EdgeCommand):
     def execute(self):
-        self._obj.uninstall()
+        return self._obj.uninstall()
 
 class EdgeUpdateCommand(EdgeCommand):
     def execute(self):
-        self._obj.update()
+        return self._obj.update()
 
 class EdgeLoginCommand(EdgeCommand):
     def execute(self):
-        self._obj.login()
+        return self._obj.login()

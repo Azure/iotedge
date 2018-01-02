@@ -8,7 +8,7 @@ from edgectl.config import EdgeConstants as EC
 from edgectl.config import EdgeDefault
 from edgectl.deployment import EdgeCommandFactory
 import edgectl.errors
-from edgectl.edgehostplatform import EdgeHostPlatform
+from edgectl.host import EdgeHostPlatform
 from edgectl.parser import EdgeConfigParserFactory
 from edgectl.utils import EdgeUtils
 
@@ -47,24 +47,25 @@ class EdgeCLI(object):
             Non Zero -- Error
         """
         error_code = 1
-        if EdgeDefault.is_platform_supported() is False:
-            log.error('Exiting. Return Code: %s', str(error_code))
+        host = platform.system()
+        if EdgeDefault.is_host_supported(host) is False:
+            log.error('Unsupported host platform: %s.', host)
         else:
             try:
-                (is_valid, execute_deployment_cmd) = self._process_cli_args()
-                if is_valid and execute_deployment_cmd:
+                if self._process_cli_args():
                     self._execute_command()
                     error_code = 0
-            except edgectl.errors.EdgeError as ex:
-                log.error('Errors were observed. Return Code: %s', str(error_code))
+            except edgectl.errors.EdgeError:
+                log.error('Exiting with errors. Return code: %s', str(error_code))
+        if error_code != 0:
+            log.error('Exiting with errors. Return code: %s', str(error_code))
         return error_code
 
     def _execute_command(self):
         log.debug('Executing command \'%s\'', self._command)
         edge_cmd = EdgeCommandFactory.create_command(self._command,
                                                      self.edge_config)
-        edge_cmd.execute()
-        return
+        return edge_cmd.execute()
 
     @staticmethod
     def _prog():
@@ -363,7 +364,7 @@ class EdgeCLI(object):
     def _parse_edge_command(self, args):
         args.verbose_level = args.verbose_level.upper()
         self._verbose_level = args.verbose_level
-        commands = {
+        parse_funcs = {
             'setup' : self._parse_setup_options,
             'start' : self._parse_command_options_common,
             'restart' : self._parse_command_options_common,
@@ -374,22 +375,13 @@ class EdgeCLI(object):
             'login' : self._parse_login_options
         }
         self._command = args.subparser_name
-        is_valid = False
-        execute_deployment_cmd = False
-        if EdgeDefault.is_deployment_supported(self._deployment):
-            (is_valid, execute_deployment_cmd) = commands[args.subparser_name](args)
-        else:
-            log.critical('IoT Edge dependency not available: %s', self._deployment)
-        return (is_valid, execute_deployment_cmd)
+        return parse_funcs[args.subparser_name](args)
 
     def _parse_command_options_common(self, args):
         cmd = args.subparser_name
         log.debug('Command: %s', cmd)
         try:
-            is_valid = self._parse_installed_config_file_options(args)
-            execute_deployment_cmd = False
-            if is_valid:
-                execute_deployment_cmd = True
+            return self._parse_installed_config_file_options(args)
         except edgectl.errors.EdgeFileAccessError as ex_access:
             err_msg = 'Error observed when executing command: {0}'.format(cmd)
             raise edgectl.errors.EdgeError(err_msg, ex_access)
@@ -400,14 +392,11 @@ class EdgeCLI(object):
             log.error('To fix this error, please re-run \'%s setup\'.', EdgeCLI._prog())
             raise edgectl.errors.EdgeError('Error when parsing configuration data', ex_parse)
 
-        return (is_valid, execute_deployment_cmd)
-
     def _parse_uninstall_options(self, args):
-        (is_valid, execute_deployment_cmd) = self._parse_command_options_common(args)
+        is_valid = self._parse_command_options_common(args)
         if is_valid:
             EdgeHostPlatform.uninstall_edge(self.edge_config.home_dir)
-        return (is_valid, execute_deployment_cmd)
-
+        return is_valid
     def _parse_installed_config_file_options(self, args):
         result = False
         ins_cfg_file_path = EdgeHostPlatform.get_host_config_file_path()
@@ -437,27 +426,22 @@ class EdgeCLI(object):
         return True
 
     def _parse_update_options(self, args):
-        (is_valid, execute_deployment_cmd) = self._parse_command_options_common(args)
+        is_valid = self._parse_command_options_common(args)
         if is_valid:
-            if self.edge_config.deployment_config.edge_image == args.image:
-                log.info('New Edge Agent image matches existing. Skipping update.')
-                execute_deployment_cmd = False
-            else:
-                try:
-                    self.edge_config.deployment_config.edge_image = args.image
-                except ValueError as ex:
-                    log.error('%s', str(ex))
-                    log.error('Error setting --image data: %s.', args.image)
-                    raise edgectl.errors.EdgeError('Error setting Edge Agent image', ex)
-                EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
-                config_file = EdgeHostPlatform.get_host_config_file_path()
-                log.info('The runtime configuration file %s was updated with' \
-                         ' the new image: %s', config_file, args.image)
-
-        return (is_valid, execute_deployment_cmd)
+            try:
+                self.edge_config.deployment_config.edge_image = args.image
+            except ValueError as ex:
+                log.error('%s', str(ex))
+                log.error('Error setting --image data: %s.', args.image)
+                raise edgectl.errors.EdgeError('Error setting Edge Agent image', ex)
+            EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
+            config_file = EdgeHostPlatform.get_host_config_file_path()
+            log.info('The runtime configuration file %s was updated with' \
+                     ' the new image: %s', config_file, args.image)
+        return is_valid
 
     def _parse_login_options(self, args):
-        (is_valid, execute_deployment_cmd) = self._parse_command_options_common(args)
+        is_valid = self._parse_command_options_common(args)
         if is_valid:
             try:
                 self.edge_config.deployment_config.add_registry(args.address,
@@ -475,12 +459,12 @@ class EdgeCLI(object):
             config_file = EdgeHostPlatform.get_host_config_file_path()
             log.info('The runtime configuration file %s was updated with' \
                      ' the credentials for registry: %s', config_file, args.address)
-
-        return (is_valid, execute_deployment_cmd)
+        return is_valid
 
     def _parse_setup_options(self, args):
         cmd = args.subparser_name
         log.debug('Command: ' + cmd)
+        is_valid = False
 
         if args.config_file is not None:
             # we are using options specified in the config file
@@ -512,4 +496,4 @@ class EdgeCLI(object):
             config_file = EdgeHostPlatform.get_host_config_file_path()
             log.info('The runtime configuration file %s was updated with' \
                      ' the ''setup'' options.', config_file)
-        return (is_valid, is_valid)
+        return is_valid

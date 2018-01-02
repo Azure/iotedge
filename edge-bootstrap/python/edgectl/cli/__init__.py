@@ -1,1 +1,1 @@
-from edgectl.edgecli import EdgeCLI
+from edgectl.cli.edgecli import EdgeCLI

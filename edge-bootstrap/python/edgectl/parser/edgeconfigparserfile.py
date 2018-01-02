@@ -6,6 +6,7 @@ from edgectl.config import EdgeConstants as EC
 from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.config import EdgeDefault
 from edgectl.config import EdgeHostConfig
+from edgectl.host import EdgeHostPlatform
 from edgectl.parser.edgeconfigparser import EdgeConfigParser
 
 
@@ -42,7 +43,7 @@ class EdgeConfigParserFile(EdgeConfigParser):
                 edge_config_dir = data[EC.CONFIG_DIR_KEY]
                 cfg_src = EdgeConfigDirInputSource.USER_PROVIDED
 
-            cfg_dir_opt = EdgeDefault.choose_platform_config_dir(edge_config_dir, cfg_src)
+            cfg_dir_opt = EdgeHostPlatform.choose_platform_config_dir(edge_config_dir, cfg_src)
             config.config_dir = cfg_dir_opt[0]
             config.config_dir_source = cfg_dir_opt[1]
 

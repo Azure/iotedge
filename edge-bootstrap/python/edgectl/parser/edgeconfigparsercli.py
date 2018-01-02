@@ -5,6 +5,7 @@ from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDefault
 import edgectl.errors
+from edgectl.host import EdgeHostPlatform
 from edgectl.utils import EdgeUtils
 from edgectl.parser.edgeconfigparser import EdgeConfigParser
 
@@ -30,14 +31,14 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             config.connection_string = cs
 
             cfg_src = EdgeConfigDirInputSource.USER_PROVIDED
-            cfg_dir_opt = EdgeDefault.choose_platform_config_dir(args.edge_config_dir, cfg_src)
+            cfg_dir_opt = EdgeHostPlatform.choose_platform_config_dir(args.edge_config_dir, cfg_src)
 
             config.config_dir = cfg_dir_opt[0]
             config.config_dir_source = cfg_dir_opt[1]
 
             home_dir = args.edge_home_dir
             if home_dir is None:
-                home_dir = EdgeDefault.get_platform_home_dir()
+                home_dir = EdgeHostPlatform.get_home_dir()
             config.home_dir = home_dir
 
             hostname = args.edge_hostname
@@ -84,7 +85,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
 
                 uri = args.docker_uri
                 if uri is None:
-                    uri = EdgeDefault.get_platform_docker_uri()
+                    uri = EdgeHostPlatform.get_docker_uri()
                 deploy_cfg.uri = uri
 
                 docker_log_cfg = docker_deploy_data[EC.DOCKER_LOGGING_OPTIONS_KEY]

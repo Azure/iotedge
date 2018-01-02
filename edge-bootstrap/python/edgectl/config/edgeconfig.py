@@ -1,6 +1,7 @@
 import json
 import logging as log
 import os
+import platform
 import re
 import edgectl.errors
 from edgectl.config.edgeconstants import EdgeConfigDirInputSource
@@ -323,7 +324,7 @@ class EdgeHostConfig(object):
     @deployment_config.setter
     def deployment_config(self, value):
         if value is not None:
-            if value.type in EdgeDefault.get_supported_deployments():
+            if value.type in EdgeDefault.get_supported_deployments(platform.system()):
                 self._deployment_config = value
         else:
             raise ValueError('Invalid deployment config')

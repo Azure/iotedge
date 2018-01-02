@@ -2,18 +2,38 @@ from __future__ import print_function
 import json
 import logging as log
 import os
+import platform
 import sys
-import edgectl.errors
 from edgectl.config import EdgeConfigDirInputSource
 from edgectl.config import EdgeConstants as EC
 from edgectl.config import EdgeDefault
+from edgectl.host import EdgeDockerClient
 from edgectl.utils import EdgeCertUtil
 from edgectl.utils import EdgeUtils
+import edgectl.errors
 
 
 class EdgeHostPlatform(object):
     _min_passphrase_len = 4
     _max_passphrase_len = 1023
+
+    @staticmethod
+    def get_docker_uri():
+        dc = EdgeDockerClient()
+        engine_os = dc.get_os_type()
+        return EdgeDefault.docker_uri(platform.system(), engine_os)
+
+    @staticmethod
+    def is_deployment_supported(deployment):
+        return EdgeDefault.is_deployment_supported(platform.system(), deployment)
+
+    @staticmethod
+    def get_supported_docker_engines():
+        return EdgeDefault.get_supported_docker_engines(platform.system())
+
+    @staticmethod
+    def get_home_dir():
+        return os.path.realpath(EdgeDefault.get_home_dir(platform.system()))
 
     @staticmethod
     def _read_json_config_file(json_config_file):
@@ -33,16 +53,57 @@ class EdgeHostPlatform(object):
             log.error(msg)
             raise edgectl.errors.EdgeFileParseError(msg, json_config_file)
 
+
+    @staticmethod
+    def choose_platform_config_dir(user_input_path, user_input_option):
+        """
+        Utility function that chooses a Edge config directory in the
+        precedence order of:
+        1) Env variable EDGECONFIGDIR
+        2) User input via user_input_path
+        3) Default Path
+
+        Args:
+            user_input_path: (string) A user supplied config dir path. Can be None or ''.
+            user_input_option: (enum EdgeConfigDirInputSource member):
+                               Use NONE when user_input_path is None or empty
+
+        Return:
+            Tuple:
+               [0]: Path to the Edge config dir.
+               [1]: An EdgeConfigDirInputSource enum member indicating which dir was chosen
+        """
+        edge_config_dir = None
+        choice = None
+
+        env_config_dir = os.getenv(EC.ENV_EDGECONFIGDIR, None)
+        if env_config_dir and env_config_dir.strip() != '':
+            edge_config_dir = os.path.realpath(env_config_dir)
+            log.info('Using environment variable %s as IoT Edge configuration dir: %s',
+                     EC.ENV_EDGECONFIGDIR, edge_config_dir)
+            choice = EdgeConfigDirInputSource.ENV
+        elif user_input_path and user_input_path.strip() != '':
+            edge_config_dir = os.path.realpath(user_input_path)
+            log.info('Using user configured IoT Edge configuration dir: %s', edge_config_dir)
+            choice = user_input_option
+        else:
+            edge_config_dir = os.path.realpath(EdgeDefault.get_config_dir(platform.system()))
+            log.info('Using default IoT Edge configuration dir: %s', edge_config_dir)
+            choice = EdgeConfigDirInputSource.DEFAULT
+
+        return (edge_config_dir, choice)
+
     @staticmethod
     def _get_host_config_dir():
         edge_config_dir = None
         result = None
+        host = platform.system()
         log.debug('Searching Edge config dir in env var %s', EC.ENV_EDGECONFIGDIR)
         env_config_dir = os.getenv(EC.ENV_EDGECONFIGDIR, None)
         if env_config_dir and env_config_dir.strip() != '':
             edge_config_dir = os.path.realpath(env_config_dir)
         else:
-            meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+            meta_config_file_path = EdgeDefault.get_meta_conf_file_path(host)
             log.debug('Searching Edge config dir in config file %s', meta_config_file_path)
             if meta_config_file_path and os.path.exists(meta_config_file_path):
                 data = EdgeHostPlatform._read_json_config_file(meta_config_file_path)
@@ -50,7 +111,7 @@ class EdgeHostPlatform(object):
                 if config_dir != '':
                     edge_config_dir = os.path.realpath(config_dir)
             else:
-                edge_config_dir = EdgeDefault.get_host_config_dir()
+                edge_config_dir = os.path.realpath(EdgeDefault.get_config_dir(host))
                 log.debug('Using default Edge config dir %s', edge_config_dir)
 
         if edge_config_dir and os.path.isdir(edge_config_dir):
@@ -266,7 +327,8 @@ class EdgeHostPlatform(object):
 
     @staticmethod
     def _setup_meta_edge_config_dir(edge_config_dir):
-        meta_config_dir = EdgeDefault.get_host_meta_conf_dir()
+        host = platform.system()
+        meta_config_dir = EdgeDefault.get_meta_conf_dir(host)
         if os.path.isdir(meta_config_dir) is False:
             log.info('Meta config directory does not exist.' \
                      'Creating directory: %s', meta_config_dir)
@@ -275,14 +337,14 @@ class EdgeHostPlatform(object):
             edge_config_dir = ''
         meta_config_dict = {EC.CONFIG_DIR_KEY: edge_config_dir}
         json_data = json.dumps(meta_config_dict, indent=2, sort_keys=True)
-        meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+        meta_config_file_path = EdgeDefault.get_meta_conf_file_path(host)
         EdgeHostPlatform._create_config_file(meta_config_file_path,
                                              json_data,
                                              'Edge meta config file')
 
     @staticmethod
     def _clear_edge_meta_config_dir():
-        meta_config_file_path = EdgeDefault.get_host_meta_conf_file_path()
+        meta_config_file_path = EdgeDefault.get_meta_conf_file_path(platform.system())
         log.debug('Deleting meta Edge config file: %s', meta_config_file_path)
         EdgeHostPlatform._delete_config_file(meta_config_file_path, 'Edge meta config')
 

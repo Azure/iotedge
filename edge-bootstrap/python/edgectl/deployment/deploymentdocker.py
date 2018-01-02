@@ -3,10 +3,10 @@ import logging as log
 import platform
 import docker
 from edgectl.config import EdgeConstants as EC
-from edgectl.config import EdgeDefault
-from edgectl.deployment import EdgeDeploymentCommand
-from edgectl.dockerclient import EdgeDockerClient
-from edgectl.edgehostplatform import EdgeHostPlatform
+from edgectl.deployment.commandbase import EdgeDeploymentCommand
+from edgectl.host import EdgeDockerClient
+from edgectl.host import EdgeHostPlatform
+from edgectl.errors import EdgeDeploymentError
 
 
 class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
@@ -21,7 +21,22 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     def __init__(self, config_obj):
         EdgeDeploymentCommand.__init__(self, config_obj)
         self._client = EdgeDockerClient()
-        return
+
+    def _check_prerequisites(self):
+        is_error = True
+        msg = ''
+        if self._client.check_availability() is False:
+            msg = 'Docker is unavailable'
+        else:
+            engine_os = self._client.get_os_type()
+            engines = EdgeHostPlatform.get_supported_docker_engines()
+            if engine_os.lower() not in engines:
+                msg = 'Unsupported docker OS type: {0}'.format(engine_os)
+            else:
+                is_error = False
+        if is_error:
+            log.error(msg)
+            raise EdgeDeploymentError(msg)
 
     def _obtain_edge_agent_login(self):
         result = None
@@ -232,14 +247,17 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         self._mount_certificates_into_agent_container()
 
     def login(self):
+        self._check_prerequisites()
         log.info('Executing \'login\'')
         self._recreate_agent_container()
 
     def update(self):
+        self._check_prerequisites()
         log.info('Executing \'update\'')
         self._recreate_agent_container()
 
     def start(self):
+        self._check_prerequisites()
         log.info('Executing \'start\'')
         print('Using configuration:\n\n%s' %(self._config_obj,))
         container_name = self._edge_runtime_container_name
@@ -284,6 +302,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         self._client.stop_by_label(self._edge_agent_container_label)
 
     def stop(self):
+        self._check_prerequisites()
         log.info('Executing \'stop\'')
 
         status = self._status()
@@ -298,6 +317,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         return
 
     def restart(self):
+        self._check_prerequisites()
         log.info('Executing \'restart\'')
 
         status = self._status()
@@ -312,6 +332,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         return
 
     def status(self):
+        self._check_prerequisites()
         result = self._status()
         print('IoT Edge Status: {0}'.format(result))
         return result
@@ -348,12 +369,14 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         return
 
     def uninstall(self):
+        self._check_prerequisites()
         log.info('Executing \'uninstall\'')
         self.uninstall_common()
         print('Runtime uninstalled successfully.')
         return
 
     def setup(self):
+        self._check_prerequisites()
         log.info('Executing \'setup\'')
         self.uninstall_common()
         print('Runtime setup successfully.')
