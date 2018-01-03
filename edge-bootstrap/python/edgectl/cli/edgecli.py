@@ -186,9 +186,9 @@ class EdgeCLI(object):
                                help='Set runtime configuration directory. Optional.\n'
                                + 'Note: If the configuration directory value is provided, it is saved in\n'
                                + 'the ' + EdgeCLI._prog() + ' configuration file located in the following directories:\n'
-                               + '   Linux Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_LINUX) + '\n'
-                               + '   Windows Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_WINDOWS) + '\n'
-                               + '   MacOS Hosts - ' + EdgeDefault.get_meta_conf_file_path_help_menu(EC.DOCKER_HOST_DARWIN) + '\n'
+                               + '   Linux Hosts - ' + EdgeDefault.get_edge_ctl_diagnostic_path(EC.DOCKER_HOST_LINUX) + '\n'
+                               + '   Windows Hosts - ' + EdgeDefault.get_edge_ctl_diagnostic_path(EC.DOCKER_HOST_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.get_edge_ctl_diagnostic_path(EC.DOCKER_HOST_DARWIN) + '\n'
                                + 'Instead of using this option, an environment variable "' + EC.ENV_EDGECONFIGDIR +'"\n'
                                + 'can be set with an absolute path to a home directory.\n'
                                + 'If environment variable "' + EC.ENV_EDGECONFIGDIR +'" is set and this option is specified,\n'
@@ -213,12 +213,12 @@ class EdgeCLI(object):
                                + 'Used when operating the runtime as a \'Gateway\' for leaf devices.',
                                metavar='')
 
-        log_levels = EdgeDefault.edge_runtime_log_levels()
+        log_levels = EdgeDefault.get_runtime_log_levels()
         log_levels = ", ".join(log_levels)
         cmd_setup.add_argument('--runtime-log-level',
                                help='Set runtime log level. Optional.\n'
                                + 'Levels:  ' + log_levels + '\n'
-                               + 'Default: ' + EdgeDefault.edge_runtime_default_log_level(),
+                               + 'Default: ' + EdgeDefault.get_default_runtime_log_level(),
                                metavar='')
 
         cmd_setup.add_argument('--image',
@@ -234,10 +234,10 @@ class EdgeCLI(object):
         cmd_setup.add_argument('--docker-uri', '--edge-runtime-docker-uri',
                                help='Set docker endpoint URI for the IoT Edge runtime. Optional.\n'
                                + 'Default:\n'
-                               + '   Linux Hosts - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX) + '\n'
-                               + '   Windows Hosts (Linux VM) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_LINUX) + '\n'
-                               + '   Windows Hosts (Native) - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_WINDOWS) + '\n'
-                               + '   MacOS Hosts - ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_DARWIN, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + '   Linux Hosts - ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + '   Windows Hosts (Linux VM) - ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_LINUX) + '\n'
+                               + '   Windows Hosts (Native) - ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_WINDOWS, EC.DOCKER_ENGINE_WINDOWS) + '\n'
+                               + '   MacOS Hosts - ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_DARWIN, EC.DOCKER_ENGINE_LINUX) + '\n'
                                + 'Note: This is strictly the URI that the Edge runtime will use to interact with docker daemon.\n'
                                + 'The URI is determined by the underlying container technology being used by the docker daemon.\n'
                                + '  - Specifically, these could be Linux based containers or Windows based containers.\n'
@@ -246,7 +246,7 @@ class EdgeCLI(object):
                                + 'but that may not always be the case. For example, if the docker host is Windows or\n'
                                + 'Windows Subsystem for Linux (WSL), the docker URI could be tcp://x.y.z.w:2375.\n'
                                + 'However, the underlying container technology could be Linux based and thus\n'
-                               + 'the Edge runtime docker URI would be: ' + EdgeDefault.docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX),
+                               + 'the Edge runtime docker URI would be: ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX),
                                metavar='')
 
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords', '--nopass',
@@ -295,7 +295,7 @@ class EdgeCLI(object):
                                '--agent-ca-passphrase-file option but not both.',
                                metavar='')
 
-        subj = EdgeDefault.certificate_subject_dict()
+        subj = EdgeDefault.get_certificate_subject_dict()
         cmd_setup.add_argument('-C', '--country',
                                help='Two letter country code. This parameter is used when autogenerating certificates. Optional.\n'
                                'Default: \'{0}\''.format(subj[EC.SUBJECT_COUNTRY_KEY]), metavar='')
@@ -489,7 +489,7 @@ class EdgeCLI(object):
                 log.critical('Please restore the config file or reinstall the %s utility.', EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Error when parsing configuration data', ex_parse)
             except edgectl.errors.EdgeFileAccessError as ex_access:
-                if (ex_access.file_name == EdgeDefault.default_user_input_config_abs_file_path()):
+                if (ex_access.file_name == EdgeDefault.get_default_settings_file_path()):
                     log.critical('Please restore the config file or reinstall the %s utility.', EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Filesystem access errors', ex_access)
         if is_valid:

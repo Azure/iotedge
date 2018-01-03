@@ -192,8 +192,8 @@ class EdgeDeploymentConfigDocker(object):
         d[EC.REGISTRIES_KEY] = self.registries
         logs_dict = {}
         logs_dict[EC.DOCKER_LOGGING_DRIVER_KEY] = self.logging_driver
-        logs_dict[EC.DOCKER_LOGGING_DRIVER_OPTIONS_KEY] = self.logging_options
-        d[EC.DOCKER_LOGGING_OPTIONS_KEY] = logs_dict
+        logs_dict[EC.DOCKER_LOGGING_DRIVER_OPTS_KEY] = self.logging_options
+        d[EC.DOCKER_LOGGING_OPTS_KEY] = logs_dict
         return d
 
 class EdgeHostConfig(object):
@@ -202,7 +202,7 @@ class EdgeHostConfig(object):
     _supported_log_levels = [EC.EDGE_RUNTIME_LOG_LEVEL_INFO,
                              EC.EDGE_RUNTIME_LOG_LEVEL_DEBUG]
     security_option_self_signed = EC.SELFSIGNED_KEY
-    security_option_pre_installed = EC.PREINSTALLED_KEY
+    security_option_pre_installed = EC.PREINSTALL_KEY
     _supported_security_options = [security_option_self_signed,
                                    security_option_pre_installed]
 
@@ -341,7 +341,7 @@ class EdgeHostConfig(object):
         return self._cert_subject
 
     def _merge(self, subj_dict):
-        default_cert_subject = EdgeDefault.certificate_subject_dict()
+        default_cert_subject = EdgeDefault.get_certificate_subject_dict()
         self._cert_subject = default_cert_subject.copy()
         if subj_dict:
             self._cert_subject.update(subj_dict)
@@ -676,13 +676,13 @@ class EdgeHostConfig(object):
         else:
             # pre installed cert options
             security_opt_preinstalled = {}
-            security_opt_preinstalled[EC.PREINSTALLED_OWNER_CA_CERT_FILE_KEY] = \
+            security_opt_preinstalled[EC.PREINSTALL_OWNER_CA_CERT_KEY] = \
                 self.owner_ca_cert_file_path
-            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_CERT_FILE_KEY] = \
+            security_opt_preinstalled[EC.PREINSTALL_DEVICE_CERT_KEY] = \
                 self.device_ca_cert_file_path
-            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_CHAIN_CERT_FILE_KEY] = \
+            security_opt_preinstalled[EC.PREINSTALL_DEVICE_CHAINCERT_KEY] = \
                 self.device_ca_chain_cert_file_path
-            security_opt_preinstalled[EC.PREINSTALLED_DEVICE_CA_PRIVATE_KEY_FILE_KEY] = \
+            security_opt_preinstalled[EC.PREINSTALL_DEVICE_PRIVKEY_KEY] = \
                 self.device_ca_private_key_file_path
             security_opt_preinstalled[EC.DEVICE_CA_PASSPHRASE_FILE_KEY] = \
                 self.device_ca_passphrase_file_path
@@ -690,8 +690,8 @@ class EdgeHostConfig(object):
                 self.agent_ca_passphrase_file_path
             security_opt_preinstalled[EC.FORCENOPASSWD_KEY] = \
                 self.force_no_passwords
-            certs_dict[EC.CERTS_OPTION_KEY] = EC.PREINSTALLED_KEY
-            certs_dict[EC.PREINSTALLED_KEY] = security_opt_preinstalled
+            certs_dict[EC.CERTS_OPTION_KEY] = EC.PREINSTALL_KEY
+            certs_dict[EC.PREINSTALL_KEY] = security_opt_preinstalled
         certs_dict[EC.CERTS_SUBJECT_KEY] = self._cert_subject
         security_dict = {}
         security_dict[EC.CERTS_KEY] = certs_dict

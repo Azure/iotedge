@@ -21,7 +21,7 @@ class EdgeHostPlatform(object):
     def get_docker_uri():
         dc = EdgeDockerClient()
         engine_os = dc.get_os_type()
-        return EdgeDefault.docker_uri(platform.system(), engine_os)
+        return EdgeDefault.get_docker_uri(platform.system(), engine_os)
 
     @staticmethod
     def is_deployment_supported(deployment):
@@ -29,7 +29,7 @@ class EdgeHostPlatform(object):
 
     @staticmethod
     def get_supported_docker_engines():
-        return EdgeDefault.get_supported_docker_engines(platform.system())
+        return EdgeDefault.get_docker_container_types(platform.system())
 
     @staticmethod
     def get_home_dir():
@@ -103,7 +103,7 @@ class EdgeHostPlatform(object):
         if env_config_dir and env_config_dir.strip() != '':
             edge_config_dir = os.path.realpath(env_config_dir)
         else:
-            meta_config_file_path = EdgeDefault.get_meta_conf_file_path(host)
+            meta_config_file_path = EdgeDefault.get_meta_conf_file_path()
             log.debug('Searching Edge config dir in config file %s', meta_config_file_path)
             if meta_config_file_path and os.path.exists(meta_config_file_path):
                 data = EdgeHostPlatform._read_json_config_file(meta_config_file_path)
@@ -327,8 +327,7 @@ class EdgeHostPlatform(object):
 
     @staticmethod
     def _setup_meta_edge_config_dir(edge_config_dir):
-        host = platform.system()
-        meta_config_dir = EdgeDefault.get_meta_conf_dir(host)
+        meta_config_dir = EdgeDefault.get_edge_ctl_config_dir()
         if os.path.isdir(meta_config_dir) is False:
             log.info('Meta config directory does not exist.' \
                      'Creating directory: %s', meta_config_dir)
@@ -337,14 +336,14 @@ class EdgeHostPlatform(object):
             edge_config_dir = ''
         meta_config_dict = {EC.CONFIG_DIR_KEY: edge_config_dir}
         json_data = json.dumps(meta_config_dict, indent=2, sort_keys=True)
-        meta_config_file_path = EdgeDefault.get_meta_conf_file_path(host)
+        meta_config_file_path = EdgeDefault.get_meta_conf_file_path()
         EdgeHostPlatform._create_config_file(meta_config_file_path,
                                              json_data,
                                              'Edge meta config file')
 
     @staticmethod
     def _clear_edge_meta_config_dir():
-        meta_config_file_path = EdgeDefault.get_meta_conf_file_path(platform.system())
+        meta_config_file_path = EdgeDefault.get_meta_conf_file_path()
         log.debug('Deleting meta Edge config file: %s', meta_config_file_path)
         EdgeHostPlatform._delete_config_file(meta_config_file_path, 'Edge meta config')
 

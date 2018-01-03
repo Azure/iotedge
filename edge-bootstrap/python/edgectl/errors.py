@@ -1,3 +1,7 @@
+"""
+This module defines and implements various exceptions for the
+azure-iot-edge-runtime-ctl utility.
+"""
 class EdgeError(Exception):
     """
     A base class from which all other exceptions inherit.
@@ -10,6 +14,11 @@ class EdgeError(Exception):
             msg += ' : {0}'.format(str(ex))
         super(EdgeError, self).__init__(msg)
         self._ex = ex
+
+class EdgeInvalidArgument(EdgeError):
+    """Basic exception for any invalid function or method argument errors"""
+    def __init__(self, msg, ex=None):
+        super(EdgeInvalidArgument, self).__init__(msg, ex)
 
 class EdgeValueError(EdgeError):
     """Basic exception for any invalid data errors"""

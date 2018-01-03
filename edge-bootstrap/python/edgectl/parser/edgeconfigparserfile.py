@@ -69,13 +69,13 @@ class EdgeConfigParserFile(EdgeConfigParser):
                                             device_ca_passphrase_file=dev_pass_file,
                                             agent_ca_passphrase_file=agt_pass_file)
             else:
-                pre_install = certs_cfg_data[EC.PREINSTALLED_KEY]
+                pre_install = certs_cfg_data[EC.PREINSTALL_KEY]
                 dev_pass_file = pre_install[EC.DEVICE_CA_PASSPHRASE_FILE_KEY]
                 agt_pass_file = pre_install[EC.AGENT_CA_PASSPHRASE_FILE_KEY]
-                owner_ca_cert_file = pre_install[EC.PREINSTALLED_OWNER_CA_CERT_FILE_KEY]
-                dev_ca_cert_file = pre_install[EC.PREINSTALLED_DEVICE_CA_CERT_FILE_KEY]
-                dev_ca_chain_cert_file = pre_install[EC.PREINSTALLED_DEVICE_CA_CHAIN_CERT_FILE_KEY]
-                dev_ca_pk_file = pre_install[EC.PREINSTALLED_DEVICE_CA_PRIVATE_KEY_FILE_KEY]
+                owner_ca_cert_file = pre_install[EC.PREINSTALL_OWNER_CA_CERT_KEY]
+                dev_ca_cert_file = pre_install[EC.PREINSTALL_DEVICE_CERT_KEY]
+                dev_ca_chain_cert_file = pre_install[EC.PREINSTALL_DEVICE_CHAINCERT_KEY]
+                dev_ca_pk_file = pre_install[EC.PREINSTALL_DEVICE_PRIVKEY_KEY]
                 config.set_security_options(pre_install[EC.FORCENOPASSWD_KEY],
                                             subject_dict,
                                             device_ca_passphrase_file=dev_pass_file,
@@ -96,10 +96,10 @@ class EdgeConfigParserFile(EdgeConfigParser):
                     deploy_cfg.add_registry(reg[EC.REGISTRY_ADDRESS_KEY],
                                             reg[EC.REGISTRY_USERNAME_KEY],
                                             reg[EC.REGISTRY_PASSWORD_KEY])
-                docker_log_cfg = docker_cfg[EC.DOCKER_LOGGING_OPTIONS_KEY]
+                docker_log_cfg = docker_cfg[EC.DOCKER_LOGGING_OPTS_KEY]
                 deploy_cfg.logging_driver = \
                     docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_KEY]
-                log_opts = docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_OPTIONS_KEY]
+                log_opts = docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_OPTS_KEY]
                 for opt_key, opt_val in list(log_opts.items()):
                     deploy_cfg.add_logging_option(opt_key, opt_val)
 

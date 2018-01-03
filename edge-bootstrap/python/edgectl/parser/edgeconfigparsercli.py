@@ -20,7 +20,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
     def parse(self, ignored=None):
         args = self._input_args
         try:
-            defaults_json = EdgeDefault.get_default_user_input_config_json()
+            defaults_json = EdgeDefault.get_default_settings_json()
             cs = args.connection_string
             if cs is None or len(cs) == 0:
                 raise ValueError('Please specify the device connection string' \
@@ -48,7 +48,7 @@ class EdgeConfigParserCLI(EdgeConfigParser):
 
             log_level = args.runtime_log_level
             if log_level is None:
-                log_level = EdgeDefault.edge_runtime_default_log_level()
+                log_level = EdgeDefault.get_default_runtime_log_level()
             config.log_level = log_level
 
             deploy_cfg = None
@@ -88,11 +88,11 @@ class EdgeConfigParserCLI(EdgeConfigParser):
                     uri = EdgeHostPlatform.get_docker_uri()
                 deploy_cfg.uri = uri
 
-                docker_log_cfg = docker_deploy_data[EC.DOCKER_LOGGING_OPTIONS_KEY]
+                docker_log_cfg = docker_deploy_data[EC.DOCKER_LOGGING_OPTS_KEY]
                 deploy_cfg.logging_driver = \
                     docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_KEY]
                 driver_log_opts = \
-                    docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_OPTIONS_KEY]
+                    docker_log_cfg[EC.DOCKER_LOGGING_DRIVER_OPTS_KEY]
                 for opt_key, opt_val in list(driver_log_opts.items()):
                     deploy_cfg.add_logging_option(opt_key, opt_val)
 
