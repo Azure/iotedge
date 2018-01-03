@@ -4,17 +4,17 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+# To use a consistent encoding
+from os import path
+import codecs
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
 
-here = path.abspath(path.dirname(__file__))
+HERE = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README'), encoding='utf-8') as f:
-    long_description = f.read()
+with codecs.open(path.join(HERE, 'README'), encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
 
 setup(
     name='azure-iot-edge-runtime-ctl',
@@ -24,7 +24,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='1.0.0preview17',
     description='Azure IoT Edge Runtime Control',
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
     url='https://github.com/azure/iot-edge',
 
     # Author details
@@ -72,6 +72,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         'dev': ['check-manifest'],
+        'test': ['mock', 'coverage'],
         ':sys_platform == "win32"': [
             'pypiwin32'
         ],
