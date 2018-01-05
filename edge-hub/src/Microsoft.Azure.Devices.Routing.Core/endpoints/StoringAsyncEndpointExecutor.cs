@@ -60,13 +60,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         if (this.hasMessagesInQueue.WaitOne(WaitForMessagesTimeout))
                         {
                             this.hasMessagesInQueue.Reset();
-                            IEnumerable<IMessage> messages = await iterator.GetNext(BatchSize);
-                            IEnumerable<IMessage> messagesAsList = messages as IList<IMessage> ?? messages.ToList();
-                            foreach (IMessage message in messagesAsList)
+                            while (!this.CancellationTokenSource.IsCancellationRequested)
                             {
-                                await this.SendToTplHead(message);
+                                IEnumerable<IMessage> messages = await iterator.GetNext(BatchSize);
+                                IList<IMessage> messagesAsList = messages as IList<IMessage> ?? messages.ToList();
+                                if (messagesAsList.Count == 0)
+                                    break;
+                                foreach (IMessage message in messagesAsList)
+                                {
+                                    await this.SendToTplHead(message);
+                                }
+                                Events.SendMessagesSuccess(this, messagesAsList);
                             }
-                            Events.SendMessagesSuccess(this, messagesAsList);
                         }
                     }
                     catch (Exception ex)
