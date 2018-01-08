@@ -175,6 +175,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{8EF9C00D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test", "edge-util\test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.csproj", "{6367B713-5AAB-451C-8215-F5226C3DC724}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "deploy", "deploy", "{CDB2AD52-F668-4693-AFC6-458D66BA6881}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{D355860F-243C-4A34-9284-895D7118FDA5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test", "deploy\test\Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test\Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test.csproj", "{824BB088-64F0-43A5-8010-27E9C656F046}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeCoverage|Any CPU = CodeCoverage|Any CPU
@@ -368,6 +374,12 @@ Global
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.Build.0 = Release|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{824BB088-64F0-43A5-8010-27E9C656F046}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -425,6 +437,8 @@ Global
 		{A7922DBF-E53A-45AB-86C6-3978ADE5196A} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
 		{8EF9C00D-85BB-49B0-A181-0C7581439816} = {A7922DBF-E53A-45AB-86C6-3978ADE5196A}
 		{6367B713-5AAB-451C-8215-F5226C3DC724} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
+		{D355860F-243C-4A34-9284-895D7118FDA5} = {CDB2AD52-F668-4693-AFC6-458D66BA6881}
+		{824BB088-64F0-43A5-8010-27E9C656F046} = {D355860F-243C-4A34-9284-895D7118FDA5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
