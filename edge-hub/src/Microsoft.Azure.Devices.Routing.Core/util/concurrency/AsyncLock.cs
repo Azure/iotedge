@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Util.Concurrency
             Task wait = this.semaphore.WaitAsync(token);
             return wait.Status == TaskStatus.RanToCompletion ? this.releaser :
                 wait.ContinueWith((_, state) => new Releaser((AsyncLock)state),
-                    this, token,
+                    this, CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
 

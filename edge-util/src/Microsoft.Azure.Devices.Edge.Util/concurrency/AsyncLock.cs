@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 {
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
             Task wait = this.semaphore.WaitAsync(token);
             return wait.Status == TaskStatus.RanToCompletion ? this.releaser :
                 wait.ContinueWith((_, state) => new Releaser((AsyncLock)state),
-                    this, token,
+                    this, CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
 
