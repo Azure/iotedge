@@ -48,8 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             }
 
             ITransportSettings[] settings = { mqttSetting };
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
 
-            return DeviceClient.CreateFromConnectionString(connectionString, settings);
+            deviceClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
+            return deviceClient;
         }
     }
 }
