@@ -1,23 +1,48 @@
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 {
+    using System.Threading.Tasks;
+    using Xunit;
+
+    using static TestHelpers;
+
     public class SimulateEdgeDeviceTest
     {
-        [Fact(Skip = "Not implemented yet")]
+        [Fact]
         [Deploy]
-        public void Run()
+        public async Task Run()
         {
-            // register a unique edge device on an IoT hub
-            // (fail if any previous deployment tries to overwrite this edge device's config)
-            // install iotedgectl (via pip or 
-            // run `iotedgectl setup ...`
-            // run `iotedgectl start`
-            // verify: run `docker ps` to confirm edge agent is running
-            // verify: ping the edge device to confirm it is connected to the cloud
-            // update edge device's config to include tempSensor module
-            // verify: run `docker ps` to confirm tempSensor is running
-            // verify: monitor Event Hub to confirm telemetry is flowing from device to cloud
+            // TODO: fail test if any previous deployment tries to overwrite this edge device's config
+
+            await VerifyDockerIsInstalled();
+            await VerifyPipIsInstalled();
+            Task iotedgectlInstalled = InstallIotedgectl();
+            Task<DeviceContext> context = RegisterNewEdgeDeviceAsync();
+
+            try
+            {
+                await iotedgectlInstalled;
+                await IotedgectlSetup(await context);
+                await IotedgectlStart();
+
+                try
+                {
+                    await VerifyEdgeAgentIsRunning();
+                    await VerifyEdgeAgentIsConnectedToIotHub(await context);
+                    await DeployTempSensorToEdgeDevice(await context);
+                    await VerifyTempSensorIsRunning();
+                    await VerifyTempSensorIsSendingDataToIotHub(await context);
+                }
+                finally
+                {
+                    await IotedgectlStop();
+                }
+            }
+            finally
+            {
+                await UnregisterEdgeDevice(await context);
+            }
         }
     }
 }
