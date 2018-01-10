@@ -77,19 +77,7 @@
   <ItemGroup>
     <Content Update="..\..\docker\linux\arm32v7\base\Dockerfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>linux\arm32v7\base\Dockerfile</Link>
-    </Content>
-    <Content Update="..\..\docker\manifest.yaml.template">
-      <Link>manifest.yaml.template</Link>
-    </Content>
-    <Content Update="..\..\docker\linux\amd64\Dockerfile">
-      <Link>linux\amd64\Dockerfile</Link>
-    </Content>
-    <Content Update="..\..\docker\linux\arm32v7\Dockerfile">
-      <Link>linux\arm32v7\Dockerfile</Link>
-    </Content>
-    <Content Update="..\..\docker\windows\amd64\Dockerfile">
-      <Link>windows\amd64\Dockerfile</Link>
+      <Link>docker\linux\arm32v7\base\Dockerfile</Link>
     </Content>
   </ItemGroup>
 
