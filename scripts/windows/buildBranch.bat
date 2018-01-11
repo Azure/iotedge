@@ -77,20 +77,6 @@ if exist "%VERSIONINFO_FILE_PATH%" (
 SET RES=0
 
 echo.
-echo Cleaning and restoring all solutions in repo
-echo.
-
-for /r %%f in (%SLN_PATTERN%) do (
-    echo Cleaning and Restoring packages for solution - %%f
-    "%DOTNET_ROOT_PATH%\dotnet" clean %%f
-    "%DOTNET_ROOT_PATH%\dotnet" restore %%f
-    IF !ERRORLEVEL! NEQ 0 (
-        SET RES=!ERRORLEVEL!
-        GOTO END
-    )
-)
-
-echo.
 echo Building all solutions in repo
 echo.
 

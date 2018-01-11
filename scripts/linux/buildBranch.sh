@@ -65,14 +65,6 @@ else
     echo "VersionInfo.json file not found."
 fi
 
-echo "Cleaning and restoring all solutions in repo"
-
-while read soln; do
-    echo "Cleaning and Restoring packages for solution - $soln"
-    $DOTNET_ROOT_PATH/dotnet clean --output $BUILD_BINARIESDIRECTORY $soln
-    $DOTNET_ROOT_PATH/dotnet restore $soln
-done < <(find $ROOT_FOLDER -type f -name $SLN_PATTERN)
-
 echo "Building all solutions in repo"
 RES=0
 while read soln; do

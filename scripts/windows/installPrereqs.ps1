@@ -51,9 +51,10 @@ if ($PythonUrl -like "http*") # We need to update the build config for the SDL b
 if (-not $Release)
 {
     $rootFolder = $env:BUILD_REPOSITORY_LOCALPATH
-    & $packageExe install OpenCover -version 4.6.519 -OutputDirectory $rootFolder
-    & $packageExe install OpenCoverToCoberturaConverter -version 0.2.6 -OutputDirectory $rootFolder
-    & $packageExe install ReportGenerator  -version 2.5.6 -OutputDirectory $rootFolder
+    $nugetConfig = Join-Path -Path $rootFolder -ChildPath "nuget_open.config"
+    & $packageExe install OpenCover -version 4.6.519 -OutputDirectory $rootFolder -ConfigFile $nugetConfig
+    & $packageExe install OpenCoverToCoberturaConverter -version 0.2.6 -OutputDirectory $rootFolder -ConfigFile $nugetConfig
+    & $packageExe install ReportGenerator  -version 2.5.6 -OutputDirectory $rootFolder -ConfigFile $nugetConfig
 }
 
 Write-Host "Cleaning up."
