@@ -234,10 +234,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<string> GetNewToken(string iotHub, string id, string currentToken, IIdentity currentIdentity)
         {
             Events.GetNewToken(id);
-            if (IsTokenUsable(iotHub, currentToken))
+            // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
+            // Device Client and it throws if the token is expired.
+            try
             {
-                Events.UsingExistingToken(id);
-                return currentToken;
+                if (IsTokenUsable(iotHub, currentToken))
+                {
+                    Events.UsingExistingToken(id);
+                    return currentToken;
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Events.TokenExpiredException(ex, id, currentToken);
             }
 
             // No need to lock here as the lock is being held by the refresher.
@@ -286,8 +295,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (await this.cloudConnection.tokenUpdateLock.LockAsync())
                 {
-                    this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token, this.identity);
-                    return this.token;
+                    try
+                    {
+                        this.token = await this.cloudConnection.GetNewToken(iotHub, this.DeviceId, this.token, this.identity);
+                        return this.token;
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.ErrorRenewingToken(ex);
+                        throw;
+                    }
+
                 }
             }
         }
@@ -310,8 +328,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 using (await this.cloudConnection.tokenUpdateLock.LockAsync())
                 {
-                    this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token, this.identity);
-                    return this.token;
+                    try
+                    {
+                        this.token = await this.cloudConnection.GetNewToken(iotHub, $"{this.DeviceId}/{this.ModuleId}", this.token, this.identity);
+                        return this.token;
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.ErrorRenewingToken(ex);
+                        throw;
+                    }
                 }
             }
         }
@@ -328,7 +354,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 TransportConnected,
                 CreateNewToken,
                 UpdatedCloudConnection,
-                ObtainedNewToken
+                ObtainedNewToken,
+                TokenExpired,
+                ErrorRenewingToken
             }
 
             static string TransportName(TransportType type)
@@ -383,6 +411,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 TimeSpan timeRemaining = GetTokenExpiryTimeRemaining(hostname, newToken);
                 Log.LogInformation((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {id} that expires in {timeRemaining}"));
+            }
+
+            internal static void TokenExpiredException(Exception ex, string id, string currentToken)
+            {
+                Log.LogDebug((int)EventIds.TokenExpired, ex, Invariant($"Token Expired. Id:{id}, CurrentToken: {currentToken}."));
+            }
+
+            internal static void ErrorRenewingToken(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
             }
         }
     }
