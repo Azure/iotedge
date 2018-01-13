@@ -13,8 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
         [Deploy]
         public async Task Run()
         {
-            // TODO: fail test if any previous deployment tries to overwrite this edge device's config
+            // TODO: fail test if any previous at-scale deployment tries to overwrite this edge device's config
 
+            await VerifyEdgeIsNotAlreadyInstalled(); // don't accidentally overwrite an edge installation on a dev machine
             await VerifyDockerIsInstalled();
             await VerifyPipIsInstalled();
             Task iotedgectlInstalled = InstallIotedgectl();
@@ -37,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                 finally
                 {
                     await IotedgectlStop();
+                    await IotedgectlUninstall();
                 }
             }
             finally

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
@@ -16,6 +17,23 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
     static class TestHelpers
     {
+        public static async Task VerifyEdgeIsNotAlreadyInstalled()
+        {
+            try
+            {
+                await RunProcessAsync("iotedgectl", "status");
+            }
+            catch (Win32Exception)
+            {
+                // Should fail for one of two reasons:
+                // 1. [ExitCode == 9009] iotedgectl isn't installed
+                // 2. [ExitCode == 1] `iotedgectl status` failed because there's no config
+                return;
+            }
+
+            throw new Exception("IoT Edge runtime is installed. Run `iotedgectl uninstall` before running this test.");
+        }
+
         public static Task VerifyDockerIsInstalled()
         {
             return RunProcessAsync("docker", "--version");
@@ -187,6 +205,11 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             return RunProcessAsync("iotedgectl", "stop", 60);
         }
 
+        public static Task IotedgectlUninstall()
+        {
+            return RunProcessAsync("iotedgectl", "uninstall", 60);
+        }
+
         public static Task UnregisterEdgeDevice(DeviceContext context)
         {
             return context != null
@@ -247,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             {
                 if (result.ExitCode != 0)
                 {
-                    throw new Exception($"'{name}' failed with: {string.Join("\n", result.StandardError)}");
+                    throw new Win32Exception(result.ExitCode, $"'{name}' failed with: {string.Join("\n", result.StandardError)}");
                 }
 
                 return string.Join("\n", result.StandardOutput);
