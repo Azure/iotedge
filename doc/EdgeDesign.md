@@ -55,7 +55,7 @@ Class Diagram:
 
 ![Edge Hub Class Diagram](./images/EdgeHubClassDiagram.png)
 
-EdgeHubClassDiagram.PNG
+EdgeHubClassDiagram.png
 
 #### Assemblies
 
