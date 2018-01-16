@@ -13,7 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
         [Deploy]
         public async Task Run()
         {
-            // TODO: fail test if any previous at-scale deployment tries to overwrite this edge device's config
+            // This test assumes that no existing at-scale deployment will bring in this edge device and overwrite
+            // its config. This could happen, for example, if someone were to create an at-scale deployment on the
+            // test hub with the target condition: "NOT deviceId=''". Since this is an unlikely scenario, we won't
+            // invest the effort to guard against it.
 
             await VerifyEdgeIsNotAlreadyInstalled(); // don't accidentally overwrite an edge installation on a dev machine
             await VerifyDockerIsInstalled();

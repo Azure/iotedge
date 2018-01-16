@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
@@ -46,11 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
         public static Task InstallIotedgectl()
         {
-            // TODO: install from tar.gz if test is called with special args
+            const string PackageName = "azure-iot-edge-runtime-ctl";
+            string archivePath = Environment.GetEnvironmentVariable("iotedgectlArchivePath");
+
+            Console.WriteLine($"Installing python package '{PackageName}' from {archivePath ?? "pypi"}");
 
             return RunProcessAsync(
                 "pip",
-                "install --disable-pip-version-check --upgrade azure-iot-edge-runtime-ctl",
+                $"install --disable-pip-version-check --upgrade {archivePath ?? PackageName}",
                 120);
         }
 
@@ -65,7 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             string iotHubConnectionString =
                 Environment.GetEnvironmentVariable("iothubConnectionString") ??
                 await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
             device = await rm.AddDeviceAsync(device);
 
             return new DeviceContext
@@ -78,7 +87,15 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
         public static Task IotedgectlSetup(DeviceContext context)
         {
-            // TODO: add ACR credentials if test is called with special args
+            string address = Environment.GetEnvironmentVariable("registryAddress");
+            string user = Environment.GetEnvironmentVariable("registryUser");
+            string password = Environment.GetEnvironmentVariable("registryPassword");
+
+            string registryArgs = address != null && user != null && password != null
+                ? $"--docker-registries {address} {user} {password}"
+                : string.Empty;
+
+            Console.WriteLine($"Setting up iotedgectl with container registry '{(registryArgs != string.Empty ? address : "<none>")}'");
 
             IotHubConnectionStringBuilder builder =
                 IotHubConnectionStringBuilder.Create(context.IotHubConnectionString);
@@ -90,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
             return RunProcessAsync(
                 "iotedgectl",
-                $"setup --connection-string \"{deviceConnectionString}\" --auto-cert-gen-force-no-passwords",
+                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs}",
                 60);
         }
 
@@ -147,7 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
         public static Task DeployTempSensorToEdgeDevice(DeviceContext context)
         {
-            var config = JsonConvert.DeserializeObject<ConfigurationContent>(DeployJson);
+            const string ImageVersion = "1.0-preview";
+            string json = Regex.Replace(DeployJson, "<(?:agent|hub|sensor)-version>", ImageVersion);
+            var config = JsonConvert.DeserializeObject<ConfigurationContent>(json);
             return context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(context.Device.Id, config);
         }
 
@@ -162,8 +181,12 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                 Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath") ??
                 await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
+            var builder = new EventHubsConnectionStringBuilder(eventHubConnectionString);
+
+            Console.WriteLine($"Receiving events from device '{context.Device.Id}' on Event Hub '{builder.EntityPath}'");
+
             EventHubClient eventHubClient =
-                EventHubClient.CreateFromConnectionString(eventHubConnectionString);
+                EventHubClient.CreateFromConnectionString(builder.ToString());
 
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",
@@ -277,7 +300,6 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             }
         }
 
-        // TODO: Image names for agent, hub, tempSensor should not be hard-coded to 1.0-preview
         const string DeployJson = @"
 {
   ""moduleContent"": {
@@ -295,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
           ""edgeAgent"": {
             ""type"": ""docker"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-agent:1.0-preview"",
+              ""image"": ""microsoft/azureiotedge-agent:<agent-version>"",
               ""createOptions"": """"
             },
             ""configuration"": {
@@ -307,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             ""status"": ""running"",
             ""restartPolicy"": ""always"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-hub:1.0-preview"",
+              ""image"": ""microsoft/azureiotedge-hub:<hub-version>"",
               ""createOptions"": """"
             },
             ""configuration"": {
@@ -322,7 +344,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             ""status"": ""running"",
             ""restartPolicy"": ""always"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-simulated-temperature-sensor:1.0-preview"",
+              ""image"": ""microsoft/azureiotedge-simulated-temperature-sensor:<sensor-version>"",
               ""createOptions"": """"
             },
             ""configuration"": {
