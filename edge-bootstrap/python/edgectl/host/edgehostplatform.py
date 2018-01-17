@@ -307,7 +307,7 @@ class EdgeHostPlatform(object):
         if os.path.isdir(modules_path) is False:
             log.debug('Edge modules dir not setup, creating dir: %s', modules_path)
             EdgeHostPlatform._create_dir(modules_path, 'Edge modules')
-        if edge_config.use_self_signed_certificates():
+        if edge_config.certificate_config.use_self_signed_certificates():
             EdgeHostPlatform._generate_self_signed_certs_if_needed(edge_config,
                                                                    certs_dir,
                                                                    force_regen_certs_bool)
@@ -375,16 +375,20 @@ class EdgeHostPlatform(object):
     def _generate_self_signed_certs_if_needed(edge_config, certs_dir, force_regen_certs_bool):
         if force_regen_certs_bool or \
             EdgeHostPlatform._check_if_cert_regen_is_required(certs_dir):
-            EdgeHostPlatform._generate_self_signed_certs(edge_config, certs_dir)
+            EdgeHostPlatform._generate_self_signed_certs(edge_config.certificate_config,
+                                                         edge_config.hostname,
+                                                         certs_dir)
 
     @staticmethod
     def _generate_certs_using_device_ca_if_needed(edge_config, certs_dir, force_regen_certs_bool):
         if force_regen_certs_bool or \
             EdgeHostPlatform._check_if_cert_regen_is_required(certs_dir):
-            EdgeHostPlatform._generate_certs_using_device_ca(edge_config, certs_dir)
+            EdgeHostPlatform._generate_certs_using_device_ca(edge_config.certificate_config,
+                                                             edge_config.hostname,
+                                                             certs_dir)
 
     @staticmethod
-    def _generate_certs_common(cert_util, edge_config, certs_dir, agent_ca_phrase):
+    def _generate_certs_common(cert_util, hostname, certs_dir, agent_ca_phrase):
         cert_util.export_cert_artifacts_to_dir('edge-device-ca', certs_dir)
 
         cert_util.create_intermediate_ca_cert('edge-agent-ca',
@@ -399,7 +403,7 @@ class EdgeHostPlatform(object):
         cert_util.create_server_cert('edge-hub-server',
                                      365,
                                      'edge-agent-ca',
-                                     edge_config.hostname)
+                                     hostname)
 
         cert_util.export_cert_artifacts_to_dir('edge-hub-server',
                                                certs_dir)
@@ -409,20 +413,20 @@ class EdgeHostPlatform(object):
         cert_util.chain_ca_certs('edge-chain-ca', prefixes, certs_dir)
 
     @staticmethod
-    def _generate_self_signed_certs(edge_config, certs_dir):
+    def _generate_self_signed_certs(certificate_config, hostname, certs_dir):
         log.info('Generating self signed certificates at: %s', certs_dir)
 
         device_ca_phrase = None
         agent_ca_phrase = None
-        if edge_config.force_no_passwords is False:
-            device_ca_phrase = edge_config.device_ca_passphrase
+        if certificate_config.force_no_passwords is False:
+            device_ca_phrase = certificate_config.device_ca_passphrase
             if device_ca_phrase is None or device_ca_phrase == '':
                 bypass_opts = ['--device-ca-passphrase', '--device-ca-passphrase-file']
                 device_ca_phrase = EdgeHostPlatform._prompt_password('Edge Device',
                                                                      bypass_opts,
                                                                      'deviceCAPassphraseFilePath')
 
-            agent_ca_phrase = edge_config.agent_ca_passphrase
+            agent_ca_phrase = certificate_config.agent_ca_passphrase
             if agent_ca_phrase is None or agent_ca_phrase == '':
                 bypass_opts = ['--agent-ca-passphrase', '--agent-ca-passphrase-file']
                 agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent',
@@ -432,17 +436,20 @@ class EdgeHostPlatform(object):
         cert_util = EdgeCertUtil()
         cert_util.create_root_ca_cert('edge-device-ca',
                                       365,
-                                      edge_config.certificate_subject_dict,
+                                      certificate_config.certificate_subject_dict,
                                       device_ca_phrase)
-        EdgeHostPlatform._generate_certs_common(cert_util, edge_config, certs_dir, agent_ca_phrase)
+        EdgeHostPlatform._generate_certs_common(cert_util,
+                                                hostname,
+                                                certs_dir,
+                                                agent_ca_phrase)
 
     @staticmethod
-    def _generate_certs_using_device_ca(edge_config, certs_dir):
+    def _generate_certs_using_device_ca(certificate_config, hostname, certs_dir):
         log.info('Generating Device CA based certificates at: %s', certs_dir)
 
         agent_ca_phrase = None
-        if edge_config.force_no_passwords is False:
-            agent_ca_phrase = edge_config.agent_ca_passphrase
+        if certificate_config.force_no_passwords is False:
+            agent_ca_phrase = certificate_config.agent_ca_passphrase
             if agent_ca_phrase is None or agent_ca_phrase == '':
                 bypass_opts = ['--agent-ca-passphrase', '--agent-ca-passphrase-file']
                 agent_ca_phrase = EdgeHostPlatform._prompt_password('Edge Agent',
@@ -451,13 +458,13 @@ class EdgeHostPlatform(object):
 
         cert_util = EdgeCertUtil()
         cert_util.set_root_ca_cert('edge-device-ca',
-                                   edge_config.device_ca_cert_file_path,
-                                   edge_config.owner_ca_cert_file_path,
-                                   edge_config.device_ca_chain_cert_file_path,
-                                   edge_config.device_ca_private_key_file_path,
-                                   edge_config.device_ca_passphrase)
+                                   certificate_config.device_ca_cert_file_path,
+                                   certificate_config.owner_ca_cert_file_path,
+                                   certificate_config.device_ca_chain_cert_file_path,
+                                   certificate_config.device_ca_private_key_file_path,
+                                   certificate_config.device_ca_passphrase)
 
-        EdgeHostPlatform._generate_certs_common(cert_util, edge_config, certs_dir, agent_ca_phrase)
+        EdgeHostPlatform._generate_certs_common(cert_util, hostname, certs_dir, agent_ca_phrase)
 
     @staticmethod
     def _check_if_cert_file_exists(dir_path, prefix, sub_dir, suffix):

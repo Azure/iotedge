@@ -1,10 +1,10 @@
 import json
 import logging as log
 import edgectl.errors
-from edgectl.config import EdgeConfigDirInputSource
 from edgectl.config import EdgeConstants as EC
+from edgectl.config import EdgeConfigDirInputSource
+from edgectl.config import EdgeCertConfig
 from edgectl.config import EdgeDeploymentConfigDocker
-from edgectl.config import EdgeDefault
 from edgectl.config import EdgeHostConfig
 from edgectl.host import EdgeHostPlatform
 from edgectl.parser.edgeconfigparser import EdgeConfigParser
@@ -56,6 +56,7 @@ class EdgeConfigParserFile(EdgeConfigParser):
             subject_dict = {}
             if EC.CERTS_SUBJECT_KEY in list(certs_cfg_data.keys()):
                 subject_dict = certs_cfg_data[EC.CERTS_SUBJECT_KEY]
+            cert_config = EdgeCertConfig()
             if security_option == EC.SELFSIGNED_KEY:
                 ss_cert_data = certs_cfg_data[EC.SELFSIGNED_KEY]
                 dev_pass_file = None
@@ -64,10 +65,10 @@ class EdgeConfigParserFile(EdgeConfigParser):
                     dev_pass_file = ss_cert_data[EC.DEVICE_CA_PASSPHRASE_FILE_KEY]
                 if EC.AGENT_CA_PASSPHRASE_FILE_KEY in list(ss_cert_data.keys()):
                     agt_pass_file = ss_cert_data[EC.AGENT_CA_PASSPHRASE_FILE_KEY]
-                config.set_security_options(ss_cert_data[EC.FORCENOPASSWD_KEY],
-                                            subject_dict,
-                                            device_ca_passphrase_file=dev_pass_file,
-                                            agent_ca_passphrase_file=agt_pass_file)
+                cert_config.set_options(ss_cert_data[EC.FORCENOPASSWD_KEY],
+                                        subject_dict,
+                                        device_ca_passphrase_file=dev_pass_file,
+                                        agent_ca_passphrase_file=agt_pass_file)
             else:
                 pre_install = certs_cfg_data[EC.PREINSTALL_KEY]
                 dev_pass_file = pre_install[EC.DEVICE_CA_PASSPHRASE_FILE_KEY]
@@ -76,15 +77,17 @@ class EdgeConfigParserFile(EdgeConfigParser):
                 dev_ca_cert_file = pre_install[EC.PREINSTALL_DEVICE_CERT_KEY]
                 dev_ca_chain_cert_file = pre_install[EC.PREINSTALL_DEVICE_CHAINCERT_KEY]
                 dev_ca_pk_file = pre_install[EC.PREINSTALL_DEVICE_PRIVKEY_KEY]
-                config.set_security_options(pre_install[EC.FORCENOPASSWD_KEY],
-                                            subject_dict,
-                                            device_ca_passphrase_file=dev_pass_file,
-                                            agent_ca_passphrase_file=agt_pass_file,
-                                            owner_ca_cert_file=owner_ca_cert_file,
-                                            device_ca_cert_file=dev_ca_cert_file,
-                                            device_ca_chain_cert_file=dev_ca_chain_cert_file,
-                                            device_ca_private_key_file=dev_ca_pk_file)
+                cert_config.set_options(pre_install[EC.FORCENOPASSWD_KEY],
+                                        subject_dict,
+                                        device_ca_passphrase_file=dev_pass_file,
+                                        agent_ca_passphrase_file=agt_pass_file,
+                                        owner_ca_cert_file=owner_ca_cert_file,
+                                        device_ca_cert_file=dev_ca_cert_file,
+                                        device_ca_chain_cert_file=dev_ca_chain_cert_file,
+                                        device_ca_private_key_file=dev_ca_pk_file)
 
+
+            config.certificate_config = cert_config
             docker_cfg = None
             deployment_type = data[EC.DEPLOYMENT_KEY][EC.DEPLOYMENT_TYPE_KEY]
             if deployment_type == EC.DEPLOYMENT_DOCKER_KEY:

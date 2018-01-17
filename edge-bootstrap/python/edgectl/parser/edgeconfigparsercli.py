@@ -4,6 +4,7 @@ from edgectl.config import EdgeConstants as EC
 from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDefault
+from edgectl.config import EdgeCertConfig
 import edgectl.errors
 from edgectl.host import EdgeHostPlatform
 from edgectl.utils import EdgeUtils
@@ -115,17 +116,18 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             if args.common_name:
                 subj_dict[EC.SUBJECT_COMMON_NAME_KEY] = args.common_name
 
-            config.set_security_options(args.auto_cert_gen_force_no_passwords,
-                                        subj_dict,
-                                        owner_ca_cert_file=args.owner_ca_cert_file,
-                                        device_ca_cert_file=args.device_ca_cert_file,
-                                        device_ca_chain_cert_file=args.device_ca_chain_cert_file,
-                                        device_ca_private_key_file=args.device_ca_private_key_file,
-                                        device_ca_passphrase=args.device_ca_passphrase,
-                                        device_ca_passphrase_file=args.device_ca_passphrase_file,
-                                        agent_ca_passphrase=args.agent_ca_passphrase,
-                                        agent_ca_passphrase_file=args.agent_ca_passphrase_file)
-
+            cert_config = EdgeCertConfig()
+            cert_config.set_options(args.auto_cert_gen_force_no_passwords,
+                                    subj_dict,
+                                    owner_ca_cert_file=args.owner_ca_cert_file,
+                                    device_ca_cert_file=args.device_ca_cert_file,
+                                    device_ca_chain_cert_file=args.device_ca_chain_cert_file,
+                                    device_ca_private_key_file=args.device_ca_private_key_file,
+                                    device_ca_passphrase=args.device_ca_passphrase,
+                                    device_ca_passphrase_file=args.device_ca_passphrase_file,
+                                    agent_ca_passphrase=args.agent_ca_passphrase,
+                                    agent_ca_passphrase_file=args.agent_ca_passphrase_file)
+            config.certificate_config = cert_config
             return config
         except ValueError as ex_value:
             log.error('Error parsing user input data: %s.', str(ex_value))

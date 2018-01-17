@@ -9,7 +9,7 @@ import stat
 import sys
 
 
-class EdgeUtils:
+class EdgeUtils(object):
 
     @staticmethod
     def _remove_readonly(func, path, excinfo):
@@ -38,6 +38,13 @@ class EdgeUtils:
                         + ' Errno ' + str(ex.errno) \
                         + ', Error:' + ex.strerror)
                 raise
+    @staticmethod
+    def check_if_file_exists(file_path):
+        if file_path is None \
+            or os.path.exists(file_path) is False \
+            or os.path.isfile(file_path) is False:
+            return False
+        return True
 
     @staticmethod
     def get_hostname():
@@ -85,3 +92,13 @@ class EdgeUtils:
                 print('  Please try again.\n')
 
         return response_initial
+
+    @staticmethod
+    def sanitize_connection_string(conn_str):
+        """ Returns a connection string with the SharedAccessKey data stripped out."""
+        try:
+            items = [(s[0], s[1] if s[0].lower() != 'sharedaccesskey' else '******') \
+                    for s in [p.split('=', 2) for p in conn_str.split(';')]]
+            return ';'.join(["%s=%s" % p for p in items])
+        except:
+            return '******'

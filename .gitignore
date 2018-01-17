@@ -288,9 +288,7 @@ FakesAssemblies/
 *.opt
 
 .vs/
-.vscode/launch.json
-.vscode/settings.json
-.vscode/tags
+.vscode/
 
 launchSettings.json
 target/
@@ -308,6 +306,7 @@ backup.json
 # python
 **/*.egg-info
 **/.coverage
+**/.ropeproject
 
 # JetBrains Rider files
 .idea/

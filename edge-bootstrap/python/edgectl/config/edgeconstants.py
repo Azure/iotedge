@@ -12,6 +12,7 @@ EdgeConstantsTuple = collections.namedtuple('EdgeConstantsTuple',
                                             ['SCHEMA_KEY',
                                              'DEVICE_CONNECTION_STRING_KEY',
                                              'CONFIG_DIR_KEY',
+                                             'CONFIG_DIR_SOURCE_KEY',
                                              'HOMEDIR_KEY',
                                              'HOSTNAME_KEY',
                                              'EDGE_RUNTIME_LOG_LEVEL_KEY',
@@ -52,6 +53,7 @@ EdgeConstantsTuple = collections.namedtuple('EdgeConstantsTuple',
                                              'DOCKER_HOST_DARWIN',
                                              'DOCKER_ENGINE_LINUX',
                                              'DOCKER_ENGINE_WINDOWS',
+                                             'DOCKER_ENGINE_WINDOWS_ENDPOINT',
                                              'ENV_EDGECONFIGDIR',
                                              'EDGE_RUNTIME_LOG_LEVEL_INFO',
                                              'EDGE_RUNTIME_LOG_LEVEL_DEBUG'])
@@ -65,6 +67,7 @@ class EdgeConstants(EdgeConstantsTuple):
     SCHEMA_KEY = 'schemaVersion'
     DEVICE_CONNECTION_STRING_KEY = 'deviceConnectionString'
     CONFIG_DIR_KEY = 'configDir'
+    CONFIG_DIR_SOURCE_KEY = 'configDirSource'
     HOMEDIR_KEY = 'homeDir'
     HOSTNAME_KEY = 'hostName'
     EDGE_RUNTIME_LOG_LEVEL_KEY = 'logLevel'
@@ -107,6 +110,7 @@ class EdgeConstants(EdgeConstantsTuple):
     DOCKER_HOST_DARWIN = 'darwin'
     DOCKER_ENGINE_LINUX = 'linux'
     DOCKER_ENGINE_WINDOWS = 'windows'
+    DOCKER_ENGINE_WINDOWS_ENDPOINT = '\\\\.\\pipe\\docker_engine'
 
     ENV_EDGECONFIGDIR = 'EDGECONFIGDIR'
 
