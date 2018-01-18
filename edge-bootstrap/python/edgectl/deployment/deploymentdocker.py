@@ -1,8 +1,10 @@
+"""
+Module implements class EdgeDeploymentCommandDocker which
+handles the various Edge commands for docker based deployments
+"""
 from __future__ import print_function
 import logging as log
-import platform
 import docker
-from edgectl.config import EdgeConstants as EC
 from edgectl.deployment.commandbase import EdgeDeploymentCommand
 from edgectl.host import EdgeDockerClient
 from edgectl.host import EdgeHostPlatform
@@ -10,6 +12,9 @@ from edgectl.errors import EdgeDeploymentError
 
 
 class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
+    """
+    Class implements APIs to handle the various Edge commands for docker based deployments
+    """
     _edge_runtime_container_name = 'edgeAgent'
     _edge_runtime_network_name = 'azure-iot-edge'
     _edge_agent_container_label = \
@@ -34,7 +39,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 msg = 'Unsupported docker OS type: {0}'.format(engine_os)
             else:
                 is_error = False
-        if is_error:
+        if is_error is True:
             log.error(msg)
             raise EdgeDeploymentError(msg)
 
@@ -49,7 +54,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
     def _recreate_agent_container(self):
         container_name = self._edge_runtime_container_name
-        status = self.status()
+        status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
         elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
@@ -205,12 +210,12 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             username = edge_reg['username']
             password = edge_reg['password']
         is_newer_agent_image = self._client.pull(image, username, password)
-        if is_newer_agent_image:
+        if is_newer_agent_image is True:
             log.debug('Pulled new image %s', image)
         else:
             # check if user has updated the agent image by checking image names
-            existing_agent_image = self._client.get_container_by_name(container_name)
-            if existing_agent_image and existing_agent_image.image != image:
+            existing_agent_image = self._client.get_container_image(container_name)
+            if existing_agent_image is not None and existing_agent_image != image:
                 is_newer_agent_image = True
 
         return is_newer_agent_image
@@ -221,7 +226,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         ports_dict = {}
         volume_dict = {}
         mounts_list = []
-        restart_policy_dict = { 'Name': 'always' }
+        restart_policy_dict = {'Name': 'always'}
 
         edge_config = self._config_obj
         # create network for running all edge modules
@@ -274,7 +279,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
             # pull the latest edge agent image
             is_newer_agent_image = self._pull_freshest_agent_image()
-            if is_newer_agent_image:
+            if is_newer_agent_image is True:
                 # image was updated so remove any existing agent container
                 create_new_container = True
                 self._remove_agent_container()
@@ -286,7 +291,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                     log.debug('Edge Agent container %s does not exist.',
                               container_name)
 
-            if create_new_container:
+            if create_new_container is True:
                 self._create_agent_container()
             self._start_agent_container()
             print('Runtime started.')
@@ -349,7 +354,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 result = self.EDGE_RUNTIME_STATUS_STOPPED
         return result
 
-    def uninstall_common(self):
+    def _uninstall_common(self):
         container_name = self._edge_runtime_container_name
 
         status = self._status()
@@ -371,14 +376,14 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     def uninstall(self):
         self._check_prerequisites()
         log.info('Executing \'uninstall\'')
-        self.uninstall_common()
+        self._uninstall_common()
         print('Runtime uninstalled successfully.')
         return
 
     def setup(self):
         self._check_prerequisites()
         log.info('Executing \'setup\'')
-        self.uninstall_common()
+        self._uninstall_common()
         print('Runtime setup successfully.')
         print('\n')
         print('Using configuration:\n\n%s' %(self._config_obj,))

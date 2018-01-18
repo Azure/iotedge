@@ -25,7 +25,7 @@ class EdgeDockerClient(object):
     def check_availability(self):
         is_available = False
         try:
-            info = self._client.info()
+            self._client.info()
             is_available = True
         except EdgeError as edge_ex:
             logging.error('Could not obtain Docker info')
@@ -87,10 +87,16 @@ class EdgeDockerClient(object):
 
         return is_updated
 
+    def get_container_image(self, container_name):
+        container = self.get_container_by_name(container_name)
+        if container is not None:
+            return container.image
+        return None
+
     def get_container_by_name(self, container_name):
         try:
             return self._client.containers.get(container_name)
-        except docker.errors.NotFound as ex_nf:
+        except docker.errors.NotFound:
             logging.debug('Could not find container %s', container_name)
             return None
         except docker.errors.APIError as ex:
@@ -222,13 +228,13 @@ class EdgeDockerClient(object):
                 logging.debug(' port: %s:%s', key, str(ports_dict[key]))
             for key in list(volume_dict.keys()):
                 logging.debug(' volume: %s:%s, %s', key,
-                             volume_dict[key]['bind'], volume_dict[key]['mode'])
+                              volume_dict[key]['bind'], volume_dict[key]['mode'])
             if 'type' in list(log_config_dict.keys()):
                 logging.debug(' logging driver: %s', log_config_dict['type'])
             if 'config' in list(log_config_dict.keys()):
                 for key in list(log_config_dict['config'].keys()):
                     logging.debug(' log opt: %s:%s',
-                                 key, log_config_dict['config'][key])
+                                  key, log_config_dict['config'][key])
             self._client.containers.create(image,
                                            detach=detach_bool,
                                            environment=env_dict,
