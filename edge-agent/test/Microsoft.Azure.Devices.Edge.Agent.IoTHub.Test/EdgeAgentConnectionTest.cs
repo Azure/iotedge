@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     {
         const string DockerType = "docker";
 
-        [Bvt]
+        [E2E]
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
-        [Bvt]
+        [E2E]
         [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
@@ -962,8 +962,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
         }
 
-        [Bvt]
-        [Fact(Skip = "Connected status update in IoTHub takes 5 mins.")]
+        [E2E]
+        [Fact]
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
@@ -1038,7 +1038,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
         }
 
-        [Bvt]
+        [E2E]
         [Fact]
         public async Task EdgeAgentPingMethodTest()
         {

@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    [Bvt]
+    [E2E]
     public class EdgeHubConnectionTest
     {
         const string EdgeHubModuleId = "$edgeHub";

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Xunit;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
-    [Bvt, E2E, Stress]
+    [E2E, Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Newtonsoft.Json.Linq;
     using Xunit;
 
-    [Bvt]
+    [E2E]
     public class CloudProxyTest
     {
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
