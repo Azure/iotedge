@@ -901,7 +901,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     PORT_1234_DICT = {
         '1234/tcp': 1234
     }
-    RESTART_POLICY_DICT = {'Name': 'always'}
+    RESTART_POLICY_DICT = {'Name': 'unless-stopped'}
 
     def _get_env_dict(self, engine_os):
         result = self.ENV_COMMON_DICT.copy()

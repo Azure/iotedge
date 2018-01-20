@@ -226,7 +226,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         ports_dict = {}
         volume_dict = {}
         mounts_list = []
-        restart_policy_dict = {'Name': 'always'}
+        restart_policy_dict = {'Name': 'unless-stopped'}
 
         edge_config = self._config_obj
         # create network for running all edge modules
