@@ -29,6 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     [Integration]
     public class RoutingTest
     {
+        static readonly Random Rand = new Random();
+
+        static TimeSpan GetSleepTime(int baseSleepSecs = 10) => TimeSpan.FromSeconds(baseSleepSecs + Rand.Next(0, 10));
+
         [Fact]
         public async Task RouteToCloudTest()
         {
@@ -47,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetMessage();
             await device1.SendMessage(message);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
 
             Assert.True(iotHub.HasReceivedMessage(message));
             Assert.False(module1.HasReceivedMessage(message));
@@ -71,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetMessage();
             await device1.SendMessage(message);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
 
             Assert.False(iotHub.HasReceivedMessage(message));
             Assert.True(module1.HasReceivedMessage(message));
@@ -98,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage deviceMessage = GetMessage();
             await device1.SendMessage(deviceMessage);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
 
             Assert.False(iotHub.HasReceivedMessage(deviceMessage));
             Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
@@ -107,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage mlMessage = GetMessage();
             await moduleMl.SendMessageOnOutput(mlMessage);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
 
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage));
@@ -116,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage asaMessage = GetMessage();
             await moduleAsa.SendMessageOnOutput(asaMessage);
 
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
 
             Assert.True(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
@@ -143,21 +147,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage deviceMessage = GetMessage();
             await device1.SendMessage(deviceMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(deviceMessage));
             Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
             Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
 
             IMessage mlMessage = GetMessage();
             await moduleMl.SendMessageOnOutput(mlMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.True(moduleMl.HasReceivedMessage(mlMessage));
             Assert.False(moduleAsa.HasReceivedMessage(mlMessage));
 
             IMessage mlMessage2 = GetMessage();
             await moduleMl.SendMessageOnOutput(mlMessage2, "op2");
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(mlMessage2));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage2));
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage2));
@@ -183,21 +187,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage deviceMessage = GetMessage();
             await device1.SendMessage(deviceMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime(20));
             Assert.False(iotHub.HasReceivedMessage(deviceMessage));
             Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
             Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
 
             IMessage mlMessage = GetMessage();
             await moduleMl.SendMessage(mlMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage));
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
 
             IMessage asaMessage = GetMessage();
             await moduleAsa.SendMessage(asaMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.True(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
             Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
@@ -223,21 +227,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage deviceMessage = GetMessage();
             await device1.SendMessage(deviceMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(deviceMessage));
             Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
             Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
 
             IMessage mlMessage = GetMessage();
             await moduleMl.SendMessage(mlMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage));
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
 
             IMessage asaMessage = GetMessage();
             await moduleAsa.SendMessage(asaMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
             Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
@@ -264,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage deviceMessage = GetMessage();
             deviceMessage.Properties.Add("temp", "100");
             await device1.SendMessage(deviceMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(deviceMessage));
             Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
             Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
@@ -272,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage mlMessage = GetMessage();
             mlMessage.Properties.Add("messageType", "alert");
             await moduleMl.SendMessageOnOutput(mlMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(mlMessage));
             Assert.False(moduleMl.HasReceivedMessage(mlMessage));
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
@@ -280,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage asaMessage = GetMessage();
             asaMessage.Properties.Add("info", "aggregate");
             await moduleAsa.SendMessageOnOutput(asaMessage);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.True(iotHub.HasReceivedMessage(asaMessage));
             Assert.False(moduleMl.HasReceivedMessage(asaMessage));
             Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
@@ -306,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message1 = GetMessage();
             message1.Properties.Add("temp", "100");
             await device1.SendMessage(message1);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(message1));
             Assert.True(module1.HasReceivedMessage(message1));
             Assert.False(module2.HasReceivedMessage(message1));
@@ -314,7 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message2 = GetMessage();
             message2.Properties.Add("temp", "20");
             await device1.SendMessage(message2);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.False(iotHub.HasReceivedMessage(message2));
             Assert.False(module1.HasReceivedMessage(message2));
             Assert.True(module2.HasReceivedMessage(message2));
@@ -337,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage message = GetReportedPropertiesMessage();
             await device1.UpdateReportedProperties(message);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.True(iotHub.HasReceivedTwinChangeNotification());
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
@@ -359,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             IMessage message = GetReportedPropertiesMessage();
             await module2.UpdateReportedProperties(message);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(GetSleepTime());
             Assert.True(iotHub.HasReceivedTwinChangeNotification());
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
