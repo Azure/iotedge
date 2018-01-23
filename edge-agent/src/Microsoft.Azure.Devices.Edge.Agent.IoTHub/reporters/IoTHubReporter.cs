@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         readonly IEdgeAgentConnection edgeAgentConnection;
         readonly IEnvironment environment;
-        readonly object sync;
+        readonly AsyncLock sync;
         Option<AgentState> reportedState;
         readonly ISerde<AgentState> agentStateSerde;
         readonly VersionInfo versionInfo;
@@ -38,28 +39,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             this.agentStateSerde = Preconditions.CheckNotNull(agentStateSerde, nameof(agentStateSerde));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
 
-            this.sync = new object();
+            this.sync = new AsyncLock();
             this.reportedState = Option.None<AgentState>();
         }
 
-        Option<AgentState> GetReportedState()
+        async Task<Option<AgentState>> GetReportedStateAsync()
         {
-            lock (this.sync)
+            try
             {
                 this.reportedState = this.reportedState
                     .Else(() => this.edgeAgentConnection.ReportedProperties.Map(coll => this.agentStateSerde.Deserialize(coll.ToJson())));
                 return this.reportedState;
             }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                // An exception thrown here implies that the AgentState Deserialization failed,
+                // which implies the current ReportedProperties can't be transformed into AgentState,
+                // delete the current reported state
+                Option<TwinCollection> deletionPatch = this.MakeDeletionPatch(this.edgeAgentConnection.ReportedProperties);
+                Events.ClearedReportedProperties(ex);
+                await deletionPatch.ForEachAsync(patch => this.edgeAgentConnection.UpdateReportedPropertiesAsync(patch));
+                return Option.Some(AgentState.Empty);
+            }
+
+        }
+
+        Option<TwinCollection> MakeDeletionPatch(Option<TwinCollection> reportedProperties)
+        {
+            return reportedProperties.Map(
+                coll =>
+                {
+                    var emptyCollection = new TwinCollection();
+                    foreach (KeyValuePair<string, object> section in coll)
+                    {
+                        emptyCollection[section.Key] = null;
+                    }
+
+                    return emptyCollection;
+                });
         }
 
         void SetReported(AgentState reported)
         {
-            lock (this.sync)
+            if (this.reportedState.OrDefault() != reported)
             {
-                if (this.reportedState.OrDefault() != reported)
-                {
-                    this.reportedState = Option.Some(reported);
-                }
+                this.reportedState = Option.Some(reported);
             }
         }
 
@@ -70,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         )> BuildStatesAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status)
         {
             // produce JSONs for previously reported state and current state
-            Option<AgentState> agentState = this.GetReportedState();
+            Option<AgentState> agentState = await this.GetReportedStateAsync();
             Option<AgentState> currentState = Option.None<AgentState>();
 
             // if there is no reported JSON to compare against, then we don't do anything
@@ -114,49 +138,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
             Option<AgentState> agentState = Option.None<AgentState>();
             Option<AgentState> currentState = Option.None<AgentState>();
-            try
+            using (await this.sync.LockAsync(token))
             {
-                (agentState, currentState) = await this.BuildStatesAsync(token, moduleSet, deploymentConfigInfo, status);
-            }
-            catch (Exception ex) when (!ex.IsFatal())
-            {
-                Events.BuildStateFailed(ex);
-
-                // something failed during the patch generation process; we do best effort
-                // error reporting by sending a minimal patch with just the error information
-                JObject patch = JObject.FromObject(new
-                {
-                    lastDesiredVersion = agentState.Map(rs => rs.LastDesiredVersion).GetOrElse(0),
-                    lastDesiredStatus = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message)
-                });
-
                 try
                 {
-                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                    (agentState, currentState) = await this.BuildStatesAsync(token, moduleSet, deploymentConfigInfo, status);
                 }
-                catch (Exception ex2) when (!ex.IsFatal())
+                catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.UpdateErrorInfoFailed(ex2);
-                }
-            }
+                    Events.BuildStateFailed(ex);
 
-            // if there is no reported JSON to compare against, then we don't do anything
-            // because this typically means that we never connected to IoT Hub before and
-            // we have no connection yet
-            await agentState.ForEachAsync(async rs =>
-            {
-                await currentState.ForEachAsync(async cs =>
+                    // something failed during the patch generation process; we do best effort
+                    // error reporting by sending a minimal patch with just the error information
+                    JObject patch = JObject.FromObject(new
+                    {
+                        lastDesiredVersion = agentState.Map(rs => rs.LastDesiredVersion).GetOrElse(0),
+                        lastDesiredStatus = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message)
+                    });
+
+                    try
+                    {
+                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                    }
+                    catch (Exception ex2) when (!ex.IsFatal())
+                    {
+                        Events.UpdateErrorInfoFailed(ex2);
+                    }
+                }
+
+                // if there is no reported JSON to compare against, then we don't do anything
+                // because this typically means that we never connected to IoT Hub before and
+                // we have no connection yet
+                await agentState.ForEachAsync(async rs =>
                 {
+                    await currentState.ForEachAsync(async cs =>
+                    {
                     // diff and prepare patch
                     await this.DiffAndReportAsync(cs, rs);
-                });
-            });
+                    });
+                }); 
+            }
         }
 
-        public Task ReportShutdown(DeploymentStatus status, CancellationToken token)
+        public async Task ReportShutdown(DeploymentStatus status, CancellationToken token)
         {
-            Preconditions.CheckNotNull(status, nameof(status));
-            return this.GetReportedState().ForEachAsync(agentState => this.ReportShutdownInternal(agentState, status));
+            using (await this.sync.LockAsync(token))
+            {
+                Preconditions.CheckNotNull(status, nameof(status));
+                Option<AgentState> agentState = await this.GetReportedStateAsync();
+                await agentState.ForEachAsync(state => this.ReportShutdownInternal(state, status)); 
+            }
         }
 
         Task ReportShutdownInternal(AgentState agentState, DeploymentStatus status)
@@ -234,7 +265,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             UpdatedReportedProperties,
             NoSavedReportedProperties,
             BuildStateFailed,
-            UpdateErrorInfoFailed
+            UpdateErrorInfoFailed,
+            ClearedReportedProperties
         }
 
         public static void NoSavedReportedProperties()
@@ -260,6 +292,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         public static void UpdateErrorInfoFailed(Exception e)
         {
             Log.LogWarning((int)EventIds.UpdateErrorInfoFailed, $"Attempt to update error information while building state for computing patch failed with error {e.Message} type {e.GetType()}");
+        }
+
+        public static void ClearedReportedProperties(Exception e)
+        {
+            Log.LogWarning((int)EventIds.ClearedReportedProperties, $"Clearing reported properties due to error {e.Message}");
         }
     }
 }

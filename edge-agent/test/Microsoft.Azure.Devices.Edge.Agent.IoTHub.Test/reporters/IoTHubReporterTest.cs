@@ -71,6 +71,157 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
         [Fact]
         [Unit]
+        public async void ClearAndGenerateNewReportedInfoIfDeserializeFails()
+        {
+
+            // Arrange
+            using (var cts = new CancellationTokenSource(Timeout))  
+            {
+                const string SchemaVersion = "1.0";
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+                // Mock IEdgeAgentConnection
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running
+                        ),
+                        new TestRuntimeModule(
+                            "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Backoff
+                        )
+                    ).Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo
+                );
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                var patches = new List<TwinCollection>();
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patches.Add(tc))
+                    .Returns(Task.CompletedTask);
+
+                // Mock IEnvironment
+                var environment = new Mock<IEnvironment>();
+                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
+                );
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(edgeAgentModule);
+                environment.Setup(e => e.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime))
+                    .ReturnsAsync(new DockerReportedRuntimeInfo(
+                        RuntimeType,
+                        (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                        new DockerPlatformInfo(OperatingSystemType, Architecture))
+                    );
+
+                // Mock AgentStateSerDe
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Throws(new FormatException("Bad format"));
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running
+                    )
+                );
+
+
+                //Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object, agentStateSerde.Object, versionInfo);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
+
+                //Assert
+                Assert.Equal(2,patches.Count);
+                JObject patch1Json = JObject.Parse(patches[0].ToJson());
+                foreach (KeyValuePair<string, JToken> keyValuePair in patch1Json)
+                {
+                    Assert.Equal(JTokenType.Null,keyValuePair.Value.Type);
+                }
+
+                JObject patch2Json = JObject.Parse(patches[1].ToJson());
+                JObject expectedPatch2Json = JObject.FromObject(new
+                {
+                    schemaVersion = SchemaVersion,
+                    version = new
+                    {
+                        version = versionInfo.Version,
+                        build = versionInfo.Build,
+                        commit = versionInfo.Commit
+                    },
+                    lastDesiredVersion = DesiredVersion,
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Successful
+                    },
+                    runtime = new
+                    {
+                        type = RuntimeType,
+                        settings = new
+                        {
+                            minDockerVersion = MinDockerVersion,
+                            loggingOptions = LoggingOptions
+                        },
+                        platform = new
+                        {
+                            os = OperatingSystemType,
+                            architecture = Architecture
+                        }
+                    },
+                    systemModules = new
+                    {
+                        edgeAgent = new
+                        {
+                            type = "docker",
+                            settings = new
+                            {
+                                image = "EdgeAgentImage"
+                            }
+                        }
+                    },
+                    modules = new Dictionary<string, object>
+                    {
+                        { currentModuleSet.Modules["mod1"].Name, currentModuleSet.Modules["mod1"] },
+                        { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
+                    }
+                });
+                Assert.True(JToken.DeepEquals(expectedPatch2Json, patch2Json));
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async void ReportedPatchTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -800,7 +951,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
         [Fact]
         [Unit]
-        public async void ReportAsyncReportsErrorIfInitialDeserializeFails()
+        public async void ReportAsyncReportsErrorIfGetEdgeAgentFails()
         {
             using (var cts = new CancellationTokenSource(Timeout))
             {
@@ -821,9 +972,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
-                    .Throws(new FormatException("Bad format"));
+                    .Returns(reportedState);
 
                 var environment = new Mock<IEnvironment>();
+                environment.Setup(e => e.GetEdgeAgentModuleAsync(It.IsAny<CancellationToken>()))
+                    .Throws(new OperationCanceledException());
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, environment.Object, agentStateSerde.Object, versionInfo);
@@ -839,7 +992,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     lastDesiredStatus = new
                     {
                         code = (int)DeploymentStatusCode.Failed,
-                        description = "Bad format"
+                        description = "The operation was canceled."
                     }
                 });
 
