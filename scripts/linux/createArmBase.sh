@@ -161,7 +161,7 @@ docker_build_and_tag()
 
 docker_push()
 {
-    for tag in $DOCKER_IMAGE_TAGS
+    for tag in "${DOCKER_IMAGE_TAGS[@]}"
     do
         echo -e "COMMAND\n docker push $tag\n"
         docker push $tag
