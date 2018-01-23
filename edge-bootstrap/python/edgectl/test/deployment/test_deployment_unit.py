@@ -944,11 +944,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_restarting_valid(self,
                                           mock_check_avail,
                                           mock_get_os,
+                                          mock_get_supp_engines,
                                           mock_client_status,
                                           mock_pull,
                                           mock_get_cont_image,
@@ -971,6 +973,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = 'restarting'
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1013,11 +1016,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_running_valid(self,
                                        mock_check_avail,
                                        mock_get_os,
+                                       mock_get_supp_engines,
                                        mock_client_status,
                                        mock_pull,
                                        mock_get_cont_image,
@@ -1040,6 +1045,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = 'running'
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1082,11 +1088,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_engine_linux_new_image_tcp_port_valid(self,
                                                                            mock_check_avail,
                                                                            mock_get_os,
+                                                                           mock_get_supp_engines,
                                                                            mock_client_status,
                                                                            mock_pull,
                                                                            mock_get_cont_image,
@@ -1109,6 +1117,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1172,11 +1181,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_engine_winOS_new_image_tcp_port_valid(self,
                                                                            mock_check_avail,
                                                                            mock_get_os,
+                                                                           mock_get_supp_engines,
                                                                            mock_client_status,
                                                                            mock_pull,
                                                                            mock_get_cont_image,
@@ -1199,6 +1210,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'windows'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1250,11 +1262,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_engine_winOS_new_image_npipe_ep_valid(self,
                                                                            mock_check_avail,
                                                                            mock_get_os,
+                                                                           mock_get_supp_engines,
                                                                            mock_client_status,
                                                                            mock_pull,
                                                                            mock_get_cont_image,
@@ -1277,6 +1291,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'windows'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1328,11 +1343,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_new_pulled_image_valid(self,
                                                             mock_check_avail,
                                                             mock_get_os,
+                                                            mock_get_supp_engines,
                                                             mock_client_status,
                                                             mock_pull,
                                                             mock_get_cont_image,
@@ -1355,6 +1372,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = True
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1418,11 +1436,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_new_pulled_false_diff_image_exists_locally_valid(self,
                                                                                       mock_check_avail,
                                                                                       mock_get_os,
+                                                                                      mock_get_supp_engines,
                                                                                       mock_client_status,
                                                                                       mock_pull,
                                                                                       mock_get_cont_image,
@@ -1445,6 +1465,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = False
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
@@ -1511,11 +1532,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
     @mock.patch('edgectl.host.EdgeDockerClient.get_container_image')
     @mock.patch('edgectl.host.EdgeDockerClient.pull')
     @mock.patch('edgectl.host.EdgeDockerClient.status')
+    @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
     @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
     @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
     def test_edge_status_unavailable_engine_linux_same_image_no_contr__exists_unix_valid(self,
                                                                                          mock_check_avail,
                                                                                          mock_get_os,
+                                                                                         mock_get_supp_engines,
                                                                                          mock_client_status,
                                                                                          mock_pull,
                                                                                          mock_get_cont_image,
@@ -1538,6 +1561,7 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         engine_os = 'linux'
         mock_check_avail.return_value = True
         mock_get_os.return_value = engine_os
+        mock_get_supp_engines.return_value = [engine_os]
         mock_client_status.return_value = None
         mock_pull.return_value = False
         mock_get_ca_cert.return_value = self.MOCK_CA_CERT_DICT
