@@ -14,9 +14,6 @@ import edgectl.errors
 
 
 class EdgeHostPlatform(object):
-    _min_passphrase_len = 4
-    _max_passphrase_len = 1023
-
     @staticmethod
     def get_docker_uri():
         dc = EdgeDockerClient()
@@ -392,22 +389,22 @@ class EdgeHostPlatform(object):
         cert_util.export_cert_artifacts_to_dir('edge-device-ca', certs_dir)
 
         cert_util.create_intermediate_ca_cert('edge-agent-ca',
-                                              365,
                                               'edge-device-ca',
-                                              'Edge Agent CA',
-                                              True,
-                                              agent_ca_phrase)
-        cert_util.export_cert_artifacts_to_dir('edge-agent-ca',
-                                               certs_dir)
+                                              validity_days_from_now=365,
+                                              common_name='Edge Agent CA',
+                                              set_terminal_ca=True,
+                                              passphrase=agent_ca_phrase)
+
+        cert_util.export_cert_artifacts_to_dir('edge-agent-ca', certs_dir)
 
         cert_util.create_server_cert('edge-hub-server',
-                                     365,
                                      'edge-agent-ca',
-                                     hostname)
+                                     validity_days_from_now=365,
+                                     hostname=hostname)
 
-        cert_util.export_cert_artifacts_to_dir('edge-hub-server',
-                                               certs_dir)
-        cert_util.export_server_pfx_cert('edge-hub-server', certs_dir)
+
+        cert_util.export_cert_artifacts_to_dir('edge-hub-server', certs_dir)
+        cert_util.export_pfx_cert('edge-hub-server', certs_dir)
 
         prefixes = ['edge-agent-ca', 'edge-device-ca']
         cert_util.chain_ca_certs('edge-chain-ca', prefixes, certs_dir)
@@ -435,9 +432,9 @@ class EdgeHostPlatform(object):
 
         cert_util = EdgeCertUtil()
         cert_util.create_root_ca_cert('edge-device-ca',
-                                      365,
-                                      certificate_config.certificate_subject_dict,
-                                      device_ca_phrase)
+		                              validity_days_from_now=365,
+									  subject_dict=certificate_config.certificate_subject_dict,
+									  passphrase=device_ca_phrase)
         EdgeHostPlatform._generate_certs_common(cert_util,
                                                 hostname,
                                                 certs_dir,
@@ -457,12 +454,14 @@ class EdgeHostPlatform(object):
                                                                     'agentCAPassphraseFilePath')
 
         cert_util = EdgeCertUtil()
-        cert_util.set_root_ca_cert('edge-device-ca',
-                                   certificate_config.device_ca_cert_file_path,
-                                   certificate_config.owner_ca_cert_file_path,
-                                   certificate_config.device_ca_chain_cert_file_path,
-                                   certificate_config.device_ca_private_key_file_path,
-                                   certificate_config.device_ca_passphrase)
+        chain_cert_file = certificate_config.device_ca_chain_cert_file_path
+        private_key_file = certificate_config.device_ca_private_key_file_path
+        cert_util.set_ca_cert('edge-device-ca',
+                              ca_cert_file_path=certificate_config.device_ca_cert_file_path,
+                              ca_root_cert_file_path=certificate_config.owner_ca_cert_file_path,
+                              ca_root_chain_cert_file_path=chain_cert_file,
+                              ca_private_key_file_path=private_key_file,
+                              passphrase=certificate_config.device_ca_passphrase)
 
         EdgeHostPlatform._generate_certs_common(cert_util, hostname, certs_dir, agent_ca_phrase)
 
@@ -535,5 +534,5 @@ class EdgeHostPlatform(object):
               '\n   "security.certificates.<option>.forceNoPasswords" to true.'
               '\n********************************************************************************')
         return EdgeUtils.prompt_password(cert_type,
-                                         EdgeHostPlatform._min_passphrase_len,
-                                         EdgeHostPlatform._max_passphrase_len)
+                                         EdgeCertUtil.MIN_PASSPHRASE_LENGTH,
+                                         EdgeCertUtil.MAX_PASSPHRASE_LENGTH)

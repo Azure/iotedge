@@ -47,6 +47,14 @@ class EdgeUtils(object):
         return True
 
     @staticmethod
+    def check_if_directory_exists(dir_path):
+        if dir_path is None \
+            or os.path.exists(dir_path) is False \
+            or os.path.isdir(dir_path) is False:
+            return False
+        return True
+
+    @staticmethod
     def get_hostname():
         hostname = None
         try:
