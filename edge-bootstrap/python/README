@@ -15,7 +15,8 @@ Prerequisites
 -------------
 
 -  Python 2.7+
--  Setuptools (if installing via python)
+-  Python setuptools (for pip installation)
+-  Docker
 
 Installation
 ------------
@@ -33,6 +34,82 @@ here.
 
 Note: See the Installation Troubleshooting section below if you run into
 any problems.
+
+Python
+~~~~~~
+
+- Installation requires python and setuptools. Download `python here <https://www.python.org/downloads/>`__.
+
+- On Windows, make sure the python.exe and python Scripts directory are on your path. More information for `installing python on Windows <https://docs.python.org/2/using/windows.html>`__ can be found here.
+
+- **Note:** See the Installation Troubleshooting section below if you run into any problems.
+
+
+Docker
+~~~~~~
+- Follow the instructions here to get Docker installed on your host machine https://docs.microsoft.com/en-us/azure/iot-edge
+
+
+ **Enabling Docker on Windows Subsystem for Linux (WSL)**
+
+   **Note:** *This section applies to Windows machines only and usually targets developer environments.*
+
+ - To get iotedgectl to work in WSL here are additional installation steps that need to be done.
+
+ 1. Do not install Docker in WSL, instead first install Docker on your Windows machine.
+
+  - Docker installed on the Windows machine can be used directly within the bash shell.
+
+ 2. In Docker Settings Window under *'General'*, check *"Expose Daemon on tcp://localhost:2375 without TLS"*
+
+ 3. Next steps require to the run from a bash shell
+
+  a. Add the docker executable files to the **$PATH** environment variable and set up aliases.
+
+   - Edit file *~/.bashrc* and add these lines:
+
+    ::
+
+     PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+     PATH="$PATH:/mnt/c/Program\ Files/Docker/Docker/resources/bin"
+     alias docker=docker.exe
+     alias docker-machine=docker-machine.exe
+     alias docker-compose=docker-compose.exe
+     export DOCKER_HOST="tcp://localhost:2375"
+
+   - Save and close the *~/.bashrc* file
+
+  b. Add environment variable **DOCKER_HOST** to sudoers.
+
+   - Edit sudoers configuration by running
+
+    ::
+
+     sudo visudo
+
+  - Add this line to the file
+
+   ::
+
+    Defaults env_keep += "DOCKER_HOST"
+
+  - Save and close the file
+
+
+ c. Ensure the environment variables get exported
+
+  ::
+
+   source ~/.bashrc
+
+ d. Test installation by running any docker command. Examples:
+
+  ::
+
+   docker ps
+   docker images
+
+
 
 Install the tool
 ~~~~~~~~~~~~~~~~
@@ -56,12 +133,12 @@ restart, stop, status, update, login and uninstall.
    The required configuration files and certificates to operate the IoT
    Edge are created as part of this step.
 
-   The IoT Edge can be setup either by using an input configuration file and
+   IoT Edge can be setup either by using an input configuration file and
    command line (CLI) argument --config-file or by specifying the
    various configuration values via the *setup* CLI arguments. If using the
    --config-file argument, all other CLI arguments will be ignored.
 
-   The 'setup' command, may need to run with admin (sudo) privileges. One
+   The 'setup' command, may need to be run with admin (sudo) privileges. One
    resulting output of this command is a configuration file generated in JSON
    format. The directory where this file is generated is configurable and if
    unspecified, default paths (see below) will be used.
@@ -79,7 +156,7 @@ restart, stop, status, update, login and uninstall.
 
      * --edge-config-dir: When using this option, an absolute path to a directory on the host must be specified.
 
-     *Note*: If both the environment variable and either CLI option is specified,
+     *Note*: If environment variable **EDGECONFIGDIR** and a CLI option is specified,
      the environment variable will take precedence and the CLI option will be ignored.
 
     3. If none of the above are set, the following default paths will be chosen:
@@ -136,13 +213,13 @@ Here are a few sample command invocations:
 
     $> iotedgectl --help
 
-* Setup the IoT Edge Runtime using a IoT Edge Host Configuration file. Please see the `IoT Edge Host Configuration File Description <#edge-host-configuration-file-description>`__
+* Setup the IoT Edge Runtime using an IoT Edge Host Configuration file. Please see `IoT Edge Host Configuration File Description <#edge-host-configuration-file-description>`__
 
  ::
 
     $> iotedgectl setup --help
     $> iotedgectl setup --config-file edge_config.json
-    $> iotedgectl setup --verbose DEBUG --config-file edge_config.json
+    $> iotedgectl --verbose DEBUG setup --config-file edge_config.json
     Note: When specifying the homeDir path on Windows please use "C:\\example\\edge-home"
 
 * Setup the IoT Edge Runtime using manually specified command line arguments
