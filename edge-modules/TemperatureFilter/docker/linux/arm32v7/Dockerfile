@@ -1,4 +1,4 @@
-FROM azureiotedge/azureiotedge-module-base:1.0-preview-linux-arm32v7
+FROM azureiotedge/azureiotedge-module-base:1.0.0-preview001-linux-arm32v7
 
 ARG EXE_DIR=.
 

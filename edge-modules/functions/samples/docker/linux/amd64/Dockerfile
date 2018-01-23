@@ -1,4 +1,5 @@
-FROM edgepreview.azurecr.io/azureiotedge/functions-binding-linux-amd64:1.0.0-preview007
+ARG buildno
+FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-linux-amd64
 
 WORKDIR /app
 

@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.0.0-runtime
+FROM microsoft/dotnet:2.0.5-runtime
 
 # Add an unprivileged user account for running Edge Hub
 RUN useradd -ms /bin/bash edgehubuser

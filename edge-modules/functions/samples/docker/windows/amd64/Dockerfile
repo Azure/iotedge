@@ -1,6 +1,7 @@
 # escape=`
 
-FROM edgebuilds.azurecr.io/azedge-functions-binding-windows-amd64:preview-001
+ARG buildno
+FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-windows-amd64
 
 WORKDIR /app
 

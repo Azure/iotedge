@@ -7,7 +7,7 @@ RUN New-SelfSignedCertificate -Subject ('CN={0}' -f $Env:ComputerName) -CertStor
     CertUtil -ExportPFX -user -p `\"`\" my $Env:ComputerName \edge-server.pfx; `
     Invoke-WebRequest https://edgeblddiag.blob.core.windows.net/dotnet/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
 
-FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
+FROM microsoft/dotnet:2.0.5-runtime-nanoserver-1709
 
 ENV SSL_CERTIFICATE_PATH \certs
 ENV SSL_CERTIFICATE_NAME edge-server.pfx
@@ -24,7 +24,7 @@ COPY $EXE_DIR/ ./
 EXPOSE 8883/tcp
 EXPOSE 443/tcp
 
-ENV MNCA \Program Files\dotnet\shared\Microsoft.NETCore.App\2.0.0
+ENV MNCA \Program Files\dotnet\shared\Microsoft.NETCore.App\2.0.5
 
 COPY --from=installer-env ["\\System.IO.Pipes.dll", "$MNCA\\"]
 

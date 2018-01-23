@@ -9,8 +9,6 @@
 # hub.docker.com
 ###############################################################################
 
-set -e
-
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
@@ -22,8 +20,9 @@ DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="azureiotedge"
 DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
 BUILD_DOCKERFILEDIR=
-DEFAULT_DOCKER_IMAGEVERSION=1.0-preview
-DOCKER_IMAGEVERSION=$DEFAULT_DOCKER_IMAGEVERSION
+DOCKER_IMAGEVERSION=
+NO_PUSH=0
+declare -a DOCKER_IMAGE_TAGS
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -51,7 +50,8 @@ usage()
     echo " -d, --project-dir    Project directory (required)."
     echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
-    echo " -v, --image-version  Docker Image Version. (default: $DEFAULT_DOCKER_IMAGEVERSION)"
+    echo " -v, --image-version  Docker Image Version. (required)"
+    echo "     --no-push        Build/tag only; don't push image to container registries"
 
     exit 1;
 }
@@ -89,7 +89,7 @@ process_args()
                 "-i" | "--image-name" ) save_next_arg=2;;
                 "-n" | "--namespace" ) save_next_arg=3;;
                 "-v" | "--image-version" ) save_next_arg=4;;
-
+                "--no-push" ) NO_PUSH=1;;
                 * ) usage;;
             esac
         fi
@@ -111,11 +111,15 @@ process_args()
         print_help_and_exit
     fi
 
+    if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
+        echo "Docker image version parameter invalid"
+        print_help_and_exit
+    fi
+
     if [[ ! -d $PUBLISH_DIR ]]; then
         echo "Publish directory does not exist or is invalid"
         print_help_and_exit
     fi
-
 
     BUILD_DOCKERFILEDIR=$PUBLISH_DIR/docker/linux/$ARCH/base
     if [[ -z ${BUILD_DOCKERFILEDIR} ]] || [[ ! -d ${BUILD_DOCKERFILEDIR} ]]; then
@@ -128,107 +132,55 @@ process_args()
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
     fi
+
+    registries=("edgebuilds.azurecr.io/" "edgerelease.azurecr.io/" "")
+    DOCKER_IMAGE_TAGS=("${registries[@]/%/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION-linux-$ARCH}")
 }
+
 ###############################################################################
-# Build docker image and push it to private repo
+# Build docker image and tag it once for each registry
 #
-#   @param[1] - imagename; Name of the docker edge image to publish; Required;
-#   @param[2] - arch; Arch of base image; Required;
-#   @param[3] - dockerfile; Path to the dockerfile; Required;
-#   @param[4] - context_path; docker context path; Required;
-#   @param[5] - build_args; docker context path; Optional;
-#               Leave as "" and no build args will be supplied.
-#   @param[6] - registry
+#   @param[1] - build_args; Optional
 ###############################################################################
-docker_build_and_tag_and_push()
+docker_build_and_tag()
 {
-    imagename="$1"
-    arch="$2"
-    dockerfile="$3"
-    context_path="$4"
-    build_args="$5"
-    registry="$6"
+    build_args="$1"
 
-    if [ -z "${imagename}" ] || [ -z "${arch}" ] || [ -z "${context_path}" ] || [ -z "${dockerfile}" ]; then
-        echo "Error: Arguments are invalid [$imagename] [$arch] [$dockerfile] [$context_path]"
-        exit 1
-    fi
+    tags=("${DOCKER_IMAGE_TAGS[@]/#/-t }") # prefix each tag with the -t option for 'docker build'
 
-    echo "Building and pushing Docker image $imagename for $arch"
     docker_build_cmd="docker build --no-cache"
-    docker_build_cmd+=" -t $registry/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    docker_build_cmd+=" --file $dockerfile"
-    docker_build_cmd+=" $context_path $build_args"
+    docker_build_cmd+=" ${tags[@]}"
+    docker_build_cmd+=" --file $DOCKERFILE"
+    docker_build_cmd+=" $BUILD_DOCKERFILEDIR"
+    docker_build_cmd+=" $build_args"
 
-    echo "Running... $docker_build_cmd"
+    echo -e "COMMAND\n $docker_build_cmd\n"
 
     $docker_build_cmd
-
-    if [ $? -ne 0 ]; then
-        echo "Docker build failed with exit code $?"
-        exit 1
-    else
-        docker push $registry/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch
-        if [ $? -ne 0 ]; then
-            echo "Docker push failed with exit code $?"
-            exit 1
-        fi
-    fi
-
-    return $?
 }
 
-move_image()
+docker_push()
 {
-    imagename="$1"
-    arch="$2"
-    dockerfile="$3"
-    context_path="$4"
-    from_registry="$5"
-    to_registry="$6"
-
-    FROM_IMAGE="$from_registry/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    if [ -z "$from_registry" ]; then
-        FROM_IMAGE="$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    fi
-
-    TO_IMAGE="$to_registry/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    if [ -z "$to_registry" ]; then
-        TO_IMAGE="$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-    fi
-    echo "Pulling $FROM_IMAGE"
-    docker pull $FROM_IMAGE
-    [ $? -eq 0 ] || exit $?
-
-    echo "Tagging image: $TO_IMAGE"
-    docker tag $FROM_IMAGE $TO_IMAGE
-    [ $? -eq 0 ] || exit $?
-
-    echo "Pushing image: $TO_IMAGE"
-    docker push $TO_IMAGE
-    [ $? -eq 0 ] || exit $?
+    for tag in $DOCKER_IMAGE_TAGS
+    do
+        echo -e "COMMAND\n docker push $tag\n"
+        docker push $tag
+        [ $? -eq 0 ] || exit $?
+    done
 }
+
 ###############################################################################
 # Main Script Execution
 ###############################################################################
 check_arch
 process_args "$@"
 
-
-# push image for edge-hub to edgebuilds
-
-docker_build_and_tag_and_push "$DOCKER_IMAGENAME" "$ARCH" "$DOCKERFILE" "$BUILD_DOCKERFILEDIR" "" "edgebuilds.azurecr.io"
+docker_build_and_tag
 [ $? -eq 0 ] || exit $?
 
-# push image for edge-hub to edgerelease
+if [ $NO_PUSH -eq 0 ]; then
+    docker_push
+    [ $? -eq 0 ] || exit $?
+fi
 
-move_image "$DOCKER_IMAGENAME" "$ARCH" "$DOCKERFILE" "$BUILD_DOCKERFILEDIR" "edgebuilds.azurecr.io" "edgerelease.azurecr.io"
-[ $? -eq 0 ] || exit $?
-
-# push image to docker hub
-move_image "$DOCKER_IMAGENAME" "$ARCH" "$DOCKERFILE" "$BUILD_DOCKERFILEDIR" "edgebuilds.azurecr.io" ""
-[ $? -eq 0 ] || exit $?
-
-echo "Done building and pushing Docker image $DOCKER_IMAGENAME for ARM base images"
-
-[ $? -eq 0 ] || exit $?
+echo "Done"

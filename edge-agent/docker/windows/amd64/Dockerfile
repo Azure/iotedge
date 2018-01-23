@@ -5,7 +5,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 
 RUN Invoke-WebRequest https://edgeblddiag.blob.core.windows.net/dotnet/System.IO.Pipes.dll -OutFile \System.IO.Pipes.dll
 
-FROM microsoft/dotnet:2.0.0-runtime-nanoserver-1709
+FROM microsoft/dotnet:2.0.5-runtime-nanoserver-1709
 
 USER ContainerAdministrator
 
@@ -17,7 +17,7 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-ENV MNCA \Program Files\dotnet\shared\Microsoft.NETCore.App\2.0.0
+ENV MNCA \Program Files\dotnet\shared\Microsoft.NETCore.App\2.0.5
 
 COPY --from=installer-env ["\\System.IO.Pipes.dll", "$MNCA\\"]
 

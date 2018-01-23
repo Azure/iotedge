@@ -1,4 +1,5 @@
-FROM edgebuilds.azurecr.io/azedge-functions-binding-arm32v7:preview-001
+ARG buildno
+FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-linux-arm32v7
 
 WORKDIR /app
 
