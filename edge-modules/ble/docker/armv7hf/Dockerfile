@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     libcurl4-openssl-dev \
     libssl-dev \
-    uuid-dev
+    uuid-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 ########### Setup Environment Variables ##########
 WORKDIR /app
