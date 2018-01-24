@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -25,6 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class CloudProxyTest
     {
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
+
+        static readonly int EventHubMessageReceivedRetry = 5;
+
         public static IEnumerable<object[]> GetTestMessages()
         {
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
@@ -47,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.SendMessageAsync(message);
             bool disconnectResult = await cloudProxy.CloseAsync();
             Assert.True(disconnectResult);
+
             await CheckMessageInEventHub(new List<IMessage> { message }, startTime);
         }
 
@@ -85,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.SendMessageBatchAsync(messages);
             bool disconnectResult = await cloudProxy.CloseAsync();
             Assert.True(disconnectResult);
+
             await CheckMessageInEventHub(messages, startTime);
         }
 
@@ -184,11 +190,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
-            IList<EventData> cloudMessages = await eventHubReceiver.GetMessagesFromAllPartitions(startTime);
+            IList<EventData> cloudMessages = null;
+            bool messagesFound = false;
+            //Add retry mechanism to make sure all the messages sent reached Event Hub. Retry 3 times.
+            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
+            {
+                cloudMessages = await eventHubReceiver.GetMessagesFromAllPartitions(startTime);
+                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessages, cloudMessages);
+                if (messagesFound)
+                    break; //Retry till we have the messages. Sleep for 10 seconds after each retry.
+                Thread.Sleep(10000);
+            }
+
             await eventHubReceiver.Close();
             Assert.NotNull(cloudMessages);
             Assert.NotEmpty(cloudMessages);
-            Assert.True(MessageHelper.CompareMessagesAndEventData(sentMessages, cloudMessages));
+            Assert.True(messagesFound);
         }
 
         static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
