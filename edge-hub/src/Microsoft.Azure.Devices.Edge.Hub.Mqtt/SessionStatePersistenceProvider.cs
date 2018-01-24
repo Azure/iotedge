@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using System;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
@@ -33,17 +34,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return new SessionState(transient);
         }
 
-        public Task<ISessionState> GetAsync(IDeviceIdentity identity)
+        public virtual Task<ISessionState> GetAsync(IDeviceIdentity identity)
         {
+            // This class does not store the session state, so return null to Protocol gateway
             return Task.FromResult((ISessionState)null);
         }
 
-        public Task SetAsync(IDeviceIdentity identity, ISessionState sessionState) =>
+        public virtual Task SetAsync(IDeviceIdentity identity, ISessionState sessionState) =>
             sessionState is SessionState registrationSessionState ?
             this.ProcessSessionSubscriptions(identity.Id, registrationSessionState) :
             Task.CompletedTask;
 
-        async Task ProcessSessionSubscriptions(string id, SessionState sessionState)
+        protected async Task ProcessSessionSubscriptions(string id, SessionState sessionState)
         {
             Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
             await cloudProxy.ForEachAsync(async cp =>
@@ -53,61 +55,70 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     string topicName = subscriptionRegistration.Key;
                     bool addSubscription = subscriptionRegistration.Value;
 
-                    switch (GetSubscriptionTopic(topicName))
+                    Events.ProcessingSubscription(id, topicName, addSubscription);
+                    try
                     {
-                        case SubscriptionTopic.Method:
-                            if (addSubscription)
-                            {
-                                await cp.SetupCallMethodAsync();
-                            }
-                            else
-                            {
-                                await cp.RemoveCallMethodAsync();
-                            }
-                            break;
+                        switch (GetSubscriptionTopic(topicName))
+                        {
+                            case SubscriptionTopic.Method:
+                                if (addSubscription)
+                                {
+                                    await cp.SetupCallMethodAsync();
+                                }
+                                else
+                                {
+                                    await cp.RemoveCallMethodAsync();
+                                }
+                                break;
 
-                        case SubscriptionTopic.TwinDesiredProperties:
-                            if (addSubscription)
-                            {
-                                await cp.SetupDesiredPropertyUpdatesAsync();
-                            }
-                            else
-                            {
-                                await cp.RemoveDesiredPropertyUpdatesAsync();
-                            }
-                            break;
+                            case SubscriptionTopic.TwinDesiredProperties:
+                                if (addSubscription)
+                                {
+                                    await cp.SetupDesiredPropertyUpdatesAsync();
+                                }
+                                else
+                                {
+                                    await cp.RemoveDesiredPropertyUpdatesAsync();
+                                }
+                                break;
 
-                        case SubscriptionTopic.C2D:
-                            if (addSubscription)
-                            {
-                                cp.StartListening();
-                            }
-                            // No way to stop listening to C2D messages right now.
-                            break;
+                            case SubscriptionTopic.C2D:
+                                if (addSubscription)
+                                {
+                                    cp.StartListening();
+                                }
+                                // No way to stop listening to C2D messages right now.
+                                break;
 
-                        case SubscriptionTopic.TwinResponse:
-                            // No action required
-                            break;
+                            case SubscriptionTopic.TwinResponse:
+                                // No action required
+                                break;
 
-                        case SubscriptionTopic.ModuleMessage:
-                            // No action required
-                            break;
+                            case SubscriptionTopic.ModuleMessage:
+                                // No action required
+                                break;
 
-                        default:
-                            Events.UnknownTopicSubscription(topicName);
-                            break;
+                            default:
+                                Events.UnknownTopicSubscription(topicName);
+                                break;
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        Events.ErrorHandlingSubscription(id, topicName, addSubscription, ex);
+                    }                    
                 }
 
-                sessionState.ClearRegistrations();
+                // Don't clear subscriptions here. That way the subscriptions are set every time the connection
+                // is re-established. Setting subscriptions is an idempotent operation. 
             });
         }
 
-
-        public Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
+        public virtual Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
 
         internal static SubscriptionTopic GetSubscriptionTopic(string topicName)
-        {
+        { 
+            Preconditions.CheckNonWhiteSpace(topicName, nameof(topicName));
             if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
             {
                 return SubscriptionTopic.Method;
@@ -151,12 +162,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             enum EventIds
             {
-                UnknownSubscription = IdStart
+                UnknownSubscription = IdStart,
+                ErrorHandlingSubscription
             }
 
             public static void UnknownTopicSubscription(string topicName)
             {
                 Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName}."));
+            }
+
+            public static void ErrorHandlingSubscription(string id, string topicName, bool addSubscription, Exception exception)
+            {
+                string action = addSubscription ? "adding" : "removing";
+                Log.LogWarning((int)EventIds.ErrorHandlingSubscription, exception, Invariant($"Error {action} subscription {topicName} for client {id}."));
+            }
+
+            public static void ProcessingSubscription(string id, string topicName, bool addSubscription)
+            {
+                string action = addSubscription ? "Adding" : "Removing";
+                Log.LogDebug((int)EventIds.ErrorHandlingSubscription, Invariant($"{action} subscription {topicName} for client {id}."));
             }
         }
     }

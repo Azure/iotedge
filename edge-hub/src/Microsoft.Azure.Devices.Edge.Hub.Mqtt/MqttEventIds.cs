@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const int SasTokenDeviceIdentityProvider = EventIdStart;
         public const int DeviceProxy = EventIdStart + 100;
         public const int MessagingServiceClient = EventIdStart + 200;
-        public const int SessionStatePersistenceProvider = EventIdStart + 300;        
+        public const int SessionStatePersistenceProvider = EventIdStart + 300;
+        public const int SessionStateStoragePersistenceProvider = EventIdStart + 400;
     }
 }

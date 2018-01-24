@@ -161,6 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly ICloudListener cloudListener;
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             readonly DesiredPropertyUpdateHandler desiredUpdateHandler;
+            readonly object receiveMessageLoopLock = new object();
             Option<Task> receiveMessageTask = Option.None<Task>();
 
             // IotHub has max timeout set to 5 minutes, add 30 seconds to make sure it doesn't timeout before IotHub
@@ -178,8 +179,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public void StartListening()
             {
-                Events.StartListening(this.cloudProxy.clientId);
-                this.receiveMessageTask = Option.Some(this.SetupMessageListening());
+                if (!this.receiveMessageTask.HasValue)
+                {
+                    lock (this.receiveMessageLoopLock)
+                    {
+                        if (!this.receiveMessageTask.HasValue)
+                        {
+                            Events.StartListening(this.cloudProxy.clientId);
+                            this.receiveMessageTask = Option.Some(this.SetupMessageListening());
+                        }
+                    }
+                }
             }
 
             async Task SetupMessageListening()

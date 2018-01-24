@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -201,6 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.SetupSequence(cm => cm.GetCloudConnection(It.IsAny<string>()))
                 .Returns(Option.None<ICloudProxy>())
+                .Returns(cloudProxyOption)
                 .Returns(cloudProxyOption);
 
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
@@ -226,8 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(2, retrievedSessionState.Subscriptions.Count);
             Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);            
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
-            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
-            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix]);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix]);
             Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix]);
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix));
             Assert.False(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix]);
@@ -252,7 +254,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             retrievedSessionState = storedSession as SessionState;
             Assert.NotNull(retrievedSessionState);
             Assert.Equal(2, retrievedSessionState.Subscriptions.Count);
-            Assert.Equal(0, retrievedSessionState.SubscriptionRegistrations.Count);
+            Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix]);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix]);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix));
+            Assert.False(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix]);
             c2DSubscription = retrievedSessionState.Subscriptions.FirstOrDefault(s => s.TopicFilter == SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix);
             Assert.NotNull(c2DSubscription);
             Assert.Equal(QualityOfService.AtLeastOnce, c2DSubscription.QualityOfService);
@@ -261,6 +269,88 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.NotNull(methodSubscription);
             Assert.Equal(QualityOfService.AtMostOnce, methodSubscription.QualityOfService);
             Assert.True(DateTime.UtcNow - methodSubscription.CreationTime < TimeSpan.FromMinutes(2));
+
+            await sessionProvider.SetAsync(identity, sessionState);
+
+            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Exactly(2));
+            cloudProxy.Verify(x => x.StartListening(), Times.Exactly(2));
+            cloudProxy.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Exactly(2));
         }
+
+        [Fact]
+        [Unit]
+        public async Task TestConnectionEstablishedReenableSubscriptions()
+        {
+            string deviceId = "deviceId";            
+
+            var cloudProxyMock = new Mock<ICloudProxy>();
+            cloudProxyMock.SetupGet(cp => cp.IsActive).Returns(true);
+
+            var cloudConnectionMock = new Mock<ICloudConnection>();
+            cloudConnectionMock.SetupGet(dp => dp.IsActive).Returns(true);
+            cloudConnectionMock.SetupGet(dp => dp.CloudProxy).Returns(Option.Some(cloudProxyMock.Object));
+            cloudConnectionMock.Setup(c => c.CreateOrUpdateAsync(It.IsAny<IIdentity>()))
+                .ReturnsAsync(cloudProxyMock.Object);
+
+            Action<string, CloudConnectionStatus> connectionChangeCallback = (_, __) => { };
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Callback<IIdentity, Action<string, CloudConnectionStatus>>((id, cb) => connectionChangeCallback = cb)
+                .ReturnsAsync(() => Try.Success(cloudConnectionMock.Object));
+
+            var protocolGatewayIdentity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == deviceId);
+            var edgeIdentity = Mock.Of<IIdentity>(i => i.Id == deviceId);
+
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
+            await connectionManager.CreateCloudConnectionAsync(edgeIdentity);
+            
+            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager, this.entityStore);
+            ISessionState sessionState = await sessionProvider.GetAsync(protocolGatewayIdentity);
+            Assert.Null(sessionState);
+
+            sessionState = new SessionState(false);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix, QualityOfService.AtLeastOnce);
+            sessionState.AddOrUpdateSubscription(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix, QualityOfService.AtMostOnce);
+            sessionState.RemoveSubscription(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix);
+            await sessionProvider.SetAsync(protocolGatewayIdentity, sessionState);
+
+            cloudProxyMock.Verify(x => x.SetupCallMethodAsync(), Times.Once);
+            cloudProxyMock.Verify(x => x.StartListening(), Times.Once);
+            cloudProxyMock.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Once);
+
+            ISessionState storedSession = await sessionProvider.GetAsync(protocolGatewayIdentity);
+            Assert.NotNull(storedSession);
+
+            var retrievedSessionState = storedSession as SessionState;
+            Assert.NotNull(retrievedSessionState);
+            Assert.Equal(2, retrievedSessionState.Subscriptions.Count);
+            Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix]);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));            
+            Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix]);
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix));
+            Assert.False(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix]);
+            ISubscription c2DSubscription = retrievedSessionState.Subscriptions.FirstOrDefault(s => s.TopicFilter == SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix);
+            Assert.NotNull(c2DSubscription);
+            Assert.Equal(QualityOfService.AtLeastOnce, c2DSubscription.QualityOfService);
+            Assert.True(DateTime.UtcNow - c2DSubscription.CreationTime < TimeSpan.FromMinutes(2));
+            ISubscription methodSubscription = retrievedSessionState.Subscriptions.FirstOrDefault(s => s.TopicFilter == SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix);
+            Assert.NotNull(methodSubscription);
+            Assert.Equal(QualityOfService.AtMostOnce, methodSubscription.QualityOfService);
+            Assert.True(DateTime.UtcNow - methodSubscription.CreationTime < TimeSpan.FromMinutes(2));
+
+            await sessionProvider.SetAsync(protocolGatewayIdentity, sessionState);
+
+            cloudProxyMock.Verify(x => x.SetupCallMethodAsync(), Times.Exactly(2));
+            cloudProxyMock.Verify(x => x.StartListening(), Times.Exactly(2));
+            cloudProxyMock.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Exactly(2));
+
+            connectionChangeCallback.Invoke(deviceId, CloudConnectionStatus.ConnectionEstablished);
+
+            cloudProxyMock.Verify(x => x.SetupCallMethodAsync(), Times.Exactly(3));
+            cloudProxyMock.Verify(x => x.StartListening(), Times.Exactly(3));
+            cloudProxyMock.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Exactly(3));
+        }        
     }
 }
