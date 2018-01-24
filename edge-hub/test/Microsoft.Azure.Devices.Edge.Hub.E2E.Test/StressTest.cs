@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [E2E, Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class StressTest
+    public class StressTest : IClassFixture<ProtocolHeadFixture>
     {
         [Fact, TestPriority(301)]
         public async Task SingleSenderSingleReceiverTest()

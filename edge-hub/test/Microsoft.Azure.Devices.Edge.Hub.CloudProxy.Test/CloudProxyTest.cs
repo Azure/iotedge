@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -19,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Xunit;
 
     [E2E]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test")]
+    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class CloudProxyTest
     {
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
@@ -36,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(GetTestMessage))]
+        [TestPriority(401)]
         public async Task SendMessageTest(IMessage message)
         {
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
@@ -48,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(GetTestMessages))]
+        [TestPriority(402)]
         public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
         {
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
@@ -72,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(GetTestMessages))]
+        [TestPriority(403)]
         public async Task SendMessageBatchTest(IList<IMessage> messages)
         {
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
@@ -83,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        [TestPriority(404)]
         public async Task CanGetTwin()
         {
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
@@ -94,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        [TestPriority(405)]
         public async Task CanUpdateReportedProperties()
         {
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
@@ -119,6 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        [TestPriority(406)]
         public async Task CanListenForDesiredPropertyUpdates()
         {
             var update = new TaskCompletionSource<IMessage>();

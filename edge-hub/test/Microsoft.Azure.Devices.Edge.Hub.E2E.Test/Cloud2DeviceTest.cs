@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [E2E]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class Cloud2DeviceTest
+    public class Cloud2DeviceTest : IClassFixture<ProtocolHeadFixture>
     {
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(35);
         const string MessagePropertyName = "property1";

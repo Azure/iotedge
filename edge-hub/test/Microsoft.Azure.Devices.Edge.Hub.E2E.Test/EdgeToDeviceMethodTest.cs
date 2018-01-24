@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [E2E]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class EdgeToDeviceMethodTest
+    public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
         const string DeviceNamePrefix = "E2E_DirectMethods_";
         const string MethodName = "WriteToConsole";
