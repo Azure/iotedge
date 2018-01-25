@@ -74,30 +74,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             // but there's a corrupt deployment in IoT Hub then we end up not being able to report the
             // current state even though we have it
 
-            var ((current, environmentException), (deploymentConfigInfo, configSourceException)) = await TaskEx.WhenAll(
+            ((ModuleSet current, Exception environmentException), (DeploymentConfigInfo deploymentConfigInfo, Exception configSourceException)) = await TaskEx.WhenAll(
                 this.GetCurrentModuleSetAsync(token), this.GetDeploymentConfigInfoAsync()
             );
 
-            IEnumerable<Exception> exceptions = new[]
+            List<Exception> exceptions = new[]
             {
                 environmentException,
                 configSourceException,
                 deploymentConfigInfo?.Exception.OrDefault()
-            }.Where(e => e != null);
+            }
+            .Where(e => e != null)
+            .ToList();
 
             Exception exception = null;
-            IList<Exception> exceptionsAsList = exceptions as IList<Exception> ?? exceptions.ToList();
-
-            if (exceptionsAsList.Count() <= 1)
+            if (exceptions.Any())
             {
-                if (exceptionsAsList.Any())
-                {
-                    exception = exceptionsAsList.First();
-                }
-            }
-            else
-            {
-                exception = new AggregateException(exceptionsAsList);
+                exception = exceptions.Count > 1 ? new AggregateException(exceptions) : exceptions.First();
             }
 
             return (current, deploymentConfigInfo, exception);
@@ -105,18 +98,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            ModuleSet current, updated = null;
+            ModuleSet updated = null;
             DeploymentConfigInfo deploymentConfigInfo = null;
 
             try
             {
                 Exception exception;
+                ModuleSet current;
                 (current, deploymentConfigInfo, exception) = await this.GetReconcileData(token);
                 updated = current;
                 if (exception != null)
                 {
                     throw exception;
-                }
+                }                
 
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
                 if (deploymentConfig != DeploymentConfig.Empty)

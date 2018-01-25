@@ -119,13 +119,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 // this call should fetch the config properly
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
                 Assert.NotNull(config1);
+                Assert.Equal(0, config1.Version);
+                Assert.False(config1.Exception.HasValue);
 
                 // this should cause the version with the exception to be returned
                 DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
 
                 // Assert
                 Assert.NotNull(config2);
-                Assert.Equal(10, config2.Version);
+                Assert.True(config2.Exception.HasValue);
+                Assert.IsType<InvalidOperationException>(config2.Exception.OrDefault());                
+
+                // this should still be the JSON from the first config - config1
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupDoesNotHappenIfConfigSourceEmpty()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            // Arrange
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ReturnsAsync(new DeploymentConfigInfo(-1, DeploymentConfig.Empty));
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+
+            // Act
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            {
+                // this call should fetch the config properly
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+                Assert.Equal(0, config1.Version);
+
+                // this should cause the version with the exception to be returned
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+
+                // Assert
+                Assert.NotNull(config2);
+                Assert.Equal(0, config2.Version);
+                Assert.Equal(config2.DeploymentConfig.Modules, config1.DeploymentConfig.Modules);
 
                 // this should still be the JSON from the first config - config1
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);

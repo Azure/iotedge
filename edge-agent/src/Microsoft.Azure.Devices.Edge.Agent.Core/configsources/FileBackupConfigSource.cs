@@ -70,8 +70,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             try
             {
                 DeploymentConfigInfo deploymentConfig = await this.underlying.GetDeploymentConfigInfoAsync();
-                // TODO - Backing up the config every time for now, probably should optimize this.
-                await this.BackupDeploymentConfig(deploymentConfig);
+                if (!deploymentConfig.Exception.HasValue)
+                {
+                    if (deploymentConfig.Version < 0 || deploymentConfig.DeploymentConfig == DeploymentConfig.Empty)
+                    {
+                        Events.RestoringFromBackup(deploymentConfig, this.configFilePath);
+                        deploymentConfig = await this.ReadFromBackup();
+                    }
+                    else
+                    {
+                        // TODO - Backing up the config every time for now, probably should optimize this.
+                        await this.BackupDeploymentConfig(deploymentConfig);
+                    }
+                }
                 return deploymentConfig;
             }
             catch (FileBackupException)
@@ -115,6 +126,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             public static void RestoringFromBackup(Exception exception, string filename)
             {
                 Log.LogWarning((int)EventIds.RestoringFromBackup, exception, $"Error getting edge agent config. Reading config from backup ({filename}) instead");
+            }
+
+            public static void RestoringFromBackup(DeploymentConfigInfo deploymentConfig, string filename)
+            {
+                string reason = deploymentConfig.Exception.Map(e => $"Error getting edge agent config - {e}")
+                    .GetOrElse("Empty edge agent config was received");
+                Log.LogWarning((int)EventIds.RestoringFromBackup, $"{reason}. Reading config from backup ({filename}) instead");
             }
 
             enum EventIds
