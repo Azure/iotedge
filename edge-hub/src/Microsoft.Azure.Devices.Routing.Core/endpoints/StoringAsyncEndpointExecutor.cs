@@ -40,14 +40,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Events.AddMessageSuccess(this, offset);
                 this.hasMessagesInQueue.Set();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Events.AddMessageFailure(this, ex);
                 throw;
             }
         }
 
-        private async Task SendMessagesPump()
+        async Task SendMessagesPump()
         {
             try
             {
@@ -59,18 +59,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     {
                         if (this.hasMessagesInQueue.WaitOne(WaitForMessagesTimeout))
                         {
-                            this.hasMessagesInQueue.Reset();
-                            while (!this.CancellationTokenSource.IsCancellationRequested)
+                            List<IMessage> messages = (await iterator.GetNext(BatchSize)).ToList();
+                            foreach (IMessage message in messages)
                             {
-                                IEnumerable<IMessage> messages = await iterator.GetNext(BatchSize);
-                                IList<IMessage> messagesAsList = messages as IList<IMessage> ?? messages.ToList();
-                                if (messagesAsList.Count == 0)
-                                    break;
-                                foreach (IMessage message in messagesAsList)
-                                {
-                                    await this.SendToTplHead(message);
-                                }
-                                Events.SendMessagesSuccess(this, messagesAsList);
+                                await this.SendToTplHead(message);
+                            }
+                            Events.SendMessagesSuccess(this, messages);
+
+                            // If store has no messages, then reset the hasMessagesInQueue flag. 
+                            if (messages.Count == 0)
+                            {
+                                this.hasMessagesInQueue.Reset();
                             }
                         }
                     }
@@ -81,7 +80,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Events.SendMessagesPumpFailure(this, ex);
             }
@@ -101,7 +100,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             await base.CloseAsync();
             if (this.messageStore != null)
                 await this.messageStore?.RemoveEndpoint(this.Endpoint.Id);
-            await (this.sendMessageTask ?? Task.CompletedTask);            
+            await (this.sendMessageTask ?? Task.CompletedTask);
         }
 
         static class Events
@@ -140,7 +139,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
             public static void SendMessagesSuccess(StoringAsyncEndpointExecutor executor, IEnumerable<IMessage> messages)
             {
-                Log.LogDebug((int)EventIds.SendMessagesSuccess, Invariant($"[SendMessagesSuccess] Successfully sent {messages.Count()} messages to IPL head for EndpointId: {executor.Endpoint.Id}."));
+                int count = messages.Count();
+                if (count > 0)
+                {
+                    Log.LogDebug((int)EventIds.SendMessagesSuccess, Invariant($"[SendMessagesSuccess] Successfully sent {count} messages to IPL head for EndpointId: {executor.Endpoint.Id}."));
+                }
             }
 
             public static void SendMessagesPumpFailure(StoringAsyncEndpointExecutor executor, Exception ex)

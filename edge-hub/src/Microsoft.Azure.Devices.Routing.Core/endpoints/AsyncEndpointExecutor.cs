@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        public async virtual Task CloseAsync()
+        public virtual async Task CloseAsync()
         {
             Events.Close(this);
 
