@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     {
         readonly CreateContainerParameters createContainerParameters;
         readonly IDockerClient client;
-        readonly static Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
+        static readonly Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
         {
             {"8883/tcp", new PortBinding {HostPort="8883" } },
             {"443/tcp", new PortBinding {HostPort="443" } }
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
         }
 
-        static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)
+        internal static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)
         {
             if (injectForEdgeHub)
             {
@@ -116,7 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 foreach (KeyValuePair<string, PortBinding> binding in EdgeHubPortBinding)
                 {
                     IList<PortBinding> current = createContainerParameters.HostConfig.PortBindings.GetOrElse(binding.Key, () => new List<PortBinding>());
-                    current.Add(binding.Value);
+                    if (!current.Any(p => p.HostPort.Equals(binding.Value.HostPort, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        current.Add(binding.Value);
+                    }
                     createContainerParameters.HostConfig.PortBindings[binding.Key] = current;
                 }
             }
@@ -137,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
                 sourceOptions = Option.None<LogConfig>();
             }
 
-            if ((createContainerParameters.HostConfig.LogConfig == null) || (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig.Type)))
+            if (createContainerParameters.HostConfig.LogConfig == null || (string.IsNullOrWhiteSpace(createContainerParameters.HostConfig.LogConfig.Type)))
             {
                 createContainerParameters.HostConfig.LogConfig = sourceOptions.GetOrElse(new LogConfig
                 {
