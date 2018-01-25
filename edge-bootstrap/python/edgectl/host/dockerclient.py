@@ -23,16 +23,20 @@ class EdgeDockerClient(object):
         self._api_client = docker.APIClient(base_url=base_url, tls=tls)
 
     def check_availability(self):
+        """
+        API to check if docker is available
+
+        Returns:
+            True if docker is available.
+            False otherwise
+        """
         is_available = False
         try:
             self._client.info()
             is_available = True
-        except EdgeError as edge_ex:
-            logging.error('Could not obtain Docker info')
-            print(edge_ex)
-        except Exception as ex:
-            logging.error('Could not connect to docker daemon.')
-            print(ex)
+        except docker.errors.APIError as ex:
+            msg = 'Could not connect to docker daemon. {0}'.format(ex)
+            logging.error(msg)
 
         return is_available
 
@@ -53,34 +57,69 @@ class EdgeDockerClient(object):
         except docker.errors.APIError as ex:
             raise EdgeError('Docker daemon returned error.', ex)
 
-    def pull(self, image, username, password):
-        logging.info('Executing pull for image: %s', image)
-        is_updated = True
-        old_tag = None
+    def get_local_image_sha_id(self, image):
+        """
+        API to return the image sha id if it is available locally.
+
+        Args:
+            image (str): Name of image from which to retrieve it's id
+
+        Returns:
+            String containing the tag of the image
+            None if the image is not available locally.
+        """
+        local_id = None
         try:
             logging.info('Checking if image exists locally: %s', image)
             inspect_dict = self._api_client.inspect_image(image)
-            old_tag = inspect_dict['Id']
-            logging.info('Image exists locally. Tag: %s', old_tag)
-        except docker.errors.APIError as ex:
-            logging.info('Image not found locally: %s', image)
-            logging.info('Please note it may take some time to download this image.'\
-                         '\nDepending on network conditions and registry server' \
+            local_id = inspect_dict['Id']
+            logging.info('Image exists locally. Id: %s', local_id)
+        except docker.errors.APIError:
+            logging.debug('Image not found locally: %s', image)
+
+        return local_id
+
+    def pull(self, image, username, password):
+        """
+        API to pull the latest binaries from the given image's repository.
+
+        Args:
+            image (str): Name of image to pull from its repository.
+            username (str): Username to access image's repository.
+                            None if no credentials are required.
+            password (str): Password to access image's repository.
+                            None if no credentials are required.
+
+        Returns:
+            True if a newer image was found and downloaded
+            False otherwise
+        """
+        logging.info('Executing pull for: %s', image)
+        is_updated = True
+        old_id = None
+
+        old_id = self.get_local_image_sha_id(image)
+        if old_id is None:
+            logging.info('Please note depending on network conditions and registry server' \
                          ' availability this may take a few minutes.')
+        else:
+            logging.info('Checking for newer tag for image: %s', image)
 
         try:
             auth_dict = None
             if username:
                 auth_dict = {'username': username, 'password': password}
-            pull_result = self._client.images.pull(image, auth_config=auth_dict)
-            logging.info('Pulled image: ' + str(pull_result))
-            if old_tag:
+            self._client.images.pull(image, auth_config=auth_dict)
+            logging.info('Completed pull for image: %s', image)
+            if old_id is not None:
                 inspect_dict = self._api_client.inspect_image(image)
-                new_tag = inspect_dict['Id']
-                logging.debug('Post pull image tag: %s', new_tag)
-                if new_tag == old_tag:
-                    logging.debug('Image is up to date.')
+                new_id = inspect_dict['Id']
+                logging.debug('Newly pulled image id: %s', new_id)
+                if new_id == old_id:
+                    logging.info('Image is up to date.')
                     is_updated = False
+                else:
+                    logging.info('Pulled image with newer tag: %s', new_id)
         except docker.errors.APIError as ex:
             logging.error('Error inspecting image: %s. Error: %s', image, str(ex))
             raise

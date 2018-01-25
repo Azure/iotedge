@@ -1,3 +1,4 @@
+""" Module that implements the primary CLI class EdgeCLI """
 from __future__ import print_function
 import argparse
 import logging as log
@@ -13,6 +14,8 @@ from edgectl.parser import EdgeConfigParserFactory
 from edgectl.utils import EdgeUtils
 
 
+# pylint: disable=C0301
+# disables line too long pylint warning
 class EdgeCLI(object):
     """This class implements the CLI to control the Azure Edge Runtime Control.
     """
@@ -87,30 +90,35 @@ class EdgeCLI(object):
     def _setup_logging(level):
         if EdgeCLI._LOGGING_INITIALIZED is False:
             EdgeCLI._LOGGING_INITIALIZED = True
-            format = '%(levelname)s: %(message)s'
-            log.basicConfig(format=format,
+            log_format = '%(levelname)s: %(message)s'
+            log.basicConfig(format=log_format,
                             level=getattr(log, level))
             """
             Workaround to avoid red error text for INFO, DEBUG, and WARNING messages in remote PowerShell
             """
             if platform.system().lower() == 'windows':
+                # pylint: disable=R0903
+                # disables too few public methods
                 class ExclusiveMaxFilter(log.Filter):
+                    """Filter class to allows all messages with level < LEVEL"""
                     def __init__(self, level):
+                        super(ExclusiveMaxFilter, self).__init__()
                         self._level = level
-                    def filter(self, rec):
-                        return rec.levelno < self._level
+                    def filter(self, record):
+                        """Returns True if record has  level < LEVEL"""
+                        return record.levelno < self._level
 
                 log.getLogger().handlers = []
 
-                outHandler = log.StreamHandler(sys.stdout)
-                outHandler.addFilter(ExclusiveMaxFilter(log.ERROR))
-                outHandler.setFormatter(log.Formatter(format))
-                log.getLogger().addHandler(outHandler)
+                out_handler = log.StreamHandler(sys.stdout)
+                out_handler.addFilter(ExclusiveMaxFilter(log.ERROR))
+                out_handler.setFormatter(log.Formatter(log_format))
+                log.getLogger().addHandler(out_handler)
 
-                errHandler = log.StreamHandler(sys.stderr)
-                errHandler.setLevel(log.ERROR)
-                errHandler.setFormatter(log.Formatter(format))
-                log.getLogger().addHandler(errHandler)
+                err_handler = log.StreamHandler(sys.stderr)
+                err_handler.setLevel(log.ERROR)
+                err_handler.setFormatter(log.Formatter(log_format))
+                log.getLogger().addHandler(err_handler)
 
     @property
     def _verbose_level(self):
@@ -338,7 +346,7 @@ class EdgeCLI(object):
         cmd_status.set_defaults(func=self._parse_edge_command)
 
         cmd_update = subparsers.add_parser('update', description='Update the Edge Agent image.', help='Update the Edge Agent image.')
-        cmd_update.add_argument('--image', help='Specify the Edge Agent image', required = True, metavar='')
+        cmd_update.add_argument('--image', help='Specify the Edge Agent image', metavar='')
         cmd_update.set_defaults(func=self._parse_edge_command)
 
         cmd_uninstall = subparsers.add_parser('uninstall', description='Remove all modules and generated files.',
@@ -357,9 +365,8 @@ class EdgeCLI(object):
         args = parser.parse_args()
         if 'func' in vars(args):
             return args.func(args)
-        else:
-            parser.print_usage()
-            return (False, False)
+        parser.print_usage()
+        return (False, False)
 
     def _parse_edge_command(self, args):
         args.verbose_level = args.verbose_level.upper()
@@ -428,16 +435,19 @@ class EdgeCLI(object):
     def _parse_update_options(self, args):
         is_valid = self._parse_command_options_common(args)
         if is_valid:
-            try:
-                self.edge_config.deployment_config.edge_image = args.image
-            except ValueError as ex:
-                log.error('%s', str(ex))
-                log.error('Error setting --image data: %s.', args.image)
-                raise edgectl.errors.EdgeError('Error setting Edge Agent image', ex)
-            EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
-            config_file = EdgeHostPlatform.get_host_config_file_path()
-            log.info('The runtime configuration file %s was updated with' \
-                     ' the new image: %s', config_file, args.image)
+            if args.image is not None:
+                prior_image = self.edge_config.deployment_config.edge_image
+                if prior_image != args.image:
+                    try:
+                        self.edge_config.deployment_config.edge_image = args.image
+                    except ValueError as ex:
+                        msg = 'Error setting --image data: {0}. {1}'.format(args.image, ex)
+                        log.error(msg)
+                        raise edgectl.errors.EdgeError(msg, ex)
+                    EdgeHostPlatform.install_edge_by_json_data(self.edge_config, False)
+                    config_file = EdgeHostPlatform.get_host_config_file_path()
+                    log.info('The runtime configuration file %s was updated with' \
+                             ' the new image: %s', config_file, args.image)
         return is_valid
 
     def _parse_login_options(self, args):
@@ -489,7 +499,7 @@ class EdgeCLI(object):
                 log.critical('Please restore the config file or reinstall the %s utility.', EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Error when parsing configuration data', ex_parse)
             except edgectl.errors.EdgeFileAccessError as ex_access:
-                if (ex_access.file_name == EdgeDefault.get_default_settings_file_path()):
+                if ex_access.file_name == EdgeDefault.get_default_settings_file_path():
                     log.critical('Please restore the config file or reinstall the %s utility.', EdgeCLI._prog())
                 raise edgectl.errors.EdgeError('Filesystem access errors', ex_access)
         if is_valid:

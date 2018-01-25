@@ -52,25 +52,27 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 break
         return result
 
-    def _recreate_agent_container(self):
+    def _recreate_agent_container(self, pull_latest_image):
         container_name = self._edge_runtime_container_name
         status = self._status()
         if status == self.EDGE_RUNTIME_STATUS_RESTARTING:
             log.error('Runtime is restarting. Please retry later.')
-        elif status == self.EDGE_RUNTIME_STATUS_STOPPED:
-            log.info('Runtime container %s found in stopped state. Please use' \
-                     ' the start command to see changes take effect.',
-                     container_name)
-        elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-            log.info('Please use the start command to see changes take effect.')
         else:
-            log.info('Stopping runtime.')
-            self._client.stop(container_name)
-            self._client.remove(container_name)
-            log.info('Stopped runtime.')
-            log.info('Starting runtime.')
-            self.start()
-            log.info('Starting runtime.')
+            if pull_latest_image is True:
+                self._pull_freshest_agent_image()
+            if status == self.EDGE_RUNTIME_STATUS_STOPPED:
+                log.info('Runtime container %s found in stopped state. Please use ' \
+                         'the start command to see changes take effect.', container_name)
+            elif status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
+                log.info('Please use the start command to see changes take effect.')
+            else:
+                log.info('Stopping runtime.')
+                self._client.stop(container_name)
+                self._client.remove(container_name)
+                log.info('Stopped runtime.')
+                log.info('Starting runtime.')
+                self.start()
+                log.info('Starting runtime.')
 
     def _mount_certificates_into_agent_container(self):
         os_type = self._client.get_os_type().lower()
@@ -195,13 +197,16 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         container_name = self._edge_runtime_container_name
         self._client.start(container_name)
 
-    def _remove_agent_container(self):
-        container_name = self._edge_runtime_container_name
-        self._client.remove(container_name)
+    def _check_if_agent_image_exists_locally(self):
+        edge_config = self._config_obj
+        image = edge_config.deployment_config.edge_image
+        sha_id = self._client.get_local_image_sha_id(image)
+        if sha_id is not None:
+            return True
+        return False
 
     def _pull_freshest_agent_image(self):
         edge_config = self._config_obj
-        container_name = self._edge_runtime_container_name
         image = edge_config.deployment_config.edge_image
         edge_reg = self._obtain_edge_agent_login()
         username = None
@@ -209,16 +214,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         if edge_reg:
             username = edge_reg['username']
             password = edge_reg['password']
-        is_newer_agent_image = self._client.pull(image, username, password)
-        if is_newer_agent_image is True:
-            log.debug('Pulled new image %s', image)
-        else:
-            # check if user has updated the agent image by checking image names
-            existing_agent_image = self._client.get_container_image(container_name)
-            if existing_agent_image is not None and existing_agent_image != image:
-                is_newer_agent_image = True
-
-        return is_newer_agent_image
+        self._client.pull(image, username, password)
 
     def _create_agent_container(self):
         env_dict = {}
@@ -254,12 +250,12 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     def login(self):
         self._check_prerequisites()
         log.info('Executing \'login\'')
-        self._recreate_agent_container()
+        self._recreate_agent_container(False)
 
     def update(self):
         self._check_prerequisites()
         log.info('Executing \'update\'')
-        self._recreate_agent_container()
+        self._recreate_agent_container(True)
 
     def start(self):
         self._check_prerequisites()
@@ -275,23 +271,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                       'Please stop the runtime and retry.')
         else:
             # here we are either in stopped or unavailable state
-            create_new_container = False
-
-            # pull the latest edge agent image
-            is_newer_agent_image = self._pull_freshest_agent_image()
-            if is_newer_agent_image is True:
-                # image was updated so remove any existing agent container
-                create_new_container = True
-                self._remove_agent_container()
-            else:
-                # image was not updated and available locally on the host
-                if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
-                    # have to create a new container since one does not exist
-                    create_new_container = True
-                    log.debug('Edge Agent container %s does not exist.',
-                              container_name)
-
-            if create_new_container is True:
+            if status == self.EDGE_RUNTIME_STATUS_UNAVAILABLE:
+                log.debug('Edge Agent container %s does not exist.', container_name)
+                if self._check_if_agent_image_exists_locally() is False:
+                    # pull the latest edge agent image
+                    self._pull_freshest_agent_image()
                 self._create_agent_container()
             self._start_agent_container()
             print('Runtime started.')
