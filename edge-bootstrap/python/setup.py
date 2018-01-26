@@ -74,7 +74,7 @@ setup(
         'dev': ['check-manifest'],
         'test': ['mock', 'coverage'],
         ':sys_platform == "win32"': [
-            'pypiwin32'
+            'pypiwin32 < 222'
         ],
     },
 
