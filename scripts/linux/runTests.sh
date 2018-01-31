@@ -18,6 +18,7 @@ TEST_FILTER="$1"
 
 SUFFIX='Microsoft.Azure*test.csproj'
 ROOTFOLDER=$BUILD_REPOSITORY_LOCALPATH
+IOTEDGECTL_DIR=$ROOTFOLDER/edge-bootstrap/python
 DOTNET_ROOT_PATH=$AGENT_WORKFOLDER/dotnet
 OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 ENVIRONMENT=${TESTENVIRONMENT:="linux"}
@@ -50,6 +51,18 @@ while read line; do
   fi
 done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
 
-echo "RES = $RES"
+echo "Edge runtime tests result RES = $RES"
+
+if [[ $RES -eq 0 ]]; then
+  echo "Running iotedgectl tests..."
+  test_cmd="${IOTEDGECTL_DIR}/scripts/run_docker_image_tests.sh"
+  echo "Executing iotedgectl tests command ${test_cmd}"
+  ${test_cmd}
+  if [ $? -gt 0 ]; then
+    RES=1
+    echo "Failed iotedgectl test: ${test_cmd}"
+  fi
+  echo "iotedgectl tests result RES = $RES"
+fi
 
 exit $RES
