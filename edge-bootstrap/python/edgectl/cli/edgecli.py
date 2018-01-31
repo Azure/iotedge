@@ -13,6 +13,17 @@ from edgectl.host import EdgeHostPlatform
 from edgectl.parser import EdgeConfigParserFactory
 from edgectl.utils import EdgeUtils
 
+# pylint: disable=R0903
+# disables too few public methods
+class ExclusiveMaxFilter(log.Filter):
+    """Filter class to allows all messages with level < LEVEL"""
+    def __init__(self, level):
+        super(ExclusiveMaxFilter, self).__init__()
+        self._level = level
+    def filter(self, record):
+        """Returns True if record has  level < LEVEL"""
+        return record.levelno < self._level
+
 
 # pylint: disable=C0301
 # disables line too long pylint warning
@@ -94,31 +105,19 @@ class EdgeCLI(object):
             log.basicConfig(format=log_format,
                             level=getattr(log, level))
             """
-            Workaround to avoid red error text for INFO, DEBUG, and WARNING messages in remote PowerShell
+            Workaround to avoid red error text for INFO, DEBUG, and WARNING messages
             """
-            if platform.system().lower() == 'windows':
-                # pylint: disable=R0903
-                # disables too few public methods
-                class ExclusiveMaxFilter(log.Filter):
-                    """Filter class to allows all messages with level < LEVEL"""
-                    def __init__(self, level):
-                        super(ExclusiveMaxFilter, self).__init__()
-                        self._level = level
-                    def filter(self, record):
-                        """Returns True if record has  level < LEVEL"""
-                        return record.levelno < self._level
+            log.getLogger().handlers = []
 
-                log.getLogger().handlers = []
+            out_handler = log.StreamHandler(sys.stdout)
+            out_handler.addFilter(ExclusiveMaxFilter(log.ERROR))
+            out_handler.setFormatter(log.Formatter(log_format))
+            log.getLogger().addHandler(out_handler)
 
-                out_handler = log.StreamHandler(sys.stdout)
-                out_handler.addFilter(ExclusiveMaxFilter(log.ERROR))
-                out_handler.setFormatter(log.Formatter(log_format))
-                log.getLogger().addHandler(out_handler)
-
-                err_handler = log.StreamHandler(sys.stderr)
-                err_handler.setLevel(log.ERROR)
-                err_handler.setFormatter(log.Formatter(log_format))
-                log.getLogger().addHandler(err_handler)
+            err_handler = log.StreamHandler(sys.stderr)
+            err_handler.setLevel(log.ERROR)
+            err_handler.setFormatter(log.Formatter(log_format))
+            log.getLogger().addHandler(err_handler)
 
     @property
     def _verbose_level(self):
