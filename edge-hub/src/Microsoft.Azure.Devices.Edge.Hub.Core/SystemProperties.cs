@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string MessageId = "messageId";
         public const string EnqueuedTime = "enqueuedTime";
         public const string To = "to";
+        public const string MsgCorrelationId = "cid";
         public const string CorrelationId = "correlationId";
         public const string UserId = "userId";
         public const string Ack = "ack";
@@ -30,8 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string MessageType = "messageType";
         public const string EdgeMessageId = "edgeMessageId";
         public const string EdgeHubOriginInterface = "edgeHubOriginInterface";
+        public const string CreationTime = "creationTime";
+        public const string Operation = "operation";
 
-        private class OnTheWireSystemPropertyNames
+        static class OnTheWireSystemPropertyNames
         {
             public const string ExpiryTimeUtcOnTheWireName = "$.exp";
             public const string CorrelationIdOnTheWireName = "$.cid";
@@ -45,12 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public const string ContentTypeOnTheWireName = "$.ct";
             public const string ContentEncodingOnTheWireName = "$.ce";
             public const string MessageSchemaOnTheWireName = "$.schema";
+            public const string CreationTimeOnTheWireName = "$.ctime";
+            public const string OperationOnTheWireName = "iothub-operation";
         }
 
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
             { OnTheWireSystemPropertyNames.ExpiryTimeUtcOnTheWireName, ExpiryTimeUtc },
-            { OnTheWireSystemPropertyNames.CorrelationIdOnTheWireName, CorrelationId },
+            { OnTheWireSystemPropertyNames.CorrelationIdOnTheWireName, MsgCorrelationId },
             { OnTheWireSystemPropertyNames.MessageIdOnTheWireName, MessageId },
             { OnTheWireSystemPropertyNames.ToOnTheWireName, To },
             { OnTheWireSystemPropertyNames.UserIdOnTheWireName, UserId },
@@ -58,17 +63,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { OnTheWireSystemPropertyNames.OutputNameOnTheWireName, OutputName },
             { OnTheWireSystemPropertyNames.ContentTypeOnTheWireName, ContentType },
             { OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName, ContentEncoding },
-            { OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName, MessageSchema }
+            { OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName, MessageSchema },
+            { OnTheWireSystemPropertyNames.OperationOnTheWireName, Operation },
+            { OnTheWireSystemPropertyNames.CreationTimeOnTheWireName, CreationTime }
         };
 
         public static readonly Dictionary<string, string> OutgoingSystemPropertiesMap = new Dictionary<string, string>
         {
+            { ExpiryTimeUtc, OnTheWireSystemPropertyNames.ExpiryTimeUtcOnTheWireName },
+            { MsgCorrelationId, OnTheWireSystemPropertyNames.CorrelationIdOnTheWireName },
             { MessageId, OnTheWireSystemPropertyNames.MessageIdOnTheWireName },
-            { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName  },
-            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName },
+            { To, OnTheWireSystemPropertyNames.ToOnTheWireName },
+            { UserId, OnTheWireSystemPropertyNames.UserIdOnTheWireName },
+            { Ack, OnTheWireSystemPropertyNames.AckOnTheWireName },
+            { OutputName, OnTheWireSystemPropertyNames.OutputNameOnTheWireName },
             { ContentType, OnTheWireSystemPropertyNames.ContentTypeOnTheWireName },
             { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName },
-            { MessageSchema, OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName }
-        };        
+            { MessageSchema, OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName },
+            { Operation, OnTheWireSystemPropertyNames.OperationOnTheWireName },
+            { CreationTime, OnTheWireSystemPropertyNames.CreationTimeOnTheWireName },
+            { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName },
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }            
+        };
     }
 }

@@ -1,4 +1,4 @@
-﻿
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },
                 { SystemProperties.ConnectionDeviceId, "Device10" },
-                { SystemProperties.CorrelationId, "CorrId10" },
+                { SystemProperties.MsgCorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };
             yield return new object[] { messageBytes, properties, systemProperties };
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 proxyMessage.UserId);
 
             Assert.Equal(
-                systemProperties.ContainsKey(SystemProperties.CorrelationId) ? systemProperties[SystemProperties.CorrelationId] : null,
+                systemProperties.ContainsKey(SystemProperties.MsgCorrelationId) ? systemProperties[SystemProperties.MsgCorrelationId] : null,
                 proxyMessage.CorrelationId);
 
             Assert.Equal(DateTime.MinValue, proxyMessage.ExpiryTimeUtc);
@@ -108,6 +108,88 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
 
             Assert.Equal(inputMessage.GetBytes(), mqttMessage.Body);
+        }
+
+        [Unit]
+        [Fact]
+        public void TestFromMessage_AllSystemProperties()
+        {
+            string creationTime = new DateTime(2018, 01, 01).ToString("o");
+            var properties = new Dictionary<string, string>
+            {
+                ["Foo"] = "Bar",
+                ["Prop2"] = "Value2"
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.ContentEncoding] = "utf-8",
+                [SystemProperties.ContentType] = "application/json",
+                [SystemProperties.MessageSchema] = "schema1",
+                [SystemProperties.To] = "foo",
+                [SystemProperties.UserId] = "user1",
+                [SystemProperties.MsgCorrelationId] = "1234",
+                [SystemProperties.MessageId] = "m1",
+                [SystemProperties.CreationTime] = creationTime
+            };
+
+            var message = Mock.Of<IMessage>(
+                m =>
+                    m.Body == new byte[] { 1, 2, 3 } &&
+                    m.Properties == properties &&
+                    m.SystemProperties == systemProperties);
+
+            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            Message clientMessage = messageConverter.FromMessage(message);
+
+            Assert.NotNull(clientMessage);
+            Assert.Equal(clientMessage.GetBytes(), message.Body);
+            Assert.Equal("Bar", clientMessage.Properties["Foo"]);
+            Assert.Equal("Value2", clientMessage.Properties["Prop2"]);
+
+            Assert.Equal("utf-8", clientMessage.ContentEncoding);
+            Assert.Equal("application/json", clientMessage.ContentType);
+            Assert.Equal("schema1", clientMessage.MessageSchema);
+            Assert.Equal("foo", clientMessage.To);
+            Assert.Equal("1234", clientMessage.CorrelationId);
+            Assert.Equal("m1", clientMessage.MessageId);
+            Assert.Equal(creationTime, clientMessage.CreationTimeUtc.ToString("o"));
+        }
+
+        [Unit]
+        [Fact]
+        public void TestToMessage_AllSystemProperties()
+        {
+            var creationTime = new DateTime(2018, 01, 01, 0, 0, 0, DateTimeKind.Utc);
+
+            var clientMessage = new Message(new byte[] { 1, 2, 3 });
+            clientMessage.Properties["Foo"] = "Bar";
+            clientMessage.Properties["Prop2"] = "Value2";
+
+            clientMessage.ContentEncoding = "utf-8";
+            clientMessage.ContentType = "application/json";
+            clientMessage.MessageSchema = "schema1";
+            clientMessage.To = "foo";
+            clientMessage.UserId = "user1";
+            clientMessage.CorrelationId = "1234";
+            clientMessage.MessageId = "m1";
+            clientMessage.CreationTimeUtc = creationTime;
+
+            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessage message = messageConverter.ToMessage(clientMessage);
+
+            Assert.NotNull(message);
+            Assert.Equal(clientMessage.GetBytes(), message.Body);
+            Assert.Equal("Bar", message.Properties["Foo"]);
+            Assert.Equal("Value2", message.Properties["Prop2"]);
+
+            Assert.Equal("utf-8", message.SystemProperties[SystemProperties.ContentEncoding]);
+            Assert.Equal("application/json", message.SystemProperties[SystemProperties.ContentType]);
+            Assert.Equal("schema1", message.SystemProperties[SystemProperties.MessageSchema]);
+            Assert.Equal("foo", message.SystemProperties[SystemProperties.To]);
+            Assert.Equal("1234", message.SystemProperties[SystemProperties.MsgCorrelationId]);
+            Assert.Equal("m1", message.SystemProperties[SystemProperties.MessageId]);
+            Assert.Equal(creationTime.ToString("o"), message.SystemProperties[SystemProperties.CreationTime]);
         }
     }
 }

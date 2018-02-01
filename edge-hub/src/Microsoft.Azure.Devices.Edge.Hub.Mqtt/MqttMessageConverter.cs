@@ -1,9 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         // Same Value as IotHub
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(30);
+
         public Message FromMessage(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
@@ -27,8 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
             }
 
-            // TODO Check which SystemProperties need to be set.
-            // Setting 3 System properties - MessageId, CorrelationId and UserId.
             if (inputMessage.SystemProperties != null)
             {
                 if (inputMessage.SystemProperties.TryGetValue(SystemProperties.MessageId, out string messageId))
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     message.MessageId = messageId;
                 }
 
-                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.CorrelationId, out string correlationId))
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.MsgCorrelationId, out string correlationId))
                 {
                     message.CorrelationId = correlationId;
                 }
@@ -44,6 +44,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 if (inputMessage.SystemProperties.TryGetValue(SystemProperties.UserId, out string userId))
                 {
                     message.UserId = userId;
+                }
+
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.ContentType, out string contentType))
+                {
+                    message.ContentType = contentType;
+                }
+
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.ContentEncoding, out string contentEncoding))
+                {
+                    message.ContentEncoding = contentEncoding;
+                }
+
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.To, out string to))
+                {
+                    message.To = to;
+                }
+
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.CreationTime, out string creationTime))
+                {
+                    message.CreationTimeUtc = DateTime.ParseExact(creationTime, "o", CultureInfo.InvariantCulture);
+                }
+
+                if (inputMessage.SystemProperties.TryGetValue(SystemProperties.MessageSchema, out string messageSchema))
+                {
+                    message.MessageSchema = messageSchema;
                 }
             }
 
@@ -57,10 +82,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .Build();
 
             message.SystemProperties.Add(SystemProperties.MessageId, sourceMessage.MessageId);
-
-            DateTime createTime = sourceMessage.EnqueuedTimeUtc == DateTime.MinValue ? DateTime.UtcNow : sourceMessage.EnqueuedTimeUtc.Add(ClockSkewAdjustment);
-
-            message.SystemProperties.Add(SystemProperties.EnqueuedTime, createTime.ToString("o"));
+            message.SystemProperties.Add(SystemProperties.MsgCorrelationId, sourceMessage.CorrelationId);
+            message.SystemProperties.Add(SystemProperties.UserId, sourceMessage.UserId);
+            message.SystemProperties.Add(SystemProperties.ContentType, sourceMessage.ContentType);
+            message.SystemProperties.Add(SystemProperties.ContentEncoding, sourceMessage.ContentEncoding);
+            message.SystemProperties.Add(SystemProperties.To, sourceMessage.To);
+            message.SystemProperties.Add(SystemProperties.MessageSchema, sourceMessage.MessageSchema);
+            message.SystemProperties.Add(SystemProperties.CreationTime, sourceMessage.CreationTimeUtc.ToString("o"));
+            DateTime enqueuedTime = sourceMessage.EnqueuedTimeUtc == DateTime.MinValue ? DateTime.UtcNow : sourceMessage.EnqueuedTimeUtc.Add(ClockSkewAdjustment);
+            message.SystemProperties.Add(SystemProperties.EnqueuedTime, enqueuedTime.ToString("o"));
             message.SystemProperties.Add(SystemProperties.LockToken, sourceMessage.LockToken);
             message.SystemProperties.Add(SystemProperties.DeliveryCount, sourceMessage.DeliveryCount.ToString());
 

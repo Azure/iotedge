@@ -325,6 +325,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
+        public async Task RoutesWithConditionsOnSystemPropertiesTest1()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /messages WHERE $contentType = 'application/json' AND $contentEncoding = 'utf-8' INTO $upstream",
+                @"FROM /messages WHERE $contentType = 'application/json' AND $contentEncoding <> 'utf-8' INTO BrokeredEndpoint(""/modules/mod2/inputs/in2"")",
+            };
+
+            string edgeDeviceId = "edge";
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+            TestModule module2 = await TestModule.Create(edgeDeviceId, "mod2", "op2", "in2", edgeHub, connectionManager);
+
+            IMessage message1 = GetMessage();
+            message1.SystemProperties[SystemProperties.ContentType] = "application/json";
+            message1.SystemProperties[SystemProperties.ContentEncoding] = "utf-8";
+            await device1.SendMessage(message1);
+            await Task.Delay(GetSleepTime());
+            Assert.True(iotHub.HasReceivedMessage(message1));
+            Assert.False(module1.HasReceivedMessage(message1));
+            Assert.False(module2.HasReceivedMessage(message1));
+
+            IMessage message2 = GetMessage();
+            message2.SystemProperties[SystemProperties.ContentType] = "application/json";
+            message2.SystemProperties[SystemProperties.ContentEncoding] = "utf-16";
+            await device1.SendMessage(message2);
+            await Task.Delay(GetSleepTime());
+            Assert.False(iotHub.HasReceivedMessage(message2));
+            Assert.False(module1.HasReceivedMessage(message2));
+            Assert.True(module2.HasReceivedMessage(message2));
+        }
+
+        [Fact]
         public async Task TestRoutingTwinChangeNotificationFromDevice()
         {
             var routes = new List<string>

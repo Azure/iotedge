@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },
                 { SystemProperties.ConnectionDeviceId, "Device10" },
-                { SystemProperties.CorrelationId, "CorrId10" },
+                { SystemProperties.MsgCorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };
             yield return new object[] { messageBytes, properties, systemProperties };
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },
                 { SystemProperties.ConnectionDeviceId, "Device10" },
-                { SystemProperties.CorrelationId, "CorrId10" },
+                { SystemProperties.MsgCorrelationId, "CorrId10" },
                 { "InvalidSystemProperty", "SomeValue" }
             };
             var routingMessage1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBytes, properties, systemProperties);

@@ -244,8 +244,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(responseTask.IsCompleted);
 
             var message = new Message(new byte[0]);
-            message.Properties[Hub.Core.SystemProperties.CorrelationId] = methodRequest.CorrelationId;
-            message.Properties[Hub.Core.SystemProperties.StatusCode] = "200";
+            message.Properties[Core.SystemProperties.CorrelationId] = methodRequest.CorrelationId;
+            message.Properties[Core.SystemProperties.StatusCode] = "200";
             await deviceMessageHandler.ProcessMethodResponseAsync(message);
             Assert.True(responseTask.IsCompleted);
             Assert.Equal(methodRequest.CorrelationId, responseTask.Result.CorrelationId);

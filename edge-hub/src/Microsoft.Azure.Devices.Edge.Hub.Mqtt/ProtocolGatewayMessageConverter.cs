@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
@@ -60,22 +60,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return hubMessage;
         }
 
-        public IProtocolGatewayMessage FromMessage(Core.IMessage message)
+        public IProtocolGatewayMessage FromMessage(IMessage message)
         {
-            string lockToken;
-            string createdTime;
-
-            message.SystemProperties.TryGetValue(Core.SystemProperties.LockToken, out lockToken);
+            message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken);
 
             DateTime createdTimeUtc = DateTime.UtcNow;
-            if (message.SystemProperties.TryGetValue(Core.SystemProperties.EnqueuedTime, out createdTime))
+            if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
             {
                 createdTimeUtc = DateTime.Parse(createdTime, null, System.Globalization.DateTimeStyles.RoundtripKind);
             }
 
-            if (!message.SystemProperties.TryGetValue(Core.SystemProperties.OutboundUri, out string uriTemplateKey))
+            if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
             {
-                throw new InvalidOperationException("Could not find key " + Core.SystemProperties.OutboundUri + " in message system properties.");
+                throw new InvalidOperationException("Could not find key " + SystemProperties.OutboundUri + " in message system properties.");
             }
 
             IDictionary<string, string> properties = new Dictionary<string, string>();
