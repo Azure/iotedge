@@ -53,18 +53,4 @@ done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
 
 echo "Edge runtime tests result RES = $RES"
 
-# Disabling temporarily iotedgectl test, since it's failing on release build. Opened a bug. 
-# it needs to leave on it's own script or have a flag (environment variable to disable) Opened a task for it.
-# if [[ $RES -eq 0 ]]; then
-#   echo "Running iotedgectl tests..."
-#   test_cmd="${IOTEDGECTL_DIR}/scripts/run_docker_image_tests.sh"
-#   echo "Executing iotedgectl tests command ${test_cmd}"
-#   ${test_cmd}
-#   if [ $? -gt 0 ]; then
-#     RES=1
-#     echo "Failed iotedgectl test: ${test_cmd}"
-#   fi
-#   echo "iotedgectl tests result RES = $RES"
-# fi
-
 exit $RES
