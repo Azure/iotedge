@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 {
-    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Amqp.Transport;
 
     public interface ITransportSettings

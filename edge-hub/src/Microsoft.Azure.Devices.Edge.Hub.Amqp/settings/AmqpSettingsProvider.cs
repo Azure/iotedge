@@ -38,7 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 
             return settings;
 
+//TODO: Remove these warnings being disabling once implementation is done.
 #pragma warning disable CS8321 // Local function is declared but never used
+            // ReSharper disable once UnusedLocalFunction
             void AddTlsProvider()
 #pragma warning restore CS8321 // Local function is declared but never used
             {
