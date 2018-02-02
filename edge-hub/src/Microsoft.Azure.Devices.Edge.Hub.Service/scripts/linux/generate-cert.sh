@@ -64,8 +64,8 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ -z $SSL_CERTIFICATE_PATH ]]; then
-        echo "Invalid SSL Certificate Path Provided"
+    if [[ -z $SSL_CERTIFICATE_NAME ]]; then
+        echo "Invalid SSL Certificate Name Provided"
         print_help_and_exit
     fi
 

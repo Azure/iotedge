@@ -99,5 +99,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             return source.ElementAtOrDefault(index, string.Empty);
         }
+
+        public static bool TryRemove<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
+        {
+            if (dictionary.TryGetValue(key, out value))
+            {
+                dictionary.Remove(key);
+                return true;
+            }
+            return false;
+        }
     }
 }

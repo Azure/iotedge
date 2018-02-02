@@ -115,5 +115,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal("b", source.ElementAtOrEmpty(1));
             Assert.Equal(string.Empty, source.ElementAtOrEmpty(2));
         }
+
+        [Fact]
+        public void TestTryDictionaryRemove()
+        {
+            var map = new Dictionary<string, string>()
+            {
+                { "k1", "v1" },
+                { "k2", "v2" },
+                { "k3", "v3" },
+            };
+
+            Assert.True(map.TryRemove("k2", out string val) && val == "v2");
+            Assert.False(map.TryRemove("booyah", out string _));
+        }
     }
 }
