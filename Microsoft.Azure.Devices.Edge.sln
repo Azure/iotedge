@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2024
+VisualStudioVersion = 15.0.27130.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -145,6 +145,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8D653BF9-C9B0-4892-97F2-4550E3FA3E8A}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		CodeCoverage.runsettings = CodeCoverage.runsettings
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{64E95D7B-8541-4A88-A291-8BE3445FB8FF}"
