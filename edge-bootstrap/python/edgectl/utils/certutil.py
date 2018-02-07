@@ -646,6 +646,7 @@ class EdgeCertUtil(object):
         cert.set_issuer(issuer_cert.get_subject())
         cert.set_subject(csr.get_subject())
         cert.set_pubkey(csr.get_pubkey())
+        cert.set_version(2)
         return cert
 
 
