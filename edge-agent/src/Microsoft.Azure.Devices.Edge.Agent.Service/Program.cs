@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                IotHubConnectionStringBuilder connectionStringParser = Client.IotHubConnectionStringBuilder.Create(deviceConnectionString);
+                IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                 edgeHubConnectionDetails = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionStringParser.HostName, connectionStringParser.DeviceId)
                     .SetSharedAccessKey(connectionStringParser.SharedAccessKey)
                     .SetGatewayHostName(edgeDeviceHostName)
@@ -119,8 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             edgeHubConnectionDetails, deviceConnectionString,
                             backupConfigFilePath, maxRestartCount,
                             intensiveCareTime, coolOffTimeUnitInSeconds,
-                            configuration, usePersistentStorage, storagePath, versionInfo
-                        ));
+                            configuration, usePersistentStorage, storagePath, versionInfo));
                         break;
                     case "standalone":
                         builder.RegisterModule(new StandaloneModule(
@@ -128,8 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             "config.json", maxRestartCount, intensiveCareTime,
                             coolOffTimeUnitInSeconds, configuration,
                             edgeHubConnectionDetails, deviceConnectionString,
-                            usePersistentStorage, storagePath
-                        ));
+                            usePersistentStorage, storagePath));
                         break;
                     default:
                         throw new Exception($"ConfigSource '{configSourceConfig}' not supported.");

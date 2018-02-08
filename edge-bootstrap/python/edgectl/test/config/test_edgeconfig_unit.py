@@ -8,6 +8,7 @@ from edgectl.config import EdgeConfigDirInputSource
 from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDeploymentConfig
 from edgectl.config import EdgeCertConfig
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 
 CONFIG_OBJ_KEY = 'config_object'
 CONFIG_ATTR_KEY = 'config_attr'
@@ -135,6 +136,22 @@ class TestEdgeConfigMethods(unittest.TestCase):
         test_cases.append({TEST_IP_KEY: '', TEST_OP_KEY: None})
         test_cases.append({TEST_IP_KEY: '   ', TEST_OP_KEY: None})
         test_cases.append({TEST_IP_KEY: None, TEST_OP_KEY: None})
+        self._invalid_test_cases_helper(test_attr, test_cases)
+
+    def test_upstream_protocol_valid(self):
+        """ Tests getter and setter for the UpstreamProtocol using valid input values """
+        test_attr = 'upstream_protocol'
+        test_cases = []
+        test_cases.append({TEST_IP_KEY: 'Amqp', TEST_OP_KEY: EdgeUpstreamProtocol.AMQP})
+        test_cases.append({TEST_IP_KEY: 'AmqpWs', TEST_OP_KEY: EdgeUpstreamProtocol.AMQPWS})
+        self._valid_test_cases_helper(test_attr, test_cases)
+
+    def test_upstream_protocol_invalid(self):
+        """ Tests getter and setter for the UpstreamProtocol using invalid input values """
+        test_attr = 'upstream_protocol'
+        test_cases = []
+        test_cases.append({TEST_IP_KEY: 'Mqtt', TEST_OP_KEY: None})
+        test_cases.append({TEST_IP_KEY: ' ', TEST_OP_KEY: None})
         self._invalid_test_cases_helper(test_attr, test_cases)
 
     def test_connection_string_valid(self):

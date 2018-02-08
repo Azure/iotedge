@@ -4,6 +4,7 @@
 import platform
 import re
 from edgectl.config.edgeconstants import EdgeConfigDirInputSource
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 from edgectl.config.edgeconstants import EdgeConstants as EC
 from edgectl.config.default import EdgeDefault
 from edgectl.config.configbase import EdgeConfigBase
@@ -31,7 +32,8 @@ class EdgeHostConfig(EdgeConfigBase):
             EC.DEVICE_CONNECTION_STRING_KEY: '',
             EC.EDGE_RUNTIME_LOG_LEVEL_KEY: EdgeDefault.get_default_runtime_log_level(),
             EC.DEPLOYMENT_KEY: None,
-            EC.CERTS_KEY: None
+            EC.CERTS_KEY: None,
+            EC.UPSTREAM_PROTOCOL: None
         }
 
     @property
@@ -93,6 +95,26 @@ class EdgeHostConfig(EdgeConfigBase):
             self._config_dict[EC.CONFIG_DIR_SOURCE_KEY] = value
         else:
             raise ValueError('Invalid configuration directory input source: {0}'.format(value))
+
+    @property
+    def upstream_protocol(self):
+        """ Getter for upstream protocol
+            edgectl.config.EdgeUpstreamProtocol
+        """
+        return self._config_dict[EC.UPSTREAM_PROTOCOL]
+
+    @upstream_protocol.setter
+    def upstream_protocol(self, value):
+        """Setter for upstream protocol
+        Args:
+            value (edgectl.config.EdgeUpstreamProtocol): upstream protocol
+        Raises:
+            ValueError is not a type of edgectl.config.EdgeUpstreamProtocol
+        """
+        try:
+            self._config_dict[EC.UPSTREAM_PROTOCOL] = EdgeUpstreamProtocol(value)
+        except:
+            raise ValueError('Invalid upstream protocol: {0}'.format(value))
 
     @property
     def home_dir(self):
@@ -297,4 +319,6 @@ class EdgeHostConfig(EdgeConfigBase):
         if self.deployment_config:
             deployment_dict[self.deployment_type] = self.deployment_config.to_dict()
         result[EC.DEPLOYMENT_KEY] = deployment_dict
+        if self.upstream_protocol is not None and self.upstream_protocol != EdgeUpstreamProtocol.NONE:
+            result[EC.UPSTREAM_PROTOCOL] = self.upstream_protocol.value
         return result

@@ -25,7 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly EdgeHubConnectionString connectionDetails;
         readonly string edgeDeviceConnectionString;
 
-        public FileConfigSourceModule(string configFilename, IConfiguration configuration, EdgeHubConnectionString connectionDetails, string edgeDeviceConnectionString)
+        public FileConfigSourceModule(string configFilename,
+            IConfiguration configuration,
+            EdgeHubConnectionString connectionDetails,
+            string edgeDeviceConnectionString)
         {
             this.configFilename = Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename));
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));

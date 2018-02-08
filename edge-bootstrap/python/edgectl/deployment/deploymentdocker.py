@@ -9,7 +9,7 @@ from edgectl.deployment.commandbase import EdgeDeploymentCommand
 from edgectl.host import EdgeDockerClient
 from edgectl.host import EdgeHostPlatform
 from edgectl.errors import EdgeDeploymentError
-
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 
 class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     """
@@ -235,6 +235,11 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         env_dict['EdgeDeviceHostName'] = edge_config.hostname
         env_dict['NetworkId'] = nw_name
         env_dict['RuntimeLogLevel'] = edge_config.log_level
+
+        if edge_config.upstream_protocol is not None and edge_config.upstream_protocol != EdgeUpstreamProtocol.NONE:
+            env_dict['UpstreamProtocol'] = edge_config.upstream_protocol.value
+        else:
+            env_dict['UpstreamProtocol'] = ''
 
         self._setup_certificates(env_dict, volume_dict)
         self._setup_registries(env_dict)

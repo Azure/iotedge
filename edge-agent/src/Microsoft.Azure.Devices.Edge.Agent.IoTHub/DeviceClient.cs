@@ -18,21 +18,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
             new Util.TransientFaultHandling.ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+        const uint DeviceClientTimeout = 30000; // ms
+        static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
+        {
+            [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
+            [UpstreamProtocol.AmqpWs] = TransportType.Amqp_WebSocket_Only,
+            [UpstreamProtocol.Mqtt] = TransportType.Mqtt_Tcp_Only,
+            [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
+        };
 
         Client.DeviceClient deviceClient;
-        string moduleConnectionString;
-        private const uint DeviceClientTimeout = 30000; // ms
-      
-        DeviceClient(string moduleConnectionString)
+        readonly string moduleConnectionString;
+        readonly Option<UpstreamProtocol> upstreamProtocol;
+
+        DeviceClient(string moduleConnectionString, Option<UpstreamProtocol> upstreamProtocol)
         {
             this.moduleConnectionString = moduleConnectionString;
+            this.upstreamProtocol = upstreamProtocol;
         }
 
-        public static DeviceClient Create(EdgeHubConnectionString deviceDetails)
+        public static DeviceClient Create(EdgeHubConnectionString deviceDetails, Option<UpstreamProtocol> upstreamProtocol)
         {
             Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
             Events.DeviceClientCreated();
-            return new DeviceClient(ConstructModuleConnectionString(deviceDetails));
+            return new DeviceClient(ConstructModuleConnectionString(deviceDetails), upstreamProtocol);
         }
 
         static string ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails)
@@ -55,16 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return ExecuteWithRetry(
                     async () =>
                     {
-                        // The device SDK doesn't appear to be falling back to WebSocket from TCP,
-                        // so we'll do it explicitly until we can get the SDK sorted out.                        
-                        Try<bool> result = await Fallback.ExecuteAsync(
-                            () => this.CreateAndOpenDeviceClient(TransportType.Amqp_Tcp_Only, statusChangedHandler),
-                            () => this.CreateAndOpenDeviceClient(TransportType.Amqp_WebSocket_Only, statusChangedHandler));
-                        if (!result.Success)
-                        {
-                            Events.DeviceConnectionError(result.Exception);
-                            throw result.Exception;
-                        }
+                        this.deviceClient = await CreateDeviceClientForUpstreamProtocol(this.upstreamProtocol, t => CreateAndOpenDeviceClient(t, this.moduleConnectionString, statusChangedHandler));
                         await this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
                         await this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
                     },
@@ -80,16 +80,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     });
         }
 
-        async Task CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
+        internal static Task<Client.DeviceClient> CreateDeviceClientForUpstreamProtocol(
+            Option<UpstreamProtocol> upstreamProtocol,
+            Func<TransportType, Task<Client.DeviceClient>> deviceClientCreator)
+            => upstreamProtocol
+            .Map(u => deviceClientCreator(UpstreamProtocolTransportTypeMap[u]))
+            .GetOrElse(
+                async () =>
+                {
+                    // The device SDK doesn't appear to be falling back to WebSocket from TCP,
+                    // so we'll do it explicitly until we can get the SDK sorted out.                        
+                    Try<Client.DeviceClient> result = await Fallback.ExecuteAsync(
+                        () => deviceClientCreator(TransportType.Amqp_Tcp_Only),
+                        () => deviceClientCreator(TransportType.Amqp_WebSocket_Only));
+                    if (!result.Success)
+                    {
+                        Events.DeviceConnectionError(result.Exception);
+                        throw result.Exception;
+                    }
+                    return result.Value;
+                });
+
+        static async Task<Client.DeviceClient> CreateAndOpenDeviceClient(TransportType transport, string connectionString, ConnectionStatusChangesHandler statusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transport);
-            this.deviceClient = Client.DeviceClient.CreateFromConnectionString(this.moduleConnectionString, transport);
+            Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, transport);
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
-            this.deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
-            this.deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
-            await this.deviceClient.OpenAsync();
+            deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
+            deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
+            await deviceClient.OpenAsync();
             Events.ConnectedWithTransport(transport);
+            return deviceClient;
         }
 
         static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)

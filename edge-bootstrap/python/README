@@ -360,6 +360,11 @@ appropriate input data would have to provided.
       // to setup the Edge runtime.
       "logLevel": "info",
 
+      // Upstream protocol to be used by the Edge runtime (and possibly other module)
+      // when connecting to IoTHub. The permitted values are Amqp and AmqpWs. 
+      // This is an optional setting. 
+      "upstreamProtocol": "Amqp",
+
       // Configuration settings for the IoT Edge Runtime
       "security": {
 

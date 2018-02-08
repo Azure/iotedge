@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(deviceClient);
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object);
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(identity);
             Assert.True(cloudProxyTry.Success);
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(deviceClient1)
                 .Returns(deviceClient2);
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object);
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             Task<Try<ICloudProxy>> getCloudProxyTask1 = connectionManager.CreateCloudConnectionAsync(module1Identity);
@@ -367,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<string, Client.ITransportSettings[]>((s, t) => receivedConnStr = s)
                 .Returns(() => GetDeviceClient());
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object);
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             string deviceConnStr1 = "connstr1";
@@ -405,7 +405,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new UnauthorizedException("connstr2 is invalid!"))
                 .Throws(new UnauthorizedException("connstr2 is invalid!"));
 
-            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object);
+            var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             string deviceConnStr1 = "connstr1";

@@ -48,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string Unknown = "Unknown";
 
+        public const string UpstreamProtocolKey = "UpstreamProtocol";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

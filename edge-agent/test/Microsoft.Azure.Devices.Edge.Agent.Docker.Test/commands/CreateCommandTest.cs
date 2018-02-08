@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
                     Assert.Equal("v1", envMap["k1"]);
                     Assert.Equal("v2", envMap["k2"]);
+                    Assert.False(envMap.ContainsKey("UpstreamProtocol"));
                     Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
                     // certificates env variables
                     Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCaCertificateFileKey]);
@@ -407,8 +408,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
                 configSource.Object,
-                true
-            );
+                true);
             await createCommand.ExecuteAsync(CancellationToken.None);
 
             // Assert
@@ -476,8 +476,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 moduleIdentity.Object,
                 new DockerLoggingConfig("json"),
                 configSource.Object,
-                false
-            );
+                false);
             await createCommand.ExecuteAsync(CancellationToken.None);
 
             // Assert
@@ -632,6 +631,86 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].Count, 1);
             Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostPort, "1234");
             Assert.Equal(createContainerParameters.HostConfig.PortBindings["1234/tcp"].First().HostIP, null);
+        }
+
+        [Fact]
+        [Integration]
+        public async Task UpstreamProtocolTest()
+        {
+            const string Image = "hello-world:latest";
+            const string Name = "test-helloworld";
+            string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("test"));
+            string fakeConnectionString = $"Hostname=fakeiothub;Deviceid=test;SharedAccessKey={sharedAccessKey}";
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+                {
+                    // Arrange
+                    await DockerHelper.Client.CleanupContainerAsync(Name, Image);
+
+                    // ensure image has been pulled
+                    await DockerHelper.Client.PullImageAsync(Image, cts.Token);
+                    var dockerLoggingOptions = new Dictionary<string, string>
+                    {
+                        { "max-size", "1m" },
+                        { "max-file", "1" }
+                    };
+                    // Logging options will be derived from these default logging options
+                    var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
+
+                    IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                        new Dictionary<string, string>
+                        {
+                            { "EdgeHubConnectionString", fakeConnectionString },
+                            { Constants.EdgeModuleCaCertificateFileKey, "/module.ca.cert" },
+                            { "UpstreamProtocol", "AmqpWs" }
+                        }).Build();
+
+                    var modules = new Dictionary<string, IModule> { [Name] = module };
+                    var systemModules = new SystemModules(null, null);
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "")), systemModules, modules));
+                    var configSource = new Mock<IConfigSource>();
+                    configSource.Setup(cs => cs.Configuration).Returns(configRoot);
+                    configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
+
+                    var identity = new Mock<IModuleIdentity>();
+                    identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
+
+                    ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
+
+                    // Act
+                    // run the command
+                    await command.ExecuteAsync(cts.Token);
+
+                    // Assert
+                    // verify container is created and has correct settings
+                    ContainerInspectResponse container = await DockerHelper.Client.Containers.InspectContainerAsync(Name);
+                    Assert.Equal(Name, container.Name.Substring(1));  // for whatever reason the container name is returned with a starting "/"
+                    Assert.Equal("1.0", container.Config.Labels.GetOrElse(Constants.Labels.Version, "missing"));
+                    // port mapping
+                    Assert.Equal("8080/tcp", container.HostConfig.PortBindings.First().Key);
+                    // logging
+                    Assert.Equal("json-file", container.HostConfig.LogConfig.Type);
+                    Assert.True(container.HostConfig.LogConfig.Config.Count == 2);
+                    Assert.Equal("1m", container.HostConfig.LogConfig.Config.GetOrElse("max-size", "missing"));
+                    Assert.Equal("1", container.HostConfig.LogConfig.Config.GetOrElse("max-file", "missing"));
+                    // environment variables
+                    IDictionary<string, string> envMap = container.Config.Env.ToDictionary('=');
+                    Assert.Equal("v1", envMap["k1"]);
+                    Assert.Equal("v2", envMap["k2"]);
+                    Assert.Equal("AmqpWs", envMap["UpstreamProtocol"]);
+                    Assert.Equal(fakeConnectionString, envMap["EdgeHubConnectionString"]);
+                    // certificates env variables
+                    Assert.Equal("/module.ca.cert", envMap[Constants.EdgeModuleCaCertificateFileKey]);
+                }
+            }
+            finally
+            {
+                await DockerHelper.Client.CleanupContainerAsync(Name, Image);
+            }
         }
     }
 }

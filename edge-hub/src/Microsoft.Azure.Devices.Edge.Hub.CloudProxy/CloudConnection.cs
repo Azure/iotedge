@@ -151,15 +151,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<IDeviceClient> ConnectToIoTHub(IIdentity newIdentity)
         {
             Try<IDeviceClient> deviceClientTry = await Fallback.ExecuteAsync(
-                this.transportSettingsList.Select<ITransportSettings, Func<Task<IDeviceClient>>>(ts =>
-                () => this.CreateAndOpenDeviceClient(newIdentity, ts)).ToArray());
+                this.transportSettingsList.Select<ITransportSettings, Func<Task<IDeviceClient>>>(
+                    ts =>
+                        () => this.CreateAndOpenDeviceClient(newIdentity, ts)).ToArray());
 
-            if (deviceClientTry.Success)
-            {
-                return deviceClientTry.Value;
-            }
-
-            throw deviceClientTry.Exception;
+            return deviceClientTry.Success ? deviceClientTry.Value : throw deviceClientTry.Exception;
         }
 
         async Task<IDeviceClient> CreateAndOpenDeviceClient(

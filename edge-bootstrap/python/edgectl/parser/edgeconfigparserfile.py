@@ -8,7 +8,7 @@ from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.config import EdgeHostConfig
 from edgectl.host import EdgeHostPlatform
 from edgectl.parser.edgeconfigparser import EdgeConfigParser
-
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 
 class EdgeConfigParserFile(EdgeConfigParser):
 
@@ -50,6 +50,12 @@ class EdgeConfigParserFile(EdgeConfigParser):
             config.home_dir = data[EC.HOMEDIR_KEY]
             config.hostname = data[EC.HOSTNAME_KEY]
             config.log_level = data[EC.EDGE_RUNTIME_LOG_LEVEL_KEY]
+
+            if EC.UPSTREAM_PROTOCOL in list(data.keys()):
+                config.upstream_protocol = data[EC.UPSTREAM_PROTOCOL]
+            else:
+                config.upstream_protocol = EdgeUpstreamProtocol.NONE
+
             # parse certificate settings
             certs_cfg_data = data[EC.SECURITY_KEY][EC.CERTS_KEY]
             security_option = certs_cfg_data[EC.CERTS_OPTION_KEY]

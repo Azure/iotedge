@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string edgeHubConnectionString;
         readonly bool useTwinConfig;
         readonly VersionInfo versionInfo;
+        readonly Option<UpstreamProtocol> upstreamProtocol;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -50,7 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             int connectionPoolSize,
             bool useTwinConfig,
-            VersionInfo versionInfo)
+            VersionInfo versionInfo,
+            Option<UpstreamProtocol> upstreamProtocol)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -63,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.connectionPoolSize = connectionPoolSize;
             this.useTwinConfig = useTwinConfig;
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
+            this.upstreamProtocol = upstreamProtocol;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -137,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // ICloudConnectionProvider
-            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IDeviceClientProvider>()))
+            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IDeviceClientProvider>(), this.upstreamProtocol))
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
 

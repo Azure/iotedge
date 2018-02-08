@@ -9,6 +9,7 @@ from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.errors import EdgeDeploymentError
 from edgectl.errors import EdgeValueError
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 
 EDGE_AGENT_DOCKER_CONTAINER_NAME = 'edgeAgent'
 EDGE_MODULES_LABEL = 'net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent'
@@ -1149,6 +1150,18 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         edge_config.deployment_config.uri = docker_uri
         self._test_create_options_helper(edge_config, 'windows')
 
+    def test_create_upstream_protocol_valid(self):
+        """ Tests setting a valid upstream protocol """        
+        edge_config = _create_edge_configuration_valid()
+        edge_config.upstream_protocol = EdgeUpstreamProtocol.AMQPWS
+        self._test_create_options_helper(edge_config, 'linux')
+
+    def test_create_upstream_protocol_none(self):
+        """ Tests setting none as upstream protocol """        
+        edge_config = _create_edge_configuration_valid()
+        edge_config.upstream_protocol = EdgeUpstreamProtocol.NONE
+        self._test_create_options_helper(edge_config, 'linux')
+
     def _test_create_options_helper(self, edge_config, engine_os, local_sha_id=None):
         with patch('edgectl.host.EdgeDockerClient.check_availability', MagicMock(return_value=True)):
             with patch('edgectl.host.EdgeDockerClient.get_os_type', MagicMock(return_value=engine_os)):
@@ -1176,6 +1189,13 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         else:
             port_mapping_dict = self.PORT_1234_DICT
             volume_key = 'tcp_port'
+
+        upstream_protocol = edge_config.upstream_protocol
+        if upstream_protocol is not None and upstream_protocol != EdgeUpstreamProtocol.NONE:
+            env_dict['UpstreamProtocol'] = edge_config.upstream_protocol.value
+        else:
+            env_dict['UpstreamProtocol'] = ''
+
         with patch('edgectl.host.EdgeDockerClient.pull', MagicMock(return_value=None)) as mock_pull:
             with patch('edgectl.host.EdgeDockerClient.create_network', MagicMock(return_value=None)) as mock_create_network:
                 with patch('edgectl.host.EdgeDockerClient.create_volume', MagicMock(return_value=None)) as mock_create_volume:

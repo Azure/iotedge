@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
@@ -184,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 builder.RegisterBuildCallback(
                     c =>
                     {
-                    // set up loggers for dotnetty
-                    var loggerFactory = c.Resolve<ILoggerFactory>();
+                        // set up loggers for dotnetty
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
                         InternalLoggerFactory.DefaultFactory = loggerFactory;
 
                         var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
@@ -200,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         iotHubConnectionStringBuilder.HostName,
                         iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString,
                         this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo
+                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>()
                     )
                 );
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));

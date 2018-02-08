@@ -5,6 +5,7 @@ from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDefault
 from edgectl.config import EdgeCertConfig
+from edgectl.config.edgeconstants import EdgeUpstreamProtocol
 import edgectl.errors
 from edgectl.host import EdgeHostPlatform
 from edgectl.utils import EdgeUtils
@@ -51,6 +52,12 @@ class EdgeConfigParserCLI(EdgeConfigParser):
             if log_level is None:
                 log_level = EdgeDefault.get_default_runtime_log_level()
             config.log_level = log_level
+
+            upstream_protocol = args.upstream_protocol
+            if upstream_protocol is None:
+                config.upstream_protocol = EdgeUpstreamProtocol.NONE
+            else:
+                config.upstream_protocol = upstream_protocol
 
             deploy_cfg = None
             if self._deployment_type == EC.DEPLOYMENT_DOCKER:

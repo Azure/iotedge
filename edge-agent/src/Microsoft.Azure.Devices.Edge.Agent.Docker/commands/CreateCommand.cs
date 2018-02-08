@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.createContainerParameters = Preconditions.CheckNotNull(createContainerParameters, nameof(createContainerParameters));
-            this.id = new Lazy<string>(() => Hash.CreateSha256(JsonConvert.SerializeObject(this.createContainerParameters)));
+            this.id = new Lazy<string>(() => JsonConvert.SerializeObject(this.createContainerParameters).CreateSha256());
         }
 
         // We use the hash code of the JSONified representation of the create parameters as the
@@ -64,12 +64,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             DeploymentConfigInfo deploymentConfigInfo = await configSource.GetDeploymentConfigInfoAsync();
             DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
             Option<DockerRuntimeInfo> dockerRuntimeInfo = deploymentConfig != DeploymentConfig.Empty && deploymentConfig.Runtime is DockerRuntimeInfo
-                ? Option.Some(deploymentConfig.Runtime as DockerRuntimeInfo)
+                ? Option.Some((DockerRuntimeInfo)deploymentConfig.Runtime)
                 : Option.None<DockerRuntimeInfo>();
 
             // Inject global parameters
             InjectCerts(createContainerParameters, configSource, buildForEdgeHub);
-            InjectConfig(createContainerParameters, identity, buildForEdgeHub);
+            InjectConfig(createContainerParameters, identity, buildForEdgeHub, configSource);
             InjectPortBindings(createContainerParameters, buildForEdgeHub);
             InjectLoggerConfig(createContainerParameters, defaultDockerLoggerConfig, dockerRuntimeInfo.Map(r => r.Config.LoggingOptions));
 
@@ -87,23 +87,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub)
+        static void InjectConfig(CreateContainerParameters createContainerParameters, IModuleIdentity identity, bool injectForEdgeHub, IConfigSource configSource)
         {
+            var envVars = new List<string>();
+
             // Inject the connection string as an environment variable
             if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
             {
                 string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
-                var envVars = new List<string>()
-                {
-                    $"{connectionStringKey}={identity.ConnectionString}"
-                };
-                if (injectForEdgeHub)
-                {
-                    envVars.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
-                }
-
-                InjectEnvVars(createContainerParameters, envVars);
+                envVars.Add($"{connectionStringKey}={identity.ConnectionString}");
             }
+
+            if (injectForEdgeHub)
+            {
+                envVars.Add($"{Logger.RuntimeLogLevelEnvKey}={Logger.GetLogLevel()}");
+            }
+
+            configSource.Configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol().ForEach(
+                u =>
+                {
+                    if (createContainerParameters.Env?.Any(e => e.StartsWith("UpstreamProtocol=", StringComparison.OrdinalIgnoreCase)) == false)
+                    {
+                        envVars.Add($"UpstreamProtocol={u}");
+                    }
+                });
+
+            InjectEnvVars(createContainerParameters, envVars);
         }
 
         internal static void InjectPortBindings(CreateContainerParameters createContainerParameters, bool injectForEdgeHub)

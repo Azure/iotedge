@@ -3,8 +3,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -13,34 +15,80 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
+        static readonly IDictionary<UpstreamProtocol, TransportType> UpstreamProtocolTransportTypeMap = new Dictionary<UpstreamProtocol, TransportType>
+        {
+            [UpstreamProtocol.Amqp] = TransportType.Amqp_Tcp_Only,
+            [UpstreamProtocol.AmqpWs] = TransportType.Amqp_WebSocket_Only,
+            [UpstreamProtocol.Mqtt] = TransportType.Mqtt_Tcp_Only,
+            [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
+        };
+
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IDeviceClientProvider deviceClientProvider;
 
-        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider, int connectionPoolSize, IDeviceClientProvider deviceClientProvider)
+        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider, int connectionPoolSize, IDeviceClientProvider deviceClientProvider, Option<UpstreamProtocol> upstreamProtocol)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.deviceClientProvider = Preconditions.CheckNotNull(deviceClientProvider, nameof(deviceClientProvider));
-            this.transportSettings = new ITransportSettings[] {
-                new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                {
-                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
-                    {
-                        Pooling = true,
-                        MaxPoolSize = (uint)connectionPoolSize
-                    }
-                },
-                new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
-                {
-                    AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings()
-                    {
-                        Pooling = true,
-                        MaxPoolSize = (uint)connectionPoolSize
-                    }
-                }
-            };
+            this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize);
         }
+
+        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize)
+        {
+            return upstreamProtocol
+                .Map(
+                    up =>
+                    {
+                        TransportType transportType = UpstreamProtocolTransportTypeMap[up];
+                        switch (transportType)
+                        {
+                            case TransportType.Amqp_Tcp_Only:
+                            case TransportType.Amqp_WebSocket_Only:
+                                return new ITransportSettings[]
+                                {
+                                    new AmqpTransportSettings(transportType)
+                                    {
+                                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                                        {
+                                            Pooling = true,
+                                            MaxPoolSize = (uint)connectionPoolSize
+                                        }
+                                    }
+                                };
+
+                            case TransportType.Mqtt_Tcp_Only:
+                            case TransportType.Mqtt_WebSocket_Only:
+                                return new ITransportSettings[]
+                                {
+                                    new MqttTransportSettings(transportType)
+                                };
+
+                            default:
+                                throw new ArgumentException($"Unsupported transport type {up}");
+                        }
+                    })
+                .GetOrElse(
+                    () => new ITransportSettings[] {
+                            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+                            {
+                                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                                {
+                                    Pooling = true,
+                                    MaxPoolSize = (uint)connectionPoolSize
+                                }
+                            },
+                            new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
+                            {
+                                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                                {
+                                    Pooling = true,
+                                    MaxPoolSize = (uint)connectionPoolSize
+                                }
+                            }
+                        });
+        }        
 
         public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
@@ -81,5 +129,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
             }
         }
-    }
+    }    
 }

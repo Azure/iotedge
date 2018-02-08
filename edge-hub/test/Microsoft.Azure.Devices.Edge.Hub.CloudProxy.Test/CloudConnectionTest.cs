@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
-            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object);
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
             IIdentity identity1 = GetMockIdentityWithToken();

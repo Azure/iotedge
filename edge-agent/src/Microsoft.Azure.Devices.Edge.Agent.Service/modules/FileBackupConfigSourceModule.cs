@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new DeviceClientModule(this.connectionDetails));
+            builder.RegisterModule(new DeviceClientModule(this.connectionDetails, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()));
             builder.RegisterModule(new ServiceClientModule(this.connectionDetails, this.edgeDeviceConnectionString));
 
             // ISerde<Diff>

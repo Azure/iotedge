@@ -256,6 +256,11 @@ class EdgeCLI(object):
                                + 'the Edge runtime docker URI would be: ' + EdgeDefault.get_docker_uri(EC.DOCKER_HOST_LINUX, EC.DOCKER_ENGINE_LINUX),
                                metavar='')
 
+        cmd_setup.add_argument('--upstream-protocol',
+                               help='Set the protocol that the edge runtime should use to communicate with the IoTHub. Optional.\n'
+                               + 'Permitted values are Amqp (Amqp over TCP) and AmqpWs (Amqp over Websocket)\n',
+                               metavar='')
+
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords', '--nopass',
                                help='Do not prompt for passwords when generating private keys. Optional.',
                                action='store_true')

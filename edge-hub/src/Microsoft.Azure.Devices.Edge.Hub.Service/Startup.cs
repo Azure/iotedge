@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -84,6 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration mqttSettingsConfiguration = this.Configuration.GetSection("appSettings");
+            Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
+                ? Option.Some(upstreamProtocol)
+                : Option.None<UpstreamProtocol>();
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -118,7 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.storagePath,
                     connectionPoolSize,
                     useTwinConfig,
-                    this.VersionInfo));
+                    this.VersionInfo,
+                    upstreamProtocolOption));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

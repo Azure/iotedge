@@ -5,10 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using Autofac;
-    using Autofac.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using IModule = Autofac.Core.IModule;
 
     /// <summary>
     /// Autofac module for stand-alone mode.
@@ -33,8 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 Preconditions.CheckNonWhiteSpace(configFilename, nameof(configFilename)),
                 Preconditions.CheckNotNull(configuration, nameof(configuration)),
                 Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails)),
-                Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString))
-            );
+                Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString)));
             this.logging = new LoggingModule(
                 Preconditions.CheckNonWhiteSpace(dockerLoggingDriver, nameof(dockerLoggingDriver)),
                 Preconditions.CheckNotNull(dockerLoggingOptions, nameof(dockerLoggingOptions))

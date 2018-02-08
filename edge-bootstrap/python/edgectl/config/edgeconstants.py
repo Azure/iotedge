@@ -102,6 +102,7 @@ class EdgeConstants(EdgeConstantsTuple):
     DOCKER_LOGGING_OPTS_KEY = 'loggingOptions'
     DOCKER_LOGGING_DRIVER_KEY = 'log-driver'
     DOCKER_LOGGING_DRIVER_OPTS_KEY = 'log-opts'
+    UPSTREAM_PROTOCOL = 'upstreamProtocol'
 
     # Docker Constants
     DEPLOYMENT_DOCKER = DEPLOYMENT_DOCKER_KEY
@@ -136,4 +137,14 @@ class EdgeConfigDirInputSource(Enum):
     ENV = 'env'
     USER_PROVIDED = 'userProvided'
     DEFAULT = 'default'
+    NONE = ''
+
+# pylint: disable=R0903
+# suppress the Too few public methods lint warning for enums
+class EdgeUpstreamProtocol(Enum):
+    """ Enum to define the protocol used by IoT Edge runtime
+        to communicate to IoT Hub upstream
+    """
+    AMQP = 'Amqp'
+    AMQPWS = 'AmqpWs'    
     NONE = ''
