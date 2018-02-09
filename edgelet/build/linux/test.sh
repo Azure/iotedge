@@ -14,9 +14,8 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 CARGO="$HOME/.cargo/bin/cargo"
-RUSTUP="$HOME/.cargo/bin/rustup"
 TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
 RELEASE=
 
@@ -40,7 +39,7 @@ usage()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
             TOOLCHAIN="$arg"
@@ -62,7 +61,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd $PROJECT_ROOT && $CARGO +$TOOLCHAIN test --all
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" test --all
 else
-    cd $PROJECT_ROOT && $CARGO +$TOOLCHAIN test --all --release
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" test --all --release
 fi

@@ -14,7 +14,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -40,10 +40,9 @@ print_help_and_exit()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            TOOLCHAIN="$arg"
             save_next_arg=0
         else
             case "$arg" in
@@ -59,5 +58,5 @@ process_args "$@"
 
 echo "Running cargo tarpaulin"
 docker run --user "$(id -u)":"$(id -g)" --rm --security-opt seccomp=unconfined -v "$PROJECT_ROOT:/volume" xd009642/tarpaulin cargo tarpaulin --out Xml
-mkdir -p $PROJECT_ROOT/target
-mv $PROJECT_ROOT/cobertura.xml target
+mkdir -p "$PROJECT_ROOT/target"
+mv "$PROJECT_ROOT/cobertura.xml" target

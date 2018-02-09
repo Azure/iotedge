@@ -14,9 +14,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
-SCRIPT_NAME=$(basename $0)
-CARGO="$HOME/.cargo/bin/cargo"
-RUSTUP="$HOME/.cargo/bin/rustup"
+SCRIPT_NAME=$(basename "$0")
 IMAGE="edgebuilds.azurecr.io/cargo-test-junit:nightly"
 
 ###############################################################################
@@ -44,7 +42,7 @@ print_help_and_exit()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
             IMAGE="$arg"
@@ -62,4 +60,4 @@ process_args()
 process_args "$@"
 
 echo "Reporting results"
-docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" $IMAGE
+docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"

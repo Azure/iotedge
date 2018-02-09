@@ -9,7 +9,7 @@ set -e
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
-SCRIPT_NAME=$(basename $0)
+SCRIPT_NAME=$(basename "$0")
 RUSTUP="$HOME/.cargo/bin/rustup"
 TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
 
@@ -32,7 +32,7 @@ usage()
 process_args()
 {
     save_next_arg=0
-    for arg in $@
+    for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
             TOOLCHAIN="$arg"
@@ -49,8 +49,8 @@ process_args()
 
 process_args "$@"
 
-if command -v $RUSTUP >/dev/null; then
-    $RUSTUP install $TOOLCHAIN
+if command -v "$RUSTUP" >/dev/null; then
+    $RUSTUP install "$TOOLCHAIN"
 else
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $TOOLCHAIN
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi
