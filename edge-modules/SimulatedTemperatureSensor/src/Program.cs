@@ -140,8 +140,9 @@ namespace SimulatedTemperatureSensor
 
         static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
         {
-            var response = new MethodResponse((int)HttpStatusCode.OK);
+            Console.WriteLine("Received direct method call to reset temperature sensor...");
             Reset.Set(true);
+            var response = new MethodResponse((int)HttpStatusCode.OK);
             return Task.FromResult(response);
         }
 
