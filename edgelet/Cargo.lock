@@ -1,0 +1,11 @@
+[[package]]
+name = "edgelet"
+version = "0.1.0"
+dependencies = [
+ "edgelet-core 0.1.0",
+]
+
+[[package]]
+name = "edgelet-core"
+version = "0.1.0"
+

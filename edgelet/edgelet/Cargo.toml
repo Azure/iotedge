@@ -1,0 +1,7 @@
+[package]
+name = "edgelet"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+
+[dependencies]
+edgelet-core = { path = "../edgelet-core" }
