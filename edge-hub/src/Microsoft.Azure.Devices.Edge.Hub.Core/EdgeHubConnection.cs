@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 throw new InvalidOperationException($"Desired properties schema version {desiredProperties.SchemaVersion} is different from the expected schema version {Constants.ConfigSchemaVersion}");
             }
 
-            var routes = new Dictionary<string, Route>();
+            var routes = new List<(string Name, string Value, Route Route)>();
             if (desiredProperties.Routes != null)
             {
                 foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         if (!string.IsNullOrWhiteSpace(inputRoute.Value))
                         {
                             Route route = this.routeFactory.Create(inputRoute.Value);
-                            routes[inputRoute.Key] = route;
+                            routes.Add((inputRoute.Key, inputRoute.Value, route));
                         }
                     }
                     catch (Exception ex)

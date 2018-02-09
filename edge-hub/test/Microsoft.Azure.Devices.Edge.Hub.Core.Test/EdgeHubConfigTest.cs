@@ -3,113 +3,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
-    using JetBrains.Annotations;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Xunit;
 
     [Unit]
     public class EdgeHubConfigTest
     {
         [Fact]
-        public void ApplyPatchTest()
+        public void ConstructorHappyPath()
         {
-            string schemaVersion = "2.0";
-            var route1 = new Route("r1", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            var route2 = new Route("r2", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            var route3 = new Route("r3", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-            var route4 = new Route("r4", "", "iothub1", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            // Arrange            
+            IEnumerable<(string Name, string Value, Route route)> routes = Enumerable.Empty<(string Name, string Value, Route route)>();
+            var snfConfig = new StoreAndForwardConfiguration(1000);
 
-            var baseRoutes = new Dictionary<string, Route>
-            {
-                ["route1"] = route1,
-                ["route2"] = route2
-            };
-            var baseStoreAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-            var baseConfig = new EdgeHubConfig(schemaVersion, baseRoutes, baseStoreAndForwardConfiguration);
-            this.ValidateConfig(
-                baseConfig,
-                new Dictionary<string, Route>
-                {
-                    ["route1"] = route1,
-                    ["route2"] = route2
-                },
-                TimeSpan.MaxValue);
+            // Act
+            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig);
 
-            var patch1Routes = new Dictionary<string, Route>
-            {
-                ["route1"] = route2,
-                ["route3"] = route3
-            };
-            var patch1StoreAndForwardConfiguration = new StoreAndForwardConfiguration(200);
-            var patch1Config = new EdgeHubConfig(schemaVersion, patch1Routes, patch1StoreAndForwardConfiguration);
-            baseConfig.ApplyDiff(patch1Config);
-            this.ValidateConfig(
-                baseConfig,
-                new Dictionary<string, Route>
-                {
-                    ["route1"] = route2,
-                    ["route3"] = route3,
-                    ["route2"] = route2
-                },
-                TimeSpan.FromSeconds(200));
-
-            var patch2Routes = new Dictionary<string, Route>
-            {
-                ["route2"] = route4,
-            };
-            var patch2Config = new EdgeHubConfig(schemaVersion, patch2Routes, null);
-            baseConfig.ApplyDiff(patch2Config);
-            this.ValidateConfig(
-                baseConfig,
-                new Dictionary<string, Route>
-                {
-                    ["route1"] = route2,
-                    ["route3"] = route3,
-                    ["route2"] = route4
-                },
-                TimeSpan.FromSeconds(200));
-
-            var patch3StoreAndForwardConfiguration = new StoreAndForwardConfiguration(300);
-            var patch3Config = new EdgeHubConfig(schemaVersion, null, patch3StoreAndForwardConfiguration);
-            baseConfig.ApplyDiff(patch3Config);
-            this.ValidateConfig(
-                baseConfig,
-                new Dictionary<string, Route>
-                {
-                    ["route1"] = route2,
-                    ["route3"] = route3,
-                    ["route2"] = route4
-                },
-                TimeSpan.FromSeconds(300));
-
-            baseConfig.ApplyDiff(patch3Config);
-            this.ValidateConfig(
-                baseConfig,
-                new Dictionary<string, Route>
-                {
-                    ["route1"] = route2,
-                    ["route3"] = route3,
-                    ["route2"] = route4
-                },
-                TimeSpan.FromSeconds(300));
-
-            var patch5Config = new EdgeHubConfig("3.0", null, null);
-            Assert.Throws<InvalidOperationException>(() => baseConfig.ApplyDiff(patch5Config));
+            // Assert
+            Assert.NotNull(edgeHubConfig);
         }
 
-        [AssertionMethod]
-        void ValidateConfig(EdgeHubConfig edgeHubConfig, IDictionary<string, Route> expectedRoutes, TimeSpan expectedTimeSpan)
+        [Theory]
+        [MemberData(nameof(GetConstructorInvalidParameters))]
+        public void ConstructorInvalidParameters(string schemaVersion, IEnumerable<(string Name, string Value, Route Route)> routes, StoreAndForwardConfiguration configuration)
         {
-            Assert.NotNull(edgeHubConfig);
-            Assert.Equal(expectedRoutes.Count, edgeHubConfig.Routes.Count);
-            foreach(KeyValuePair<string, Route> expectedRoute in expectedRoutes)
-            {
-                Assert.Equal(expectedRoute.Value, edgeHubConfig.Routes[expectedRoute.Key]);
-            }
-            Assert.Equal(edgeHubConfig.StoreAndForwardConfiguration.TimeToLive, expectedTimeSpan);
+            // Act & Assert
+            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration));
+        }
+
+        static IEnumerable<object[]> GetConstructorInvalidParameters()
+        {
+            yield return new object[] { null, new List<(string Name, string Value, Route route)>(), new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", null, new StoreAndForwardConfiguration(1000) };
+            yield return new object[] { "1.0", new List<(string Name, string Value, Route route)>(), null };
         }
     }
 }

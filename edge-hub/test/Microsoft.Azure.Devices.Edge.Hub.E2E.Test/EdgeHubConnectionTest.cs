@@ -89,28 +89,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 EdgeHubConfig edgeHubConfig = edgeHubConfigOption.OrDefault();
                 Assert.Equal("1.0", edgeHubConfig.SchemaVersion);
                 Assert.NotNull(edgeHubConfig.Routes);
-                Assert.Equal(4, edgeHubConfig.Routes.Count);
                 Assert.NotNull(edgeHubConfig.StoreAndForwardConfiguration);
                 Assert.Equal(20, edgeHubConfig.StoreAndForwardConfiguration.TimeToLiveSecs);
 
-                Route route1 = edgeHubConfig.Routes["route1"];
+                List<(string Name, string Value, Route Route)> routes = edgeHubConfig.Routes.ToList();
+                Assert.Equal(4, routes.Count);
+
+                (string Name, string Value, Route Route) route1 = routes[0];
                 Assert.NotNull(route1);
-                Assert.True(route1.Endpoints.First().GetType() == typeof(CloudEndpoint));
-                Route route2 = edgeHubConfig.Routes["route2"];
+                Assert.True(route1.Route.Endpoints.First().GetType() == typeof(CloudEndpoint));
+                Assert.Equal("route1", route1.Name);
+                Assert.Equal("from /* INTO $upstream", route1.Value);
+
+                (string Name, string Value, Route Route) route2 = routes[1];
                 Assert.NotNull(route2);
-                Endpoint endpoint = route2.Endpoints.First();
+                Endpoint endpoint = route2.Route.Endpoints.First();
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module2/input1", endpoint.Id);
-                Route route3 = edgeHubConfig.Routes["route3"];
+                Assert.Equal("route2", route2.Name);
+                Assert.Equal("from /modules/module1 INTO BrokeredEndpoint(\"/modules/module2/inputs/input1\")", route2.Value);
+
+                (string Name, string Value, Route Route) route3 = routes[2];
                 Assert.NotNull(route3);
-                endpoint = route3.Endpoints.First();
+                endpoint = route3.Route.Endpoints.First();
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module3/input1", endpoint.Id);
-                Route route4 = edgeHubConfig.Routes["route4"];
+                Assert.Equal("route3", route3.Name);
+                Assert.Equal("from /modules/module2 INTO BrokeredEndpoint(\"/modules/module3/inputs/input1\")", route3.Value);
+
+                (string Name, string Value, Route Route) route4 = routes[3];
                 Assert.NotNull(route4);
-                endpoint = route4.Endpoints.First();
+                endpoint = route4.Route.Endpoints.First();
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module4/input1", endpoint.Id);
+                Assert.Equal("route4", route4.Name);
+                Assert.Equal("from /modules/module3 INTO BrokeredEndpoint(\"/modules/module4/inputs/input1\")", route4.Value);
 
                 // Make sure reported properties were updated appropriately
                 EdgeHubConnection.ReportedProperties reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
@@ -159,26 +172,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.NotNull(updatedConfig);
                     Assert.NotNull(updatedConfig.StoreAndForwardConfiguration);
                     Assert.NotNull(updatedConfig.Routes);
-                    Assert.Equal(4, updatedConfig.Routes.Count);
 
-                    route1 = updatedConfig.Routes["route1"];
+                    routes = updatedConfig.Routes.ToList();
+                    Assert.Equal(4, routes.Count);
+
+                    route1 = routes[0];
                     Assert.NotNull(route1);
-                    Assert.True(route1.Endpoints.First().GetType() == typeof(CloudEndpoint));
-                    route2 = updatedConfig.Routes["route2"];
+                    Assert.True(route1.Route.Endpoints.First().GetType() == typeof(CloudEndpoint));
+                    Assert.Equal("route1", route1.Name);
+                    Assert.Equal("from /* INTO $upstream", route1.Value);
+
+                    route2 = routes[1];
                     Assert.NotNull(route2);
-                    endpoint = route2.Endpoints.First();
+                    endpoint = route2.Route.Endpoints.First();
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module2/input1", endpoint.Id);
-                    route3 = updatedConfig.Routes["route4"];
+                    Assert.Equal("route2", route2.Name);
+                    Assert.Equal("from /modules/module1 INTO BrokeredEndpoint(\"/modules/module2/inputs/input1\")", route2.Value);
+
+                    route3 = routes[2];
                     Assert.NotNull(route3);
-                    endpoint = route3.Endpoints.First();
+                    endpoint = route3.Route.Endpoints.First();
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module5/input1", endpoint.Id);
-                    route4 = updatedConfig.Routes["route5"];
+                    Assert.Equal("route4", route3.Name);
+                    Assert.Equal("from /modules/module3 INTO BrokeredEndpoint(\"/modules/module5/inputs/input1\")", route3.Value);
+
+                    route4 = routes[3];
                     Assert.NotNull(route4);
-                    endpoint = route4.Endpoints.First();
+                    endpoint = route4.Route.Endpoints.First();
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module6/input1", endpoint.Id);
+                    Assert.Equal("route5", route4.Name);
+                    Assert.Equal("from /modules/module5 INTO BrokeredEndpoint(\"/modules/module6/inputs/input1\")", route4.Value);
 
                     callbackCalled = true;
                     return Task.CompletedTask;

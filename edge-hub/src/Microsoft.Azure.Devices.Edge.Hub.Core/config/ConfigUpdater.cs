@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                             this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
                         });
                         Events.Initialized();
-                    }                    
+                    }
                 }
             }
             catch (Exception ex)
@@ -70,23 +71,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        async Task UpdateRoutes(IDictionary<string, Route> routes, bool replaceExisting)
+        async Task UpdateRoutes(IEnumerable<(string Name, string Value, Route Route)> routes, bool replaceExisting)
         {
             if (routes != null)
             {
-                ISet<Route> routeSet = new HashSet<Route>(routes.Values);
+                List<(string Name, string Value, Route Route)> routesList = routes.ToList();
+                ISet<Route> routeSet = new HashSet<Route>(routesList.Select(r => r.Route));
                 if (replaceExisting)
                 {
                     await this.router.ReplaceRoutes(routeSet);
                 }
                 else
                 {
-                    foreach (Route route in routes.Values)
+                    foreach (Route route in routeSet)
                     {
                         await this.router.SetRoute(route);
                     }
                 }
-                Events.RoutesUpdated(routes);
+                Events.RoutesUpdated(routesList);
             }
         }
 
@@ -137,13 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
             }
 
-            internal static void RoutesUpdated(IDictionary<string, Route> routes)
+            internal static void RoutesUpdated(List<(string Name, string Value, Route Route)> routes)
             {
-                int count = routes.Keys.Count;
-                if (count > 0)
+                if (routes.Count > 0)
                 {
-                    string routeNames = string.Join(",", routes.Keys);
-                    Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set the following {count} route(s) in edge hub - {routeNames}");
+                    Log.LogInformation((int)EventIds.UpdatedRoutes, $"Set the following {routes.Count} route(s) in edge hub");
+                    routes.ForEach(r => Log.LogInformation((int)EventIds.UpdatedRoutes, $"{r.Name}: {r.Value}"));
                 }
                 else
                 {
