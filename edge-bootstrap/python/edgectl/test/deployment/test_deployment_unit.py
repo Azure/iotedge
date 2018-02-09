@@ -5,6 +5,7 @@ from mock import mock, patch, MagicMock
 import docker
 from edgectl.deployment import EdgeCommandFactory
 from edgectl.deployment import EdgeDeploymentCommand
+from edgectl.deployment.deploymentdocker import EdgeDeploymentCommandDocker
 from edgectl.config import EdgeHostConfig
 from edgectl.config import EdgeDeploymentConfigDocker
 from edgectl.errors import EdgeDeploymentError
@@ -24,825 +25,870 @@ EDGE_MODULE_VOL_NAME = 'edgemodule'
 # disables too many arguments
 # pylint: disable=C0302
 # disables too many lines in module
+# pylint: disable=R0201
+# disables method could be a function
 class TestEdgeDeploymentDockerStatus(unittest.TestCase):
     """Unit tests for class EdgeDeploymentCommandDocker.status"""
 
-    COMMAND_NAME = 'status'
-
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+        # act, assert
         with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+            command.status()
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os, mock_status):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.status()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        result = command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        result = command.status()
+
+        # assert
         self.assertEqual(EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE, result)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os, mock_status):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        result = command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        result = command.status()
+
+        # assert
         self.assertEqual(EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED, result)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os, mock_status):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        result = command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        result = command.status()
+
+        # assert
         self.assertEqual(EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING, result)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os, mock_status):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        result = command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        result = command.status()
+
+        # assert
         self.assertEqual(EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING, result)
 
 class TestEdgeDeploymentDockerLogin(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.login"""
 
-    COMMAND_NAME = 'login'
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.login()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os,
-                                           mock_client_status, mock_pull):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.login()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                       mock_pull):
+        # act
+        command.login()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_not_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                          mock_pull):
+        # act
+        command.login()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_not_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
+        # act
+        command.login()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_not_called()
+
     @mock.patch('edgectl.deployment.EdgeDeploymentCommandDocker.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop, mock_remove,
-                                       mock_deployment_start, mock_pull):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client, mock_deployment_start):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.login()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_not_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.pull.assert_not_called()
         mock_deployment_start.assert_called()
-        mock_pull.assert_not_called()
 
 class TestEdgeDeploymentDockerUpdate(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.update"""
 
-    COMMAND_NAME = 'update'
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.update()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                           mock_pull):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.update()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_called_with('testServer0/testImage:testTag',
-                                     'testUsername0', 'testPassword0')
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                       mock_pull):
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.update()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_called_with('testServer0/testImage:testTag',
+                                            'testUsername0', 'testPassword0')
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_called_with('testServer0/testImage:testTag',
-                                     'testUsername0', 'testPassword0')
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                          mock_pull):
+        # act
+        command.update()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_called_with('testServer0/testImage:testTag',
+                                            'testUsername0', 'testPassword0')
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.update()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_not_called()
 
     @mock.patch('edgectl.deployment.EdgeDeploymentCommandDocker.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_pull, mock_stop, mock_remove,
-                                       mock_deployment_start):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client, mock_deployment_start):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_pull.assert_called_with('testServer0/testImage:testTag',
-                                     'testUsername0', 'testPassword0')
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.update()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.pull.assert_called_with('testServer0/testImage:testTag',
+                                            'testUsername0', 'testPassword0')
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
         mock_deployment_start.assert_called()
 
 class TestEdgeDeploymentDockerStop(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.stop"""
 
-    COMMAND_NAME = 'stop'
-
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.stop()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                           mock_stop, mock_stop_by_label):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.stop()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                       mock_stop, mock_stop_by_label):
+        # act
+        command.stop()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.stop_by_label.assert_not_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                          mock_stop, mock_stop_by_label):
+        # act
+        command.stop()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                       mock_stop, mock_stop_by_label):
+        # act
+        command.stop()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.stop_by_label.assert_not_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.stop()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
 
 class TestEdgeDeploymentDockerRestart(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.restart"""
 
-    COMMAND_NAME = 'restart'
-
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
-        """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
+        # act, assert
         with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+            command.restart()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
+        """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.restart()
 
     @mock.patch('edgectl.deployment.EdgeDeploymentCommandDocker.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os,
-                                           mock_client_status, mock_deployment_start):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client, mock_deployment_start):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.restart()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
         mock_deployment_start.assert_called()
 
-    @mock.patch('edgectl.host.EdgeDockerClient.restart')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                       mock_stop, mock_stop_by_label, mock_client_restart):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_client_restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.restart')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os, mock_client_status,
-                                          mock_stop, mock_stop_by_label, mock_client_restart):
+        # act
+        command.restart()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_not_called()
-        mock_client_restart.assert_not_called()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.restart')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop,
-                                       mock_stop_by_label, mock_client_restart):
+        # act
+        command.restart()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.stop_by_label.assert_not_called()
+        mock_client.restart.assert_not_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_client_restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.restart()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
 class TestEdgeDeploymentDockerUninstall(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.uninstall"""
 
-    COMMAND_NAME = 'uninstall'
-
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.uninstall()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os,
-                                           mock_client_status, mock_stop, mock_stop_by_label,
-                                           mock_remove_by_label, mock_remove_volume):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.uninstall()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop, mock_remove,
-                                       mock_stop_by_label, mock_remove_by_label,
-                                       mock_remove_volume):
+        # act
+        command.uninstall()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.remove.assert_not_called()
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os,
-                                          mock_client_status, mock_stop, mock_remove,
-                                          mock_stop_by_label, mock_remove_by_label,
-                                          mock_remove_volume):
+        # act
+        command.uninstall()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop, mock_remove,
-                                       mock_stop_by_label, mock_remove_by_label,
-                                       mock_remove_volume):
+        # act
+        command.uninstall()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.uninstall()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
 
 class TestEdgeDeploymentDockerSetup(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.setup"""
 
-    COMMAND_NAME = 'setup'
-
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.setup()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_unavailable_valid(self, mock_check_avail, mock_get_os,
-                                           mock_client_status, mock_stop, mock_stop_by_label,
-                                           mock_remove_by_label, mock_remove_volume):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.setup()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_unavailable_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_UNAVAILABLE
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = None
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_not_called()
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop, mock_remove,
-                                       mock_stop_by_label, mock_remove_by_label,
-                                       mock_remove_volume):
+        # act
+        command.setup()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_not_called()
+        mock_client.remove.assert_not_called()
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'stopped'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'stopped'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_valid(self, mock_check_avail, mock_get_os,
-                                          mock_client_status, mock_stop, mock_remove,
-                                          mock_stop_by_label, mock_remove_by_label,
-                                          mock_remove_volume):
+        # act
+        command.setup()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'restarting'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'restarting'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_volume')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop_by_label')
-    @mock.patch('edgectl.host.EdgeDockerClient.remove')
-    @mock.patch('edgectl.host.EdgeDockerClient.stop')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_valid(self, mock_check_avail, mock_get_os,
-                                       mock_client_status, mock_stop, mock_remove,
-                                       mock_stop_by_label, mock_remove_by_label,
-                                       mock_remove_volume):
+        # act
+        command.setup()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_valid(self, mock_client):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING
         """
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = 'linux'
-        mock_client_status.return_value = 'running'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        command.execute()
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
-        mock_remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
+        # act
+        command.setup()
+
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.remove.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_by_label.assert_called_with(EDGE_MODULES_LABEL)
+        mock_client.remove_volume.assert_any_call(EDGE_MODULE_VOL_NAME, True)
+        mock_client.remove_volume.assert_any_call(EDGE_HUB_VOL_NAME, True)
 
 class TestEdgeDeploymentDockerStart(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.start"""
@@ -948,158 +994,123 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         result.update(merge_dict)
         return result
 
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_unavailable_invalid(self, mock_check_avail):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_unavailable_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = False
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_prerequisites_docker_engine_invalid(self, mock_check_avail, mock_get_os):
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.start()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_prerequisites_docker_engine_invalid(self, mock_client):
         """ Test fails if prerequisites are not met and EdgeDeploymentError is raised """
-        mock_check_avail.return_value = False
-        mock_get_os.return_value = 'blah'
-        command = _create_deployment_command(self.COMMAND_NAME)
-        with self.assertRaises(EdgeDeploymentError):
-            command.execute()
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'blah'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-    @mock.patch('edgectl.host.EdgeDockerClient.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.create')
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_local_image_sha_id')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
+        # act, assert
+        with self.assertRaises(EdgeDeploymentError):
+            command.start()
+
     @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_restarting_image_valid(self,
-                                                mock_check_avail,
-                                                mock_get_os,
-                                                mock_get_supp_engines,
-                                                mock_client_status,
-                                                mock_get_sha_id,
-                                                mock_pull,
-                                                mock_create,
-                                                mock_client_start):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_restarting_image_valid(self, mock_client, mock_supported_engines):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RESTARTING.
             No local image id or image pull or container create and start
             should be called.
         """
-        # test setup
+        # arrange
         engine_os = 'linux'
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = engine_os
-        mock_get_supp_engines.return_value = [engine_os]
-        mock_client_status.return_value = 'restarting'
-        mock_get_sha_id.return_value = None
-        edge_config = _create_edge_configuration_valid()
-        command = _create_deployment_command(self.COMMAND_NAME, edge_config)
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = engine_os
+        mock_supported_engines.return_value = [engine_os]
+        mock_client.status.return_value = 'restarting'
+        mock_client.get_local_image_sha_id.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-        # execute test
-        command.execute()
+        # act
+        command.start()
 
-        # validate results
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_get_sha_id.assert_not_called()
-        mock_pull.assert_not_called()
-        mock_create.assert_not_called()
-        mock_client_start.assert_not_called()
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.get_local_image_sha_id.assert_not_called()
+        mock_client.pull.assert_not_called()
+        mock_client.create.assert_not_called()
+        mock_client.start.assert_not_called()
 
-    @mock.patch('edgectl.host.EdgeDockerClient.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.create')
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_local_image_sha_id')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
     @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_running_image_valid(self,
-                                             mock_check_avail,
-                                             mock_get_os,
-                                             mock_get_supp_engines,
-                                             mock_client_status,
-                                             mock_get_sha_id,
-                                             mock_pull,
-                                             mock_create,
-                                             mock_client_start):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_running_image_valid(self, mock_client, mock_supported_engines):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_RUNNING.
             No local image id or image pull or container create and start
             should be called.
         """
-        # test setup
+        # arrange
         engine_os = 'linux'
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = engine_os
-        mock_get_supp_engines.return_value = [engine_os]
-        mock_client_status.return_value = 'running'
-        mock_get_sha_id.return_value = None
-        edge_config = _create_edge_configuration_valid()
-        command = _create_deployment_command(self.COMMAND_NAME, edge_config)
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = engine_os
+        mock_supported_engines.return_value = [engine_os]
+        mock_client.status.return_value = 'running'
+        mock_client.get_local_image_sha_id.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-        # execute test
-        command.execute()
+        # act
+        command.start()
 
-        # validate results
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_get_sha_id.assert_not_called()
-        mock_pull.assert_not_called()
-        mock_create.assert_not_called()
-        mock_client_start.assert_not_called()
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.get_local_image_sha_id.assert_not_called()
+        mock_client.pull.assert_not_called()
+        mock_client.create.assert_not_called()
+        mock_client.start.assert_not_called()
 
-    @mock.patch('edgectl.host.EdgeDockerClient.start')
-    @mock.patch('edgectl.host.EdgeDockerClient.create')
-    @mock.patch('edgectl.host.EdgeDockerClient.pull')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_local_image_sha_id')
-    @mock.patch('edgectl.host.EdgeDockerClient.status')
     @mock.patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines')
-    @mock.patch('edgectl.host.EdgeDockerClient.get_os_type')
-    @mock.patch('edgectl.host.EdgeDockerClient.check_availability')
-    def test_edge_status_stopped_image_valid(self,
-                                             mock_check_avail,
-                                             mock_get_os,
-                                             mock_get_supp_engines,
-                                             mock_client_status,
-                                             mock_get_sha_id,
-                                             mock_pull,
-                                             mock_create,
-                                             mock_client_start):
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_edge_status_stopped_image_valid(self, mock_client, mock_supported_engines):
         """
             Tests call stack when Edge runtime status is
             EdgeDeploymentCommand.EDGE_RUNTIME_STATUS_STOPPED.
             No local image id or image pull or container create and start
             should be called.
         """
-        # test setup
+        # arrange
         engine_os = 'linux'
-        mock_check_avail.return_value = True
-        mock_get_os.return_value = engine_os
-        mock_get_supp_engines.return_value = [engine_os]
-        mock_client_status.return_value = 'stopped'
-        mock_get_sha_id.return_value = None
-        edge_config = _create_edge_configuration_valid()
-        command = _create_deployment_command(self.COMMAND_NAME, edge_config)
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = engine_os
+        mock_supported_engines.return_value = [engine_os]
+        mock_client.status.return_value = 'stopped'
+        mock_client.get_local_image_sha_id.return_value = None
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
 
-        # execute test
-        command.execute()
+        # act
+        command.start()
 
-        # validate results
-        mock_client_status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
-        mock_check_avail.assert_called()
-        mock_get_os.assert_called()
-        mock_get_sha_id.assert_not_called()
-        mock_pull.assert_not_called()
-        mock_create.assert_not_called()
-        mock_client_start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        # assert
+        mock_client.status.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.check_availability.assert_called()
+        mock_client.get_os_type.assert_called()
+        mock_client.get_local_image_sha_id.assert_not_called()
+        mock_client.pull.assert_not_called()
+        mock_client.create.assert_not_called()
+        mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
     def test_edge_status_uninstalled_no_local_image_valid(self):
         """
@@ -1151,115 +1162,115 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         self._test_create_options_helper(edge_config, 'windows')
 
     def test_create_upstream_protocol_valid(self):
-        """ Tests setting a valid upstream protocol """        
+        """ Tests setting a valid upstream protocol """
         edge_config = _create_edge_configuration_valid()
         edge_config.upstream_protocol = EdgeUpstreamProtocol.AMQPWS
         self._test_create_options_helper(edge_config, 'linux')
 
     def test_create_upstream_protocol_none(self):
-        """ Tests setting none as upstream protocol """        
+        """ Tests setting none as upstream protocol """
         edge_config = _create_edge_configuration_valid()
         edge_config.upstream_protocol = EdgeUpstreamProtocol.NONE
         self._test_create_options_helper(edge_config, 'linux')
 
     def _test_create_options_helper(self, edge_config, engine_os, local_sha_id=None):
-        with patch('edgectl.host.EdgeDockerClient.check_availability', MagicMock(return_value=True)):
-            with patch('edgectl.host.EdgeDockerClient.get_os_type', MagicMock(return_value=engine_os)):
-                with patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines', MagicMock(return_value=[engine_os])):
-                    with patch('edgectl.host.EdgeDockerClient.status', MagicMock(return_value=None)):
-                        with patch('edgectl.host.EdgeDockerClient.get_local_image_sha_id', MagicMock(return_value=local_sha_id)):
-                            with patch('edgectl.host.EdgeHostPlatform.get_root_ca_cert_file',
-                                       MagicMock(return_value=self.MOCK_CA_CERT_DICT)):
-                                with patch('edgectl.host.EdgeHostPlatform.get_ca_chain_cert_file',
-                                           MagicMock(return_value=self.MOCK_CHAIN_CERT_DICT)):
-                                    with patch('edgectl.host.EdgeHostPlatform.get_hub_cert_pfx_file',
-                                               MagicMock(return_value=self.MOCK_HUB_CERT_DICT)):
-                                        self._setup_create_mocks_and_validate(edge_config, engine_os, local_sha_id)
+        # arrange
+        with patch('edgectl.host.EdgeDockerClient', MagicMock(autospec=True)) as mock_client:
+            with patch('edgectl.host.EdgeHostPlatform.get_root_ca_cert_file',
+                       MagicMock(return_value=self.MOCK_CA_CERT_DICT)):
+                with patch('edgectl.host.EdgeHostPlatform.get_ca_chain_cert_file',
+                           MagicMock(return_value=self.MOCK_CHAIN_CERT_DICT)):
+                    with patch('edgectl.host.EdgeHostPlatform.get_hub_cert_pfx_file',
+                               MagicMock(return_value=self.MOCK_HUB_CERT_DICT)):
+                        with patch('edgectl.host.EdgeHostPlatform.get_supported_docker_engines',
+                                   MagicMock(return_value=[engine_os])):
+                            mock_client.check_availability.return_value = True
+                            mock_client.get_os_type.return_value = engine_os
+                            mock_client.status.return_value = None
+                            mock_client.get_local_image_sha_id.return_value = local_sha_id
 
-    def _setup_create_mocks_and_validate(self, edge_config, engine_os, local_sha_id):
-        env_dict = self._get_env_dict(engine_os)
-        docker_uri = edge_config.deployment_config.uri
-        env_dict['DockerUri'] = docker_uri
-        if docker_uri.startswith('unix'):
-            port_mapping_dict = self.PORT_NONE_DICT
-            volume_key = 'unix_port'
-        elif docker_uri.startswith('npipe'):
-            port_mapping_dict = self.PORT_NONE_DICT
-            volume_key = 'npipe'
-        else:
-            port_mapping_dict = self.PORT_1234_DICT
-            volume_key = 'tcp_port'
+                            env_dict = self._get_env_dict(engine_os)
+                            docker_uri = edge_config.deployment_config.uri
+                            env_dict['DockerUri'] = docker_uri
+                            if docker_uri.startswith('unix'):
+                                port_mapping_dict = self.PORT_NONE_DICT
+                                volume_key = 'unix_port'
+                            elif docker_uri.startswith('npipe'):
+                                port_mapping_dict = self.PORT_NONE_DICT
+                                volume_key = 'npipe'
+                            else:
+                                port_mapping_dict = self.PORT_1234_DICT
+                                volume_key = 'tcp_port'
 
-        upstream_protocol = edge_config.upstream_protocol
-        if upstream_protocol is not None and upstream_protocol != EdgeUpstreamProtocol.NONE:
-            env_dict['UpstreamProtocol'] = edge_config.upstream_protocol.value
-        else:
-            env_dict['UpstreamProtocol'] = ''
+                            upstream_protocol = edge_config.upstream_protocol
+                            if upstream_protocol is not None and upstream_protocol != EdgeUpstreamProtocol.NONE:
+                                env_dict['UpstreamProtocol'] = edge_config.upstream_protocol.value
+                            else:
+                                env_dict['UpstreamProtocol'] = ''
 
-        with patch('edgectl.host.EdgeDockerClient.pull', MagicMock(return_value=None)) as mock_pull:
-            with patch('edgectl.host.EdgeDockerClient.create_network', MagicMock(return_value=None)) as mock_create_network:
-                with patch('edgectl.host.EdgeDockerClient.create_volume', MagicMock(return_value=None)) as mock_create_volume:
-                    with patch('edgectl.host.EdgeDockerClient.create', MagicMock(return_value=None)) as mock_create:
-                        with patch('edgectl.host.EdgeDockerClient.copy_file_to_volume', MagicMock(return_value=None)) as mock_copy_file_to_volume:
-                            with patch('edgectl.host.EdgeDockerClient.start', MagicMock(return_value=None)) as mock_client_start:
-                                command = _create_deployment_command(self.COMMAND_NAME, edge_config)
+                            command = EdgeDeploymentCommandDocker.create_using_client(edge_config, mock_client)
 
-                                # execute test
-                                command.execute()
+                            # act
+                            command.start()
 
-                                # validate results
-                                mock_create_network.assert_called_with(self.NETWORK_NAME)
-                                if engine_os == 'windows':
-                                    mock_create_volume.assert_not_called()
-                                    mock_copy_file_to_volume.assert_not_called()
-                                else:
-                                    mock_create_volume.assert_any_call(EDGE_HUB_VOL_NAME)
-                                    mock_create_volume.assert_any_call(EDGE_MODULE_VOL_NAME)
-                                    mock_copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                             self.CA_CERT_FILE,
-                                                                             self.EDGE_MODULE_VOL_PATH,
-                                                                             '/test/' + self.CA_CERT_FILE)
-                                    mock_copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                             self.CHAIN_CERT_FILE,
-                                                                             self.EDGE_HUB_VOL_PATH,
-                                                                             '/test/' + self.CHAIN_CERT_FILE)
-                                    mock_copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                             self.HUB_CERT_FILE,
-                                                                             self.EDGE_HUB_VOL_PATH,
-                                                                             '/test/' + self.HUB_CERT_FILE)
+                            # assert
+                            mock_client.create_network.assert_called_with(self.NETWORK_NAME)
+                            if engine_os == 'windows':
+                                mock_client.create_volume.assert_not_called()
+                                mock_client.copy_file_to_volume.assert_not_called()
+                            else:
+                                mock_client.create_volume.assert_any_call(EDGE_HUB_VOL_NAME)
+                                mock_client.create_volume.assert_any_call(EDGE_MODULE_VOL_NAME)
+                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                                self.CA_CERT_FILE,
+                                                                                self.EDGE_MODULE_VOL_PATH,
+                                                                                '/test/' + self.CA_CERT_FILE)
+                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                                self.CHAIN_CERT_FILE,
+                                                                                self.EDGE_HUB_VOL_PATH,
+                                                                                '/test/' + self.CHAIN_CERT_FILE)
+                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                                self.HUB_CERT_FILE,
+                                                                                self.EDGE_HUB_VOL_PATH,
+                                                                                '/test/' + self.HUB_CERT_FILE)
 
-                                if local_sha_id is None:
-                                    mock_pull.assert_called_with('testServer0/testImage:testTag',
-                                                                 'testUsername0', 'testPassword0')
-                                else:
-                                    mock_pull.assert_not_called()
+                            if local_sha_id is None:
+                                mock_client.pull.assert_called_with('testServer0/testImage:testTag',
+                                                                    'testUsername0', 'testPassword0')
+                            else:
+                                mock_client.pull.assert_not_called()
 
-                                mock_create.assert_called_with('testServer0/testImage:testTag',
-                                                               EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                               True,
-                                                               env_dict,
-                                                               self.NETWORK_NAME,
-                                                               port_mapping_dict,
-                                                               self.HOST_VOLUME_DICT[engine_os][volume_key],
-                                                               self.DOCKER_LOG_CONFIG_DICT,
-                                                               self.HOST_MOUNTS_LIST_DICT[engine_os][volume_key],
-                                                               self.RESTART_POLICY_DICT)
-                                mock_client_start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+                            mock_client.create.assert_called_with('testServer0/testImage:testTag',
+                                                                  EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                  True,
+                                                                  env_dict,
+                                                                  self.NETWORK_NAME,
+                                                                  port_mapping_dict,
+                                                                  self.HOST_VOLUME_DICT[engine_os][volume_key],
+                                                                  self.DOCKER_LOG_CONFIG_DICT,
+                                                                  self.HOST_MOUNTS_LIST_DICT[engine_os][volume_key],
+                                                                  self.RESTART_POLICY_DICT)
+                            mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
 class TestEdgeCommandFactory(unittest.TestCase):
     """Unit tests for EdgeCommandFactory APIs"""
     def test_supported_commands(self):
         """ Tests API get_supported_commands list """
+        # arrange
         supported_commands = [
             'setup', 'start', 'stop', 'restart', 'status', 'login', 'update', 'uninstall'
         ]
         result = EdgeCommandFactory.get_supported_commands()
         check_set = set(supported_commands).difference(result)
+
+        # act, assert
         self.assertEqual(0, len(check_set))
 
     def test_unsupported_command_invalid(self):
         """ Tests whether an unsupported command raises exception EdgeValueError """
+        # arrange
         edge_config = EdgeHostConfig()
+        # act, assert
         with(self.assertRaises(EdgeValueError)):
             EdgeCommandFactory.create_command('blah', edge_config)
         with(self.assertRaises(EdgeValueError)):
@@ -1269,6 +1280,7 @@ class TestEdgeCommandFactory(unittest.TestCase):
 
     def test_unsupported_edge_config_object_invalid(self):
         """ Tests whether an unsupported config object raises exception EdgeValueError """
+        # act, assert
         with(self.assertRaises(EdgeValueError)):
             EdgeCommandFactory.create_command('start', None)
         with(self.assertRaises(EdgeValueError)):
@@ -1281,8 +1293,11 @@ class TestEdgeCommandFactory(unittest.TestCase):
     @mock.patch('edgectl.config.EdgeHostConfig.deployment_type')
     def test_unsupported_deployment_invalid(self, mock_deployment_type):
         """ Tests whether an unsupported command raises exception EdgeValueError """
+        # arrange
         edge_config = EdgeHostConfig()
         mock_deployment_type.return_value = 'blah'
+
+        # act, assert
         with(self.assertRaises(EdgeValueError)):
             EdgeCommandFactory.create_command('start', edge_config)
 

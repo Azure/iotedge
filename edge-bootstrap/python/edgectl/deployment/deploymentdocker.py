@@ -23,9 +23,19 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
     _EDGE_HUB_VOL_NAME = 'edgehub'
     _EDGE_MODULE_VOL_NAME = 'edgemodule'
 
-    def __init__(self, config_obj):
+    def __init__(self, config_obj, docker_client=None):
         EdgeDeploymentCommand.__init__(self, config_obj)
-        self._client = EdgeDockerClient()
+        if docker_client is None:
+            self._client = EdgeDockerClient()
+        else:
+            self._client = docker_client
+
+    @classmethod
+    def create_using_client(cls, config_obj, docker_client):
+        """
+        Factory method useful in testing.
+        """
+        return cls(config_obj, docker_client)
 
     def _check_prerequisites(self):
         is_error = True
