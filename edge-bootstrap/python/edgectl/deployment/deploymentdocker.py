@@ -62,6 +62,15 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 break
         return result
 
+    def _obtain_mount_path(self):
+        os_type = self._client.get_os_type().lower()
+        if os_type == 'linux':
+            return '/{0}'.format(self._EDGE_VOL_MOUNT_BASE)
+        elif os_type == 'windows':
+            return 'c:/{0}'.format(self._EDGE_VOL_MOUNT_BASE)
+        else:
+            return None  
+
     def _recreate_agent_container(self, pull_latest_image):
         container_name = self._edge_runtime_container_name
         status = self._status()
@@ -85,17 +94,14 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
                 log.info('Starting runtime.')
 
     def _mount_certificates_into_agent_container(self):
-        os_type = self._client.get_os_type().lower()
-        if os_type != 'linux':
+        mnt_path = self._obtain_mount_path()
+        if mnt_path is None:
             return
-
         container_name = self._edge_runtime_container_name
 
-        sep = '/'
-        mnt_path = '{0}{1}'.format(sep, self._EDGE_VOL_MOUNT_BASE)
         # setup module volume with CA cert
         ca_cert_file = EdgeHostPlatform.get_root_ca_cert_file()
-        module_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_MODULE_VOL_NAME)
+        module_vol_path = '{0}/{1}'.format(mnt_path, self._EDGE_MODULE_VOL_NAME)
         self._client.copy_file_to_volume(container_name,
                                          ca_cert_file['file_name'],
                                          module_vol_path,
@@ -104,7 +110,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         # setup hub volume CA chain and Edge server certs
         ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
         hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
-        hub_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_HUB_VOL_NAME)
+        hub_vol_path = '{0}/{1}'.format(mnt_path, self._EDGE_HUB_VOL_NAME)
         self._client.copy_file_to_volume(container_name,
                                          ca_chain_cert_file['file_name'],
                                          hub_vol_path,
@@ -116,20 +122,19 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
 
 
     def _setup_certificates(self, env_dict, volume_dict):
-        os_type = self._client.get_os_type().lower()
-        if os_type != 'linux':
+        mnt_path = self._obtain_mount_path()
+        if mnt_path is None:
             return
+
         # create volumes for mounting certs into hub and all other edge modules
         self._client.create_volume(self._EDGE_HUB_VOL_NAME)
         self._client.create_volume(self._EDGE_MODULE_VOL_NAME)
 
-        sep = '/'
-        mnt_path = '{0}{1}'.format(sep, self._EDGE_VOL_MOUNT_BASE)
         # add volume mounts into edge agent
-        hub_vol_path = '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_HUB_VOL_NAME)
+        hub_vol_path = '{0}/{1}'.format(mnt_path, self._EDGE_HUB_VOL_NAME)
         volume_dict[self._EDGE_HUB_VOL_NAME] = {'bind': hub_vol_path, 'mode': 'rw'}
         module_vol_path = \
-            '{0}{1}{2}'.format(mnt_path, sep, self._EDGE_MODULE_VOL_NAME)
+            '{0}/{1}'.format(mnt_path, self._EDGE_MODULE_VOL_NAME)
         volume_dict[self._EDGE_MODULE_VOL_NAME] = {'bind': module_vol_path, 'mode': 'rw'}
 
         # setup env vars describing volume names and paths
@@ -141,15 +146,15 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         # setup env vars describing CA cert location for all edge modules
         ca_cert_file = EdgeHostPlatform.get_root_ca_cert_file()
         env_dict['EdgeModuleCACertificateFile'] = \
-            '{0}{1}{2}'.format(module_vol_path, sep, ca_cert_file['file_name'])
+            '{0}/{1}'.format(module_vol_path, ca_cert_file['file_name'])
 
         # setup env vars describing CA cert location for all edge hub
         ca_chain_cert_file = EdgeHostPlatform.get_ca_chain_cert_file()
         env_dict['EdgeModuleHubServerCAChainCertificateFile'] = \
-            '{0}{1}{2}'.format(hub_vol_path, sep, ca_chain_cert_file['file_name'])
+            '{0}/{1}'.format(hub_vol_path, ca_chain_cert_file['file_name'])
         hub_cert_dict = EdgeHostPlatform.get_hub_cert_pfx_file()
         env_dict['EdgeModuleHubServerCertificateFile'] = \
-            '{0}{1}{2}'.format(hub_vol_path, sep, hub_cert_dict['file_name'])
+            '{0}/{1}'.format(hub_vol_path, hub_cert_dict['file_name'])
 
     def _setup_registries(self, env_dict):
         edge_config = self._config_obj

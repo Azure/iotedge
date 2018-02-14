@@ -55,6 +55,16 @@ class EdgeUtils(object):
         return True
 
     @staticmethod
+    def copy_files(src_path, dst_path):
+        try:
+            shutil.copy2(src_path, dst_path)
+        except OSError as ex:
+            log.error('Error copying files: ' \
+                      + src_path + ' to ' + dst_path + '. Errno ' \
+                      + str(ex.errno) + ', Error:' + ex.strerror)
+            raise
+
+    @staticmethod
     def get_hostname():
         hostname = None
         try:

@@ -5,6 +5,7 @@ import tarfile
 import time
 import docker
 from edgectl.errors import EdgeError
+from edgectl.utils import EdgeUtils
 
 class EdgeDockerClient(object):
     _DOCKER_INFO_OS_TYPE_KEY = 'OSType'
@@ -337,15 +338,30 @@ class EdgeDockerClient(object):
                             container_dest_file_name,
                             container_dest_dir_path,
                             host_src_file):
-        tar_stream = BytesIO()
-        container_tar_file = tarfile.TarFile(fileobj=tar_stream, mode='w')
-        file_data = open(host_src_file, 'rb').read()
-        tarinfo = tarfile.TarInfo(name=container_dest_file_name)
-        tarinfo.size = len(file_data)
-        tarinfo.mtime = time.time()
-        tarinfo.mode = 0o444
-        container_tar_file.addfile(tarinfo, BytesIO(file_data))
-        container_tar_file.close()
-        tar_stream.seek(0)
-        container = self.get_container_by_name(container_name)
-        container.put_archive(container_dest_dir_path, tar_stream)
+        if self.get_os_type() == 'windows':
+            """
+            Use volume introspection to place files into the host mountpoint in order to work around issues with
+            Docker filesystem operations on Windows Hyper-V containers and container mountpoints
+            """
+            try:
+                volume_name = (container_dest_dir_path.split('/'))[-1]
+                volume_info = self._api_client.inspect_volume(volume_name)
+                EdgeUtils.copy_files(host_src_file.replace('\\\\','\\'),
+                                    volume_info['Mountpoint'].replace('\\\\', '\\'))
+            except docker.errors.APIError as ex:
+                logging.error('Docker volume inspect failed for: {0}'.format(volume_name))
+                print(ex)
+                raise
+        else:
+            tar_stream = BytesIO()
+            container_tar_file = tarfile.TarFile(fileobj=tar_stream, mode='w')
+            file_data = open(host_src_file, 'rb').read()
+            tarinfo = tarfile.TarInfo(name=container_dest_file_name)
+            tarinfo.size = len(file_data)
+            tarinfo.mtime = time.time()
+            tarinfo.mode = 0o444
+            container_tar_file.addfile(tarinfo, BytesIO(file_data))
+            container_tar_file.close()
+            tar_stream.seek(0)
+            container = self.get_container_by_name(container_name)
+            container.put_archive(container_dest_dir_path, tar_stream)

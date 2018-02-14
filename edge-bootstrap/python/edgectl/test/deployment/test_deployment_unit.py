@@ -895,10 +895,10 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
 
     COMMAND_NAME = 'start'
     NETWORK_NAME = 'azure-iot-edge'
-    EDGE_HUB_VOL_NAME = 'edgehub'
-    EDGE_HUB_VOL_PATH = '/mnt/edgehub'
-    EDGE_MODULE_VOL_NAME = 'edgemodule'
-    EDGE_MODULE_VOL_PATH = '/mnt/edgemodule'
+    LINUX_EDGE_HUB_VOL_PATH = '/mnt/edgehub'
+    LINUX_EDGE_MODULE_VOL_PATH = '/mnt/edgemodule'
+    WINDOWS_EDGE_HUB_VOL_PATH = 'c:/mnt/edgehub'
+    WINDOWS_EDGE_MODULE_VOL_PATH = 'c:/mnt/edgemodule'
     CA_CERT_FILE = 'ca_cert.pem'
     CHAIN_CERT_FILE = 'chain_cert.pem'
     HUB_CERT_FILE = 'hub_cert.pem'
@@ -922,17 +922,23 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
         'DockerLoggingDriver': 'testDriver',
         'DockerLoggingOptions__testOpt0': '0',
         'DockerLoggingOptions__testOpt1': '1',
+        'EdgeHubVolumeName': EDGE_HUB_VOL_NAME,
+        'EdgeModuleVolumeName': EDGE_MODULE_VOL_NAME
     }
     ENV_LINUX_DICT = {
-        'EdgeHubVolumeName': EDGE_HUB_VOL_NAME,
-        'EdgeHubVolumePath': EDGE_HUB_VOL_PATH,
-        'EdgeModuleVolumeName': EDGE_MODULE_VOL_NAME,
-        'EdgeModuleVolumePath': EDGE_MODULE_VOL_PATH,
-        'EdgeModuleCACertificateFile': EDGE_MODULE_VOL_PATH + '/' + CA_CERT_FILE,
-        'EdgeModuleHubServerCAChainCertificateFile': EDGE_HUB_VOL_PATH + '/' + CHAIN_CERT_FILE,
-        'EdgeModuleHubServerCertificateFile': EDGE_HUB_VOL_PATH + '/' + HUB_CERT_FILE,
+        'EdgeHubVolumePath': LINUX_EDGE_HUB_VOL_PATH,
+        'EdgeModuleVolumePath': LINUX_EDGE_MODULE_VOL_PATH,
+        'EdgeModuleCACertificateFile': LINUX_EDGE_MODULE_VOL_PATH + '/' + CA_CERT_FILE,
+        'EdgeModuleHubServerCAChainCertificateFile': LINUX_EDGE_HUB_VOL_PATH + '/' + CHAIN_CERT_FILE,
+        'EdgeModuleHubServerCertificateFile': LINUX_EDGE_HUB_VOL_PATH + '/' + HUB_CERT_FILE
     }
-    ENV_WINDOWS_DICT = {}
+    ENV_WINDOWS_DICT = {
+        'EdgeHubVolumePath': WINDOWS_EDGE_HUB_VOL_PATH,
+        'EdgeModuleVolumePath': WINDOWS_EDGE_MODULE_VOL_PATH,
+        'EdgeModuleCACertificateFile': WINDOWS_EDGE_MODULE_VOL_PATH + '/' + CA_CERT_FILE,
+        'EdgeModuleHubServerCAChainCertificateFile': WINDOWS_EDGE_HUB_VOL_PATH + '/' + CHAIN_CERT_FILE,
+        'EdgeModuleHubServerCertificateFile': WINDOWS_EDGE_HUB_VOL_PATH + '/' + HUB_CERT_FILE
+    }
 
     DOCKER_LOG_OPTS_DICT = {
         'testOpt0': '0',
@@ -958,14 +964,17 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
             'npipe': WINDOWS_MOUNTS_LIST
         }
     }
-    WINDOWS_VOLUME_DICT = {}
+    WINDOWS_VOLUME_DICT = {
+        EDGE_HUB_VOL_NAME: {'bind': WINDOWS_EDGE_HUB_VOL_PATH, 'mode': 'rw'},
+        EDGE_MODULE_VOL_NAME: {'bind': WINDOWS_EDGE_MODULE_VOL_PATH, 'mode': 'rw'},
+    }
     LINUX_TCP_ENDPOINT_VOLUME_DICT = {
-        EDGE_HUB_VOL_NAME: {'bind': EDGE_HUB_VOL_PATH, 'mode': 'rw'},
-        EDGE_MODULE_VOL_NAME: {'bind': EDGE_MODULE_VOL_PATH, 'mode': 'rw'},
+        EDGE_HUB_VOL_NAME: {'bind': LINUX_EDGE_HUB_VOL_PATH, 'mode': 'rw'},
+        EDGE_MODULE_VOL_NAME: {'bind': LINUX_EDGE_MODULE_VOL_PATH, 'mode': 'rw'},
     }
     LINUX_UNIX_ENDPOINT_VOLUME_DICT = {
-        EDGE_HUB_VOL_NAME: {'bind': EDGE_HUB_VOL_PATH, 'mode': 'rw'},
-        EDGE_MODULE_VOL_NAME: {'bind': EDGE_MODULE_VOL_PATH, 'mode': 'rw'},
+        EDGE_HUB_VOL_NAME: {'bind': LINUX_EDGE_HUB_VOL_PATH, 'mode': 'rw'},
+        EDGE_MODULE_VOL_NAME: {'bind': LINUX_EDGE_MODULE_VOL_PATH, 'mode': 'rw'},
         UNIX_DOCKER_ENDPOINT: {'bind': UNIX_DOCKER_ENDPOINT, 'mode': 'rw'},
     }
     HOST_VOLUME_DICT = {
@@ -993,6 +1002,22 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
             merge_dict = {}
         result.update(merge_dict)
         return result
+    
+    def _get_edge_hub_vol_path(self, engine_os):
+        if engine_os == 'windows':
+            return self.WINDOWS_EDGE_HUB_VOL_PATH
+        elif engine_os == 'linux':
+            return self.LINUX_EDGE_HUB_VOL_PATH
+        else:
+            return None
+
+    def _get_edge_module_vol_path(self, engine_os):
+        if engine_os == 'windows':
+            return self.WINDOWS_EDGE_MODULE_VOL_PATH
+        elif engine_os == 'linux':
+            return self.LINUX_EDGE_MODULE_VOL_PATH
+        else:
+            return None
 
     @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
     def test_prerequisites_docker_unavailable_invalid(self, mock_client):
@@ -1208,6 +1233,9 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
                             else:
                                 env_dict['UpstreamProtocol'] = ''
 
+                            edgehub_path = self._get_edge_hub_vol_path(engine_os)
+                            edgemodule_path = self._get_edge_module_vol_path(engine_os)
+
                             command = EdgeDeploymentCommandDocker.create_using_client(edge_config, mock_client)
 
                             # act
@@ -1215,24 +1243,20 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
 
                             # assert
                             mock_client.create_network.assert_called_with(self.NETWORK_NAME)
-                            if engine_os == 'windows':
-                                mock_client.create_volume.assert_not_called()
-                                mock_client.copy_file_to_volume.assert_not_called()
-                            else:
-                                mock_client.create_volume.assert_any_call(EDGE_HUB_VOL_NAME)
-                                mock_client.create_volume.assert_any_call(EDGE_MODULE_VOL_NAME)
-                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                                self.CA_CERT_FILE,
-                                                                                self.EDGE_MODULE_VOL_PATH,
-                                                                                '/test/' + self.CA_CERT_FILE)
-                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                                self.CHAIN_CERT_FILE,
-                                                                                self.EDGE_HUB_VOL_PATH,
-                                                                                '/test/' + self.CHAIN_CERT_FILE)
-                                mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                                self.HUB_CERT_FILE,
-                                                                                self.EDGE_HUB_VOL_PATH,
-                                                                                '/test/' + self.HUB_CERT_FILE)
+                            mock_client.create_volume.assert_any_call(EDGE_HUB_VOL_NAME)
+                            mock_client.create_volume.assert_any_call(EDGE_MODULE_VOL_NAME)
+                            mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                            self.CA_CERT_FILE,
+                                                                            edgemodule_path,
+                                                                            '/test/' + self.CA_CERT_FILE)
+                            mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                            self.CHAIN_CERT_FILE,
+                                                                            edgehub_path,
+                                                                            '/test/' + self.CHAIN_CERT_FILE)
+                            mock_client.copy_file_to_volume.assert_any_call(EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                            self.HUB_CERT_FILE,
+                                                                            edgehub_path,
+                                                                            '/test/' + self.HUB_CERT_FILE)
 
                             if local_sha_id is None:
                                 mock_client.pull.assert_called_with('testServer0/testImage:testTag',
