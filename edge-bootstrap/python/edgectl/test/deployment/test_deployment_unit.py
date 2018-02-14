@@ -568,7 +568,7 @@ class TestEdgeDeploymentDockerRestart(unittest.TestCase):
         mock_client.get_os_type.assert_called()
         mock_client.stop.assert_not_called()
         mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_client.restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
     @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
     def test_edge_status_restarting_valid(self, mock_client):
@@ -592,7 +592,7 @@ class TestEdgeDeploymentDockerRestart(unittest.TestCase):
         mock_client.get_os_type.assert_called()
         mock_client.stop.assert_not_called()
         mock_client.stop_by_label.assert_not_called()
-        mock_client.restart.assert_not_called()
+        mock_client.start.assert_not_called()
 
     @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
     def test_edge_status_running_valid(self, mock_client):
@@ -616,7 +616,7 @@ class TestEdgeDeploymentDockerRestart(unittest.TestCase):
         mock_client.get_os_type.assert_called()
         mock_client.stop.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
         mock_client.stop_by_label.assert_called_with(EDGE_MODULES_LABEL)
-        mock_client.restart.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
+        mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
 class TestEdgeDeploymentDockerUninstall(unittest.TestCase):
     """Unit tests for API EdgeDeploymentCommandDocker.uninstall"""

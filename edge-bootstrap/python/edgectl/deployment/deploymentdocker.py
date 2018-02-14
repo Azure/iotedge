@@ -331,7 +331,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             log.error('Runtime is restarting. Please retry later.')
         else:
             self._stop()
-            self._client.restart(self._edge_runtime_container_name)
+            self._client.start(self._edge_runtime_container_name)
             print('Runtime restarted.')
         return
 
