@@ -110,13 +110,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             var readOptions = new ReadOptions();
             readOptions.SetTailing(true);
 
-            Iterator iterator = this.db.NewIterator(this.Handle, readOptions);
-            int counter = 0;
-            for (seeker(iterator); iterator.Valid() && counter < batchSize; iterator.Next(), counter++)
+            using (Iterator iterator = this.db.NewIterator(this.Handle, readOptions))
             {
-                byte[] key = iterator.Key();
-                byte[] value = iterator.Value();
-                await callback(key, value);
+                int counter = 0;
+                for (seeker(iterator); iterator.Valid() && counter < batchSize; iterator.Next(), counter++)
+                {
+                    byte[] key = iterator.Key();
+                    byte[] value = iterator.Value();
+                    await callback(key, value);
+                } 
             }
         }
 
