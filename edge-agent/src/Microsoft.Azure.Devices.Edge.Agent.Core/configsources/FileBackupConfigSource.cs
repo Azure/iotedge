@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -31,17 +32,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         {
             try
             {
-                using (await this.sync.LockAsync())
+                if (!File.Exists(this.configFilePath))
                 {
-                    string json = await DiskFile.ReadAllAsync(this.configFilePath);
-                    return this.serde.Deserialize(json);
+                    Events.BackupFileDoesNotExist(this.configFilePath);
+                }
+                else
+                {
+                    using (await this.sync.LockAsync())
+                    {
+                        string json = await DiskFile.ReadAllAsync(this.configFilePath);
+                        DeploymentConfigInfo deploymentConfigInfo = this.serde.Deserialize(json);
+                        Events.ObtainedDeploymentFromBackup(this.configFilePath);
+                        return deploymentConfigInfo;
+                    }
                 }
             }
             catch (Exception e)
             {
                 Events.GetBackupFailed(e, this.configFilePath);
-                throw;
             }
+            return DeploymentConfigInfo.Empty;
         }
 
         async Task BackupDeploymentConfig(DeploymentConfigInfo deploymentConfigInfo)
@@ -61,7 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             catch (Exception e)
             {
                 Events.SetBackupFailed(e, this.configFilePath);
-                throw new FileBackupException($"Failed to backup config at {this.configFilePath}", e);
             }
         }
 
@@ -70,26 +79,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             try
             {
                 DeploymentConfigInfo deploymentConfig = await this.underlying.GetDeploymentConfigInfoAsync();
-                if (!deploymentConfig.Exception.HasValue)
+                if (deploymentConfig == DeploymentConfigInfo.Empty)
                 {
-                    if (deploymentConfig.Version < 0 || deploymentConfig.DeploymentConfig == DeploymentConfig.Empty)
-                    {
-                        Events.RestoringFromBackup(deploymentConfig, this.configFilePath);
-                        deploymentConfig = await this.ReadFromBackup();
-                    }
-                    else
-                    {
-                        // TODO - Backing up the config every time for now, probably should optimize this.
-                        await this.BackupDeploymentConfig(deploymentConfig);
-                    }
+                    Events.RestoringFromBackup(deploymentConfig, this.configFilePath);
+                    deploymentConfig = await this.ReadFromBackup();
+                }
+                else if (!deploymentConfig.Exception.HasValue)
+                {
+                    // TODO - Backing up the config every time for now, probably should optimize this.
+                    await this.BackupDeploymentConfig(deploymentConfig);
                 }
                 return deploymentConfig;
-            }
-            catch (FileBackupException)
-            {
-                // throw a custom exception when file back up fails so as to not be caught
-                // by the generic exception handler and not attempt to read from the backup
-                throw;
             }
             catch (Exception ex)
             {
@@ -108,9 +108,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
             const int IdStart = AgentEventIds.FileBackupConfigSource;
             static readonly ILogger Log = Logger.Factory.CreateLogger<FileBackupConfigSource>();
 
+            enum EventIds
+            {
+                Created = IdStart,
+                SetBackupFailed,
+                GetBackupFailed,
+                RestoringFromBackup
+            }
+
             public static void Created(string filename)
             {
-                Log.LogInformation((int)EventIds.Created, $"Edge agent config backup created here - {filename}");
+                Log.LogDebug((int)EventIds.Created, $"Edge agent config backup created here - {filename}");
             }
 
             public static void SetBackupFailed(Exception exception, string filename)
@@ -120,27 +128,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
             public static void GetBackupFailed(Exception exception, string filename)
             {
-                Log.LogError((int)EventIds.GetBackupFailed, exception, $"Failed to read edge agent config from file {filename}");
+                Log.LogError((int)EventIds.GetBackupFailed, exception, $"Failed to read edge agent config from backup file {filename}");
             }
 
             public static void RestoringFromBackup(Exception exception, string filename)
             {
-                Log.LogWarning((int)EventIds.RestoringFromBackup, exception, $"Error getting edge agent config. Reading config from backup ({filename}) instead");
+                Log.LogWarning((int)EventIds.RestoringFromBackup, exception, $"Error getting edge agent config. Attempting to read config from backup file ({filename}) instead");
             }
 
             public static void RestoringFromBackup(DeploymentConfigInfo deploymentConfig, string filename)
             {
                 string reason = deploymentConfig.Exception.Map(e => $"Error getting edge agent config - {e}")
                     .GetOrElse("Empty edge agent config was received");
-                Log.LogWarning((int)EventIds.RestoringFromBackup, $"{reason}. Reading config from backup ({filename}) instead");
+                Log.LogWarning((int)EventIds.RestoringFromBackup, $"{reason}. Attempting to read config from backup file ({filename}) instead");
             }
 
-            enum EventIds
+            public static void BackupFileDoesNotExist(string filename)
             {
-                Created = IdStart,
-                SetBackupFailed,
-                GetBackupFailed,
-                RestoringFromBackup
+                Log.LogInformation((int)EventIds.Created, $"Edge agent config backup file does not exist - {filename}");
+            }
+
+            public static void ObtainedDeploymentFromBackup(string filename)
+            {
+                Log.LogInformation((int)EventIds.Created, $"Obtained edge agent config from backup config file - {filename}");
             }
         }
     }

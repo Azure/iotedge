@@ -211,13 +211,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return logger;
         }
 
-        private static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
+        static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
         {
             var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
             try
             {
-                await agentOption.ForEachAsync((a) => a.ReportShutdownAsync(closeCts.Token));
+                await agentOption.ForEachAsync(a => a.ReportShutdownAsync(closeCts.Token));
             }
             catch (Exception ex)
             {

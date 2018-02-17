@@ -19,41 +19,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         internal const string ExpectedSchemaVersion = "1.0";
         const string PingMethodName = "ping";
         static readonly Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
-        readonly IDeviceClient deviceClient;
+        static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
+        readonly Task initTask;
+        readonly RetryStrategy retryStrategy;
+
+        Option<IDeviceClient> deviceClient;
         TwinCollection desiredProperties;
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
-        readonly RetryStrategy retryStrategy;
 
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
         static readonly RetryStrategy TransientRetryStrategy =
             new Util.TransientFaultHandling.ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        EdgeAgentConnection(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe, Option<RetryStrategy> retryStrategy)
+        public EdgeAgentConnection(IDeviceClientProvider deviceClientProvider,
+            ISerde<DeploymentConfig> desiredPropertiesSerDe)
+            : this(deviceClientProvider, desiredPropertiesSerDe, TransientRetryStrategy)
+        { }
+
+        internal EdgeAgentConnection(IDeviceClientProvider deviceClientProvider,
+            ISerde<DeploymentConfig> desiredPropertiesSerDe,
+            RetryStrategy retryStrategy)
         {
-            this.deviceClient = deviceClient;
-            this.desiredPropertiesSerDe = desiredPropertiesSerDe;
+            this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
-            this.retryStrategy = retryStrategy.GetOrElse(TransientRetryStrategy);
+            this.deviceClient = Option.None<IDeviceClient>();
+            this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(desiredPropertiesSerDe));
+            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(deviceClientProvider, nameof(deviceClientProvider)));
         }
 
-        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe) =>
-            Create(deviceClient, desiredPropertiesSerDe, Option.Some(TransientRetryStrategy));
-
-        public static EdgeAgentConnection Create(IDeviceClient deviceClient, ISerde<DeploymentConfig> desiredPropertiesSerDe, Option<RetryStrategy> retryStrategy)
+        async Task CreateAndInitDeviceClient(IDeviceClientProvider deviceClientProvider)
         {
-            var connection = new EdgeAgentConnection(deviceClient, desiredPropertiesSerDe, retryStrategy);
+            using (await this.twinLock.LockAsync())
+            {
+                IDeviceClient dc = await deviceClientProvider.Create(
+                    this.OnConnectionStatusChanged,
+                    async d =>
+                    {
+                        await d.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertiesUpdated);
+                        await d.SetMethodHandlerAsync(PingMethodName, this.PingMethodCallback);
+                    });
+                this.deviceClient = Option.Some(dc);
 
-            // launch a background task to initiate the connection to IoT Hub (don't wait for it to complete)
-            deviceClient.OpenAsync(
-                connection.OnConnectionStatusChanged,
-                connection.OnDesiredPropertiesUpdated,
-                PingMethodName, connection.PingMethodCallback);
-
-            return connection;
+                await this.RefreshTwinAsync();
+            }
         }
 
         Task<MethodResponse> PingMethodCallback(MethodRequest methodRequest, object userContext) => PingMethodResponse;
@@ -63,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 Events.ConnectionStatusChanged(status, reason);
-                if (status == ConnectionStatus.Connected)
+                if (this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())
                     {
@@ -71,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     }
                 }
             }
-            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ConnectionStatusChangedHandlingError(ex);
             }
@@ -104,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // recover from this situation
                 var retryPolicy = new RetryPolicy(AllButFatalErrorDetectionStrategy, this.retryStrategy);
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
-                Twin twin = await retryPolicy.ExecuteAsync(() => this.deviceClient.GetTwinAsync());
+                IDeviceClient dc = this.deviceClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
+                Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
 
                 this.desiredProperties = twin.Properties.Desired;
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
@@ -128,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 await this.UpdateDeploymentConfig();
                 Events.DesiredPropertiesPatchApplied();
             }
-            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties?.Version ?? 0, ex));
                 Events.DesiredPropertiesPatchFailed(ex);
@@ -157,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // TODO: Localize this error?
                 throw;
             }
-            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ErrorUpdatingDeploymentConfig(ex);
                 // TODO: Localize this error?
@@ -175,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
-            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ErrorUpdatingDeploymentConfig(ex);
                 throw;
@@ -184,13 +197,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return Task.CompletedTask;
         }
 
-        public Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync() => Task.FromResult(this.deploymentConfigInfo);
+        public async Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync()
+        {
+            await this.WaitForDeviceClientInitialization();
+            return this.deploymentConfigInfo;
+        }
+
+        async Task<bool> WaitForDeviceClientInitialization() =>
+            await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
 
-        public void Dispose() => this.deviceClient?.Dispose();
+        public void Dispose() => this.deviceClient.ForEach(d => d.Dispose());
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection patch) => this.deviceClient.UpdateReportedPropertiesAsync(patch);
+        public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
+        {
+            if (await this.WaitForDeviceClientInitialization())
+            {
+                await this.deviceClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+            }
+        }
 
         static class Events
         {

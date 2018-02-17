@@ -8,11 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public interface IDeviceClient : IDisposable
     {
-        Task OpenAsync(
-            ConnectionStatusChangesHandler statusChangedHandler,
-            DesiredPropertyUpdateCallback onDesiredPropertyChanged,
-            string methodName,
-            MethodCallback callback);
+        Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
+
+        Task SetMethodHandlerAsync(string methodName, MethodCallback callback);
 
         Task<Twin> GetTwinAsync();
 

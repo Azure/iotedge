@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class DeploymentConfigInfo
     {
+        public static DeploymentConfigInfo Empty = new DeploymentConfigInfo(-1, DeploymentConfig.Empty);
+
         [JsonConstructor]
         public DeploymentConfigInfo(long version, DeploymentConfig deploymentConfig)
         {

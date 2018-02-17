@@ -44,8 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new DeviceClientModule(this.connectionDetails, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()));
             builder.RegisterModule(new ServiceClientModule(this.connectionDetails, this.edgeDeviceConnectionString));
+
+            // IDeviceClientProvider
+            builder.Register(c => new DeviceClientProvider(this.connectionDetails, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
+                .As<IDeviceClientProvider>()
+                .SingleInstance();
 
             // ISerde<Diff>
             builder.Register(c => new DiffSerde(
@@ -90,8 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    var deviceClient = c.Resolve<IDeviceClient>();
-                    IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
+                    var deviceClientprovider = c.Resolve<IDeviceClientProvider>();
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()

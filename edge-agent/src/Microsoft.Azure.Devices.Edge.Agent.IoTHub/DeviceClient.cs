@@ -27,57 +27,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
         };
 
-        Client.DeviceClient deviceClient;
-        readonly string moduleConnectionString;
-        readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Client.DeviceClient deviceClient;
 
-        DeviceClient(string moduleConnectionString, Option<UpstreamProtocol> upstreamProtocol)
+        DeviceClient(Client.DeviceClient deviceClient)
         {
-            this.moduleConnectionString = moduleConnectionString;
-            this.upstreamProtocol = upstreamProtocol;
+            this.deviceClient = deviceClient;
         }
 
-        public static DeviceClient Create(EdgeHubConnectionString deviceDetails, Option<UpstreamProtocol> upstreamProtocol)
-        {
-            Preconditions.CheckNotNull(deviceDetails, nameof(deviceDetails));
-            Events.DeviceClientCreated();
-            return new DeviceClient(ConstructModuleConnectionString(deviceDetails), upstreamProtocol);
-        }
-
-        static string ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails)
-        {
-            EdgeHubConnectionString agentConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
-                .SetSharedAccessKey(connectionDetails.SharedAccessKey)
-                .SetModuleId(Constants.EdgeAgentModuleIdentityName)
-                .Build();
-            return agentConnectionString.ToConnectionString();
-        }
-
-        public void Dispose() => this.deviceClient.Dispose();
-
-        public Task OpenAsync(
+        public static async Task<IDeviceClient> Create(string connectionString,
+            Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
-            DesiredPropertyUpdateCallback onDesiredPropertyChanged,
-            string methodName,
-            MethodCallback callback)
+            Func<DeviceClient, Task> initialize)
         {
-            return ExecuteWithRetry(
+            try
+            {
+                return await ExecuteWithRetry(
                     async () =>
                     {
-                        this.deviceClient = await CreateDeviceClientForUpstreamProtocol(this.upstreamProtocol, t => CreateAndOpenDeviceClient(t, this.moduleConnectionString, statusChangedHandler));
-                        await this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
-                        await this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
-                    },
-                    Events.RetryingDeviceClientConnection)
-                .ContinueWith(
-                    t =>
-                    {
-                        if (t.IsFaulted)
+                        Client.DeviceClient dc = await CreateDeviceClientForUpstreamProtocol(upstreamProtocol, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler));
+                        Events.DeviceClientCreated();
+                        var deviceClient = new DeviceClient(dc);
+                        if (initialize != null)
                         {
-                            Events.DeviceClientSetupFailed(t.Exception.InnerException);
-                            System.Environment.Exit(1);
+                            await initialize(deviceClient);
                         }
-                    });
+                        return deviceClient;
+                    },
+                    Events.RetryingDeviceClientConnection);
+            }
+            catch (Exception e)
+            {
+                Events.DeviceClientSetupFailed(e);
+                Environment.Exit(1);
+                return null;
+            }
         }
 
         internal static Task<Client.DeviceClient> CreateDeviceClientForUpstreamProtocol(
@@ -114,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return deviceClient;
         }
 
-        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
+        static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
         {
             var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
             transientRetryPolicy.Retrying += (_, args) => onRetry(args);
@@ -131,6 +114,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public bool IsTransient(Exception ex) => !(NonTransientExceptions.Contains(ex.GetType()));
         }
+
+        public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged) =>
+            this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
+
+        public Task SetMethodHandlerAsync(string methodName, MethodCallback callback) =>
+            this.deviceClient.SetMethodHandlerAsync(methodName, callback, null);
+
+        public void Dispose() => this.deviceClient.Dispose();
 
         public Task<Twin> GetTwinAsync() => this.deviceClient.GetTwinAsync();
 

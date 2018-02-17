@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
-                IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString, Option.None<UpstreamProtocol>());
+                IDeviceClientProvider deviceClientProvider = new DeviceClientProvider(edgeHubConnectionString, Option.None<UpstreamProtocol>());
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -81,8 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientProvider, serde);
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
@@ -232,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
-                IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString, Option.None<UpstreamProtocol>());
+                IDeviceClientProvider deviceClientProvider = new DeviceClientProvider(edgeHubConnectionString, Option.None<UpstreamProtocol>());
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -263,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientProvider, serde);
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -599,24 +598,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
-        void SetupOpenAsync(
-            Mock<IDeviceClient> client,
-            Action<Client.ConnectionStatusChangesHandler, Client.DesiredPropertyUpdateCallback> callback)
-        {
-            client
-                .Setup(cl => cl.OpenAsync(
-                        It.IsAny<Client.ConnectionStatusChangesHandler>(),
-                        It.IsAny<Client.DesiredPropertyUpdateCallback>(),
-                        It.IsAny<string>(),
-                        It.IsAny<Client.MethodCallback>()
-                    )
-                )
-                .Callback<Client.ConnectionStatusChangesHandler, Client.DesiredPropertyUpdateCallback, string, Client.MethodCallback>(
-                    (statusChanges, propertyUpdates, methodName, methodCallback) => callback(statusChanges, propertyUpdates)
-                )
-                .Returns(Task.CompletedTask);
-        }
-
         [Fact]
         [Unit]
         public async Task GetDeploymentConfigInfoAsyncReturnsConfigWhenThereAreNoErrors()
@@ -648,7 +629,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
@@ -657,16 +641,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
-            Assert.NotNull(connectionStatusChangesHandler);
-            connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
-
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
             Assert.True(deploymentConfigInfo.HasValue);
             Assert.Equal(deploymentConfigInfo.OrDefault().Version, 10);
             Assert.Equal(deploymentConfigInfo.OrDefault().DeploymentConfig, deploymentConfig);
+            Assert.NotNull(connectionStatusChangesHandler);
         }
 
         [Fact]
@@ -692,7 +674,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
@@ -701,7 +686,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Throws<FormatException>();
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
 
@@ -734,13 +719,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
 
@@ -783,16 +771,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ReturnsAsync(twin);
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Client.DesiredPropertyUpdateCallback>()))
+                .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<Client.MethodCallback>()))
+                .Returns(Task.CompletedTask);
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
@@ -822,10 +817,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
                 .ThrowsAsync(new InvalidOperationException());
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Client.DesiredPropertyUpdateCallback>()))
+                .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<Client.MethodCallback>()))
+                .Returns(Task.CompletedTask);
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
@@ -834,7 +836,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns((int retryCount, Exception lastException, out TimeSpan delay) => false);
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object, Option.Some(retryStrategy.Object));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object);
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(
                 Client.ConnectionStatus.Connected,
@@ -867,7 +869,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            this.SetupOpenAsync(deviceClient, (statusChanges, x) => connectionStatusChangesHandler = statusChanges);
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<DeviceClient, Task>>((statusChanges, x) => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
                 .Returns(deploymentConfig);
@@ -892,14 +897,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceClient.SetupSequence(d => d.GetTwinAsync())
                 .ThrowsAsync(new InvalidOperationException())
                 .ReturnsAsync(twin);
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Client.DesiredPropertyUpdateCallback>()))
+                .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<Client.MethodCallback>()))
+                .Returns(Task.CompletedTask);
 
             // Act
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object, Option.Some(retryStrategy.Object));
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object);
             Assert.NotNull(connectionStatusChangesHandler);
-            connectionStatusChangesHandler.Invoke(
-                Client.ConnectionStatus.Connected,
-                Client.ConnectionStatusChangeReason.Connection_Ok
-            );
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
@@ -920,6 +925,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var edgeHub = new Mock<IEdgeHubModule>();
             Client.ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
             Client.DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = null;
+            Func<IDeviceClient, Task> initializeCallback = null;
             var twin = new Twin
             {
                 Properties = new TwinProperties
@@ -940,25 +946,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ImmutableDictionary<string, IModule>.Empty
             );
 
-            this.SetupOpenAsync(
-                deviceClient,
-                (statusChanges, propertyUpdates) =>
+            var deviceClientProvider = new Mock<IDeviceClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<Client.ConnectionStatusChangesHandler>(), It.IsAny<Func<IDeviceClient, Task>>()))
+                .Callback<Client.ConnectionStatusChangesHandler, Func<IDeviceClient, Task>>(
+                (statusChanges, callback) =>
                 {
                     connectionStatusChangesHandler = statusChanges;
-                    desiredPropertyUpdateCallback = propertyUpdates;
-                });
+                    initializeCallback = callback;
+                })
+                .ReturnsAsync(deviceClient.Object);
 
             deviceClient.Setup(d => d.GetTwinAsync())
-                .ReturnsAsync(twin);
+                    .ReturnsAsync(twin);
+            deviceClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Client.DesiredPropertyUpdateCallback>()))
+                    .Callback<Client.DesiredPropertyUpdateCallback>(p => desiredPropertyUpdateCallback = p)
+                    .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.SetMethodHandlerAsync(It.IsAny<string>(), It.IsAny<Client.MethodCallback>()))
+                    .Returns(Task.CompletedTask);
 
             serde.Setup(s => s.Deserialize(It.IsAny<string>()))
-                .Returns(deploymentConfig);
+                    .Returns(deploymentConfig);
 
-            EdgeAgentConnection connection = EdgeAgentConnection.Create(deviceClient.Object, serde.Object);
-            Assert.NotNull(connectionStatusChangesHandler);
+            var connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object);
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
 
             // this will cause the initial desired props to get set in the connection object
+            Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(Client.ConnectionStatus.Connected, Client.ConnectionStatusChangeReason.Connection_Ok);
+
+            Assert.NotNull(initializeCallback);
+            await initializeCallback(deviceClient.Object);
 
             // Act
             // now send a patch update
@@ -1003,7 +1021,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
-                IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString, Option.None<UpstreamProtocol>());
+                IDeviceClientProvider deviceClientProvider = new DeviceClientProvider(edgeHubConnectionString, Option.None<UpstreamProtocol>());
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -1040,7 +1058,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
-                IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientProvider, serde);
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
                 edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
@@ -1094,7 +1112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 EdgeHubConnectionString edgeHubConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(iotHubConnectionStringBuilder.HostName, edgeDeviceId)
                     .SetSharedAccessKey(edgeDevice.Authentication.SymmetricKey.PrimaryKey)
                     .Build();
-                IDeviceClient deviceClient = DeviceClient.Create(edgeHubConnectionString, Option.None<UpstreamProtocol>());
+                IDeviceClientProvider deviceClientProvider = new DeviceClientProvider(edgeHubConnectionString, Option.None<UpstreamProtocol>());
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -1130,7 +1148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Assert
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
-                IEdgeAgentConnection edgeAgentConnection = EdgeAgentConnection.Create(deviceClient, serde);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientProvider, serde);
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));

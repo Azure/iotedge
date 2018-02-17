@@ -56,7 +56,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             try
             {
+                Events.GettingDeploymentConfigInfo();
                 deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
+                Events.ObtainedDeploymentConfigInfo(deploymentConfigInfo);
             }
             catch (Exception e)
             {
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 if (exception != null)
                 {
                     throw exception;
-                }                
+                }
 
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
                 if (deploymentConfig != DeploymentConfig.Empty)
@@ -199,7 +201,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 InvalidSchemaVersion,
                 InvalidConfigFormat,
                 ReportShutdown,
-                ReportShutdownFailed
+                ReportShutdownFailed,
+                GettingDeploymentConfigInfo,
+                ObtainedDeploymentConfigInfo
             }
 
             public static void AgentCreated()
@@ -234,7 +238,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             public static void ReportShutdownFailed(Exception ex)
             {
-                Log.LogError((int)EventIds.ReportShutdownFailed, ex.Message);
+                Log.LogError((int)EventIds.ReportShutdownFailed, ex, "Failed to report edge agent shutdown.");
+            }
+
+            public static void GettingDeploymentConfigInfo()
+            {
+                Log.LogDebug((int)EventIds.GettingDeploymentConfigInfo, "Getting edge agent config...");
+            }
+
+            public static void ObtainedDeploymentConfigInfo(DeploymentConfigInfo deploymentConfigInfo)
+            {
+                if (!deploymentConfigInfo.Exception.HasValue && deploymentConfigInfo != DeploymentConfigInfo.Empty)
+                {
+                    Log.LogDebug((int)EventIds.ObtainedDeploymentConfigInfo, "Obtained edge agent config");
+                }
             }
         }
     }

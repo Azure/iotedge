@@ -128,12 +128,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 // Assert
                 Assert.NotNull(config2);
                 Assert.True(config2.Exception.HasValue);
-                Assert.IsType<InvalidOperationException>(config2.Exception.OrDefault());                
+                Assert.IsType<InvalidOperationException>(config2.Exception.OrDefault());
 
                 // this should still be the JSON from the first config - config1
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
                 Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupDoesNotThrowWhenBackupFileDoesNotExist()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            // Arrange
+            var underlying = new Mock<IConfigSource>();
+            underlying.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(DeploymentConfigInfo.Empty);
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+
+            // Act
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            {
+                // this call should fetch the config properly
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+                Assert.Equal(DeploymentConfigInfo.Empty, config1);
             }
         }
 
@@ -150,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             var underlying = new Mock<IConfigSource>();
             underlying.SetupSequence(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(ValidConfigInfo1)
-                .ReturnsAsync(new DeploymentConfigInfo(-1, DeploymentConfig.Empty));
+                .ReturnsAsync(DeploymentConfigInfo.Empty);
 
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
