@@ -178,16 +178,21 @@ class EdgeHostConfig(EdgeConfigBase):
             ValueError if value is None, empty or greater than 64 characters.
         """
         is_valid = False
+        msg = 'Invalid hostname. Hostname cannot be empty or ' \
+              'greater than 64 characters: {0}'.format(value)
         if value is not None:
-            value = value.strip()
+            value = value.strip().lower()
             length = len(value)
             if length > 0 and length <= 64:
-                self._config_dict[EC.HOSTNAME_KEY] = value.lower()
-                is_valid = True
+                if value in ['localhost', '127.0.0.1', '::1', '0.0.0.0', '::0']:
+                    msg = 'Hostname cannot be "localhost" or any of its variant IP addresses.' \
+                          'The hostname must be a valid DNS (or machine) name.'
+                else:
+                    self._config_dict[EC.HOSTNAME_KEY] = value
+                    is_valid = True
 
         if is_valid is False:
-            raise ValueError('Invalid hostname. Hostname cannot be empty or ' \
-                             'greater than 64 characters: {0}'.format(value))
+            raise ValueError(msg)
 
     @property
     def log_level(self):

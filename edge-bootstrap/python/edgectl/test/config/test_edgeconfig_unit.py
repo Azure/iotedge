@@ -240,6 +240,12 @@ class TestEdgeConfigMethods(unittest.TestCase):
             '',
             '       ',
             None,
+            # localhost and unsupported IP addresses
+            'localhost',
+            '127.0.0.1',
+            '::1',
+            '0.0.0.0',
+            '::0',
             # 65 chars
             '01234567890123456789012345678901234567890123456789012345678901234'
         ]
