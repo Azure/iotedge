@@ -116,7 +116,6 @@ class TestEdgeCertConfigMethods(unittest.TestCase):
 
     def _validation_helper_certificate_subject(self, result_config_object, test_case, msg=None):
         op_subj_dict = test_case[TEST_OP_KEY][EC.CERTS_SUBJECT_KEY]
-        op_option = test_case[TEST_OP_KEY][EC.CERTS_OPTION_KEY]
         if op_subj_dict is None:
             op_subj_dict = EdgeDefault.get_certificate_subject_dict()
 

@@ -1002,22 +1002,20 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
             merge_dict = {}
         result.update(merge_dict)
         return result
-    
+
     def _get_edge_hub_vol_path(self, engine_os):
         if engine_os == 'windows':
             return self.WINDOWS_EDGE_HUB_VOL_PATH
         elif engine_os == 'linux':
             return self.LINUX_EDGE_HUB_VOL_PATH
-        else:
-            return None
+        return None
 
     def _get_edge_module_vol_path(self, engine_os):
         if engine_os == 'windows':
             return self.WINDOWS_EDGE_MODULE_VOL_PATH
         elif engine_os == 'linux':
             return self.LINUX_EDGE_MODULE_VOL_PATH
-        else:
-            return None
+        return None
 
     @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
     def test_prerequisites_docker_unavailable_invalid(self, mock_client):
