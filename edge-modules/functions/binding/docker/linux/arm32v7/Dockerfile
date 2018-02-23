@@ -1,4 +1,4 @@
-FROM edgebuilds.azurecr.io/azure-functions-runtime-arm32v7:2.0.0-beta1-3f54f80
+FROM microsoft/azure-functions-runtime:2.0.0-stretch-arm32v7
 
 WORKDIR /app
 
