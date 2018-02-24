@@ -1,0 +1,18 @@
+[package]
+name = "docker-rs"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+publish = false
+
+[dependencies]
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.7"
+serde_json = "1.0"
+base64 = "0.9.0"
+futures = "0.1"
+hyper = "0.11"
+url = "1.5"
+
+[dev-dependencies]
+tokio-core = "*"
