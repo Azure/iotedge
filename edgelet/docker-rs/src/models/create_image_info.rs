@@ -13,14 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateImageInfo {
-    #[serde(rename = "error")]
-    error: Option<String>,
-    #[serde(rename = "status")]
-    status: Option<String>,
-    #[serde(rename = "progress")]
-    progress: Option<String>,
-    #[serde(rename = "progressDetail")]
-    progress_detail: Option<::models::ProgressDetail>,
+    #[serde(rename = "error")] error: Option<String>,
+    #[serde(rename = "status")] status: Option<String>,
+    #[serde(rename = "progress")] progress: Option<String>,
+    #[serde(rename = "progressDetail")] progress_detail: Option<::models::ProgressDetail>,
 }
 
 impl CreateImageInfo {

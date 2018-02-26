@@ -15,14 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceUpdateStatus {
-    #[serde(rename = "State")]
-    state: Option<String>,
-    #[serde(rename = "StartedAt")]
-    started_at: Option<String>,
-    #[serde(rename = "CompletedAt")]
-    completed_at: Option<String>,
-    #[serde(rename = "Message")]
-    message: Option<String>,
+    #[serde(rename = "State")] state: Option<String>,
+    #[serde(rename = "StartedAt")] started_at: Option<String>,
+    #[serde(rename = "CompletedAt")] completed_at: Option<String>,
+    #[serde(rename = "Message")] message: Option<String>,
 }
 
 impl ServiceUpdateStatus {

@@ -25,52 +25,35 @@ pub struct InlineResponse200 {
     /// The arguments to the command being run
     #[serde(rename = "Args")]
     args: Option<Vec<String>>,
-    #[serde(rename = "State")]
-    state: Option<::models::InlineResponse200State>,
+    #[serde(rename = "State")] state: Option<::models::InlineResponse200State>,
     /// The container's image
     #[serde(rename = "Image")]
     image: Option<String>,
-    #[serde(rename = "ResolvConfPath")]
-    resolv_conf_path: Option<String>,
-    #[serde(rename = "HostnamePath")]
-    hostname_path: Option<String>,
-    #[serde(rename = "HostsPath")]
-    hosts_path: Option<String>,
-    #[serde(rename = "LogPath")]
-    log_path: Option<String>,
+    #[serde(rename = "ResolvConfPath")] resolv_conf_path: Option<String>,
+    #[serde(rename = "HostnamePath")] hostname_path: Option<String>,
+    #[serde(rename = "HostsPath")] hosts_path: Option<String>,
+    #[serde(rename = "LogPath")] log_path: Option<String>,
     /// TODO
     #[serde(rename = "Node")]
     node: Option<Value>,
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "RestartCount")]
-    restart_count: Option<i32>,
-    #[serde(rename = "Driver")]
-    driver: Option<String>,
-    #[serde(rename = "MountLabel")]
-    mount_label: Option<String>,
-    #[serde(rename = "ProcessLabel")]
-    process_label: Option<String>,
-    #[serde(rename = "AppArmorProfile")]
-    app_armor_profile: Option<String>,
-    #[serde(rename = "ExecIDs")]
-    exec_i_ds: Option<String>,
-    #[serde(rename = "HostConfig")]
-    host_config: Option<::models::HostConfig>,
-    #[serde(rename = "GraphDriver")]
-    graph_driver: Option<::models::GraphDriverData>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "RestartCount")] restart_count: Option<i32>,
+    #[serde(rename = "Driver")] driver: Option<String>,
+    #[serde(rename = "MountLabel")] mount_label: Option<String>,
+    #[serde(rename = "ProcessLabel")] process_label: Option<String>,
+    #[serde(rename = "AppArmorProfile")] app_armor_profile: Option<String>,
+    #[serde(rename = "ExecIDs")] exec_i_ds: Option<String>,
+    #[serde(rename = "HostConfig")] host_config: Option<::models::HostConfig>,
+    #[serde(rename = "GraphDriver")] graph_driver: Option<::models::GraphDriverData>,
     /// The size of files that have been created or changed by this container.
     #[serde(rename = "SizeRw")]
     size_rw: Option<i64>,
     /// The total size of all the files in this container.
     #[serde(rename = "SizeRootFs")]
     size_root_fs: Option<i64>,
-    #[serde(rename = "Mounts")]
-    mounts: Option<Vec<::models::MountPoint>>,
-    #[serde(rename = "Config")]
-    config: Option<::models::ContainerConfig>,
-    #[serde(rename = "NetworkSettings")]
-    network_settings: Option<::models::NetworkSettings>,
+    #[serde(rename = "Mounts")] mounts: Option<Vec<::models::MountPoint>>,
+    #[serde(rename = "Config")] config: Option<::models::ContainerConfig>,
+    #[serde(rename = "NetworkSettings")] network_settings: Option<::models::NetworkSettings>,
 }
 
 impl InlineResponse200 {

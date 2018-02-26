@@ -15,14 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20020Descriptor {
-    #[serde(rename = "MediaType")]
-    media_type: Option<String>,
-    #[serde(rename = "Size")]
-    size: Option<i64>,
-    #[serde(rename = "Digest")]
-    digest: Option<String>,
-    #[serde(rename = "URLs")]
-    ur_ls: Option<Vec<String>>,
+    #[serde(rename = "MediaType")] media_type: Option<String>,
+    #[serde(rename = "Size")] size: Option<i64>,
+    #[serde(rename = "Digest")] digest: Option<String>,
+    #[serde(rename = "URLs")] ur_ls: Option<Vec<String>>,
 }
 
 impl InlineResponse20020Descriptor {

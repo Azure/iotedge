@@ -15,12 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EngineDescription {
-    #[serde(rename = "EngineVersion")]
-    engine_version: Option<String>,
-    #[serde(rename = "Labels")]
-    labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Plugins")]
-    plugins: Option<Vec<::models::EngineDescriptionPlugins>>,
+    #[serde(rename = "EngineVersion")] engine_version: Option<String>,
+    #[serde(rename = "Labels")] labels: Option<::std::collections::HashMap<String, String>>,
+    #[serde(rename = "Plugins")] plugins: Option<Vec<::models::EngineDescriptionPlugins>>,
 }
 
 impl EngineDescription {

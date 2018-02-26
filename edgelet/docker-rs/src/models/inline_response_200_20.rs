@@ -13,8 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20020 {
-    #[serde(rename = "Descriptor")]
-    descriptor: ::models::InlineResponse20020Descriptor,
+    #[serde(rename = "Descriptor")] descriptor: ::models::InlineResponse20020Descriptor,
     /// An array containing all platforms supported by the image
     #[serde(rename = "Platforms")]
     platforms: Vec<::models::InlineResponse20020Platforms>,

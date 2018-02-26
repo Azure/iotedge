@@ -111,16 +111,14 @@ pub struct HostConfig {
     /// Path to a file where the container ID is written
     #[serde(rename = "ContainerIDFile")]
     container_id_file: Option<String>,
-    #[serde(rename = "LogConfig")]
-    log_config: Option<::models::HostConfigLogConfig>,
+    #[serde(rename = "LogConfig")] log_config: Option<::models::HostConfigLogConfig>,
     /// Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
     #[serde(rename = "NetworkMode")]
     network_mode: Option<String>,
     /// A map of exposed container ports and the host port they should map to.
     #[serde(rename = "PortBindings")]
     port_bindings: Option<::std::collections::HashMap<String, ::models::HostConfigPortBindings>>,
-    #[serde(rename = "RestartPolicy")]
-    restart_policy: Option<::models::RestartPolicy>,
+    #[serde(rename = "RestartPolicy")] restart_policy: Option<::models::RestartPolicy>,
     /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
     #[serde(rename = "AutoRemove")]
     auto_remove: Option<bool>,

@@ -43,8 +43,7 @@ pub struct SystemInfo {
     /// Status information about this node (standalone Swarm API).  <p><br /></p>  > **Note**: The information returned in this field is only propagated > by the Swarm standalone API, and is empty (`null`) when using > built-in swarm mode.
     #[serde(rename = "SystemStatus")]
     system_status: Option<Vec<Vec<String>>>,
-    #[serde(rename = "Plugins")]
-    plugins: Option<::models::PluginsInfo>,
+    #[serde(rename = "Plugins")] plugins: Option<::models::PluginsInfo>,
     /// Indicates if the host has memory limit support enabled.
     #[serde(rename = "MemoryLimit")]
     memory_limit: Option<bool>,
@@ -120,10 +119,8 @@ pub struct SystemInfo {
     /// Address / URL of the index server that is used for image search, and as a default for user authentication for Docker Hub and Docker Cloud.
     #[serde(rename = "IndexServerAddress")]
     index_server_address: Option<String>,
-    #[serde(rename = "RegistryConfig")]
-    registry_config: Option<::models::RegistryServiceConfig>,
-    #[serde(rename = "GenericResources")]
-    generic_resources: Option<::models::GenericResources>,
+    #[serde(rename = "RegistryConfig")] registry_config: Option<::models::RegistryServiceConfig>,
+    #[serde(rename = "GenericResources")] generic_resources: Option<::models::GenericResources>,
     /// HTTP-proxy configured for the daemon. This value is obtained from the [`HTTP_PROXY`](https://www.gnu.org/software/wget/manual/html_node/Proxies.html) environment variable.  Containers do not automatically inherit this configuration.
     #[serde(rename = "HttpProxy")]
     http_proxy: Option<String>,
@@ -157,8 +154,7 @@ pub struct SystemInfo {
     /// Name of the default OCI runtime that is used when starting containers.  The default can be overridden per-container at create time.
     #[serde(rename = "DefaultRuntime")]
     default_runtime: Option<String>,
-    #[serde(rename = "Swarm")]
-    swarm: Option<::models::SwarmInfo>,
+    #[serde(rename = "Swarm")] swarm: Option<::models::SwarmInfo>,
     /// Indicates if live restore is enabled.  If enabled, containers are kept running when the daemon is shutdown or upon daemon start if running containers are detected.
     #[serde(rename = "LiveRestoreEnabled")]
     live_restore_enabled: Option<bool>,
@@ -168,12 +164,9 @@ pub struct SystemInfo {
     /// Name and, optional, path of the the `docker-init` binary.  If the path is omitted, the daemon searches the host's `$PATH` for the binary and uses the first result.
     #[serde(rename = "InitBinary")]
     init_binary: Option<String>,
-    #[serde(rename = "ContainerdCommit")]
-    containerd_commit: Option<::models::Commit>,
-    #[serde(rename = "RuncCommit")]
-    runc_commit: Option<::models::Commit>,
-    #[serde(rename = "InitCommit")]
-    init_commit: Option<::models::Commit>,
+    #[serde(rename = "ContainerdCommit")] containerd_commit: Option<::models::Commit>,
+    #[serde(rename = "RuncCommit")] runc_commit: Option<::models::Commit>,
+    #[serde(rename = "InitCommit")] init_commit: Option<::models::Commit>,
     /// List of security features that are enabled on the daemon, such as apparmor, seccomp, SELinux, and user-namespaces (userns).  Additional configuration options for each security feature may be present, and are included as a comma-separated list of key/value pairs.
     #[serde(rename = "SecurityOptions")]
     security_options: Option<Vec<String>>,

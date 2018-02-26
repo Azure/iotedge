@@ -19,8 +19,7 @@ pub struct InlineResponse20012 {
     /// The type of event
     #[serde(rename = "Action")]
     action: Option<String>,
-    #[serde(rename = "Actor")]
-    actor: Option<::models::InlineResponse20012Actor>,
+    #[serde(rename = "Actor")] actor: Option<::models::InlineResponse20012Actor>,
     /// Timestamp of event
     #[serde(rename = "time")]
     time: Option<i32>,

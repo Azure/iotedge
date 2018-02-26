@@ -13,22 +13,14 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20014 {
-    #[serde(rename = "ID")]
-    ID: Option<String>,
-    #[serde(rename = "Running")]
-    running: Option<bool>,
-    #[serde(rename = "ExitCode")]
-    exit_code: Option<i32>,
-    #[serde(rename = "ProcessConfig")]
-    process_config: Option<::models::ProcessConfig>,
-    #[serde(rename = "OpenStdin")]
-    open_stdin: Option<bool>,
-    #[serde(rename = "OpenStderr")]
-    open_stderr: Option<bool>,
-    #[serde(rename = "OpenStdout")]
-    open_stdout: Option<bool>,
-    #[serde(rename = "ContainerID")]
-    container_id: Option<String>,
+    #[serde(rename = "ID")] ID: Option<String>,
+    #[serde(rename = "Running")] running: Option<bool>,
+    #[serde(rename = "ExitCode")] exit_code: Option<i32>,
+    #[serde(rename = "ProcessConfig")] process_config: Option<::models::ProcessConfig>,
+    #[serde(rename = "OpenStdin")] open_stdin: Option<bool>,
+    #[serde(rename = "OpenStderr")] open_stderr: Option<bool>,
+    #[serde(rename = "OpenStdout")] open_stdout: Option<bool>,
+    #[serde(rename = "ContainerID")] container_id: Option<String>,
     /// The system process ID for the exec process.
     #[serde(rename = "Pid")]
     pid: Option<i32>,

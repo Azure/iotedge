@@ -48,16 +48,14 @@ pub struct ContainerConfig {
     /// A list of environment variables to set inside the container in the form `[\"VAR=value\", ...]`. A variable without `=` is removed from the environment, rather than to have an empty value.
     #[serde(rename = "Env")]
     env: Option<Vec<String>>,
-    #[serde(rename = "Healthcheck")]
-    healthcheck: Option<::models::HealthConfig>,
+    #[serde(rename = "Healthcheck")] healthcheck: Option<::models::HealthConfig>,
     /// Command is already escaped (Windows only)
     #[serde(rename = "ArgsEscaped")]
     args_escaped: Option<bool>,
     /// The name of the image to use when creating the container
     #[serde(rename = "Image")]
     image: Option<String>,
-    #[serde(rename = "Volumes")]
-    volumes: Option<::models::ContainerConfigVolumes>,
+    #[serde(rename = "Volumes")] volumes: Option<::models::ContainerConfigVolumes>,
     /// The working directory for commands to run in.
     #[serde(rename = "WorkingDir")]
     working_dir: Option<String>,

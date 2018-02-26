@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EndpointPortConfig {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Protocol")]
-    protocol: Option<String>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "Protocol")] protocol: Option<String>,
     /// The port inside the container.
     #[serde(rename = "TargetPort")]
     target_port: Option<i32>,

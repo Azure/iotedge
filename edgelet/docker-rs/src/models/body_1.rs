@@ -25,8 +25,7 @@ pub struct Body1 {
     /// Force creation of a new swarm.
     #[serde(rename = "ForceNewCluster")]
     force_new_cluster: Option<bool>,
-    #[serde(rename = "Spec")]
-    spec: Option<::models::SwarmSpec>,
+    #[serde(rename = "Spec")] spec: Option<::models::SwarmSpec>,
 }
 
 impl Body1 {

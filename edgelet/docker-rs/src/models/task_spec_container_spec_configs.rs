@@ -13,8 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecConfigs {
-    #[serde(rename = "File")]
-    file: Option<::models::TaskSpecContainerSpecFile1>,
+    #[serde(rename = "File")] file: Option<::models::TaskSpecContainerSpecFile1>,
     /// ConfigID represents the ID of the specific config that we're referencing.
     #[serde(rename = "ConfigID")]
     config_id: Option<String>,

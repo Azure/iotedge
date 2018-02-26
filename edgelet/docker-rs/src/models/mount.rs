@@ -28,12 +28,9 @@ pub struct Mount {
     /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
     #[serde(rename = "Consistency")]
     consistency: Option<String>,
-    #[serde(rename = "BindOptions")]
-    bind_options: Option<::models::MountBindOptions>,
-    #[serde(rename = "VolumeOptions")]
-    volume_options: Option<::models::MountVolumeOptions>,
-    #[serde(rename = "TmpfsOptions")]
-    tmpfs_options: Option<::models::MountTmpfsOptions>,
+    #[serde(rename = "BindOptions")] bind_options: Option<::models::MountBindOptions>,
+    #[serde(rename = "VolumeOptions")] volume_options: Option<::models::MountVolumeOptions>,
+    #[serde(rename = "TmpfsOptions")] tmpfs_options: Option<::models::MountTmpfsOptions>,
 }
 
 impl Mount {

@@ -13,8 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2003 {
-    #[serde(rename = "Warnings")]
-    warnings: Option<Vec<String>>,
+    #[serde(rename = "Warnings")] warnings: Option<Vec<String>>,
 }
 
 impl InlineResponse2003 {

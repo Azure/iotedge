@@ -13,16 +13,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Secret {
-    #[serde(rename = "ID")]
-    ID: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt")]
-    created_at: Option<String>,
-    #[serde(rename = "UpdatedAt")]
-    updated_at: Option<String>,
-    #[serde(rename = "Spec")]
-    spec: Option<::models::SecretSpec>,
+    #[serde(rename = "ID")] ID: Option<String>,
+    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
+    #[serde(rename = "CreatedAt")] created_at: Option<String>,
+    #[serde(rename = "UpdatedAt")] updated_at: Option<String>,
+    #[serde(rename = "Spec")] spec: Option<::models::SecretSpec>,
 }
 
 impl Secret {

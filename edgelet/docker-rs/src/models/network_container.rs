@@ -13,16 +13,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NetworkContainer {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "EndpointID")]
-    endpoint_id: Option<String>,
-    #[serde(rename = "MacAddress")]
-    mac_address: Option<String>,
-    #[serde(rename = "IPv4Address")]
-    i_pv4_address: Option<String>,
-    #[serde(rename = "IPv6Address")]
-    i_pv6_address: Option<String>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "EndpointID")] endpoint_id: Option<String>,
+    #[serde(rename = "MacAddress")] mac_address: Option<String>,
+    #[serde(rename = "IPv4Address")] i_pv4_address: Option<String>,
+    #[serde(rename = "IPv6Address")] i_pv6_address: Option<String>,
 }
 
 impl NetworkContainer {

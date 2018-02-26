@@ -13,24 +13,18 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
-    #[serde(rename = "ID")]
-    ID: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<::models::ObjectVersion>,
+    #[serde(rename = "ID")] ID: Option<String>,
+    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
     /// Date and time at which the node was added to the swarm in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
     #[serde(rename = "CreatedAt")]
     created_at: Option<String>,
     /// Date and time at which the node was last updated in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
     #[serde(rename = "UpdatedAt")]
     updated_at: Option<String>,
-    #[serde(rename = "Spec")]
-    spec: Option<::models::NodeSpec>,
-    #[serde(rename = "Description")]
-    description: Option<::models::NodeDescription>,
-    #[serde(rename = "Status")]
-    status: Option<::models::NodeStatus>,
-    #[serde(rename = "ManagerStatus")]
-    manager_status: Option<::models::ManagerStatus>,
+    #[serde(rename = "Spec")] spec: Option<::models::NodeSpec>,
+    #[serde(rename = "Description")] description: Option<::models::NodeDescription>,
+    #[serde(rename = "Status")] status: Option<::models::NodeStatus>,
+    #[serde(rename = "ManagerStatus")] manager_status: Option<::models::ManagerStatus>,
 }
 
 impl Node {

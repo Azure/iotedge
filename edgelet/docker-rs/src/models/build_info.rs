@@ -13,20 +13,13 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildInfo {
-    #[serde(rename = "id")]
-    id: Option<String>,
-    #[serde(rename = "stream")]
-    stream: Option<String>,
-    #[serde(rename = "error")]
-    error: Option<String>,
-    #[serde(rename = "errorDetail")]
-    error_detail: Option<::models::ErrorDetail>,
-    #[serde(rename = "status")]
-    status: Option<String>,
-    #[serde(rename = "progress")]
-    progress: Option<String>,
-    #[serde(rename = "progressDetail")]
-    progress_detail: Option<::models::ProgressDetail>,
+    #[serde(rename = "id")] id: Option<String>,
+    #[serde(rename = "stream")] stream: Option<String>,
+    #[serde(rename = "error")] error: Option<String>,
+    #[serde(rename = "errorDetail")] error_detail: Option<::models::ErrorDetail>,
+    #[serde(rename = "status")] status: Option<String>,
+    #[serde(rename = "progress")] progress: Option<String>,
+    #[serde(rename = "progressDetail")] progress_detail: Option<::models::ProgressDetail>,
 }
 
 impl BuildInfo {

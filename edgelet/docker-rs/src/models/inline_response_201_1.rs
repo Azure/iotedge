@@ -16,8 +16,7 @@ pub struct InlineResponse2011 {
     /// The ID of the created network.
     #[serde(rename = "Id")]
     id: Option<String>,
-    #[serde(rename = "Warning")]
-    warning: Option<String>,
+    #[serde(rename = "Warning")] warning: Option<String>,
 }
 
 impl InlineResponse2011 {

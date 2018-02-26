@@ -45,12 +45,12 @@ Cargo supports a formatting tool to automatically format the source code.
 
 Install it with:
 ```
-rustup component add rustfmt-preview --toolchain=nightly
+rustup component add rustfmt-preview
 ```
 
 Run it with:
 ```
-cargo +nightly fmt --all
+cargo fmt --all
 ```
 
 By default, this will update the source files with newly formatted source files. Cargo fmt is also run as a checkin

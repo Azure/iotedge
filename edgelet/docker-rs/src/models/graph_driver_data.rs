@@ -15,10 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GraphDriverData {
-    #[serde(rename = "Name")]
-    name: String,
-    #[serde(rename = "Data")]
-    data: ::std::collections::HashMap<String, String>,
+    #[serde(rename = "Name")] name: String,
+    #[serde(rename = "Data")] data: ::std::collections::HashMap<String, String>,
 }
 
 impl GraphDriverData {

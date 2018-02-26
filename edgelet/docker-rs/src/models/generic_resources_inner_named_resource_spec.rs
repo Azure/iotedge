@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenericResourcesInnerNamedResourceSpec {
-    #[serde(rename = "Kind")]
-    kind: Option<String>,
-    #[serde(rename = "Value")]
-    value: Option<String>,
+    #[serde(rename = "Kind")] kind: Option<String>,
+    #[serde(rename = "Value")] value: Option<String>,
 }
 
 impl GenericResourcesInnerNamedResourceSpec {

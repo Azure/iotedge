@@ -15,10 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ManagerStatus {
-    #[serde(rename = "Leader")]
-    leader: Option<bool>,
-    #[serde(rename = "Reachability")]
-    reachability: Option<::models::Reachability>,
+    #[serde(rename = "Leader")] leader: Option<bool>,
+    #[serde(rename = "Reachability")] reachability: Option<::models::Reachability>,
     /// The IP address and port at which the manager is reachable.
     #[serde(rename = "Addr")]
     addr: Option<String>,

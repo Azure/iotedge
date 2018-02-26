@@ -42,8 +42,7 @@ pub struct TaskSpecContainerSpec {
     /// A list of additional groups that the container process will run as.
     #[serde(rename = "Groups")]
     groups: Option<Vec<String>>,
-    #[serde(rename = "Privileges")]
-    privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
+    #[serde(rename = "Privileges")] privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
     /// Whether a pseudo-TTY should be allocated.
     #[serde(rename = "TTY")]
     TTY: Option<bool>,
@@ -62,13 +61,11 @@ pub struct TaskSpecContainerSpec {
     /// Amount of time to wait for the container to terminate before forcefully killing it.
     #[serde(rename = "StopGracePeriod")]
     stop_grace_period: Option<i64>,
-    #[serde(rename = "HealthCheck")]
-    health_check: Option<::models::HealthConfig>,
+    #[serde(rename = "HealthCheck")] health_check: Option<::models::HealthConfig>,
     /// A list of hostname/IP mappings to add to the container's `hosts` file. The format of extra hosts is specified in the [hosts(5)](http://man7.org/linux/man-pages/man5/hosts.5.html) man page:      IP_address canonical_hostname [aliases...]
     #[serde(rename = "Hosts")]
     hosts: Option<Vec<String>>,
-    #[serde(rename = "DNSConfig")]
-    dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
+    #[serde(rename = "DNSConfig")] dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
     /// Secrets contains references to zero or more secrets that will be exposed to the service.
     #[serde(rename = "Secrets")]
     secrets: Option<Vec<::models::TaskSpecContainerSpecSecrets>>,

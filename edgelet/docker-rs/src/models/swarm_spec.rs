@@ -21,18 +21,13 @@ pub struct SwarmSpec {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Orchestration")]
-    orchestration: Option<::models::SwarmSpecOrchestration>,
-    #[serde(rename = "Raft")]
-    raft: Option<::models::SwarmSpecRaft>,
-    #[serde(rename = "Dispatcher")]
-    dispatcher: Option<::models::SwarmSpecDispatcher>,
-    #[serde(rename = "CAConfig")]
-    ca_config: Option<::models::SwarmSpecCaConfig>,
+    #[serde(rename = "Orchestration")] orchestration: Option<::models::SwarmSpecOrchestration>,
+    #[serde(rename = "Raft")] raft: Option<::models::SwarmSpecRaft>,
+    #[serde(rename = "Dispatcher")] dispatcher: Option<::models::SwarmSpecDispatcher>,
+    #[serde(rename = "CAConfig")] ca_config: Option<::models::SwarmSpecCaConfig>,
     #[serde(rename = "EncryptionConfig")]
     encryption_config: Option<::models::SwarmSpecEncryptionConfig>,
-    #[serde(rename = "TaskDefaults")]
-    task_defaults: Option<::models::SwarmSpecTaskDefaults>,
+    #[serde(rename = "TaskDefaults")] task_defaults: Option<::models::SwarmSpecTaskDefaults>,
 }
 
 impl SwarmSpec {

@@ -30,8 +30,7 @@ pub struct NetworkSettings {
     /// Prefix length of the IPv6 unicast address.
     #[serde(rename = "LinkLocalIPv6PrefixLen")]
     link_local_i_pv6_prefix_len: Option<i32>,
-    #[serde(rename = "Ports")]
-    ports: Option<::models::PortMap>,
+    #[serde(rename = "Ports")] ports: Option<::models::PortMap>,
     /// SandboxKey identifies the sandbox
     #[serde(rename = "SandboxKey")]
     sandbox_key: Option<String>,

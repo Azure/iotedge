@@ -15,10 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecMode {
-    #[serde(rename = "Replicated")]
-    replicated: Option<::models::ServiceSpecModeReplicated>,
-    #[serde(rename = "Global")]
-    global: Option<Value>,
+    #[serde(rename = "Replicated")] replicated: Option<::models::ServiceSpecModeReplicated>,
+    #[serde(rename = "Global")] global: Option<Value>,
 }
 
 impl ServiceSpecMode {

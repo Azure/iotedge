@@ -13,16 +13,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2008 {
-    #[serde(rename = "description")]
-    description: Option<String>,
-    #[serde(rename = "is_official")]
-    is_official: Option<bool>,
-    #[serde(rename = "is_automated")]
-    is_automated: Option<bool>,
-    #[serde(rename = "name")]
-    name: Option<String>,
-    #[serde(rename = "star_count")]
-    star_count: Option<i32>,
+    #[serde(rename = "description")] description: Option<String>,
+    #[serde(rename = "is_official")] is_official: Option<bool>,
+    #[serde(rename = "is_automated")] is_automated: Option<bool>,
+    #[serde(rename = "name")] name: Option<String>,
+    #[serde(rename = "star_count")] star_count: Option<i32>,
 }
 
 impl InlineResponse2008 {

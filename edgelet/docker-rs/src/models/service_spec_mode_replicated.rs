@@ -13,8 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecModeReplicated {
-    #[serde(rename = "Replicas")]
-    replicas: Option<i64>,
+    #[serde(rename = "Replicas")] replicas: Option<i64>,
 }
 
 impl ServiceSpecModeReplicated {

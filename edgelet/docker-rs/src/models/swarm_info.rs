@@ -21,12 +21,9 @@ pub struct SwarmInfo {
     /// IP address at which this node can be reached by other nodes in the swarm.
     #[serde(rename = "NodeAddr")]
     node_addr: Option<String>,
-    #[serde(rename = "LocalNodeState")]
-    local_node_state: Option<::models::LocalNodeState>,
-    #[serde(rename = "ControlAvailable")]
-    control_available: Option<bool>,
-    #[serde(rename = "Error")]
-    error: Option<String>,
+    #[serde(rename = "LocalNodeState")] local_node_state: Option<::models::LocalNodeState>,
+    #[serde(rename = "ControlAvailable")] control_available: Option<bool>,
+    #[serde(rename = "Error")] error: Option<String>,
     /// List of ID's and addresses of other managers in the swarm.
     #[serde(rename = "RemoteManagers")]
     remote_managers: Option<Vec<::models::PeerNode>>,
@@ -36,8 +33,7 @@ pub struct SwarmInfo {
     /// Total number of managers in the swarm.
     #[serde(rename = "Managers")]
     managers: Option<i32>,
-    #[serde(rename = "Cluster")]
-    cluster: Option<::models::ClusterInfo>,
+    #[serde(rename = "Cluster")] cluster: Option<::models::ClusterInfo>,
 }
 
 impl SwarmInfo {

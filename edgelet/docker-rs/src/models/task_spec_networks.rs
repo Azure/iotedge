@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecNetworks {
-    #[serde(rename = "Target")]
-    target: Option<String>,
-    #[serde(rename = "Aliases")]
-    aliases: Option<Vec<String>>,
+    #[serde(rename = "Target")] target: Option<String>,
+    #[serde(rename = "Aliases")] aliases: Option<Vec<String>>,
 }
 
 impl TaskSpecNetworks {

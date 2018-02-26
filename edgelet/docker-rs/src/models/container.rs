@@ -16,8 +16,7 @@ pub struct Container {
     /// The ID or name of the container to connect to the network.
     #[serde(rename = "Container")]
     container: Option<String>,
-    #[serde(rename = "EndpointConfig")]
-    endpoint_config: Option<::models::EndpointSettings>,
+    #[serde(rename = "EndpointConfig")] endpoint_config: Option<::models::EndpointSettings>,
 }
 
 impl Container {

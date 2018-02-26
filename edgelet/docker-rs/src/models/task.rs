@@ -16,34 +16,27 @@ pub struct Task {
     /// The ID of the task.
     #[serde(rename = "ID")]
     ID: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt")]
-    created_at: Option<String>,
-    #[serde(rename = "UpdatedAt")]
-    updated_at: Option<String>,
+    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
+    #[serde(rename = "CreatedAt")] created_at: Option<String>,
+    #[serde(rename = "UpdatedAt")] updated_at: Option<String>,
     /// Name of the task.
     #[serde(rename = "Name")]
     name: Option<String>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Spec")]
-    spec: Option<::models::TaskSpec>,
+    #[serde(rename = "Spec")] spec: Option<::models::TaskSpec>,
     /// The ID of the service this task is part of.
     #[serde(rename = "ServiceID")]
     service_id: Option<String>,
-    #[serde(rename = "Slot")]
-    slot: Option<i32>,
+    #[serde(rename = "Slot")] slot: Option<i32>,
     /// The ID of the node that this task is on.
     #[serde(rename = "NodeID")]
     node_id: Option<String>,
     #[serde(rename = "AssignedGenericResources")]
     assigned_generic_resources: Option<::models::GenericResources>,
-    #[serde(rename = "Status")]
-    status: Option<::models::TaskStatus>,
-    #[serde(rename = "DesiredState")]
-    desired_state: Option<::models::TaskState>,
+    #[serde(rename = "Status")] status: Option<::models::TaskStatus>,
+    #[serde(rename = "DesiredState")] desired_state: Option<::models::TaskState>,
 }
 
 impl Task {

@@ -37,8 +37,7 @@ pub struct Volume {
     /// The driver specific options used when creating the volume.
     #[serde(rename = "Options")]
     options: ::std::collections::HashMap<String, String>,
-    #[serde(rename = "UsageData")]
-    usage_data: Option<::models::VolumeUsageData>,
+    #[serde(rename = "UsageData")] usage_data: Option<::models::VolumeUsageData>,
 }
 
 impl Volume {

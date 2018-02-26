@@ -13,32 +13,20 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Id")]
-    id: Option<String>,
-    #[serde(rename = "Created")]
-    created: Option<String>,
-    #[serde(rename = "Scope")]
-    scope: Option<String>,
-    #[serde(rename = "Driver")]
-    driver: Option<String>,
-    #[serde(rename = "EnableIPv6")]
-    enable_i_pv6: Option<bool>,
-    #[serde(rename = "IPAM")]
-    IPAM: Option<::models::Ipam>,
-    #[serde(rename = "Internal")]
-    internal: Option<bool>,
-    #[serde(rename = "Attachable")]
-    attachable: Option<bool>,
-    #[serde(rename = "Ingress")]
-    ingress: Option<bool>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "Id")] id: Option<String>,
+    #[serde(rename = "Created")] created: Option<String>,
+    #[serde(rename = "Scope")] scope: Option<String>,
+    #[serde(rename = "Driver")] driver: Option<String>,
+    #[serde(rename = "EnableIPv6")] enable_i_pv6: Option<bool>,
+    #[serde(rename = "IPAM")] IPAM: Option<::models::Ipam>,
+    #[serde(rename = "Internal")] internal: Option<bool>,
+    #[serde(rename = "Attachable")] attachable: Option<bool>,
+    #[serde(rename = "Ingress")] ingress: Option<bool>,
     #[serde(rename = "Containers")]
     containers: Option<::std::collections::HashMap<String, ::models::NetworkContainer>>,
-    #[serde(rename = "Options")]
-    options: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Labels")]
-    labels: Option<::std::collections::HashMap<String, String>>,
+    #[serde(rename = "Options")] options: Option<::std::collections::HashMap<String, String>>,
+    #[serde(rename = "Labels")] labels: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl Network {

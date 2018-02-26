@@ -103,8 +103,7 @@ pub struct ContainerUpdateUpdate {
     /// Maximum IO in bytes per second for the container system drive (Windows only)
     #[serde(rename = "IOMaximumBandwidth")]
     io_maximum_bandwidth: Option<i64>,
-    #[serde(rename = "RestartPolicy")]
-    restart_policy: Option<::models::RestartPolicy>,
+    #[serde(rename = "RestartPolicy")] restart_policy: Option<::models::RestartPolicy>,
 }
 
 impl ContainerUpdateUpdate {

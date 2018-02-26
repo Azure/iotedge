@@ -15,12 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Body {
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Description")]
-    description: Option<String>,
-    #[serde(rename = "Value")]
-    value: Option<Vec<String>>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "Description")] description: Option<String>,
+    #[serde(rename = "Value")] value: Option<Vec<String>>,
 }
 
 impl Body {

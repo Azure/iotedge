@@ -15,22 +15,14 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MountPoint {
-    #[serde(rename = "Type")]
-    _type: Option<String>,
-    #[serde(rename = "Name")]
-    name: Option<String>,
-    #[serde(rename = "Source")]
-    source: Option<String>,
-    #[serde(rename = "Destination")]
-    destination: Option<String>,
-    #[serde(rename = "Driver")]
-    driver: Option<String>,
-    #[serde(rename = "Mode")]
-    mode: Option<String>,
-    #[serde(rename = "RW")]
-    RW: Option<bool>,
-    #[serde(rename = "Propagation")]
-    propagation: Option<String>,
+    #[serde(rename = "Type")] _type: Option<String>,
+    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "Source")] source: Option<String>,
+    #[serde(rename = "Destination")] destination: Option<String>,
+    #[serde(rename = "Driver")] driver: Option<String>,
+    #[serde(rename = "Mode")] mode: Option<String>,
+    #[serde(rename = "RW")] RW: Option<bool>,
+    #[serde(rename = "Propagation")] propagation: Option<String>,
 }
 
 impl MountPoint {

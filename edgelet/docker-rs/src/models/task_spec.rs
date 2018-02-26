@@ -15,26 +15,19 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpec {
-    #[serde(rename = "PluginSpec")]
-    plugin_spec: Option<::models::TaskSpecPluginSpec>,
-    #[serde(rename = "ContainerSpec")]
-    container_spec: Option<::models::TaskSpecContainerSpec>,
-    #[serde(rename = "Resources")]
-    resources: Option<::models::TaskSpecResources>,
-    #[serde(rename = "RestartPolicy")]
-    restart_policy: Option<::models::TaskSpecRestartPolicy>,
-    #[serde(rename = "Placement")]
-    placement: Option<::models::TaskSpecPlacement>,
+    #[serde(rename = "PluginSpec")] plugin_spec: Option<::models::TaskSpecPluginSpec>,
+    #[serde(rename = "ContainerSpec")] container_spec: Option<::models::TaskSpecContainerSpec>,
+    #[serde(rename = "Resources")] resources: Option<::models::TaskSpecResources>,
+    #[serde(rename = "RestartPolicy")] restart_policy: Option<::models::TaskSpecRestartPolicy>,
+    #[serde(rename = "Placement")] placement: Option<::models::TaskSpecPlacement>,
     /// A counter that triggers an update even if no relevant parameters have been changed.
     #[serde(rename = "ForceUpdate")]
     force_update: Option<i32>,
     /// Runtime is the type of runtime specified for the task executor.
     #[serde(rename = "Runtime")]
     runtime: Option<String>,
-    #[serde(rename = "Networks")]
-    networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(rename = "LogDriver")]
-    log_driver: Option<::models::TaskSpecLogDriver>,
+    #[serde(rename = "Networks")] networks: Option<Vec<::models::TaskSpecNetworks>>,
+    #[serde(rename = "LogDriver")] log_driver: Option<::models::TaskSpecLogDriver>,
 }
 
 impl TaskSpec {

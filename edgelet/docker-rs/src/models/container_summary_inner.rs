@@ -49,12 +49,10 @@ pub struct ContainerSummaryInner {
     /// Additional human-readable status of this container (e.g. `Exit 0`)
     #[serde(rename = "Status")]
     status: Option<String>,
-    #[serde(rename = "HostConfig")]
-    host_config: Option<::models::ContainerSummaryInnerHostConfig>,
+    #[serde(rename = "HostConfig")] host_config: Option<::models::ContainerSummaryInnerHostConfig>,
     #[serde(rename = "NetworkSettings")]
     network_settings: Option<::models::ContainerSummaryInnerNetworkSettings>,
-    #[serde(rename = "Mounts")]
-    mounts: Option<Vec<::models::Mount>>,
+    #[serde(rename = "Mounts")] mounts: Option<Vec<::models::Mount>>,
 }
 
 impl ContainerSummaryInner {

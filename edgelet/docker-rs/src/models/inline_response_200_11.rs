@@ -13,26 +13,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20011 {
-    #[serde(rename = "Version")]
-    version: Option<String>,
-    #[serde(rename = "ApiVersion")]
-    api_version: Option<String>,
-    #[serde(rename = "MinAPIVersion")]
-    min_api_version: Option<String>,
-    #[serde(rename = "GitCommit")]
-    git_commit: Option<String>,
-    #[serde(rename = "GoVersion")]
-    go_version: Option<String>,
-    #[serde(rename = "Os")]
-    os: Option<String>,
-    #[serde(rename = "Arch")]
-    arch: Option<String>,
-    #[serde(rename = "KernelVersion")]
-    kernel_version: Option<String>,
-    #[serde(rename = "Experimental")]
-    experimental: Option<bool>,
-    #[serde(rename = "BuildTime")]
-    build_time: Option<String>,
+    #[serde(rename = "Version")] version: Option<String>,
+    #[serde(rename = "ApiVersion")] api_version: Option<String>,
+    #[serde(rename = "MinAPIVersion")] min_api_version: Option<String>,
+    #[serde(rename = "GitCommit")] git_commit: Option<String>,
+    #[serde(rename = "GoVersion")] go_version: Option<String>,
+    #[serde(rename = "Os")] os: Option<String>,
+    #[serde(rename = "Arch")] arch: Option<String>,
+    #[serde(rename = "KernelVersion")] kernel_version: Option<String>,
+    #[serde(rename = "Experimental")] experimental: Option<bool>,
+    #[serde(rename = "BuildTime")] build_time: Option<String>,
 }
 
 impl InlineResponse20011 {

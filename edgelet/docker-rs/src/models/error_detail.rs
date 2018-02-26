@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorDetail {
-    #[serde(rename = "code")]
-    code: Option<i32>,
-    #[serde(rename = "message")]
-    message: Option<String>,
+    #[serde(rename = "code")] code: Option<i32>,
+    #[serde(rename = "message")] message: Option<String>,
 }
 
 impl ErrorDetail {

@@ -13,16 +13,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessConfig {
-    #[serde(rename = "privileged")]
-    privileged: Option<bool>,
-    #[serde(rename = "user")]
-    user: Option<String>,
-    #[serde(rename = "tty")]
-    tty: Option<bool>,
-    #[serde(rename = "entrypoint")]
-    entrypoint: Option<String>,
-    #[serde(rename = "arguments")]
-    arguments: Option<Vec<String>>,
+    #[serde(rename = "privileged")] privileged: Option<bool>,
+    #[serde(rename = "user")] user: Option<String>,
+    #[serde(rename = "tty")] tty: Option<bool>,
+    #[serde(rename = "entrypoint")] entrypoint: Option<String>,
+    #[serde(rename = "arguments")] arguments: Option<Vec<String>>,
 }
 
 impl ProcessConfig {

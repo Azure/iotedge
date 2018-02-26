@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProgressDetail {
-    #[serde(rename = "code")]
-    code: Option<i32>,
-    #[serde(rename = "message")]
-    message: Option<i32>,
+    #[serde(rename = "code")] code: Option<i32>,
+    #[serde(rename = "message")] message: Option<i32>,
 }
 
 impl ProgressDetail {

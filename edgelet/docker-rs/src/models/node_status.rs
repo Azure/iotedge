@@ -15,10 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeStatus {
-    #[serde(rename = "State")]
-    state: Option<::models::NodeState>,
-    #[serde(rename = "Message")]
-    message: Option<String>,
+    #[serde(rename = "State")] state: Option<::models::NodeState>,
+    #[serde(rename = "Message")] message: Option<String>,
     /// IP address of the node.
     #[serde(rename = "Addr")]
     addr: Option<String>,

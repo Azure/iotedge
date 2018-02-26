@@ -13,12 +13,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginInterfaceType {
-    #[serde(rename = "Prefix")]
-    prefix: String,
-    #[serde(rename = "Capability")]
-    capability: String,
-    #[serde(rename = "Version")]
-    version: String,
+    #[serde(rename = "Prefix")] prefix: String,
+    #[serde(rename = "Capability")] capability: String,
+    #[serde(rename = "Version")] version: String,
 }
 
 impl PluginInterfaceType {

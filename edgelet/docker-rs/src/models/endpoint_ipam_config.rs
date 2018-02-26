@@ -15,12 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EndpointIpamConfig {
-    #[serde(rename = "IPv4Address")]
-    i_pv4_address: Option<String>,
-    #[serde(rename = "IPv6Address")]
-    i_pv6_address: Option<String>,
-    #[serde(rename = "LinkLocalIPs")]
-    link_local_i_ps: Option<Vec<String>>,
+    #[serde(rename = "IPv4Address")] i_pv4_address: Option<String>,
+    #[serde(rename = "IPv6Address")] i_pv6_address: Option<String>,
+    #[serde(rename = "LinkLocalIPs")] link_local_i_ps: Option<Vec<String>>,
 }
 
 impl EndpointIpamConfig {

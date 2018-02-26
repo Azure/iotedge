@@ -15,12 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceMapping {
-    #[serde(rename = "PathOnHost")]
-    path_on_host: Option<String>,
-    #[serde(rename = "PathInContainer")]
-    path_in_container: Option<String>,
-    #[serde(rename = "CgroupPermissions")]
-    cgroup_permissions: Option<String>,
+    #[serde(rename = "PathOnHost")] path_on_host: Option<String>,
+    #[serde(rename = "PathInContainer")] path_in_container: Option<String>,
+    #[serde(rename = "CgroupPermissions")] cgroup_permissions: Option<String>,
 }
 
 impl DeviceMapping {

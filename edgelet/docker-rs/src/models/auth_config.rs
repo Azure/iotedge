@@ -13,14 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthConfig {
-    #[serde(rename = "username")]
-    username: Option<String>,
-    #[serde(rename = "password")]
-    password: Option<String>,
-    #[serde(rename = "email")]
-    email: Option<String>,
-    #[serde(rename = "serveraddress")]
-    serveraddress: Option<String>,
+    #[serde(rename = "username")] username: Option<String>,
+    #[serde(rename = "password")] password: Option<String>,
+    #[serde(rename = "email")] email: Option<String>,
+    #[serde(rename = "serveraddress")] serveraddress: Option<String>,
 }
 
 impl AuthConfig {

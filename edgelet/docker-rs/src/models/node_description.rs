@@ -15,16 +15,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeDescription {
-    #[serde(rename = "Hostname")]
-    hostname: Option<String>,
-    #[serde(rename = "Platform")]
-    platform: Option<::models::Platform>,
-    #[serde(rename = "Resources")]
-    resources: Option<::models::ResourceObject>,
-    #[serde(rename = "Engine")]
-    engine: Option<::models::EngineDescription>,
-    #[serde(rename = "TLSInfo")]
-    tls_info: Option<::models::TlsInfo>,
+    #[serde(rename = "Hostname")] hostname: Option<String>,
+    #[serde(rename = "Platform")] platform: Option<::models::Platform>,
+    #[serde(rename = "Resources")] resources: Option<::models::ResourceObject>,
+    #[serde(rename = "Engine")] engine: Option<::models::EngineDescription>,
+    #[serde(rename = "TLSInfo")] tls_info: Option<::models::TlsInfo>,
 }
 
 impl NodeDescription {

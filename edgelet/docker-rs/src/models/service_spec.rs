@@ -21,19 +21,15 @@ pub struct ServiceSpec {
     /// User-defined key/value metadata.
     #[serde(rename = "Labels")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "TaskTemplate")]
-    task_template: Option<::models::TaskSpec>,
-    #[serde(rename = "Mode")]
-    mode: Option<::models::ServiceSpecMode>,
-    #[serde(rename = "UpdateConfig")]
-    update_config: Option<::models::ServiceSpecUpdateConfig>,
+    #[serde(rename = "TaskTemplate")] task_template: Option<::models::TaskSpec>,
+    #[serde(rename = "Mode")] mode: Option<::models::ServiceSpecMode>,
+    #[serde(rename = "UpdateConfig")] update_config: Option<::models::ServiceSpecUpdateConfig>,
     #[serde(rename = "RollbackConfig")]
     rollback_config: Option<::models::ServiceSpecRollbackConfig>,
     /// Array of network names or IDs to attach the service to.
     #[serde(rename = "Networks")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(rename = "EndpointSpec")]
-    endpoint_spec: Option<::models::EndpointSpec>,
+    #[serde(rename = "EndpointSpec")] endpoint_spec: Option<::models::EndpointSpec>,
 }
 
 impl ServiceSpec {

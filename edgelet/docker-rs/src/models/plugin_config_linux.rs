@@ -13,12 +13,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigLinux {
-    #[serde(rename = "Capabilities")]
-    capabilities: Vec<String>,
-    #[serde(rename = "AllowAllDevices")]
-    allow_all_devices: bool,
-    #[serde(rename = "Devices")]
-    devices: Vec<::models::PluginDevice>,
+    #[serde(rename = "Capabilities")] capabilities: Vec<String>,
+    #[serde(rename = "AllowAllDevices")] allow_all_devices: bool,
+    #[serde(rename = "Devices")] devices: Vec<::models::PluginDevice>,
 }
 
 impl PluginConfigLinux {

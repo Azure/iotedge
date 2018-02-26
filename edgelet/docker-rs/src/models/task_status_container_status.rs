@@ -13,12 +13,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskStatusContainerStatus {
-    #[serde(rename = "ContainerID")]
-    container_id: Option<String>,
-    #[serde(rename = "PID")]
-    PID: Option<i32>,
-    #[serde(rename = "ExitCode")]
-    exit_code: Option<i32>,
+    #[serde(rename = "ContainerID")] container_id: Option<String>,
+    #[serde(rename = "PID")] PID: Option<i32>,
+    #[serde(rename = "ExitCode")] exit_code: Option<i32>,
 }
 
 impl TaskStatusContainerStatus {

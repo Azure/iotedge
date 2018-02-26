@@ -15,20 +15,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Plugin {
-    #[serde(rename = "Id")]
-    id: Option<String>,
-    #[serde(rename = "Name")]
-    name: String,
+    #[serde(rename = "Id")] id: Option<String>,
+    #[serde(rename = "Name")] name: String,
     /// True if the plugin is running. False if the plugin is not running, only installed.
     #[serde(rename = "Enabled")]
     enabled: bool,
-    #[serde(rename = "Settings")]
-    settings: ::models::PluginSettings,
+    #[serde(rename = "Settings")] settings: ::models::PluginSettings,
     /// plugin remote reference used to push/pull the plugin
     #[serde(rename = "PluginReference")]
     plugin_reference: Option<String>,
-    #[serde(rename = "Config")]
-    config: ::models::PluginConfig,
+    #[serde(rename = "Config")] config: ::models::PluginConfig,
 }
 
 impl Plugin {

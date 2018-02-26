@@ -12,10 +12,11 @@ set -e
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
 
+SCRIPT_NAME=$(basename "$0")
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
-SCRIPT_NAME=$(basename "$0")
-IMAGE="edgebuilds.azurecr.io/cargo-fmt:nightly"
+RUSTUP="$HOME/.cargo/bin/rustup"
+CARGO="$HOME/.cargo/bin/cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -26,7 +27,6 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -i, --image         Docker image to run (default: $IMAGE)"
     exit 1;
 }
 
@@ -45,12 +45,10 @@ process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            IMAGE="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-i" | "--image" ) save_next_arg=1;;
                 * ) usage;;
             esac
         fi
@@ -59,5 +57,10 @@ process_args()
 
 process_args "$@"
 
+echo "Installing rustfmt"
+echo "$RUSTUP component add rustfmt-preview"
+$RUSTUP component add rustfmt-preview
+
 echo "Running cargo fmt"
-docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
+echo "cd $PROJECT_ROOT && $CARGO fmt --all -- --write-mode=diff"
+cd $PROJECT_ROOT && $CARGO fmt --all -- --write-mode=diff

@@ -13,20 +13,13 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Service {
-    #[serde(rename = "ID")]
-    ID: Option<String>,
-    #[serde(rename = "Version")]
-    version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt")]
-    created_at: Option<String>,
-    #[serde(rename = "UpdatedAt")]
-    updated_at: Option<String>,
-    #[serde(rename = "Spec")]
-    spec: Option<::models::ServiceSpec>,
-    #[serde(rename = "Endpoint")]
-    endpoint: Option<::models::ServiceEndpoint>,
-    #[serde(rename = "UpdateStatus")]
-    update_status: Option<::models::ServiceUpdateStatus>,
+    #[serde(rename = "ID")] ID: Option<String>,
+    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
+    #[serde(rename = "CreatedAt")] created_at: Option<String>,
+    #[serde(rename = "UpdatedAt")] updated_at: Option<String>,
+    #[serde(rename = "Spec")] spec: Option<::models::ServiceSpec>,
+    #[serde(rename = "Endpoint")] endpoint: Option<::models::ServiceEndpoint>,
+    #[serde(rename = "UpdateStatus")] update_status: Option<::models::ServiceUpdateStatus>,
 }
 
 impl Service {

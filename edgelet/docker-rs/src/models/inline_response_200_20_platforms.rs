@@ -13,18 +13,12 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20020Platforms {
-    #[serde(rename = "Architecture")]
-    architecture: Option<String>,
-    #[serde(rename = "OS")]
-    OS: Option<String>,
-    #[serde(rename = "OSVersion")]
-    os_version: Option<String>,
-    #[serde(rename = "OSFeatures")]
-    os_features: Option<Vec<String>>,
-    #[serde(rename = "Variant")]
-    variant: Option<String>,
-    #[serde(rename = "Features")]
-    features: Option<Vec<String>>,
+    #[serde(rename = "Architecture")] architecture: Option<String>,
+    #[serde(rename = "OS")] OS: Option<String>,
+    #[serde(rename = "OSVersion")] os_version: Option<String>,
+    #[serde(rename = "OSFeatures")] os_features: Option<Vec<String>>,
+    #[serde(rename = "Variant")] variant: Option<String>,
+    #[serde(rename = "Features")] features: Option<Vec<String>>,
 }
 
 impl InlineResponse20020Platforms {

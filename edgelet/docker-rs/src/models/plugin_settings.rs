@@ -15,14 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginSettings {
-    #[serde(rename = "Mounts")]
-    mounts: Vec<::models::PluginMount>,
-    #[serde(rename = "Env")]
-    env: Vec<String>,
-    #[serde(rename = "Args")]
-    args: Vec<String>,
-    #[serde(rename = "Devices")]
-    devices: Vec<::models::PluginDevice>,
+    #[serde(rename = "Mounts")] mounts: Vec<::models::PluginMount>,
+    #[serde(rename = "Env")] env: Vec<String>,
+    #[serde(rename = "Args")] args: Vec<String>,
+    #[serde(rename = "Devices")] devices: Vec<::models::PluginDevice>,
 }
 
 impl PluginSettings {

@@ -13,10 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceEndpointVirtualIPs {
-    #[serde(rename = "NetworkID")]
-    network_id: Option<String>,
-    #[serde(rename = "Addr")]
-    addr: Option<String>,
+    #[serde(rename = "NetworkID")] network_id: Option<String>,
+    #[serde(rename = "Addr")] addr: Option<String>,
 }
 
 impl ServiceEndpointVirtualIPs {
