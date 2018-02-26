@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
             return RunProcessAsync(
                 "iotedgectl",
-                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs}",
+                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --edge-hostname SimulatedEdgeDevice",
                 60);
         }
 
