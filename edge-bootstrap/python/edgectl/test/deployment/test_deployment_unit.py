@@ -1263,15 +1263,15 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
                                 mock_client.pull.assert_not_called()
 
                             mock_client.create.assert_called_with('testServer0/testImage:testTag',
-                                                                  EDGE_AGENT_DOCKER_CONTAINER_NAME,
-                                                                  True,
-                                                                  env_dict,
-                                                                  self.NETWORK_NAME,
-                                                                  port_mapping_dict,
-                                                                  self.HOST_VOLUME_DICT[engine_os][volume_key],
-                                                                  self.DOCKER_LOG_CONFIG_DICT,
-                                                                  self.HOST_MOUNTS_LIST_DICT[engine_os][volume_key],
-                                                                  self.RESTART_POLICY_DICT)
+                                                                  name=EDGE_AGENT_DOCKER_CONTAINER_NAME,
+                                                                  detach=True,
+                                                                  environment=env_dict,
+                                                                  network=self.NETWORK_NAME,
+                                                                  ports=port_mapping_dict,
+                                                                  volumes=self.HOST_VOLUME_DICT[engine_os][volume_key],
+                                                                  log_config=self.DOCKER_LOG_CONFIG_DICT,
+                                                                  mounts=self.HOST_MOUNTS_LIST_DICT[engine_os][volume_key],
+                                                                  restart_policy=self.RESTART_POLICY_DICT)
                             mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
 class TestEdgeCommandFactory(unittest.TestCase):

@@ -17,7 +17,7 @@ echo Docker engine OS type: %OS_TYPE%
 REM Note: python 2.x tests are disabled for Windows because of no embedded python distribution
 REM is available for installation in a nanoserver image. For python 2.x images there is a public
 REM windowsservercore image available which is 6GB and has proven to be flaky to download and run.
-if OS_TYPE == 'linux' (
+if "%OS_TYPE%" == "linux" (
     echo.
     echo ###########################################################################################
     echo Building python 2.7.14 image...
@@ -33,7 +33,7 @@ echo ###########################################################################
 docker build -t iotedgectl_py3 --file %EXE_DIR%\docker\python3\%OS_TYPE%\Dockerfile %EXE_DIR%
 if !ERRORLEVEL! NEQ 0 goto test_error
 
-if OS_TYPE == 'linux' (
+if "%OS_TYPE%" == "linux" (
     echo.
     echo ###########################################################################################
     echo Executing 2.x Tests...
@@ -53,7 +53,7 @@ echo.
 echo #############################################################################################
 echo Cleanup test images
 echo #############################################################################################
-if OS_TYPE == 'linux' (
+if "%OS_TYPE%" == "linux" (
     docker rmi iotedgectl_py2
     if !ERRORLEVEL! NEQ 0 goto test_error
 )

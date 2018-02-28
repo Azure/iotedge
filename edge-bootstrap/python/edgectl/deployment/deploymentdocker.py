@@ -68,8 +68,7 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
             return '/{0}'.format(self._EDGE_VOL_MOUNT_BASE)
         elif os_type == 'windows':
             return 'c:/{0}'.format(self._EDGE_VOL_MOUNT_BASE)
-        else:
-            return None  
+        return None
 
     def _recreate_agent_container(self, pull_latest_image):
         container_name = self._edge_runtime_container_name
@@ -251,7 +250,8 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         env_dict['NetworkId'] = nw_name
         env_dict['RuntimeLogLevel'] = edge_config.log_level
 
-        if edge_config.upstream_protocol is not None and edge_config.upstream_protocol != EdgeUpstreamProtocol.NONE:
+        if edge_config.upstream_protocol is not None and \
+            edge_config.upstream_protocol != EdgeUpstreamProtocol.NONE:
             env_dict['UpstreamProtocol'] = edge_config.upstream_protocol.value
         else:
             env_dict['UpstreamProtocol'] = ''
@@ -262,9 +262,16 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         self._setup_docker_uri_endpoint(ports_dict, volume_dict, mounts_list)
         image = edge_config.deployment_config.edge_image
         container_name = self._edge_runtime_container_name
-        self._client.create(image, container_name, True, env_dict, nw_name,
-                            ports_dict, volume_dict, log_config_dict,
-                            mounts_list, restart_policy_dict)
+        self._client.create(image,
+                            name=container_name,
+                            detach=True,
+                            environment=env_dict,
+                            network=nw_name,
+                            ports=ports_dict,
+                            volumes=volume_dict,
+                            log_config=log_config_dict,
+                            mounts=mounts_list,
+                            restart_policy=restart_policy_dict)
         self._mount_certificates_into_agent_container()
 
     def login(self):
