@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -34,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateTestAsync()
         {
+            RocksDbOptionsProvider options = new RocksDbOptionsProvider(new SystemEnvironment());
+
             var partitionsList1 = new[]
             {
                 "Partition1",
@@ -41,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
                 "Partition3",
             };
 
-            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(this.rocksDbFolder, partitionsList1))
+            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, partitionsList1))
             {
                 Assert.NotNull(rocksDbStoreProvider);
             }
@@ -52,14 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
                 "Partition4"
             };
 
-            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(this.rocksDbFolder, partitionsList2))
+            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, partitionsList2))
             {
                 Assert.NotNull(rocksDbStoreProvider);
             }
 
             var partitionsList3 = new string[0];
 
-            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(this.rocksDbFolder, partitionsList3))
+            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, partitionsList3))
             {
                 Assert.NotNull(rocksDbStoreProvider);
             }

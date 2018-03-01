@@ -15,14 +15,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     {
         const string DefaultPartitionName = "default";
         static readonly TimeSpan CompactionPeriod = TimeSpan.FromHours(2);
+        readonly IRocksDbOptionsProvider optionsProvider;
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
 
         readonly Timer compactionTimer; //TODO: Bug logged to be fixed to proper dispose and test. 
 
-        DbStoreProvider(IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
+        DbStoreProvider(IRocksDbOptionsProvider optionsProvider, IRocksDb db, IDictionary<string, IDbStore> entityDbStoreDictionary)
         {
             this.db = db;
+            this.optionsProvider = optionsProvider;
             this.entityDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>(entityDbStoreDictionary);
             this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
         }
@@ -40,9 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        public static DbStoreProvider Create(string path, IEnumerable<string> partitionsList)
+        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
         {
-            IRocksDb db = RocksDbWrapper.Create(path, partitionsList);
+            IRocksDb db = RocksDbWrapper.Create(optionsProvider, path, partitionsList);
             IEnumerable<string> columnFamilies = db.ListColumnFamilies();
             IDictionary<string, IDbStore> entityDbStoreDictionary = new Dictionary<string, IDbStore>();
             foreach (string columnFamilyName in columnFamilies)
@@ -51,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 var dbStorePartition = new ColumnFamilyDbStore(db, handle);
                 entityDbStoreDictionary[columnFamilyName] = dbStorePartition;
             }
-            var dbStore = new DbStoreProvider(db, entityDbStoreDictionary);
+            var dbStore = new DbStoreProvider(optionsProvider, db, entityDbStoreDictionary);
             return dbStore;
         }
 
@@ -60,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore))
             {                
-                ColumnFamilyHandle handle = this.db.CreateColumnFamily(new ColumnFamilyOptions(), partitionName);
+                ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), partitionName);
                 entityDbStore = new ColumnFamilyDbStore(this.db, handle);
                 entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
             }

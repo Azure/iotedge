@@ -226,6 +226,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
+                // Detect system environment
+                builder.Register(c => new SystemEnvironment())
+                    .As<ISystemEnvironment>()
+                    .SingleInstance();
+
+                // DataBase options
+
+                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>()))
+                    .As<Storage.RocksDb.IRocksDbOptionsProvider>()
+                    .SingleInstance();
 
                 // IDbStore
                 builder.Register(
@@ -240,7 +250,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(this.storagePath, partitionsList);
+                                var dbOptionProvider = new Storage.RocksDb.RocksDbOptionsProvider(new SystemEnvironment());
+                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
+                                    this.storagePath, partitionsList);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
                                 return dbStoreprovider;
                             }

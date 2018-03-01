@@ -100,6 +100,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IDockerClient>()
                 .SingleInstance();
 
+            // Detect system environment
+            builder.Register(c => new SystemEnvironment())
+                .As<ISystemEnvironment>()
+                .SingleInstance();
+
+            // DataBase options
+            builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>()))
+                .As<Storage.RocksDb.IRocksDbOptionsProvider>()
+                .SingleInstance();
+
             // IDbStore
             builder.Register(
                 c =>
@@ -113,7 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var partitionsList = new List<string> { Constants.MmaStorePartitionKey };
                         try
                         {
-                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(this.storagePath, partitionsList);
+                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
+                                this.storagePath, partitionsList);
                             logger.LogInformation($"Created persistent store at {this.storagePath}");
                             return dbStoreprovider;
                         }

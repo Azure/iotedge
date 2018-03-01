@@ -14,49 +14,51 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     /// </summary>
     sealed class RocksDbWrapper : IRocksDb
     {
-        static readonly DbOptions Options = new DbOptions()
-            .SetCreateIfMissing()
-            .SetCreateMissingColumnFamilies();
 
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
         readonly RocksDb db;
         readonly string path;
+        readonly DbOptions dbOptions;
 
-        RocksDbWrapper(RocksDb db, string path)
+        RocksDbWrapper(DbOptions dbOptions, RocksDb db, string path)
         {
             this.db = db;
             this.path = path;
+            this.dbOptions = dbOptions;
         }
 
-        public static RocksDbWrapper Create(string path, IEnumerable<string> partitionsList)
-        {
-            Preconditions.CheckNonWhiteSpace(path, nameof(path));
 
-            IEnumerable<string> existingColumnFamilies = ListColumnFamilies(path);
+        public static RocksDbWrapper Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
+        {
+
+            Preconditions.CheckNonWhiteSpace(path, nameof(path));
+            Preconditions.CheckNotNull(optionsProvider, nameof(optionsProvider));
+            DbOptions dbOptions = Preconditions.CheckNotNull(optionsProvider.GetDbOptions());
+            IEnumerable<string> existingColumnFamilies = ListColumnFamilies(dbOptions, path);
             IEnumerable<string> columnFamiliesList = existingColumnFamilies.Union(Preconditions.CheckNotNull(partitionsList, nameof(partitionsList)), StringComparer.OrdinalIgnoreCase).ToList();
             var columnFamilies = new ColumnFamilies();
             foreach (string columnFamilyName in columnFamiliesList)
             {
-                columnFamilies.Add(columnFamilyName, new ColumnFamilyOptions());
+                columnFamilies.Add(columnFamilyName, optionsProvider.GetColumnFamilyOptions());
             }
 
-            RocksDb db = RocksDb.Open(Options, path, columnFamilies);
-            var rocksDbWrapper = new RocksDbWrapper(db, path);
+            RocksDb db = RocksDb.Open(dbOptions, path, columnFamilies);
+            var rocksDbWrapper = new RocksDbWrapper(dbOptions, db, path);
             return rocksDbWrapper;
         }
 
         public void Compact(ColumnFamilyHandle cf) => this.db.CompactRange(string.Empty, string.Empty, cf);
 
-        public IEnumerable<string> ListColumnFamilies() => ListColumnFamilies(this.path);
+        public IEnumerable<string> ListColumnFamilies() => ListColumnFamilies(this.dbOptions, this.path);
 
-        static IEnumerable<string> ListColumnFamilies(string path)
+        static IEnumerable<string> ListColumnFamilies(DbOptions dbOptions, string path)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
             // ListColumnFamilies will throw if the DB doesn't exist yet, so wrap it in a try catch.
             IEnumerable<string> columnFamilies = null;
             try
             {
-                columnFamilies = RocksDb.ListColumnFamilies(Options, path);
+                columnFamilies = RocksDb.ListColumnFamilies(dbOptions, path);
             }
             catch
             {
