@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -17,19 +18,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         [Unit]
         public void TestInvalidInputsForGetDefaultAmqpSettings()
         {
-            const string HostName = "restaurantatendofuniverse.azure-devices.net";
+            const string HostName = "edge.ms.com";
+            const string IotHubHostName = "restaurantatendofuniverse.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             var identityFactory = new Mock<IIdentityFactory>();
+            var linkHandlerProvider = Mock.Of<ILinkHandlerProvider>();
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
-            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(null, tlsCertificate, authenticator.Object, identityFactory.Object));
-            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings("", tlsCertificate, authenticator.Object, identityFactory.Object));
-            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings("    ", tlsCertificate, authenticator.Object, identityFactory.Object));
-            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, null, authenticator.Object, identityFactory.Object));
-            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, null, identityFactory.Object));
-            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, authenticator.Object, null));
+            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(null, IotHubHostName, tlsCertificate, authenticator.Object, identityFactory.Object, linkHandlerProvider));
+            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings("", IotHubHostName, tlsCertificate, authenticator.Object, identityFactory.Object, linkHandlerProvider));
+            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings("    ", IotHubHostName, tlsCertificate, authenticator.Object, identityFactory.Object, linkHandlerProvider));
+            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, null, authenticator.Object, identityFactory.Object, linkHandlerProvider));
+            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, null, identityFactory.Object, linkHandlerProvider));
+            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, authenticator.Object, null, linkHandlerProvider));
 
-            Assert.NotNull(AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, authenticator.Object, identityFactory.Object));
+            Assert.NotNull(AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, authenticator.Object, identityFactory.Object, linkHandlerProvider));
         }
     }
 }

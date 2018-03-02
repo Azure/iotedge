@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Transport;
 
-    class AmqpTransportListenerProvider : ITransportListenerProvider
+    public class AmqpTransportListenerProvider : ITransportListenerProvider
     {
         public TransportListener Create(IEnumerable<TransportListener> listeners, AmqpSettings amqpSettings) => new AmqpTransportListener(listeners, amqpSettings);
     }

@@ -1,13 +1,12 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class MqttMessage : IMessage
+    public class EdgeMessage : IMessage
     {
         public byte[] Body { get; }
 
@@ -15,14 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IDictionary<string, string> SystemProperties { get; }
 
-        MqttMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
+        public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
         {
-            this.Body = body;
-            this.Properties = properties;
-            this.SystemProperties = systemProperties;
+            this.Body = Preconditions.CheckNotNull(body, nameof(body));
+            this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
+            this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
         }
 
-        public bool Equals(MqttMessage other)
+        public bool Equals(EdgeMessage other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -47,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return false;
             if (ReferenceEquals(this, obj))
                 return true;
-            return obj.GetType() == this.GetType() && this.Equals((MqttMessage)obj);
+            return obj.GetType() == this.GetType() && this.Equals((EdgeMessage)obj);
         }
 
         public override int GetHashCode()
@@ -96,14 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 return this;
             }
 
-            public MqttMessage Build()
+            public EdgeMessage Build()
             {
                 if (this.properties == null)
                     this.properties = new Dictionary<string, string>();
                 if (this.systemProperties == null)
                     this.systemProperties = new Dictionary<string, string>();
 
-                return new MqttMessage(this.body, this.properties, this.systemProperties);
+                return new EdgeMessage(this.body, this.properties, this.systemProperties);
             }
 
         }

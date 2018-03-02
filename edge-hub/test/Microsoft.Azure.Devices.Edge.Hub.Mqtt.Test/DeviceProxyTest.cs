@@ -17,13 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     {
         class TestDesiredUpdateMessage
         {
-            public MqttMessage CoreMessage { get; }
+            public EdgeMessage CoreMessage { get; }
 
             public ProtocolGatewayMessage PgMessage { get; }
 
             public TestDesiredUpdateMessage(string desiredJson)
             {
-                this.CoreMessage = new MqttMessage.Builder(Encoding.UTF8.GetBytes(desiredJson))
+                this.CoreMessage = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desiredJson))
                     .SetSystemProperties(new Dictionary<string, string>()
                     {
                         [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriTwinDesiredPropertyUpdate,

@@ -24,15 +24,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public async Task<IMessagingBridge> Connect(IDeviceIdentity deviceidentity)
         {
-            var protocolGatewayIdentity = deviceidentity as ProtocolGatewayIdentity;
-            if (protocolGatewayIdentity == null)
+            if (!(deviceidentity is ProtocolGatewayIdentity protocolGatewayIdentity))
             {
                 throw new AuthenticationException("Invalid identity object received");
             }
 
             IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(protocolGatewayIdentity.Identity);
             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter);
-            var messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient);
+            IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient);
 
             return messagingBridge;
         }

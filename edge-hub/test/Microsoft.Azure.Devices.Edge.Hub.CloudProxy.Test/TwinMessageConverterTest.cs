@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Xunit;
@@ -112,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetTwinData))]
         public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
         {
-            MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody())
+            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
                 .SetSystemProperties(new Dictionary<string, string>()
                 {
                     [SystemProperties.EnqueuedTime] = ""
@@ -129,10 +128,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var messageConverter = new TwinMessageConverter();
 
-            var twin = new Twin("d1") { Version = 10 };            
+            var twin = new Twin("d1") { Version = 10 };
             IMessage message = messageConverter.ToMessage(twin);
             Twin convertedTwin = messageConverter.FromMessage(message);
-            Assert.Equal(twin.Version, convertedTwin.Version);            
+            Assert.Equal(twin.Version, convertedTwin.Version);
         }
 
         [Fact]

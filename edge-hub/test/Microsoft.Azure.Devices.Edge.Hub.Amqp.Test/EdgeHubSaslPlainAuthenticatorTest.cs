@@ -104,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var principal = await saslAuthenticator.AuthenticateAsync(UserId, Password) as SaslPrincipal;
             Assert.NotNull(principal);
             Assert.NotNull(principal.Identity);
-            Assert.Equal(edgeHubIdentity.Object, principal.EdgeHubIdentity);
+            Assert.NotNull(principal.AmqpAuthentication);
+            Assert.Equal(edgeHubIdentity.Object, principal.AmqpAuthentication.Identity.OrDefault());
         }
     }
 }

@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
             }
 
-            MqttMessage hubMessage = new MqttMessage.Builder(payloadBytes)
+            EdgeMessage hubMessage = new EdgeMessage.Builder(payloadBytes)
                 .SetProperties(properties)
                 .SetSystemProperties(systemProperties)
                 .Build();

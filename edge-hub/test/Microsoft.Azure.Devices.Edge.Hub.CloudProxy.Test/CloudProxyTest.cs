@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int version = (int)twin.SelectToken("reported.$version");
             int counter = (int?)twin.SelectToken("reported.bvtCounter") ?? 0;
 
-            IMessage updateReportedPropertiesMessage = new Message(Encoding.UTF8.GetBytes($"{{\"bvtCounter\":{counter + 1}}}"));
+            IMessage updateReportedPropertiesMessage = new EdgeMessage.Builder(Encoding.UTF8.GetBytes($"{{\"bvtCounter\":{counter + 1}}}")).Build();
             await cloudProxy.UpdateReportedPropertiesAsync(updateReportedPropertiesMessage);
 
             message = await cloudProxy.GetTwinAsync();
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await update.Task;
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
 
-            var expected = new Core.Test.Message(Encoding.UTF8.GetBytes(desired.ToJson()));
+            IMessage expected = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desired.ToJson())).Build();
             expected.SystemProperties[SystemProperties.EnqueuedTime] = "";
             expected.SystemProperties[SystemProperties.Version] = desired.Version.ToString();
             IMessage actual = update.Task.Result;

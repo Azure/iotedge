@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Newtonsoft.Json;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
-    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.Test.Message;
+    using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     [Integration]
@@ -565,7 +565,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             twinCollection["Status"] = "running";
             twinCollection["ElapsedTime"] = "0.5";
             byte[] messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(twinCollection));
-            return new Message(messageBody);
+            return new Message.Builder(messageBody).Build();
         }
 
         static IDeviceIdentity SetupDeviceIdentity(string deviceId) => new DeviceIdentity(

@@ -110,5 +110,63 @@ namespace Microsoft.Azure.Devices.Edge.Util
             T9 val9 = await t9;
             return (val1, val2, val3, val4, val5, val6, val7, val8, val9);
         }
+
+        public static IAsyncResult ToAsyncResult(this Task task, AsyncCallback callback, object state)
+        {
+            if (task.AsyncState == state)
+            {
+                if (callback != null)
+                {
+                    task.ContinueWith(
+                        (t, st) => ((AsyncCallback)state)(t),
+                        callback,
+                        TaskContinuationOptions.ExecuteSynchronously);
+                }
+
+                return task;
+            }
+
+            var tcs = new TaskCompletionSource<object>(state);
+            task.ContinueWith(
+                t =>
+                {
+                    switch (t.Status)
+                    {
+                        case TaskStatus.RanToCompletion:
+                            tcs.TrySetResult(null);
+                            break;
+                        case TaskStatus.Canceled:
+                            tcs.TrySetCanceled();
+                            break;
+                        case TaskStatus.Faulted:
+                            tcs.TrySetException(t.Exception.InnerExceptions);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
+                    callback?.Invoke(tcs.Task);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
+
+            return tcs.Task;
+        }
+
+        public static void EndAsyncResult(IAsyncResult asyncResult)
+        {
+            if (!(asyncResult is Task task))
+            {
+                throw new ArgumentException("IAsyncResult should be of type Task");
+            }
+
+            try
+            {
+                task.Wait();
+            }
+            catch (AggregateException ae)
+            {
+                throw ae.GetBaseException();
+            }
+        }
     }
 }

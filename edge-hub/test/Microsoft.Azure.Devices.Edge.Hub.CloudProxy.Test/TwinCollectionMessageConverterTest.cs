@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Xunit;
@@ -76,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetTwinCollectionData))]
         public void ConvertsTwinCollectionsToMqttMessages(TwinCollection collection, string expectedJson)
         {
-            MqttMessage expectedMessage = new MqttMessage.Builder(expectedJson.ToBody())
+            EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
                 .SetSystemProperties(new Dictionary<string, string>()
                 {
                     [SystemProperties.EnqueuedTime] = "",

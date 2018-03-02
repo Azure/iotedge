@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -22,11 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         //TODO: This causes reSharperWarning. Remove this TODO once code below are uncommented. 
         // ReSharper disable once NotAccessedField.Local
         readonly bool isStoreAndForwardEnabled;
+        readonly X509Certificate2 tlsCertificate;
 
-        public MqttModule(IConfiguration mqttSettingsConfiguration, MessageAddressConversionConfiguration conversionConfiguration, bool isStoreAndForwardEnabled)
+        public MqttModule(
+            IConfiguration mqttSettingsConfiguration,
+            MessageAddressConversionConfiguration conversionConfiguration,
+            X509Certificate2 tlsCertificate,
+            bool isStoreAndForwardEnabled)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
+            this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
         }
 
@@ -51,9 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
-                    var connectionProvider = new ConnectionProvider(c.Resolve<IConnectionManager>(), edgeHub);
-
+                    IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>());
                     return mqtt;
                 })
@@ -61,11 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(
-                c =>
-                {
-                    return new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>());
-                })
+            builder.Register(c => new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>()) as IDeviceIdentityProvider)
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
 
@@ -84,6 +85,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         }
                     })
                 .As<ISessionStatePersistenceProvider>()
+                .SingleInstance();
+
+            // MqttProtocolHead
+            builder.Register(
+                    async c => new MqttProtocolHead(
+                        c.Resolve<ISettingsProvider>(),
+                        this.tlsCertificate,
+                        await c.Resolve<Task<IMqttConnectionProvider>>(),
+                        c.Resolve<IDeviceIdentityProvider>(),
+                        c.Resolve<ISessionStatePersistenceProvider>()
+                    ))
+                .As<Task<MqttProtocolHead>>()
                 .SingleInstance();
 
             base.Load(builder);

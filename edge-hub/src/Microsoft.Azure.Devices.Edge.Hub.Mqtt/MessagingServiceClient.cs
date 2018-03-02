@@ -122,13 +122,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
                         EnsureNoSubresource(subresource);
 
-                        Core.IMessage forwardMessage = new MqttMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
+                        Core.IMessage forwardMessage = new EdgeMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
                             .Build();
                         await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage);
 
                         if (hasCorrelationId)
                         {
-                            MqttMessage deviceResponseMessage = new MqttMessage.Builder(new byte[0])
+                            EdgeMessage deviceResponseMessage = new EdgeMessage.Builder(new byte[0])
                                 .SetSystemProperties(new Dictionary<string, string>()
                                 {
                                     [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),

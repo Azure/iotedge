@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Amqp\Microsoft.Azure.Devices.Edge.Hub.Amqp.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Http\Microsoft.Azure.Devices.Edge.Hub.Http.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj" />

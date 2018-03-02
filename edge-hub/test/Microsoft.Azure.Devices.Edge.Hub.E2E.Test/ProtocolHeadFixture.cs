@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>()
                     )
                 );
-                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, false));
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false));
                 setupMocks?.Invoke(builder);
                 this.container = builder.Build();
 

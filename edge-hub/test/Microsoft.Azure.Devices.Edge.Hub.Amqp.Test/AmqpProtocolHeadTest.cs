@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -19,7 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     public class AmqpProtocolHeadTest
     {
         const string Scheme = "amqps";
-        const string HostName = "restaurantatendofuniverse.azure-devices.net";
+        const string HostName = "edge.ms.com";
+        const string IotHubHostName = "restaurantatendofuniverse.azure-devices.net";
         const int Port = 5671;
 
         [Fact]
@@ -28,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
             var transportSettings = new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate);
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
 
             Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(null, amqpSettings, transportListenerProvider.Object));
@@ -42,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfCreateListenerThrows()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
 
             var amqpTransportSettings = new Mock<TransportSettings>();
             amqpTransportSettings.Setup(ts => ts.CreateListener()).Throws(new ApplicationException("No donuts for you"));
@@ -59,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfRootCreateTransportListenerThrows()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -92,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfOpenAsyncOrListenThrows(TransportListener amqpTransportListener)
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -115,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfTransportListenerCallbackArgsHasException()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -147,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
             var runtimeProvider = new Mock<IRuntimeProvider>();
             amqpSettings.RuntimeProvider = runtimeProvider.Object;
 
@@ -183,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
             var runtimeProvider = new Mock<IRuntimeProvider>();
             amqpSettings.RuntimeProvider = runtimeProvider.Object;
 

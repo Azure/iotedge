@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IDictionary<string, string> systemProperties)
         {
             Core.IMessageConverter<IRoutingMessage> messageConverter = new RoutingMessageConverter();
-            IMessage inputMessage = new Core.Test.Message(messageBytes, properties, systemProperties);
+            IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
             IRoutingMessage routingMessage = messageConverter.FromMessage(inputMessage);
 
             Assert.Equal(inputMessage.Body, routingMessage.Body);

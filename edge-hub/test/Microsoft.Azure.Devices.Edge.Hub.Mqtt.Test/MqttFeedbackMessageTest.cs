@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     [Unit]
     public class MqttFeedbackMessageTest
     {
-        static readonly MqttMessage Message1 = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
+        static readonly EdgeMessage Message1 = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).SetProperties(new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }).Build();
 
         [Fact]
         public void TestConstructor()

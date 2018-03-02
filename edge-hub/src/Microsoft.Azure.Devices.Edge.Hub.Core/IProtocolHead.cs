@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IProtocolHead : IDisposable
     {
+        string Name { get; }
+
         Task StartAsync();
 
         Task CloseAsync(CancellationToken token);

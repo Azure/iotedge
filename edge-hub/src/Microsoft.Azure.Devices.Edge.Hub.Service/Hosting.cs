@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
@@ -6,18 +6,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class Hosting
     {
         const int SslPortNumber = 443;
 
-        IWebHost webHost;
-        Startup startup;
-
-        public IContainer Container => this.startup.Container;
-
-        public void Initialize(X509Certificate2 sslCert)
+        Hosting(IWebHost webHost, IContainer container)
         {
+            this.WebHost = webHost;
+            this.Container = container;
+        }
+
+        public static Hosting Initialize(string certPath)
+        {
+            var sslCert = new X509Certificate2(Preconditions.CheckNonWhiteSpace(certPath, nameof(certPath)));
+
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(options =>
                 {
@@ -27,11 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     });
                 })
                 .UseStartup<Startup>();
-            this.webHost = webHostBuilder.Build();
-
-            this.startup = this.webHost.Services.GetService(typeof(IStartup)) as Startup;
+            IWebHost webHost = webHostBuilder.Build();
+            IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
+            return new Hosting(webHost, container);
         }
 
-        public void Start() => this.webHost.Start();
+        public IContainer Container { get; }
+
+        public IWebHost WebHost { get; }
     }
 }

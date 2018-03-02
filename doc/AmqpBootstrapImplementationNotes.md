@@ -287,3 +287,23 @@ pair. The difference is that while the former was dealing with SASL, the latter
 deals with AMQP. The control flow for AMQP is pretty much identical to the
 sequence shown above except that instead of `SaslTransportProvider` we'd have an
 `AmqpTransportProvider`.
+
+Implementation Details
+----------------------
+
+### CBS Authentication
+
+When a client connects to the AMQP server in EdgeHub using a shared access key (and using the Device SDK), 
+it sets up a connection based on CBS authentication. For CBS authentication, the connection itself is 
+unauthenticated. The authentication is expected to happen on the CBS link. 
+
+These are the high level steps that happen when a client connects and begins sending telemetry - 
+
+- First the AMQP Connection is created. This completes without authentication. 
+- Then the client creates the CBS links (both receiving and sending). 
+- Then the client sends the token on the CBS receiving link. The server authenticates the token and rends a response
+on the CBS sending link. 
+- When the authentication is complete, it creates the other links - Events link (from device/module) and Device/module bound messages link
+- At this point the client is ready to send / receive messages. 
+- On the server side, each link is expected to make sure tht the connection is authenticated (and also authorized if necessary).
+   

@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     { SystemProperties.MessageId, random.Next().ToString() }
                 };
 
-                var message = new Message(messageBytes, properties, systemProperties);
+                var message = new EdgeMessage(messageBytes, properties, systemProperties);
                 messages.Add(message);
             }
             return messages;

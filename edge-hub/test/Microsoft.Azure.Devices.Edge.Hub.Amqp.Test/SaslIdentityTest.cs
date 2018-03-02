@@ -46,21 +46,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         static IEnumerable<object[]> GetValidParseInputs() => new[]
         {
-                // IotHubSasIdentityRegex
-                new object[] { "key1@sas.root.hub1" },
-                new object[] { "kEY123-aa@sas.root.hub1" },
-                new object[] { "____----___@sas.root.hub1" },
+            // IotHubSasIdentityRegex
+            new object[] { "key1@sas.root.hub1" },
+            new object[] { "kEY123-aa@sas.root.hub1" },
+            new object[] { "____----___@sas.root.hub1" },
 
-                // DeviceSasIdentityRegex
-                new object[] { "dev1/modules/mod1@sas.hub1" },
-                new object[] { "dev1@sas.hub1" },
-                // should the following expression pass?! we're using an arbitrary symbol after the "@sas" token
-                new object[] { "dev1/modules/mod1@sasXhub1" },
+            // DeviceSasIdentityRegex
+            new object[] { "dev1/modules/mod1@sas.hub1" },
+            new object[] { "dev1@sas.hub1" },
+            // should the following expression pass?! we're using an arbitrary symbol after the "@sas" token
+            new object[] { "dev1/modules/mod1@sasXhub1" },
 
-                // DeviceUserPasswordIdentityRegex
-                new object[] { "dev1/modules/mod1@boo" },
-                new object[] { "dev1@boo" }
-            };
+            // DeviceUserPasswordIdentityRegex
+            new object[] { "dev1/modules/mod1@boo" },
+            new object[] { "dev1@boo" }
+        };
 
         [Theory]
         [Unit]

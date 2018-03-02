@@ -50,19 +50,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
         }
 
+        public string Name => "MQTT";
+
         public async Task StartAsync()
         {
             try
             {
-                this.logger.LogInformation("Starting");
+                this.logger.LogInformation("Starting MQTT head");
 
                 ServerBootstrap bootstrap = this.SetupServerBoostrap();
 
-                this.logger.LogInformation("Initializing TLS endpoint on port {0}.", MqttsPort);
+                this.logger.LogInformation("Initializing TLS endpoint on port {0} for MQTT head.", MqttsPort);
 
                 this.serverChannel = await bootstrap.BindAsync(IPAddress.IPv6Any, MqttsPort);
 
-                this.logger.LogInformation("Started");
+                this.logger.LogInformation("Started MQTT head");
             }
             catch (Exception e)
             {
@@ -91,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void Dispose()
         {
+            this.mqttConnectionProvider.Dispose();
             this.CloseAsync(CancellationToken.None).Wait();
         }
 

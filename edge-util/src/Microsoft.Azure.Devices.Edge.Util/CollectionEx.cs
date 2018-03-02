@@ -90,6 +90,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return dictionary;
         }
 
+        public static IDictionary<string, string> ToDictionary(this IList<KeyValuePair<string, string>> values)
+        {
+            var dictionary = new Dictionary<string, string>();
+            foreach(KeyValuePair<string, string> kvp in values)
+            {
+                dictionary.Add(kvp.Key, kvp.Value);
+            }
+
+            return dictionary;
+        }
+
         public static TSource ElementAtOrDefault<TSource>(this ICollection<TSource> source, int index, TSource defaultValue)
         {
             return index >= 0 && index < source.Count() ? source.ElementAt(index) : defaultValue;

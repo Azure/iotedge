@@ -16,5 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const uint MinAmqpConnectionIdleTimeoutInMilliSeconds = DefaultAmqpConnectionIdleTimeoutInMilliSeconds;
         public const uint MaxAmqpConnectionIdleTimeoutInMilliSeconds = 25 * 60 * 1000;
         public static readonly AmqpVersion AmqpVersion100 = new AmqpVersion(1, 0, 0);
+
+        // NOTE: IoT Hub service has this note on this constant:
+        // Temporarily accept messages upto 1Mb in size. Reduce to 256 kb after fixing client behavior
+        public const ulong AmqpMaxMessageSize = 256 * 1024 * 4;
     }
 }

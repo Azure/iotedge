@@ -3,13 +3,36 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+    using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
+    using Microsoft.Azure.Amqp.Encoding;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Amqp.X509;
+    using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class AmqpRuntimeProvider : IRuntimeProvider
     {
-        AmqpSettings amqpSettings;
+        static readonly AmqpSymbol LinkHandlerPropertyKey = new AmqpSymbol("AmqpProtocolHead.LinkHandler");
+        readonly bool requireSecureTransport;
+        readonly ILinkHandlerProvider linkHandlerProvider;
+        readonly IIdentityFactory identityFactory;
+        readonly IAuthenticator authenticator;
+        readonly string iotHubHostName;
+
+        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport, IIdentityFactory identityFactory, IAuthenticator authenticator, string iotHubHostName)
+        {
+            this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
+            this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
+            this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
+            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+        }
 
         AmqpConnection IConnectionFactory.CreateConnection(
             TransportBase transport,
@@ -18,9 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             AmqpSettings settings,
             AmqpConnectionSettings connectionSettings)
         {
-            this.amqpSettings = settings;
-
-            if (settings.RequireSecureTransport && !transport.IsSecure)
+            if (this.requireSecureTransport && !transport.IsSecure)
             {
                 throw new AmqpException(AmqpErrorCode.NotAllowed, "AMQP transport is not secure");
             }
@@ -29,28 +50,145 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 SessionFactory = this
             };
+            connection.Opening += this.OnConnectionOpening;
 
             return connection;
         }
 
-        AmqpSession ISessionFactory.CreateSession(AmqpConnection connection, AmqpSessionSettings settings)
+        void OnConnectionOpening(object sender, OpenEventArgs e)
         {
-            return new AmqpSession(connection, settings, this.amqpSettings.RuntimeProvider);
+            var command = (Open)e.Command;
+
+            // 'command.IdleTimeOut' is the Idle time out specified in the client OPEN frame
+            // Server will send heart beats honoring this timeout(every 7/8 of IdleTimeout)
+            if (command.IdleTimeOut == null || command.IdleTimeOut == 0)
+            {
+                command.IdleTimeOut = Constants.DefaultAmqpHeartbeatSendInterval;
+            }
+            else if (command.IdleTimeOut < Constants.MinimumAmqpHeartbeatSendInterval)
+            {
+                throw new EdgeHubConnectionException($"Connection idle timeout specified is less than minimum acceptable value: {Constants.MinimumAmqpHeartbeatSendInterval}");
+            }
+
+            var amqpConnection = (AmqpConnection)sender;
+            // If the AmqpConnection does not use username/password or certs, create a CbsNode for the connection
+            // and add it to the Extensions
+            if (!(amqpConnection.Principal is SaslPrincipal || amqpConnection.Principal is X509Principal))
+            {
+                ICbsNode cbsNode = new CbsNode(this.identityFactory, this.iotHubHostName, this.authenticator);
+                amqpConnection.Extensions.Add(cbsNode);
+            }
         }
 
-        IAsyncResult ILinkFactory.BeginOpenLink(AmqpLink link, TimeSpan timeout, AsyncCallback callback, object state)
-        {
-            throw new NotImplementedException();
-        }
+        AmqpSession ISessionFactory.CreateSession(AmqpConnection connection, AmqpSessionSettings settings) => new AmqpSession(connection, settings, this);
 
         AmqpLink ILinkFactory.CreateLink(AmqpSession session, AmqpLinkSettings settings)
         {
-            throw new NotImplementedException();
+            try
+            {
+                this.ValidateLinkSettings(settings);
+
+                // Override AmqpLinkSetting MaxMessageSize to restrict it to Constants.AmqpMaxMessageSize
+                if (settings.MaxMessageSize == null || settings.MaxMessageSize == 0 || settings.MaxMessageSize > Constants.AmqpMaxMessageSize)
+                {
+                    settings.MaxMessageSize = Constants.AmqpMaxMessageSize;
+                }
+
+                AmqpLink amqpLink;
+                IAmqpLink wrappingAmqpLink;
+                string linkAddress;
+                if (settings.IsReceiver())
+                {
+                    amqpLink = new ReceivingAmqpLink(session, settings);
+                    wrappingAmqpLink = new EdgeReceivingAmqpLink((ReceivingAmqpLink)amqpLink);
+                    linkAddress = ((Target)settings.Target).Address.ToString();
+                }
+                else
+                {
+                    amqpLink = new SendingAmqpLink(session, settings);
+                    wrappingAmqpLink = new EdgeSendingAmqpLink((SendingAmqpLink)amqpLink);
+                    linkAddress = ((Source)settings.Source).Address.ToString();
+                }
+
+                // TODO: implement the rules below
+                // Link address may be of the forms:
+                //
+                //  amqp[s]://my.servicebus.windows.net/a/b     <-- FQ address where host name should match connection remote host name
+                //  amqp[s]:a/b                                 <-- path relative to hostname specified in OPEN
+                //  a/b                                         <-- pre-global addressing style path relative to hostname specified in OPEN
+                //  /a/b                                        <-- same as above
+
+                Uri linkUri;
+                if (!linkAddress.StartsWith(Constants.AmqpsScheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    string host = session.Connection.Settings.RemoteHostName;
+                    linkUri = new Uri("amqps://" + host + linkAddress.EnsureStartsWith('/'));
+                }
+                else
+                {
+                    linkUri = new Uri(linkAddress, UriKind.RelativeOrAbsolute);
+                }
+
+                ILinkHandler linkHandler = this.linkHandlerProvider.Create(wrappingAmqpLink, linkUri);
+                amqpLink.Settings.AddProperty(LinkHandlerPropertyKey, linkHandler);
+                return amqpLink;
+            }
+            catch (Exception e) when (!ExceptionEx.IsFatal(e))
+            {
+                // Don't throw here because we cannot provide error info. Instead delay and throw from Link.Open.
+                return new FaultedLink(e, session, settings);
+            }
         }
 
-        void ILinkFactory.EndOpenLink(IAsyncResult result)
+        IAsyncResult ILinkFactory.BeginOpenLink(AmqpLink link, TimeSpan timeout, AsyncCallback callback, object state) =>
+            this.OpenLinkAsync(link, timeout).ToAsyncResult(callback, state);
+
+        void ILinkFactory.EndOpenLink(IAsyncResult result) => TaskEx.EndAsyncResult(result);
+
+        Task OpenLinkAsync(AmqpLink link, TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (link is FaultedLink faultedLink)
+                {
+                    throw faultedLink.Exception;
+                }
+
+                if (link.Settings.Properties == null || !link.Settings.Properties.TryRemoveValue(LinkHandlerPropertyKey, out ILinkHandler linkHandler))
+                {
+                    throw new InvalidOperationException("LinkHandler cannot be null");
+                }
+
+                if (!link.Settings.Properties.Any())
+                {
+                    link.Settings.Properties = null;
+                }
+
+                return linkHandler.OpenAsync(timeout);
+            }
+            catch (Exception exception) when (!ExceptionEx.IsFatal(exception))
+            {
+                // TODO: Handle token expiry exception case here by closing AMQP connection.
+                throw;
+            }
+        }
+
+        void ValidateLinkSettings(AmqpLinkSettings settings)
+        {
+            if (settings.IsReceiver())
+            {
+                if (!(settings.Target is Target target) || target.Address.ToString().Length == 0)
+                {
+                    throw new InvalidOperationException("Link target address is null or empty");
+                }
+            }
+            else
+            {
+                if (!(settings.Source is Source source) || source.Address.ToString().Length == 0)
+                {
+                    throw new InvalidOperationException("Link source address is null or empty");
+                }
+            }
         }
     }
 }

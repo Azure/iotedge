@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(edgeMessage.Body, nameof(edgeMessage.Body));
             Preconditions.CheckNotNull(edgeMessage.Properties, nameof(edgeMessage.Properties));
             Preconditions.CheckNotNull(edgeMessage.SystemProperties, nameof(edgeMessage.SystemProperties));
-            
+
             IMessageSource messageSource = this.GetMessageSource(edgeMessage.SystemProperties);
             var routingMessage = new RoutingMessage(messageSource, edgeMessage.Body, edgeMessage.Properties, edgeMessage.SystemProperties);
             return routingMessage;
@@ -67,26 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 return TelemetryMessageSource.Instance;
             }
-        }
-
-        class EdgeMessage : IMessage
-        {
-            public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties)
-            {
-                this.Body = Preconditions.CheckNotNull(body);
-                this.Properties = Preconditions.CheckNotNull(properties);
-                this.SystemProperties = Preconditions.CheckNotNull(systemProperties);
-            }
-
-            public void Dispose()
-            {
-            }
-
-            public byte[] Body { get; }
-
-            public IDictionary<string, string> Properties { get; }
-
-            public IDictionary<string, string> SystemProperties { get; }
         }
     }
 }

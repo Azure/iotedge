@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     throw new EdgeHubConnectionException("Authentication failed.");
                 }
 
-                return new SaslPrincipal(saslIdentity, deviceIdentity.Value);
+                return new SaslPrincipal(saslIdentity, new AmqpAuthentication(true, Option.Some(deviceIdentity.Value)));
             }
             catch(Exception ex) when (!ex.IsFatal())
             {

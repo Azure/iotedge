@@ -13,11 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public IMessage ToMessage(TwinCollection sourceMessage)
         {
             byte[] body = Encoding.UTF8.GetBytes(sourceMessage.ToJson());
-            return new CloudEdgeMessage(body, null, new Dictionary<string, string>
-            {
-                [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                [SystemProperties.Version] = sourceMessage.Version.ToString()
-            });
+            return new EdgeMessage.Builder(body)
+                .SetSystemProperties(new Dictionary<string, string>
+                {
+                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                    [SystemProperties.Version] = sourceMessage.Version.ToString()
+                })
+                .Build();
         }
 
         public TwinCollection FromMessage(IMessage message)

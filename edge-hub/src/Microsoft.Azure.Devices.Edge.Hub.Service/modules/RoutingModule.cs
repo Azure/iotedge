@@ -363,6 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IEdgeHub>>()
                 .SingleInstance();
 
+            // Task<ConfigUpdater>
             builder.Register(
                 async c =>
                 {
@@ -372,6 +373,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     return configUpdater;
                 })
                 .As<Task<ConfigUpdater>>()
+                .SingleInstance();
+
+            // Task<IConnectionProvider>
+            builder.Register(
+                async c =>
+                {
+                    IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                    IConnectionProvider connectionProvider = new ConnectionProvider(c.Resolve<IConnectionManager>(), edgeHub);
+                    return connectionProvider;
+                })
+                .As<Task<IConnectionProvider>>()
                 .SingleInstance();
 
             base.Load(builder);

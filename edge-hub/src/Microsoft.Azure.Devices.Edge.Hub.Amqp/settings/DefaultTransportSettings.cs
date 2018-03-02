@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             var address = new UriBuilder
             {
                 Host = hostName,
-                Port = Preconditions.CheckRange(port, 0, ushort.MaxValue),
+                Port = Preconditions.CheckRange(port, 0, ushort.MaxValue, nameof(port)),
                 Scheme = Preconditions.CheckNonWhiteSpace(scheme, nameof(scheme))
             };
 

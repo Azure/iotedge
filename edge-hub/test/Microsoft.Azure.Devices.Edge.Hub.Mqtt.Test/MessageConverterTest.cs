@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDictionary<string, string> systemProperties)
         {
             IMessageConverter<Message> messageConverter = new MqttMessageConverter();
-            IMessage inputMessage = new Core.Test.Message(messageBytes, properties, systemProperties);
+            IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
             Message proxyMessage = messageConverter.FromMessage(inputMessage);
 
             Assert.Equal(inputMessage.Body, proxyMessage.GetBytes());

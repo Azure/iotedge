@@ -7,5 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         const int EventIdStart = 5000;
         public const int SaslPlainAuthenticator = EventIdStart;
         public const int AmqpProtocolHead = EventIdStart + 100;
+        public const int CbsLinkHandler = EventIdStart + 200;
+        public const int EventsLinkHandler = EventIdStart + 300;
+        public const int CbsNode = EventIdStart + 400;
     }
 }

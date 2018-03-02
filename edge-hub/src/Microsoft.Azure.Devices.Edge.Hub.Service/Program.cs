@@ -5,27 +5,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.IO;
     using System.Runtime.Loader;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     public class Program
     {
-        const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
-        const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
-        const string VersionInfoFileName = "versionInfo.json";
-
         public static int Main()
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -46,16 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.Core.Routing.LoggerFactory = Logger.Factory;
             }
 
-            string certPath = Path.Combine(configuration.GetValue<string>(SslCertPathEnvName), configuration.GetValue<string>(SslCertEnvName));
-            var certificate = new X509Certificate2(certPath);
-            var hosting = new Hosting();
-            hosting.Initialize(certificate);
+            string certPath = Path.Combine(
+                configuration.GetValue<string>(Constants.SslCertPathEnvName),
+                configuration.GetValue<string>(Constants.SslCertEnvName));
+            Hosting hosting = Hosting.Initialize(certPath);
 
             IContainer container = hosting.Container;
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-            logger.LogInformation("Starting Edge Hub.");
-            VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
+            logger.LogInformation("Starting Edge Hub");
+            VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
                 logger.LogInformation($"Version - {versionInfo}");
@@ -72,21 +66,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
 
-            logger.LogInformation("Starting Http Server");
-            hosting.Start();
-
-            logger.LogInformation("Starting MQTT Server");
-            using (IMqttConnectionProvider connectionProvider = await container.Resolve<Task<IMqttConnectionProvider>>())
-            using (IProtocolHead protocolHead = new MqttProtocolHead(container.Resolve<ISettingsProvider>(), certificate, connectionProvider, container.Resolve<IDeviceIdentityProvider>(), container.Resolve<ISessionStatePersistenceProvider>()))
+            using (IProtocolHead protocolHead = new EdgeHubProtocolHead(
+                new IProtocolHead[]
+                {
+                    new HttpProtocolHead(hosting.WebHost),
+                    await container.Resolve<Task<MqttProtocolHead>>(),
+                    await container.Resolve<Task<AmqpProtocolHead>>(),
+                }, logger))
             {
                 await protocolHead.StartAsync();
-
                 await cts.Token.WhenCanceled();
-
-                logger.LogInformation("Closing protocol Head.");
-
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
-
                 AssemblyLoadContext.Default.Unloading -= OnUnload;
             }
 

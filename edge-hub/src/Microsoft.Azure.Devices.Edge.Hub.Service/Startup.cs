@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
@@ -27,10 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Startup : IStartup
     {
-        const string VersionInfoFileName = "versionInfo.json";
-        const string ConfigFileName = "appsettings_hub.json";
-        const string TopicNameConversionSectionName = "mqttTopicNameConversion";
-        const string EdgeHubStorageFolder = "edgeHub";
         readonly Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder;
         readonly string edgeHubConnectionString;
 
@@ -38,13 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public Startup(IHostingEnvironment env)
         {
             this.Configuration = new ConfigurationBuilder()
-                .AddJsonFile(ConfigFileName)
+                .AddJsonFile(Constants.ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 
             this.edgeHubConnectionString = this.Configuration.GetValue<string>("IotHubConnectionString");
             this.iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(this.edgeHubConnectionString);
-            this.VersionInfo = VersionInfo.Get(VersionInfoFileName);
+            this.VersionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -75,8 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int connectionPoolSize = this.Configuration.GetValue<int>("IotHubConnectionPoolSize");
 
             var topics = new MessageAddressConversionConfiguration(
-                this.Configuration.GetSection(TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
-                this.Configuration.GetSection(TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
+                this.Configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
+                this.Configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
 
             string configSource = this.Configuration.GetValue<string>("configSource");
             bool useTwinConfig = !string.IsNullOrWhiteSpace(configSource) && configSource.Equals("twin", StringComparison.OrdinalIgnoreCase);
@@ -88,6 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
+
+            string certPath = Path.Combine(
+                this.Configuration.GetValue<string>(Constants.SslCertPathEnvName),
+                this.Configuration.GetValue<string>(Constants.SslCertEnvName));
+            var tlsCertificate = new X509Certificate2(certPath);
+            string hostName = this.Configuration.GetValue<string>("HostName");
+            IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -124,7 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     useTwinConfig,
                     this.VersionInfo,
                     upstreamProtocolOption));
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, storeAndForward.isEnabled));
+
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], hostName, amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
 
@@ -173,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 baseStoragePath = Path.GetTempPath();
             }
-            string storagePath = Path.Combine(baseStoragePath, EdgeHubStorageFolder);
+            string storagePath = Path.Combine(baseStoragePath, Constants.EdgeHubStorageFolder);
             Directory.CreateDirectory(storagePath);
             return storagePath;
         }

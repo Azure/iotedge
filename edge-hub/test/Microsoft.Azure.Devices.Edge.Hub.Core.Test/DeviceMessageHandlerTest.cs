@@ -16,23 +16,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class DeviceMessageHandlerTest
     {
-		[Fact]
-		public async Task ForwardsGetTwinOperationToEdgeHub()
-		{
-			var edgeHub = new Mock<IEdgeHub>();
-			var connMgr = Mock.Of<IConnectionManager>();
-			var identity = Mock.Of<IDeviceIdentity>();
-			var cloudProxy = Mock.Of<ICloudProxy>();
+        [Fact]
+        public async Task ForwardsGetTwinOperationToEdgeHub()
+        {
+            var edgeHub = new Mock<IEdgeHub>();
+            var connMgr = Mock.Of<IConnectionManager>();
+            var identity = Mock.Of<IDeviceIdentity>();
+            var cloudProxy = Mock.Of<ICloudProxy>();
 
-			IMessage expectedMessage = new Message(new byte[0]);
-			edgeHub.Setup(e => e.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(expectedMessage));
+            IMessage expectedMessage = new EdgeMessage.Builder(new byte[0]).Build();
+            edgeHub.Setup(e => e.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(expectedMessage));
 
-			var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, cloudProxy);
-			IMessage actualMessage = await listener.GetTwinAsync();
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, cloudProxy);
+            IMessage actualMessage = await listener.GetTwinAsync();
 
-			edgeHub.Verify(x => x.GetTwinAsync(identity.Id), Times.Once);
-			Assert.Same(expectedMessage, actualMessage);
-		} 
+            edgeHub.Verify(x => x.GetTwinAsync(identity.Id), Times.Once);
+            Assert.Same(expectedMessage, actualMessage);
+        }
 
         [Fact]
         public async Task ProcessMessageBatchAsync_RouteAsyncTest()
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         public async Task ForwardsTwinPatchOperationToTheCloudProxy()
-        {            
+        {
             var connMgr = Mock.Of<IConnectionManager>();
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
             var cloudProxy = Mock.Of<ICloudProxy>();
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
 
             var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, cloudProxy);
-            IMessage message = new Message(Encoding.UTF8.GetBytes("don't care"));
+            IMessage message = new EdgeMessage.Builder(Encoding.UTF8.GetBytes("don't care")).Build();
             await listener.UpdateReportedPropertiesAsync(message);
 
             edgeHub.VerifyAll();
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Task<DirectMethodResponse> responseTask = deviceMessageHandler.InvokeMethodAsync(methodRequest);
             Assert.False(responseTask.IsCompleted);
 
-            IMessage message = new Message(new byte[0]);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             message.Properties[SystemProperties.CorrelationId] = methodRequest.CorrelationId;
             message.Properties[SystemProperties.StatusCode] = "200";
             await deviceMessageHandler.ProcessMethodResponseAsync(message);
@@ -130,20 +130,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task InvokedMethodMismatchedResponseTest()
         {
-            DeviceMessageHandler deviceMessageHandler = this.GetDeviceMessageHandler();            
+            DeviceMessageHandler deviceMessageHandler = this.GetDeviceMessageHandler();
             var methodRequest = new DirectMethodRequest("device10", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             Task<DirectMethodResponse> responseTask = deviceMessageHandler.InvokeMethodAsync(methodRequest);
             Assert.False(responseTask.IsCompleted);
 
-            IMessage message = new Message(new byte[0]);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             message.Properties[SystemProperties.CorrelationId] = methodRequest.CorrelationId + 1;
             message.Properties[SystemProperties.StatusCode] = "200";
             await deviceMessageHandler.ProcessMethodResponseAsync(message);
 
             Assert.False(responseTask.IsCompleted);
         }
-        
+
         [Fact]
         public async Task MessageCompletionTest()
         {
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, cloudProxy.Object);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
-            IMessage message = new Message(new byte[0]);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             Assert.False(sendMessageTask.IsCompleted);
 
@@ -189,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, cloudProxy.Object);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
-            IMessage message = new Message(new byte[0]);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             Assert.False(sendMessageTask.IsCompleted);
 
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, cloudProxy.Object);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
-            IMessage message = new Message(new byte[0]);
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             Assert.False(sendMessageTask.IsCompleted);
 

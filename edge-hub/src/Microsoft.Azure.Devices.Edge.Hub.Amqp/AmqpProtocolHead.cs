@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net.Sockets;
     using System.Threading;
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly ITransportSettings transportSettings;
         readonly AmqpSettings amqpSettings;
         readonly ITransportListenerProvider transportListenerProvider;
-        readonly ConcurrentDictionary<uint, AmqpConnectionGatewayContext> incomingConnectionMap;
+        readonly ConcurrentDictionary<uint, AmqpConnection> incomingConnectionMap;
         readonly AsyncLock syncLock;
 
         TransportListener amqpTransportListener;
@@ -52,11 +53,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 IdleTimeOut = Constants.DefaultAmqpConnectionIdleTimeoutInMilliSeconds
             };
 
-            this.incomingConnectionMap = new ConcurrentDictionary<uint, AmqpConnectionGatewayContext>();
+            this.incomingConnectionMap = new ConcurrentDictionary<uint, AmqpConnection>();
         }
+
+        public string Name => "AMQP";
 
         public async Task StartAsync()
         {
+            Events.Starting();
+
             // This transport settings object sets up a listener for TLS over TCP right now.
             var listeners = new[] { this.transportSettings.Settings.CreateListener() };
 
@@ -69,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             // Preallocate buffers for AMQP transport
             ByteBuffer.InitBufferManagers();
+
+            Events.Started();
         }
 
         public async Task CloseAsync(CancellationToken token)
@@ -91,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         void OnAcceptTransport(TransportListener transportListener, TransportAsyncCallbackArgs args)
         {
-            if(args.Exception != null)
+            if (args.Exception != null)
             {
                 Events.AcceptTransportInputError(args.Exception);
                 throw args.Exception;
@@ -132,10 +139,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 try
                 {
-                    var context = new AmqpConnectionGatewayContext(amqpConnection);
-                    if (this.incomingConnectionMap.TryAdd(amqpConnection.Identifier.Value, context))
+                    if (this.incomingConnectionMap.TryAdd(amqpConnection.Identifier.Value, amqpConnection))
                     {
-                        amqpConnection.SafeAddClosed((s, e) => { this.incomingConnectionMap.TryRemove(amqpConnection.Identifier.Value, out AmqpConnectionGatewayContext _); });
+                        amqpConnection.SafeAddClosed((s, e) => this.incomingConnectionMap.TryRemove(amqpConnection.Identifier.Value, out AmqpConnection _));
                     }
                     else
                     {
@@ -194,12 +200,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         void SafeCloseExistingConnections()
         {
-            throw new NotImplementedException();
+            var connectionSnapShot = new List<AmqpConnection>(this.incomingConnectionMap.Values);
+            connectionSnapShot.ForEach(conn => conn.SafeClose(new AmqpException(AmqpErrorCode.DetachForced, "Server busy, please retry operation")));
         }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            this.CloseAsync(CancellationToken.None).Wait();
         }
 
         static class Events
@@ -212,7 +219,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 AcceptTransportInputError = IdStart,
                 AcceptTransportError = IdStart + 1,
                 AmqpConnectionOpenAsyncFailed = IdStart + 2,
-                ConnectionContextAddFailed = IdStart + 3
+                ConnectionContextAddFailed = IdStart + 3,
+                Starting = IdStart + 4,
+                Started = IdStart + 5,
             }
 
             internal static void AcceptTransportInputError(Exception ex) => Log.LogError((int)EventIds.AcceptTransportInputError, ex, $"Received a new transport connection with an error.");
@@ -224,6 +233,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             internal static void AmqpConnectionOpenAsyncFailed(Exception ex) => Log.LogError((int)EventIds.AmqpConnectionOpenAsyncFailed, ex, $"An error occurred while opening AMQP connection.");
 
             internal static void ConnectionContextAddFailed(uint id) => Log.LogError((int)EventIds.ConnectionContextAddFailed, $"Failed to add to map for sequence # {id}");
+
+            internal static void Starting() => Log.LogInformation((int)EventIds.Starting, $"Starting AMQP head");
+
+            internal static void Started() => Log.LogInformation((int)EventIds.Started, $"Started AMQP head");
         }
     }
 }

@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Test;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
@@ -39,13 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         struct Messages
         {
             public readonly ProtocolGatewayMessage Source;
-            public readonly MqttMessage Expected;
+            public readonly EdgeMessage Expected;
 
             public Messages(string address, byte[] payload)
             {
                 this.Source = new ProtocolGatewayMessage.Builder(payload.ToByteBuffer(), address)
                     .Build();
-                this.Expected = new MqttMessage.Builder(payload).Build();
+                this.Expected = new EdgeMessage.Builder(payload).Build();
             }
         }
 
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             listener.Setup(x => x.ProcessDeviceMessageAsync(It.IsAny<IMessage>()))
                 .Returns(Task.CompletedTask);
             listener.Setup(x => x.GetTwinAsync())
-                .Returns(Task.FromResult((IMessage)new Message(twinBytes)));
+                .Returns(Task.FromResult((IMessage)new EdgeMessage.Builder(twinBytes).Build()));
             listener.SetupGet(x => x.Identity)
                 .Returns(Mock.Of<IIdentity>());
             return listener;
@@ -383,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     });
 
             messagingServiceClient.BindMessagingChannel(Channel.Object);
-            Core.IMessage message = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).Build();
+            Core.IMessage message = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).Build();
             await dp.SendC2DMessageAsync(message);
 
             Assert.NotNull(msg);
@@ -415,7 +414,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     });
 
             messagingServiceClient.BindMessagingChannel(Channel.Object);
-            Core.IMessage message = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).Build();
+            Core.IMessage message = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).Build();
             await dp.SendC2DMessageAsync(message);
 
             Assert.NotNull(msg);
@@ -447,7 +446,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     });
 
             messagingServiceClient.BindMessagingChannel(Channel.Object);
-            Core.IMessage message = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).Build();
+            Core.IMessage message = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).Build();
             await dp.SendC2DMessageAsync(message);
 
             Assert.NotNull(msg);
@@ -479,7 +478,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     });
 
             messagingServiceClient.BindMessagingChannel(Channel.Object);
-            Core.IMessage message = new MqttMessage.Builder(new byte[] { 1, 2, 3 }).Build();
+            Core.IMessage message = new EdgeMessage.Builder(new byte[] { 1, 2, 3 }).Build();
             await dp.SendC2DMessageAsync(message);
 
             Assert.NotNull(msg);

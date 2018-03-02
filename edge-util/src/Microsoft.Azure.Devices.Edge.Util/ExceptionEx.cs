@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
@@ -54,6 +54,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             return false;
+        }
+
+        public static T UnwindAs<T>(this Exception exception)
+            where T : Exception
+        {
+            switch (exception)
+            {
+                case T tException:
+                    return tException;
+                case AggregateException aggregateException when aggregateException.InnerExceptions.Count == 1:
+                    return UnwindAs<T>(aggregateException.InnerException);
+                default:
+                    return null;
+            }
         }
     }
 }

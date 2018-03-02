@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IMessage ToMessage(Message sourceMessage)
         {
-            MqttMessage message = new MqttMessage.Builder(sourceMessage.GetBytes())
+            EdgeMessage message = new EdgeMessage.Builder(sourceMessage.GetBytes())
                 .SetProperties(sourceMessage.Properties)
                 .Build();
 
