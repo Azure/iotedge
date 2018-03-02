@@ -1,4 +1,4 @@
-FROM microsoft/nanoserver
+FROM microsoft/nanoserver:1709
 
 ARG EXE_DIR=.
 
