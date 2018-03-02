@@ -13,25 +13,44 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Image {
-    #[serde(rename = "Id")] id: String,
-    #[serde(rename = "RepoTags")] repo_tags: Option<Vec<String>>,
-    #[serde(rename = "RepoDigests")] repo_digests: Option<Vec<String>>,
-    #[serde(rename = "Parent")] parent: String,
-    #[serde(rename = "Comment")] comment: String,
-    #[serde(rename = "Created")] created: String,
-    #[serde(rename = "Container")] container: String,
-    #[serde(rename = "ContainerConfig")] container_config: Option<::models::ContainerConfig>,
-    #[serde(rename = "DockerVersion")] docker_version: String,
-    #[serde(rename = "Author")] author: String,
-    #[serde(rename = "Config")] config: Option<::models::ContainerConfig>,
-    #[serde(rename = "Architecture")] architecture: String,
-    #[serde(rename = "Os")] os: String,
-    #[serde(rename = "OsVersion")] os_version: Option<String>,
-    #[serde(rename = "Size")] size: i64,
-    #[serde(rename = "VirtualSize")] virtual_size: i64,
-    #[serde(rename = "GraphDriver")] graph_driver: ::models::GraphDriverData,
-    #[serde(rename = "RootFS")] root_fs: ::models::ImageRootFs,
-    #[serde(rename = "Metadata")] metadata: Option<::models::ImageMetadata>,
+    #[serde(rename = "Id")]
+    id: String,
+    #[serde(rename = "RepoTags", skip_serializing_if = "Option::is_none")]
+    repo_tags: Option<Vec<String>>,
+    #[serde(rename = "RepoDigests", skip_serializing_if = "Option::is_none")]
+    repo_digests: Option<Vec<String>>,
+    #[serde(rename = "Parent")]
+    parent: String,
+    #[serde(rename = "Comment")]
+    comment: String,
+    #[serde(rename = "Created")]
+    created: String,
+    #[serde(rename = "Container")]
+    container: String,
+    #[serde(rename = "ContainerConfig", skip_serializing_if = "Option::is_none")]
+    container_config: Option<::models::ContainerConfig>,
+    #[serde(rename = "DockerVersion")]
+    docker_version: String,
+    #[serde(rename = "Author")]
+    author: String,
+    #[serde(rename = "Config", skip_serializing_if = "Option::is_none")]
+    config: Option<::models::ContainerConfig>,
+    #[serde(rename = "Architecture")]
+    architecture: String,
+    #[serde(rename = "Os")]
+    os: String,
+    #[serde(rename = "OsVersion", skip_serializing_if = "Option::is_none")]
+    os_version: Option<String>,
+    #[serde(rename = "Size")]
+    size: i64,
+    #[serde(rename = "VirtualSize")]
+    virtual_size: i64,
+    #[serde(rename = "GraphDriver")]
+    graph_driver: ::models::GraphDriverData,
+    #[serde(rename = "RootFS")]
+    root_fs: ::models::ImageRootFs,
+    #[serde(rename = "Metadata", skip_serializing_if = "Option::is_none")]
+    metadata: Option<::models::ImageMetadata>,
 }
 
 impl Image {

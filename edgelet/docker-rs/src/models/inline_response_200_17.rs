@@ -14,7 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20017 {
     /// Networks that were deleted
-    #[serde(rename = "NetworksDeleted")]
+    #[serde(rename = "NetworksDeleted", skip_serializing_if = "Option::is_none")]
     networks_deleted: Option<Vec<String>>,
 }
 

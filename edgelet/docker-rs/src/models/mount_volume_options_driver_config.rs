@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MountVolumeOptionsDriverConfig {
     /// Name of the driver to use to create the volume.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// key/value map of driver specific options.
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
 }
 

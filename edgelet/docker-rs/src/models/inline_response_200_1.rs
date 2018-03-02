@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2001 {
     /// The ps column titles
-    #[serde(rename = "Titles")]
+    #[serde(rename = "Titles", skip_serializing_if = "Option::is_none")]
     titles: Option<Vec<String>>,
     /// Each process running in the container, where each is process is an array of values corresponding to the titles
-    #[serde(rename = "Processes")]
+    #[serde(rename = "Processes", skip_serializing_if = "Option::is_none")]
     processes: Option<Vec<Vec<String>>>,
 }
 

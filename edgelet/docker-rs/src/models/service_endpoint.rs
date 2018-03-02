@@ -13,9 +13,12 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
-    #[serde(rename = "Spec")] spec: Option<::models::EndpointSpec>,
-    #[serde(rename = "Ports")] ports: Option<Vec<::models::EndpointPortConfig>>,
-    #[serde(rename = "VirtualIPs")] virtual_i_ps: Option<Vec<::models::ServiceEndpointVirtualIPs>>,
+    #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
+    spec: Option<::models::EndpointSpec>,
+    #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
+    ports: Option<Vec<::models::EndpointPortConfig>>,
+    #[serde(rename = "VirtualIPs", skip_serializing_if = "Option::is_none")]
+    virtual_i_ps: Option<Vec<::models::ServiceEndpointVirtualIPs>>,
 }
 
 impl ServiceEndpoint {

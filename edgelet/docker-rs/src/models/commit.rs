@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Commit {
     /// Actual commit ID of external tool.
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     /// Commit ID of external tool expected by dockerd as set at build time.
-    #[serde(rename = "Expected")]
+    #[serde(rename = "Expected", skip_serializing_if = "Option::is_none")]
     expected: Option<String>,
 }
 

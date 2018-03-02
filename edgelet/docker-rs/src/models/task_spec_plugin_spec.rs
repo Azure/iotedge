@@ -16,15 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecPluginSpec {
     /// The name or 'alias' to use for the plugin.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// The plugin image reference to use.
-    #[serde(rename = "Remote")]
+    #[serde(rename = "Remote", skip_serializing_if = "Option::is_none")]
     remote: Option<String>,
     /// Disable the plugin once scheduled.
-    #[serde(rename = "Disabled")]
+    #[serde(rename = "Disabled", skip_serializing_if = "Option::is_none")]
     disabled: Option<bool>,
-    #[serde(rename = "PluginPrivilege")] plugin_privilege: Option<Vec<::models::Body>>,
+    #[serde(rename = "PluginPrivilege", skip_serializing_if = "Option::is_none")]
+    plugin_privilege: Option<Vec<::models::Body>>,
 }
 
 impl TaskSpecPluginSpec {

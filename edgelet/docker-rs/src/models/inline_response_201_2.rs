@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2012 {
     /// The ID of the created service.
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     /// Optional warning message
-    #[serde(rename = "Warning")]
+    #[serde(rename = "Warning", skip_serializing_if = "Option::is_none")]
     warning: Option<String>,
 }
 

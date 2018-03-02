@@ -14,31 +14,31 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExecConfig {
     /// Attach to `stdin` of the exec command.
-    #[serde(rename = "AttachStdin")]
+    #[serde(rename = "AttachStdin", skip_serializing_if = "Option::is_none")]
     attach_stdin: Option<bool>,
     /// Attach to `stdout` of the exec command.
-    #[serde(rename = "AttachStdout")]
+    #[serde(rename = "AttachStdout", skip_serializing_if = "Option::is_none")]
     attach_stdout: Option<bool>,
     /// Attach to `stderr` of the exec command.
-    #[serde(rename = "AttachStderr")]
+    #[serde(rename = "AttachStderr", skip_serializing_if = "Option::is_none")]
     attach_stderr: Option<bool>,
     /// Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`.
-    #[serde(rename = "DetachKeys")]
+    #[serde(rename = "DetachKeys", skip_serializing_if = "Option::is_none")]
     detach_keys: Option<String>,
     /// Allocate a pseudo-TTY.
-    #[serde(rename = "Tty")]
+    #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
     /// A list of environment variables in the form `[\"VAR=value\", ...]`.
-    #[serde(rename = "Env")]
+    #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
     /// Command to run, as a string or array of strings.
-    #[serde(rename = "Cmd")]
+    #[serde(rename = "Cmd", skip_serializing_if = "Option::is_none")]
     cmd: Option<Vec<String>>,
     /// Runs the exec process with extended privileges.
-    #[serde(rename = "Privileged")]
+    #[serde(rename = "Privileged", skip_serializing_if = "Option::is_none")]
     privileged: Option<bool>,
     /// The user, and optionally, group to run the exec process inside the container. Format is one of: `user`, `user:group`, `uid`, or `uid:gid`.
-    #[serde(rename = "User")]
+    #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
 }
 

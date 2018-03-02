@@ -13,16 +13,23 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20011 {
-    #[serde(rename = "Version")] version: Option<String>,
-    #[serde(rename = "ApiVersion")] api_version: Option<String>,
-    #[serde(rename = "MinAPIVersion")] min_api_version: Option<String>,
-    #[serde(rename = "GitCommit")] git_commit: Option<String>,
-    #[serde(rename = "GoVersion")] go_version: Option<String>,
-    #[serde(rename = "Os")] os: Option<String>,
-    #[serde(rename = "Arch")] arch: Option<String>,
-    #[serde(rename = "KernelVersion")] kernel_version: Option<String>,
-    #[serde(rename = "Experimental")] experimental: Option<bool>,
-    #[serde(rename = "BuildTime")] build_time: Option<String>,
+    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")] version: Option<String>,
+    #[serde(rename = "ApiVersion", skip_serializing_if = "Option::is_none")]
+    api_version: Option<String>,
+    #[serde(rename = "MinAPIVersion", skip_serializing_if = "Option::is_none")]
+    min_api_version: Option<String>,
+    #[serde(rename = "GitCommit", skip_serializing_if = "Option::is_none")]
+    git_commit: Option<String>,
+    #[serde(rename = "GoVersion", skip_serializing_if = "Option::is_none")]
+    go_version: Option<String>,
+    #[serde(rename = "Os", skip_serializing_if = "Option::is_none")] os: Option<String>,
+    #[serde(rename = "Arch", skip_serializing_if = "Option::is_none")] arch: Option<String>,
+    #[serde(rename = "KernelVersion", skip_serializing_if = "Option::is_none")]
+    kernel_version: Option<String>,
+    #[serde(rename = "Experimental", skip_serializing_if = "Option::is_none")]
+    experimental: Option<bool>,
+    #[serde(rename = "BuildTime", skip_serializing_if = "Option::is_none")]
+    build_time: Option<String>,
 }
 
 impl InlineResponse20011 {

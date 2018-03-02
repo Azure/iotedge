@@ -16,33 +16,33 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse200State {
     /// The status of the container. For example, `\"running\"` or `\"exited\"`.
-    #[serde(rename = "Status")]
+    #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
     /// Whether this container is running.  Note that a running container can be _paused_. The `Running` and `Paused` booleans are not mutually exclusive:  When pausing a container (on Linux), the cgroups freezer is used to suspend all processes in the container. Freezing the process requires the process to be running. As a result, paused containers are both `Running` _and_ `Paused`.  Use the `Status` field instead to determine if a container's state is \"running\".
-    #[serde(rename = "Running")]
+    #[serde(rename = "Running", skip_serializing_if = "Option::is_none")]
     running: Option<bool>,
     /// Whether this container is paused.
-    #[serde(rename = "Paused")]
+    #[serde(rename = "Paused", skip_serializing_if = "Option::is_none")]
     paused: Option<bool>,
     /// Whether this container is restarting.
-    #[serde(rename = "Restarting")]
+    #[serde(rename = "Restarting", skip_serializing_if = "Option::is_none")]
     restarting: Option<bool>,
     /// Whether this container has been killed because it ran out of memory.
-    #[serde(rename = "OOMKilled")]
+    #[serde(rename = "OOMKilled", skip_serializing_if = "Option::is_none")]
     oom_killed: Option<bool>,
-    #[serde(rename = "Dead")] dead: Option<bool>,
+    #[serde(rename = "Dead", skip_serializing_if = "Option::is_none")] dead: Option<bool>,
     /// The process ID of this container
-    #[serde(rename = "Pid")]
+    #[serde(rename = "Pid", skip_serializing_if = "Option::is_none")]
     pid: Option<i32>,
     /// The last exit code of this container
-    #[serde(rename = "ExitCode")]
+    #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")]
     exit_code: Option<i32>,
-    #[serde(rename = "Error")] error: Option<String>,
+    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")] error: Option<String>,
     /// The time when this container was last started.
-    #[serde(rename = "StartedAt")]
+    #[serde(rename = "StartedAt", skip_serializing_if = "Option::is_none")]
     started_at: Option<String>,
     /// The time when this container last exited.
-    #[serde(rename = "FinishedAt")]
+    #[serde(rename = "FinishedAt", skip_serializing_if = "Option::is_none")]
     finished_at: Option<String>,
 }
 

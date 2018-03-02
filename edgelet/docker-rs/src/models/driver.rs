@@ -19,7 +19,7 @@ pub struct Driver {
     #[serde(rename = "Name")]
     name: String,
     /// Key/value map of driver-specific options.
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
 }
 

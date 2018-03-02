@@ -16,12 +16,12 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MountVolumeOptions {
     /// Populate volume with data from the target.
-    #[serde(rename = "NoCopy")]
+    #[serde(rename = "NoCopy", skip_serializing_if = "Option::is_none")]
     no_copy: Option<bool>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "DriverConfig")]
+    #[serde(rename = "DriverConfig", skip_serializing_if = "Option::is_none")]
     driver_config: Option<::models::MountVolumeOptionsDriverConfig>,
 }
 

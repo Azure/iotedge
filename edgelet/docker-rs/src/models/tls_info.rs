@@ -16,13 +16,13 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TlsInfo {
     /// The root CA certificate(s) that are used to validate leaf TLS certificates
-    #[serde(rename = "TrustRoot")]
+    #[serde(rename = "TrustRoot", skip_serializing_if = "Option::is_none")]
     trust_root: Option<String>,
     /// The base64-url-safe-encoded raw subject bytes of the issuer
-    #[serde(rename = "CertIssuerSubject")]
+    #[serde(rename = "CertIssuerSubject", skip_serializing_if = "Option::is_none")]
     cert_issuer_subject: Option<String>,
     /// The base64-url-safe-encoded raw public key bytes of the issuer
-    #[serde(rename = "CertIssuerPublicKey")]
+    #[serde(rename = "CertIssuerPublicKey", skip_serializing_if = "Option::is_none")]
     cert_issuer_public_key: Option<String>,
 }
 

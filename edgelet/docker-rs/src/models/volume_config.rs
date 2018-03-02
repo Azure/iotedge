@@ -14,16 +14,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VolumeConfig {
     /// The new volume's name. If not specified, Docker generates a name.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// Name of the volume driver to use.
-    #[serde(rename = "Driver")]
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
     /// A mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(rename = "DriverOpts")]
+    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
     driver_opts: Option<::std::collections::HashMap<String, String>>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
 }
 

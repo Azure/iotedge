@@ -14,29 +14,35 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
     /// The ID of the task.
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
-    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt")] created_at: Option<String>,
-    #[serde(rename = "UpdatedAt")] updated_at: Option<String>,
+    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
+    version: Option<::models::ObjectVersion>,
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    created_at: Option<String>,
+    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    updated_at: Option<String>,
     /// Name of the task.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Spec")] spec: Option<::models::TaskSpec>,
+    #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
+    spec: Option<::models::TaskSpec>,
     /// The ID of the service this task is part of.
-    #[serde(rename = "ServiceID")]
+    #[serde(rename = "ServiceID", skip_serializing_if = "Option::is_none")]
     service_id: Option<String>,
-    #[serde(rename = "Slot")] slot: Option<i32>,
+    #[serde(rename = "Slot", skip_serializing_if = "Option::is_none")] slot: Option<i32>,
     /// The ID of the node that this task is on.
-    #[serde(rename = "NodeID")]
+    #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]
     node_id: Option<String>,
-    #[serde(rename = "AssignedGenericResources")]
+    #[serde(rename = "AssignedGenericResources", skip_serializing_if = "Option::is_none")]
     assigned_generic_resources: Option<::models::GenericResources>,
-    #[serde(rename = "Status")] status: Option<::models::TaskStatus>,
-    #[serde(rename = "DesiredState")] desired_state: Option<::models::TaskState>,
+    #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
+    status: Option<::models::TaskStatus>,
+    #[serde(rename = "DesiredState", skip_serializing_if = "Option::is_none")]
+    desired_state: Option<::models::TaskState>,
 }
 
 impl Task {

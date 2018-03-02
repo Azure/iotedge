@@ -16,22 +16,22 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpecUpdateConfig {
     /// Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
-    #[serde(rename = "Parallelism")]
+    #[serde(rename = "Parallelism", skip_serializing_if = "Option::is_none")]
     parallelism: Option<i64>,
     /// Amount of time between updates, in nanoseconds.
-    #[serde(rename = "Delay")]
+    #[serde(rename = "Delay", skip_serializing_if = "Option::is_none")]
     delay: Option<i64>,
     /// Action to take if an updated task fails to run, or stops running during the update.
-    #[serde(rename = "FailureAction")]
+    #[serde(rename = "FailureAction", skip_serializing_if = "Option::is_none")]
     failure_action: Option<String>,
     /// Amount of time to monitor each updated task for failures, in nanoseconds.
-    #[serde(rename = "Monitor")]
+    #[serde(rename = "Monitor", skip_serializing_if = "Option::is_none")]
     monitor: Option<i64>,
     /// The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1.
-    #[serde(rename = "MaxFailureRatio")]
+    #[serde(rename = "MaxFailureRatio", skip_serializing_if = "Option::is_none")]
     max_failure_ratio: Option<f32>,
     /// The order of operations when rolling out an updated task. Either the old task is shut down before the new task is started, or the new task is started before the old task is shut down.
-    #[serde(rename = "Order")]
+    #[serde(rename = "Order", skip_serializing_if = "Option::is_none")]
     order: Option<String>,
 }
 

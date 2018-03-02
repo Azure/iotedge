@@ -16,19 +16,19 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecPrivilegesSeLinuxContext {
     /// Disable SELinux
-    #[serde(rename = "Disable")]
+    #[serde(rename = "Disable", skip_serializing_if = "Option::is_none")]
     disable: Option<bool>,
     /// SELinux user label
-    #[serde(rename = "User")]
+    #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     /// SELinux role label
-    #[serde(rename = "Role")]
+    #[serde(rename = "Role", skip_serializing_if = "Option::is_none")]
     role: Option<String>,
     /// SELinux type label
-    #[serde(rename = "Type")]
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
     _type: Option<String>,
     /// SELinux level label
-    #[serde(rename = "Level")]
+    #[serde(rename = "Level", skip_serializing_if = "Option::is_none")]
     level: Option<String>,
 }
 

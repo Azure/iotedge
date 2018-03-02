@@ -16,19 +16,19 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HealthConfig {
     /// The test to perform. Possible values are:  - `[]` inherit healthcheck from image or parent image - `[\"NONE\"]` disable healthcheck - `[\"CMD\", args...]` exec arguments directly - `[\"CMD-SHELL\", command]` run command with system's default shell
-    #[serde(rename = "Test")]
+    #[serde(rename = "Test", skip_serializing_if = "Option::is_none")]
     test: Option<Vec<String>>,
     /// The time to wait between checks in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
-    #[serde(rename = "Interval")]
+    #[serde(rename = "Interval", skip_serializing_if = "Option::is_none")]
     interval: Option<i32>,
     /// The time to wait before considering the check to have hung. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
-    #[serde(rename = "Timeout")]
+    #[serde(rename = "Timeout", skip_serializing_if = "Option::is_none")]
     timeout: Option<i32>,
     /// The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
-    #[serde(rename = "Retries")]
+    #[serde(rename = "Retries", skip_serializing_if = "Option::is_none")]
     retries: Option<i32>,
     /// Start period for the container to initialize before starting health-retries countdown in nanoseconds. It should be 0 or at least 1000000 (1 ms). 0 means inherit.
-    #[serde(rename = "StartPeriod")]
+    #[serde(rename = "StartPeriod", skip_serializing_if = "Option::is_none")]
     start_period: Option<i32>,
 }
 

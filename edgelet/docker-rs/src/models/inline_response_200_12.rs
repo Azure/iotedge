@@ -14,17 +14,18 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20012 {
     /// The type of object emitting the event
-    #[serde(rename = "Type")]
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
     _type: Option<String>,
     /// The type of event
-    #[serde(rename = "Action")]
+    #[serde(rename = "Action", skip_serializing_if = "Option::is_none")]
     action: Option<String>,
-    #[serde(rename = "Actor")] actor: Option<::models::InlineResponse20012Actor>,
+    #[serde(rename = "Actor", skip_serializing_if = "Option::is_none")]
+    actor: Option<::models::InlineResponse20012Actor>,
     /// Timestamp of event
-    #[serde(rename = "time")]
+    #[serde(rename = "time", skip_serializing_if = "Option::is_none")]
     time: Option<i32>,
     /// Timestamp of event, with nanosecond accuracy
-    #[serde(rename = "timeNano")]
+    #[serde(rename = "timeNano", skip_serializing_if = "Option::is_none")]
     time_nano: Option<i64>,
 }
 

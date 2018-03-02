@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageDeleteResponseItem {
     /// The image ID of an image that was untagged
-    #[serde(rename = "Untagged")]
+    #[serde(rename = "Untagged", skip_serializing_if = "Option::is_none")]
     untagged: Option<String>,
     /// The image ID of an image that was deleted
-    #[serde(rename = "Deleted")]
+    #[serde(rename = "Deleted", skip_serializing_if = "Option::is_none")]
     deleted: Option<String>,
 }
 

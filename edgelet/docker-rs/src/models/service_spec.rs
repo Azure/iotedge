@@ -16,20 +16,24 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceSpec {
     /// Name of the service.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "TaskTemplate")] task_template: Option<::models::TaskSpec>,
-    #[serde(rename = "Mode")] mode: Option<::models::ServiceSpecMode>,
-    #[serde(rename = "UpdateConfig")] update_config: Option<::models::ServiceSpecUpdateConfig>,
-    #[serde(rename = "RollbackConfig")]
+    #[serde(rename = "TaskTemplate", skip_serializing_if = "Option::is_none")]
+    task_template: Option<::models::TaskSpec>,
+    #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
+    mode: Option<::models::ServiceSpecMode>,
+    #[serde(rename = "UpdateConfig", skip_serializing_if = "Option::is_none")]
+    update_config: Option<::models::ServiceSpecUpdateConfig>,
+    #[serde(rename = "RollbackConfig", skip_serializing_if = "Option::is_none")]
     rollback_config: Option<::models::ServiceSpecRollbackConfig>,
     /// Array of network names or IDs to attach the service to.
-    #[serde(rename = "Networks")]
+    #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<Vec<::models::TaskSpecNetworks>>,
-    #[serde(rename = "EndpointSpec")] endpoint_spec: Option<::models::EndpointSpec>,
+    #[serde(rename = "EndpointSpec", skip_serializing_if = "Option::is_none")]
+    endpoint_spec: Option<::models::EndpointSpec>,
 }
 
 impl ServiceSpec {

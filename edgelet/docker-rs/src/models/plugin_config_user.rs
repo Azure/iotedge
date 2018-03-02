@@ -13,8 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigUser {
-    #[serde(rename = "UID")] UID: Option<i32>,
-    #[serde(rename = "GID")] GID: Option<i32>,
+    #[serde(rename = "UID", skip_serializing_if = "Option::is_none")] UID: Option<i32>,
+    #[serde(rename = "GID", skip_serializing_if = "Option::is_none")] GID: Option<i32>,
 }
 
 impl PluginConfigUser {

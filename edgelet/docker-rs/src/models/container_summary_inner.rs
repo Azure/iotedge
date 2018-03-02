@@ -14,45 +14,47 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerSummaryInner {
     /// The ID of this container
-    #[serde(rename = "Id")]
+    #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
     id: Option<String>,
     /// The names that this container has been given
-    #[serde(rename = "Names")]
+    #[serde(rename = "Names", skip_serializing_if = "Option::is_none")]
     names: Option<Vec<String>>,
     /// The name of the image used when creating this container
-    #[serde(rename = "Image")]
+    #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     /// The ID of the image that this container was created from
-    #[serde(rename = "ImageID")]
+    #[serde(rename = "ImageID", skip_serializing_if = "Option::is_none")]
     image_id: Option<String>,
     /// Command to run when starting the container
-    #[serde(rename = "Command")]
+    #[serde(rename = "Command", skip_serializing_if = "Option::is_none")]
     command: Option<String>,
     /// When the container was created
-    #[serde(rename = "Created")]
+    #[serde(rename = "Created", skip_serializing_if = "Option::is_none")]
     created: Option<i64>,
     /// The ports exposed by this container
-    #[serde(rename = "Ports")]
+    #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
     ports: Option<Vec<::models::Port>>,
     /// The size of files that have been created or changed by this container
-    #[serde(rename = "SizeRw")]
+    #[serde(rename = "SizeRw", skip_serializing_if = "Option::is_none")]
     size_rw: Option<i64>,
     /// The total size of all the files in this container
-    #[serde(rename = "SizeRootFs")]
+    #[serde(rename = "SizeRootFs", skip_serializing_if = "Option::is_none")]
     size_root_fs: Option<i64>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// The state of this container (e.g. `Exited`)
-    #[serde(rename = "State")]
+    #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<String>,
     /// Additional human-readable status of this container (e.g. `Exit 0`)
-    #[serde(rename = "Status")]
+    #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
     status: Option<String>,
-    #[serde(rename = "HostConfig")] host_config: Option<::models::ContainerSummaryInnerHostConfig>,
-    #[serde(rename = "NetworkSettings")]
+    #[serde(rename = "HostConfig", skip_serializing_if = "Option::is_none")]
+    host_config: Option<::models::ContainerSummaryInnerHostConfig>,
+    #[serde(rename = "NetworkSettings", skip_serializing_if = "Option::is_none")]
     network_settings: Option<::models::ContainerSummaryInnerNetworkSettings>,
-    #[serde(rename = "Mounts")] mounts: Option<Vec<::models::Mount>>,
+    #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
+    mounts: Option<Vec<::models::Mount>>,
 }
 
 impl ContainerSummaryInner {

@@ -16,18 +16,23 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpec {
     /// Name of the swarm.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
-    #[serde(rename = "Orchestration")] orchestration: Option<::models::SwarmSpecOrchestration>,
-    #[serde(rename = "Raft")] raft: Option<::models::SwarmSpecRaft>,
-    #[serde(rename = "Dispatcher")] dispatcher: Option<::models::SwarmSpecDispatcher>,
-    #[serde(rename = "CAConfig")] ca_config: Option<::models::SwarmSpecCaConfig>,
-    #[serde(rename = "EncryptionConfig")]
+    #[serde(rename = "Orchestration", skip_serializing_if = "Option::is_none")]
+    orchestration: Option<::models::SwarmSpecOrchestration>,
+    #[serde(rename = "Raft", skip_serializing_if = "Option::is_none")]
+    raft: Option<::models::SwarmSpecRaft>,
+    #[serde(rename = "Dispatcher", skip_serializing_if = "Option::is_none")]
+    dispatcher: Option<::models::SwarmSpecDispatcher>,
+    #[serde(rename = "CAConfig", skip_serializing_if = "Option::is_none")]
+    ca_config: Option<::models::SwarmSpecCaConfig>,
+    #[serde(rename = "EncryptionConfig", skip_serializing_if = "Option::is_none")]
     encryption_config: Option<::models::SwarmSpecEncryptionConfig>,
-    #[serde(rename = "TaskDefaults")] task_defaults: Option<::models::SwarmSpecTaskDefaults>,
+    #[serde(rename = "TaskDefaults", skip_serializing_if = "Option::is_none")]
+    task_defaults: Option<::models::SwarmSpecTaskDefaults>,
 }
 
 impl SwarmSpec {

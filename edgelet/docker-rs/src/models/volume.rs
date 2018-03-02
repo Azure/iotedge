@@ -23,10 +23,10 @@ pub struct Volume {
     #[serde(rename = "Mountpoint")]
     mountpoint: String,
     /// Date/Time the volume was created.
-    #[serde(rename = "CreatedAt")]
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
     /// Low-level details about the volume, provided by the volume driver. Details are returned as a map with key/value pairs: `{\"key\":\"value\",\"key2\":\"value2\"}`.  The `Status` field is optional, and is omitted if the volume driver does not support this feature.
-    #[serde(rename = "Status")]
+    #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
     status: Option<::std::collections::HashMap<String, Value>>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels")]
@@ -37,7 +37,8 @@ pub struct Volume {
     /// The driver specific options used when creating the volume.
     #[serde(rename = "Options")]
     options: ::std::collections::HashMap<String, String>,
-    #[serde(rename = "UsageData")] usage_data: Option<::models::VolumeUsageData>,
+    #[serde(rename = "UsageData", skip_serializing_if = "Option::is_none")]
+    usage_data: Option<::models::VolumeUsageData>,
 }
 
 impl Volume {

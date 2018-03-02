@@ -15,9 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20018 {
-    #[serde(rename = "Name")] name: Option<String>,
-    #[serde(rename = "Description")] description: Option<String>,
-    #[serde(rename = "Value")] value: Option<Vec<String>>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
+    #[serde(rename = "Description", skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    #[serde(rename = "Value", skip_serializing_if = "Option::is_none")] value: Option<Vec<String>>,
 }
 
 impl InlineResponse20018 {

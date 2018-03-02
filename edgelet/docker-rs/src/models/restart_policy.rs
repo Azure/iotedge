@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RestartPolicy {
     /// - Empty string means not to restart - `always` Always restart - `unless-stopped` Restart always except when the user has manually stopped the container - `on-failure` Restart only when the container exit code is non-zero
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// If `on-failure` is used, the number of times to retry before giving up
-    #[serde(rename = "MaximumRetryCount")]
+    #[serde(rename = "MaximumRetryCount", skip_serializing_if = "Option::is_none")]
     maximum_retry_count: Option<i32>,
 }
 

@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecPlacementPreferences {
-    #[serde(rename = "Spread")] spread: Option<::models::TaskSpecPlacementSpread>,
+    #[serde(rename = "Spread", skip_serializing_if = "Option::is_none")]
+    spread: Option<::models::TaskSpecPlacementSpread>,
 }
 
 impl TaskSpecPlacementPreferences {

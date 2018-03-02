@@ -17,31 +17,31 @@ pub struct NetworkConfig {
     #[serde(rename = "Name")]
     name: String,
     /// Check for networks with duplicate names. Since Network is primarily keyed based on a random ID and not on the name, and network name is strictly a user-friendly alias to the network which is uniquely identified using ID, there is no guaranteed way to check for duplicates. CheckDuplicate is there to provide a best effort checking of any networks which has the same name but it is not guaranteed to catch all name collisions.
-    #[serde(rename = "CheckDuplicate")]
+    #[serde(rename = "CheckDuplicate", skip_serializing_if = "Option::is_none")]
     check_duplicate: Option<bool>,
     /// Name of the network driver plugin to use.
-    #[serde(rename = "Driver")]
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<String>,
     /// Restrict external access to the network.
-    #[serde(rename = "Internal")]
+    #[serde(rename = "Internal", skip_serializing_if = "Option::is_none")]
     internal: Option<bool>,
     /// Globally scoped network is manually attachable by regular containers from workers in swarm mode.
-    #[serde(rename = "Attachable")]
+    #[serde(rename = "Attachable", skip_serializing_if = "Option::is_none")]
     attachable: Option<bool>,
     /// Ingress network is the network which provides the routing-mesh in swarm mode.
-    #[serde(rename = "Ingress")]
+    #[serde(rename = "Ingress", skip_serializing_if = "Option::is_none")]
     ingress: Option<bool>,
     /// Optional custom IP scheme for the network.
-    #[serde(rename = "IPAM")]
+    #[serde(rename = "IPAM", skip_serializing_if = "Option::is_none")]
     IPAM: Option<::models::Ipam>,
     /// Enable IPv6 on the network.
-    #[serde(rename = "EnableIPv6")]
+    #[serde(rename = "EnableIPv6", skip_serializing_if = "Option::is_none")]
     enable_i_pv6: Option<bool>,
     /// Network specific options to be used by the drivers.
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
 }
 

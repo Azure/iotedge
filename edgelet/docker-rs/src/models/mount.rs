@@ -14,23 +14,26 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Mount {
     /// Container path.
-    #[serde(rename = "Target")]
+    #[serde(rename = "Target", skip_serializing_if = "Option::is_none")]
     target: Option<String>,
     /// Mount source (e.g. a volume name, a host path).
-    #[serde(rename = "Source")]
+    #[serde(rename = "Source", skip_serializing_if = "Option::is_none")]
     source: Option<String>,
     /// The mount type. Available types:  - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container. - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed. - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.
-    #[serde(rename = "Type")]
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
     _type: Option<String>,
     /// Whether the mount should be read-only.
-    #[serde(rename = "ReadOnly")]
+    #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
     /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
-    #[serde(rename = "Consistency")]
+    #[serde(rename = "Consistency", skip_serializing_if = "Option::is_none")]
     consistency: Option<String>,
-    #[serde(rename = "BindOptions")] bind_options: Option<::models::MountBindOptions>,
-    #[serde(rename = "VolumeOptions")] volume_options: Option<::models::MountVolumeOptions>,
-    #[serde(rename = "TmpfsOptions")] tmpfs_options: Option<::models::MountTmpfsOptions>,
+    #[serde(rename = "BindOptions", skip_serializing_if = "Option::is_none")]
+    bind_options: Option<::models::MountBindOptions>,
+    #[serde(rename = "VolumeOptions", skip_serializing_if = "Option::is_none")]
+    volume_options: Option<::models::MountVolumeOptions>,
+    #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
+    tmpfs_options: Option<::models::MountTmpfsOptions>,
 }
 
 impl Mount {

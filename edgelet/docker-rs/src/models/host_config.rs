@@ -16,195 +16,197 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HostConfig {
     /// An integer value representing this container's relative CPU weight versus other containers.
-    #[serde(rename = "CpuShares")]
+    #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
     cpu_shares: Option<i32>,
     /// Memory limit in bytes.
-    #[serde(rename = "Memory")]
+    #[serde(rename = "Memory", skip_serializing_if = "Option::is_none")]
     memory: Option<i32>,
     /// Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
-    #[serde(rename = "CgroupParent")]
+    #[serde(rename = "CgroupParent", skip_serializing_if = "Option::is_none")]
     cgroup_parent: Option<String>,
     /// Block IO weight (relative weight).
-    #[serde(rename = "BlkioWeight")]
+    #[serde(rename = "BlkioWeight", skip_serializing_if = "Option::is_none")]
     blkio_weight: Option<i32>,
     /// Block IO weight (relative device weight) in the form `[{\"Path\": \"device_path\", \"Weight\": weight}]`.
-    #[serde(rename = "BlkioWeightDevice")]
+    #[serde(rename = "BlkioWeightDevice", skip_serializing_if = "Option::is_none")]
     blkio_weight_device: Option<Vec<::models::ResourcesBlkioWeightDevice>>,
     /// Limit read rate (bytes per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadBps")]
+    #[serde(rename = "BlkioDeviceReadBps", skip_serializing_if = "Option::is_none")]
     blkio_device_read_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (bytes per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteBps")]
+    #[serde(rename = "BlkioDeviceWriteBps", skip_serializing_if = "Option::is_none")]
     blkio_device_write_bps: Option<Vec<::models::ThrottleDevice>>,
     /// Limit read rate (IO per second) from a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceReadIOps")]
+    #[serde(rename = "BlkioDeviceReadIOps", skip_serializing_if = "Option::is_none")]
     blkio_device_read_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// Limit write rate (IO per second) to a device, in the form `[{\"Path\": \"device_path\", \"Rate\": rate}]`.
-    #[serde(rename = "BlkioDeviceWriteIOps")]
+    #[serde(rename = "BlkioDeviceWriteIOps", skip_serializing_if = "Option::is_none")]
     blkio_device_write_i_ops: Option<Vec<::models::ThrottleDevice>>,
     /// The length of a CPU period in microseconds.
-    #[serde(rename = "CpuPeriod")]
+    #[serde(rename = "CpuPeriod", skip_serializing_if = "Option::is_none")]
     cpu_period: Option<i64>,
     /// Microseconds of CPU time that the container can get in a CPU period.
-    #[serde(rename = "CpuQuota")]
+    #[serde(rename = "CpuQuota", skip_serializing_if = "Option::is_none")]
     cpu_quota: Option<i64>,
     /// The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimePeriod")]
+    #[serde(rename = "CpuRealtimePeriod", skip_serializing_if = "Option::is_none")]
     cpu_realtime_period: Option<i64>,
     /// The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
-    #[serde(rename = "CpuRealtimeRuntime")]
+    #[serde(rename = "CpuRealtimeRuntime", skip_serializing_if = "Option::is_none")]
     cpu_realtime_runtime: Option<i64>,
     /// CPUs in which to allow execution (e.g., `0-3`, `0,1`)
-    #[serde(rename = "CpusetCpus")]
+    #[serde(rename = "CpusetCpus", skip_serializing_if = "Option::is_none")]
     cpuset_cpus: Option<String>,
     /// Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-    #[serde(rename = "CpusetMems")]
+    #[serde(rename = "CpusetMems", skip_serializing_if = "Option::is_none")]
     cpuset_mems: Option<String>,
     /// A list of devices to add to the container.
-    #[serde(rename = "Devices")]
+    #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
     devices: Option<Vec<::models::DeviceMapping>>,
     /// a list of cgroup rules to apply to the container
-    #[serde(rename = "DeviceCgroupRules")]
+    #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
     device_cgroup_rules: Option<Vec<String>>,
     /// Disk limit (in bytes).
-    #[serde(rename = "DiskQuota")]
+    #[serde(rename = "DiskQuota", skip_serializing_if = "Option::is_none")]
     disk_quota: Option<i64>,
     /// Kernel memory limit in bytes.
-    #[serde(rename = "KernelMemory")]
+    #[serde(rename = "KernelMemory", skip_serializing_if = "Option::is_none")]
     kernel_memory: Option<i64>,
     /// Memory soft limit in bytes.
-    #[serde(rename = "MemoryReservation")]
+    #[serde(rename = "MemoryReservation", skip_serializing_if = "Option::is_none")]
     memory_reservation: Option<i64>,
     /// Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
-    #[serde(rename = "MemorySwap")]
+    #[serde(rename = "MemorySwap", skip_serializing_if = "Option::is_none")]
     memory_swap: Option<i64>,
     /// Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-    #[serde(rename = "MemorySwappiness")]
+    #[serde(rename = "MemorySwappiness", skip_serializing_if = "Option::is_none")]
     memory_swappiness: Option<i64>,
     /// CPU quota in units of 10<sup>-9</sup> CPUs.
-    #[serde(rename = "NanoCPUs")]
+    #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
     /// Disable OOM Killer for the container.
-    #[serde(rename = "OomKillDisable")]
+    #[serde(rename = "OomKillDisable", skip_serializing_if = "Option::is_none")]
     oom_kill_disable: Option<bool>,
     /// Tune a container's pids limit. Set -1 for unlimited.
-    #[serde(rename = "PidsLimit")]
+    #[serde(rename = "PidsLimit", skip_serializing_if = "Option::is_none")]
     pids_limit: Option<i64>,
     /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
-    #[serde(rename = "Ulimits")]
+    #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
     ulimits: Option<Vec<::models::ResourcesUlimits>>,
     /// The number of usable CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
-    #[serde(rename = "CpuCount")]
+    #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     cpu_count: Option<i64>,
     /// The usable percentage of the available CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
-    #[serde(rename = "CpuPercent")]
+    #[serde(rename = "CpuPercent", skip_serializing_if = "Option::is_none")]
     cpu_percent: Option<i64>,
     /// Maximum IOps for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumIOps")]
+    #[serde(rename = "IOMaximumIOps", skip_serializing_if = "Option::is_none")]
     io_maximum_i_ops: Option<i64>,
     /// Maximum IO in bytes per second for the container system drive (Windows only)
-    #[serde(rename = "IOMaximumBandwidth")]
+    #[serde(rename = "IOMaximumBandwidth", skip_serializing_if = "Option::is_none")]
     io_maximum_bandwidth: Option<i64>,
     /// A list of volume bindings for this container. Each volume binding is a string in one of these forms:  - `host-src:container-dest` to bind-mount a host path into the container. Both `host-src`, and `container-dest` must be an _absolute_ path. - `host-src:container-dest:ro` to make the bind mount read-only inside the container. Both `host-src`, and `container-dest` must be an _absolute_ path. - `volume-name:container-dest` to bind-mount a volume managed by a volume driver into the container. `container-dest` must be an _absolute_ path. - `volume-name:container-dest:ro` to mount the volume read-only inside the container.  `container-dest` must be an _absolute_ path.
-    #[serde(rename = "Binds")]
+    #[serde(rename = "Binds", skip_serializing_if = "Option::is_none")]
     binds: Option<Vec<String>>,
     /// Path to a file where the container ID is written
-    #[serde(rename = "ContainerIDFile")]
+    #[serde(rename = "ContainerIDFile", skip_serializing_if = "Option::is_none")]
     container_id_file: Option<String>,
-    #[serde(rename = "LogConfig")] log_config: Option<::models::HostConfigLogConfig>,
+    #[serde(rename = "LogConfig", skip_serializing_if = "Option::is_none")]
+    log_config: Option<::models::HostConfigLogConfig>,
     /// Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
-    #[serde(rename = "NetworkMode")]
+    #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
     network_mode: Option<String>,
     /// A map of exposed container ports and the host port they should map to.
-    #[serde(rename = "PortBindings")]
+    #[serde(rename = "PortBindings", skip_serializing_if = "Option::is_none")]
     port_bindings: Option<::std::collections::HashMap<String, ::models::HostConfigPortBindings>>,
-    #[serde(rename = "RestartPolicy")] restart_policy: Option<::models::RestartPolicy>,
+    #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
+    restart_policy: Option<::models::RestartPolicy>,
     /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
-    #[serde(rename = "AutoRemove")]
+    #[serde(rename = "AutoRemove", skip_serializing_if = "Option::is_none")]
     auto_remove: Option<bool>,
     /// Driver that this container uses to mount volumes.
-    #[serde(rename = "VolumeDriver")]
+    #[serde(rename = "VolumeDriver", skip_serializing_if = "Option::is_none")]
     volume_driver: Option<String>,
     /// A list of volumes to inherit from another container, specified in the form `<container name>[:<ro|rw>]`.
-    #[serde(rename = "VolumesFrom")]
+    #[serde(rename = "VolumesFrom", skip_serializing_if = "Option::is_none")]
     volumes_from: Option<Vec<String>>,
     /// Specification for mounts to be added to the container.
-    #[serde(rename = "Mounts")]
+    #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
     mounts: Option<Vec<::models::Mount>>,
     /// A list of kernel capabilities to add to the container.
-    #[serde(rename = "CapAdd")]
+    #[serde(rename = "CapAdd", skip_serializing_if = "Option::is_none")]
     cap_add: Option<Vec<String>>,
     /// A list of kernel capabilities to drop from the container.
-    #[serde(rename = "CapDrop")]
+    #[serde(rename = "CapDrop", skip_serializing_if = "Option::is_none")]
     cap_drop: Option<Vec<String>>,
     /// A list of DNS servers for the container to use.
-    #[serde(rename = "Dns")]
+    #[serde(rename = "Dns", skip_serializing_if = "Option::is_none")]
     dns: Option<Vec<String>>,
     /// A list of DNS options.
-    #[serde(rename = "DnsOptions")]
+    #[serde(rename = "DnsOptions", skip_serializing_if = "Option::is_none")]
     dns_options: Option<Vec<String>>,
     /// A list of DNS search domains.
-    #[serde(rename = "DnsSearch")]
+    #[serde(rename = "DnsSearch", skip_serializing_if = "Option::is_none")]
     dns_search: Option<Vec<String>>,
     /// A list of hostnames/IP mappings to add to the container's `/etc/hosts` file. Specified in the form `[\"hostname:IP\"]`.
-    #[serde(rename = "ExtraHosts")]
+    #[serde(rename = "ExtraHosts", skip_serializing_if = "Option::is_none")]
     extra_hosts: Option<Vec<String>>,
     /// A list of additional groups that the container process will run as.
-    #[serde(rename = "GroupAdd")]
+    #[serde(rename = "GroupAdd", skip_serializing_if = "Option::is_none")]
     group_add: Option<Vec<String>>,
     /// IPC sharing mode for the container. Possible values are:  - `\"none\"`: own private IPC namespace, with /dev/shm not mounted - `\"private\"`: own private IPC namespace - `\"shareable\"`: own private IPC namespace, with a possibility to share it with other containers - `\"container:<name|id>\"`: join another (shareable) container's IPC namespace - `\"host\"`: use the host system's IPC namespace  If not specified, daemon default is used, which can either be `\"private\"` or `\"shareable\"`, depending on daemon version and configuration.
-    #[serde(rename = "IpcMode")]
+    #[serde(rename = "IpcMode", skip_serializing_if = "Option::is_none")]
     ipc_mode: Option<String>,
     /// Cgroup to use for the container.
-    #[serde(rename = "Cgroup")]
+    #[serde(rename = "Cgroup", skip_serializing_if = "Option::is_none")]
     cgroup: Option<String>,
     /// A list of links for the container in the form `container_name:alias`.
-    #[serde(rename = "Links")]
+    #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
     links: Option<Vec<String>>,
     /// An integer value containing the score given to the container in order to tune OOM killer preferences.
-    #[serde(rename = "OomScoreAdj")]
+    #[serde(rename = "OomScoreAdj", skip_serializing_if = "Option::is_none")]
     oom_score_adj: Option<i32>,
     /// Set the PID (Process) Namespace mode for the container. It can be either:  - `\"container:<name|id>\"`: joins another container's PID namespace - `\"host\"`: use the host's PID namespace inside the container
-    #[serde(rename = "PidMode")]
+    #[serde(rename = "PidMode", skip_serializing_if = "Option::is_none")]
     pid_mode: Option<String>,
     /// Gives the container full access to the host.
-    #[serde(rename = "Privileged")]
+    #[serde(rename = "Privileged", skip_serializing_if = "Option::is_none")]
     privileged: Option<bool>,
     /// Allocates a random host port for all of a container's exposed ports.
-    #[serde(rename = "PublishAllPorts")]
+    #[serde(rename = "PublishAllPorts", skip_serializing_if = "Option::is_none")]
     publish_all_ports: Option<bool>,
     /// Mount the container's root filesystem as read only.
-    #[serde(rename = "ReadonlyRootfs")]
+    #[serde(rename = "ReadonlyRootfs", skip_serializing_if = "Option::is_none")]
     readonly_rootfs: Option<bool>,
     /// A list of string values to customize labels for MLS systems, such as SELinux.
-    #[serde(rename = "SecurityOpt")]
+    #[serde(rename = "SecurityOpt", skip_serializing_if = "Option::is_none")]
     security_opt: Option<Vec<String>>,
     /// Storage driver options for this container, in the form `{\"size\": \"120G\"}`.
-    #[serde(rename = "StorageOpt")]
+    #[serde(rename = "StorageOpt", skip_serializing_if = "Option::is_none")]
     storage_opt: Option<::std::collections::HashMap<String, String>>,
     /// A map of container directories which should be replaced by tmpfs mounts, and their corresponding mount options. For example: `{ \"/run\": \"rw,noexec,nosuid,size=65536k\" }`.
-    #[serde(rename = "Tmpfs")]
+    #[serde(rename = "Tmpfs", skip_serializing_if = "Option::is_none")]
     tmpfs: Option<::std::collections::HashMap<String, String>>,
     /// UTS namespace to use for the container.
-    #[serde(rename = "UTSMode")]
+    #[serde(rename = "UTSMode", skip_serializing_if = "Option::is_none")]
     uts_mode: Option<String>,
     /// Sets the usernamespace mode for the container when usernamespace remapping option is enabled.
-    #[serde(rename = "UsernsMode")]
+    #[serde(rename = "UsernsMode", skip_serializing_if = "Option::is_none")]
     userns_mode: Option<String>,
     /// Size of `/dev/shm` in bytes. If omitted, the system uses 64MB.
-    #[serde(rename = "ShmSize")]
+    #[serde(rename = "ShmSize", skip_serializing_if = "Option::is_none")]
     shm_size: Option<i32>,
     /// A list of kernel parameters (sysctls) to set in the container. For example: `{\"net.ipv4.ip_forward\": \"1\"}`
-    #[serde(rename = "Sysctls")]
+    #[serde(rename = "Sysctls", skip_serializing_if = "Option::is_none")]
     sysctls: Option<::std::collections::HashMap<String, String>>,
     /// Runtime to use with this container.
-    #[serde(rename = "Runtime")]
+    #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     runtime: Option<String>,
     /// Initial console size, as an `[height, width]` array. (Windows only)
-    #[serde(rename = "ConsoleSize")]
+    #[serde(rename = "ConsoleSize", skip_serializing_if = "Option::is_none")]
     console_size: Option<Vec<i32>>,
     /// Isolation technology of the container. (Windows only)
-    #[serde(rename = "Isolation")]
+    #[serde(rename = "Isolation", skip_serializing_if = "Option::is_none")]
     isolation: Option<String>,
 }
 

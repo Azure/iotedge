@@ -13,4 +13,20 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-pub type NodeState = String;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NodeState {}
+
+impl NodeState {
+    /// NodeState represents the state of a node.
+    pub fn new() -> NodeState {
+        NodeState {}
+    }
+}
+
+// TODO enum
+// List of NodeState
+//const (
+//
+//
+//
+//)

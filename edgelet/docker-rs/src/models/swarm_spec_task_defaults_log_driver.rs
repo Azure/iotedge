@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecTaskDefaultsLogDriver {
     /// The log driver to use as a default for new tasks.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// Driver-specific options for the selectd log driver, specified as key/value pairs.
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
 }
 

@@ -17,7 +17,7 @@ pub struct InlineResponse20010 {
     #[serde(rename = "Status")]
     status: String,
     /// An opaque token used to authenticate a user after a successful login
-    #[serde(rename = "IdentityToken")]
+    #[serde(rename = "IdentityToken", skip_serializing_if = "Option::is_none")]
     identity_token: Option<String>,
 }
 

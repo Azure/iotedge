@@ -16,13 +16,13 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecDnsConfig {
     /// The IP addresses of the name servers.
-    #[serde(rename = "Nameservers")]
+    #[serde(rename = "Nameservers", skip_serializing_if = "Option::is_none")]
     nameservers: Option<Vec<String>>,
     /// A search list for host-name lookup.
-    #[serde(rename = "Search")]
+    #[serde(rename = "Search", skip_serializing_if = "Option::is_none")]
     search: Option<Vec<String>>,
     /// A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<Vec<String>>,
 }
 

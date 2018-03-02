@@ -15,8 +15,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecLogDriver {
-    #[serde(rename = "Name")] name: Option<String>,
-    #[serde(rename = "Options")] options: Option<::std::collections::HashMap<String, String>>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
+    options: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl TaskSpecLogDriver {

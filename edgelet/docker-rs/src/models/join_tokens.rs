@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JoinTokens {
     /// The token workers can use to join the swarm.
-    #[serde(rename = "Worker")]
+    #[serde(rename = "Worker", skip_serializing_if = "Option::is_none")]
     worker: Option<String>,
     /// The token managers can use to join the swarm.
-    #[serde(rename = "Manager")]
+    #[serde(rename = "Manager", skip_serializing_if = "Option::is_none")]
     manager: Option<String>,
 }
 

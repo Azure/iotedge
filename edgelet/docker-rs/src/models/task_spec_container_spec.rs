@@ -16,61 +16,64 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpec {
     /// The image name to use for the container
-    #[serde(rename = "Image")]
+    #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     /// User-defined key/value data.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// The command to be run in the image.
-    #[serde(rename = "Command")]
+    #[serde(rename = "Command", skip_serializing_if = "Option::is_none")]
     command: Option<Vec<String>>,
     /// Arguments to the command.
-    #[serde(rename = "Args")]
+    #[serde(rename = "Args", skip_serializing_if = "Option::is_none")]
     args: Option<Vec<String>>,
     /// The hostname to use for the container, as a valid RFC 1123 hostname.
-    #[serde(rename = "Hostname")]
+    #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
     /// A list of environment variables in the form `VAR=value`.
-    #[serde(rename = "Env")]
+    #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
     /// The working directory for commands to run in.
-    #[serde(rename = "Dir")]
+    #[serde(rename = "Dir", skip_serializing_if = "Option::is_none")]
     dir: Option<String>,
     /// The user inside the container.
-    #[serde(rename = "User")]
+    #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     /// A list of additional groups that the container process will run as.
-    #[serde(rename = "Groups")]
+    #[serde(rename = "Groups", skip_serializing_if = "Option::is_none")]
     groups: Option<Vec<String>>,
-    #[serde(rename = "Privileges")] privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
+    #[serde(rename = "Privileges", skip_serializing_if = "Option::is_none")]
+    privileges: Option<::models::TaskSpecContainerSpecPrivileges>,
     /// Whether a pseudo-TTY should be allocated.
-    #[serde(rename = "TTY")]
+    #[serde(rename = "TTY", skip_serializing_if = "Option::is_none")]
     TTY: Option<bool>,
     /// Open `stdin`
-    #[serde(rename = "OpenStdin")]
+    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
     open_stdin: Option<bool>,
     /// Mount the container's root filesystem as read only.
-    #[serde(rename = "ReadOnly")]
+    #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
     /// Specification for mounts to be added to containers created as part of the service.
-    #[serde(rename = "Mounts")]
+    #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
     mounts: Option<Vec<::models::Mount>>,
     /// Signal to stop the container.
-    #[serde(rename = "StopSignal")]
+    #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     stop_signal: Option<String>,
     /// Amount of time to wait for the container to terminate before forcefully killing it.
-    #[serde(rename = "StopGracePeriod")]
+    #[serde(rename = "StopGracePeriod", skip_serializing_if = "Option::is_none")]
     stop_grace_period: Option<i64>,
-    #[serde(rename = "HealthCheck")] health_check: Option<::models::HealthConfig>,
+    #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
+    health_check: Option<::models::HealthConfig>,
     /// A list of hostname/IP mappings to add to the container's `hosts` file. The format of extra hosts is specified in the [hosts(5)](http://man7.org/linux/man-pages/man5/hosts.5.html) man page:      IP_address canonical_hostname [aliases...]
-    #[serde(rename = "Hosts")]
+    #[serde(rename = "Hosts", skip_serializing_if = "Option::is_none")]
     hosts: Option<Vec<String>>,
-    #[serde(rename = "DNSConfig")] dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
+    #[serde(rename = "DNSConfig", skip_serializing_if = "Option::is_none")]
+    dns_config: Option<::models::TaskSpecContainerSpecDnsConfig>,
     /// Secrets contains references to zero or more secrets that will be exposed to the service.
-    #[serde(rename = "Secrets")]
+    #[serde(rename = "Secrets", skip_serializing_if = "Option::is_none")]
     secrets: Option<Vec<::models::TaskSpecContainerSpecSecrets>>,
     /// Configs contains references to zero or more configs that will be exposed to the service.
-    #[serde(rename = "Configs")]
+    #[serde(rename = "Configs", skip_serializing_if = "Option::is_none")]
     configs: Option<Vec<::models::TaskSpecContainerSpecConfigs>>,
 }
 

@@ -15,7 +15,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerSummaryInnerNetworkSettings {
-    #[serde(rename = "Networks")]
+    #[serde(rename = "Networks", skip_serializing_if = "Option::is_none")]
     networks: Option<::std::collections::HashMap<String, ::models::EndpointSettings>>,
 }
 

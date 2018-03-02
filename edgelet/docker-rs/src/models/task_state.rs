@@ -11,4 +11,19 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-pub type TaskState = String;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskState {}
+
+impl TaskState {
+    pub fn new() -> TaskState {
+        TaskState {}
+    }
+}
+
+// TODO enum
+// List of TaskState
+//const (
+//
+//
+//
+//)

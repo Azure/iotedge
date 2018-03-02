@@ -14,16 +14,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SecretSpec {
     /// User-defined name of the secret.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// Base64-url-safe-encoded ([RFC 4648](https://tools.ietf.org/html/rfc4648#section-3.2)) data to store as secret.  This field is only used to _create_ a secret, and is not returned by other endpoints.
-    #[serde(rename = "Data")]
+    #[serde(rename = "Data", skip_serializing_if = "Option::is_none")]
     data: Option<String>,
     /// Name of the secrets driver used to fetch the secret's value from an external secret store
-    #[serde(rename = "Driver")]
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
     driver: Option<::models::Driver>,
 }
 

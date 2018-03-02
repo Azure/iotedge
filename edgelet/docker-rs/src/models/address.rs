@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Address {
     /// IP address.
-    #[serde(rename = "Addr")]
+    #[serde(rename = "Addr", skip_serializing_if = "Option::is_none")]
     addr: Option<String>,
     /// Mask length of the IP address.
-    #[serde(rename = "PrefixLen")]
+    #[serde(rename = "PrefixLen", skip_serializing_if = "Option::is_none")]
     prefix_len: Option<i32>,
 }
 

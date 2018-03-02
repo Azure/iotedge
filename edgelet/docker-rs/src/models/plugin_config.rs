@@ -16,14 +16,15 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfig {
     /// Docker Version used to create the plugin
-    #[serde(rename = "DockerVersion")]
+    #[serde(rename = "DockerVersion", skip_serializing_if = "Option::is_none")]
     docker_version: Option<String>,
     #[serde(rename = "Description")] description: String,
     #[serde(rename = "Documentation")] documentation: String,
     #[serde(rename = "Interface")] interface: ::models::PluginConfigInterface,
     #[serde(rename = "Entrypoint")] entrypoint: Vec<String>,
     #[serde(rename = "WorkDir")] work_dir: String,
-    #[serde(rename = "User")] user: Option<::models::PluginConfigUser>,
+    #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
+    user: Option<::models::PluginConfigUser>,
     #[serde(rename = "Network")] network: ::models::PluginConfigNetwork,
     #[serde(rename = "Linux")] linux: ::models::PluginConfigLinux,
     #[serde(rename = "PropagatedMount")] propagated_mount: String,
@@ -32,7 +33,8 @@ pub struct PluginConfig {
     #[serde(rename = "Mounts")] mounts: Vec<::models::PluginMount>,
     #[serde(rename = "Env")] env: Vec<::models::PluginEnv>,
     #[serde(rename = "Args")] args: ::models::PluginConfigArgs,
-    #[serde(rename = "rootfs")] rootfs: Option<::models::PluginConfigRootfs>,
+    #[serde(rename = "rootfs", skip_serializing_if = "Option::is_none")]
+    rootfs: Option<::models::PluginConfigRootfs>,
 }
 
 impl PluginConfig {

@@ -14,16 +14,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecCaConfigExternalCAs {
     /// Protocol for communication with the external CA (currently only `cfssl` is supported).
-    #[serde(rename = "Protocol")]
+    #[serde(rename = "Protocol", skip_serializing_if = "Option::is_none")]
     protocol: Option<String>,
     /// URL where certificate signing requests should be sent.
-    #[serde(rename = "URL")]
+    #[serde(rename = "URL", skip_serializing_if = "Option::is_none")]
     URL: Option<String>,
     /// An object with key/value pairs that are interpreted as protocol-specific options for the external CA driver.
-    #[serde(rename = "Options")]
+    #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
     options: Option<::std::collections::HashMap<String, String>>,
     /// The root CA certificate (in PEM format) this external CA uses to issue TLS certificates (assumed to be to the current swarm root CA certificate if not provided).
-    #[serde(rename = "CACert")]
+    #[serde(rename = "CACert", skip_serializing_if = "Option::is_none")]
     ca_cert: Option<String>,
 }
 

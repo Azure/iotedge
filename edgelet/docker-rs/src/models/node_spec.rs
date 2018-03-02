@@ -14,16 +14,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeSpec {
     /// Name for the node.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// Role of the node.
-    #[serde(rename = "Role")]
+    #[serde(rename = "Role", skip_serializing_if = "Option::is_none")]
     role: Option<String>,
     /// Availability of the node.
-    #[serde(rename = "Availability")]
+    #[serde(rename = "Availability", skip_serializing_if = "Option::is_none")]
     availability: Option<String>,
 }
 

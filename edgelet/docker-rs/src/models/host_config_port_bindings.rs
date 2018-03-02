@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HostConfigPortBindings {
     /// The host IP address
-    #[serde(rename = "HostIp")]
+    #[serde(rename = "HostIp", skip_serializing_if = "Option::is_none")]
     host_ip: Option<String>,
     /// The host port number, as a string
-    #[serde(rename = "HostPort")]
+    #[serde(rename = "HostPort", skip_serializing_if = "Option::is_none")]
     host_port: Option<String>,
 }
 

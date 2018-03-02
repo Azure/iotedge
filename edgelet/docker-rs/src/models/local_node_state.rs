@@ -13,4 +13,20 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-pub type LocalNodeState = String;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LocalNodeState {}
+
+impl LocalNodeState {
+    /// Current local status of this node.
+    pub fn new() -> LocalNodeState {
+        LocalNodeState {}
+    }
+}
+
+// TODO enum
+// List of LocalNodeState
+//const (
+//
+//
+//
+//)

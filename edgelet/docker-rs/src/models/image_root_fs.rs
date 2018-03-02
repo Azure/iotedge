@@ -14,8 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageRootFs {
     #[serde(rename = "Type")] _type: String,
-    #[serde(rename = "Layers")] layers: Option<Vec<String>>,
-    #[serde(rename = "BaseLayer")] base_layer: Option<String>,
+    #[serde(rename = "Layers", skip_serializing_if = "Option::is_none")]
+    layers: Option<Vec<String>>,
+    #[serde(rename = "BaseLayer", skip_serializing_if = "Option::is_none")]
+    base_layer: Option<String>,
 }
 
 impl ImageRootFs {

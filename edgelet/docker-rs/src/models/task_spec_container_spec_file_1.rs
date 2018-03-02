@@ -16,16 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecFile1 {
     /// Name represents the final filename in the filesystem.
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// UID represents the file UID.
-    #[serde(rename = "UID")]
+    #[serde(rename = "UID", skip_serializing_if = "Option::is_none")]
     UID: Option<String>,
     /// GID represents the file GID.
-    #[serde(rename = "GID")]
+    #[serde(rename = "GID", skip_serializing_if = "Option::is_none")]
     GID: Option<String>,
     /// Mode represents the FileMode of the file.
-    #[serde(rename = "Mode")]
+    #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
     mode: Option<i32>,
 }
 

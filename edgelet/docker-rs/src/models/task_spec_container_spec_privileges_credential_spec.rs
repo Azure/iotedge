@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecPrivilegesCredentialSpec {
     /// Load credential spec from this file. The file is read by the daemon, and must be present in the `CredentialSpecs` subdirectory in the docker data directory, which defaults to `C:\\ProgramData\\Docker\\` on Windows.  For example, specifying `spec.json` loads `C:\\ProgramData\\Docker\\CredentialSpecs\\spec.json`.  <p><br /></p>  > **Note**: `CredentialSpec.File` and `CredentialSpec.Registry` are mutually exclusive.
-    #[serde(rename = "File")]
+    #[serde(rename = "File", skip_serializing_if = "Option::is_none")]
     file: Option<String>,
     /// Load credential spec from this value in the Windows registry. The specified registry value must be located in:  `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\Containers\\CredentialSpecs`  <p><br /></p>   > **Note**: `CredentialSpec.File` and `CredentialSpec.Registry` are mutually exclusive.
-    #[serde(rename = "Registry")]
+    #[serde(rename = "Registry", skip_serializing_if = "Option::is_none")]
     registry: Option<String>,
 }
 

@@ -15,9 +15,11 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceObject {
-    #[serde(rename = "NanoCPUs")] nano_cp_us: Option<i64>,
-    #[serde(rename = "MemoryBytes")] memory_bytes: Option<i64>,
-    #[serde(rename = "GenericResources")] generic_resources: Option<::models::GenericResources>,
+    #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")] nano_cp_us: Option<i64>,
+    #[serde(rename = "MemoryBytes", skip_serializing_if = "Option::is_none")]
+    memory_bytes: Option<i64>,
+    #[serde(rename = "GenericResources", skip_serializing_if = "Option::is_none")]
+    generic_resources: Option<::models::GenericResources>,
 }
 
 impl ResourceObject {

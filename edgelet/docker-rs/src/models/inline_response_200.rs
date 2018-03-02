@@ -14,46 +14,63 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse200 {
     /// The ID of the container
-    #[serde(rename = "Id")]
+    #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
     id: Option<String>,
     /// The time the container was created
-    #[serde(rename = "Created")]
+    #[serde(rename = "Created", skip_serializing_if = "Option::is_none")]
     created: Option<String>,
     /// The path to the command being run
-    #[serde(rename = "Path")]
+    #[serde(rename = "Path", skip_serializing_if = "Option::is_none")]
     path: Option<String>,
     /// The arguments to the command being run
-    #[serde(rename = "Args")]
+    #[serde(rename = "Args", skip_serializing_if = "Option::is_none")]
     args: Option<Vec<String>>,
-    #[serde(rename = "State")] state: Option<::models::InlineResponse200State>,
+    #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
+    state: Option<::models::InlineResponse200State>,
     /// The container's image
-    #[serde(rename = "Image")]
+    #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
-    #[serde(rename = "ResolvConfPath")] resolv_conf_path: Option<String>,
-    #[serde(rename = "HostnamePath")] hostname_path: Option<String>,
-    #[serde(rename = "HostsPath")] hosts_path: Option<String>,
-    #[serde(rename = "LogPath")] log_path: Option<String>,
+    #[serde(rename = "ResolvConfPath", skip_serializing_if = "Option::is_none")]
+    resolv_conf_path: Option<String>,
+    #[serde(rename = "HostnamePath", skip_serializing_if = "Option::is_none")]
+    hostname_path: Option<String>,
+    #[serde(rename = "HostsPath", skip_serializing_if = "Option::is_none")]
+    hosts_path: Option<String>,
+    #[serde(rename = "LogPath", skip_serializing_if = "Option::is_none")]
+    log_path: Option<String>,
     /// TODO
-    #[serde(rename = "Node")]
+    #[serde(rename = "Node", skip_serializing_if = "Option::is_none")]
     node: Option<Value>,
-    #[serde(rename = "Name")] name: Option<String>,
-    #[serde(rename = "RestartCount")] restart_count: Option<i32>,
-    #[serde(rename = "Driver")] driver: Option<String>,
-    #[serde(rename = "MountLabel")] mount_label: Option<String>,
-    #[serde(rename = "ProcessLabel")] process_label: Option<String>,
-    #[serde(rename = "AppArmorProfile")] app_armor_profile: Option<String>,
-    #[serde(rename = "ExecIDs")] exec_i_ds: Option<String>,
-    #[serde(rename = "HostConfig")] host_config: Option<::models::HostConfig>,
-    #[serde(rename = "GraphDriver")] graph_driver: Option<::models::GraphDriverData>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(rename = "RestartCount", skip_serializing_if = "Option::is_none")]
+    restart_count: Option<i32>,
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
+    driver: Option<String>,
+    #[serde(rename = "MountLabel", skip_serializing_if = "Option::is_none")]
+    mount_label: Option<String>,
+    #[serde(rename = "ProcessLabel", skip_serializing_if = "Option::is_none")]
+    process_label: Option<String>,
+    #[serde(rename = "AppArmorProfile", skip_serializing_if = "Option::is_none")]
+    app_armor_profile: Option<String>,
+    #[serde(rename = "ExecIDs", skip_serializing_if = "Option::is_none")]
+    exec_i_ds: Option<String>,
+    #[serde(rename = "HostConfig", skip_serializing_if = "Option::is_none")]
+    host_config: Option<::models::HostConfig>,
+    #[serde(rename = "GraphDriver", skip_serializing_if = "Option::is_none")]
+    graph_driver: Option<::models::GraphDriverData>,
     /// The size of files that have been created or changed by this container.
-    #[serde(rename = "SizeRw")]
+    #[serde(rename = "SizeRw", skip_serializing_if = "Option::is_none")]
     size_rw: Option<i64>,
     /// The total size of all the files in this container.
-    #[serde(rename = "SizeRootFs")]
+    #[serde(rename = "SizeRootFs", skip_serializing_if = "Option::is_none")]
     size_root_fs: Option<i64>,
-    #[serde(rename = "Mounts")] mounts: Option<Vec<::models::MountPoint>>,
-    #[serde(rename = "Config")] config: Option<::models::ContainerConfig>,
-    #[serde(rename = "NetworkSettings")] network_settings: Option<::models::NetworkSettings>,
+    #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
+    mounts: Option<Vec<::models::MountPoint>>,
+    #[serde(rename = "Config", skip_serializing_if = "Option::is_none")]
+    config: Option<::models::ContainerConfig>,
+    #[serde(rename = "NetworkSettings", skip_serializing_if = "Option::is_none")]
+    network_settings: Option<::models::NetworkSettings>,
 }
 
 impl InlineResponse200 {

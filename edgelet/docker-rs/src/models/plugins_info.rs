@@ -16,16 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginsInfo {
     /// Names of available volume-drivers, and network-driver plugins.
-    #[serde(rename = "Volume")]
+    #[serde(rename = "Volume", skip_serializing_if = "Option::is_none")]
     volume: Option<Vec<String>>,
     /// Names of available network-drivers, and network-driver plugins.
-    #[serde(rename = "Network")]
+    #[serde(rename = "Network", skip_serializing_if = "Option::is_none")]
     network: Option<Vec<String>>,
     /// Names of available authorization plugins.
-    #[serde(rename = "Authorization")]
+    #[serde(rename = "Authorization", skip_serializing_if = "Option::is_none")]
     authorization: Option<Vec<String>>,
     /// Names of available logging-drivers, and logging-driver plugins.
-    #[serde(rename = "Log")]
+    #[serde(rename = "Log", skip_serializing_if = "Option::is_none")]
     log: Option<Vec<String>>,
 }
 

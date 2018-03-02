@@ -13,4 +13,20 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-pub type Reachability = String;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Reachability {}
+
+impl Reachability {
+    /// Reachability represents the reachability of a node.
+    pub fn new() -> Reachability {
+        Reachability {}
+    }
+}
+
+// TODO enum
+// List of Reachability
+//const (
+//
+//
+//
+//)

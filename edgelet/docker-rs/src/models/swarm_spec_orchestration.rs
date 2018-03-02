@@ -16,7 +16,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmSpecOrchestration {
     /// The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
-    #[serde(rename = "TaskHistoryRetentionLimit")]
+    #[serde(rename = "TaskHistoryRetentionLimit", skip_serializing_if = "Option::is_none")]
     task_history_retention_limit: Option<i64>,
 }
 

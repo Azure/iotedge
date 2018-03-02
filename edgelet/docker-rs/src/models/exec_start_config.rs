@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExecStartConfig {
     /// Detach from the command.
-    #[serde(rename = "Detach")]
+    #[serde(rename = "Detach", skip_serializing_if = "Option::is_none")]
     detach: Option<bool>,
     /// Allocate a pseudo-TTY.
-    #[serde(rename = "Tty")]
+    #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
 }
 

@@ -14,7 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse2014 {
     /// The ID of the created config.
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
 }
 

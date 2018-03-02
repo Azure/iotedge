@@ -16,16 +16,16 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecRestartPolicy {
     /// Condition for restart.
-    #[serde(rename = "Condition")]
+    #[serde(rename = "Condition", skip_serializing_if = "Option::is_none")]
     condition: Option<String>,
     /// Delay between restart attempts.
-    #[serde(rename = "Delay")]
+    #[serde(rename = "Delay", skip_serializing_if = "Option::is_none")]
     delay: Option<i64>,
     /// Maximum attempts to restart a given container before giving up (default value is 0, which is ignored).
-    #[serde(rename = "MaxAttempts")]
+    #[serde(rename = "MaxAttempts", skip_serializing_if = "Option::is_none")]
     max_attempts: Option<i64>,
     /// Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded).
-    #[serde(rename = "Window")]
+    #[serde(rename = "Window", skip_serializing_if = "Option::is_none")]
     window: Option<i64>,
 }
 

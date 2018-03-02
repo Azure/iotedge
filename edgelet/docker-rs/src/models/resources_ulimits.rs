@@ -14,13 +14,13 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourcesUlimits {
     /// Name of ulimit
-    #[serde(rename = "Name")]
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     /// Soft limit
-    #[serde(rename = "Soft")]
+    #[serde(rename = "Soft", skip_serializing_if = "Option::is_none")]
     soft: Option<i32>,
     /// Hard limit
-    #[serde(rename = "Hard")]
+    #[serde(rename = "Hard", skip_serializing_if = "Option::is_none")]
     hard: Option<i32>,
 }
 

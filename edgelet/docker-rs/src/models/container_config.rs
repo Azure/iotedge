@@ -16,69 +16,71 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerConfig {
     /// The hostname to use for the container, as a valid RFC 1123 hostname.
-    #[serde(rename = "Hostname")]
+    #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
     /// The domain name to use for the container.
-    #[serde(rename = "Domainname")]
+    #[serde(rename = "Domainname", skip_serializing_if = "Option::is_none")]
     domainname: Option<String>,
     /// The user that commands are run as inside the container.
-    #[serde(rename = "User")]
+    #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<String>,
     /// Whether to attach to `stdin`.
-    #[serde(rename = "AttachStdin")]
+    #[serde(rename = "AttachStdin", skip_serializing_if = "Option::is_none")]
     attach_stdin: Option<bool>,
     /// Whether to attach to `stdout`.
-    #[serde(rename = "AttachStdout")]
+    #[serde(rename = "AttachStdout", skip_serializing_if = "Option::is_none")]
     attach_stdout: Option<bool>,
     /// Whether to attach to `stderr`.
-    #[serde(rename = "AttachStderr")]
+    #[serde(rename = "AttachStderr", skip_serializing_if = "Option::is_none")]
     attach_stderr: Option<bool>,
     /// An object mapping ports to an empty object in the form:  `{\"<port>/<tcp|udp>\": {}}`
-    #[serde(rename = "ExposedPorts")]
+    #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
     exposed_ports: Option<::std::collections::HashMap<String, Value>>,
     /// Attach standard streams to a TTY, including `stdin` if it is not closed.
-    #[serde(rename = "Tty")]
+    #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     tty: Option<bool>,
     /// Open `stdin`
-    #[serde(rename = "OpenStdin")]
+    #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]
     open_stdin: Option<bool>,
     /// Close `stdin` after one attached client disconnects
-    #[serde(rename = "StdinOnce")]
+    #[serde(rename = "StdinOnce", skip_serializing_if = "Option::is_none")]
     stdin_once: Option<bool>,
     /// A list of environment variables to set inside the container in the form `[\"VAR=value\", ...]`. A variable without `=` is removed from the environment, rather than to have an empty value.
-    #[serde(rename = "Env")]
+    #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
-    #[serde(rename = "Healthcheck")] healthcheck: Option<::models::HealthConfig>,
+    #[serde(rename = "Healthcheck", skip_serializing_if = "Option::is_none")]
+    healthcheck: Option<::models::HealthConfig>,
     /// Command is already escaped (Windows only)
-    #[serde(rename = "ArgsEscaped")]
+    #[serde(rename = "ArgsEscaped", skip_serializing_if = "Option::is_none")]
     args_escaped: Option<bool>,
     /// The name of the image to use when creating the container
-    #[serde(rename = "Image")]
+    #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
-    #[serde(rename = "Volumes")] volumes: Option<::models::ContainerConfigVolumes>,
+    #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
+    volumes: Option<::models::ContainerConfigVolumes>,
     /// The working directory for commands to run in.
-    #[serde(rename = "WorkingDir")]
+    #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     working_dir: Option<String>,
     /// Disable networking for the container.
-    #[serde(rename = "NetworkDisabled")]
+    #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
     network_disabled: Option<bool>,
     /// MAC address of the container.
-    #[serde(rename = "MacAddress")]
+    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
     mac_address: Option<String>,
     /// `ONBUILD` metadata that were defined in the image's `Dockerfile`.
-    #[serde(rename = "OnBuild")]
+    #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
     on_build: Option<Vec<String>>,
     /// User-defined key/value metadata.
-    #[serde(rename = "Labels")]
+    #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
     labels: Option<::std::collections::HashMap<String, String>>,
     /// Signal to stop a container as a string or unsigned integer.
-    #[serde(rename = "StopSignal")]
+    #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     stop_signal: Option<String>,
     /// Timeout to stop a container in seconds.
-    #[serde(rename = "StopTimeout")]
+    #[serde(rename = "StopTimeout", skip_serializing_if = "Option::is_none")]
     stop_timeout: Option<i32>,
     /// Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
-    #[serde(rename = "Shell")]
+    #[serde(rename = "Shell", skip_serializing_if = "Option::is_none")]
     shell: Option<Vec<String>>,
 }
 

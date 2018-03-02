@@ -16,10 +16,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EndpointSpec {
     /// The mode of resolution to use for internal load balancing between tasks.
-    #[serde(rename = "Mode")]
+    #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
     mode: Option<String>,
     /// List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
-    #[serde(rename = "Ports")]
+    #[serde(rename = "Ports", skip_serializing_if = "Option::is_none")]
     ports: Option<Vec<::models::EndpointPortConfig>>,
 }
 

@@ -13,13 +13,19 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Service {
-    #[serde(rename = "ID")] ID: Option<String>,
-    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
-    #[serde(rename = "CreatedAt")] created_at: Option<String>,
-    #[serde(rename = "UpdatedAt")] updated_at: Option<String>,
-    #[serde(rename = "Spec")] spec: Option<::models::ServiceSpec>,
-    #[serde(rename = "Endpoint")] endpoint: Option<::models::ServiceEndpoint>,
-    #[serde(rename = "UpdateStatus")] update_status: Option<::models::ServiceUpdateStatus>,
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")] ID: Option<String>,
+    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
+    version: Option<::models::ObjectVersion>,
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
+    created_at: Option<String>,
+    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
+    updated_at: Option<String>,
+    #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
+    spec: Option<::models::ServiceSpec>,
+    #[serde(rename = "Endpoint", skip_serializing_if = "Option::is_none")]
+    endpoint: Option<::models::ServiceEndpoint>,
+    #[serde(rename = "UpdateStatus", skip_serializing_if = "Option::is_none")]
+    update_status: Option<::models::ServiceUpdateStatus>,
 }
 
 impl Service {

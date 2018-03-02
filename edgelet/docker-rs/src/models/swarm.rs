@@ -14,21 +14,25 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Swarm {
     /// The ID of the swarm.
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
-    #[serde(rename = "Version")] version: Option<::models::ObjectVersion>,
+    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
+    version: Option<::models::ObjectVersion>,
     /// Date and time at which the swarm was initialised in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(rename = "CreatedAt")]
+    #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
     /// Date and time at which the swarm was last updated in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.
-    #[serde(rename = "UpdatedAt")]
+    #[serde(rename = "UpdatedAt", skip_serializing_if = "Option::is_none")]
     updated_at: Option<String>,
-    #[serde(rename = "Spec")] spec: Option<::models::SwarmSpec>,
-    #[serde(rename = "TLSInfo")] tls_info: Option<::models::TlsInfo>,
+    #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
+    spec: Option<::models::SwarmSpec>,
+    #[serde(rename = "TLSInfo", skip_serializing_if = "Option::is_none")]
+    tls_info: Option<::models::TlsInfo>,
     /// Whether there is currently a root CA rotation in progress for the swarm
-    #[serde(rename = "RootRotationInProgress")]
+    #[serde(rename = "RootRotationInProgress", skip_serializing_if = "Option::is_none")]
     root_rotation_in_progress: Option<bool>,
-    #[serde(rename = "JoinTokens")] join_tokens: Option<::models::JoinTokens>,
+    #[serde(rename = "JoinTokens", skip_serializing_if = "Option::is_none")]
+    join_tokens: Option<::models::JoinTokens>,
 }
 
 impl Swarm {

@@ -15,7 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContainerConfigVolumes {
-    #[serde(rename = "additionalProperties")] additional_properties: Option<Value>,
+    #[serde(rename = "additionalProperties", skip_serializing_if = "Option::is_none")]
+    additional_properties: Option<Value>,
 }
 
 impl ContainerConfigVolumes {

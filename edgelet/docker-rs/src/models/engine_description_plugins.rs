@@ -13,8 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EngineDescriptionPlugins {
-    #[serde(rename = "Type")] _type: Option<String>,
-    #[serde(rename = "Name")] name: Option<String>,
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")] _type: Option<String>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
 }
 
 impl EngineDescriptionPlugins {

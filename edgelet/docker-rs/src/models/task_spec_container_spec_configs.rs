@@ -13,12 +13,13 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecContainerSpecConfigs {
-    #[serde(rename = "File")] file: Option<::models::TaskSpecContainerSpecFile1>,
+    #[serde(rename = "File", skip_serializing_if = "Option::is_none")]
+    file: Option<::models::TaskSpecContainerSpecFile1>,
     /// ConfigID represents the ID of the specific config that we're referencing.
-    #[serde(rename = "ConfigID")]
+    #[serde(rename = "ConfigID", skip_serializing_if = "Option::is_none")]
     config_id: Option<String>,
     /// ConfigName is the name of the config that this references, but this is just provided for lookup/display purposes. The config in the reference will be identified by its ID.
-    #[serde(rename = "ConfigName")]
+    #[serde(rename = "ConfigName", skip_serializing_if = "Option::is_none")]
     config_name: Option<String>,
 }
 

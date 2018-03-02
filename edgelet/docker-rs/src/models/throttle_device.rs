@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThrottleDevice {
     /// Device path
-    #[serde(rename = "Path")]
+    #[serde(rename = "Path", skip_serializing_if = "Option::is_none")]
     path: Option<String>,
     /// Rate
-    #[serde(rename = "Rate")]
+    #[serde(rename = "Rate", skip_serializing_if = "Option::is_none")]
     rate: Option<i64>,
 }
 

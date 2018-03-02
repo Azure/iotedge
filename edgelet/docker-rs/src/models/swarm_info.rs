@@ -16,24 +16,27 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmInfo {
     /// Unique identifier of for this node in the swarm.
-    #[serde(rename = "NodeID")]
+    #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]
     node_id: Option<String>,
     /// IP address at which this node can be reached by other nodes in the swarm.
-    #[serde(rename = "NodeAddr")]
+    #[serde(rename = "NodeAddr", skip_serializing_if = "Option::is_none")]
     node_addr: Option<String>,
-    #[serde(rename = "LocalNodeState")] local_node_state: Option<::models::LocalNodeState>,
-    #[serde(rename = "ControlAvailable")] control_available: Option<bool>,
-    #[serde(rename = "Error")] error: Option<String>,
+    #[serde(rename = "LocalNodeState", skip_serializing_if = "Option::is_none")]
+    local_node_state: Option<::models::LocalNodeState>,
+    #[serde(rename = "ControlAvailable", skip_serializing_if = "Option::is_none")]
+    control_available: Option<bool>,
+    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")] error: Option<String>,
     /// List of ID's and addresses of other managers in the swarm.
-    #[serde(rename = "RemoteManagers")]
+    #[serde(rename = "RemoteManagers", skip_serializing_if = "Option::is_none")]
     remote_managers: Option<Vec<::models::PeerNode>>,
     /// Total number of nodes in the swarm.
-    #[serde(rename = "Nodes")]
+    #[serde(rename = "Nodes", skip_serializing_if = "Option::is_none")]
     nodes: Option<i32>,
     /// Total number of managers in the swarm.
-    #[serde(rename = "Managers")]
+    #[serde(rename = "Managers", skip_serializing_if = "Option::is_none")]
     managers: Option<i32>,
-    #[serde(rename = "Cluster")] cluster: Option<::models::ClusterInfo>,
+    #[serde(rename = "Cluster", skip_serializing_if = "Option::is_none")]
+    cluster: Option<::models::ClusterInfo>,
 }
 
 impl SwarmInfo {

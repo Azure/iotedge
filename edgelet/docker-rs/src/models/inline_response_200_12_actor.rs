@@ -14,10 +14,10 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20012Actor {
     /// The ID of the object emitting the event
-    #[serde(rename = "ID")]
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
     /// Various key/value attributes of the object, depending on its type
-    #[serde(rename = "Attributes")]
+    #[serde(rename = "Attributes", skip_serializing_if = "Option::is_none")]
     attributes: Option<::std::collections::HashMap<String, String>>,
 }
 

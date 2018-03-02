@@ -13,8 +13,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TaskSpecNetworks {
-    #[serde(rename = "Target")] target: Option<String>,
-    #[serde(rename = "Aliases")] aliases: Option<Vec<String>>,
+    #[serde(rename = "Target", skip_serializing_if = "Option::is_none")] target: Option<String>,
+    #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
+    aliases: Option<Vec<String>>,
 }
 
 impl TaskSpecNetworks {

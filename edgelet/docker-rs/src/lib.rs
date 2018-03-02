@@ -11,3 +11,4 @@ extern crate url;
 
 pub mod apis;
 pub mod models;
+pub mod utils;
