@@ -48,7 +48,10 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
+            Console.WriteLine($"Using transport {transportType.ToString()}");
+
+            var mqttSetting = new MqttTransportSettings(transportType);
             // Suppress cert validation on Windows for now
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

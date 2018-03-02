@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Http
+namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
     using System.Collections.Generic;
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             catch (Exception ex)
             {
                 Events.AuthenticationError(ex, context);
-                await WriteErrorResponse(context, "Unknown error occurred during authentication.");
+                throw;
             }
         }
 

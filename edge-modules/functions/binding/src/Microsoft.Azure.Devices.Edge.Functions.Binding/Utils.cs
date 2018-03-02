@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
     using System.Collections.Generic;
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Client;
 
     static class Utils
@@ -17,6 +18,23 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             }
 
             return copy;
+        }
+
+        public static TransportType ToTransportType(string transportName, TransportType defaultTransport)
+        {
+            TransportType transportType;
+
+            if (transportName == null)
+            {
+                transportType = defaultTransport;
+            }
+            else
+            {
+                TypeConverter converter = TypeDescriptor.GetConverter(typeof(TransportType));
+                transportType = (TransportType)converter.ConvertFromInvariantString(transportName);
+            }
+
+            return transportType;
         }
     }
 }

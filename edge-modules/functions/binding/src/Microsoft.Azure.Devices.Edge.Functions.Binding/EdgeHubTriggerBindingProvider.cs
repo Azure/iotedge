@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings;
-    using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
@@ -20,13 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
-        readonly INameResolver nameResolver;
-        const string DefaultConnectionStringEnvName = "EdgeHubConnectionString";
+        readonly string connectionString;
+        readonly TransportType transportType;
         DeviceClient deviceClient;
 
-        public EdgeHubTriggerBindingProvider(INameResolver nameResolver)
+        public EdgeHubTriggerBindingProvider(string connectionString, TransportType transportType)
         {
-            this.nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
+            this.connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            this.transportType = transportType;
         }
 
         public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
@@ -79,9 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return Task.CompletedTask;
             }
 
-            string connectionString = this.nameResolver.Resolve(DefaultConnectionStringEnvName);
-
-            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(connectionString);
+            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(this.connectionString, this.transportType);
             return this.deviceClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
         }
 

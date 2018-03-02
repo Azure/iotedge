@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using DotNetty.Transport.Channels;
     using DotNetty.Transport.Channels.Sockets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -28,12 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ISessionStatePersistenceProvider sessionProvider;
         readonly IMqttConnectionProvider mqttConnectionProvider;
         readonly IDeviceIdentityProvider identityProvider;
+        readonly IWebSocketListenerRegistry webSocketListenerRegistry;
+        readonly IByteBufferAllocator byteBufferAllocator = PooledByteBufferAllocator.Default;
 
         const int MqttsPort = 8883;
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
         const int DefaultParentEventLoopCount = 1;
         const int DefaultMaxInboundMessageSize = 256 * 1024;
         const int DefaultThreadCount = 200;
+        const bool AutoRead = false;
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
 
@@ -41,13 +45,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
             IDeviceIdentityProvider identityProvider,
-            ISessionStatePersistenceProvider sessionProvider)
+            ISessionStatePersistenceProvider sessionProvider,
+            IWebSocketListenerRegistry webSocketListenerRegistry)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
+            this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
         }
 
         public string Name => "MQTT";
@@ -82,6 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await (this.serverChannel?.CloseAsync() ?? TaskEx.Done);
                 await (this.eventLoopGroup?.ShutdownGracefullyAsync() ?? TaskEx.Done);
+                // TODO: gracefully shutdown the MultithreadEventLoopGroup in MqttWebSocketListener?
+                // TODO: this.webSocketListenerRegistry.TryUnregister("mqtts")?
 
                 this.logger.LogInformation("Stopped");
             }
@@ -103,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int threadCount = this.settingsProvider.GetIntegerSetting("ThreadCount", DefaultThreadCount);
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
+            var settings = new Settings(this.settingsProvider);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
@@ -117,8 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 // Allow listening socket to force bind to port if previous socket is still in TIME_WAIT
                 // Fixes "address is already in use" errors
                 .Option(ChannelOption.SoReuseaddr, true)
-                .ChildOption(ChannelOption.Allocator, PooledByteBufferAllocator.Default)
-                .ChildOption(ChannelOption.AutoRead, false)
+                .ChildOption(ChannelOption.Allocator, this.byteBufferAllocator)
+                .ChildOption(ChannelOption.AutoRead, AutoRead)
                 // channel that accepts incoming connections
                 .Channel<TcpServerSocketChannel>()
                 // Channel initializer, it is handler that is purposed to help configure a new channel
@@ -131,12 +140,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         MqttEncoder.Instance,
                         new MqttDecoder(true, maxInboundMessageSize),
                         new MqttAdapter(
-                            new Settings(this.settingsProvider),
+                            settings,
                             this.sessionProvider,
                             this.identityProvider,
                             null,
                             bridgeFactory));
                 }));
+
+            var mqttWebSocketListener = new MqttWebSocketListener(
+                settings,
+                bridgeFactory,
+                this.identityProvider,
+                () => this.sessionProvider,
+                new MultithreadEventLoopGroup(Environment.ProcessorCount),
+                this.byteBufferAllocator,
+                AutoRead,
+                maxInboundMessageSize);
+
+            this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
             return boostrap;
         }

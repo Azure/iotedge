@@ -25,17 +25,20 @@ namespace TemperatureFilter
 
         static void Main()
         {
-            // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("config/appsettings.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
 
+            // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
             string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
 
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
+            Console.WriteLine($"Using transport {transportType.ToString()}");
+
             InstallCert();
-            Init(connectionString).Wait();
+            Init(connectionString, transportType).Wait();
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -55,11 +58,9 @@ namespace TemperatureFilter
         /// Initializes the DeviceClient and sets up the callback to receive
         /// messages containing temperature information
         /// </summary>
-        static async Task Init(string connectionString)
+        static async Task Init(string connectionString, TransportType transportType)
         {
-            Console.WriteLine("Connection String {0}", connectionString);
-
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            var mqttSetting = new MqttTransportSettings(transportType);
             // Suppress cert validation on Windows for now
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

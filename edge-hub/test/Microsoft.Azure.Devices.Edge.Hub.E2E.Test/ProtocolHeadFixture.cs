@@ -11,10 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -23,12 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
-    using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
-    using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
     using IProtocolGatewayMessage = Microsoft.Azure.Devices.ProtocolGateway.Messaging.IMessage;
 
     public class ProtocolHeadFixture : IDisposable
@@ -107,64 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             }
 
-            public async Task<(IConnectionManager, Mock<IDeviceListener>)> StartMqttHeadWithMocks(IDictionary<string, string> routesInput = null)
-            {
-                var deviceListener = new Mock<IDeviceListener>();
-                IConnectionManager connectionManager = null;
-
-                Action<ContainerBuilder> mockSetup = (builder) =>
-                {
-                    // Register ISessionStatePersistenceProvider to capture connectionManager
-                    builder.Register(
-                            c =>
-                            {
-                                connectionManager = c.Resolve<IConnectionManager>();
-                                var sesssionPersistenceProvider = new SessionStatePersistenceProvider(connectionManager);
-                                return sesssionPersistenceProvider;
-                            })
-                        .As<ISessionStatePersistenceProvider>()
-                        .SingleInstance();
-
-                    // Register IMqttConnectionProvider here to mock it and to be able to mock DeviceIdentity
-                    builder.Register(
-                            async c =>
-                            {
-                                IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
-
-                                var mqtt = new Mock<IMqttConnectionProvider>();
-                                IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener.Object, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>());
-                                IDeviceIdentity deviceidentity = null;
-                                mqtt.Setup(
-                                    p => p.Connect(It.IsAny<IDeviceIdentity>())).Callback<IDeviceIdentity>(
-                                    id =>
-                                    {
-                                        deviceidentity = id;
-                                        IIdentity identity = ((ProtocolGatewayIdentity)deviceidentity).Identity;
-                                        deviceListener.Setup(p => p.Identity).Returns(identity);
-                                        deviceListener.Setup(p => p.BindDeviceProxy(It.IsAny<IDeviceProxy>())).Callback<IDeviceProxy>(
-                                            async deviceProxy =>
-                                            {
-                                                Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(identity);
-                                                ICloudListener cloudListener = new CloudListener(edgeHub, identity.Id);
-                                                cloudProxy.Value.BindCloudListener(cloudListener);
-                                                await connectionManager.AddDeviceConnection(identity, deviceProxy);
-                                            });
-                                        deviceListener.Setup(p => p.CloseAsync()).Callback(
-                                            () =>
-                                            {
-                                                connectionManager.RemoveDeviceConnection(deviceidentity.Id);
-                                            }).Returns(TaskEx.Done);
-                                    }).Returns(Task.FromResult((IMessagingBridge)new SingleClientMessagingBridge(deviceidentity, messagingServiceClient)));
-
-                                return mqtt.Object;
-                            })
-                        .As<Task<IMqttConnectionProvider>>()
-                        .SingleInstance();
-                };
-                await this.StartMqttHead(this.routes, mockSetup);
-                return (connectionManager, deviceListener);
-            }
-
             public async Task StartMqttHead(IDictionary<string, string> routesInput, Action<ContainerBuilder> setupMocks)
             {
                 const int ConnectionPoolSize = 10;
@@ -213,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await configUpdater.Init(configSource);
 
                 IMqttConnectionProvider mqttConnectionProvider = await this.container.Resolve<Task<IMqttConnectionProvider>>();
-                this.protocolHead = new MqttProtocolHead(this.container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, this.container.Resolve<IDeviceIdentityProvider>(), this.container.Resolve<ISessionStatePersistenceProvider>());
+                this.protocolHead = new MqttProtocolHead(this.container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, this.container.Resolve<IDeviceIdentityProvider>(), this.container.Resolve<ISessionStatePersistenceProvider>(), this.container.Resolve<IWebSocketListenerRegistry>());
 
                 await this.protocolHead.StartAsync();
             }

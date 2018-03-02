@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using Autofac;
@@ -12,6 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // IValidator
             builder.Register(c => new MethodRequestValidator())
                 .As<IValidator<MethodRequest>>()
+                .SingleInstance();
+
+            // IWebSocketListenerRegistry
+            builder.Register(c => new WebSocketListenerRegistry())
+                .As<IWebSocketListenerRegistry>()
                 .SingleInstance();
 
             base.Load(builder);

@@ -9,5 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const int MessagingServiceClient = EventIdStart + 200;
         public const int SessionStatePersistenceProvider = EventIdStart + 300;
         public const int SessionStateStoragePersistenceProvider = EventIdStart + 400;
+        public const int MqttWebSocketListener = EventIdStart + 500;
+        public const int ServerWebSocketChannel = EventIdStart + 600;
     }
 }

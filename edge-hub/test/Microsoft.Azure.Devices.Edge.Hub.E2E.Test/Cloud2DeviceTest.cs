@@ -23,8 +23,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         const string MessagePropertyName = "property1";
         const string DeviceNamePrefix = "E2E_c2d_";
 
-        [Fact, TestPriority(101)]
-        public async void Receive_C2D_SingleMessage_ShouldSucceed()
+        [Theory, TestPriority(101)]
+        [InlineData(TransportType.Mqtt_Tcp_Only)]
+        //[InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
+        public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -38,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
                 await serviceClient.OpenAsync();
 
-                ITransportSettings[] settings = this.GetTransportSettings();
+                ITransportSettings[] settings = this.GetTransportSettings(transportType);
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                 // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(2));
@@ -144,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         }
 
         [Fact, TestPriority(104)]
-        public async void Receive_C2D_NotSubscripted_OfflineSingleMessage_ShouldThrow()
+        public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -179,9 +181,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        ITransportSettings[] GetTransportSettings()
+        ITransportSettings[] GetTransportSettings(TransportType transportType = TransportType.Mqtt_Tcp_Only)
         {
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+            var mqttSetting = new MqttTransportSettings(transportType)
             {
                 RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
             };

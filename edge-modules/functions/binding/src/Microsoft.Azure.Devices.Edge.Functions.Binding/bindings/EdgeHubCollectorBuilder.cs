@@ -8,19 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 
     class EdgeHubCollectorBuilder : IConverter<EdgeHubAttribute, IAsyncCollector<Message>>
     {
-        readonly INameResolver nameResolver;
-        const string EdgeHubConnectionString = "EdgeHubConnectionString";
+        readonly string connectionString;
+        readonly TransportType transportType;
 
-        public EdgeHubCollectorBuilder(INameResolver nameResolver)
+        public EdgeHubCollectorBuilder(string connectionString, TransportType transportType)
         {
-            this.nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
+            this.connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            this.transportType = transportType;
         }
 
         public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
         {
-            string connectionString = this.nameResolver.Resolve(EdgeHubConnectionString);
-            DeviceClient client = DeviceClientCache.Instance.GetOrCreate(connectionString);
-
+            DeviceClient client = DeviceClientCache.Instance.GetOrCreate(this.connectionString, this.transportType);
             return new EdgeHubAsyncCollector(client, attribute);
         }
     }

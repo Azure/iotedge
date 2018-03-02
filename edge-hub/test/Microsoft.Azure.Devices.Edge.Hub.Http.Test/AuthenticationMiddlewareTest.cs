@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
@@ -200,5 +202,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.False(result.success);
             Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.message);
         }
+
+        [Fact]
+        public async Task InvalidInvokeTest_ExceptionNotCaught()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
+            httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).Throws<SomeException>();
+
+            var identityFactory = new IdentityFactory(iothubHostName);
+
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            await Assert.ThrowsAsync<SomeException>(() => authenticationMiddleware.Invoke(httpContext));
+        }
+
+        public class SomeException : Exception { }
     }
 }

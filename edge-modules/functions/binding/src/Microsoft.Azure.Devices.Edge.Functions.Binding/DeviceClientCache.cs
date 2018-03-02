@@ -20,16 +20,16 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         public static DeviceClientCache Instance { get; } = new DeviceClientCache();
 
-        public DeviceClient GetOrCreate(string connectionString)
+        public DeviceClient GetOrCreate(string connectionString, TransportType transportType)
         {
             return this.clients.GetOrAdd(
                 connectionString,
-                client => this.CreateDeviceClient(connectionString));
+                client => this.CreateDeviceClient(connectionString, transportType));
         }
 
-        DeviceClient CreateDeviceClient(string connectionString)
+        DeviceClient CreateDeviceClient(string connectionString, TransportType transportType)
         {
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            var mqttSetting = new MqttTransportSettings(transportType);
 
             // Suppress cert validation on Windows for now
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

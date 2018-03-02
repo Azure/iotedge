@@ -18,6 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
     {
         public void Initialize(ExtensionConfigContext context)
         {
+            const string EdgeHubConnectionString = "EdgeHubConnectionString";
+            const string ClientTransportType = "ClientTransportType";
+
             if (context == null)
             {
                 throw new ArgumentNullException("context");
@@ -26,13 +29,17 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
             var extensions = context.Config.GetService<IExtensionRegistry>();
             var nameResolver = context.Config.GetService<INameResolver>();
 
+            string connectionString = nameResolver.Resolve(EdgeHubConnectionString);
+            TransportType transportType = Utils.ToTransportType(
+                nameResolver.Resolve(ClientTransportType), TransportType.Mqtt_Tcp_Only);
+
             // register trigger binding provider
-            var triggerBindingProvider = new EdgeHubTriggerBindingProvider(nameResolver);
+            var triggerBindingProvider = new EdgeHubTriggerBindingProvider(connectionString, transportType);
             extensions.RegisterExtension<ITriggerBindingProvider>(triggerBindingProvider);
 
             extensions.RegisterBindingRules<EdgeHubAttribute>();
             FluentBindingRule<EdgeHubAttribute> rule = context.AddBindingRule<EdgeHubAttribute>();
-            rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder), nameResolver);
+            rule.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder), connectionString, transportType);
 
             context.AddConverter<Message, string>(this.MessageConverter);
             context.AddConverter<string, Message>(this.ConvertToMessage);

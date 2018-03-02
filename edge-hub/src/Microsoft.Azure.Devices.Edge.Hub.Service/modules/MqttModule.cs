@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -94,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         this.tlsCertificate,
                         await c.Resolve<Task<IMqttConnectionProvider>>(),
                         c.Resolve<IDeviceIdentityProvider>(),
-                        c.Resolve<ISessionStatePersistenceProvider>()
+                        c.Resolve<ISessionStatePersistenceProvider>(),
+                        c.Resolve<IWebSocketListenerRegistry>()
                     ))
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();
