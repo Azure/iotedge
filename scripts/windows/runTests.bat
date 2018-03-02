@@ -60,7 +60,7 @@ ECHO Running tests in all test projects with filter: %TEST_FILTER:--filter =%
 FOR /R %%f IN (%TEST_PROJ_PATTERN%) DO (
     ECHO Running tests for project - %%f
     IF EXIST "%opencover%" (
-        "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"%targetargs% %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml -returntargetcode
+        "%opencover%" -register:user -target:%DOTNET_ROOT_PATH%/dotnet.exe -targetargs:"!targetargs! %%f" -skipautoprops -hideskipped:All  -oldstyle -output:%OUTPUT_FOLDER%\code-coverage.xml -mergeoutput:%OUTPUT_FOLDER%\code-coverage.xml -returntargetcode
     ) ELSE (
         "%DOTNET_ROOT_PATH%\dotnet" test "%%f" --logger "trx;LogFileName=result.trx" -o "%OUTPUT_FOLDER%" --no-build %TEST_FILTER%
     )
