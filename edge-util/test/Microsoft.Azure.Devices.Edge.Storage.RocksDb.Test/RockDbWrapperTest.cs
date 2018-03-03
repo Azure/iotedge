@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         {
             //Arrange
             ICollection<string> partitions = new List<string>();
-            RocksDbOptionsProvider options = new RocksDbOptionsProvider(new SystemEnvironment());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment());
             //Act
             //Assert
             Assert.Throws<ArgumentException>(() => RocksDbWrapper.Create(options, null, partitions));
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         public void CreateWithNullPartitionsPathThrowsAsync()
         {
             //Arrange
-            RocksDbOptionsProvider options = new RocksDbOptionsProvider(new SystemEnvironment());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment());
 
             //Act
             //Assert

@@ -250,7 +250,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                var dbOptionProvider = new Storage.RocksDb.RocksDbOptionsProvider(new SystemEnvironment());
                                 IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
                                     this.storagePath, partitionsList);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");

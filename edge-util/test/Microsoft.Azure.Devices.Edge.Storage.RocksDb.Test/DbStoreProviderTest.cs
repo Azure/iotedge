@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateTestAsync()
         {
-            RocksDbOptionsProvider options = new RocksDbOptionsProvider(new SystemEnvironment());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment());
 
             var partitionsList1 = new[]
             {
