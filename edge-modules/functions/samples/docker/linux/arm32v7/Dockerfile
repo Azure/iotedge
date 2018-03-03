@@ -3,6 +3,6 @@ FROM edgebuilds.azurecr.io/microsoft/azureiotedge-functions-binding:${buildno}-l
 
 WORKDIR /app
 
-COPY $EXE_DIR/ ./$FUNCTION_FILE_NAME
+COPY samples/ samples/
 
-CMD /usr/bin/dotnet WebJobs.Script.Host/WebJobs.Script.Host.dll ./$FUNCTION_FILE_NAME
+ENV AzureWebJobsScriptRoot=samples

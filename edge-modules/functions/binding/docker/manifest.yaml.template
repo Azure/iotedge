@@ -7,6 +7,11 @@ manifests:
       architecture: amd64
       os: linux
   -
+    image: __REGISTRY__/__NAMESPACE__/azureiotedge-functions-binding:__VERSION__-linux-arm32v7
+    platform:
+      architecture: arm
+      os: linux      
+  -
     image: __REGISTRY__/__NAMESPACE__/azureiotedge-functions-binding:__VERSION__-windows-amd64
     platform:
       architecture: amd64
