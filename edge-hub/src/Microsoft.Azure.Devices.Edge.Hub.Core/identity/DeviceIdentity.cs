@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -20,6 +22,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             string productInfo,
             Option<string> token)
             : base(iotHubHostName, connectionString, scope, policyName, secret, productInfo, token)
+        {
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.asString = new Lazy<string>(
+                () =>
+                {
+                    string policy = string.IsNullOrEmpty(this.PolicyName) ? "<none>" : this.PolicyName;
+                    return $"DeviceId: {this.DeviceId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
+                });
+        }
+
+        public DeviceIdentity(
+            string iotHubHostName,
+            string deviceId,
+            AuthenticationScope scope,
+            string productInfo)
+            : base(iotHubHostName, scope, productInfo)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.asString = new Lazy<string>(

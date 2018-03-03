@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public void GetIdentityTest()
+        public void GetSASIdentityTest()
         {
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";
@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var identityFactory = new IdentityFactory(iothubHostName, callerProductInfo);
 
+            // device test
             string deviceId = "device1";
             string deviceClientType = "customDeviceClient1";
             string connectionString1 = $"HostName={iothubHostName};DeviceId=device1;SharedAccessSignature={sasToken};X509Cert=False";
@@ -76,7 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(connectionString1, identityTry1.Value.ConnectionString);
             Assert.Equal("device1", identityTry1.Value.Id);
             Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry1.Value.ProductInfo);
+            Assert.Equal(AuthenticationScope.SasToken, identityTry1.Value.Scope);
 
+            // module test
             deviceId = "device1";
             string moduleId = "module1";
             deviceClientType = "customDeviceClient2";
@@ -87,6 +90,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(connectionString2, identityTry2.Value.ConnectionString);
             Assert.Equal("device1/module1", identityTry2.Value.Id);
             Assert.Equal($"{callerProductInfo} customDeviceClient2", identityTry2.Value.ProductInfo);
+            Assert.Equal(AuthenticationScope.SasToken, identityTry1.Value.Scope);
+        }
+
+        [Fact]
+        public void GetX509IdentityTest()
+        {
+            string iothubHostName = "iothub1.azure.net";
+            string callerProductInfo = "productInfo";
+            string deviceId = "device1";
+            string moduleId = "module1";
+            string deviceClientType = "customDeviceClient1";
+            var identityFactory = new IdentityFactory(iothubHostName, callerProductInfo);
+
+            // device test
+            Try<IIdentity> identityTry1 = identityFactory.GetWithX509Cert(deviceId, null, deviceClientType, false);
+            Assert.True(identityTry1.Success);
+            Assert.IsType<DeviceIdentity>(identityTry1.Value);
+            Assert.Equal(null, identityTry1.Value.ConnectionString);
+            Assert.Equal("device1", identityTry1.Value.Id);
+            Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry1.Value.ProductInfo);
+            Assert.Equal(AuthenticationScope.x509Cert, identityTry1.Value.Scope);
+            Assert.Equal(Option.None<string>(), identityTry1.Value.Token);
+
+            // module test
+            Try<IIdentity> identityTry2 = identityFactory.GetWithX509Cert(deviceId, moduleId, deviceClientType, true);
+            Assert.True(identityTry2.Success);
+            Assert.IsType<ModuleIdentity>(identityTry2.Value);
+            Assert.Equal(null, identityTry2.Value.ConnectionString);
+            Assert.Equal("device1/module1", identityTry2.Value.Id);
+            Assert.Equal($"{callerProductInfo} customDeviceClient1", identityTry2.Value.ProductInfo);
+            Assert.Equal(AuthenticationScope.x509Cert, identityTry2.Value.Scope);
+            Assert.Equal(Option.None<string>(), identityTry2.Value.Token);
         }
     }
 }

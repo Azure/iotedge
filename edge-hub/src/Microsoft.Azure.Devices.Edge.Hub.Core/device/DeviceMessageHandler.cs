@@ -19,14 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
-        readonly ICloudProxy cloudProxy;
+        readonly Option<ICloudProxy> cloudProxy;
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
         const int GatewayTimeoutErrorCode = 504101;
         const int GenericBadRequest = 400000;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, ICloudProxy cloudProxy)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, Option<ICloudProxy> cloudProxy)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
@@ -66,8 +66,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            ICloudListener cloudListener = new CloudListener(this.edgeHub, this.Identity.Id);
-            this.cloudProxy.BindCloudListener(cloudListener);
+            if (this.Identity.Scope != AuthenticationScope.x509Cert)
+            {
+                ICloudListener cloudListener = new CloudListener(this.edgeHub, this.Identity.Id);
+                ICloudProxy cloudProxy = this.cloudProxy.Expect(() => new Exception("Error retrieving cloud proxy"));
+                cloudProxy.BindCloudListener(cloudListener);
+            }
             // This operation is async, but we cannot await in this sync method.
             // It is fine because the await part of the operation is cleanup and best effort. 
             this.connectionManager.AddDeviceConnection(this.Identity, this);
@@ -107,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
             else
             {
-                return this.cloudProxy.SendFeedbackMessageAsync(messageId, feedbackStatus);
+                return this.cloudProxy.ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
             }
         }
 

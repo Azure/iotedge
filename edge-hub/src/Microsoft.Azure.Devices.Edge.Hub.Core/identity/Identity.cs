@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using Microsoft.Azure.Devices.Edge.Util;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
 
     public abstract class Identity : IIdentity
     {
@@ -21,6 +23,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             this.Secret = secret;
             this.ProductInfo = productInfo;
             this.Token = token;
+        }
+
+        protected Identity(
+            string iotHubHostName,
+            AuthenticationScope scope,
+            string productInfo)
+        {
+            this.IotHubHostName = iotHubHostName;
+            this.ConnectionString = null;
+            this.Scope = scope;
+            this.PolicyName = null;
+            this.Secret = null;
+            this.ProductInfo = productInfo;
+            this.Token = Option.None<string>();
         }
 
         public string IotHubHostName { get; }

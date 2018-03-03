@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudProxy.Setup(c => c.BindCloudListener(It.IsAny<ICloudListener>()));
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(default(DirectMethodResponse));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, cloudProxy.Object);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, Option.Some(cloudProxy.Object));
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Mock.Get(connectionManager).Setup(c => c.GetDeviceConnection(It.Is<string>(d => d == "device1/module1"))).Returns(Option.Some((IDeviceProxy)deviceMessageHandler));
 

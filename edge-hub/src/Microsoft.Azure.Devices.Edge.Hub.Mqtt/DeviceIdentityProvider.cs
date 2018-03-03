@@ -5,23 +5,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.Security;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
-    public class SasTokenDeviceIdentityProvider : IDeviceIdentityProvider
+    public class DeviceIdentityProvider : IDeviceIdentityProvider
     {
         readonly IAuthenticator authenticator;
         readonly IIdentityFactory identityFactory;
+        readonly bool clientCertAuthAllowed;
 
-        public SasTokenDeviceIdentityProvider(IAuthenticator authenticator, IIdentityFactory identityFactory)
+        public DeviceIdentityProvider(IAuthenticator authenticator, IIdentityFactory identityFactory, bool clientCertAuthAllowed)
         {
             this.authenticator = authenticator;
             this.identityFactory = identityFactory;
+            this.clientCertAuthAllowed = clientCertAuthAllowed;
         }
 
         public async Task<IDeviceIdentity> GetAsync(string clientId, string username, string password, EndPoint clientAddress)
@@ -29,15 +34,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             try
             {
                 Preconditions.CheckNonWhiteSpace(username, nameof(username));
-                Preconditions.CheckNonWhiteSpace(password, nameof(password));
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
+                Try<IIdentity> deviceIdentity;
+                // This is a very weak check for now. In the future, we need to save client certs in a dictionary of
+                // module name to client cert. We would then retrieve the cert here. We also will need to handle
+                // revocation of certs.
+                if ((password == null) && (this.clientCertAuthAllowed))
+                {
+                    deviceIdentity = this.identityFactory.GetWithX509Cert(
+                        deviceId,
+                        moduleId,
+                        deviceClientType,
+                        isModuleIdentity);
+                }
+                else
+                {
+                    deviceIdentity = this.identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, isModuleIdentity, password);
+                }
 
-                Try<IIdentity> deviceIdentity = this.identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, isModuleIdentity, password);
                 if (!deviceIdentity.Success
-                    || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
-                    || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
+                        || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
+                        || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
                 {
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
@@ -107,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<SasTokenDeviceIdentityProvider>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
             const int IdStart = MqttEventIds.SasTokenDeviceIdentityProvider;
 
             enum EventIds

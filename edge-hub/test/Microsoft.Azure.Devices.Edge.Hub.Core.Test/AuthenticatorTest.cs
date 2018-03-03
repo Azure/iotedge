@@ -112,5 +112,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var authenticator = new Authenticator(connectionManager, "your-device");
             await Assert.ThrowsAsync<ArgumentNullException>(() => authenticator.AuthenticateAsync(null));
         }
+
+        [Fact]
+        [Unit]
+        public async Task Authenticate_x509Identity()
+        {
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var moduleIdentity = Mock.Of<IModuleIdentity>();
+
+            Mock.Get(moduleIdentity).Setup(mi => mi.DeviceId).Returns("my-device");
+            Mock.Get(moduleIdentity).Setup(mi => mi.Scope).Returns(AuthenticationScope.x509Cert);
+
+            var authenticator = new Authenticator(connectionManager, "my-device");
+            Assert.Equal(true, await authenticator.AuthenticateAsync(moduleIdentity));
+        }
     }
 }

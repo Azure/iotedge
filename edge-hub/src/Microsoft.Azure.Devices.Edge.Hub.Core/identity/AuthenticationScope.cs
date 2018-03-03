@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         None,
         SasToken,
         DeviceKey,
-        HubKey
+        HubKey,
+        x509Cert
     }
 }

@@ -10,6 +10,7 @@ EdgeModuleHubServerCAChainCertificateFile=$(printenv EdgeModuleHubServerCAChainC
 # corresponding signing CA cert
 if [[ -z "${EdgeModuleHubServerCertificateFile}" ]] || [[ -z "${EdgeModuleHubServerCAChainCertificateFile}" ]]; then
     # certs not provided so generate SSL self signed certificate
+	chmod +x ./scripts/linux/generate-cert.sh
     ./scripts/linux/generate-cert.sh
 else
     echo "Edge Hub Server Certificate File: ${EdgeModuleHubServerCertificateFile}"

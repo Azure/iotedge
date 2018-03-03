@@ -3,7 +3,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,6 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
+    using Microsoft.Azure.Devices.ProtocolGateway;
+    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -55,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogInformation($"Version - {versionInfo}");
             }
             LogLogo(logger);
+
             var cts = new CancellationTokenSource();
 
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
@@ -71,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     new HttpProtocolHead(hosting.WebHost),
                     await container.Resolve<Task<MqttProtocolHead>>(),
-                    await container.Resolve<Task<AmqpProtocolHead>>(),
+                    await container.Resolve<Task<AmqpProtocolHead>>()
                 }, logger))
             {
                 await protocolHead.StartAsync();

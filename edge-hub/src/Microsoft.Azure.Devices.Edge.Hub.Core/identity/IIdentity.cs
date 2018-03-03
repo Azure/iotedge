@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using Microsoft.Azure.Devices.Edge.Util;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
 
     public interface IIdentity
     {
@@ -15,5 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         Option<string> Token { get; }
 
         string ProductInfo { get; }
+
+        AuthenticationScope Scope { get; }
     }
 }

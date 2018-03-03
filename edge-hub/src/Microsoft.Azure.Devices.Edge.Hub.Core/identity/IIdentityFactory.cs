@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using Microsoft.Azure.Devices.Edge.Util;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
 
     public interface IIdentityFactory
     {
@@ -29,5 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             string deviceClientType,
             bool isModuleIdentity,
             string keyValue);
+
+        Try<IIdentity> GetWithX509Cert(
+            string deviceId,
+            string moduleId,
+            string deviceClientType,
+            bool isModuleIdentity);
     }
 }

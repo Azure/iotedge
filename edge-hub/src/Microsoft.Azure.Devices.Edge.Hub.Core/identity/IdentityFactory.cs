@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -27,6 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             this.iotHubHostName = iotHubHostName;
             this.callerProductInfo = callerProductInfo;
         }
+
+        public Try<IIdentity> GetWithX509Cert(
+            string deviceId,
+            string moduleId,
+            string deviceClientType,
+            bool isModuleIdentity
+            ) => this.GetIdentity(deviceId, moduleId, deviceClientType, isModuleIdentity, null, AuthenticationScope.x509Cert, null);
 
         public Try<IIdentity> GetWithSasToken(
             string deviceId,
@@ -54,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         Try<IIdentity> GetIdentity(string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity, string secret, AuthenticationScope scope, string policyName)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
+            
             deviceClientType = deviceClientType ?? string.Empty;
 
             try
@@ -62,15 +71,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
                 if (isModuleIdentity)
                 {
                     Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
                     string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-                    return new ModuleIdentity(this.iotHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
+                    switch (scope)
+                    {
+                        case AuthenticationScope.x509Cert:
+                            return new ModuleIdentity(this.iotHubHostName, deviceId, moduleId, scope, productInfo);
+                        default:
+                            Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
+                            string connectionString = GetConnectionString(this.iotHubHostName, deviceId, moduleId, secret);
+                            return new ModuleIdentity(this.iotHubHostName, deviceId, moduleId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
+                    }
                 }
                 else
                 {
-                    string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
                     string productInfo = string.Join(" ", this.callerProductInfo, deviceClientType).Trim();
-                    return new DeviceIdentity(this.iotHubHostName, deviceId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
+                    switch (scope)
+                    {
+                        case AuthenticationScope.x509Cert:
+                            return new DeviceIdentity(this.iotHubHostName, deviceId, scope, productInfo);
+                        default:
+                            Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
+                            string connectionString = GetConnectionString(this.iotHubHostName, deviceId, scope, policyName, secret);
+                            return new DeviceIdentity(this.iotHubHostName, deviceId, connectionString, scope, policyName, secret, productInfo, Option.Some(secret));
+                    }
                 }
             }
             catch (Exception ex)

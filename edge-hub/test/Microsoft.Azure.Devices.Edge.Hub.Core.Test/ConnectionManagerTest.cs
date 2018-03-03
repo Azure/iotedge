@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
             Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(identity);
             Assert.True(cloudProxyTry.Success);
-            var deviceListener = new DeviceMessageHandler(identity, edgeHub.Object, connectionManager, cloudProxyTry.Value);
+            var deviceListener = new DeviceMessageHandler(identity, edgeHub.Object, connectionManager, Option.Some(cloudProxyTry.Value));
 
             Option<ICloudProxy> cloudProxy = connectionManager.GetCloudConnection(deviceId);
             Assert.True(cloudProxy.HasValue);

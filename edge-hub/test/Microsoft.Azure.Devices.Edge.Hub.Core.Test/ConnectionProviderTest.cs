@@ -44,14 +44,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
-        public async Task GetDeviceListenerTest()
+        public async Task GetDeviceListenerWithSASIdentityTest()
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
             var edgeHub = Mock.Of<IEdgeHub>();
-            var identity = Mock.Of<IIdentity>();
+            var identity = new ModuleIdentity("hub", "device", "module", AuthenticationScope.SasToken, "");
 
             Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(identity)).ReturnsAsync(Try.Success(cloudProxy));
+
+            var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
+            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(identity));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetDeviceListenerWithX509IdentityTest()
+        {
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var identity = new ModuleIdentity("hub", "device", "module", AuthenticationScope.x509Cert, "");
 
             var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
             Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(identity));

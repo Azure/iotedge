@@ -80,7 +80,10 @@ process_args()
 ###############################################################################
 generate_cert()
 {
-    command="openssl req -nodes -new -x509 -keyout /etc/ssl/private/mqtt-server.key -out $SSL_CERTIFICATE_PATH/mqtt-server.crt -subj /CN=$SSL_CERTIFICATE_COMMON_NAME"
+    #command="openssl req -nodes -new -x509 -keyout /etc/ssl/private/mqtt-server.key -out $SSL_CERTIFICATE_PATH/mqtt-server.crt -subj /CN=$SSL_CERTIFICATE_COMMON_NAME"
+	mkdir -p $SSL_CERTIFICATE_PATH
+	mkdir -p $SSL_CERTIFICATE_PATH/private
+	command="openssl req -nodes -new -x509 -keyout $SSL_CERTIFICATE_PATH/private/mqtt-server.key -out $SSL_CERTIFICATE_PATH/mqtt-server.crt -subj /CN=$SSL_CERTIFICATE_COMMON_NAME"
 
     $command
 
@@ -89,7 +92,7 @@ generate_cert()
         exit 1
     fi
 
-    command="openssl pkcs12 -export -out $SSL_CERTIFICATE_PATH/$SSL_CERTIFICATE_NAME -inkey /etc/ssl/private/mqtt-server.key -in $SSL_CERTIFICATE_PATH/mqtt-server.crt -passout pass:"
+    command="openssl pkcs12 -export -out $SSL_CERTIFICATE_PATH/$SSL_CERTIFICATE_NAME -inkey $SSL_CERTIFICATE_PATH/private/mqtt-server.key -in $SSL_CERTIFICATE_PATH/mqtt-server.crt -passout pass:"
 
     $command
 

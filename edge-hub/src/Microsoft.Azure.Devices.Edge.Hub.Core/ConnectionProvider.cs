@@ -21,14 +21,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity)
         {
-            // Set up a connection to the cloud here, so that we can use it in the Device proxy
-            Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity));
-            if (!cloudProxy.Success)
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            if (identity.Scope == AuthenticationScope.x509Cert)
             {
-                throw new EdgeHubConnectionException($"Unable to connect to IoT Hub for device {identity.Id}", cloudProxy.Exception);
+                IDeviceListener deviceListener = new DeviceMessageHandler(identity, this.edgeHub, this.connectionManager, Option.None<ICloudProxy>());
+                return deviceListener;
             }
-            IDeviceListener deviceListener = new DeviceMessageHandler(identity, this.edgeHub, this.connectionManager, cloudProxy.Value);
-            return deviceListener;
+            else
+            {
+                // Set up a connection to the cloud here, so that we can use it in the Device proxy
+                Try<ICloudProxy> cloudProxy = await this.connectionManager.GetOrCreateCloudConnectionAsync(Preconditions.CheckNotNull(identity));
+                if (!cloudProxy.Success)
+                {
+                    throw new EdgeHubConnectionException($"Unable to connect to IoT Hub for device {identity.Id}", cloudProxy.Exception);
+                }
+                IDeviceListener deviceListener = new DeviceMessageHandler(identity, this.edgeHub, this.connectionManager, Option.Some(cloudProxy.Value));
+                return deviceListener;
+            }
         }
 
         protected virtual void Dispose(bool disposing)

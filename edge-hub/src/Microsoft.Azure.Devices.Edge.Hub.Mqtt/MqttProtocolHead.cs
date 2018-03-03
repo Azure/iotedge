@@ -2,7 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
+    using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -15,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
@@ -31,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IDeviceIdentityProvider identityProvider;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator = PooledByteBufferAllocator.Default;
+        readonly Option<IList<X509Certificate2>> caCertChain;
 
         const int MqttsPort = 8883;
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
@@ -46,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IMqttConnectionProvider mqttConnectionProvider,
             IDeviceIdentityProvider identityProvider,
             ISessionStatePersistenceProvider sessionProvider,
-            IWebSocketListenerRegistry webSocketListenerRegistry)
+            IWebSocketListenerRegistry webSocketListenerRegistry,
+            Option<IList<X509Certificate2>> caCertChain)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
@@ -54,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
+            this.caCertChain = Preconditions.CheckNotNull(caCertChain, nameof(caCertChain));
         }
 
         public string Name => "MQTT";
@@ -112,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             var settings = new Settings(this.settingsProvider);
+            bool clientCertAuthAllowed = this.settingsProvider.GetBooleanSetting("ModuleCertAuthAllowed", false);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
@@ -134,7 +141,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .ChildHandler(new ActionChannelInitializer<ISocketChannel>(channel =>
                 {
                     // configure the channel pipeline of the new Channel by adding handlers
-                    channel.Pipeline.AddLast(TlsHandler.Server(this.tlsCertificate));
+                    TlsSettings serverSettings = new ServerTlsSettings(
+                            certificate: this.tlsCertificate,
+                            negotiateClientCertificate: clientCertAuthAllowed
+                        );
+
+                    channel.Pipeline.AddLast(new TlsHandler(stream =>
+                        new SslStream(stream,
+                                      true,
+                                      (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
+                                          CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger)),
+                                      serverSettings));
 
                     channel.Pipeline.AddLast(
                         MqttEncoder.Instance,

@@ -5,7 +5,7 @@ RUN useradd -ms /bin/bash edgehubuser
 ENV EdgeHubUser=edgehubuser
 
 ARG EXE_DIR=.
-ENV SSL_CERTIFICATE_PATH=/etc/ssl/certs
+ENV SSL_CERTIFICATE_PATH=/app/certs
 ENV SSL_CERTIFICATE_NAME=mqtt-server.pfx
 
 # Install snappy and set up symlinks that are absent from the base image

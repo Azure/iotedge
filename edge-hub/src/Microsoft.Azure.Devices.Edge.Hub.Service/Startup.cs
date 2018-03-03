@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Linq;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
@@ -87,12 +89,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
 
+            // Get hub's server cert
             string certPath = Path.Combine(
                 this.Configuration.GetValue<string>(Constants.SslCertPathEnvName),
                 this.Configuration.GetValue<string>(Constants.SslCertEnvName));
             var tlsCertificate = new X509Certificate2(certPath);
+
+            // Extract all the certs from the CA chain cert
+            string caChainPath = this.Configuration.GetValue<string>("EdgeModuleHubServerCAChainCertificateFile");
+            (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
+            if (errors.HasValue)
+            {
+                ILogger logger = Container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
+                errors.ForEach(v => logger.LogWarning(v));
+            }
+
             string hostName = this.Configuration.GetValue<string>("HostName");
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
+
+            bool clientCertAuthAllowed = this.Configuration.GetValue<bool>("ClientCertAuthAllowed", false);
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -130,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.VersionInfo,
                     upstreamProtocolOption));
 
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthAllowed, caChainCerts));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], hostName, amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

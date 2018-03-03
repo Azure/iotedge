@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -25,17 +26,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         // ReSharper disable once NotAccessedField.Local
         readonly bool isStoreAndForwardEnabled;
         readonly X509Certificate2 tlsCertificate;
+        readonly bool clientCertAuthAllowed;
+        readonly Option<IList<X509Certificate2>> caCertChain;
 
         public MqttModule(
             IConfiguration mqttSettingsConfiguration,
             MessageAddressConversionConfiguration conversionConfiguration,
             X509Certificate2 tlsCertificate,
-            bool isStoreAndForwardEnabled)
+            bool isStoreAndForwardEnabled,
+            bool clientCertAuthAllowed,
+            Option<IList<X509Certificate2>> caCertChain)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
+            this.clientCertAuthAllowed = clientCertAuthAllowed;
+            this.caCertChain = caCertChain;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -67,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(c => new SasTokenDeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>()) as IDeviceIdentityProvider)
+            builder.Register(c => new DeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider)
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
 
@@ -96,7 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         await c.Resolve<Task<IMqttConnectionProvider>>(),
                         c.Resolve<IDeviceIdentityProvider>(),
                         c.Resolve<ISessionStatePersistenceProvider>(),
-                        c.Resolve<IWebSocketListenerRegistry>()
+                        c.Resolve<IWebSocketListenerRegistry>(),
+                        this.caCertChain
                     ))
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();

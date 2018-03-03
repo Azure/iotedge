@@ -464,7 +464,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IModuleIdentity moduleIdentity = SetupModuleIdentity(moduleId, deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(moduleIdentity);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceMessageHandler(moduleIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                var deviceListener = new DeviceMessageHandler(moduleIdentity, edgeHub, connectionManager, Option.Some(cloudProxy.Value));
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
                 deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))
@@ -518,7 +518,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IDeviceIdentity deviceIdentity = SetupDeviceIdentity(deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(deviceIdentity);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceMessageHandler(deviceIdentity, edgeHub, connectionManager, cloudProxy.Value);
+                var deviceListener = new DeviceMessageHandler(deviceIdentity, edgeHub, connectionManager, Option.Some(cloudProxy.Value));
                 return new TestDevice(deviceIdentity, deviceListener);
             }
 
