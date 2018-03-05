@@ -150,7 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         new SslStream(stream,
                                       true,
                                       (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
-                                          CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger)),
+                                      clientCertAuthAllowed ?
+                                          CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger) : true),
                                       serverSettings));
 
                     channel.Pipeline.AddLast(
