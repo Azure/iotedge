@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
             return RunProcessAsync(
                 "iotedgectl",
-                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --edge-hostname SimulatedEdgeDevice",
+                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {EdgeAgentImage()} --edge-hostname SimulatedEdgeDevice",
                 60);
         }
 
@@ -164,9 +164,19 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
         public static Task DeployTempSensorToEdgeDevice(DeviceContext context)
         {
-            const string ImageVersion = "1.0-preview";
-            string json = Regex.Replace(DeployJson, "<(?:agent|hub|sensor)-version>", ImageVersion);
-            var config = JsonConvert.DeserializeObject<ConfigurationContent>(json);
+            string deployJson = DeployJson;
+            string edgeAgentImage = EdgeAgentImage();
+            string edgeHubImage = EdgeHubImage();
+            string tempSensorImage = TempSensorImage();
+
+            Console.WriteLine($"Sending configuration to device '{context.Device.Id}' with modules:");
+            Console.WriteLine($"  {edgeAgentImage}\n  {edgeHubImage}\n  {tempSensorImage}");
+
+            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", edgeAgentImage);
+            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", edgeHubImage);
+            deployJson = Regex.Replace(deployJson, "<image-temp-sensor>", tempSensorImage);
+
+            var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
             return context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(context.Device.Id, config);
         }
 
@@ -238,6 +248,30 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             return context != null
                 ? context.RegistryManager.RemoveDeviceAsync(context.Device)
                 : Task.CompletedTask;
+        }
+
+        static string EdgeAgentImage()
+        {
+            return BuildImageName("microsoft/azureiotedge-agent");
+        }
+
+        static string EdgeHubImage()
+        {
+            return BuildImageName("microsoft/azureiotedge-hub");
+        }
+
+        static string TempSensorImage()
+        {
+            return BuildImageName("microsoft/azureiotedge-simulated-temperature-sensor");
+        }
+
+        static string BuildImageName(string name)
+        {
+            string address = Environment.GetEnvironmentVariable("registryAddress");
+            string registry = address == null ? string.Empty : $"{address}/";
+            string version = Environment.GetEnvironmentVariable("imageVersion") ?? "1.0-preview";
+
+            return $"{registry}{name}:{version}";
         }
 
         static async Task VerifyDockerContainerIsRunning(string name)
@@ -317,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
           ""edgeAgent"": {
             ""type"": ""docker"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-agent:<agent-version>"",
+              ""image"": ""<image-edge-agent>"",
               ""createOptions"": """"
             },
             ""configuration"": {
@@ -329,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             ""status"": ""running"",
             ""restartPolicy"": ""always"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-hub:<hub-version>"",
+              ""image"": ""<image-edge-hub>"",
               ""createOptions"": """"
             },
             ""configuration"": {
@@ -344,7 +378,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             ""status"": ""running"",
             ""restartPolicy"": ""always"",
             ""settings"": {
-              ""image"": ""microsoft/azureiotedge-simulated-temperature-sensor:<sensor-version>"",
+              ""image"": ""<image-temp-sensor>"",
               ""createOptions"": """"
             },
             ""configuration"": {
