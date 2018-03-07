@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
-    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -23,8 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
-    using Message = Microsoft.Azure.Devices.Client.Message;
+    using IRoutingMessage = Routing.Core.IMessage;
+    using Message = Client.Message;
 
     public class RoutingModule : Module
     {
@@ -109,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IMessageConverter<Message>
-            builder.Register(c => new MqttMessageConverter())
+            builder.Register(c => new DeviceClientMessageConverter())
                 .As<Core.IMessageConverter<Message>>()
                 .SingleInstance();
 

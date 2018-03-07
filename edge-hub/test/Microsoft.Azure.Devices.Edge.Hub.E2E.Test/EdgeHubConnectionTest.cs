@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Client.Message), new MqttMessageConverter() },
+                    { typeof(Client.Message), new DeviceClientMessageConverter() },
                     { typeof(Twin), twinMessageConverter },
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });

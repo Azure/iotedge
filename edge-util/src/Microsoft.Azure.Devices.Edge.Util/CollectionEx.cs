@@ -9,28 +9,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
     public static class CollectionEx
     {
         public static Option<TValue> Get<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key)
-        {
-            TValue value;
-            return dict.TryGetValue(key, out value) ? Option.Some(value) : Option.None<TValue>();
-        }
+            => dict.TryGetValue(key, out TValue value) ? Option.Some(value) : Option.None<TValue>();
 
         public static TValue GetOrElse<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue orElse)
-        {
-            TValue value;
-            return dict.TryGetValue(key, out value) ? value : orElse;
-        }
+            => dict.TryGetValue(key, out TValue value) ? value : orElse;
 
         public static TValue GetOrElse<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> orElse)
-        {
-            TValue value;
-            return dict.TryGetValue(key, out value) ? value : orElse();
-        }
+            => dict.TryGetValue(key, out TValue value) ? value : orElse();
 
         public static Option<T> HeadOption<T>(this IEnumerable<T> src)
         {
-            var list = src as IList<T>;
-
-            if (list != null && list.Count > 0)
+            if (src is IList<T> list && list.Count > 0)
             {
                 return Option.Some(list[0]);
             }
@@ -93,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static IDictionary<string, string> ToDictionary(this IList<KeyValuePair<string, string>> values)
         {
             var dictionary = new Dictionary<string, string>();
-            foreach(KeyValuePair<string, string> kvp in values)
+            foreach (KeyValuePair<string, string> kvp in values)
             {
                 dictionary.Add(kvp.Key, kvp.Value);
             }
@@ -102,14 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         public static TSource ElementAtOrDefault<TSource>(this ICollection<TSource> source, int index, TSource defaultValue)
-        {
-            return index >= 0 && index < source.Count() ? source.ElementAt(index) : defaultValue;
-        }
+            => index >= 0 && index < source.Count ? source.ElementAt(index) : defaultValue;
 
         public static string ElementAtOrEmpty(this ICollection<string> source, int index)
-        {
-            return source.ElementAtOrDefault(index, string.Empty);
-        }
+            => source.ElementAtOrDefault(index, string.Empty);
 
         public static bool TryRemove<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
         {
@@ -118,6 +103,31 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 dictionary.Remove(key);
                 return true;
             }
+            return false;
+        }
+
+        public static void AddIfNonEmpty<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+            where TKey : class
+            where TValue : class
+        {
+            if (key != null && (typeof(TKey) != typeof(string) || !string.IsNullOrWhiteSpace(key as string)) &&
+                value != null && (typeof(TValue) != typeof(string) || !string.IsNullOrWhiteSpace(value as string)))
+            {
+                dictionary.Add(key, value);
+            }
+        }
+
+        public static bool TryGetNonEmptyValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
+            where TValue : class
+        {
+            if (dictionary.TryGetValue(key, out TValue dictVal)
+                && dictVal != null
+                && (typeof(TValue) != typeof(string) || !string.IsNullOrWhiteSpace(dictVal as string)))
+            {
+                value = dictVal;
+                return true;
+            }
+            value = default(TValue);
             return false;
         }
     }

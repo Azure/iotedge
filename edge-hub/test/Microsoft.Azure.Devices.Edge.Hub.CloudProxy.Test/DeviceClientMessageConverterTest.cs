@@ -1,8 +1,10 @@
+// Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Text;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -11,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    public class MessageConverterTest
+    public class DeviceClientMessageConverterTest
     {
         public static IEnumerable<object[]> GetInvalidMessages()
         {
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetInvalidMessages))]
         public void TestErrorCases(IMessage inputMessage, Type exceptionType)
         {
-            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
         }
 
@@ -67,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
             Message proxyMessage = messageConverter.FromMessage(inputMessage);
 
@@ -103,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             var inputMessage = new Message(messageBytes);
             IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
 
@@ -139,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     m.Properties == properties &&
                     m.SystemProperties == systemProperties);
 
-            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             Message clientMessage = messageConverter.FromMessage(message);
 
             Assert.NotNull(clientMessage);
@@ -175,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             clientMessage.MessageId = "m1";
             clientMessage.CreationTimeUtc = creationTime;
 
-            IMessageConverter<Message> messageConverter = new MqttMessageConverter();
+            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             IMessage message = messageConverter.ToMessage(clientMessage);
 
             Assert.NotNull(message);
@@ -183,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("Bar", message.Properties["Foo"]);
             Assert.Equal("Value2", message.Properties["Prop2"]);
 
+            Assert.Equal(10, message.SystemProperties.Count);
             Assert.Equal("utf-8", message.SystemProperties[SystemProperties.ContentEncoding]);
             Assert.Equal("application/json", message.SystemProperties[SystemProperties.ContentType]);
             Assert.Equal("schema1", message.SystemProperties[SystemProperties.MessageSchema]);
@@ -190,6 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("1234", message.SystemProperties[SystemProperties.MsgCorrelationId]);
             Assert.Equal("m1", message.SystemProperties[SystemProperties.MessageId]);
             Assert.Equal(creationTime.ToString("o"), message.SystemProperties[SystemProperties.CreationTime]);
+            Assert.Equal(DateTime.Parse(message.SystemProperties[SystemProperties.CreationTime], null, DateTimeStyles.RoundtripKind), creationTime);
+            Assert.Equal("0", message.SystemProperties[SystemProperties.DeliveryCount]);
         }
     }
 }

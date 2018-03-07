@@ -129,5 +129,73 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.True(map.TryRemove("k2", out string val) && val == "v2");
             Assert.False(map.TryRemove("booyah", out string _));
         }
+
+        [Theory]
+        [InlineData("foo", "bar", true)]
+        [InlineData("foo", "", false)]
+        [InlineData("", "bar", false)]
+        [InlineData(null, "bar", false)]
+        [InlineData("foo", null, false)]
+        [InlineData(null, null, false)]
+        public void AddIfNonEmptyTest_Strings(string key, string value, bool shouldAdd)
+        {
+            var dictionary = new Dictionary<string, string>();
+            dictionary.AddIfNonEmpty(key, value);
+            if (shouldAdd)
+            {
+                Assert.Equal(dictionary[key], value);
+            }
+            else if (key != null)
+            {
+                Assert.False(dictionary.ContainsKey(key));
+            }
+        }
+
+        [Fact]
+        public void AddIfNonEmptyTest_Objects()
+        {
+            var object1 = new object();
+            var object2 = new object();
+
+            var dictionary = new Dictionary<object, object>();
+            dictionary.AddIfNonEmpty(object1, object2);
+            Assert.Equal(dictionary[object1], object2);
+
+            dictionary = new Dictionary<object, object>();
+            dictionary.AddIfNonEmpty(null, object2);
+            Assert.False(dictionary.ContainsKey(object1));
+
+            dictionary = new Dictionary<object, object>();
+            dictionary.AddIfNonEmpty(object1, null);
+            Assert.False(dictionary.ContainsKey(object1));
+        }
+
+        [Fact]
+        public void TryGetNonEmptyValueTest()
+        {
+            var stringDictionary = new Dictionary<string, string>
+            {
+                ["1"] = "Foo",
+                ["2"] = "",
+                ["3"] = "  ",
+                ["4"] = null,
+            };
+
+            Assert.True(stringDictionary.TryGetNonEmptyValue("1", out string returnedString));
+            Assert.Equal("Foo", returnedString);
+            Assert.False(stringDictionary.TryGetNonEmptyValue("2", out returnedString));
+            Assert.False(stringDictionary.TryGetNonEmptyValue("3", out returnedString));
+            Assert.False(stringDictionary.TryGetNonEmptyValue("4", out returnedString));
+
+            var obj = new object();
+            var objectDictionary = new Dictionary<string, object>
+            {
+                ["1"] = obj,
+                ["2"] = null
+            };
+            Assert.True(objectDictionary.TryGetNonEmptyValue("1", out object returnedObj));
+            Assert.Equal(obj, returnedObj);
+            Assert.False(objectDictionary.TryGetNonEmptyValue("2", out returnedObj));
+        }
     }
 }

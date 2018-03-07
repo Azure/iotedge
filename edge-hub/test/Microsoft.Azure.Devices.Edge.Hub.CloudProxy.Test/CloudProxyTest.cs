@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
             var converters = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>()
             {
-                { typeof(Client.Message), new MqttMessageConverter() },
+                { typeof(Client.Message), new DeviceClientMessageConverter() },
                 { typeof(Twin), new TwinMessageConverter() },
                 { typeof(TwinCollection), new TwinCollectionMessageConverter() }
             });

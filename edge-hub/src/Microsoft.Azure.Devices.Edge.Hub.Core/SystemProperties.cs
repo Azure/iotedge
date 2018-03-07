@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string EdgeHubOriginInterface = "edgeHubOriginInterface";
         public const string CreationTime = "creationTime";
         public const string Operation = "operation";
+        public const string SequenceNumber = "sequenceNumber";
 
         static class OnTheWireSystemPropertyNames
         {
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { Operation, OnTheWireSystemPropertyNames.OperationOnTheWireName },
             { CreationTime, OnTheWireSystemPropertyNames.CreationTimeOnTheWireName },
             { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName },
-            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }            
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }
         };
     }
 }
