@@ -1,0 +1,94 @@
+syntax = "proto3";
+package azure.iot.edge;
+import "google/protobuf/timestamp.proto";
+import "api/common/common.proto";
+
+
+service Workload {
+    /**
+     * Perform a sign operation on a payload using the specified
+     * key identifier and algorithm.
+    */
+    rpc SignPayload(SignRequest) returns (SignResponse) {
+
+    }
+
+    /**
+     * Get X509 PEM formatted credentials based on the callers identity.
+    */
+    rpc GetX509IdentityCertificate(X509IdentityCertificateRequest) returns (X509CertificateResponse) {
+
+    }
+
+    /**
+     * Get X509 PEM formatted server certificate signed by the device CA or siging CA cert.
+    */
+    rpc GetX509ServerCertificate(X509ServerCertificateRequest) returns (X509CertificateResponse) {
+
+    }
+}
+
+/**
+* Sign algorithm types
+*/
+enum SignAlgorithm {
+    HMACSHA256 = 0;
+}
+
+message SignRequest {
+    // identity of calling edge module
+    ModuleIdentity id = 1;
+
+    // name of key to perform a sign operation
+    string key_id = 2;
+
+    // sign algorithm to be used
+    SignAlgorithm algo = 3;
+
+    // byte buffer to be signed
+    bytes data = 4;
+}
+
+message SignResponse {
+    // response of the sign request
+    StatusResponse status = 1;
+
+    // if successful digest will contain the signed byte buffer
+    bytes digest = 2;
+}
+
+message X509IdentityCertificateRequest {
+    // identity of calling edge module
+    ModuleIdentity id = 1;
+}
+
+message X509ServerCertificateRequest {
+    // identity of calling edge module
+    ModuleIdentity id = 1;
+
+    // subject common name
+    string common_name = 2;
+
+    // expiration in UTC seconds when the certificate is set to to expire
+    google.protobuf.Timestamp expiration = 3;
+}
+
+message X509CertificateResponse {
+    // response of the certificate request
+    StatusResponse status = 1;
+
+    // if successful, either
+    // the private key in PEM format will be set in buffer OR
+    // reference will contain the name of key to perform any key operations
+    oneof private_key {
+        bytes buffer = 2;
+        string reference = 3;
+    }
+
+    // if successful, the certificate field will contain the actual certificate
+    // payload in PEM format as a byte buffer
+    bytes certificate = 4;
+
+    // expiration in UTC seconds when the certificate is set to to expire
+    google.protobuf.Timestamp expiration = 5;
+}

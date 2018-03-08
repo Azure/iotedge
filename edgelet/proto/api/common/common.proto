@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+/**
+ * Edge response status codes
+ */
+enum StatusCodes {
+    SUCCESS = 0;
+    IMAGE_PULL_FAILED = 1;
+    OUT_OF_MEMORY = 2;
+    NOT_AUTHORIZED = 3;
+    INVALID_MODULE = 4;
+}
+
+/**
+ * Supported Edge deployment types
+ */
+ enum DeploymentType {
+    DOCKER = 0;
+}
+
+/**
+ * Supported Edge runtime authentication schemes
+ */
+enum AuthenticationType {
+    SASTOKEN = 0;
+    X509CA = 1;
+}
+
+/**
+ * Message represents a basic error response
+ */
+message StatusResponse {
+    // status code associated with the request
+    StatusCodes status_code = 1;
+
+    // any diagnostic message
+    string message = 2;
+}
+
+/**
+ * Represents the identity of an Edge module.
+ */
+message ModuleIdentity {
+    // id of the caller
+    // format: IoTHostName/devices/$deviceId/modules/$moduleId
+    string id = 1;
+ }

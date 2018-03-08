@@ -1,0 +1,92 @@
+syntax = "proto3";
+package azure.iot.edge;
+import "api/common/common.proto";
+
+/**
+ * RPC APIs for the Edge agent to perform registration operations
+ * for Edge modules that are part of a deployment.
+ */
+service Registration {
+    // API to create module instances. As part of this call, all module
+    // identities are created in IoT hub, their respective images pulled down
+    // and corresponding module instances created using their supplied
+    // create options.
+    rpc CreateModules(ModulesCreateRequest) returns (StatusResponse) {
+
+    }
+
+    // API to destroy the module instance if it exists.
+    // As part of this call, all assets pertaining to the module are destroyed.
+    // The module identity is removed from the IoT hub as well.
+    rpc DestroyModule(ModuleDestroyRequest) returns (StatusResponse) {
+
+    }
+
+    // API to start the module instance.
+    rpc StartModule(ModuleStartRequest) returns (StatusResponse) {
+
+    }
+
+    // API to stop the module instance.
+    rpc StopModule(ModuleStopRequest) returns (StatusResponse) {
+
+    }
+}
+
+/**
+ * A single module create request message
+ */
+message ModuleCreateRequest {
+    // Name of the module which is the module id as well
+    string name = 1;
+
+    // Expected string(s) are 'docker'
+    DeploymentType type = 2;
+
+    // Module image to download
+    string image = 3;
+
+    // Options expressed as a JSON string
+    string create_options = 4;
+}
+
+/**
+ * Multiple modules create request message
+ */
+ message ModulesCreateRequest {
+    // id of caller
+    ModuleIdentity id = 1;
+
+    // list of modules to be created
+    repeated ModuleCreateRequest modules = 2;
+}
+
+/**
+ * A module destroy request message
+ */
+message ModuleDestroyRequest {
+    // id of caller
+    ModuleIdentity id = 1;
+    // Name of the module
+    string name = 2;
+}
+
+/**
+ * A module start request message
+ */
+ message ModuleStartRequest {
+    // id of caller
+    ModuleIdentity id = 1;
+    // Name of the module
+    string name = 2;
+}
+
+/**
+ * A module stop request message
+ */
+ message ModuleStopRequest {
+    // id of caller
+    ModuleIdentity id = 1;
+    // Name of the module
+    string name = 2;
+}
