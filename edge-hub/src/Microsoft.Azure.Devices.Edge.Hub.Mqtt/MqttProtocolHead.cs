@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator = PooledByteBufferAllocator.Default;
         readonly Option<IList<X509Certificate2>> caCertChain;
+        readonly bool clientCertAuthAllowed;
 
         const int MqttsPort = 8883;
         const int DefaultListenBacklogSize = 200; // connections allowed pending accept
@@ -51,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IDeviceIdentityProvider identityProvider,
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
-            Option<IList<X509Certificate2>> caCertChain)
+            bool clientCertAuthAllowed,
+            string caChainPath)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
@@ -59,7 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
-            this.caCertChain = Preconditions.CheckNotNull(caCertChain, nameof(caCertChain));
+            this.clientCertAuthAllowed = clientCertAuthAllowed;
+            this.caCertChain = clientCertAuthAllowed
+                ? this.GetCAChainCerts(Preconditions.CheckNonWhiteSpace(caChainPath, nameof(caCertChain)))
+                : Option.None<IList<X509Certificate2>>();
         }
 
         public string Name => "MQTT";
@@ -118,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             int listenBacklogSize = this.settingsProvider.GetIntegerSetting("ListenBacklogSize", DefaultListenBacklogSize);
             int parentEventLoopCount = this.settingsProvider.GetIntegerSetting("EventLoopCount", DefaultParentEventLoopCount);
             var settings = new Settings(this.settingsProvider);
-            bool clientCertAuthAllowed = this.settingsProvider.GetBooleanSetting("ModuleCertAuthAllowed", false);
 
             MessagingBridgeFactoryFunc bridgeFactory = this.mqttConnectionProvider.Connect;
 
@@ -143,14 +147,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     // configure the channel pipeline of the new Channel by adding handlers
                     TlsSettings serverSettings = new ServerTlsSettings(
                             certificate: this.tlsCertificate,
-                            negotiateClientCertificate: clientCertAuthAllowed
+                            negotiateClientCertificate: this.clientCertAuthAllowed
                         );
 
                     channel.Pipeline.AddLast(new TlsHandler(stream =>
                         new SslStream(stream,
                                       true,
                                       (sender, remoteCertificate, remoteChain, sslPolicyErrors) =>
-                                      clientCertAuthAllowed ?
+                                      this.clientCertAuthAllowed ?
                                           CertificateHelper.ValidateClientCert(remoteCertificate, remoteChain, this.caCertChain, this.logger) : true),
                                       serverSettings));
 
@@ -178,6 +182,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 
             return boostrap;
+        }
+
+        Option<IList<X509Certificate2>> GetCAChainCerts(string caChainPath)
+        {
+            if (!string.IsNullOrWhiteSpace(caChainPath))
+            {
+                (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
+                errors.ForEach(v => this.logger.LogWarning(v));
+                return caChainCerts;
+            }
+            return Option.None<IList<X509Certificate2>>();
         }
     }
 }

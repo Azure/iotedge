@@ -95,19 +95,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.Configuration.GetValue<string>(Constants.SslCertEnvName));
             var tlsCertificate = new X509Certificate2(certPath);
 
-            // Extract all the certs from the CA chain cert
-            string caChainPath = this.Configuration.GetValue<string>("EdgeModuleHubServerCAChainCertificateFile");
-            (Option<IList<X509Certificate2>> caChainCerts, Option<string> errors) = CertificateHelper.GetCertsAtPath(caChainPath);
-            if (errors.HasValue)
-            {
-                ILogger logger = Container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-                errors.ForEach(v => logger.LogWarning(v));
-            }
+            bool clientCertAuthEnabled = this.Configuration.GetValue<bool>("ClientCertAuthEnabled", false);
+            string caChainPath = this.Configuration.GetValue<string>("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
 
             string hostName = this.Configuration.GetValue<string>("HostName");
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
-
-            bool clientCertAuthAllowed = this.Configuration.GetValue<bool>("ClientCertAuthAllowed", false);
 
             var builder = new ContainerBuilder();
             builder.Populate(services);
@@ -145,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.VersionInfo,
                     upstreamProtocolOption));
 
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthAllowed, caChainCerts));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], hostName, amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

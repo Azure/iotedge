@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool isStoreAndForwardEnabled;
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
-        readonly Option<IList<X509Certificate2>> caCertChain;
+        readonly string caChainPath;
 
         public MqttModule(
             IConfiguration mqttSettingsConfiguration,
@@ -35,14 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             bool isStoreAndForwardEnabled,
             bool clientCertAuthAllowed,
-            Option<IList<X509Certificate2>> caCertChain)
+            string caChainPath)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.caCertChain = caCertChain;
+            this.caChainPath = caChainPath;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -104,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         c.Resolve<IDeviceIdentityProvider>(),
                         c.Resolve<ISessionStatePersistenceProvider>(),
                         c.Resolve<IWebSocketListenerRegistry>(),
-                        this.caCertChain
+                        this.clientCertAuthAllowed,
+                        this.caChainPath
                     ))
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();

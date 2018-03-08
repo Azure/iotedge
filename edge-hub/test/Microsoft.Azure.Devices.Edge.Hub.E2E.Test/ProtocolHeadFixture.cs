@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>()
                     )
                 );
-                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, Option.None<IList<X509Certificate2>>()));
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty));
                 setupMocks?.Invoke(builder);
                 this.container = builder.Build();
 
@@ -151,8 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await configUpdater.Init(configSource);
 
                 IMqttConnectionProvider mqttConnectionProvider = await this.container.Resolve<Task<IMqttConnectionProvider>>();
-                this.protocolHead = new MqttProtocolHead(this.container.Resolve<ISettingsProvider>(), certificate, mqttConnectionProvider, this.container.Resolve<IDeviceIdentityProvider>(), this.container.Resolve<ISessionStatePersistenceProvider>(), new WebSocketListenerRegistry(), Option.None<IList<X509Certificate2>>());
-
+                this.protocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
                 await this.protocolHead.StartAsync();
             }
         }
