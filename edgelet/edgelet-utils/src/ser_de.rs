@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;

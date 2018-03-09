@@ -1,7 +1,9 @@
 [workspace]
 members = [
+    "docker-mri",
     "docker-rs",
     "edgelet",
     "edgelet-core",
     "edgelet-utils",
+    "edgelet-test-utils",
 ]
