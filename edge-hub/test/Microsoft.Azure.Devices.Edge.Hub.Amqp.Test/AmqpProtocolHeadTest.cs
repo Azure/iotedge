@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
             var transportSettings = new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate);
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
             var transportListenerProvider = new Mock<ITransportListenerProvider>();
 
             Assert.Throws<ArgumentNullException>(() => new AmqpProtocolHead(null, amqpSettings, transportListenerProvider.Object));
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfCreateListenerThrows()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
 
             var amqpTransportSettings = new Mock<TransportSettings>();
             amqpTransportSettings.Setup(ts => ts.CreateListener()).Throws(new ApplicationException("No donuts for you"));
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfRootCreateTransportListenerThrows()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfOpenAsyncOrListenThrows(TransportListener amqpTransportListener)
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async void TestStartAsyncThrowsIfTransportListenerCallbackArgsHasException()
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
 
             var tcpTransportListener = new Mock<TransportListener>("TCP");
             var amqpTransportSettings = new Mock<TransportSettings>();
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
             var runtimeProvider = new Mock<IRuntimeProvider>();
             amqpSettings.RuntimeProvider = runtimeProvider.Object;
 
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");
 
-            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>());
+            AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(HostName, IotHubHostName, tlsCertificate, Mock.Of<IAuthenticator>(), Mock.Of<IIdentityFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>());
             var runtimeProvider = new Mock<IRuntimeProvider>();
             amqpSettings.RuntimeProvider = runtimeProvider.Object;
 

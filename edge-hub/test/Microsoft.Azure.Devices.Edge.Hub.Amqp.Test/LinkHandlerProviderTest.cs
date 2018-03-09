@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         System.Uri,
         System.Collections.Generic.IDictionary<string, string>,
         Core.IMessageConverter<Azure.Amqp.AmqpMessage>,
-        Core.IConnectionProvider,
         LinkHandlers.ILinkHandler>;
 
     [Unit]
@@ -34,15 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var amqpLink = Mock.Of<IAmqpLink>();
-            var connectionProvider = Mock.Of<IConnectionProvider>();
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var linkHandler = Mock.Of<ILinkHandler>();
             bool makerCalled = false;
-            ILinkHandler TestMaker(IAmqpLink link, Uri uri, IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> converter, IConnectionProvider incomingConnectionProvider)
+            ILinkHandler TestMaker(IAmqpLink link, Uri uri, IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> converter)
             {
                 Assert.Equal(amqpLink, link);
                 Assert.Equal(linkUri, uri.ToString());
-                Assert.Equal(incomingConnectionProvider, connectionProvider);
+                //Assert.Equal(incomingConnectionProvider, connectionProvider);
                 Assert.Equal(converter, messageConverter);
                 makerCalled = true;
                 return linkHandler;
@@ -53,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 [new UriPathTemplate(template)] = TestMaker
             };
 
-            var linkHandlerProvider = new LinkHandlerProvider(connectionProvider, messageConverter, templates);
+            var linkHandlerProvider = new LinkHandlerProvider(messageConverter, templates);
 
             // Act
             ILinkHandler receivedLinkHandler = linkHandlerProvider.Create(amqpLink, new Uri(linkUri));

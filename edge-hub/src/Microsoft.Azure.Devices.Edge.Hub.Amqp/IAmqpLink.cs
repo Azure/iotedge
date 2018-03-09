@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         void RegisterMessageListener(Action<AmqpMessage> onMessageReceived);
 
-        void DisposeMessage(AmqpMessage amqpMessage, Outcome outcome, bool settled, bool batchable);
+        void DisposeMessage(AmqpMessage message, Outcome outcome, bool settled, bool batchable);
     }
 
     /// <summary>
@@ -42,6 +42,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     public interface ISendingAmqpLink : IAmqpLink
     {
-        Task SendMessageAsync(AmqpMessage response, ArraySegment<byte> getDeliveryTag, ArraySegment<byte> nullBinary, TimeSpan defaultTimeout);
+        Task SendMessageAsync(AmqpMessage message, ArraySegment<byte> deliveryTag, ArraySegment<byte> txnId, TimeSpan timeout);
+
+        void SendMessageNoWait(AmqpMessage message, ArraySegment<byte> deliveryTag, ArraySegment<byte> txnId);
+
+        void RegisterDispositionListener(Action<Delivery> deviceDispositionListener);
+
+        void RegisterCreditListener(Action<uint, bool, ArraySegment<byte>> creditListener);
+
+        void DisposeDelivery(Delivery delivery, bool settled, Outcome outcome);
     }
 }

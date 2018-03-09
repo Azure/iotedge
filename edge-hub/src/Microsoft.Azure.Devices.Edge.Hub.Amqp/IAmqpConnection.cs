@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System.Security.Principal;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// This interface contains functionality similar to AmqpConnection. 
@@ -12,5 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         T FindExtension<T>();
 
         IPrincipal Principal { get; }
+
+        Task Close();
     }
 }

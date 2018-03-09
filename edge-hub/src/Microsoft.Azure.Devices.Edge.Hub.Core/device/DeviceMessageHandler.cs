@@ -115,6 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
+        public void StartListeningToC2DMessages() => this.cloudProxy.ForEach(c => c.StartListening());
+
         public Task<IMessage> GetTwinAsync() => this.edgeHub.GetTwinAsync(this.Identity.Id);
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);

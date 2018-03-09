@@ -27,10 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var requestUri = new Uri("amqps://foo.bar/$cbs");
             var boundVariables = new Dictionary<string, string>();
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var connectionProvider = Mock.Of<IConnectionProvider>();
 
             // Act
-            ILinkHandler linkHandler = CbsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter, connectionProvider);
+            ILinkHandler linkHandler = CbsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
 
             // Assert
             Assert.Equal(registeredLink, amqpLink);

@@ -52,16 +52,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IMessageConverter<AmqpMessage>>()
                 .SingleInstance();
 
-            // Task<ILinkHandlerProvider>
+            // ILinkHandlerProvider
             builder.Register(
-                async c =>
+                c =>
                 {
                     var messageConverter = c.Resolve<IMessageConverter<AmqpMessage>>();
-                    IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
-                    ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(connectionProvider, messageConverter);
+                    ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter);
                     return linkHandlerProvider;
                 })
-                .As<Task<ILinkHandlerProvider>>()
+                .As<ILinkHandlerProvider>()
                 .SingleInstance();
 
             // Task<AmqpProtocolHead>
@@ -72,14 +71,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var identityFactory = c.Resolve<IIdentityFactory>();
                     var transportSettings = c.Resolve<ITransportSettings>();
                     var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
-                    ILinkHandlerProvider linkHandlerProvider = await c.Resolve<Task<ILinkHandlerProvider>>();
+                    var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
+                    IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
                         this.hostName,
                         this.iotHubHostName,
                         this.tlsCertificate,
                         authenticator,
                         identityFactory,
-                        linkHandlerProvider);
+                        linkHandlerProvider,
+                        connectionProvider);
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,

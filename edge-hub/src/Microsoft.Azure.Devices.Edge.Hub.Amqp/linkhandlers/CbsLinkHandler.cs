@@ -17,14 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     public class CbsLinkHandler : LinkHandler
     {
         CbsLinkHandler(IAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
-            IMessageConverter<AmqpMessage> messageConverter, IConnectionProvider connectionProvider)
-            : base(link, requestUri, boundVariables, messageConverter, connectionProvider)
+            IMessageConverter<AmqpMessage> messageConverter)
+            : base(link, requestUri, boundVariables, messageConverter)
         {
         }
 
         public static ILinkHandler Create(IAmqpLink amqpLink, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter,
-            IConnectionProvider connectionProvider)
+            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
         {
             var cbsNode = amqpLink.Session.Connection.FindExtension<ICbsNode>();
             if (cbsNode == null)
@@ -33,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
 
             cbsNode.RegisterLink(amqpLink);
-            LinkHandler cbsLinkHandler = new CbsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter, connectionProvider);
+            LinkHandler cbsLinkHandler = new CbsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
             Events.Created(amqpLink);
             return cbsLinkHandler;
         }

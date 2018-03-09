@@ -23,15 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly ILinkHandlerProvider linkHandlerProvider;
         readonly IIdentityFactory identityFactory;
         readonly IAuthenticator authenticator;
+        readonly IConnectionProvider connectionProvider;
         readonly string iotHubHostName;
 
-        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport, IIdentityFactory identityFactory, IAuthenticator authenticator, string iotHubHostName)
+        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport, IIdentityFactory identityFactory, IAuthenticator authenticator, string iotHubHostName, IConnectionProvider connectionProvider)
         {
             this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
             this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
             this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
         }
 
         AmqpConnection IConnectionFactory.CreateConnection(
@@ -78,6 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 ICbsNode cbsNode = new CbsNode(this.identityFactory, this.iotHubHostName, this.authenticator);
                 amqpConnection.Extensions.Add(cbsNode);
             }
+
+            IConnectionHandler connectionHandler = new ConnectionHandler(new EdgeAmqpConnection(amqpConnection), this.connectionProvider);
+            amqpConnection.Extensions.Add(connectionHandler);
         }
 
         AmqpSession ISessionFactory.CreateSession(AmqpConnection connection, AmqpSessionSettings settings) => new AmqpSession(connection, settings, this);

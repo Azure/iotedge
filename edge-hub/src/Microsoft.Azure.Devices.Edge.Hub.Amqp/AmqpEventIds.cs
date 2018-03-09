@@ -10,5 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const int CbsLinkHandler = EventIdStart + 200;
         public const int EventsLinkHandler = EventIdStart + 300;
         public const int CbsNode = EventIdStart + 400;
+        public const int ConnectionHandler = EventIdStart + 500;
+        public const int DeviceBoundLinkHandler = EventIdStart + 600;
     }
 }

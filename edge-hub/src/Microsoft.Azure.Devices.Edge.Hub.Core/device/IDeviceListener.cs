@@ -25,5 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus);
 
         IIdentity Identity { get; }
+
+        void StartListeningToC2DMessages();
     }
 }

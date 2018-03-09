@@ -20,7 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             X509Certificate2 tlsCertificate,
             IAuthenticator authenticator,
             IIdentityFactory identityFactory,
-            ILinkHandlerProvider linkHandlerProvider)
+            ILinkHandlerProvider linkHandlerProvider,
+            IConnectionProvider connectionProvider)
         {
             Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
             Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
@@ -28,12 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
+            Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
 
             var settings = new AmqpSettings
             {
                 AllowAnonymousConnection = true,
                 RequireSecureTransport = true,
-                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName)
+                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider)
             };
 
             // Add all transport providers we want to support.

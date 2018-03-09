@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         System.Uri,
         System.Collections.Generic.IDictionary<string, string>,
         Core.IMessageConverter<Azure.Amqp.AmqpMessage>,
-        Core.IConnectionProvider,
         ILinkHandler>;
 
     public class LinkHandlerProvider : ILinkHandlerProvider
@@ -26,28 +25,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             { Templates.ModuleFromDeviceBoundTemplate, DeviceBoundLinkHandler.Create },
         };
 
-        readonly IConnectionProvider connectionProvider;
         readonly IMessageConverter<AmqpMessage> messageConverter;
         readonly IDictionary<UriPathTemplate, LinkHandlerMakerFunc> templatesList;
 
-        public LinkHandlerProvider(IConnectionProvider connectionProvider, IMessageConverter<AmqpMessage> messageConverter)
-            : this(connectionProvider, messageConverter, DefaultTemplatesList)
+        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter)
+            : this(messageConverter, DefaultTemplatesList)
         { }
 
-        public LinkHandlerProvider(IConnectionProvider connectionProvider, IMessageConverter<AmqpMessage> messageConverter, IDictionary<UriPathTemplate, LinkHandlerMakerFunc> templatesList)
+        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter, IDictionary<UriPathTemplate, LinkHandlerMakerFunc> templatesList)
         {
-            this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.templatesList = Preconditions.CheckNotNull(templatesList, nameof(templatesList));
         }
 
         public ILinkHandler Create(IAmqpLink link, Uri uri)
         {
+            Preconditions.CheckNotNull(link, nameof(link));
+            Preconditions.CheckNotNull(uri, nameof(uri));
+
             foreach (UriPathTemplate template in this.templatesList.Keys)
             {
                 if (TryMatchTemplate(uri, template, out IList<KeyValuePair<string, string>> boundVariables))
                 {
-                    ILinkHandler linkHandler = this.templatesList[template].Invoke(link, uri, boundVariables.ToDictionary(), this.messageConverter, this.connectionProvider);
+                    ILinkHandler linkHandler = this.templatesList[template].Invoke(link, uri, boundVariables.ToDictionary(), this.messageConverter);
                     return linkHandler;
                 }
             }

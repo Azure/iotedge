@@ -56,5 +56,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public Task SendMessageAsync(AmqpMessage message, ArraySegment<byte> deliveryTag, ArraySegment<byte> txnId, TimeSpan timeout)
             => ((SendingAmqpLink)this.AmqpLink).SendMessageAsync(message, deliveryTag, txnId, timeout);
+
+        public void SendMessageNoWait(AmqpMessage message, ArraySegment<byte> deliveryTag, ArraySegment<byte> txnId)
+            => ((SendingAmqpLink)this.AmqpLink).SendMessageNoWait(message, deliveryTag, txnId);
+
+        public void RegisterDispositionListener(Action<Delivery> deviceDispositionListener)
+            => ((SendingAmqpLink)this.AmqpLink).RegisterDispositionListener(deviceDispositionListener);
+
+        public void RegisterCreditListener(Action<uint, bool, ArraySegment<byte>> creditListener)
+            => ((SendingAmqpLink)this.AmqpLink).RegisterCreditListener(creditListener);
+
+        public void DisposeDelivery(Delivery delivery, bool settled, Outcome outcome)
+            => ((SendingAmqpLink)this.AmqpLink).DisposeDelivery(delivery, settled, outcome);
     }
 }

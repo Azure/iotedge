@@ -24,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         readonly string moduleId;
 
         EventsLinkHandler(IAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
-            IMessageConverter<AmqpMessage> messageConverter, IConnectionProvider connectionProvider)
-            : base(link, requestUri, boundVariables, messageConverter, connectionProvider)
+            IMessageConverter<AmqpMessage> messageConverter)
+            : base(link, requestUri, boundVariables, messageConverter)
         {
             this.sendMessageProcessor = new ActionBlock<AmqpMessage>(s => this.ProcessMessageAsync(s));
             this.deviceId = this.BoundVariables[Templates.DeviceIdTemplateParameterName];
@@ -34,13 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         }
 
         public static ILinkHandler Create(IAmqpLink link, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter, IConnectionProvider connectionProvider)
+            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
         {
-            if (link.IsReceiver)
+            if (!link.IsReceiver)
             {
                 throw new InvalidOperationException($"Link {requestUri} cannot receive");
             }
-            return new EventsLinkHandler(link, requestUri, boundVariables, messageConverter, connectionProvider);
+            return new EventsLinkHandler(link, requestUri, boundVariables, messageConverter);
         }
 
         protected override string Name => "Events";
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         Task OnReceiveLinkClosed()
         {
             this.sendMessageProcessor.Complete();
-            return this.DeviceListener.ForEachAsync(d => d.CloseAsync());
+            return this.DeviceListener.CloseAsync();
         }
 
         void OnMessage(AmqpMessage amqpMessage) => this.sendMessageProcessor.Post(amqpMessage);
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
                 List<IMessage> outgoingMessages = messages.Select(m => this.MessageConverter.ToMessage(m)).ToList();
                 outgoingMessages.ForEach(m => this.AddMessageSystemProperties(m));
-                await this.DeviceListener.ForEachAsync(d => d.ProcessDeviceMessageBatchAsync(outgoingMessages));
+                await this.DeviceListener.ProcessDeviceMessageBatchAsync(outgoingMessages);
 
                 ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, true);
                 amqpMessage.Dispose();
