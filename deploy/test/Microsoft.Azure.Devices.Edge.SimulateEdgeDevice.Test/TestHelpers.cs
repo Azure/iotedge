@@ -85,11 +85,16 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             };
         }
 
-        public static Task IotedgectlSetup(DeviceContext context)
+        public static async Task IotedgectlSetup(DeviceContext context)
         {
             string address = Environment.GetEnvironmentVariable("registryAddress");
             string user = Environment.GetEnvironmentVariable("registryUser");
             string password = Environment.GetEnvironmentVariable("registryPassword");
+
+            if (address != null && user == null && password == null)
+            {
+                (user, password) = await RegistryArgsFromSecret(address);
+            }
 
             string registryArgs = address != null && user != null && password != null
                 ? $"--docker-registries {address} {user} {password}"
@@ -105,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                 $"DeviceId={context.Device.Id};" +
                 $"SharedAccessKey={context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            return RunProcessAsync(
+            await RunProcessAsync(
                 "iotedgectl",
                 $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {EdgeAgentImage()} --edge-hostname SimulatedEdgeDevice",
                 60);
@@ -250,6 +255,19 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                 : Task.CompletedTask;
         }
 
+        static async Task<(string, string)> RegistryArgsFromSecret(string address)
+        {
+            // Expects our Key Vault to contain a secret with the following properties:
+            //  key   - based on registry hostname (e.g.,
+            //          edgerelease.azurecr.io => edgerelease-azurecr-io)
+            //  value - "<user> <password>" (separated by a space)
+
+            string key = address.Replace('.', '-');
+            string value = await SecretsHelper.GetSecret(key);
+            string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return (vals[0], vals[1]);
+        }
+
         static string EdgeAgentImage()
         {
             return BuildImageName("microsoft/azureiotedge-agent");
@@ -269,9 +287,9 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
         {
             string address = Environment.GetEnvironmentVariable("registryAddress");
             string registry = address == null ? string.Empty : $"{address}/";
-            string version = Environment.GetEnvironmentVariable("imageVersion") ?? "1.0-preview";
+            string tag = Environment.GetEnvironmentVariable("imageTag") ?? "1.0-preview";
 
-            return $"{registry}{name}:{version}";
+            return $"{registry}{name}:{tag}";
         }
 
         static async Task VerifyDockerContainerIsRunning(string name)
