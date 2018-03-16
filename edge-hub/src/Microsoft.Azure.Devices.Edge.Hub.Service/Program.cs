@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.IO;
     using System.Linq;
     using System.Runtime.Loader;
+    using System.Runtime.InteropServices;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -67,6 +69,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                logger.LogInformation("Installing intermediate certificates.");
+                string chainPath = Environment.GetEnvironmentVariable("EdgeModuleHubServerCAChainCertificateFile");
+                CertificateHelper.InstallCerts(
+                    StoreName.CertificateAuthority,
+                    StoreLocation.CurrentUser,
+                    CertificateHelper.ExtractCertsFromPem(chainPath));
+            }
 
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();

@@ -2,6 +2,7 @@
 from __future__ import print_function
 import sys
 import unittest
+import os
 from mock import mock, patch, mock_open, MagicMock, PropertyMock
 import docker
 import edgectl.errors
@@ -1125,7 +1126,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
 
         # arrange
         mock_docker_api_client.inspect_volume(dest_dir)
-        mock_copy_utils.assert_called_with(src_file, '\\some_path\\mount\\')
+        mock_copy_utils.assert_called_with(src_file, os.path.join('\\some_path\\mount\\', dest_file))
 
     @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)

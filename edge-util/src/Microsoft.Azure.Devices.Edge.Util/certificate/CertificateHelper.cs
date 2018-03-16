@@ -5,10 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.IO;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Extensions.Logging;
-    
+
     public static class CertificateHelper
     {
         public static string GetSHA256Thumbprint(X509Certificate2 cert)
@@ -34,9 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
                 ChainPolicy =
                 {
                     //For performance reasons do not check revocation status.
-                    RevocationMode = X509RevocationMode.NoCheck, 
+                    RevocationMode = X509RevocationMode.NoCheck,
                     //Does not check revocation status of the root certificate (sounds like it is meaningless with the option above - ask Simon or Alex)
-                    RevocationFlag = X509RevocationFlag.ExcludeRoot, 
+                    RevocationFlag = X509RevocationFlag.ExcludeRoot,
                     //Certificate Authority can be unknown if it is not issued directly by a well-known CA
                     VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority
                 }
@@ -151,6 +152,39 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
                 return (Option.None<IList<X509Certificate2>>(), errors);
             }
             return (Option.Some(chainCerts), Option.None<string>());
+        }
+
+        public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
+        {
+            using (X509Store store = new X509Store(name, location))
+            {
+                store.Open(OpenFlags.ReadWrite);
+                foreach (var cert in certs)
+                {
+                    store.Add(cert);
+                }
+            }
+        }
+
+        public static IEnumerable<X509Certificate2> ExtractCertsFromPem(string certPath)
+        {
+            if (string.IsNullOrWhiteSpace(certPath) || !File.Exists(certPath))
+            {
+                throw new ArgumentException($"'{certPath}' is not a path to a certificate collection file");
+            }
+
+            using (StreamReader sr = new StreamReader(certPath))
+            {
+                // Extract each certificate's string. The final string from the split will either be empty
+                // or a non-certificate entry, so it is dropped.
+                string delimiter = @"-----END CERTIFICATE-----";
+                string[] rawCerts = sr.ReadToEnd().Split(new []{delimiter}, StringSplitOptions.None);
+                return rawCerts
+                    .Take(rawCerts.Count() - 1) // Drop the invalid entry
+                    .Select(c => $"{c}\r\n{delimiter}") // Re-add the certificate end-marker which was removed by split
+                    .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
+                    .Select(c => new X509Certificate2(c));
+            }
         }
     }
 }

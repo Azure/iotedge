@@ -7,6 +7,7 @@ from io import BytesIO
 import logging
 import tarfile
 import time
+import os
 import docker
 import edgectl.errors
 from edgectl.utils import EdgeUtils
@@ -527,7 +528,7 @@ class EdgeDockerClient(object):
             encountered when copying host_src_file to the volume.
         """
         if self.get_os_type() == 'windows':
-            self._insert_file_in_volume_mount(volume_dest_dir_path, host_src_file)
+            self._insert_file_in_volume_mount(volume_dest_dir_path, host_src_file, volume_dest_file_name)
         else:
             self._insert_file_in_container(container_name,
                                            volume_dest_file_name,
@@ -563,7 +564,7 @@ class EdgeDockerClient(object):
             print(ex_os)
             raise edgectl.errors.EdgeDeploymentError(msg, ex_os)
 
-    def _insert_file_in_volume_mount(self, volume_name, host_src_file):
+    def _insert_file_in_volume_mount(self, volume_name, host_src_file, volume_dest_file_name):
         """
         Use volume introspection to place files into the host mountpoint in order
         to work around issues with Docker filesystem operations on Windows
@@ -573,7 +574,7 @@ class EdgeDockerClient(object):
             volume_name = (volume_name.split('/'))[-1]
             volume_info = self._api_client.inspect_volume(volume_name)
             EdgeUtils.copy_files(host_src_file.replace('\\\\', '\\'),
-                                 volume_info['Mountpoint'].replace('\\\\', '\\'))
+                                 os.path.join(volume_info['Mountpoint'].replace('\\\\', '\\'), volume_dest_file_name))
         except docker.errors.APIError as docker_ex:
             msg = 'Docker volume inspect failed for: {0}'.format(volume_name)
             logging.error(msg)

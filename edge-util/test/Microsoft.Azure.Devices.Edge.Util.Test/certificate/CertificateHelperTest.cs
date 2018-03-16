@@ -84,5 +84,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             Assert.Throws<ArgumentException>(() => CertificateHelper.GetCertsAtPath(null));
             Assert.Throws<ArgumentException>(() => CertificateHelper.GetCertsAtPath(""));
         }
+
+        [Fact]
+        public void ExtractCertsNullArgumentFails()
+        {
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(null));
+            Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(""));
+        }
     }
 }
