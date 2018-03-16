@@ -2,15 +2,19 @@
 
 #![deny(warnings)]
 
+extern crate bytes;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
 extern crate futures;
+extern crate hmac;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate sha2;
 
+mod crypto;
 mod error;
 mod module;
 

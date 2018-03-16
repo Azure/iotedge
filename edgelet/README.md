@@ -80,3 +80,7 @@ VS Code has good support for rust. Consider installing the following extensions:
 * [Vim](https://marketplace.visualstudio.com/items?itemName=vscodevim.vim) - For a more sophisticated editor experience :)
 
 There is a `launch.json` configuration in this repo to setup debugging on Windows. This should work out of the box.
+
+### Other
+
+* [RUST Api Guidelines](https://rust-lang-nursery.github.io/api-guidelines/) - Guidelines on naming conventions, organization, etc.
