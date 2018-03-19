@@ -4,6 +4,7 @@ members = [
     "docker-rs",
     "edgelet",
     "edgelet-core",
+    "edgelet-grpc",
     "edgelet-utils",
     "edgelet-test-utils",
 ]
