@@ -177,15 +177,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{8EF9C00D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test", "edge-util\test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test\Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.csproj", "{6367B713-5AAB-451C-8215-F5226C3DC724}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "deploy", "deploy", "{CDB2AD52-F668-4693-AFC6-458D66BA6881}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{D355860F-243C-4A34-9284-895D7118FDA5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test", "deploy\test\Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test\Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test.csproj", "{824BB088-64F0-43A5-8010-27E9C656F046}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.Amqp\Microsoft.Azure.Devices.Edge.Hub.Amqp.csproj", "{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.csproj", "{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "smoke", "smoke", "{871A0862-7480-49C3-ACEB-9A60E9CE5B61}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotEdgeQuickstart", "smoke\IotEdgeQuickstart\IotEdgeQuickstart.csproj", "{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -380,24 +378,24 @@ Global
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6367B713-5AAB-451C-8215-F5226C3DC724}.Release|Any CPU.Build.0 = Release|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{824BB088-64F0-43A5-8010-27E9C656F046}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -455,10 +453,9 @@ Global
 		{A7922DBF-E53A-45AB-86C6-3978ADE5196A} = {64E95D7B-8541-4A88-A291-8BE3445FB8FF}
 		{8EF9C00D-85BB-49B0-A181-0C7581439816} = {A7922DBF-E53A-45AB-86C6-3978ADE5196A}
 		{6367B713-5AAB-451C-8215-F5226C3DC724} = {373FFF5E-E84C-4789-B768-676FFF51E7A6}
-		{D355860F-243C-4A34-9284-895D7118FDA5} = {CDB2AD52-F668-4693-AFC6-458D66BA6881}
-		{824BB088-64F0-43A5-8010-27E9C656F046} = {D355860F-243C-4A34-9284-895D7118FDA5}
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
+		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81} = {871A0862-7480-49C3-ACEB-9A60E9CE5B61}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

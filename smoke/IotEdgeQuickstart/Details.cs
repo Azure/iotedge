@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
+namespace IotEdgeQuickstart
 {
     using System;
     using System.Collections.Generic;
@@ -9,16 +9,51 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using RunProcessAsTask;
 
-    static class TestHelpers
+    public class Details
     {
-        public static async Task VerifyEdgeIsNotAlreadyInstalled()
+        readonly string iotedgectlArchivePath;
+        readonly string iothubConnectionString;
+        readonly string eventhubCompatibleEndpointWithEntityPath;
+        readonly string registryAddress;
+        readonly string registryUser;
+        readonly string registryPassword;
+        readonly string imageTag;
+        readonly string deviceId;
+        readonly string hostname;
+
+        DeviceContext context;
+
+        protected Details(
+            string iotedgectlArchivePath,
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
+            string registryAddress,
+            string registryUser,
+            string registryPassword,
+            string imageTag,
+            string deviceId,
+            string hostname
+            )
+        {
+            this.iotedgectlArchivePath = iotedgectlArchivePath;
+            this.iothubConnectionString = iothubConnectionString;
+            this.registryAddress = registryAddress;
+            this.registryUser = registryUser;
+            this.registryPassword = registryPassword;
+            this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
+            this.imageTag = imageTag;
+            this.deviceId = deviceId;
+            this.hostname = hostname;
+        }
+
+        protected static async Task VerifyEdgeIsNotAlreadyInstalled()
         {
             try
             {
@@ -35,98 +70,109 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             throw new Exception("IoT Edge runtime is installed. Run `iotedgectl uninstall` before running this test.");
         }
 
-        public static Task VerifyDockerIsInstalled()
+        protected static Task VerifyDockerIsInstalled()
         {
             return RunProcessAsync("docker", "--version");
         }
 
-        public static Task VerifyPipIsInstalled()
+        protected static Task VerifyPipIsInstalled()
         {
             return RunProcessAsync("pip", "--version");
         }
 
-        public static Task InstallIotedgectl()
+        protected Task InstallIotedgectl()
         {
             const string PackageName = "azure-iot-edge-runtime-ctl";
-            string archivePath = Environment.GetEnvironmentVariable("iotedgectlArchivePath");
+            string archivePath = this.iotedgectlArchivePath;
 
             Console.WriteLine($"Installing python package '{PackageName}' from {archivePath ?? "pypi"}");
 
             return RunProcessAsync(
                 "pip",
                 $"install --disable-pip-version-check --upgrade {archivePath ?? PackageName}",
-                120);
+                300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public static async Task<DeviceContext> RegisterNewEdgeDeviceAsync()
+        protected async Task GetOrCreateEdgeDeviceIdentity()
         {
-            var device = new Device($"simulate-edge-device-test-{Guid.NewGuid()}")
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
+
+            Device device = await rm.GetDeviceAsync(this.deviceId);
+            if (device != null)
+            {
+                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+
+                this.context = new DeviceContext
+                {
+                    Device = device,
+                    IotHubConnectionString = this.iothubConnectionString,
+                    RegistryManager = rm,
+                    RemoveDevice = false
+                };
+            }
+            else
+            {
+                await this.CreateEdgeDeviceIdentity(rm);
+            }
+        }
+
+        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
+        {
+            var device = new Device(this.deviceId)
             {
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
 
-            string iotHubConnectionString =
-                Environment.GetEnvironmentVariable("iothubConnectionString") ??
-                await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString());
             device = await rm.AddDeviceAsync(device);
 
-            return new DeviceContext
+            this.context = new DeviceContext
             {
                 Device = device,
-                IotHubConnectionString = iotHubConnectionString,
-                RegistryManager = rm
+                IotHubConnectionString = this.iothubConnectionString,
+                RegistryManager = rm,
+                RemoveDevice = true
             };
         }
 
-        public static async Task IotedgectlSetup(DeviceContext context)
+        protected async Task IotedgectlSetup()
         {
-            string address = Environment.GetEnvironmentVariable("registryAddress");
-            string user = Environment.GetEnvironmentVariable("registryUser");
-            string password = Environment.GetEnvironmentVariable("registryPassword");
-
-            if (address != null && user == null && password == null)
-            {
-                (user, password) = await RegistryArgsFromSecret(address);
-            }
-
-            string registryArgs = address != null && user != null && password != null
-                ? $"--docker-registries {address} {user} {password}"
+            string registryArgs =
+                this.registryAddress != null && this.registryUser != null && this.registryPassword != null
+                ? $"--docker-registries {this.registryAddress} {this.registryUser} {this.registryPassword}"
                 : string.Empty;
 
-            Console.WriteLine($"Setting up iotedgectl with container registry '{(registryArgs != string.Empty ? address : "<none>")}'");
+            Console.WriteLine($"Setting up iotedgectl with container registry '{(registryArgs != string.Empty ? this.registryAddress : "<none>")}'");
 
             IotHubConnectionStringBuilder builder =
-                IotHubConnectionStringBuilder.Create(context.IotHubConnectionString);
+                IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
 
             string deviceConnectionString =
                 $"HostName={builder.HostName};" +
-                $"DeviceId={context.Device.Id};" +
-                $"SharedAccessKey={context.Device.Authentication.SymmetricKey.PrimaryKey}";
+                $"DeviceId={this.context.Device.Id};" +
+                $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
             await RunProcessAsync(
                 "iotedgectl",
-                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {EdgeAgentImage()} --edge-hostname SimulatedEdgeDevice",
+                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {this.EdgeAgentImage()} --edge-hostname {this.hostname}",
                 60);
         }
 
-        public static Task IotedgectlStart()
+        protected static Task IotedgectlStart()
         {
             return RunProcessAsync("iotedgectl", "start", 120);
         }
 
-        public static Task VerifyEdgeAgentIsRunning()
+        protected static Task VerifyEdgeAgentIsRunning()
         {
             return VerifyDockerContainerIsRunning("edgeAgent");
         }
 
-        public static async Task VerifyEdgeAgentIsConnectedToIotHub(DeviceContext context)
+        protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
             {
@@ -135,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                 try
                 {
                     ServiceClient serviceClient =
-                        ServiceClient.CreateFromConnectionString(context.IotHubConnectionString);
+                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString);
 
                     while (true)
                     {
@@ -144,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                         try
                         {
                             CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
-                                context.Device.Id,
+                                this.context.Device.Id,
                                 "$edgeAgent",
                                 new CloudToDeviceMethod("ping"),
                                 cts.Token);
@@ -167,14 +213,14 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             }
         }
 
-        public static Task DeployTempSensorToEdgeDevice(DeviceContext context)
+        protected Task DeployTempSensorToEdgeDevice()
         {
             string deployJson = DeployJson;
-            string edgeAgentImage = EdgeAgentImage();
-            string edgeHubImage = EdgeHubImage();
-            string tempSensorImage = TempSensorImage();
+            string edgeAgentImage = this.EdgeAgentImage();
+            string edgeHubImage = this.EdgeHubImage();
+            string tempSensorImage = this.TempSensorImage();
 
-            Console.WriteLine($"Sending configuration to device '{context.Device.Id}' with modules:");
+            Console.WriteLine($"Sending configuration to device '{this.context.Device.Id}' with modules:");
             Console.WriteLine($"  {edgeAgentImage}\n  {edgeHubImage}\n  {tempSensorImage}");
 
             deployJson = Regex.Replace(deployJson, "<image-edge-agent>", edgeAgentImage);
@@ -182,23 +228,19 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             deployJson = Regex.Replace(deployJson, "<image-temp-sensor>", tempSensorImage);
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
-            return context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(context.Device.Id, config);
+            return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        public static Task VerifyTempSensorIsRunning()
+        protected static Task VerifyTempSensorIsRunning()
         {
             return VerifyDockerContainerIsRunning("tempSensor");
         }
 
-        public static async Task VerifyTempSensorIsSendingDataToIotHub(DeviceContext context)
+        protected async Task VerifyTempSensorIsSendingDataToIotHub()
         {
-            string eventHubConnectionString =
-                Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath") ??
-                await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath);
 
-            var builder = new EventHubsConnectionStringBuilder(eventHubConnectionString);
-
-            Console.WriteLine($"Receiving events from device '{context.Device.Id}' on Event Hub '{builder.EntityPath}'");
+            Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
 
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
@@ -206,12 +248,12 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
                 "$Default",
                 EventHubPartitionKeyResolver.ResolveToPartition(
-                    context.Device.Id,
+                    this.context.Device.Id,
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 DateTime.Now);
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
@@ -220,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
                         eventData.Properties.TryGetValue("iothub-connection-device-id", out object devId);
                         eventData.Properties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        if (devId != null && devId.ToString() == context.Device.Id &&
+                        if (devId != null && devId.ToString() == this.context.Device.Id &&
                             modId != null && modId.ToString() == "tempSensor")
                         {
                             result.TrySetResult(true);
@@ -238,58 +280,54 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
             await eventHubClient.CloseAsync();
         }
 
-        public static Task IotedgectlStop()
+        protected static Task IotedgectlStop()
         {
             return RunProcessAsync("iotedgectl", "stop", 60);
         }
 
-        public static Task IotedgectlUninstall()
+        protected static Task IotedgectlUninstall()
         {
             return RunProcessAsync("iotedgectl", "uninstall", 60);
         }
 
-        public static Task UnregisterEdgeDevice(DeviceContext context)
+        protected Task MaybeDeleteEdgeDeviceIdentity()
         {
-            return context != null
-                ? context.RegistryManager.RemoveDeviceAsync(context.Device)
-                : Task.CompletedTask;
+            if (this.context != null)
+            {
+                Device device = this.context.Device;
+                bool remove = this.context.RemoveDevice;
+                this.context.Device = null;
+
+                if (remove)
+                {
+                    return this.context.RegistryManager.RemoveDeviceAsync(device);
+                }
+            }
+
+            return Task.CompletedTask;
         }
 
-        static async Task<(string, string)> RegistryArgsFromSecret(string address)
+        string EdgeAgentImage()
         {
-            // Expects our Key Vault to contain a secret with the following properties:
-            //  key   - based on registry hostname (e.g.,
-            //          edgerelease.azurecr.io => edgerelease-azurecr-io)
-            //  value - "<user> <password>" (separated by a space)
-
-            string key = address.Replace('.', '-');
-            string value = await SecretsHelper.GetSecret(key);
-            string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return (vals[0], vals[1]);
+            return this.BuildImageName("microsoft/azureiotedge-agent");
         }
 
-        static string EdgeAgentImage()
+        string EdgeHubImage()
         {
-            return BuildImageName("microsoft/azureiotedge-agent");
+            return this.BuildImageName("microsoft/azureiotedge-hub");
         }
 
-        static string EdgeHubImage()
+        string TempSensorImage()
         {
-            return BuildImageName("microsoft/azureiotedge-hub");
+            return this.BuildImageName("microsoft/azureiotedge-simulated-temperature-sensor");
         }
 
-        static string TempSensorImage()
+        string BuildImageName(string name)
         {
-            return BuildImageName("microsoft/azureiotedge-simulated-temperature-sensor");
-        }
-
-        static string BuildImageName(string name)
-        {
-            string address = Environment.GetEnvironmentVariable("registryAddress");
+            string address = this.registryAddress;
             string registry = address == null ? string.Empty : $"{address}/";
-            string tag = Environment.GetEnvironmentVariable("imageTag") ?? "1.0-preview";
 
-            return $"{registry}{name}:{tag}";
+            return $"{registry}{name}:{this.imageTag}";
         }
 
         static async Task VerifyDockerContainerIsRunning(string name)
@@ -311,7 +349,7 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 
                         if (status.Trim() != string.Empty) break;
 
-                        errorMessage = $"Not found";
+                        errorMessage = "Not found";
                     }
                 }
                 catch (OperationCanceledException e)
@@ -422,11 +460,12 @@ namespace Microsoft.Azure.Devices.Edge.SimulateEdgeDevice.Test
 ";
     }
 
-    class DeviceContext
+    public class DeviceContext
     {
         public Device Device;
         public string IotHubConnectionString;
         public RegistryManager RegistryManager;
+        public bool RemoveDevice;
     }
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
