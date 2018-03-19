@@ -5,6 +5,7 @@ namespace SimulatedTemperatureSensor
     using System;
     using System.IO;
     using System.Net;
+    using System.Net.Security;
     using System.Runtime.InteropServices;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
@@ -52,10 +53,50 @@ namespace SimulatedTemperatureSensor
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             var mqttSetting = new MqttTransportSettings(transportType);
-            // Suppress cert validation on Windows for now
+            // Pin root certificate from file at runtime on Windows
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                {
+                    // Terminate on errors other than those caused by a chain failure
+                    SslPolicyErrors terminatingErrors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors;
+                    if (terminatingErrors != SslPolicyErrors.None)
+                    {
+                        Console.WriteLine("Discovered SSL session errors: {0}", terminatingErrors);
+                        return false;
+                    }
+
+                    // Load the expected root certificate
+                    string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
+                    if (string.IsNullOrWhiteSpace(certPath))
+                    {
+                        Console.WriteLine("Missing path to the root certificate file.");
+                        return false;
+                    }
+                    else if (!File.Exists(certPath))
+                    {
+                        Console.WriteLine($"Unable to find a root certificate file at {certPath}.");
+                        return false;
+                    }
+                    var expectedRoot = new X509Certificate2(certPath);
+
+                    // Allow the chain the chance to rebuild itself with the expected root
+                    chain.ChainPolicy.ExtraStore.Add(expectedRoot);
+                    chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                    if (!chain.Build(new X509Certificate2(certificate)))
+                    {
+                        Console.WriteLine("Unable to build the chain using the expected root certificate.");
+                        return false;
+                    }
+
+                    // Pin the trusted root of the chain to the expected root certificate
+                    var actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+                    if (!expectedRoot.Equals(actualRoot)) {
+                        Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");
+                        return false;
+                    }
+                    return true;
+                };
             }
             ITransportSettings[] settings = { mqttSetting };
 
