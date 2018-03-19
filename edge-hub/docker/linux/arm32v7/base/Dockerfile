@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.0.5-runtime-stretch-arm32v7
+FROM microsoft/dotnet:2.0.6-runtime-stretch-arm32v7
 
 # Add an unprivileged user account for running Edge Hub
 RUN useradd -ms /bin/bash edgehubuser

@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:2.0.5-runtime
+FROM microsoft/dotnet:2.0.6-runtime
 
 ARG EXE_DIR=.
 

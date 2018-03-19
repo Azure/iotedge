@@ -1,6 +1,6 @@
 ﻿param(
     [ValidateNotNullOrEmpty()]
-    [String]$DotnetSdkUrl = "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/master/dotnet-sdk-latest-win-x64.zip",
+    [String]$DotnetSdkUrl = "https://download.microsoft.com/download/D/C/F/DCFA73BE-93CE-4DA0-AB76-98972FD6E475/dotnet-sdk-2.1.101-win-x64.zip",
 
     [ValidateNotNullOrEmpty()]
     [String]$NugetUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe",

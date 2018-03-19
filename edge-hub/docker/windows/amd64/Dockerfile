@@ -1,9 +1,8 @@
 # escape=`
-FROM microsoft/dotnet:2.0.5-runtime-nanoserver-1709
+FROM microsoft/dotnet:2.0.6-runtime-nanoserver-1709
 
 ENV SSL_CERTIFICATE_PATH=c:\mnt\edgehub
 ENV SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx
-
 
 ARG EXE_DIR=.
 

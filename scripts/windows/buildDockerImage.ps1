@@ -163,8 +163,6 @@ BuildTagPush "edge-agent" "Microsoft.Azure.Devices.Edge.Agent.Service"
 
 BuildTagPush "edge-hub" "Microsoft.Azure.Devices.Edge.Hub.Service"
 
-BuildTagPush "edge-service" "Microsoft.Azure.Devices.Edge.Service"
-
 BuildTagPush "simulated-temperature-sensor" "SimulatedTemperatureSensor"
 
 if (-not $vNext)
