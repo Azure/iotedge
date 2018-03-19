@@ -6,10 +6,10 @@ use chrono::prelude::*;
 use futures::Future;
 use hyper::client::Connect;
 
+use config::DockerConfig;
 use docker_rs::apis::client::APIClient;
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
-use config::DockerConfig;
-use error::{Error, ErrorKind};
+use error::{Error, ErrorKind, Result};
 
 pub struct DockerModule<C: Connect> {
     client: APIClient<C>,
@@ -26,14 +26,14 @@ impl<C: Connect> DockerModule<C> {
         version: &str,
         config: DockerConfig,
         labels: &[&str],
-    ) -> DockerModule<C> {
-        DockerModule {
+    ) -> Result<DockerModule<C>> {
+        Ok(DockerModule {
             client,
-            name: name.to_string(),
-            version: version.to_string(),
+            name: ensure_not_empty!(name.to_string()),
+            version: ensure_not_empty!(version.to_string()),
             config,
             labels: labels.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-        }
+        })
     }
 }
 
@@ -150,9 +150,9 @@ mod tests {
             create_api_client(&core, "boo"),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &["l1", "l2", "l3"],
-        );
+        ).unwrap();
         assert_eq!("mod1", docker_module.name());
         assert_eq!("1.0", docker_module.version());
         assert_eq!("docker", docker_module.type_());
@@ -170,15 +170,67 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn empty_name_fails() {
+        let core = Core::new().unwrap();
+        let _docker_module = DockerModule::new(
+            create_api_client(&core, "boo"),
+            "",
+            "1.0",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            &["l1", "l2", "l3"],
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn white_space_name_fails() {
+        let core = Core::new().unwrap();
+        let _docker_module = DockerModule::new(
+            create_api_client(&core, "boo"),
+            "     ",
+            "1.0",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            &["l1", "l2", "l3"],
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn empty_version_fails() {
+        let core = Core::new().unwrap();
+        let _docker_module = DockerModule::new(
+            create_api_client(&core, "boo"),
+            "mod1",
+            "",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            &["l1", "l2", "l3"],
+        ).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn white_space_version_fails() {
+        let core = Core::new().unwrap();
+        let _docker_module = DockerModule::new(
+            create_api_client(&core, "boo"),
+            "mod1",
+            "         ",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            &["l1", "l2", "l3"],
+        ).unwrap();
+    }
+
+    #[test]
     fn empty_labels() {
         let core = Core::new().unwrap();
         let docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &[],
-        );
+        ).unwrap();
         assert_eq!("mod1", docker_module.name());
         assert_eq!("1.0", docker_module.version());
         assert_eq!("docker", docker_module.type_());
@@ -195,9 +247,9 @@ mod tests {
             ),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &[],
-        );
+        ).unwrap();
 
         let actual_status = core.run(docker_module.status()).unwrap();
         assert_eq!(*status, actual_status);
@@ -242,9 +294,9 @@ mod tests {
             ),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &[],
-        );
+        ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
         assert_eq!(10, *runtime_state.exit_code().unwrap());
@@ -276,9 +328,9 @@ mod tests {
             ),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &[],
-        );
+        ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
         assert_eq!(None, runtime_state.started_at());
@@ -304,9 +356,9 @@ mod tests {
             ),
             "mod1",
             "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
             &[],
-        );
+        ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
         assert_eq!(None, runtime_state.finished_at());

@@ -2,6 +2,8 @@
 
 #![deny(warnings)]
 
+#[macro_use]
+extern crate failure;
 extern crate serde;
 
 // Need serde_derive only for unit tests.
@@ -18,6 +20,9 @@ extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
 
+mod error;
+pub mod macros;
 mod ser_de;
 
+pub use error::{Error, ErrorKind};
 pub use ser_de::string_or_struct;

@@ -4,12 +4,6 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
-use serde_json;
-
-use docker_rs::apis::Error as DockerError;
-use edgelet_utils::Error as UtilsError;
-
-pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
@@ -18,9 +12,15 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Invalid Unix domain socket URI - {}", _0)] InvalidUdsUri(String),
-    #[fail(display = "Docker runtime error")] Docker(DockerError<serde_json::Value>),
-    #[fail(display = "Edgelet utils error")] Utils(UtilsError),
+    #[fail(display = "Invalid argument - [{}]", _0)] Argument(String),
+
+    #[fail(display = "Argument {} out of range [{}, {}) ", _0, _1, _2)]
+    ArgumentOutOfRange(String, String, String),
+
+    #[fail(display = "Argument {} should be greater than {}", _0, _1)]
+    ArgumentTooLow(String, String),
+
+    #[fail(display = "Argument is empty or only has whitespace - [{}]", _0)] ArgumentEmpty(String),
 }
 
 impl Fail for Error {
@@ -56,11 +56,5 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
-    }
-}
-
-impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
-        Error::from(ErrorKind::Utils(err))
     }
 }

@@ -30,6 +30,7 @@ extern crate tokio_core;
 
 extern crate docker_rs;
 extern crate edgelet_core;
+#[macro_use]
 extern crate edgelet_utils;
 
 #[cfg(test)]

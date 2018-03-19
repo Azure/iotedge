@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use docker_rs::models::ContainerCreateBody;
-
 use edgelet_utils::string_or_struct;
+
+use error::Result;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,11 +13,11 @@ pub struct DockerConfig {
 }
 
 impl DockerConfig {
-    pub fn new(image: &str, create_options: ContainerCreateBody) -> DockerConfig {
-        DockerConfig {
-            image: image.to_string(),
+    pub fn new(image: &str, create_options: ContainerCreateBody) -> Result<DockerConfig> {
+        Ok(DockerConfig {
+            image: ensure_not_empty!(image.to_string()),
             create_options,
-        }
+        })
     }
 
     pub fn image(&self) -> &str {
@@ -38,6 +39,18 @@ mod tests {
     use config::DockerConfig;
 
     #[test]
+    #[should_panic]
+    fn empty_image_fails1() {
+        DockerConfig::new("", ContainerCreateBody::new()).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn empty_image_fails2() {
+        DockerConfig::new("    ", ContainerCreateBody::new()).unwrap();
+    }
+
+    #[test]
     fn docker_config_ser() {
         let mut labels = HashMap::new();
         labels.insert("k1".to_string(), "v1".to_string());
@@ -53,7 +66,7 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu", create_options);
+        let config = DockerConfig::new("ubuntu", create_options).unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
 			"image": "ubuntu",
