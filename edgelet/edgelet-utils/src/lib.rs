@@ -4,6 +4,7 @@
 
 #[macro_use]
 extern crate failure;
+extern crate futures;
 extern crate serde;
 
 // Need serde_derive only for unit tests.
