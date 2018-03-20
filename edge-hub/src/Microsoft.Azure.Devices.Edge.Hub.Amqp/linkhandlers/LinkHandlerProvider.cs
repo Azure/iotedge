@@ -7,34 +7,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using LinkHandlerMakerFunc = System.Func<
-        IAmqpLink,
-        System.Uri,
-        System.Collections.Generic.IDictionary<string, string>,
-        Core.IMessageConverter<Azure.Amqp.AmqpMessage>,
-        ILinkHandler>;
 
     public class LinkHandlerProvider : ILinkHandlerProvider
     {
-        static readonly IDictionary<UriPathTemplate, LinkHandlerMakerFunc> DefaultTemplatesList = new Dictionary<UriPathTemplate, LinkHandlerMakerFunc>
+        static readonly IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> DefaultTemplatesList = new Dictionary<(UriPathTemplate, bool), LinkType>
         {
-            { Templates.CbsReceiveTemplate, CbsLinkHandler.Create },
-            { Templates.DeviceEventsTemplate, EventsLinkHandler.Create },
-            { Templates.ModuleEventsTemplate, EventsLinkHandler.Create },
-            { Templates.DeviceFromDeviceBoundTemplate, DeviceBoundLinkHandler.Create },
-            { Templates.ModuleFromDeviceBoundTemplate, DeviceBoundLinkHandler.Create },
+            { (Templates.CbsReceiveTemplate, true), LinkType.Cbs },
+            { (Templates.CbsReceiveTemplate, false), LinkType.Cbs },
+            { ( Templates.DeviceEventsTemplate, true), LinkType.Events },
+            { ( Templates.ModuleEventsTemplate, true), LinkType.Events },
+            { ( Templates.ModuleEventsTemplate, false), LinkType.ModuleMessages },
+            { ( Templates.DeviceFromDeviceBoundTemplate, false), LinkType.C2D },
+            { ( Templates.ModuleFromDeviceBoundTemplate, false), LinkType.C2D },
+            { ( Templates.Twin.DeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
+            { ( Templates.Twin.ModuleDeviceBoundMethodCallTemplate, true), LinkType.MethodReceiving },
+            { ( Templates.Twin.DeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
+            { ( Templates.Twin.ModuleDeviceBoundMethodCallTemplate, false), LinkType.MethodSending },
+            { ( Templates.Twin.TwinStreamTemplate, true), LinkType.TwinReceiving },
+            { ( Templates.Twin.ModuleTwinStreamTemplate, true), LinkType.TwinReceiving },
+            { ( Templates.Twin.TwinStreamTemplate, false), LinkType.TwinSending },
+            { ( Templates.Twin.ModuleTwinStreamTemplate, false), LinkType.TwinSending },
         };
 
         readonly IMessageConverter<AmqpMessage> messageConverter;
-        readonly IDictionary<UriPathTemplate, LinkHandlerMakerFunc> templatesList;
+        readonly IMessageConverter<AmqpMessage> twinMessageConverter;
+        readonly IMessageConverter<AmqpMessage> methodMessageConverter;
+        readonly IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList;
 
-        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter)
-            : this(messageConverter, DefaultTemplatesList)
+        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter,
+            IMessageConverter<AmqpMessage> twinMessageConverter,
+            IMessageConverter<AmqpMessage> methodMessageConverter)
+            : this(messageConverter, twinMessageConverter, methodMessageConverter, DefaultTemplatesList)
         { }
 
-        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter, IDictionary<UriPathTemplate, LinkHandlerMakerFunc> templatesList)
+        public LinkHandlerProvider(IMessageConverter<AmqpMessage> messageConverter,
+            IMessageConverter<AmqpMessage> twinMessageConverter,
+            IMessageConverter<AmqpMessage> methodMessageConverter,
+            IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList)
         {
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.twinMessageConverter = Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
+            this.methodMessageConverter = Preconditions.CheckNotNull(methodMessageConverter, nameof(methodMessageConverter));
             this.templatesList = Preconditions.CheckNotNull(templatesList, nameof(templatesList));
         }
 
@@ -43,15 +56,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             Preconditions.CheckNotNull(link, nameof(link));
             Preconditions.CheckNotNull(uri, nameof(uri));
 
-            foreach (UriPathTemplate template in this.templatesList.Keys)
+            (LinkType LinkType, IDictionary<string, string> BoundVariables) match = this.GetLinkType(link, uri);
+            ILinkHandler linkHandler = this.GetLinkHandler(match.LinkType, link, uri, match.BoundVariables);
+            return linkHandler;
+        }
+
+        internal ILinkHandler GetLinkHandler(LinkType linkType, IAmqpLink link, Uri uri, IDictionary<string, string> boundVariables)
+        {
+            switch (linkType)
             {
-                if (TryMatchTemplate(uri, template, out IList<KeyValuePair<string, string>> boundVariables))
+                case LinkType.Cbs:
+                    return CbsLinkHandler.Create(link, uri);
+
+                case LinkType.C2D:
+                    return new DeviceBoundLinkHandler(link as ISendingAmqpLink, uri, boundVariables, this.messageConverter);
+
+                case LinkType.Events:
+                    return new EventsLinkHandler(link as IReceivingAmqpLink, uri, boundVariables, this.messageConverter);
+
+                case LinkType.ModuleMessages:
+                    return new ModuleMessageLinkHandler(link as ISendingAmqpLink, uri, boundVariables, this.messageConverter);
+
+                case LinkType.MethodSending:
+                    return new MethodSendingLinkHandler(link as ISendingAmqpLink, uri, boundVariables, this.methodMessageConverter);
+
+                case LinkType.MethodReceiving:
+                    return new MethodReceivingLinkHandler(link as IReceivingAmqpLink, uri, boundVariables, this.methodMessageConverter);
+
+                case LinkType.TwinReceiving:
+                    return new TwinReceivingLinkHandler(link as IReceivingAmqpLink, uri, boundVariables, this.twinMessageConverter);
+
+                case LinkType.TwinSending:
+                    return new TwinSendingLinkHandler(link as ISendingAmqpLink, uri, boundVariables, this.twinMessageConverter);
+
+                default:
+                    throw new InvalidOperationException($"Invalid link type {linkType}");
+            }
+        }
+
+        internal (LinkType LinkType, IDictionary<string, string> BoundVariables) GetLinkType(IAmqpLink link, Uri uri)
+        {
+            foreach ((UriPathTemplate Template, bool IsReceiver) key in this.templatesList.Keys)
+            {
+                if (TryMatchTemplate(uri, key.Template, out IList<KeyValuePair<string, string>> boundVariables) && link.IsReceiver == key.IsReceiver)
                 {
-                    ILinkHandler linkHandler = this.templatesList[template].Invoke(link, uri, boundVariables.ToDictionary(), this.messageConverter);
-                    return linkHandler;
+                    return (this.templatesList[key], boundVariables.ToDictionary());
                 }
             }
-
             throw new InvalidOperationException($"Matching template not found for uri {uri}");
         }
 

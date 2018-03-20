@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         bool IsCbsLink();
 
         AmqpLinkSettings Settings { get; }
+
+        Task CloseAsync(TimeSpan timeout);
     }
 
     /// <summary>

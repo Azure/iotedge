@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
 
     [Unit]
     public class DeviceMessageHandlerTest
@@ -22,14 +21,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var edgeHub = new Mock<IEdgeHub>();
             var connMgr = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IDeviceIdentity>();
+            var identity = Mock.Of<IDeviceIdentity>(i => i.Scope == AuthenticationScope.SasToken && i.Id == "d1");
             var cloudProxy = Mock.Of<ICloudProxy>();
+            var deviceProxy = new Mock<IDeviceProxy>();
+            IMessage actualMessage = null;
+            deviceProxy.Setup(d => d.SendTwinUpdate(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => actualMessage = m)
+                .Returns(Task.CompletedTask);
 
             IMessage expectedMessage = new EdgeMessage.Builder(new byte[0]).Build();
             edgeHub.Setup(e => e.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(expectedMessage));
 
-			var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, Option.Some(cloudProxy));
-			IMessage actualMessage = await listener.GetTwinAsync();
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, Option.Some(cloudProxy));
+            listener.BindDeviceProxy(deviceProxy.Object);
+            await listener.SendGetTwinRequest("cid");
 
             edgeHub.Verify(x => x.GetTwinAsync(identity.Id), Times.Once);
             Assert.Same(expectedMessage, actualMessage);
@@ -72,8 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ForwardsTwinPatchOperationToTheCloudProxy()
         {
             var connMgr = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1");
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = Mock.Of<ICloudProxy>();
+            var deviceProxy = Mock.Of<IDeviceProxy>();
 
             IMessage receivedMessage = null;
             var edgeHub = new Mock<IEdgeHub>();
@@ -82,8 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
 
             var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, Option.Some(cloudProxy));
+            listener.BindDeviceProxy(deviceProxy);
             IMessage message = new EdgeMessage.Builder(Encoding.UTF8.GetBytes("don't care")).Build();
-            await listener.UpdateReportedPropertiesAsync(message);
+            await listener.UpdateReportedPropertiesAsync(message, Guid.NewGuid().ToString());
 
             edgeHub.VerifyAll();
             Assert.NotNull(receivedMessage);

@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
-    using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
+    using IMessage = Core.IMessage;
     using IProtocolGatewayMessage = ProtocolGateway.Messaging.IMessage;
 
     public class DeviceProxy : IDeviceProxy
@@ -84,6 +84,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             this.channel.Handle(pgMessage);
             return Task.FromResult(default(DirectMethodResponse));
+        }
+
+        public Task SendTwinUpdate(IMessage twin)
+        {
+            twin.SystemProperties[SystemProperties.LockToken] = Constants.TwinLockToken;
+            twin.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
+            IProtocolGatewayMessage pgMessage = this.messageConverter.FromMessage(twin);
+            this.channel.Handle(pgMessage);
+            return Task.CompletedTask;
         }
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties)

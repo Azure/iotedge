@@ -471,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                     .Callback<IMessage, string>((m, e) => receivedMessages.Add(m))
                     .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
-                await connectionManager.AddDeviceConnection(moduleIdentity, deviceProxy.Object);
+                deviceListener.BindDeviceProxy(deviceProxy.Object);
                 return new TestModule(moduleIdentity, outputEndpointId, deviceListener, receivedMessages);
             }
 
@@ -496,7 +496,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
 
             public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
-                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage);
+                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
 
             public bool HasReceivedTwinChangeNotification() => this.receivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageType] == Core.Constants.TwinChangeNotificationMessageType);
@@ -518,7 +518,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IDeviceIdentity deviceIdentity = SetupDeviceIdentity(deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.GetOrCreateCloudConnectionAsync(deviceIdentity);
                 Assert.True(cloudProxy.Success);
+                var deviceProxy = Mock.Of<IDeviceProxy>();
                 var deviceListener = new DeviceMessageHandler(deviceIdentity, edgeHub, connectionManager, Option.Some(cloudProxy.Value));
+                deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceIdentity, deviceListener);
             }
 
@@ -529,7 +531,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             }
 
             public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
-                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage);
+                this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
         }
 
         class IoTHub

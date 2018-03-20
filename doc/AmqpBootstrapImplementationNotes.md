@@ -307,3 +307,10 @@ on the CBS sending link.
 - At this point the client is ready to send / receive messages. 
 - On the server side, each link is expected to make sure tht the connection is authenticated (and also authorized if necessary).
    
+### Code Structure
+
+The Amqp Protocol Head logic consists of the following important parts - 
+
+- Link handlers - one for each type of link, that contains the logic for handling the communication on that link. Sending link handler and receiving link handler are the 2 base classes that contain most of the logic for sending and receiving messages on the actual links. 
+- ConnectionHandler - there is one connection handler per connection, and is common to all links. It contains a registry of all the active links, which are used for device bound communication. It also contains the device listener instance and identity of the client.
+The types of supported links are - Cbs, Events, C2D, Module messages, Twin and DirectMethods. 

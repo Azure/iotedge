@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.parts = templateParts.ToArray();
             this.projectedLength = initialCapacity;
             patternStringBuilder.Append("$");
-            this.pattern = new Regex(patternStringBuilder.ToString(), RegexOptions.Compiled);
+            this.pattern = new Regex(patternStringBuilder.ToString(), RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
         struct TemplatePart

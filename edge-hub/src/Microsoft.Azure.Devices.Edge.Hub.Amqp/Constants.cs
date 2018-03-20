@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
+    using System;
     using Microsoft.Azure.Amqp;
 
     public static class Constants
@@ -17,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const uint MaxAmqpConnectionIdleTimeoutInMilliSeconds = 25 * 60 * 1000;
         public static readonly AmqpVersion AmqpVersion100 = new AmqpVersion(1, 0, 0);
 
+        public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+
         // NOTE: IoT Hub service has this note on this constant:
         // Temporarily accept messages upto 1Mb in size. Reduce to 256 kb after fixing client behavior
         public const ulong AmqpMaxMessageSize = 256 * 1024 * 4;
@@ -28,5 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const string MessageAnnotationsLockTokenName = "x-opt-lock-token";
         public const string MessageAnnotationsSequenceNumberName = "x-opt-sequence-number";
         public const string MessagePropertiesOperationKey = "iothub-operation";
+        public const string MessagePropertiesStatusKey = "IoThub-status";
+        public const string MessagePropertiesMethodNameKey = "IoThub-methodname";
+        public const string MessageAnnotationsInputNameKey = "x-opt-input-name";
     }
 }

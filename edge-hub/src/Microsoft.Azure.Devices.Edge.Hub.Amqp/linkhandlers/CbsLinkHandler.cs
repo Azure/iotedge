@@ -3,27 +3,29 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// Address matches the template "/$cbs/*"
     /// </summary>
-    public class CbsLinkHandler : LinkHandler
+    public class CbsLinkHandler : ILinkHandler
     {
-        CbsLinkHandler(IAmqpLink link, Uri requestUri, IDictionary<string, string> boundVariables,
-            IMessageConverter<AmqpMessage> messageConverter)
-            : base(link, requestUri, boundVariables, messageConverter)
+        CbsLinkHandler(IAmqpLink link, Uri linkUri)
         {
+            this.LinkUri = Preconditions.CheckNotNull(linkUri, nameof(linkUri));
+            this.Link = Preconditions.CheckNotNull(link, nameof(link));
         }
 
-        public static ILinkHandler Create(IAmqpLink amqpLink, Uri requestUri,
-            IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
+        public Uri LinkUri { get; }
+
+        public IAmqpLink Link { get; }
+
+        public LinkType Type => LinkType.Cbs;
+
+        public static ILinkHandler Create(IAmqpLink amqpLink, Uri requestUri)
         {
             var cbsNode = amqpLink.Session.Connection.FindExtension<ICbsNode>();
             if (cbsNode == null)
@@ -32,14 +34,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
 
             cbsNode.RegisterLink(amqpLink);
-            LinkHandler cbsLinkHandler = new CbsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
+            ILinkHandler cbsLinkHandler = new CbsLinkHandler(amqpLink, requestUri);
             Events.Created(amqpLink);
             return cbsLinkHandler;
         }
 
-        protected override string Name => "Cbs";
+        public Task CloseAsync(TimeSpan timeout)
+        {
+            Events.Closing(this.Link);
+            return Task.CompletedTask;
+        }
 
-        protected override Task OnOpenAsync(TimeSpan timeout) => Task.CompletedTask;
+        public string CorrelationId { get; } = Guid.NewGuid().ToString();
+
+        public Task OpenAsync(TimeSpan timeout) => Task.CompletedTask;
 
         static class Events
         {
@@ -48,12 +56,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
             enum EventIds
             {
-                Created = IdStart
+                Closing = IdStart
             }
 
             public static void Created(IAmqpLink amqpLink)
             {
-                Log.LogDebug((int)EventIds.Created, "New CBS {0} link created".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
+                Log.LogDebug((int)EventIds.Closing, "New CBS {0} link created".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
+            }
+
+            public static void Closing(IAmqpLink amqpLink)
+            {
+                Log.LogDebug((int)EventIds.Closing, "Closing CBS {0} link".FormatInvariant(amqpLink.IsReceiver ? "receiver" : "sender"));
             }
         }
     }

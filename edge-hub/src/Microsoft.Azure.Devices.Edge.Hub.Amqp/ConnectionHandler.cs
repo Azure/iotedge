@@ -2,7 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using System.Web;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -11,21 +14,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// This class helps interface all the different link handlers to the EdgeHub core.
-    /// It provides one DeviceListener for all the link handlers. It also provides hooks
-    /// for the link handlers to register callbacks, which are invoked from the DeviceProxy
+    /// This class helps maintain the links on an Amqp connection, and it also acts as a common interface for all links.
+    /// It maintains the IIdentity and the IDeviceListener for the connection, and provides it to the link handlers.
+    /// It also maintains a registry of the links open on that connection, and makes sure duplicate/invalid links are not opened. 
     /// </summary>
     class ConnectionHandler : IConnectionHandler
     {
-        Option<Func<IMessage, Task>> c2DMessageSender = Option.None<Func<IMessage, Task>>();
-        Option<Func<string, IMessage, Task>> moduleMessageSender = Option.None<Func<string, IMessage, Task>>();
-        Option<Func<DirectMethodRequest, Task>> methodInvoker = Option.None<Func<DirectMethodRequest, Task>>();
-        Option<Func<IMessage, Task>> desiredPropertiesUpdater = Option.None<Func<IMessage, Task>>();
+        IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         bool isInitialized;
         IDeviceListener deviceListener;
         AmqpAuthentication amqpAuthentication;
 
         readonly AsyncLock initializationLock = new AsyncLock();
+        readonly AsyncLock registryUpdateLock = new AsyncLock();
         readonly IAmqpConnection connection;
         readonly IConnectionProvider connectionProvider;
 
@@ -90,28 +91,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             }
         }
 
-        public void RegisterC2DMessageSender(Func<IMessage, Task> func)
+        public async Task RegisterLinkHandler(ILinkHandler linkHandler)
         {
-            this.c2DMessageSender = Option.Some(Preconditions.CheckNotNull(func));
-            Events.RegisteredC2DMessageSender(this.amqpAuthentication);
-        }
+            using (await this.registryUpdateLock.LockAsync())
+            {
+                if (this.registry.TryGetValue(linkHandler.Type, out ILinkHandler currentLinkHandler))
+                {
+                    await currentLinkHandler.CloseAsync(Constants.DefaultTimeout);
+                }
 
-        public void RegisterModuleMessageSender(Func<string, IMessage, Task> func)
-        {
-            this.moduleMessageSender = Option.Some(Preconditions.CheckNotNull(func));
-            Events.RegisteredModuleMessageSender(this.amqpAuthentication);
-        }
+                ILinkHandler nonCorrelatedLinkHandler = null;
+                switch (linkHandler.Type)
+                {
+                    case LinkType.MethodReceiving:
+                        if (this.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler methodSendingLinkHandler)
+                            && methodSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = methodSendingLinkHandler;
+                        }
+                        break;
 
-        public void RegisterMethodInvoker(Func<DirectMethodRequest, Task> func)
-        {
-            this.methodInvoker = Option.Some(Preconditions.CheckNotNull(func));
-            Events.RegisteredMethodInvoker(this.amqpAuthentication);
-        }
+                    case LinkType.MethodSending:
+                        if (this.registry.TryGetValue(LinkType.MethodReceiving, out ILinkHandler methodReceivingLinkHandler)
+                            && methodReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = methodReceivingLinkHandler;
+                        }
+                        break;
 
-        public void RegisterDesiredPropertiesUpdateSender(Func<IMessage, Task> func)
-        {
-            this.desiredPropertiesUpdater = Option.Some(Preconditions.CheckNotNull(func));
-            Events.RegisteredDesiredPropertiesUpdateSender(this.amqpAuthentication);
+                    case LinkType.TwinReceiving:
+                        if (this.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler twinSendingLinkHandler)
+                            && twinSendingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = twinSendingLinkHandler;
+                        }
+                        break;
+
+                    case LinkType.TwinSending:
+                        if (this.registry.TryGetValue(LinkType.TwinReceiving, out ILinkHandler twinReceivingLinkHandler)
+                            && twinReceivingLinkHandler.CorrelationId != linkHandler.CorrelationId)
+                        {
+                            nonCorrelatedLinkHandler = twinReceivingLinkHandler;
+                        }
+                        break;
+                }
+                await (nonCorrelatedLinkHandler?.CloseAsync(Constants.DefaultTimeout) ?? Task.CompletedTask);
+                this.registry[linkHandler.Type] = linkHandler;
+            }
         }
 
         public class DeviceProxy : IDeviceProxy
@@ -133,39 +159,68 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public Task SendC2DMessageAsync(IMessage message)
             {
-                if (!this.connectionHandler.c2DMessageSender.HasValue)
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.C2D, out ILinkHandler linkHandler))
                 {
-                    Events.NoC2DMessageHandler(this.Identity);
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "C2D message");
+                    return Task.CompletedTask;
                 }
-                return this.connectionHandler.c2DMessageSender.Map(s => s.Invoke(message)).GetOrElse(Task.CompletedTask);
+                message.SystemProperties[SystemProperties.To] = this.Identity is IModuleIdentity moduleIdentity
+                    ? $"/devices/{HttpUtility.UrlEncode(moduleIdentity.DeviceId)}/modules/{HttpUtility.UrlEncode(moduleIdentity.ModuleId)}"
+                    : $"/devices/{HttpUtility.UrlEncode(this.Identity.Id)}";
+                return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
             public Task SendMessageAsync(IMessage message, string input)
             {
-                if (!this.connectionHandler.moduleMessageSender.HasValue)
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.ModuleMessages, out ILinkHandler linkHandler))
                 {
-                    Events.NoSendMessageHandler(this.Identity);
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "message");
+                    return Task.CompletedTask;
                 }
-                return this.connectionHandler.moduleMessageSender.Map(s => s.Invoke(input, message)).GetOrElse(Task.CompletedTask);
+                message.SystemProperties[SystemProperties.InputName] = input;
+                return ((ISendingLinkHandler)linkHandler).SendMessage(message);
             }
 
             public async Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
             {
-                if (!this.connectionHandler.methodInvoker.HasValue)
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.MethodSending, out ILinkHandler linkHandler))
                 {
-                    Events.NoInvokeMethodHandler(this.Identity);
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "method request");
+                    return default(DirectMethodResponse);
                 }
-                await this.connectionHandler.methodInvoker.ForEachAsync(s => s.Invoke(request));
+
+                IMessage message = new EdgeMessage.Builder(request.Data)
+                    .SetProperties(new Dictionary<string, string>
+                    {
+                        [Constants.MessagePropertiesMethodNameKey] = request.Name
+                    })
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = request.CorrelationId
+                    })
+                    .Build();
+                await ((ISendingLinkHandler)linkHandler).SendMessage(message);
                 return default(DirectMethodResponse);
             }
 
             public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
             {
-                if (!this.connectionHandler.desiredPropertiesUpdater.HasValue)
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
                 {
-                    Events.NoDesiredPropertyUpdateHandler(this.Identity);
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "desired properties update");
+                    return Task.CompletedTask;
                 }
-                return this.connectionHandler.desiredPropertiesUpdater.Map(s => s.Invoke(desiredProperties)).GetOrElse(Task.CompletedTask);
+                return ((ISendingLinkHandler)linkHandler).SendMessage(desiredProperties);
+            }
+
+            public Task SendTwinUpdate(IMessage twin)
+            {
+                if (!this.connectionHandler.registry.TryGetValue(LinkType.TwinSending, out ILinkHandler linkHandler))
+                {
+                    Events.LinkNotFound(LinkType.ModuleMessages, this.Identity, "twin update");
+                    return Task.CompletedTask;
+                }
+                return ((ISendingLinkHandler)linkHandler).SendMessage(twin);
             }
 
             public bool IsActive => this.isActive;
@@ -186,21 +241,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             enum EventIds
             {
-                NoC2DMessageHandler = IdStart,
-                ClosingProxy,
-                NoSendMessageHandler,
-                NoInvokeMethodHandler,
-                NoDesiredPropertyUpdateHandler,
+                ClosingProxy = IdStart,
+                LinkNotFound,
                 SettingProxyInactive,
-                RegisteredC2DMessageHandler,
-                RegisteredModuleMessageHandler,
-                RegisteredMethodInvoker,
-                RegisteredDesiredPropertiesUpdateSender
-            }
-
-            internal static void NoC2DMessageHandler(IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.NoC2DMessageHandler, $"Unable to send C2D message to {identity.Id} because no handler was registered.");
+                InitializedConnectionHandler
             }
 
             internal static void ClosingProxy(IIdentity identity, Exception ex)
@@ -208,19 +252,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogInformation((int)EventIds.ClosingProxy, ex, $"Closing AMQP device proxy for {identity.Id} because no handler was registered.");
             }
 
-            internal static void NoSendMessageHandler(IIdentity identity)
+            internal static void LinkNotFound(LinkType linkType, IIdentity identity, string operation)
             {
-                Log.LogWarning((int)EventIds.NoSendMessageHandler, $"Unable to send message to {identity.Id} because no handler was registered.");
-            }
-
-            internal static void NoInvokeMethodHandler(IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.NoInvokeMethodHandler, $"Unable to invoke method on {identity.Id} because no handler was registered.");
-            }
-
-            internal static void NoDesiredPropertyUpdateHandler(IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.NoDesiredPropertyUpdateHandler, $"Unable to send desired properties update to {identity.Id} because no handler was registered.");
+                Log.LogWarning((int)EventIds.LinkNotFound, $"Unable to send {operation} to {identity.Id} because {linkType} link was not found.");
             }
 
             internal static void SettingProxyInactive(IIdentity identity)
@@ -228,29 +262,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogInformation((int)EventIds.SettingProxyInactive, $"Setting proxy inactive for {identity.Id}.");
             }
 
-            internal static void RegisteredC2DMessageSender(AmqpAuthentication amqpAuthentication)
-            {
-                Log.LogDebug((int)EventIds.RegisteredC2DMessageHandler, $"Registered C2D message handler {amqpAuthentication?.Identity.Map(i => i.Id).GetOrElse(string.Empty) ?? string.Empty}");
-            }
-
-            internal static void RegisteredModuleMessageSender(AmqpAuthentication amqpAuthentication)
-            {
-                Log.LogDebug((int)EventIds.RegisteredModuleMessageHandler, $"Registered module message handler {amqpAuthentication?.Identity.Map(i => i.Id).GetOrElse(string.Empty) ?? string.Empty}");
-            }
-
-            internal static void RegisteredMethodInvoker(AmqpAuthentication amqpAuthentication)
-            {
-                Log.LogDebug((int)EventIds.RegisteredMethodInvoker, $"Registered method invoker {amqpAuthentication?.Identity.Map(i => i.Id).GetOrElse(string.Empty) ?? string.Empty}");
-            }
-
-            internal static void RegisteredDesiredPropertiesUpdateSender(AmqpAuthentication amqpAuthentication)
-            {
-                Log.LogDebug((int)EventIds.RegisteredDesiredPropertiesUpdateSender, $"Registered desired properties update sender {amqpAuthentication?.Identity.Map(i => i.Id).GetOrElse(string.Empty) ?? string.Empty}");
-            }
-
             internal static void InitializedConnectionHandler(IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.RegisteredC2DMessageHandler, $"Initialized AMQP connection handler for {identity.Id}");
+                Log.LogInformation((int)EventIds.InitializedConnectionHandler, $"Initialized AMQP connection handler for {identity.Id}");
             }
         }
     }

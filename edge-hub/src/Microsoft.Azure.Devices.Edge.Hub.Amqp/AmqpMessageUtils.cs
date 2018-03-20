@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Encoding;
@@ -98,6 +99,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         static bool SectionExists(AmqpMessage message, SectionFlag section)
         {
             return (message.Sections & section) != 0;
+        }
+
+        public static byte[] GetPayloadBytes(this AmqpMessage message)
+        {
+            using (var ms = new MemoryStream())
+            {
+                message.BodyStream.CopyTo(ms);
+                return ms.ToArray();
+            }
         }
     }
 }

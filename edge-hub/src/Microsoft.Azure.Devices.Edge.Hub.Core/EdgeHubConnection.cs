@@ -433,6 +433,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 throw new NotImplementedException();
             }
+
+            public Task SendTwinUpdate(IMessage twin)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>

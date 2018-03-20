@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     public class Constants
@@ -12,5 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public const string TwinPrefix = ServicePrefix + "twin" + SegmentSeparator;
         public const string MethodPrefix = ServicePrefix + "methods" + SegmentSeparator + "res" + SegmentSeparator;
         public const string ModuleIdTemplateParameter = "moduleId";
+        public const string TwinLockToken = "r";
     }
 }

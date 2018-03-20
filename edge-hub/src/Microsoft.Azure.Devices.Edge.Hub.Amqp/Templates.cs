@@ -40,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             public const string DeviceTwinMessageStreamUriFormat = "/devices/{0}/twin";
             public const string ModuleTwinMessageStreamUriFormat = "/devices/{0}/modules/{1}/twin";
-            public const string DeviceBoundMethodCallUriFormat = "/devices/{0}/methods/devicebound";
-            public const string ModuleDeviceBoundMethodCallUriFormat = "/devices/{0}/modules/{1}/methods/devicebound";
+            public const string DeviceBoundMethodCallUriFormat = "/devices/{0}/methods/deviceBound";
+            public const string ModuleDeviceBoundMethodCallUriFormat = "/devices/{0}/modules/{1}/methods/deviceBound";
             public static readonly UriPathTemplate DeviceBoundMethodCallTemplate = new UriPathTemplate(DeviceBoundMethodCallUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}"));
             public static readonly UriPathTemplate ModuleDeviceBoundMethodCallTemplate = new UriPathTemplate(ModuleDeviceBoundMethodCallUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}", "{" + ModuleIdTemplateParameterName + "}"));
             public static readonly UriPathTemplate TwinStreamTemplate = new UriPathTemplate(DeviceTwinMessageStreamUriFormat.FormatInvariant("{" + DeviceIdTemplateParameterName + "}"));

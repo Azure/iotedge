@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             IDeviceProxy deviceProxy = null;
-            var identity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
@@ -120,22 +121,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
 
             IMessage receivedMessage = null;
-            Task Handler(IMessage message)
-            {
-                receivedMessage = message;
-                return Task.CompletedTask;
-            }
+            var c2dLinkHandler = new Mock<ISendingLinkHandler>();
+            c2dLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            c2dLinkHandler.SetupGet(c => c.Type)
+                .Returns(LinkType.C2D);
 
-            var messageToSend = Mock.Of<IMessage>();
+            var systemProperties = new Dictionary<string, string>();
+            var messageToSend = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties);
 
             // Act
             await connectionHandler.GetDeviceListener();
-            connectionHandler.RegisterC2DMessageSender(Handler);
+            await connectionHandler.RegisterLinkHandler(c2dLinkHandler.Object);
             await deviceProxy.SendC2DMessageAsync(messageToSend);
 
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
+            Assert.Equal(systemProperties[SystemProperties.To], "/devices/d1");
         }
 
         [Fact]
@@ -155,26 +159,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
 
-            string receivedInput = null;
             IMessage receivedMessage = null;
-            Task Handler(string input, IMessage message)
-            {
-                receivedMessage = message;
-                receivedInput = input;
-                return Task.CompletedTask;
-            }
+            var moduleMessageLinkHandler = new Mock<ISendingLinkHandler>();
+            moduleMessageLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            moduleMessageLinkHandler.SetupGet(c => c.Type)
+                .Returns(LinkType.ModuleMessages);
 
-            var messageToSend = Mock.Of<IMessage>();
+            var systemProperties = new Dictionary<string, string>();
+            var messageToSend = Mock.Of<IMessage>(m => m.SystemProperties == systemProperties);
 
             // Act
             await connectionHandler.GetDeviceListener();
-            connectionHandler.RegisterModuleMessageSender(Handler);
+            await connectionHandler.RegisterLinkHandler(moduleMessageLinkHandler.Object);
             await deviceProxy.SendMessageAsync(messageToSend, "i1");
 
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
-            Assert.Equal(receivedInput, "i1");
+            Assert.Equal(systemProperties[SystemProperties.InputName], "i1");
         }
 
         [Fact]
@@ -194,23 +198,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
 
-            DirectMethodRequest receivedRequest = null;
-            Task Handler(DirectMethodRequest request)
-            {
-                receivedRequest = request;
-                return Task.CompletedTask;
-            }
+            IMessage receivedMessage = null;
+            var methodSendingLinkHandler = new Mock<ISendingLinkHandler>();
+            methodSendingLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            methodSendingLinkHandler.SetupGet(c => c.Type)
+                .Returns(LinkType.MethodSending);
 
-            var sentRequest = new DirectMethodRequest(identity.Id, "poke", new byte[0], TimeSpan.FromSeconds(10));
+            var sentRequest = new DirectMethodRequest(identity.Id, "poke", new byte[] { 0, 1, 2 }, TimeSpan.FromSeconds(10));
 
             // Act
             await connectionHandler.GetDeviceListener();
-            connectionHandler.RegisterMethodInvoker(Handler);
+            await connectionHandler.RegisterLinkHandler(methodSendingLinkHandler.Object);
             await deviceProxy.InvokeMethodAsync(sentRequest);
 
             // Assert
-            Assert.NotNull(receivedRequest);
-            Assert.Equal(sentRequest, receivedRequest);
+            Assert.NotNull(receivedMessage);
+            Assert.Equal(sentRequest.Data, receivedMessage.Body);
+            Assert.Equal(sentRequest.CorrelationId, receivedMessage.SystemProperties[SystemProperties.CorrelationId]);
+            Assert.Equal(sentRequest.Name, receivedMessage.Properties[Amqp.Constants.MessagePropertiesMethodNameKey]);
         }
 
         [Fact]
@@ -231,22 +238,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
 
             IMessage receivedMessage = null;
-            Task Handler(IMessage message)
-            {
-                receivedMessage = message;
-                return Task.CompletedTask;
-            }
+            var twinSendingLinkHandler = new Mock<ISendingLinkHandler>();
+            twinSendingLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
+                .Callback<IMessage>(m => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            twinSendingLinkHandler.SetupGet(c => c.Type)
+                .Returns(LinkType.TwinSending);
 
             var messageToSend = Mock.Of<IMessage>();
 
             // Act
             await connectionHandler.GetDeviceListener();
-            connectionHandler.RegisterDesiredPropertiesUpdateSender(Handler);
+            await connectionHandler.RegisterLinkHandler(twinSendingLinkHandler.Object);
             await deviceProxy.OnDesiredPropertyUpdates(messageToSend);
 
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(messageToSend, receivedMessage);
         }
+
+        //[Fact]
+        //public async Task RegisterLinkHandlerTest()
+        //{
+
+        //}
+
+        //[Fact]
+        //public async Task RegisterLinkHandlerCloseDuplicateLinkTest()
+        //{
+
+        //}
+
+        //[Fact]
+        //public async Task RegisterLinkHandlerCloseDuplicateLinkTest()
+        //{
+
+        //}
+
+        //[Fact]
+        //public async Task RegisterNonCorrelatedTwinLinkHandlerTest()
+        //{
+
+        //}
     }
 }

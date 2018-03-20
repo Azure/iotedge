@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -69,8 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             if (this.Identity.Scope != AuthenticationScope.x509Cert)
             {
                 ICloudListener cloudListener = new CloudListener(this.edgeHub, this.Identity.Id);
-                ICloudProxy cloudProxy = this.cloudProxy.Expect(() => new Exception("Error retrieving cloud proxy"));
-                cloudProxy.BindCloudListener(cloudListener);
+                ICloudProxy cloudProxyValue = this.cloudProxy.Expect(() => new Exception("Error retrieving cloud proxy"));
+                cloudProxyValue.BindCloudListener(cloudListener);
             }
             // This operation is async, but we cannot await in this sync method.
             // It is fine because the await part of the operation is cleanup and best effort. 
@@ -117,13 +118,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public void StartListeningToC2DMessages() => this.cloudProxy.ForEach(c => c.StartListening());
 
-        public Task<IMessage> GetTwinAsync() => this.edgeHub.GetTwinAsync(this.Identity.Id);
+        public Task SetupCallMethodAsync() => this.cloudProxy.ForEachAsync(c => c.SetupCallMethodAsync());
+
+        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.ForEachAsync(c => c.SetupDesiredPropertyUpdatesAsync());
+
+        public async Task SendGetTwinRequest(string correlationId)
+        {
+            IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
+            twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
+            twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
+            await this.SendTwinUpdate(twin);
+        }
 
         public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
 
         public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages) => this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
 
-        public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
+        public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId)
         {
             reportedPropertiesMessage.SystemProperties[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o");
             reportedPropertiesMessage.SystemProperties[SystemProperties.MessageSchema] = Constants.TwinChangeNotificationMessageSchema;
@@ -139,7 +150,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
                     break;
             }
-            return this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+            await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                    .SetSystemProperties(new Dictionary<string, string>
+                    {
+                        [SystemProperties.CorrelationId] = correlationId,
+                        [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                        [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                    })
+                    .Build();
+                await this.SendTwinUpdate(responseMessage);
+            }
         }
 
         #region IDeviceProxy
@@ -196,7 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return await taskCompletion.Task;
         }
 
-        public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.underlyingProxy.OnDesiredPropertyUpdates(desiredProperties);
+        public Task OnDesiredPropertyUpdates(IMessage twinUpdates) => this.underlyingProxy.OnDesiredPropertyUpdates(twinUpdates);
+
+        public Task SendTwinUpdate(IMessage twin) => this.underlyingProxy.SendTwinUpdate(twin);
 
         public Task CloseAsync(Exception ex) => this.underlyingProxy.CloseAsync(ex);
 

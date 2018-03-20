@@ -164,11 +164,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     throw new InvalidOperationException("LinkHandler cannot be null");
                 }
 
-                if (!link.Settings.Properties.Any())
-                {
-                    link.Settings.Properties = null;
-                }
-
                 return linkHandler.OpenAsync(timeout);
             }
             catch (Exception exception) when (!ExceptionEx.IsFatal(exception))

@@ -34,6 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             : ((Source)this.AmqpLink.Settings.Source).Address.ToString().StartsWith(CbsConstants.CbsAddress, StringComparison.OrdinalIgnoreCase);
 
         public AmqpLinkSettings Settings => this.AmqpLink.Settings;
+
+        public Task CloseAsync(TimeSpan timeout) => this.AmqpLink.CloseAsync(timeout);
     }
 
     public class EdgeReceivingAmqpLink : EdgeAmqpLink, IReceivingAmqpLink

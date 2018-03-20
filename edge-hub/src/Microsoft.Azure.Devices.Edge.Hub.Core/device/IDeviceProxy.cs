@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task OnDesiredPropertyUpdates(IMessage desiredProperties);
 
+        Task SendTwinUpdate(IMessage twin);
+
         bool IsActive { get; }
 
         IIdentity Identity { get; }

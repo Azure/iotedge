@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message);
 
-        Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage);
+        Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId);
 
-        Task<IMessage> GetTwinAsync();
+        Task SendGetTwinRequest(string correlationId);
 
         Task ProcessMethodResponseAsync(IMessage message);
 
@@ -27,5 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         IIdentity Identity { get; }
 
         void StartListeningToC2DMessages();
+
+        Task SetupCallMethodAsync();
+
+        Task SetupDesiredPropertyUpdatesAsync();
     }
 }

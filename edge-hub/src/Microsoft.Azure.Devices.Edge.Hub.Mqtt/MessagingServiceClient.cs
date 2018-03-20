@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class MessagingServiceClient : IMessagingServiceClient
     {
         static readonly StringSegment RequestId = new StringSegment(TwinNames.RequestId);
-        const string TwinLockToken = "r";
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
@@ -48,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         // We are only interested in non-NULL message IDs which are different than TwinLockToken. A twin
         // message sent out via PG for example will cause a feedback to be generated
         // with TwinLockToken as message ID which is redundant.
-        static bool IsValidMessageId(string messageId) => messageId != null && messageId != TwinLockToken;
+        static bool IsValidMessageId(string messageId) => messageId != null && messageId != Constants.TwinLockToken;
 
         public Task AbandonAsync(string messageId) => IsValidMessageId(messageId)
             ? this.deviceListener.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Abandon)
@@ -109,13 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             throw new InvalidOperationException("Correlation id is missing or empty.");
                         }
 
-                        Core.IMessage coreMessage = await this.deviceListener.GetTwinAsync();
-                        coreMessage.SystemProperties[SystemProperties.LockToken] = TwinLockToken;
-                        coreMessage.SystemProperties[SystemProperties.StatusCode] = ResponseStatusCodes.Ok;
-                        coreMessage.SystemProperties[SystemProperties.CorrelationId] = correlationId.ToString();
-                        coreMessage.SystemProperties[SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint;
-                        IProtocolGatewayMessage twinGetMessage = this.messageConverter.FromMessage(coreMessage);
-                        this.messagingChannel.Handle(twinGetMessage);
+                        await this.deviceListener.SendGetTwinRequest(correlationId.ToString());
                         Events.GetTwin(this.deviceListener.Identity);
                         break;
 
@@ -124,23 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                         Core.IMessage forwardMessage = new EdgeMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
                             .Build();
-                        await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage);
-
-                        if (hasCorrelationId)
-                        {
-                            EdgeMessage deviceResponseMessage = new EdgeMessage.Builder(new byte[0])
-                                .SetSystemProperties(new Dictionary<string, string>()
-                                {
-                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                                    [SystemProperties.LockToken] = TwinLockToken,
-                                    [SystemProperties.StatusCode] = ResponseStatusCodes.NoContent,
-                                    [SystemProperties.CorrelationId] = correlationId.ToString(),
-                                    [SystemProperties.OutboundUri] = Constants.OutboundUriTwinEndpoint
-                                })
-                                .Build();
-                            IProtocolGatewayMessage twinPatchMessage = this.messageConverter.FromMessage(deviceResponseMessage);
-                            this.messagingChannel.Handle(twinPatchMessage);
-                        }
+                        await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage, hasCorrelationId ? correlationId.ToString() : string.Empty);
                         Events.UpdateReportedProperties(this.deviceListener.Identity);
                         break;
 

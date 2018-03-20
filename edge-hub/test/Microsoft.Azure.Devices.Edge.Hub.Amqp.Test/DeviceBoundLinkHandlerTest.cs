@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
 
             // Act
-            ILinkHandler linkHandler = DeviceBoundLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+            ILinkHandler linkHandler = new DeviceBoundLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
 
             // Assert
             Assert.NotNull(linkHandler);
@@ -46,117 +46,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void CreateThrowsExceptionIfReceiverLinkTest()
         {
             // Arrange
-            var amqpLink = Mock.Of<IAmqpLink>(l => l.IsReceiver);
+            var connectionHandler = Mock.Of<IConnectionHandler>();
+            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
+            var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
+            var amqpLink = Mock.Of<ISendingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver);
 
             var requestUri = new Uri("amqps://foo.bar//devices/d1/messages/deviceBound");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
 
             // Act / Assert
-            Assert.Throws<InvalidOperationException>(() => DeviceBoundLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter));
-        }
-
-        [Theory]
-        [MemberData(nameof(FeedbackStatusTestData))]
-        public void GetFeedbackStatusTest(ulong descriptorCode, FeedbackStatus expectedFeedbackStatus)
-        {
-            // Arrange
-            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(""), descriptorCode);
-            var delivery = Mock.Of<Delivery>(d => d.State == deliveryState.Object);
-
-            // Act
-            FeedbackStatus feedbackStatus = DeviceBoundLinkHandler.GetFeedbackStatus(delivery);
-
-            // Assert
-            Assert.Equal(feedbackStatus, expectedFeedbackStatus);
-        }
-
-        public static IEnumerable<object[]> FeedbackStatusTestData()
-        {
-            yield return new object[] { AmqpConstants.AcceptedOutcome.DescriptorCode, FeedbackStatus.Complete };
-            yield return new object[] { AmqpConstants.RejectedOutcome.DescriptorCode, FeedbackStatus.Reject };
-            yield return new object[] { AmqpConstants.ReleasedOutcome.DescriptorCode, FeedbackStatus.Abandon };
+            Assert.Throws<ArgumentException>(() => new DeviceBoundLinkHandler(amqpLink, requestUri, boundVariables, messageConverter));
         }
 
         [Fact]
         public async Task SendMessageTest()
         {
             // Arrange
-            IDeviceProxy deviceProxy = null;
-            var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var deviceListener = Mock.Of<IDeviceListener>();
-            Mock.Get(deviceListener).Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
-                .Callback<IDeviceProxy>(d => deviceProxy = d);
-            Mock.Get(deviceListener).SetupGet(d => d.Identity)
-                .Returns(identity);
-
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
-
-            Func<IMessage, Task> callback = null;
-            var connectionHandler = new Mock<IConnectionHandler>();
-            connectionHandler.Setup(c => c.RegisterC2DMessageSender(It.IsAny<Func<IMessage, Task>>()))
-                .Callback<Func<IMessage, Task>>(c => callback = c);
-            connectionHandler.Setup(c => c.GetAmqpAuthentication())
-                .ReturnsAsync(amqpAuthentication);
-            connectionHandler.Setup(c => c.GetDeviceListener())
-                .ReturnsAsync(deviceListener);
-
-            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler.Object);
-            var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
-            var amqpLink = Mock.Of<ISendingAmqpLink>(l => l.Session == amqpSession && !l.IsReceiver && l.Settings == new AmqpLinkSettings());
+            FeedbackStatus feedbackStatus = FeedbackStatus.Abandon;
+            var deviceListener = new Mock<IDeviceListener>();
+            deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
+                .Callback<string, FeedbackStatus>((m, s) => feedbackStatus = s)
+                .Returns(Task.CompletedTask);
             AmqpMessage receivedAmqpMessage = null;
-            Option<ArraySegment<byte>> receivedDeliveryTag = Option.None<ArraySegment<byte>>();
-            Option<ArraySegment<byte>> receivedTxnId = Option.None<ArraySegment<byte>>();
-            Mock.Get(amqpLink).Setup(m => m.SendMessageNoWait(It.IsAny<AmqpMessage>(), It.IsAny<ArraySegment<byte>>(), It.IsAny<ArraySegment<byte>>()))
-                .Callback<AmqpMessage, ArraySegment<byte>, ArraySegment<byte>>(
-                    (a, d, t) =>
-                    {
-                        receivedAmqpMessage = a;
-                        receivedDeliveryTag = Option.Some(d);
-                        receivedTxnId = Option.Some(t);
-                    });
+            var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)
+                && c.GetAmqpAuthentication() == Task.FromResult(new AmqpAuthentication(true, Option.Some(Mock.Of<IIdentity>()))));
+            var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<IConnectionHandler>() == connectionHandler);
+            var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
+            var sendingLink = Mock.Of<ISendingAmqpLink>(l => l.Session == amqpSession && !l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
+            Mock.Get(sendingLink).Setup(s => s.SendMessageNoWait(It.IsAny<AmqpMessage>(), It.IsAny<ArraySegment<byte>>(), It.IsAny<ArraySegment<byte>>()))
+                .Callback<AmqpMessage, ArraySegment<byte>, ArraySegment<byte>>((m, d, t) => { receivedAmqpMessage = m; });
 
-            var requestUri = new Uri("amqps://foo.bar//devices/d1/messages/deviceBound");
+            var requestUri = new Uri("amqps://foo.bar/devices/d1");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
 
-            DateTime expiryTime = DateTime.UtcNow.AddHours(10);
-            DateTime enqueueTime = DateTime.UtcNow;
-            Guid lockToken = Guid.NewGuid();
-            IMessage messageToSend = new EdgeMessage.Builder(new byte[0])
-                .SetSystemProperties(new Dictionary<string, string>
-                {
-                    [SystemProperties.LockToken] = lockToken.ToString(),
-                    [SystemProperties.To] = "d1",
-                    [SystemProperties.ExpiryTimeUtc] = expiryTime.ToString("o"),
-                    [SystemProperties.EnqueuedTime] = enqueueTime.ToString("o")
-                })
-                .SetProperties(new Dictionary<string, string>
-                {
-                    ["Prop1"] = "Value1",
-                    ["Prop2"] = "Value2"
-                })
-                .Build();
+            var sendingLinkHandler = new DeviceBoundLinkHandler(sendingLink, requestUri, boundVariables, messageConverter);
+            var body = new byte[] { 0, 1, 2, 3 };
+            IMessage message = new EdgeMessage.Builder(body).Build();
+            var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(""), AmqpConstants.AcceptedOutcome.DescriptorCode);
+            var delivery = Mock.Of<Delivery>(d => d.State == deliveryState.Object
+                && d.DeliveryTag == new ArraySegment<byte>(Guid.NewGuid().ToByteArray()));
 
             // Act
-            ILinkHandler linkHandler = DeviceBoundLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
-            await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
-            Assert.NotNull(callback);
-            await callback.Invoke(messageToSend);
+            await sendingLinkHandler.OpenAsync(TimeSpan.FromSeconds(5));
+            await sendingLinkHandler.SendMessage(message);
 
             // Assert
             Assert.NotNull(receivedAmqpMessage);
-            Assert.True(receivedDeliveryTag.HasValue);
-            Assert.True(receivedTxnId.HasValue);
+            Assert.Equal(body, receivedAmqpMessage.GetPayloadBytes());
 
-            Assert.Equal(new Guid(receivedAmqpMessage.DeliveryTag.Array), lockToken);
-            Assert.Equal(receivedAmqpMessage.Properties.To.ToString(), "/devices/d1");
-            Assert.Equal(receivedAmqpMessage.Properties.AbsoluteExpiryTime.Value, expiryTime);
-            Assert.Equal(receivedAmqpMessage.MessageAnnotations.Map["iothub-enqueuedtime"], enqueueTime);
-            Assert.Equal(receivedAmqpMessage.ApplicationProperties.Map["Prop1"], "Value1");
-            Assert.Equal(receivedAmqpMessage.ApplicationProperties.Map["Prop2"], "Value2");
-            Assert.Equal(new Guid(receivedDeliveryTag.OrDefault().Array), lockToken);
-            Assert.Null(receivedTxnId.OrDefault().Array);
+            // Act
+            sendingLinkHandler.DispositionListener(delivery);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            // Assert
+            Assert.Equal(feedbackStatus, FeedbackStatus.Complete);
         }
     }
 }

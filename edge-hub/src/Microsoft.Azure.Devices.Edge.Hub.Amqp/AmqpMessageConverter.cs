@@ -12,6 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
+    /// <summary>
+    /// This converter contains the logic to convert telemetry messages to/from amqp messages
+    /// </summary>
     public class AmqpMessageConverter : IMessageConverter<AmqpMessage>
     {
         public IMessage ToMessage(AmqpMessage sourceMessage)
@@ -150,6 +153,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsSequenceNumberName] = sequenceNumber;
             }
 
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.InputName, out string inputName))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsInputNameKey] = inputName;
+            }
+
             if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageSchema, out string messageSchema))
             {
                 amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesMessageSchemaKey] = messageSchema;
@@ -169,6 +177,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 amqpMessage.ApplicationProperties.Map[property.Key] = property.Value;
             }
+
+            amqpMessage.DeliveryTag = !string.IsNullOrWhiteSpace(lockToken) && Guid.TryParse(lockToken, out Guid lockTokenGuid)
+                ? new ArraySegment<byte>(lockTokenGuid.ToByteArray())
+                : new ArraySegment<byte>(Guid.NewGuid().ToByteArray());
 
             return amqpMessage;
         }

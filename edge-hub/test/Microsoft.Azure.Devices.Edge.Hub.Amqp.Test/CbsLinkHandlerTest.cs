@@ -2,10 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
-    using System.Collections.Generic;
-    using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -25,11 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var amqpLink = Mock.Of<IAmqpLink>(l => l.Session == amqpSession && l.IsReceiver == false);
 
             var requestUri = new Uri("amqps://foo.bar/$cbs");
-            var boundVariables = new Dictionary<string, string>();
-            var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
 
             // Act
-            ILinkHandler linkHandler = CbsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+            ILinkHandler linkHandler = CbsLinkHandler.Create(amqpLink, requestUri);
 
             // Assert
             Assert.Equal(registeredLink, amqpLink);

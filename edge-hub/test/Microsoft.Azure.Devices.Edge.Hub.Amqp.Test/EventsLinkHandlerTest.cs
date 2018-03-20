@@ -34,27 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
 
             // Act
-            ILinkHandler linkHandler = EventsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+            ILinkHandler linkHandler = new EventsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
 
             // Assert
             Assert.NotNull(linkHandler);
             Assert.IsType<EventsLinkHandler>(linkHandler);
             Assert.Equal(amqpLink, linkHandler.Link);
             Assert.Equal(requestUri.ToString(), linkHandler.LinkUri.ToString());
-        }
-
-        [Fact]
-        public void CreateTestForReceiverThrows()
-        {
-            // Arrange
-            var amqpLink = Mock.Of<IAmqpLink>(l => !l.IsReceiver);
-
-            var requestUri = new Uri("amqps://foo.bar/devices/d1/messages/events");
-            var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
-            var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-
-            // Act / Assert
-            Assert.Throws<InvalidOperationException>(() => EventsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter));
         }
 
         [Fact]
@@ -89,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.Properties.ContentType = "application/json";
                 amqpMessage.Properties.ContentEncoding = "utf-8";
 
-                ILinkHandler linkHandler = EventsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -170,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 }))
             {
                 amqpMessage.MessageFormat = AmqpConstants.AmqpBatchedMessageFormat;
-                ILinkHandler linkHandler = EventsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -228,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new MemoryStream(new byte[800000]), false))
             {
                 amqpMessage.ApplicationProperties.Map["LargeProp"] = new int[600000];
-                ILinkHandler linkHandler = EventsLinkHandler.Create(amqpLink, requestUri, boundVariables, messageConverter);
+                ILinkHandler linkHandler = new EventsLinkHandler(amqpLink, requestUri, boundVariables, messageConverter);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));

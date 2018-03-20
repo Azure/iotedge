@@ -47,17 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ITransportListenerProvider>()
                 .SingleInstance();
 
-            // IMessageConverter<AmqpMessage>
-            builder.Register(c => new AmqpMessageConverter())
-                .As<IMessageConverter<AmqpMessage>>()
-                .SingleInstance();
-
             // ILinkHandlerProvider
             builder.Register(
                 c =>
                 {
-                    var messageConverter = c.Resolve<IMessageConverter<AmqpMessage>>();
-                    ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter);
+                    IMessageConverter<AmqpMessage> messageConverter = new AmqpMessageConverter();
+                    IMessageConverter<AmqpMessage> twinMessageConverter = new AmqpTwinMessageConverter();
+                    IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
+                    ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter);
                     return linkHandlerProvider;
                 })
                 .As<ILinkHandlerProvider>()
