@@ -1,4 +1,5 @@
-FROM microsoft/dotnet:2.0.6-runtime-stretch-arm32v7
+ARG base_tag=2.0.6-runtime-stretch-arm32v7
+FROM microsoft/dotnet:${base_tag}
 
 RUN apt-get update && \
     apt-get install -y libsnappy1v5 && \

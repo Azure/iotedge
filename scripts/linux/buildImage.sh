@@ -15,13 +15,14 @@ set -e
 ARCH=$(uname -m)
 SCRIPT_NAME=$(basename $0)
 PUBLISH_DIR=
-DOTNET_DOWNLOAD_URL=
+BASE_TAG=
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
 DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=$DEFAULT_DOCKER_NAMESPACE
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
+SKIP_PUSH=0
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
@@ -55,7 +56,9 @@ usage()
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
+    echo "--base-tag            Override the tag of the base image (e.g., to use a different version of .NET Core)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
+    echo "--skip-push           Build images, but don't push them"
     exit 1;
 }
 
@@ -89,7 +92,7 @@ process_args()
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
-            DOTNET_DOWNLOAD_URL="$arg"
+            BASE_TAG="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 7 ]; then
             ARCH="$arg"
@@ -112,11 +115,12 @@ process_args()
                 "-p" | "--password" ) save_next_arg=3;;
                 "-v" | "--image-version" ) save_next_arg=4;;
                 "--bin-dir" ) save_next_arg=5;;
-                "--dotnet-url" ) save_next_arg=6;;
+                "--base-tag" ) save_next_arg=6;;
                 "-t" | "--target-arch" ) save_next_arg=7;;
                 "-P" | "--project" ) save_next_arg=8;;
                 "-i" | "--image-name" ) save_next_arg=9;;
                 "-n" | "--namespace" ) save_next_arg=10;;
+                "--skip-push" ) SKIP_PUSH=1 ;;
                 * ) usage;;
             esac
         fi
@@ -127,14 +131,16 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ -z ${DOCKER_USERNAME} ]]; then
-        echo "Docker username parameter invalid"
-        print_help_and_exit
-    fi
+    if [[ $SKIP_PUSH -eq 0 ]]; then
+        if [[ -z ${DOCKER_USERNAME} ]]; then
+            echo "Docker username parameter invalid"
+            print_help_and_exit
+        fi
 
-    if [[ -z ${DOCKER_PASSWORD} ]]; then
-        echo "Docker password parameter invalid"
-        print_help_and_exit
+        if [[ -z ${DOCKER_PASSWORD} ]]; then
+            echo "Docker password parameter invalid"
+            print_help_and_exit
+        fi
     fi
 
     if [[ -z ${DOCKER_IMAGENAME} ]]; then
@@ -194,7 +200,7 @@ docker_build_and_tag_and_push()
     arch="$2"
     dockerfile="$3"
     context_path="$4"
-    build_args="$5"
+    build_args="${@:5}"
 
     if [ -z "${imagename}" ] || [ -z "${arch}" ] || [ -z "${context_path}" ]; then
         echo "Error: Arguments are invalid [$imagename] [$arch] [$context_path]"
@@ -207,7 +213,7 @@ docker_build_and_tag_and_push()
     if [ ! -z "${dockerfile}" ]; then
         docker_build_cmd+=" --file $dockerfile"
     fi
-    docker_build_cmd+=" $context_path $build_args"
+    docker_build_cmd+=" $build_args $context_path"
 
     echo "Running... $docker_build_cmd"
 
@@ -216,7 +222,9 @@ docker_build_and_tag_and_push()
     if [ $? -ne 0 ]; then
         echo "Docker build failed with exit code $?"
         exit 1
-    else
+    fi
+
+    if [ $SKIP_PUSH -eq 0 ]; then
         docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch
         if [ $? -ne 0 ]; then
             echo "Docker push failed with exit code $?"
@@ -233,15 +241,25 @@ docker_build_and_tag_and_push()
 check_arch
 process_args "$@"
 
-#echo Logging in to Docker registry
-docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-if [ $? -ne 0 ]; then
-    echo "Docker login failed!"
-    exit 1
+# log in to container registry
+if [ $SKIP_PUSH -eq 0 ]; then
+    docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    if [ $? -ne 0 ]; then
+        echo "Docker login failed!"
+        exit 1
+    fi
 fi
 
+build_args=( "EXE_DIR=." )
+[ -z "$BASE_TAG" ] || build_args+=( "base_tag=$BASE_TAG" )
+
 # push image
-docker_build_and_tag_and_push "$DOCKER_IMAGENAME" "$ARCH" "$DOCKERFILE" "$PUBLISH_DIR/$PROJECT" "--build-arg EXE_DIR=."
+docker_build_and_tag_and_push \
+    "$DOCKER_IMAGENAME" \
+    "$ARCH" \
+    "$DOCKERFILE" \
+    "$PUBLISH_DIR/$PROJECT" \
+    "${build_args[@]/#/--build-arg }"
 [ $? -eq 0 ] || exit $?
 
 echo "Done building and pushing Docker image $DOCKER_IMAGENAME for $PROJECT"

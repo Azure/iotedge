@@ -1,4 +1,5 @@
-FROM microsoft/dotnet:2.0.6-runtime
+ARG base_tag=2.0.6-runtime
+FROM microsoft/dotnet:${base_tag}
 
 ARG EXE_DIR=.
 

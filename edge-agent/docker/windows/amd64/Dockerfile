@@ -1,9 +1,9 @@
-# escape=`
-FROM microsoft/dotnet:2.0.6-runtime-nanoserver-1709
+ARG base_tag=2.0.6-runtime-nanoserver-1709
+FROM microsoft/dotnet:${base_tag}
 
 USER ContainerAdministrator
 
-RUN setx /M PATH "%PATH%;%ProgramFiles%\dotnet"
+RUN setx /M PATH "%PATH%;%ProgramFiles%\\dotnet"
 
 ARG EXE_DIR=.
 

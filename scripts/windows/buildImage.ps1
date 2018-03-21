@@ -42,6 +42,9 @@ Param(
     [ValidateNotNullOrEmpty()]
     [String]$BinDir = $Env:BUILD_BINARIESDIRECTORY,
 
+    # Override the tag of the base image (e.g., to use a different version of .NET Core)
+    [String]$BaseTag,
+
     # Do not push images to the registry
     [Switch]$SkipPush,
 
@@ -123,7 +126,7 @@ Function docker_build_and_tag_and_push(
     {
         $docker_build_cmd += " --file $Dockerfile"
     }
-    $docker_build_cmd += " $ContextPath $BuildArgs"
+    $docker_build_cmd += " $BuildArgs $ContextPath"
 
     echo "Running... $docker_build_cmd"
 
@@ -149,12 +152,18 @@ Function BuildTagPush([String]$ProjectName, [String]$ProjectPath)
 {
     $FullProjectPath = Join-Path -Path $PublishDir -ChildPath $ProjectPath
 
+    $BuildArgs = @("EXE_DIR=.")
+    if ($BaseTag)
+    {
+        $BuildArgs += "base_tag=$BaseTag"
+    }
+
     docker_build_and_tag_and_push `
         -Name $ProjectName `
         -Arch $TargetArch `
         -Dockerfile "$FullProjectPath\docker\windows\$TargetArch\Dockerfile" `
         -ContextPath $FullProjectPath `
-        -BuildArgs "--build-arg EXE_DIR=." `
+        -BuildArgs (($BuildArgs | ForEach-Object {"--build-arg $_"}) -join ' ') `
         -Push:(-not $SkipPush)
 }
 
