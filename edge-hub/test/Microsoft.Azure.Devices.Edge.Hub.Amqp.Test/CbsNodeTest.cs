@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -140,21 +139,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
-            var identity = Mock.Of<IIdentity>();
-            var identityFactory = new Mock<IIdentityFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Try.Success(identity));
+            var clientCredentials = Mock.Of<IClientCredentials>();
+            var identityFactory = new Mock<IClientCredentialsFactory>();
+            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object);
 
             // Act
-            IIdentity receivedIdentity = cbsNode.GetIdentity(validAmqpMessage);
+            IClientCredentials receivedClientCredentials = cbsNode.GetClientCredentials(validAmqpMessage);
 
             // Assert
-            Assert.NotNull(receivedIdentity);
-            Assert.Equal(identity, receivedIdentity);
+            Assert.NotNull(receivedClientCredentials);
+            Assert.Equal(clientCredentials, receivedClientCredentials);
         }
 
         [Fact]
@@ -171,22 +170,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
-            var identityFactory = new Mock<IIdentityFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()))
-                .Returns(Try.Success(identity));
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
+            var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
-            var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object);
 
             // Act
             (AmqpAuthentication amqpAuthentication, AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
 
             // Assert
             Assert.Equal(true, amqpAuthentication.IsAuthenticated);
-            Assert.True(amqpAuthentication.Identity.HasValue);
-            Assert.Equal(identity, amqpAuthentication.Identity.OrDefault());
+            Assert.True(amqpAuthentication.ClientCredentials.HasValue);
+            Assert.Equal(identity, amqpAuthentication.ClientCredentials.OrDefault().Identity);
             Assert.Equal(AmqpResponseStatusCode.OK, statusCode);
             Assert.Equal(AmqpResponseStatusCode.OK.ToString(), description);
         }

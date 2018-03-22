@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task RemoveDeviceConnection(string id);
 
-        Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IIdentity identity);
+        Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IClientCredentials identity);
 
-        Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IIdentity identity);
+        Task<Try<ICloudProxy>> GetOrCreateCloudConnectionAsync(IClientCredentials credentials);
 
         Option<IDeviceProxy> GetDeviceConnection(string id);
 

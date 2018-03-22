@@ -3,8 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
     using System;
-    using System.Collections.Generic;
-    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -12,44 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     {
         readonly Lazy<string> asString;
 
-        public ModuleIdentity(string iotHubHostName, 
-            string deviceId, 
-            string moduleId, 
-            string connectionString, 
-            AuthenticationScope scope, 
-            string policyName, 
-            string secret,
-            string productInfo,
-            Option<string> token)
-            : base(iotHubHostName, connectionString, scope, policyName, secret, productInfo, token)
-        {
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-
-            this.asString = new Lazy<string>(
-                () =>
-                {
-                    string policy = string.IsNullOrEmpty(this.PolicyName) ? "<none>" : this.PolicyName;
-                    return $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
-                });
-        }
-
         public ModuleIdentity(string iotHubHostName,
             string deviceId,
-            string moduleId,
-            AuthenticationScope scope,
-            string productInfo)
-            : base(iotHubHostName, scope, productInfo)
+            string moduleId)
+            : base(iotHubHostName)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-
-            this.asString = new Lazy<string>(
-                () =>
-                {
-                    string policy = string.IsNullOrEmpty(this.PolicyName) ? "<none>" : this.PolicyName;
-                    return $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}; PolicyName: {policy}; Scope: {this.Scope}]";
-                });
+            this.asString = new Lazy<string>(() => $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}]");
         }
 
         public string DeviceId { get; }

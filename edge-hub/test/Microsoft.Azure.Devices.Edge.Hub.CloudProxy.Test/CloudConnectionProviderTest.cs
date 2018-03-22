@@ -26,8 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new DeviceClientProvider(), Option.None<UpstreamProtocol>());
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
-            Try<ICloudConnection> cloudProxy = cloudConnectionProvider.Connect(deviceIdentity, null).Result;
+            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
+            var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, null);
+            Try<ICloudConnection> cloudProxy = cloudConnectionProvider.Connect(clientCredentials, null).Result;
             Assert.True(cloudProxy.Success);
             bool result = await cloudProxy.Value.CloseAsync();
             Assert.True(result);
@@ -38,17 +39,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectWithInvalidConnectionStringTest()
         {
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new DeviceClientProvider(), Option.None<UpstreamProtocol>());
-            var deviceIdentity1 = Mock.Of<IIdentity>(m => m.Id == "device1" && m.ConnectionString == string.Empty && m.Token == Option.None<string>());
-            Try<ICloudConnection> result = await cloudConnectionProvider.Connect(deviceIdentity1, null);
+
+            var deviceIdentity1 = Mock.Of<IIdentity>(m => m.Id == "device1");
+            var clientCredentials1 = new SharedKeyCredentials(deviceIdentity1, "dummyConnStr", null);
+            Try<ICloudConnection> result = await cloudConnectionProvider.Connect(clientCredentials1, null);
             Assert.False(result.Success);
-            Assert.IsType<ArgumentException>(result.Exception);
+            Assert.IsType<AggregateException>(result.Exception);
 
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
             // Change the connection string key, deliberately.
             char updatedLastChar = (char)(deviceConnectionString[deviceConnectionString.Length - 1] + 1);
             deviceConnectionString = deviceConnectionString.Substring(0, deviceConnectionString.Length - 1) + updatedLastChar;
-            var deviceIdentity2 = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString) && m.ConnectionString == deviceConnectionString);
-            Try<ICloudConnection> cloudProxy = cloudConnectionProvider.Connect(deviceIdentity2, null).Result;
+            var deviceIdentity2 = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
+            var clientCredentials2 = new SharedKeyCredentials(deviceIdentity2, deviceConnectionString, null);
+            Try<ICloudConnection> cloudProxy = cloudConnectionProvider.Connect(clientCredentials2, null).Result;
             Assert.False(cloudProxy.Success);
         }
 
@@ -71,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 if (expectedTransportSettings is AmqpTransportSettings)
                 {
                     Assert.True(((AmqpTransportSettings)expectedTransportSettings).Equals((AmqpTransportSettings)transportSettings));
-                }                
+                }
             }
         }
 

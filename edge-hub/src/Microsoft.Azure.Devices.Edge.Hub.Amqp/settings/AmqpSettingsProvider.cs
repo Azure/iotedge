@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             string iotHubHostName,
             X509Certificate2 tlsCertificate,
             IAuthenticator authenticator,
-            IIdentityFactory identityFactory,
+            IClientCredentialsFactory identityFactory,
             ILinkHandlerProvider linkHandlerProvider,
             IConnectionProvider connectionProvider)
         {
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 saslProvider.AddHandler(new SaslAnonymousHandler()); // CBS for other clients
 
                 // This handler implements SAS key based auth.
-                saslProvider.AddHandler(new SaslPlainHandler(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory)));
+                saslProvider.AddHandler(new SaslPlainHandler(new EdgeHubSaslPlainAuthenticator(authenticator, identityFactory, iotHubHostName)));
 
                 settings.TransportProviders.Add(saslProvider);
             }

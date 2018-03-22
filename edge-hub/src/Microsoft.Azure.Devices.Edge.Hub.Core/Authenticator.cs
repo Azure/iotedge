@@ -3,16 +3,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Security.Cryptography;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -27,20 +22,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
         }
 
-        public async Task<bool> AuthenticateAsync(IIdentity identity)
+        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
-            Preconditions.CheckNotNull(identity);
+            Preconditions.CheckNotNull(clientCredentials);
 
             // If 'identity' represents an Edge module then its device id MUST match the authenticator's
             // 'edgeDeviceId'. In other words the authenticator for one edge device cannot authenticate
             // modules belonging to a different edge device.
-            if (identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
+            if (clientCredentials.Identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
                 Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
                 return false;
             }
 
-            if (identity.Scope == AuthenticationScope.x509Cert)
+            if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
             {
                 // If we reach here, we have validated the client cert. Validation is done in
                 // DeviceIdentityProvider.cs::RemoteCertificateValidationCallback. In the future, we could
@@ -54,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // as having authenticated successfully if we are able to acquire a valid ICloudProxy object from
                 // the connection manager.
 
-                Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(identity);
-                Events.AuthResult(cloudProxyTry, identity.Id);
+                Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(clientCredentials);
+                Events.AuthResult(cloudProxyTry, clientCredentials.Identity.Id);
                 return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
             }
         }

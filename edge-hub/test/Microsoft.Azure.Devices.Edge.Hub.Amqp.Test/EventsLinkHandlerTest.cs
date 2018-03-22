@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var amqpAuth = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuth = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
 
             IEnumerable<IMessage> receivedMessages = null;
             var deviceListener = Mock.Of<IDeviceListener>();
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var amqpAuth = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuth = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
 
             IEnumerable<IMessage> receivedMessages = null;
             var deviceListener = Mock.Of<IDeviceListener>();
@@ -189,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Arrange
             bool disposeMessageCalled = true;
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var amqpAuth = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuth = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
 
             var deviceListener = Mock.Of<IDeviceListener>();
             Mock.Get(deviceListener).Setup(d => d.ProcessDeviceMessageBatchAsync(It.IsAny<IEnumerable<IMessage>>()))

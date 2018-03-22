@@ -79,16 +79,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                             throw new InvalidOperationException("Connection not authenticated");
                         }
 
-                        IIdentity identity = amqpAuth.Identity.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
-                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity);
-                        var deviceProxy = new DeviceProxy(this, identity);
+                        IClientCredentials identity = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
+                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity.Identity);
+                        var deviceProxy = new DeviceProxy(this, identity.Identity);
                         this.deviceListener.BindDeviceProxy(deviceProxy);
                         this.amqpAuthentication = amqpAuth;
                         this.isInitialized = true;
-                        Events.InitializedConnectionHandler(identity);
+                        Events.InitializedConnectionHandler(identity.Identity);
                     }
                 }
             }
+        }
+
+        async Task<Option<IClientCredentials>> GetUpdatedAuthenticatedIdentity()
+        {
+            var cbsNode = this.connection.FindExtension<ICbsNode>();
+            if (cbsNode != null)
+            {
+                AmqpAuthentication amqpAuthentication = await cbsNode.GetAmqpAuthentication();
+                if (amqpAuthentication.IsAuthenticated)
+                {
+                    return amqpAuthentication.ClientCredentials;
+                }
+            }
+            return Option.None<IClientCredentials>();
         }
 
         public async Task RegisterLinkHandler(ILinkHandler linkHandler)
@@ -232,6 +246,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Events.SettingProxyInactive(this.Identity);
                 this.isActive = false;
             }
+
+            public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();
         }
 
         static class Events

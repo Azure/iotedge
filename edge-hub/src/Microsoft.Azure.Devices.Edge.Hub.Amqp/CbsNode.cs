@@ -31,24 +31,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         readonly object sendingLinkSyncLock = new object();
         readonly object receivingLinkSyncLock = new object();
         readonly AsyncLock identitySyncLock = new AsyncLock();
-        readonly IIdentityFactory identityFactory;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IAuthenticator authenticator;
         readonly string iotHubHostName;
         bool disposed;
-        Task<AmqpAuthentication> identityUpdateTask;
+        AmqpAuthentication amqpAuthentication;
+        Task<AmqpAuthentication> authenticationUpdateTask;
         ISendingAmqpLink sendingLink;
         IReceivingAmqpLink receivingLink;
         int deliveryCount;
 
-        public CbsNode(IIdentityFactory identityFactory, string iotHubHostName, IAuthenticator authenticator)
+        public CbsNode(IClientCredentialsFactory identityFactory, string iotHubHostName, IAuthenticator authenticator)
         {
-            this.identityFactory = identityFactory;
+            this.clientCredentialsFactory = identityFactory;
             this.iotHubHostName = iotHubHostName;
             this.authenticator = authenticator;
-            this.identityUpdateTask = Task.FromResult(AmqpAuthentication.Unauthenticated);
+            this.authenticationUpdateTask = Task.FromResult(AmqpAuthentication.Unauthenticated);
         }
 
-        public Task<AmqpAuthentication> GetAmqpAuthentication() => this.identityUpdateTask;
+        public Task<AmqpAuthentication> GetAmqpAuthentication() => this.authenticationUpdateTask;
 
         public void RegisterLink(IAmqpLink link)
         {
@@ -73,61 +74,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         void OnMessageReceived(AmqpMessage message)
         {
             Events.NewTokenReceived();
-            this.identityUpdateTask = this.UpdateAmqpAuthentication(message);
+            this.authenticationUpdateTask = this.UpdateAmqpAuthentication(message);
         }
 
         async Task<AmqpAuthentication> UpdateAmqpAuthentication(AmqpMessage message)
         {
-            try
-            {
-                (AmqpAuthentication amqpAuthentication, AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
-                await this.SendResponseAsync(message, statusCode, description);
-                return amqpAuthentication;
-            }
-            catch (Exception e)
-            {
-                await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
-                Events.ErrorUpdatingToken(e);
-                return AmqpAuthentication.Unauthenticated;
-            }
-        }
-
-        internal async Task<(AmqpAuthentication, AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
-        {
             using (await this.identitySyncLock.LockAsync())
             {
-                IIdentity identity;
                 try
                 {
-                    identity = this.GetIdentity(message);
+                    (AmqpAuthentication amqpAuth, AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
+                    await this.SendResponseAsync(message, statusCode, description);
+                    this.amqpAuthentication = amqpAuth;
+                    return this.amqpAuthentication;
                 }
-                catch (Exception e) when (!ExceptionEx.IsFatal(e))
+                catch (Exception e)
                 {
-                    Events.ErrorGettingIdentity(e);
-                    return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, e.Message);
+                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
+                    Events.ErrorUpdatingToken(e);
+                    return AmqpAuthentication.Unauthenticated;
                 }
-
-                if (!await this.authenticator.AuthenticateAsync(identity))
-                {
-                    Events.ErrorAuthenticatingIdentity(identity);
-                    return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, $"Unable to authenticate {identity.Id}");
-                }
-
-                Events.CbsTokenUpdated(identity);
-                return (new AmqpAuthentication(true, Option.Some(identity)), AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
             }
         }
 
-        internal IIdentity GetIdentity(AmqpMessage message)
+        // Note: This method accesses this.amqpAuthentication, and should be invoked only within this.identitySyncLock
+        internal async Task<(AmqpAuthentication, AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
+        {
+            IClientCredentials identity;
+            try
+            {
+                identity = this.GetClientCredentials(message);
+            }
+            catch (Exception e) when (!ExceptionEx.IsFatal(e))
+            {
+                Events.ErrorGettingIdentity(e);
+                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, e.Message);
+            }
+
+            if ((this.amqpAuthentication == null || !this.amqpAuthentication.IsAuthenticated)
+                && !await this.authenticator.AuthenticateAsync(identity))
+            {
+                Events.ErrorAuthenticatingIdentity(identity.Identity);
+                return (AmqpAuthentication.Unauthenticated, AmqpResponseStatusCode.BadRequest, $"Unable to authenticate {identity.Identity.Id}");
+            }
+
+            Events.CbsTokenUpdated(identity.Identity);
+            return (new AmqpAuthentication(true, Option.Some(identity)), AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
+        }
+
+        internal IClientCredentials GetClientCredentials(AmqpMessage message)
         {
             (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
             (string deviceId, string moduleId) = ParseIds(audience);
-            Try<IIdentity> identity = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, moduleId != null, token);
-            if (!identity.Success)
-            {
-                throw identity.Exception;
-            }
-            return identity.Value;
+            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token);
+            return clientCredentials;
         }
 
         internal static (string token, string audience) ValidateAndParseMessage(string iotHubHostName, AmqpMessage message)

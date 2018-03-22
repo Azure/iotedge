@@ -51,13 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             try
             {
-
                 string iothubHostName = iotHubConnectionStringBuilder.HostName;
-                var identityFactory = new IdentityFactory(iothubHostName);
+                var identityFactory = new ClientCredentialsFactory(iothubHostName);
                 string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
-                Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(edgeHubConnectionString);
-                Assert.True(edgeHubIdentity.Success);
-                Assert.NotNull(edgeHubIdentity.Value);
+                IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+                Assert.NotNull(edgeHubCredentials);
+                Assert.NotNull(edgeHubCredentials.Identity);
 
                 // Set Edge hub desired properties
                 await this.SetDesiredProperties(registryManager, edgeDeviceId);
@@ -74,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // Create Edge Hub connection
                 EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(
-                    edgeHubIdentity.Value,
+                    edgeHubCredentials,
                     twinManager,
                     connectionManager,
                     routeFactory,
@@ -138,18 +137,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 string moduleId = "module1";
                 string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
                 string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
-                Try<IIdentity> moduleIdentity = identityFactory.GetWithConnectionString(moduleConnectionstring);
+                IClientCredentials moduleClientCredentials = identityFactory.GetWithConnectionString(moduleConnectionstring);
                 var moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
                 string downstreamDeviceId = "device1";
                 sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
                 string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
-                Try<IIdentity> downstreamDeviceIdentity = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
+                IClientCredentials downstreamDeviceCredentials = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
                 var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
                 // Connect the module and downstream device and make sure the reported properties are updated as expected.
-                await connectionManager.AddDeviceConnection(moduleIdentity.Value, moduleProxy);
-                await connectionManager.AddDeviceConnection(downstreamDeviceIdentity.Value, downstreamDeviceProxy);
+                await connectionManager.AddDeviceConnection(moduleClientCredentials.Identity, moduleProxy);
+                await connectionManager.AddDeviceConnection(downstreamDeviceCredentials.Identity, downstreamDeviceProxy);
                 string moduleIdKey = $"{edgeDeviceId}/{moduleId}";
                 await Task.Delay(TimeSpan.FromSeconds(10));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
@@ -238,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubIdentity.Value, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await EdgeHubConnection.Create(edgeHubCredentials, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);

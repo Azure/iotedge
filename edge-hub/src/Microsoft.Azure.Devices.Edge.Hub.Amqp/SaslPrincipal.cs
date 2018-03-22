@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
@@ -6,17 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     class SaslPrincipal : IPrincipal
     {
-        public SaslPrincipal(SaslIdentity saslIdentity, AmqpAuthentication amqpAuthentication)
+        public SaslPrincipal(AmqpAuthentication amqpAuthentication)
         {
-            this.SaslIdentity = Preconditions.CheckNotNull(saslIdentity, nameof(saslIdentity));
             this.AmqpAuthentication = Preconditions.CheckNotNull(amqpAuthentication, nameof(amqpAuthentication));
-            this.Identity = new GenericIdentity(amqpAuthentication.Identity.Map(i => i.Id).GetOrElse(string.Empty));
+            this.Identity = new GenericIdentity(amqpAuthentication.ClientCredentials.Map(i => i.Identity.Id).GetOrElse(string.Empty));
         }
-
-        // TODO: Remove resharper suppressions file once implementation is complete.
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        // ReSharper disable once MemberCanBePrivate.Global
-        public SaslIdentity SaslIdentity { get; }
 
         public AmqpAuthentication AmqpAuthentication { get; }
 

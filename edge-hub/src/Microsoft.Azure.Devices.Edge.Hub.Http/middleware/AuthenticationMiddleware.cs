@@ -20,13 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     {
         readonly RequestDelegate next;
         readonly IAuthenticator authenticator;
-        readonly IIdentityFactory identityFactory;
+        readonly IClientCredentialsFactory identityFactory;
         readonly string iotHubName;
 
         public AuthenticationMiddleware(
             RequestDelegate next,
             IAuthenticator authenticator,
-            IIdentityFactory identityFactory,
+            IClientCredentialsFactory identityFactory,
             string iotHubName)
         {
             this.next = next;
@@ -110,14 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             string deviceId = clientIdParts[0];
             string moduleId = clientIdParts[1];
 
-            Try<IIdentity> identityTry = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, true, authHeader);
-            if (!identityTry.Success)
-            {
-                return LogAndReturnFailure("Unable to get identity for the device", identityTry.Exception);
-            }
-
-            IIdentity identity = identityTry.Value;
-            if (!await this.authenticator.AuthenticateAsync(identity))
+            IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader);
+            IIdentity identity = clientCredentials.Identity;
+            if (!await this.authenticator.AuthenticateAsync(clientCredentials))
             {
                 return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
             }

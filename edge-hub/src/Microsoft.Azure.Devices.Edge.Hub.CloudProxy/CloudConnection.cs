@@ -68,11 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         ///             b. If not, then it creates a new cloud proxy (and device client) and closes the existing one
         ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy. 
         /// </summary>
-        public async Task<ICloudProxy> CreateOrUpdateAsync(IIdentity newIdentity)
+        public async Task<ICloudProxy> CreateOrUpdateAsync(IClientCredentials newCredentials)
         {
-            Preconditions.CheckNotNull(newIdentity, nameof(newIdentity));
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(newIdentity.ConnectionString) || newIdentity.Token.Exists(t => !string.IsNullOrWhiteSpace(t)),
-                "Identity should contain a connection string or a token");
+            Preconditions.CheckNotNull(newCredentials, nameof(newCredentials));
 
             using (await this.identityUpdateLock.LockAsync())
             {
@@ -89,49 +87,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             // If the identity has a token, and we have a tokenGetter, that means
                             // the connection is waiting for a new token. So give it the token and
                             // complete the tokenGetter
-                            if (newIdentity.Token.HasValue && this.tokenGetter.HasValue)
+                            if (newCredentials is ITokenCredentials tokenAuth && this.tokenGetter.HasValue)
                             {
-                                newIdentity.Token.ForEach(t =>
-                                {
-                                    this.tokenGetter.ForEach(tg =>
-                                    {
-                                        tg.SetResult(t);
-                                        this.tokenGetter = Option.None<TaskCompletionSource<string>>();
-                                        Events.NewTokenObtained(newIdentity.IotHubHostName, newIdentity.Id, t);
-                                    });
-                                });
+                                this.tokenGetter.ForEach(tg =>
+                                 {
+                                     tg.SetResult(tokenAuth.Token);
+                                     this.tokenGetter = Option.None<TaskCompletionSource<string>>();
+                                     Events.NewTokenObtained(newCredentials.Identity.IotHubHostName, newCredentials.Identity.Id, tokenAuth.Token);
+                                 });
                                 return (cp, false);
                             }
                             // Else this is a new connection for the same device Id. So open a new connection,
                             // and if that is successful, close the existing one.
                             else
                             {
-                                ICloudProxy newCloudProxy = await this.GetCloudProxyAsync(newIdentity);
+                                ICloudProxy newCloudProxy = await this.GetCloudProxyAsync(newCredentials);
                                 await cp.CloseAsync();
                                 return (newCloudProxy, true);
                             }
                         })
                         // No existing cloud proxy, so just create a new one.
-                        .GetOrElse(async () => (await this.GetCloudProxyAsync(newIdentity), true));
+                        .GetOrElse(async () => (await this.GetCloudProxyAsync(newCredentials), true));
 
                     // Set identity only after successfully opening cloud proxy
                     // That way, if a we have one existing connection for a deviceA,
                     // and a new connection for deviceA comes in with an invalid key/token,
                     // the existing connection is not affected.
                     this.cloudProxy = Option.Some(proxy);
-                    this.identity = Option.Some(newIdentity);
+                    this.identity = Option.Some(newCredentials.Identity);
                     // Callbacks are disabled when updating identities, so explicitly invoke the
                     // connection status changed handler callback. 
                     if (newProxyCreated)
                     {
-                        this.connectionStatusChangedHandler?.Invoke(newIdentity.Id, CloudConnectionStatus.ConnectionEstablished);
+                        this.connectionStatusChangedHandler?.Invoke(newCredentials.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
                     }
-                    Events.UpdatedCloudConnection(newIdentity);
+                    Events.UpdatedCloudConnection(newCredentials.Identity);
                     return proxy;
                 }
                 catch (Exception ex)
                 {
-                    Events.CreateException(ex, newIdentity);
+                    Events.CreateException(ex, newCredentials.Identity);
                     throw;
                 }
                 finally
@@ -141,46 +136,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<ICloudProxy> GetCloudProxyAsync(IIdentity newIdentity)
+        async Task<ICloudProxy> GetCloudProxyAsync(IClientCredentials newCredentials)
         {
-            IDeviceClient deviceClient = await this.ConnectToIoTHub(newIdentity);
-            ICloudProxy proxy = new CloudProxy(deviceClient, this.messageConverterProvider, newIdentity.Id, this.connectionStatusChangedHandler);
+            IDeviceClient deviceClient = await this.ConnectToIoTHub(newCredentials);
+            ICloudProxy proxy = new CloudProxy(deviceClient, this.messageConverterProvider, newCredentials.Identity.Id, this.connectionStatusChangedHandler);
             return proxy;
         }
 
-        async Task<IDeviceClient> ConnectToIoTHub(IIdentity newIdentity)
+        async Task<IDeviceClient> ConnectToIoTHub(IClientCredentials newCredentials)
         {
             Try<IDeviceClient> deviceClientTry = await Fallback.ExecuteAsync(
                 this.transportSettingsList.Select<ITransportSettings, Func<Task<IDeviceClient>>>(
                     ts =>
-                        () => this.CreateAndOpenDeviceClient(newIdentity, ts)).ToArray());
+                        () => this.CreateAndOpenDeviceClient(newCredentials, ts)).ToArray());
 
             return deviceClientTry.Success ? deviceClientTry.Value : throw deviceClientTry.Exception;
         }
 
         async Task<IDeviceClient> CreateAndOpenDeviceClient(
-            IIdentity newIdentity,
+            IClientCredentials newCredentials,
             ITransportSettings transportSettings)
         {
-            Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType(), newIdentity);
-            IDeviceClient deviceClient = this.CreateDeviceClient(newIdentity, new[] { transportSettings });
+            Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType(), newCredentials.Identity);
+            IDeviceClient deviceClient = this.CreateDeviceClient(newCredentials, new[] { transportSettings });
             deviceClient.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
             deviceClient.SetConnectionStatusChangesHandler(this.InternalConnectionStatusChangesHandler);
-            if (!string.IsNullOrWhiteSpace(newIdentity.ProductInfo))
+            if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
             {
-                deviceClient.SetProductInfo(newIdentity.ProductInfo);
+                deviceClient.SetProductInfo(newCredentials.ProductInfo);
             }
             await deviceClient.OpenAsync();
-            Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, newIdentity);
+            Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, newCredentials.Identity);
             return deviceClient;
         }
 
-        IDeviceClient CreateDeviceClient(IIdentity newIdentity, ITransportSettings[] settings) => newIdentity.Token.Map(t =>
+        IDeviceClient CreateDeviceClient(IClientCredentials newCredentials, ITransportSettings[] settings)
         {
-            IAuthenticationMethod authenticationMethod = this.GetAuthenticationMethod(newIdentity, t);
-            return this.deviceClientProvider.Create(newIdentity.IotHubHostName, authenticationMethod, settings);
-        })
-        .GetOrElse(() => this.deviceClientProvider.Create(newIdentity.ConnectionString, settings));
+            switch (newCredentials.AuthenticationType)
+            {
+                case AuthenticationType.SasKey:
+                    if (!(newCredentials is ISharedKeyCredentials sharedKeyAuthentication))
+                    {
+                        throw new ArgumentException($"Sas key credential should be of type {nameof(ISharedKeyCredentials)}");
+                    }
+                    return this.deviceClientProvider.Create(sharedKeyAuthentication.ConnectionString, settings);
+
+                case AuthenticationType.Token:
+                    if (!(newCredentials is ITokenCredentials tokenAuthentication))
+                    {
+                        throw new ArgumentException($"Token credential should be of type {nameof(ITokenCredentials)}");
+                    }
+                    IAuthenticationMethod authenticationMethod = this.GetAuthenticationMethod(tokenAuthentication.Identity, tokenAuthentication.Token);
+                    return this.deviceClientProvider.Create(newCredentials.Identity.IotHubHostName, authenticationMethod, settings);
+
+                default:
+                    throw new InvalidOperationException($"Unsupported authentication type {newCredentials.AuthenticationType}");
+            }
+        }
 
         IAuthenticationMethod GetAuthenticationMethod(IIdentity newIdentity, string token)
         {
@@ -276,8 +288,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         class DeviceTokenRefresher : DeviceAuthenticationWithTokenRefresh
         {
             readonly CloudConnection cloudConnection;
+            readonly IIdentity identity;
             string token;
-            IIdentity identity;
 
             public DeviceTokenRefresher(string deviceId, string token, CloudConnection cloudConnection, IIdentity identity)
                 : base(deviceId, TokenTimeToLiveSeconds, TokenExpiryBufferPercentage)
@@ -309,8 +321,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         class ModuleTokenRefresher : ModuleAuthenticationWithTokenRefresh
         {
             readonly CloudConnection cloudConnection;
+            readonly IIdentity identity;
             string token;
-            IIdentity identity;
 
             public ModuleTokenRefresher(string deviceId, string moduleId, string token, CloudConnection cloudConnection, IIdentity identity)
                 : base(deviceId, moduleId, TokenTimeToLiveSeconds, TokenExpiryBufferPercentage)

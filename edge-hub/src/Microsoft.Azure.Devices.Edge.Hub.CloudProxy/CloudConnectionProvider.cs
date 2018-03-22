@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         });
         }        
 
-        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public async Task<Try<ICloudConnection>> Connect(IClientCredentials identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
@@ -98,12 +98,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.deviceClientProvider);
                 await cloudConnection.CreateOrUpdateAsync(identity);
-                Events.SuccessCreatingCloudConnection(identity);
+                Events.SuccessCreatingCloudConnection(identity.Identity);
                 return Try.Success<ICloudConnection>(cloudConnection);
             }
             catch (Exception ex)
             {
-                Events.ErrorCreatingCloudConnection(identity, ex);
+                Events.ErrorCreatingCloudConnection(identity.Identity, ex);
                 return Try<ICloudConnection>.Failure(ex);
             }
         }

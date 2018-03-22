@@ -30,9 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -52,9 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -75,9 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -98,9 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -122,9 +122,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -145,9 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -168,9 +168,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -192,9 +192,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.Headers.Add(HttpConstants.IdHeaderKey, $"{deviceId}/{moduleId}");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).ReturnsAsync(false);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(false);
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
@@ -216,9 +216,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IIdentity>())).Throws<SomeException>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Throws<SomeException>();
 
-            var identityFactory = new IdentityFactory(iothubHostName);
+            var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
             var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
             await Assert.ThrowsAsync<SomeException>(() => authenticationMiddleware.Invoke(httpContext));

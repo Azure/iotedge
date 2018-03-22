@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 async c =>
                 {
                     var authenticator = c.Resolve<IAuthenticator>();
-                    var identityFactory = c.Resolve<IIdentityFactory>();
+                    var identityFactory = c.Resolve<IClientCredentialsFactory>();
                     var transportSettings = c.Resolve<ITransportSettings>();
                     var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
                     var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();

@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public Task GetCloudConnectionForIdentityWithTokenTest()
         {
             IDeviceClientProvider deviceClientProvider = GetMockDeviceClientProviderWithToken();
-            return GetCloudConnectionTest(() => GetMockIdentityWithToken(), deviceClientProvider);
+            return GetCloudConnectionTest(() => GetMockClientCredentialsWithToken(), deviceClientProvider);
         }
 
         [Unit]
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public Task GetCloudConnectionForIdentityWithKeyTest()
         {
             IDeviceClientProvider deviceClientProvider = GetMockDeviceClientProviderWithKey();
-            return GetCloudConnectionTest(() => GetMockIdentityWithKey(), deviceClientProvider);
+            return GetCloudConnectionTest(() => GetMockClientCredentialsWithKey(), deviceClientProvider);
         }
 
         [Unit]
@@ -58,12 +58,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, deviceClientProvider.Object);
 
-            IIdentity identity1 = GetMockIdentityWithToken();
+            IClientCredentials identity1 = GetMockClientCredentialsWithToken();
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(identity1);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
 
-            IIdentity identity2 = GetMockIdentityWithToken();
+            IClientCredentials identity2 = GetMockClientCredentialsWithToken();
             await Assert.ThrowsAsync<AggregateException>(() => cloudConnection.CreateOrUpdateAsync(identity2));
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
@@ -76,15 +76,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string iothubHostName = "test.azure-devices.net";
             string deviceId = "device1";
 
-            IIdentity GetIdentityWithExpiringToken()
+            IClientCredentials GetClientCredentialsWithExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddSeconds(10));
-                var identity = Mock.Of<Core.Device.IDeviceIdentity>(
-                    i => i.Token == Option.Some(token)
-                        && i.IotHubHostName == iothubHostName
-                        && i.Id == deviceId
-                        && i.DeviceId == deviceId);
-                return identity;
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
             }
 
             IAuthenticationMethod authenticationMethod = null;
@@ -98,8 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, deviceClientProvider);
 
-            IIdentity identity1 = GetIdentityWithExpiringToken();
-            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(identity1);
+            IClientCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
+            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
 
@@ -115,8 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             Assert.Equal(receivedStatus, CloudConnectionStatus.TokenNearExpiry);
 
-            IIdentity identity2 = GetIdentityWithExpiringToken();
-            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(identity2);
+            IClientCredentials clientCredentialsWithExpiringToken2 = GetClientCredentialsWithExpiringToken();
+            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken2);
 
             // Wait for the task to complete
             await Task.Delay(TimeSpan.FromSeconds(10));
@@ -126,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudProxy2);
             Assert.True(getTokenTask.IsCompletedSuccessfully);
-            Assert.Equal(getTokenTask.Result, identity2.Token.OrDefault());
+            Assert.Equal(getTokenTask.Result, (clientCredentialsWithExpiringToken2 as ITokenCredentials)?.Token);
         }
 
         [Fact]
@@ -177,9 +173,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, deviceClientProvider.Object);
 
-            IIdentity identity1 = GetMockIdentityWithToken();
+            IClientCredentials clientCredentialsWithExpiringToken1 = GetMockClientCredentialsWithToken();
             Assert.Equal(receivedConnectedStatusCount, 0);
-            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(identity1);
+            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
             Assert.Equal(receivedConnectedStatusCount, 1);
@@ -188,8 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
             Assert.Equal(receivedConnectedStatusCount, 2);
 
-            IIdentity identity2 = GetMockIdentityWithToken();
-            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(identity2);
+            IClientCredentials clientCredentialsWithExpiringToken2 = GetMockClientCredentialsWithToken();
+            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken2);
             Assert.True(cloudProxy2.IsActive);
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
             Assert.Equal(receivedConnectedStatusCount, 3);
@@ -207,14 +203,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string hostname = "dummy.azure-devices.net";
             string deviceId = "device1";
 
-            IIdentity GetMockIdentityWithToken()
+            IClientCredentials GetClientCredentials()
             {
                 string token = TokenHelper.CreateSasToken(hostname, DateTime.UtcNow.AddSeconds(10));
-                var identity = Mock.Of<IDeviceIdentity>(i => i.Token == Option.Some(token)
-                    && i.IotHubHostName == hostname
-                    && i.Id == deviceId
-                    && i.DeviceId == deviceId);
-                return identity;
+                var identity = new DeviceIdentity(hostname, deviceId);
+                return new TokenCredentials(identity, token, string.Empty);
             }
 
             IDeviceProxy GetMockDeviceProxy()
@@ -261,12 +254,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider);
 
-            IIdentity identity1 = GetMockIdentityWithToken();
-            Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(identity1);
+            IClientCredentials clientCredentials1 = GetClientCredentials();
+            Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(clientCredentials1);
             Assert.True(cloudProxyTry1.Success);
 
             IDeviceProxy deviceProxy1 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(identity1, deviceProxy1);
+            await connectionManager.AddDeviceConnection(clientCredentials1.Identity, deviceProxy1);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             Assert.NotNull(authenticationMethod);
@@ -275,16 +268,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Task<string> tokenGetter = deviceTokenRefresher.GetTokenAsync(hostname);
             Assert.False(tokenGetter.IsCompleted);
 
-            IIdentity identity2 = GetMockIdentityWithToken();
-            Try<ICloudProxy> cloudProxyTry2 = await connectionManager.CreateCloudConnectionAsync(identity2);
+            IClientCredentials clientCredentials2 = GetClientCredentials();
+            Try<ICloudProxy> cloudProxyTry2 = await connectionManager.CreateCloudConnectionAsync(clientCredentials2);
             Assert.True(cloudProxyTry2.Success);
 
             IDeviceProxy deviceProxy2 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(identity2, deviceProxy2);
+            await connectionManager.AddDeviceConnection(clientCredentials2.Identity, deviceProxy2);
 
             await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.True(tokenGetter.IsCompleted);
-            Assert.Equal(tokenGetter.Result, identity2.Token.OrDefault());
+            Assert.Equal(tokenGetter.Result, (clientCredentials2 as ITokenCredentials)?.Token);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             Assert.NotNull(authenticationMethod);
@@ -293,34 +286,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             tokenGetter = deviceTokenRefresher.GetTokenAsync(hostname);
             Assert.False(tokenGetter.IsCompleted);
 
-            IIdentity identity3 = GetMockIdentityWithToken();
-            Try<ICloudProxy> cloudProxyTry3 = await connectionManager.CreateCloudConnectionAsync(identity3);
+            IClientCredentials clientCredentials3 = GetClientCredentials();
+            Try<ICloudProxy> cloudProxyTry3 = await connectionManager.CreateCloudConnectionAsync(clientCredentials3);
             Assert.True(cloudProxyTry3.Success);
 
             IDeviceProxy deviceProxy3 = GetMockDeviceProxy();
-            await connectionManager.AddDeviceConnection(identity3, deviceProxy3);
+            await connectionManager.AddDeviceConnection(clientCredentials3.Identity, deviceProxy3);
 
             await Task.Delay(TimeSpan.FromSeconds(3));
             Assert.True(tokenGetter.IsCompleted);
-            Assert.Equal(tokenGetter.Result, identity3.Token.OrDefault());
+            Assert.Equal(tokenGetter.Result, (clientCredentials3 as ITokenCredentials)?.Token);
 
             Mock.VerifyAll(Mock.Get(deviceProxy1), Mock.Get(deviceProxy2));
         }
 
-        static async Task GetCloudConnectionTest(Func<IIdentity> identityGenerator, IDeviceClientProvider deviceClientProvider)
+        static async Task GetCloudConnectionTest(Func<IClientCredentials> credentialsGenerator, IDeviceClientProvider deviceClientProvider)
         {
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
 
             var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, deviceClientProvider);
 
-            IIdentity identity1 = identityGenerator();
-            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(identity1);
+            IClientCredentials clientCredentials1 = credentialsGenerator();
+            ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentials1);
             Assert.True(cloudProxy1.IsActive);
             Assert.Equal(cloudProxy1, cloudConnection.CloudProxy.OrDefault());
 
-            IIdentity identity2 = identityGenerator();
-            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(identity2);
+            IClientCredentials clientCredentials2 = credentialsGenerator();
+            ICloudProxy cloudProxy2 = await cloudConnection.CreateOrUpdateAsync(clientCredentials2);
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
             Assert.True(cloudProxy2.IsActive);
             Assert.False(cloudProxy1.IsActive);
@@ -354,25 +347,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             return deviceClient.Object;
         }
 
-        static IIdentity GetMockIdentityWithKey(string hostname = "dummy.azure-devices.net", string deviceId = "device1")
+        static IClientCredentials GetMockClientCredentialsWithKey(string hostname = "dummy.azure-devices.net", string deviceId = "device1")
         {
-            var identity = Mock.Of<Core.Device.IDeviceIdentity>(i => i.Token == Option.None<string>()
-                && i.ConnectionString == "dummyConnStr"
-                && i.IotHubHostName == hostname
-                && i.Id == deviceId
-                && i.DeviceId == deviceId);
-            return identity;
+            var identity = new DeviceIdentity(hostname, deviceId);
+            return new SharedKeyCredentials(identity, "dummyConnStr", string.Empty);
         }
 
-        static IIdentity GetMockIdentityWithToken(string hostname = "dummy.azure-devices.net",
+        static IClientCredentials GetMockClientCredentialsWithToken(string hostname = "dummy.azure-devices.net",
             string deviceId = "device1")
         {
             string token = TokenHelper.CreateSasToken(hostname);
-            var identity = Mock.Of<Core.Device.IDeviceIdentity>(i => i.Token == Option.Some(token)
-                && i.IotHubHostName == hostname
-                && i.Id == deviceId
-                && i.DeviceId == deviceId);
-            return identity;
+            var identity = new DeviceIdentity(hostname, deviceId);
+            return new TokenCredentials(identity, token, string.Empty);
         }
     }
 }

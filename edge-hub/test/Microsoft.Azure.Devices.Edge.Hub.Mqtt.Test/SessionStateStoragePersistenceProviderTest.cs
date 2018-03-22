@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var retrievedSessionState = storedSession as SessionState;
             Assert.NotNull(retrievedSessionState);
             Assert.Equal(2, retrievedSessionState.Subscriptions.Count);
-            Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);            
+            Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));
             Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix]);
@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestConnectionEstablishedReenableSubscriptions()
         {
-            string deviceId = "deviceId";            
+            string deviceId = "deviceId";
 
             var cloudProxyMock = new Mock<ICloudProxy>();
             cloudProxyMock.SetupGet(cp => cp.IsActive).Returns(true);
@@ -289,21 +289,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var cloudConnectionMock = new Mock<ICloudConnection>();
             cloudConnectionMock.SetupGet(dp => dp.IsActive).Returns(true);
             cloudConnectionMock.SetupGet(dp => dp.CloudProxy).Returns(Option.Some(cloudProxyMock.Object));
-            cloudConnectionMock.Setup(c => c.CreateOrUpdateAsync(It.IsAny<IIdentity>()))
+            cloudConnectionMock.Setup(c => c.CreateOrUpdateAsync(It.IsAny<IClientCredentials>()))
                 .ReturnsAsync(cloudProxyMock.Object);
 
             Action<string, CloudConnectionStatus> connectionChangeCallback = (_, __) => { };
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
-            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
-                .Callback<IIdentity, Action<string, CloudConnectionStatus>>((id, cb) => connectionChangeCallback = cb)
+            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Callback<IClientCredentials, Action<string, CloudConnectionStatus>>((id, cb) => connectionChangeCallback = cb)
                 .ReturnsAsync(() => Try.Success(cloudConnectionMock.Object));
 
             var protocolGatewayIdentity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == deviceId);
-            var edgeIdentity = Mock.Of<IIdentity>(i => i.Id == deviceId);
+            var edgeCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>(i => i.Id == deviceId));
 
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
-            await connectionManager.CreateCloudConnectionAsync(edgeIdentity);
-            
+            await connectionManager.CreateCloudConnectionAsync(edgeCredentials);
+
             var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager, this.entityStore);
             ISessionState sessionState = await sessionProvider.GetAsync(protocolGatewayIdentity);
             Assert.Null(sessionState);
@@ -327,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(3, retrievedSessionState.SubscriptionRegistrations.Count);
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix));
             Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.C2DSubscriptionTopicPrefix]);
-            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));            
+            Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix));
             Assert.True(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.MethodSubscriptionTopicPrefix]);
             Assert.True(retrievedSessionState.SubscriptionRegistrations.ContainsKey(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix));
             Assert.False(retrievedSessionState.SubscriptionRegistrations[SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix]);
@@ -351,6 +351,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             cloudProxyMock.Verify(x => x.SetupCallMethodAsync(), Times.Exactly(3));
             cloudProxyMock.Verify(x => x.StartListening(), Times.Exactly(3));
             cloudProxyMock.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Exactly(3));
-        }        
+        }
     }
 }

@@ -3,13 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -48,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             {
                 Hostname,
                 DeviceId,
-                AuthenticationScope.SasToken,
+                AuthenticationType.Token,
                 null,
                 SasToken,
                 connStrBuilder.ToString()
@@ -64,8 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Hostname,
                 SasToken,
                 true,
+                typeof(TokenCredentials),
                 typeof(DeviceIdentity),
-                AuthenticationScope.SasToken
+                AuthenticationType.Token
             };
 
             yield return new object[]
@@ -75,8 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Hostname,
                 SasToken,
                 true,
+                typeof(TokenCredentials),
                 typeof(ModuleIdentity),
-                AuthenticationScope.SasToken
+                AuthenticationType.Token
             };
 
             yield return new object[]
@@ -86,8 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Hostname,
                 null,
                 true,
+                typeof(X509CertCredentials),
                 typeof(DeviceIdentity),
-                AuthenticationScope.x509Cert
+                AuthenticationType.X509Cert
             };
 
             yield return new object[]
@@ -97,8 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 Hostname,
                 null,
                 true,
+                typeof(X509CertCredentials),
                 typeof(ModuleIdentity),
-                AuthenticationScope.x509Cert
+                AuthenticationType.X509Cert
             };
         }
 
@@ -111,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 SasToken,
                 DeviceId,
                 "module_1232",
-                AuthenticationScope.SasToken
+                AuthenticationType.Token
             };
 
             yield return new object[]
@@ -121,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 SasToken,
                 DeviceId,
                 ModuleId,
-                AuthenticationScope.SasToken
+                AuthenticationType.Token
             };
 
             yield return new object[]
@@ -131,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 null,
                 DeviceId,
                 "module_1232",
-                AuthenticationScope.x509Cert
+                AuthenticationType.X509Cert
             };
 
             yield return new object[]
@@ -141,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 null,
                 DeviceId,
                 ModuleId,
-                AuthenticationScope.x509Cert
+                AuthenticationType.X509Cert
             };
         }
 
@@ -273,17 +275,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string iotHubHostName,
             string token,
             bool success,
-            Type expectedType,
-            AuthenticationScope expected)
+            Type expectedCredentialsType,
+            Type expectedIdentityType,
+            AuthenticationType expected)
         {
-            IIdentity identity = await GetIdentity(iotHubHostName, clientId, value, token, token == null);
-            Assert.NotNull(identity);
-
-            Assert.NotNull(identity);
-            Assert.IsType(expectedType, identity);
-            Assert.Equal(iotHubHostName, ((Identity)identity).IotHubHostName);
-            Assert.Equal(ProductInfo, identity.ProductInfo);
-            Assert.Equal(expected, identity.Scope);
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, clientId, value, token, token == null);
+            Assert.NotNull(clientCredentials);
+            Assert.IsType(expectedCredentialsType, clientCredentials);
+            Assert.IsType(expectedIdentityType, clientCredentials.Identity);
+            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostName);
+            Assert.Equal(ProductInfo, clientCredentials.ProductInfo);
+            Assert.Equal(expected, clientCredentials.AuthenticationType);
         }
 
         [Theory]
@@ -291,9 +293,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetIdentityWithProductInfoInputs))]
         public async Task GetIdentityWithProductInfoTest(string productInfo, string username, string result)
         {
-            IIdentity identity = await GetIdentity(Hostname, DeviceId, username, SasToken, false, productInfo);
-            Assert.NotNull(identity);
-            Assert.Equal(result, identity.ProductInfo);
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(result, clientCredentials.ProductInfo);
         }
 
         [Theory]
@@ -301,9 +303,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [MemberData(nameof(GetUsernameInputs))]
         public async Task ProductInfoTest(string username, string clientId, string productInfo)
         {
-            IIdentity identity = await GetIdentity(Hostname, clientId, username, SasToken);
-            Assert.NotNull(identity);
-            Assert.Equal(productInfo, identity.ProductInfo);
+            IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(productInfo, clientCredentials.ProductInfo);
         }
 
         [Theory]
@@ -322,49 +324,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string token,
             string deviceId,
             string moduleId,
-            AuthenticationScope expected)
+            AuthenticationType authenticationType)
         {
-            IIdentity identity = await GetIdentity(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null);
-            Assert.NotNull(identity);
-            var hubModuleIdentity = identity as IModuleIdentity;
+            IClientCredentials clientCredentials = await GetClientCredentials(iotHubHostName, $"{deviceId}/{moduleId}", value, token, token == null);
+            Assert.NotNull(clientCredentials);
+            Assert.Equal(authenticationType, clientCredentials.AuthenticationType);
+            var hubModuleIdentity = clientCredentials.Identity as IModuleIdentity;
             Assert.NotNull(hubModuleIdentity);
             Assert.Equal(deviceId, hubModuleIdentity.DeviceId);
             Assert.Equal(moduleId, hubModuleIdentity.ModuleId);
             Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
-            Assert.Equal(expected, hubModuleIdentity.Scope);
         }
 
-        [Theory]
-        [Unit]
-        [MemberData(nameof(GetConnectionStringInputs))]
-        public void GetSasTokenConnectionStringTest(string iotHubHostName,
-            string deviceId,
-            AuthenticationScope scope,
-            string policyName,
-            string secret,
-            string expectedConnectionString)
+        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "")
         {
-            string connectionString = IdentityFactory.GetConnectionString(iotHubHostName, deviceId, AuthenticationScope.SasToken, policyName, secret);
-            Assert.Equal(expectedConnectionString, connectionString);
-        }
-
-        [Fact]
-        [Unit]
-        public void Getx509ConnectionStringTest()
-        {
-            Assert.Throws<InvalidOperationException>(() => IdentityFactory.GetConnectionString(null, null, AuthenticationScope.x509Cert, null, null));
-        }
-
-        static async Task<IIdentity> GetIdentity(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "")
-        {
-            var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IIdentity>()) == Task.FromResult(true));
-            var factory = new IdentityFactory(iotHubHostName, productInfo);
+            var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
+            var factory = new ClientCredentialsFactory(iotHubHostName, productInfo);
             var sasTokenIdentityProvider = new DeviceIdentityProvider(authenticator, factory, isCertAuthAllowed);
 
             ProtocolGateway.Identity.IDeviceIdentity deviceIdentity = await sasTokenIdentityProvider.GetAsync(deviceId, userName, token, null);
             Assert.NotNull(deviceIdentity);
-            IIdentity identity = (deviceIdentity as ProtocolGatewayIdentity)?.Identity;
-            return identity;
+            IClientCredentials clientCredentials = (deviceIdentity as ProtocolGatewayIdentity)?.ClientCredentials;
+            return clientCredentials;
         }
     }
 }

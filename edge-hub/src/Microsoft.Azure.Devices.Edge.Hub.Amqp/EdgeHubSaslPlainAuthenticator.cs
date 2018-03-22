@@ -14,12 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     public class EdgeHubSaslPlainAuthenticator : ISaslPlainAuthenticator
     {
         readonly IAuthenticator authenticator;
-        readonly IIdentityFactory identityFactory;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
+        readonly string iotHubHostName;
 
-        public EdgeHubSaslPlainAuthenticator(IAuthenticator authenticator, IIdentityFactory identityFactory)
+        public EdgeHubSaslPlainAuthenticator(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, string iotHubHostName)
         {
-            this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
+            this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
         }
 
         public async Task<IPrincipal> AuthenticateAsync(string identity, string password)
@@ -29,30 +31,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Preconditions.CheckNonWhiteSpace(identity, nameof(identity));
                 Preconditions.CheckNonWhiteSpace(password, nameof(password));
 
-                SaslIdentity saslIdentity = SaslIdentity.Parse(identity);
+                (string deviceId, string moduleId, string iotHubName) = SaslIdentity.Parse(identity);
 
                 // we MUST have a device ID
-                if(saslIdentity.DeviceId.HasValue == false)
+                if (string.IsNullOrWhiteSpace(deviceId))
                 {
                     throw new EdgeHubConnectionException("Identity does not contain device ID.");
                 }
 
-                Try<IIdentity> deviceIdentity = this.identityFactory.GetWithSasToken(
-                    saslIdentity.DeviceId.OrDefault(),
-                    saslIdentity.ModuleId.OrDefault(),
-                    // TODO: Figure out where the device client type parameter value should come from.
-                    string.Empty,
-                    saslIdentity.ModuleId.Map(_ => true).GetOrElse(false),
-                    password
-                );
-                if (!deviceIdentity.Success || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
+                if (!this.iotHubHostName.Equals(iotHubName))
+                {
+                    throw new EdgeHubConnectionException($"Identity contains an invalid IotHubHostName {iotHubName}, expected value {this.iotHubHostName}.");
+                }
+
+                // TODO: Figure out where the device client type parameter value should come from.
+                IClientCredentials deviceIdentity = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, password);
+
+                if (!await this.authenticator.AuthenticateAsync(deviceIdentity))
                 {
                     throw new EdgeHubConnectionException("Authentication failed.");
                 }
 
-                return new SaslPrincipal(saslIdentity, new AmqpAuthentication(true, Option.Some(deviceIdentity.Value)));
+                return new SaslPrincipal(new AmqpAuthentication(true, Option.Some(deviceIdentity)));
             }
-            catch(Exception ex) when (!ex.IsFatal())
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.AuthenticationError(ex);
                 throw;

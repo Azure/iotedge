@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
-    using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -74,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(c => new DeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IIdentityFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider)
+            builder.Register(c => new DeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider)
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
 

@@ -12,6 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     public interface IAuthenticator
     {
-        Task<bool> AuthenticateAsync(IIdentity identity);
+        Task<bool> AuthenticateAsync(IClientCredentials identity);
     }
 }

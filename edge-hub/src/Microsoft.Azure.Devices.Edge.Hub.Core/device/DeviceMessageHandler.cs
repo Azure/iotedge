@@ -20,19 +20,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
-        readonly Option<ICloudProxy> cloudProxy;
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
         const int GatewayTimeoutErrorCode = 504101;
         const int GenericBadRequest = 400000;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, Option<ICloudProxy> cloudProxy)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.cloudProxy = Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
         }
 
         public IIdentity Identity { get; }
@@ -67,12 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            if (this.Identity.Scope != AuthenticationScope.x509Cert)
-            {
-                ICloudListener cloudListener = new CloudListener(this.edgeHub, this.Identity.Id);
-                ICloudProxy cloudProxyValue = this.cloudProxy.Expect(() => new Exception("Error retrieving cloud proxy"));
-                cloudProxyValue.BindCloudListener(cloudListener);
-            }
+            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(this.Identity.Id);
+            cloudProxy.ForEach(c => c.BindCloudListener(new CloudListener(this.edgeHub, this.Identity.Id)));
             // This operation is async, but we cannot await in this sync method.
             // It is fine because the await part of the operation is cleanup and best effort. 
             this.connectionManager.AddDeviceConnection(this.Identity, this);
@@ -112,15 +106,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
             else
             {
-                return this.cloudProxy.ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+                return this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
             }
         }
 
-        public void StartListeningToC2DMessages() => this.cloudProxy.ForEach(c => c.StartListening());
+        public void StartListeningToC2DMessages() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEach(c => c.StartListening());
 
-        public Task SetupCallMethodAsync() => this.cloudProxy.ForEachAsync(c => c.SetupCallMethodAsync());
+        public Task SetupCallMethodAsync() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(c => c.SetupCallMethodAsync());
 
-        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.ForEachAsync(c => c.SetupDesiredPropertyUpdatesAsync());
+        public Task SetupDesiredPropertyUpdatesAsync() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(c => c.SetupDesiredPropertyUpdatesAsync());
 
         public async Task SendGetTwinRequest(string correlationId)
         {
@@ -229,6 +223,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public void SetInactive() => this.underlyingProxy.SetInactive();
 
         public bool IsActive => this.underlyingProxy.IsActive;
+
+        public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.underlyingProxy.GetUpdatedIdentity();
 
         #endregion
 

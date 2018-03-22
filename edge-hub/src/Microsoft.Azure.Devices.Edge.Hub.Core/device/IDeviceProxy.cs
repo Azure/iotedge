@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// The <c>IDeviceProxy</c> represents a connection to a device that is connected
@@ -37,5 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         IIdentity Identity { get; }
 
         void SetInactive();
+
+        Task<Option<IClientCredentials>> GetUpdatedIdentity();
     }
 }

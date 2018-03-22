@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(amqpAuthentication, amqpAuthentications[0]);
             }
             Assert.True(amqpAuthentications[0].IsAuthenticated);
-            Assert.Equal(identity, amqpAuthentications[0].Identity.OrDefault());
+            Assert.Equal(identity, amqpAuthentications[0].ClientCredentials.OrDefault().Identity);
             Mock.Get(connectionProvider).Verify(c => c.GetDeviceListenerAsync(It.IsAny<IIdentity>()), Times.AtMostOnce);
             Mock.Get(cbsNode).Verify(d => d.GetAmqpAuthentication(), Times.AtMostOnce);
         }
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity) == Task.FromResult(deviceListener));
 
-            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(identity));
+            var amqpAuthentication = new AmqpAuthentication(true, Option.Some(Mock.Of<IClientCredentials>(c => c.Identity == identity)));
             var cbsNode = Mock.Of<ICbsNode>(c => c.GetAmqpAuthentication() == Task.FromResult(amqpAuthentication));
             var amqpConnection = Mock.Of<IAmqpConnection>(c => c.FindExtension<ICbsNode>() == cbsNode);
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);

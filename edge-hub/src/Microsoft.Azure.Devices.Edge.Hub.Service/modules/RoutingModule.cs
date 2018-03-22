@@ -325,18 +325,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                     if (this.useTwinConfig)
                     {
-                        var identityFactory = c.Resolve<IIdentityFactory>();
-                        Try<IIdentity> edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
-                        if (!edgeHubIdentity.Success)
-                        {
-                            throw edgeHubIdentity.Exception;
-                        }
+                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                        IClientCredentials edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
                         var connectionManager = c.Resolve<IConnectionManager>();
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                         var twinManager = c.Resolve<ITwinManager>();
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubIdentity.Value, twinManager, connectionManager,
+                            edgeHubIdentity, twinManager, connectionManager,
                             routeFactory, twinCollectionMessageConverter,
                             twinMessageConverter, this.versionInfo
                         );

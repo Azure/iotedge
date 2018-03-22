@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Moq;
@@ -37,17 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 typeof(UnauthenticatedDeviceIdentity)
             };
 
-
-            yield return new object[]
-            {
-                "TestHub.azure-devices.net",
-                "Device_2",
-                $"127.0.0.1/Device_2/api-version=2016-11-14&DeviceClientType={Uri.EscapeDataString("Microsoft.Azure.Devices.Client/1.2.2")}",
-                sasToken.Substring(0, sasToken.Length - 20),
-                true,
-                typeof(UnauthenticatedDeviceIdentity)
-            };
-
             yield return new object[]
             {
                 "TestHub.azure-devices.net",
@@ -58,22 +46,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 typeof(UnauthenticatedDeviceIdentity)
             };
         }
-        
+
         [Theory]
         [Integration]
         [MemberData(nameof(GetIdentityProviderInputs))]
-        public async Task SasTokenDeviceIdentityProviderTest(
-            string iotHubHostName, 
+        public async Task GetDeviceIdentityTest(
+            string iotHubHostName,
             string clientId,
-            string username, 
+            string username,
             string password,
             bool authRetVal,
             Type expectedType)
         {
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<Identity>())).ReturnsAsync(authRetVal);
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
 
-            IDeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new IdentityFactory(iotHubHostName), false);
+            IDeviceIdentityProvider deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(iotHubHostName), false);
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
         }

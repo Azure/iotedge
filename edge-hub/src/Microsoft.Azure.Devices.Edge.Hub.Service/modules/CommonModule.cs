@@ -27,9 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IAuthenticator>()
                 .SingleInstance();
 
-            // IIdentityFactory
-            builder.Register(c => new IdentityFactory(this.iothubHostName, this.productInfo))
-                .As<IIdentityFactory>()
+            // IClientCredentialsFactory
+            builder.Register(c => new ClientCredentialsFactory(this.iothubHostName, this.productInfo))
+                .As<IClientCredentialsFactory>()
                 .SingleInstance();
 
             base.Load(builder);

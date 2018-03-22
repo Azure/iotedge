@@ -7,16 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     class ProtocolGatewayIdentity : ProtocolGateway.Identity.IDeviceIdentity
     {
-        public ProtocolGatewayIdentity(IIdentity identity)
+        public ProtocolGatewayIdentity(IClientCredentials clientCredentials)
         {
-            this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
+            this.ClientCredentials = Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
         }
 
         public bool IsAuthenticated => true;
 
-        public string Id => this.Identity.Id;
+        public string Id => this.ClientCredentials.Identity.Id;
 
-        public IIdentity Identity { get; }
+        public IClientCredentials ClientCredentials { get; }
 
         public override string ToString() => this.Id;
     }

@@ -51,13 +51,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IIdentity>();
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
-            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(identity)).ReturnsAsync(Try.Success(cloudProxy));
+            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try.Success(cloudProxy));
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(true);
 
             var authenticator = new Authenticator(connectionManager, "your-device");
-            Assert.Equal(true, await authenticator.AuthenticateAsync(identity));
+            Assert.Equal(true, await authenticator.AuthenticateAsync(clientCredentials));
         }
 
         [Fact]
@@ -66,13 +66,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IIdentity>();
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
-            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(identity)).ReturnsAsync(Try.Success(cloudProxy));
+            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try.Success(cloudProxy));
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(false);
 
             var authenticator = new Authenticator(connectionManager, "your-device");
-            Assert.Equal(false, await authenticator.AuthenticateAsync(identity));
+            Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
         }
 
         [Fact]
@@ -81,26 +81,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
-            var identity = Mock.Of<IIdentity>();
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
-            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(identity)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
+            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(true);
 
             var authenticator = new Authenticator(connectionManager, "your-device");
-            Assert.Equal(false, await authenticator.AuthenticateAsync(identity));
+            Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
         }
 
         [Fact]
         [Unit]
-        public async Task Authenticate_NonNullIdentityTest ()
+        public async Task Authenticate_NonNullIdentityTest()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            var moduleIdentity = Mock.Of<IModuleIdentity>();
-
-            Mock.Get(moduleIdentity).Setup(mi => mi.DeviceId).Returns("my-device");
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device"));
 
             var authenticator = new Authenticator(connectionManager, "your-device");
-            Assert.Equal(false, await authenticator.AuthenticateAsync(moduleIdentity));
+            Assert.Equal(false, await authenticator.AuthenticateAsync(clientCredentials));
         }
 
         [Fact]
@@ -115,16 +113,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
-        public async Task Authenticate_x509Identity()
+        public async Task Authenticate_X509Identity()
         {
             var connectionManager = Mock.Of<IConnectionManager>();
-            var moduleIdentity = Mock.Of<IModuleIdentity>();
-
-            Mock.Get(moduleIdentity).Setup(mi => mi.DeviceId).Returns("my-device");
-            Mock.Get(moduleIdentity).Setup(mi => mi.Scope).Returns(AuthenticationScope.x509Cert);
+            var clientCredentials = Mock.Of<IClientCredentials>(c =>
+                c.Identity == Mock.Of<IModuleIdentity>(i => i.DeviceId == "my-device")
+                && c.AuthenticationType == AuthenticationType.X509Cert);
 
             var authenticator = new Authenticator(connectionManager, "my-device");
-            Assert.Equal(true, await authenticator.AuthenticateAsync(moduleIdentity));
+            Assert.Equal(true, await authenticator.AuthenticateAsync(clientCredentials));
         }
     }
 }

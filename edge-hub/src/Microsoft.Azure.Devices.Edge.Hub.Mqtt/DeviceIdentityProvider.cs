@@ -5,13 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Net.Security;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -19,13 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class DeviceIdentityProvider : IDeviceIdentityProvider
     {
         readonly IAuthenticator authenticator;
-        readonly IIdentityFactory identityFactory;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
 
-        public DeviceIdentityProvider(IAuthenticator authenticator, IIdentityFactory identityFactory, bool clientCertAuthAllowed)
+        public DeviceIdentityProvider(IAuthenticator authenticator, IClientCredentialsFactory clientCredentialsFactory, bool clientCertAuthAllowed)
         {
             this.authenticator = authenticator;
-            this.identityFactory = identityFactory;
+            this.clientCredentialsFactory = clientCredentialsFactory;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
         }
 
@@ -36,33 +33,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(username, nameof(username));
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
-                (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) = ParseUserName(username);
-                Try<IIdentity> deviceIdentity;
+                (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
+                IClientCredentials deviceCredentials;
                 // This is a very weak check for now. In the future, we need to save client certs in a dictionary of
                 // module name to client cert. We would then retrieve the cert here. We also will need to handle
                 // revocation of certs.
-                if ((password == null) && (this.clientCertAuthAllowed))
+                if (password == null && this.clientCertAuthAllowed)
                 {
-                    deviceIdentity = this.identityFactory.GetWithX509Cert(
+                    deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
                         deviceId,
                         moduleId,
-                        deviceClientType,
-                        isModuleIdentity);
+                        deviceClientType);
                 }
                 else
                 {
-                    deviceIdentity = this.identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, isModuleIdentity, password);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password);
                 }
 
-                if (!deviceIdentity.Success
-                        || !clientId.Equals(deviceIdentity.Value.Id, StringComparison.Ordinal)
-                        || !await this.authenticator.AuthenticateAsync(deviceIdentity.Value))
+                if (deviceCredentials == null
+                    || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
+                    || !await this.authenticator.AuthenticateAsync(deviceCredentials))
                 {
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
                 Events.Success(clientId, username);
-                return new ProtocolGatewayIdentity(deviceIdentity.Value);
+                return new ProtocolGatewayIdentity(deviceCredentials);
             }
             catch (Exception ex)
             {
@@ -71,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        internal static (string deviceId, string moduleId, string deviceClientType, bool isModuleIdentity) ParseUserName(string username)
+        internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
         {
             // Username is of the form:
             //   username   = edgeHubHostName "/" deviceId "/" [moduleId "/"] properties
@@ -85,11 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
             if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
             {
-                return (usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]), false);
+                return (usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]));
             }
             else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
             {
-                return (usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]), true);
+                return (usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]));
             }
             // The Azure ML container is using an older client that returns a device client with the following format -
             // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
@@ -98,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
             {
                 string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-                return (usernameSegments[1], usernameSegments[2], deviceClientType, true);
+                return (usernameSegments[1], usernameSegments[2], deviceClientType);
             }
             else
             {

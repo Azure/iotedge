@@ -14,6 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<bool> CloseAsync();
 
-        Task<ICloudProxy> CreateOrUpdateAsync(IIdentity newIdentity);
+        Task<ICloudProxy> CreateOrUpdateAsync(IClientCredentials newCredentials);
     }
 }

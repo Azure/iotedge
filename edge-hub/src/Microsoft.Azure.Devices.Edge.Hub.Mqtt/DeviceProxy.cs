@@ -107,6 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool IsActive => this.isActive.Get();
 
+        public Task<Option<IClientCredentials>> GetUpdatedIdentity() => Task.FromResult(Option.None<IClientCredentials>());
+
         static class Events
         {
             static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceProxy>();

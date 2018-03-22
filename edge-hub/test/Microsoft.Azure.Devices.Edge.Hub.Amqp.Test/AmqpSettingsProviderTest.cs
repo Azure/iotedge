@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string HostName = "edge.ms.com";
             const string IotHubHostName = "restaurantatendofuniverse.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
-            var identityFactory = new Mock<IIdentityFactory>();
+            var identityFactory = new Mock<IClientCredentialsFactory>();
             var linkHandlerProvider = Mock.Of<ILinkHandlerProvider>();
             var connectionProvider = Mock.Of<IConnectionProvider>();
             X509Certificate2 tlsCertificate = CertificateHelper.GenerateSelfSignedCert("TestCert");

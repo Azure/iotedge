@@ -3,7 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Encoding;
@@ -21,16 +20,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         static readonly AmqpSymbol LinkHandlerPropertyKey = new AmqpSymbol("AmqpProtocolHead.LinkHandler");
         readonly bool requireSecureTransport;
         readonly ILinkHandlerProvider linkHandlerProvider;
-        readonly IIdentityFactory identityFactory;
+        readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IAuthenticator authenticator;
         readonly IConnectionProvider connectionProvider;
         readonly string iotHubHostName;
 
-        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport, IIdentityFactory identityFactory, IAuthenticator authenticator, string iotHubHostName, IConnectionProvider connectionProvider)
+        public AmqpRuntimeProvider(ILinkHandlerProvider linkHandlerProvider, bool requireSecureTransport, IClientCredentialsFactory clientCredentialsFactory, IAuthenticator authenticator, string iotHubHostName, IConnectionProvider connectionProvider)
         {
             this.linkHandlerProvider = Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
             this.requireSecureTransport = Preconditions.CheckNotNull(requireSecureTransport, nameof(requireSecureTransport));
-            this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
+            this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
@@ -77,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             // and add it to the Extensions
             if (!(amqpConnection.Principal is SaslPrincipal || amqpConnection.Principal is X509Principal))
             {
-                ICbsNode cbsNode = new CbsNode(this.identityFactory, this.iotHubHostName, this.authenticator);
+                ICbsNode cbsNode = new CbsNode(this.clientCredentialsFactory, this.iotHubHostName, this.authenticator);
                 amqpConnection.Extensions.Add(cbsNode);
             }
 
