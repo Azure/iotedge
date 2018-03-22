@@ -121,10 +121,10 @@ mod tests {
     use docker_rs::apis::client::APIClient;
     use docker_rs::apis::configuration::Configuration;
     use docker_rs::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
-
-    use config::DockerConfig;
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
+
+    use config::DockerConfig;
     use module::DockerModule;
 
     fn create_api_client<T: 'static + Serialize>(

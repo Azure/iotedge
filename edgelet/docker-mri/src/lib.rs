@@ -27,6 +27,9 @@ extern crate tempfile;
 extern crate time;
 
 extern crate tokio_core;
+extern crate tokio_io;
+#[cfg(unix)]
+extern crate tokio_uds;
 
 extern crate docker_rs;
 extern crate edgelet_core;
@@ -37,14 +40,13 @@ extern crate edgelet_utils;
 extern crate edgelet_test_utils;
 
 mod config;
+mod docker_connector;
 mod error;
 mod module;
-#[cfg(unix)]
 mod runtime;
 
 pub use config::DockerConfig;
 pub use error::{Error, ErrorKind};
 pub use module::DockerModule;
 
-#[cfg(unix)]
 pub use runtime::DockerModuleRuntime;
