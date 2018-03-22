@@ -1,0 +1,8 @@
+[package]
+name = "hsm"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+
+[dependencies]
+hsm-sys = { path = "../hsm-sys"}
+failure = "0.1"

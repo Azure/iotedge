@@ -7,4 +7,6 @@ members = [
     "edgelet-grpc",
     "edgelet-utils",
     "edgelet-test-utils",
+    "hsm-rs",
+    "hsm-sys",
 ]

@@ -396,6 +396,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "hsm"
+version = "0.1.0"
+dependencies = [
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hsm-sys 0.1.0",
+]
+
+[[package]]
+name = "hsm-sys"
+version = "0.1.0"
+
+[[package]]
 name = "http"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
