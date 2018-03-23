@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
             this.deviceClient = Option.None<IDeviceClient>();
-            this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(desiredPropertiesSerDe));
+            this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(deviceClientProvider, nameof(deviceClientProvider)));
         }
 

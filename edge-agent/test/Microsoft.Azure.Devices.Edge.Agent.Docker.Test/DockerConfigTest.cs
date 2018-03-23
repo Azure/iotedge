@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config2 = new DockerConfig("image2:42");
         static readonly DockerConfig Config3 = new DockerConfig("image1:42");
         static readonly DockerConfig Config4 = new DockerConfig("image1:43");
+        static readonly DockerConfig ConfigWithWhitespace = new DockerConfig(" image1:42 ");
         
         static readonly DockerConfig Config5 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
         static readonly DockerConfig Config6 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}");
@@ -39,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.False(Config1.Equals(null));
             Assert.False(Config1.Equals((object)null));
             Assert.False(Config1.Equals(new object()));
+            Assert.Equal(Config1, ConfigWithWhitespace);
         }
     }
 }
