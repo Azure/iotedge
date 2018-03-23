@@ -74,8 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.Equal(tag, testTag);
         }
 
-        //TODO: INVESTIGATE/FIX AND ENABLE ASAP. Bug: 1912576
-        [Fact(Skip = "Failing, needs investigation.")]
         [Integration]
         public async Task ImageNotFoundTest()
         {
