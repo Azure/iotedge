@@ -14,7 +14,6 @@ serde_derive = "1.0"
 serde_json = "1.0"
 tokio-core = "0.1"
 tokio-io = "0.1"
-tokio-uds = "0.1.7"
 url = "1.7"
 
 docker-rs = { path = "../docker-rs" }
@@ -23,8 +22,10 @@ edgelet-utils = { path = "../edgelet-utils" }
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.4"
+tokio-uds = "0.1.7"
 
 [dev_dependencies]
+scopeguard = "0.3.3"
 tempfile = "2"
 time = "0.1"
 

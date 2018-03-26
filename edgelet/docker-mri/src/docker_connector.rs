@@ -34,7 +34,7 @@ use error::{Error, ErrorKind};
 const UNIX_SCHEME: &str = "unix";
 const HTTP_SCHEME: &str = "http";
 
-pub(crate) enum DockerConnector {
+pub enum DockerConnector {
     Http(HttpConnector),
     #[cfg(unix)] Unix(UnixConnector),
 }
@@ -61,7 +61,7 @@ impl DockerConnector {
     }
 }
 
-pub(crate) enum StreamSelector {
+pub enum StreamSelector {
     Tcp(TcpStream),
     #[cfg(unix)] Unix(UnixStream),
 }
@@ -127,5 +127,57 @@ impl Service for DockerConnector {
                     .and_then(|unix_stream| Ok(StreamSelector::Unix(unix_stream))),
             ) as Self::Future,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(unix)]
+    use tempfile::NamedTempFile;
+    use tokio_core::reactor::Core;
+    use url::Url;
+
+    use docker_connector::DockerConnector;
+
+    #[test]
+    #[should_panic(expected = "Invalid docker URI")]
+    fn invalid_url_scheme() {
+        let core = Core::new().unwrap();
+        let _connector = DockerConnector::new(
+            &Url::parse("foo:///this/is/not/valid").unwrap(),
+            &core.handle(),
+        ).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    #[should_panic(expected = "Invalid unix domain socket URI")]
+    fn invalid_uds_url() {
+        let core = Core::new().unwrap();
+        let _connector = DockerConnector::new(
+            &Url::parse("unix:///this/file/does/not/exist").unwrap(),
+            &core.handle(),
+        ).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn create_uds_succeeds() {
+        let core = Core::new().unwrap();
+        let file = NamedTempFile::new().unwrap();
+        let file_path = file.path().to_str().unwrap();
+        let _connector = DockerConnector::new(
+            &Url::parse(&format!("unix://{}", file_path)).unwrap(),
+            &core.handle(),
+        ).unwrap();
+    }
+
+    #[test]
+    fn create_http_succeeds() {
+        let core = Core::new().unwrap();
+        let _connector = DockerConnector::new(
+            &Url::parse("http://localhost:2375").unwrap(),
+            &core.handle(),
+        ).unwrap();
     }
 }
