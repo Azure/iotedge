@@ -25,5 +25,80 @@ mod error;
 pub mod macros;
 mod ser_de;
 
+use std::collections::HashMap;
+
 pub use error::{Error, ErrorKind};
 pub use ser_de::string_or_struct;
+
+pub fn parse_query(query: &str) -> HashMap<&str, &str> {
+    query
+        .split('&')
+        .filter_map(|seg| {
+            if !seg.is_empty() {
+                let mut tokens = seg.splitn(2, '=');
+                if let Some(key) = tokens.nth(0) {
+                    let val = tokens.nth(0).unwrap_or("");
+                    Some((key, val))
+                } else {
+                    // if there's no key then we ignore this token
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_query_empty_input() {
+        assert_eq!(0, parse_query("").len());
+    }
+
+    #[test]
+    fn parse_query_white_space_input() {
+        let inp = "     ";
+        let map = parse_query(inp);
+        assert_eq!(map.get(inp), Some(&""));
+    }
+
+    #[test]
+    fn parse_query_simple_str_input() {
+        let inp = "some_string";
+        let map = parse_query(inp);
+        assert_eq!(map.get(inp), Some(&""));
+    }
+
+    #[test]
+    fn parse_query_key_but_no_value_input() {
+        let map = parse_query("k1=");
+        assert_eq!(map.get("k1"), Some(&""));
+    }
+
+    #[test]
+    fn parse_query_single_key_value() {
+        let map = parse_query("k1=v1");
+        assert_eq!(map.get("k1"), Some(&"v1"));
+    }
+
+    #[test]
+    fn parse_query_multiple_key_value() {
+        let map = parse_query("k1=v1&k2=v2");
+        assert_eq!(map.get("k1"), Some(&"v1"));
+        assert_eq!(map.get("k2"), Some(&"v2"));
+    }
+
+    #[test]
+    fn parse_query_complex_input() {
+        let map = parse_query("k1=10&k2=v2&k3=this%20is%20a%20string&bling&k4=10=20");
+        assert_eq!(map.get("k1"), Some(&"10"));
+        assert_eq!(map.get("k2"), Some(&"v2"));
+        assert_eq!(map.get("k3"), Some(&"this%20is%20a%20string"));
+        assert_eq!(map.get("k4"), Some(&"10=20"));
+        assert_eq!(map.get("bling"), Some(&""));
+    }
+}
