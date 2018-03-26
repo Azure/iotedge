@@ -98,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled = this.Configuration.GetValue<bool>("ClientCertAuthEnabled", false);
             string caChainPath = this.Configuration.GetValue<string>("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
 
-            string hostName = this.Configuration.GetValue<string>("HostName");
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
 
             var builder = new ContainerBuilder();
@@ -138,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath));
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], hostName, amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
 

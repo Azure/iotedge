@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
     public static class AmqpSettingsProvider
     {
         public static AmqpSettings GetDefaultAmqpSettings(
-            string hostName,
             string iotHubHostName,
             X509Certificate2 tlsCertificate,
             IAuthenticator authenticator,
@@ -23,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             ILinkHandlerProvider linkHandlerProvider,
             IConnectionProvider connectionProvider)
         {
-            Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
             Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));

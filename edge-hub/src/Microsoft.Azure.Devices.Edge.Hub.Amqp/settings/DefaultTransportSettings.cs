@@ -13,8 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             string scheme,
             string hostName,
             int port,
-            X509Certificate2 tlsCertificate
-        )
+            X509Certificate2 tlsCertificate)
         {
             this.HostName = Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
 

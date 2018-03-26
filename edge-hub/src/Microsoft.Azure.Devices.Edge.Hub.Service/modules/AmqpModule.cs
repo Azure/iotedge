@@ -15,21 +15,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     public class AmqpModule : Module
     {
+        // Azure AMQP Library needs HostName to figure out the IP Addresses on
+        // which to listen to for incoming connections. If you pass in the
+        // fully qualified hostname or "localhost" it uses IPAddress.IPV6Any (which is what we want)
+        // However, the code to get the fully qualified hostname - Dns.GetHostEntry(string.Empty).HostName
+        // does not work on Linux. So hardcode HostName for AMQP to "localhost"
+        const string HostName = "localhost";
         readonly string scheme;
-        readonly string hostName;
         readonly int port;
         readonly X509Certificate2 tlsCertificate;
         readonly string iotHubHostName;
 
         public AmqpModule(
             string scheme,
-            string hostName,
             int port,
             X509Certificate2 tlsCertificate,
             string iotHubHostName)
         {
             this.scheme = Preconditions.CheckNonWhiteSpace(scheme, nameof(scheme));
-            this.hostName = Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
             this.port = Preconditions.CheckRange(port, 0, ushort.MaxValue, nameof(port));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
@@ -38,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // ITransportSettings
-            builder.Register(c => new DefaultTransportSettings(this.scheme, this.hostName, this.port, this.tlsCertificate))
+            builder.Register(c => new DefaultTransportSettings(this.scheme, HostName, this.port, this.tlsCertificate))
                 .As<ITransportSettings>()
                 .SingleInstance();
 
@@ -71,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
-                        this.hostName,
                         this.iotHubHostName,
                         this.tlsCertificate,
                         authenticator,
