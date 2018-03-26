@@ -3,25 +3,19 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
-    using System.Runtime.Loader;
     using System.Runtime.InteropServices;
+    using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
-    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
-    using Microsoft.Azure.Devices.ProtocolGateway;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -90,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     new HttpProtocolHead(hosting.WebHost),
                     await container.Resolve<Task<MqttProtocolHead>>(),
-                    await container.Resolve<Task<AmqpProtocolHead>>()
+                    // Temporarily turning off AMQP for the March '18 release. 
+                    //await container.Resolve<Task<AmqpProtocolHead>>()
                 }, logger))
             {
                 await protocolHead.StartAsync();
