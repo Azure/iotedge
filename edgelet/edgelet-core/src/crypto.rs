@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
+use consistenttime::ct_u8_slice_eq;
 use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -24,9 +25,15 @@ pub enum SignatureAlgorithm {
 }
 
 // TODO add cryptographically secure equal
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Signature {
     bytes: Bytes,
+}
+
+impl PartialEq for Signature {
+    fn eq(&self, other: &Signature) -> bool {
+        ct_u8_slice_eq(self.bytes.as_ref(), other.bytes.as_ref())
+    }
 }
 
 impl Signature {
@@ -130,17 +137,19 @@ mod tests {
         let result_hmac256 = in_memory_key.sign(signature_algorithm, data).unwrap();
 
         //Assert
-        let expected = [
+        let expected_bytes = [
             0xf7, 0xbc, 0x83, 0xf4, 0x30, 0x53, 0x84, 0x24, 0xb1, 0x32, 0x98, 0xe6, 0xaa, 0x6f,
             0xb1, 0x43, 0xef, 0x4d, 0x59, 0xa1, 0x49, 0x46, 0x17, 0x59, 0x97, 0x47, 0x9d, 0xbc,
             0x2d, 0x1a, 0x3c, 0xd8,
         ];
-        assert_eq!(expected, result_hmac256.as_bytes());
+        let expected_signature = Signature::new(Bytes::from(expected_bytes.as_ref()));
+
+        assert_eq!(expected_bytes, result_hmac256.as_bytes());
+        assert_eq!(expected_signature, result_hmac256);
     }
 
     #[test]
-    #[should_panic]
-    fn sha256_sign_test_data_not_mathing_shall_fail() {
+    fn sha256_sign_test_data_not_matching_shall_fail() {
         //Arrange
         let in_memory_key = InMemoryKey {
             key: Bytes::from("key"),
@@ -151,16 +160,18 @@ mod tests {
         let result_hmac256 = in_memory_key.sign(signature_algorithm, data).unwrap();
 
         //Assert
-        let expected = [
+        let expected_bytes = [
             0xf7, 0xbc, 0x83, 0xf4, 0x30, 0x53, 0x84, 0x24, 0xb1, 0x32, 0x98, 0xe6, 0xaa, 0x6f,
             0xb1, 0x43, 0xef, 0x4d, 0x59, 0xa1, 0x49, 0x46, 0x17, 0x59, 0x97, 0x47, 0x9d, 0xbc,
             0x2d, 0x1a, 0x3c, 0xd8,
         ];
-        assert_eq!(expected, result_hmac256.as_bytes());
+
+        let expected_signature = Signature::new(Bytes::from(expected_bytes.as_ref()));
+
+        assert_ne!(expected_signature, result_hmac256);
     }
 
     #[test]
-    #[should_panic]
     fn sha256_sign_test_key_not_mathing_shall_fail() {
         //Arrange
         let in_memory_key = InMemoryKey {
@@ -177,7 +188,8 @@ mod tests {
             0xb1, 0x43, 0xef, 0x4d, 0x59, 0xa1, 0x49, 0x46, 0x17, 0x59, 0x97, 0x47, 0x9d, 0xbc,
             0x2d, 0x1a, 0x3c, 0xd8,
         ];
-        assert_eq!(expected, result_hmac256.as_bytes());
+
+        assert_ne!(expected, result_hmac256.as_bytes());
     }
 
     //MemoryKeyStoreTests
