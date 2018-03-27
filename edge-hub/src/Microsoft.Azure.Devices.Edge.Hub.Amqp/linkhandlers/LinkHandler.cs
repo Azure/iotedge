@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     public abstract class LinkHandler : ILinkHandler
     {
         IDeviceListener deviceListener;
-        string correlationId;
 
         protected LinkHandler(IAmqpLink link, Uri requestUri,
             IDictionary<string, string> boundVariables, IMessageConverter<AmqpMessage> messageConverter)
@@ -34,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.ConnectionHandler = this.Link.Session.Connection.FindExtension<IConnectionHandler>();
             this.DeviceId = this.BoundVariables.ContainsKey(Templates.DeviceIdTemplateParameterName) ? this.BoundVariables[Templates.DeviceIdTemplateParameterName] : string.Empty;
             this.ModuleId = this.BoundVariables.ContainsKey(Templates.ModuleIdTemplateParameterName) ? this.BoundVariables[Templates.ModuleIdTemplateParameterName] : string.Empty;
-            this.correlationId = Guid.NewGuid().ToString();
         }
 
         protected string DeviceId { get; }

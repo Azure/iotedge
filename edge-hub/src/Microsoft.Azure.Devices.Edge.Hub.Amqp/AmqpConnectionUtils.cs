@@ -10,7 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public static string GetCorrelationId(IAmqpLink link)
         {
             Preconditions.CheckNotNull(link, nameof(link));
-            Preconditions.CheckNotNull(link.Settings?.Properties, "link.Settings.Properties");
+
+            if (link.Settings?.Properties == null)
+            {
+                throw new ArgumentException("AmqpLink.Settings.Properties should not be null");
+            }
 
             if (link.Settings.Properties.TryGetValue(IotHubAmqpProperty.ChannelCorrelationId, out object cid))
             {

@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async Task SendMessageTest()
         {
             // Arrange
-            FeedbackStatus feedbackStatus = FeedbackStatus.Abandon;
+            var feedbackStatus = FeedbackStatus.Abandon;
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
                 .Callback<string, FeedbackStatus>((m, s) => feedbackStatus = s)

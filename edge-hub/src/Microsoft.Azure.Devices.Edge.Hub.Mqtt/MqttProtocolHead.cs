@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.ProtocolGateway;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
@@ -63,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.caCertChain = clientCertAuthAllowed
-                ? this.GetCAChainCerts(Preconditions.CheckNonWhiteSpace(caChainPath, nameof(caCertChain)))
+                ? this.GetCaChainCerts(Preconditions.CheckNonWhiteSpace(caChainPath, nameof(this.caCertChain)))
                 : Option.None<IList<X509Certificate2>>();
         }
 
@@ -184,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             return boostrap;
         }
 
-        Option<IList<X509Certificate2>> GetCAChainCerts(string caChainPath)
+        Option<IList<X509Certificate2>> GetCaChainCerts(string caChainPath)
         {
             if (!string.IsNullOrWhiteSpace(caChainPath))
             {

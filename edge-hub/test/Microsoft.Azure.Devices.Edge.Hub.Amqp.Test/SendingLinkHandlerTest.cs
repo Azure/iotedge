@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async Task SendMessageWithFeedbackTest()
         {
             // Arrange
-            FeedbackStatus feedbackStatus = FeedbackStatus.Abandon;
+            var feedbackStatus = FeedbackStatus.Abandon;
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
                 .Callback<string, FeedbackStatus>((m, s) => feedbackStatus = s)
@@ -69,10 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async Task SendMessageWithNoFeedbackTest()
         {
             // Arrange
-            FeedbackStatus feedbackStatus = FeedbackStatus.Abandon;
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
-                .Callback<string, FeedbackStatus>((m, s) => feedbackStatus = s)
                 .Returns(Task.CompletedTask);
             AmqpMessage receivedAmqpMessage = null;
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object)

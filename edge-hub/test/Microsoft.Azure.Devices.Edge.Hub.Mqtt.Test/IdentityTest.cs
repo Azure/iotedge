@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -21,37 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         static readonly string ApiVersion = "api-version=2016-11-14";
         static readonly string ProductInfo = "don't care";
         static readonly string DeviceClientType = $"DeviceClientType={ProductInfo}";
-
-        static IEnumerable<object[]> GetConnectionStringInputs()
-        {
-            var connStrParts = new Dictionary<string, string>
-            {
-                { "HostName", Hostname },
-                { "DeviceId", DeviceId },
-                { "SharedAccessSignature", $"{SasToken}" },
-                { "X509Cert", "False" },
-            };
-
-            var connStrBuilder = new StringBuilder();
-            foreach (KeyValuePair<string, string> part in connStrParts)
-            {
-                if (connStrBuilder.Length > 0)
-                {
-                    connStrBuilder.Append(";");
-                }
-                connStrBuilder.Append($"{part.Key}={part.Value}");
-            }
-
-            yield return new object[]
-            {
-                Hostname,
-                DeviceId,
-                AuthenticationType.Token,
-                null,
-                SasToken,
-                connStrBuilder.ToString()
-            };
-        }
 
         static IEnumerable<object[]> GetIdentityInputs()
         {

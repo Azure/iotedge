@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                     Events.ProcessedTwinGetRequest(this);
                     break;
                 case TwinPatch:
-                    var reportedPropertiesMessage = new EdgeMessage.Builder(amqpMessage.GetPayloadBytes()).Build();
+                    EdgeMessage reportedPropertiesMessage = new EdgeMessage.Builder(amqpMessage.GetPayloadBytes()).Build();
                     await this.DeviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, correlationId);
                     Events.ProcessedTwinReportedPropertiesUpdate(this);
                     break;

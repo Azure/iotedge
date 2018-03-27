@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
+namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
 
     public static class CertificateHelper
     {
-        public static string GetSHA256Thumbprint(X509Certificate2 cert)
+        public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
             using (var sha256 = new SHA256Managed())
@@ -45,16 +45,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
 
             try
             {
-                bool chainBuildSucceeded = chain.Build(cert as X509Certificate2 ?? new X509Certificate2(cert.Export(X509ContentType.Cert)));
+                bool chainBuildSucceeded = chain.Build(cert);
                 X509ChainStatusFlags flags = X509ChainStatusFlags.UntrustedRoot | X509ChainStatusFlags.PartialChain;
-                IEnumerable<X509ChainStatus> filteredStatus = chain.ChainStatus.Where(cs => !flags.HasFlag(cs.Status));
-                if (!chainBuildSucceeded || filteredStatus.Any())
+                List<X509ChainStatus> filteredStatus = chain.ChainStatus.Where(cs => !flags.HasFlag(cs.Status)).ToList();
+                if (!chainBuildSucceeded || filteredStatus.Count > 0)
                 {
                     string errors = $"Certificate with subject: {cert.Subject} failed with errors: ";
                     string s = filteredStatus
                         .Select(c => c.StatusInformation)
                         .Aggregate(errors, (prev, curr) => $"{prev} {curr}");
-                    return (new List<X509Certificate2>(), Option.Some(errors));
+                    return (new List<X509Certificate2>(), Option.Some(s));
                 }
 
                 IList<X509Certificate2> chainElements = GetCertificatesFromChain(chain);
@@ -84,9 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
             }
             foreach (X509Certificate2 chainElement in remoteCerts)
             {
-                string thumbprint = GetSHA256Thumbprint(chainElement);
-                if (remoteCertificateChain.Any(cert => GetSHA256Thumbprint(cert) == thumbprint) &&
-                    caChainCerts.Any(cert => GetSHA256Thumbprint(cert) == thumbprint))
+                string thumbprint = GetSha256Thumbprint(chainElement);
+                if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
+                    caChainCerts.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
                 {
                     match = true;
                     break;
@@ -95,10 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
 
             if (!match)
             {
-                return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSHA256Thumbprint(remoteCertificate)}"));
+                return (false, Option.Some($"Error validating cert with Subject: {remoteCertificate.SubjectName} Thumbprint: {GetSha256Thumbprint(remoteCertificate)}"));
             }
-
-            return (match, Option.None<string>());
+            else
+            {
+                return (true, Option.None<string>());
+            }
         }
 
         public static bool ValidateClientCert(X509Certificate certificate, X509Chain chain, Option<IList<X509Certificate2>> caChainCerts, ILogger logger)
@@ -107,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
             Preconditions.CheckNotNull(chain);
             Preconditions.CheckNotNull(logger);
 
-            X509Certificate2 newCert = new X509Certificate2(certificate);
+            var newCert = new X509Certificate2(certificate);
 
             if (!caChainCerts.HasValue)
             {
@@ -145,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
 
-            X509Certificate2 cert = new X509Certificate2(X509Certificate.CreateFromCertFile(path));
+            var cert = new X509Certificate2(X509Certificate.CreateFromCertFile(path));
             (IList<X509Certificate2> chainCerts, Option<string> errors) = BuildCertificateList(cert);
             if (errors.HasValue)
             {
@@ -156,10 +158,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
 
         public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
         {
-            using (X509Store store = new X509Store(name, location))
+            List<X509Certificate2> certsList = Preconditions.CheckNotNull(certs, nameof(certs)).ToList();
+            using (var store = new X509Store(name, location))
             {
                 store.Open(OpenFlags.ReadWrite);
-                foreach (var cert in certs)
+                foreach (X509Certificate2 cert in certsList)
                 {
                     store.Add(cert);
                 }
@@ -173,12 +176,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.CertificateHelper
                 throw new ArgumentException($"'{certPath}' is not a path to a certificate collection file");
             }
 
-            using (StreamReader sr = new StreamReader(certPath))
+            using (var sr = new StreamReader(certPath))
             {
                 // Extract each certificate's string. The final string from the split will either be empty
                 // or a non-certificate entry, so it is dropped.
                 string delimiter = @"-----END CERTIFICATE-----";
-                string[] rawCerts = sr.ReadToEnd().Split(new []{delimiter}, StringSplitOptions.None);
+                string[] rawCerts = sr.ReadToEnd().Split(new[] { delimiter }, StringSplitOptions.None);
                 return rawCerts
                     .Take(rawCerts.Count() - 1) // Drop the invalid entry
                     .Select(c => $"{c}\r\n{delimiter}") // Re-add the certificate end-marker which was removed by split

@@ -121,11 +121,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var connectionHandler = new ConnectionHandler(amqpConnection, connectionProvider);
 
             IMessage receivedMessage = null;
-            var c2dLinkHandler = new Mock<ISendingLinkHandler>();
-            c2dLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
+            var c2DLinkHandler = new Mock<ISendingLinkHandler>();
+            c2DLinkHandler.Setup(c => c.SendMessage(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedMessage = m)
                 .Returns(Task.CompletedTask);
-            c2dLinkHandler.SetupGet(c => c.Type)
+            c2DLinkHandler.SetupGet(c => c.Type)
                 .Returns(LinkType.C2D);
 
             var systemProperties = new Dictionary<string, string>();
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Act
             await connectionHandler.GetDeviceListener();
-            await connectionHandler.RegisterLinkHandler(c2dLinkHandler.Object);
+            await connectionHandler.RegisterLinkHandler(c2DLinkHandler.Object);
             await deviceProxy.SendC2DMessageAsync(messageToSend);
 
             // Assert

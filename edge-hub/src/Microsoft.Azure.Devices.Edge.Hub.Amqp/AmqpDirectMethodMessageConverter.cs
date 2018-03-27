@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             byte[] payload = amqpMessage.GetPayloadBytes();
 
-            var message = new EdgeMessage.Builder(payload)
+            EdgeMessage message = new EdgeMessage.Builder(payload)
                 .SetProperties(properties)
                 .Build();
             return message;

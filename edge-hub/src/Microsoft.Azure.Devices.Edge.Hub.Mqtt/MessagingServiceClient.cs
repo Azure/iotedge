@@ -21,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
-        IMessagingChannel<IProtocolGatewayMessage> messagingChannel;
 
         public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter)
         {
@@ -38,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IProtocolGatewayMessage> channel)
         {
-            this.messagingChannel = Preconditions.CheckNotNull(channel, nameof(channel));
             IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter);
             this.deviceListener.BindDeviceProxy(deviceProxy);
             Events.BindMessageChannel(this.deviceListener.Identity);

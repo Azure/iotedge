@@ -19,8 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void ToMessageTest()
         {
             // Arrange
-            IMessage receivedMessage = null;
-            byte[] bytes = new byte[] { 1, 2, 3, 4 };
+            IMessage receivedMessage;
+            byte[] bytes = { 1, 2, 3, 4 };
             string messageId = Guid.NewGuid().ToString();
             string correlationId = Guid.NewGuid().ToString();
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(bytes) }))
@@ -56,8 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void ToMessageTest_AllProperties()
         {
             // Arrange
-            IMessage receivedMessage = null;
-            byte[] bytes = new byte[] { 1, 2, 3, 4 };
+            IMessage receivedMessage;
+            byte[] bytes = { 1, 2, 3, 4 };
             string messageId = Guid.NewGuid().ToString();
             string correlationId = Guid.NewGuid().ToString();
             string contentType = "application/json";
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void FromMessageTest()
         {
             // Arrange
-            byte[] bytes = new byte[] { 1, 2, 3, 4 };
+            byte[] bytes = { 1, 2, 3, 4 };
             string messageId = Guid.NewGuid().ToString();
             string correlationId = Guid.NewGuid().ToString();
             string contentType = "UTF-8";
@@ -181,14 +181,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void FromMessageTest_AllProperties()
         {
             // Arrange
-            byte[] bytes = new byte[] { 1, 2, 3, 4 };
+            byte[] bytes = { 1, 2, 3, 4 };
             string messageId = Guid.NewGuid().ToString();
             string correlationId = Guid.NewGuid().ToString();
             string contentType = "UTF-8";
             string contentEncoding = "application/json";
             string to = "d1";
             string userId = "userId1";
-            DateTime expiryTime = new DateTime(2018, 2, 3, 02, 03, 04, DateTimeKind.Utc);
+            var expiryTime = new DateTime(2018, 2, 3, 02, 03, 04, DateTimeKind.Utc);
             string creationTime = new DateTime(2018, 1, 1, 02, 03, 04, DateTimeKind.Utc).ToString("o");
             var enqueuedTime = new DateTime(2018, 4, 5, 04, 05, 06, DateTimeKind.Utc);
             byte deliveryCount = 10;
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(contentType, amqpMessage.Properties.ContentType.ToString());
                 Assert.Equal(to, amqpMessage.Properties.To.ToString());
                 Assert.Equal(userId, Encoding.UTF8.GetString(amqpMessage.Properties.UserId.Array));
-                Assert.Equal(expiryTime, amqpMessage.Properties.AbsoluteExpiryTime.Value);
+                Assert.Equal(expiryTime, amqpMessage.Properties.AbsoluteExpiryTime.HasValue ? amqpMessage.Properties.AbsoluteExpiryTime.Value : DateTime.MinValue);
 
                 Assert.Equal(enqueuedTime, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsEnqueuedTimeKey]);
                 Assert.Equal(deliveryCount, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsDeliveryCountKey]);

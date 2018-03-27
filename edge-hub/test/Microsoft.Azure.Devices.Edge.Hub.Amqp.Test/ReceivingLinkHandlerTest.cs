@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
             var body = new byte[] { 0, 1, 2, 3 };
-            var message = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(body) });
+            AmqpMessage message = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(body) });
 
             // Act
             var receivingLinkHandler = new TestReceivingLinkHandler(receivingLink, requestUri, boundVariables, messageConverter);

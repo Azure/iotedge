@@ -4,12 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
+    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using CertificateHelper = Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
-    using CertificateHelper = CertificateHelper.CertificateHelper;
-    using System.Security.Cryptography.X509Certificates;
 
     [Unit]
     public class CertificateHelperTest
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void GetThumbprintNullCertThrows()
         {
-            Assert.Throws<ArgumentNullException>(() => CertificateHelper.GetSHA256Thumbprint(null));
+            Assert.Throws<ArgumentNullException>(() => CertificateHelper.GetSha256Thumbprint(null));
         }
 
         [Fact]
@@ -41,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         public void ValidateCertSuccess()
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
-            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new X509Certificate2[] { cert }, new X509Certificate2[] { cert });
+            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, new[] { cert });
             Assert.True(validated);
             Assert.False(errors.HasValue);
         }
@@ -51,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
             X509Certificate2 root = TestCertificateHelper.GenerateSelfSignedCert("root");
-            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new X509Certificate2[] { cert }, new X509Certificate2[] { root });
+            (bool validated, Option<string> errors) = CertificateHelper.ValidateCert(cert, new[] { cert }, new[] { root });
             Assert.False(validated);
             Assert.True(errors.HasValue);
         }
@@ -71,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         }
 
         [Fact]
-        public void ClientCertCallbackNoCACertsFails()
+        public void ClientCertCallbackNoCaCertsFails()
         {
             X509Certificate2 cert = TestCertificateHelper.GenerateSelfSignedCert("top secret");
             Assert.False(CertificateHelper.ValidateClientCert(cert, new X509Chain(),

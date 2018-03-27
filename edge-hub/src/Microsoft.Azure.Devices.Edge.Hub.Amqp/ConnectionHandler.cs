@@ -96,10 +96,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             var cbsNode = this.connection.FindExtension<ICbsNode>();
             if (cbsNode != null)
             {
-                AmqpAuthentication amqpAuthentication = await cbsNode.GetAmqpAuthentication();
-                if (amqpAuthentication.IsAuthenticated)
+                AmqpAuthentication updatedAmqpAuthentication = await cbsNode.GetAmqpAuthentication();
+                if (updatedAmqpAuthentication.IsAuthenticated)
                 {
-                    return amqpAuthentication.ClientCredentials;
+                    return updatedAmqpAuthentication.ClientCredentials;
                 }
             }
             return Option.None<IClientCredentials>();

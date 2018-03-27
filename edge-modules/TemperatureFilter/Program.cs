@@ -3,7 +3,7 @@
 namespace TemperatureFilter
 {
     using System;
-	using System.IO;
+    using System.IO;
     using System.Collections.Generic;
     using System.Net.Security;
     using System.Runtime.InteropServices;
@@ -99,8 +99,9 @@ namespace TemperatureFilter
                     }
 
                     // Pin the trusted root of the chain to the expected root certificate
-                    var actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    if (!expectedRoot.Equals(actualRoot)) {
+                    X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+                    if (!expectedRoot.Equals(actualRoot))
+                    {
                         Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");
                         return false;
                     }

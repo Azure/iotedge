@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
-        public async Task GetDeviceListenerWithSASIdentityTest()
+        public async Task GetDeviceListenerWithSasIdentityTest()
         {
             var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
@@ -61,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Unit]
         public async Task GetDeviceListenerWithX509IdentityTest()
         {
-            var cloudProxy = Mock.Of<ICloudProxy>();
             var connectionManager = Mock.Of<IConnectionManager>();
             var edgeHub = Mock.Of<IEdgeHub>();
             var moduleCredentials = new X509CertCredentials(new ModuleIdentity("hub", "device", "module"), string.Empty);

@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
-    using System.Linq;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
@@ -22,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
@@ -95,8 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.Configuration.GetValue<string>(Constants.SslCertEnvName));
             var tlsCertificate = new X509Certificate2(certPath);
 
-            bool clientCertAuthEnabled = this.Configuration.GetValue<bool>("ClientCertAuthEnabled", false);
-            string caChainPath = this.Configuration.GetValue<string>("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
+            bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
+            string caChainPath = this.Configuration.GetValue("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
 

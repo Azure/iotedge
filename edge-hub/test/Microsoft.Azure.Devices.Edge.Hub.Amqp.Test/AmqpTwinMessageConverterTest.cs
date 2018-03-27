@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 ["prop"] = "value",
                 ["$version"] = 1
             };
-            string correlationId = Guid.NewGuid().ToString();
+
             byte[] data = Encoding.UTF8.GetBytes(collection.ToJson());
             AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(data) });
             IMessageConverter<AmqpMessage> messageConverter = new AmqpTwinMessageConverter();

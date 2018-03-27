@@ -79,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connMgr = Mock.Of<IConnectionManager>();
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = Mock.Of<ICloudProxy>();
-            var deviceProxy = Mock.Of<IDeviceProxy>();
 
             IMessage receivedMessage = null;
             var edgeHub = new Mock<IEdgeHub>();
@@ -236,18 +235,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public void X509DeviceCanSendMessageTest()
+        public async Task X509DeviceCanSendMessageTest()
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
             var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var edgeHub = Mock.Of<IEdgeHub>();
-            var cloudProxy = Option.None<ICloudProxy>();
+            Option<ICloudProxy> cloudProxy = Option.None<ICloudProxy>();
             bool messageReceived = false;
+            string lockToken = null;
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
-                .Callback(() => messageReceived = true)
-                 .Returns(Task.CompletedTask);
+                .Callback<IMessage, string>((m ,i) =>
+                {
+                    messageReceived = true;
+                    lockToken = m.SystemProperties[SystemProperties.LockToken];
+                })
+                .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
@@ -255,7 +259,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             // send message to x509 device
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
             Assert.True(messageReceived);
+            Assert.True(sendMessageTask.IsCompletedSuccessfully);
         }
 
         DeviceMessageHandler GetDeviceMessageHandler()

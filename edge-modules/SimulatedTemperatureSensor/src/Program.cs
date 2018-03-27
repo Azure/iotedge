@@ -90,8 +90,9 @@ namespace SimulatedTemperatureSensor
                     }
 
                     // Pin the trusted root of the chain to the expected root certificate
-                    var actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    if (!expectedRoot.Equals(actualRoot)) {
+                    X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+                    if (!expectedRoot.Equals(actualRoot))
+                    {
                         Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");
                         return false;
                     }
