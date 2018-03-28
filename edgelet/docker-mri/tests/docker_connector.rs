@@ -13,7 +13,6 @@ extern crate url;
 extern crate docker_mri;
 extern crate edgelet_test_utils;
 
-use std::net::TcpListener;
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -29,17 +28,9 @@ use tokio_core::reactor::Core;
 use url::Url;
 
 use docker_mri::docker_connector::DockerConnector;
-use edgelet_test_utils::run_tcp_server;
+use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 #[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
-
-fn get_unused_tcp_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
 
 const GET_RESPONSE: &str = "Yo";
 

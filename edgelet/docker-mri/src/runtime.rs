@@ -24,14 +24,14 @@ impl DockerModuleRuntime {
             .build(handle);
 
         // extract base path - the bit that comes after the scheme
-        let base_path = docker_url.path();
+        let base_path = get_base_path(docker_url);
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path.to_string();
         configuration.uri_composer = Box::new(|base_path, path| {
             // TODO: We are using `unwrap` here instead of `map_err`
             //       because `hyper::error::UriError` cannot be
             //       instantiated (it relies on private types). We may
-            //       able to fix this by changing the definition of
+            //       be able to fix this by changing the definition of
             //       `uri_composer` in the `docker-rs` crate to return
             //       some other kind of error instead of `UriError`.
             Url::parse(base_path)
@@ -44,6 +44,13 @@ impl DockerModuleRuntime {
         Ok(DockerModuleRuntime {
             client: APIClient::new(configuration),
         })
+    }
+}
+
+fn get_base_path(url: &Url) -> &str {
+    match url.scheme() {
+        "unix" => url.path(),
+        _ => url.as_str(),
     }
 }
 
@@ -74,11 +81,18 @@ impl ModuleRegistry for DockerModuleRuntime {
 
 #[cfg(test)]
 mod tests {
+    use std::mem;
+
+    use futures::prelude::*;
     #[cfg(unix)]
     use tempfile::NamedTempFile;
     use tokio_core::reactor::Core;
     use url::Url;
 
+    use edgelet_core::ModuleRegistry;
+    use edgelet_utils::{Error as UtilsError, ErrorKind as UtilsErrorKind};
+
+    use error::{Error, ErrorKind};
     use runtime::DockerModuleRuntime;
 
     #[test]
@@ -104,7 +118,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn create_succeeds() {
+    fn create_with_uds_succeeds() {
         let core = Core::new().unwrap();
         let file = NamedTempFile::new().unwrap();
         let file_path = file.path().to_str().unwrap();
@@ -112,5 +126,55 @@ mod tests {
             &Url::parse(&format!("unix://{}", file_path)).unwrap(),
             &core.handle(),
         ).unwrap();
+    }
+
+    fn empty_test<F, R>(tester: F)
+    where
+        F: Fn(&mut DockerModuleRuntime) -> R,
+        R: Future<Item = (), Error = Error>,
+    {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = tester(&mut mri).then(|res| match res {
+            Ok(_) => Err("Expected error but got a result.".to_string()),
+            Err(err) => {
+                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
+                if mem::discriminant(err.kind())
+                    == mem::discriminant(&ErrorKind::Utils(utils_error))
+                {
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Wrong error kind. Expected `ArgumentEmpty` found {:?}",
+                        err
+                    ))
+                }
+            }
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn image_pull_with_empty_name_fails() {
+        empty_test(|ref mut mri| mri.pull(""));
+    }
+
+    #[test]
+    fn image_pull_with_white_space_name_fails() {
+        empty_test(|ref mut mri| mri.pull("     "));
+    }
+
+    #[test]
+    fn image_remove_with_empty_name_fails() {
+        empty_test(|ref mut mri| mri.remove(""));
+    }
+
+    #[test]
+    fn image_remove_with_white_space_name_fails() {
+        empty_test(|ref mut mri| mri.remove("     "));
     }
 }
