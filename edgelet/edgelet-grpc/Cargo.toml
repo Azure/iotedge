@@ -16,8 +16,15 @@ tokio-io = "0.1"
 tokio-uds = "0.1"
 tower = { git = "https://github.com/tower-rs/tower" }
 tower-h2 = { git = "https://github.com/tower-rs/tower-h2" }
+tower-http = { git = "https://github.com/tower-rs/tower-http" }
 tower-grpc = { git = "https://github.com/tower-rs/tower-grpc" }
 url = "1.6"
 
 [build-dependencies]
 tower-grpc-build = { git = "https://github.com/tower-rs/tower-grpc" }
+
+[dev-dependencies]
+bytes = "0.4"
+env_logger = "0.4"
+failure_derive = "0.1"
+tempfile = "3"

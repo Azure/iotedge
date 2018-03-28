@@ -53,6 +53,7 @@ where
 }
 
 /// A Connector using TCP as the underlying transport.
+#[derive(Debug)]
 pub struct TcpConnector {
     handle: Handle,
 }

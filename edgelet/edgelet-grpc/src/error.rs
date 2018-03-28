@@ -18,6 +18,7 @@ pub enum ErrorKind {
     #[fail(display = "An error occured in the core service.")] Core,
     #[fail(display = "Invalid Url.")] Url,
     #[fail(display = "An error occurred in the h2 layer.")] H2,
+    #[fail(display = "Missing scheme or authority.")] MissingAuthorityOrScheme,
 }
 
 impl Fail for Error {

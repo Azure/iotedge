@@ -13,6 +13,7 @@ use url::Url;
 use error::{Error, ErrorKind};
 
 /// A Connector using Unix Domain Sockets as the underlying transport.
+#[derive(Debug)]
 pub struct UnixConnector {
     handle: Handle,
 }
