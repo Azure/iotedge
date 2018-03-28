@@ -1,5 +1,5 @@
 ARG base_tag=1.0.0-preview002-linux-arm32v7
-FROM azureiotedge/azureiotedge-agent-base:${base_tag}
+FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ARG EXE_DIR=.
 ENV SSL_CERTIFICATE_PATH=/etc/ssl/certs
