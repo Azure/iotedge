@@ -58,10 +58,12 @@ class EdgeDockerClient(object):
         try:
             self._client.info()
             is_available = True
-        except docker.errors.APIError as ex:
-            msg = 'Could not connect to docker daemon. {0}'.format(ex)
+        except docker.errors.APIError as docker_ex:
+            msg = 'Could not connect to docker daemon. {0}'.format(docker_ex)
             logging.error(msg)
-
+        except Exception as ex:
+            msg = 'Docker is unavailable. Error:\n {0}'.format(ex)
+            logging.error(msg)
         return is_available
 
     def login(self, address, username, password):
@@ -252,7 +254,7 @@ class EdgeDockerClient(object):
             container_name (str): Name of the container
 
         Returns
-            Status as reprted by docker, None if the container was not found.
+            Status as reported by docker, None if the container was not found.
 
         Raises:
             edgectl.errors.EdgeDeploymentError if there were problems

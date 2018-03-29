@@ -178,18 +178,30 @@ class EdgeHostConfig(EdgeConfigBase):
             ValueError if value is None, empty or greater than 64 characters.
         """
         is_valid = False
-        msg = 'Invalid hostname. Hostname cannot be empty or ' \
-              'greater than 64 characters: {0}'.format(value)
         if value is not None:
             value = value.strip().lower()
             length = len(value)
-            if length > 0 and length <= 64:
+            if length == 0:
+                msg = 'Invalid hostname. Hostname cannot be empty. {0}'.format(value)
+            elif length > 64:
+                msg = 'Invalid hostname. Hostname cannot be ' \
+                      'greater than 64 characters. Hostname provided: {0}.\n' \
+                      'Hostnames are automatically determined from your system ' \
+                      'unless explicitly configured using --edge-hostname.\n' \
+                      'To address this error, configure the DNS name to ' \
+                      'be at most 64 characters and use the --edge-hostname ' \
+                      'option to provide the new value.\n' \
+                      'For more information see: ' \
+                      'https://go.microsoft.com/fwlink/?linkid=870615'.format(value)
+            else:
                 if value in ['localhost', '127.0.0.1', '::1', '0.0.0.0', '::0']:
                     msg = 'Hostname cannot be "localhost" or any of its variant IP addresses.' \
                           'The hostname must be a valid DNS (or machine) name.'
                 else:
                     self._config_dict[EC.HOSTNAME_KEY] = value
                     is_valid = True
+        else:
+            msg = 'Invalid hostname. Hostname cannot be None.'
 
         if is_valid is False:
             raise ValueError(msg)

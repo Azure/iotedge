@@ -22,7 +22,11 @@ class EdgeHostPlatform(object):
 
     @staticmethod
     def is_deployment_supported(deployment):
-        return EdgeDefault.is_deployment_supported(platform.system(), deployment)
+        result = EdgeDefault.is_deployment_supported(platform.system(), deployment)
+        if result is True:
+            dc = EdgeDockerClient()
+            result = dc.check_availability()
+        return result
 
     @staticmethod
     def get_supported_docker_engines():

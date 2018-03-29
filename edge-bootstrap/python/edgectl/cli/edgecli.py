@@ -64,13 +64,16 @@ class EdgeCLI(object):
         host = platform.system()
         if EdgeDefault.is_host_supported(host) is False:
             log.error('Unsupported host platform: %s.', host)
+        elif EdgeHostPlatform.is_deployment_supported(EC.DEPLOYMENT_DOCKER) is False:
+            log.error('Docker is not installed or is unavailable. Please ensure docker is installed and is up and running.')
         else:
             try:
                 if self._process_cli_args():
                     self._execute_command()
                     error_code = 0
             except edgectl.errors.EdgeError:
-                log.error('Exiting with errors. Return code: %s', str(error_code))
+                log.debug('Errors observed running %s command.', self._prog())
+
         if error_code != 0:
             log.error('Exiting with errors. Return code: %s', str(error_code))
         return error_code
