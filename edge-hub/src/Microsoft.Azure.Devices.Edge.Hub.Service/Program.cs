@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
@@ -83,8 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     new HttpProtocolHead(hosting.WebHost),
                     await container.Resolve<Task<MqttProtocolHead>>(),
-                    // Temporarily turning off AMQP for the March '18 release. 
-                    //await container.Resolve<Task<AmqpProtocolHead>>()
+                    await container.Resolve<Task<AmqpProtocolHead>>()
                 }, logger))
             {
                 await protocolHead.StartAsync();
