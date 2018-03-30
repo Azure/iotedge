@@ -37,13 +37,13 @@ namespace IotEdgeQuickstart
         public string ImageTag { get; } = Environment.GetEnvironmentVariable("imageTag");
 
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub. Default is an auto-generated unique identifier.")]
-        public string DeviceId { get; } = $"simulate-edge-device-test-{Guid.NewGuid()}";
+        public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
 
         [Option("-n|--edge-hostname", Description = "Edge device's hostname. Default is the fixed name \"quickstart\".")]
         public string EdgeHostname { get; } = "quickstart";
 
-        [Option("--leave-running", Description = "Do not uninstall IoT Edge runtime or delete device/modules in IoT Hub when the app is finished")]
-        public bool LeaveRunning { get; } = false;
+        [Option("--leave-running=<All/Core/None>", CommandOptionType.SingleOrNoValue, Description = "Leave IoT Edge running when the app is finished. Default is 'none' (and corresponding identities in IoT Hub will be removed). If given as a switch, assumes 'all'.")]
+        public LeaveRunning LeaveRunning { get; } = LeaveRunning.None;
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -102,5 +102,12 @@ namespace IotEdgeQuickstart
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return (vals[0], vals[1]);
         }
+    }
+
+    public enum LeaveRunning
+    {
+        All,  // don't clean up anything
+        Core, // remove modules/identities except Edge Agent & Hub
+        None  // iotedgectl stop, uninstall, remove device identity
     }
 }

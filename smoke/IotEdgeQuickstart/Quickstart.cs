@@ -8,7 +8,7 @@ namespace IotEdgeQuickstart
 
     public class Quickstart : Details
     {
-        readonly bool leaveRunning;
+        readonly LeaveRunning leaveRunning;
 
         public Quickstart(
             string iotedgectlArchivePath,
@@ -20,7 +20,7 @@ namespace IotEdgeQuickstart
             string imageTag,
             string deviceId,
             string hostname,
-            bool leaveRunning) :
+            LeaveRunning leaveRunning) :
             base(iotedgectlArchivePath, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath,
                 registryAddress, registryUser, registryPassword, imageTag, deviceId, hostname)
         {
@@ -52,6 +52,11 @@ namespace IotEdgeQuickstart
                     await DeployTempSensorToEdgeDevice();
                     await VerifyTempSensorIsRunning();
                     await VerifyTempSensorIsSendingDataToIotHub();
+
+                    if (this.leaveRunning == LeaveRunning.Core)
+                    {
+                        await RemoveTempSensorFromEdgeDevice();
+                    }
                 }
                 catch(Exception)
                 {
@@ -60,7 +65,7 @@ namespace IotEdgeQuickstart
                     throw;
                 }
 
-                if (!this.leaveRunning)
+                if (this.leaveRunning == LeaveRunning.None)
                 {
                     await IotedgectlStop();
                     await IotedgectlUninstall();
@@ -68,7 +73,7 @@ namespace IotEdgeQuickstart
             }
             finally
             {
-                if (!this.leaveRunning)
+                if (this.leaveRunning == LeaveRunning.None)
                 {
                     // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
                     await MaybeDeleteEdgeDeviceIdentity();

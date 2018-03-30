@@ -280,6 +280,18 @@ namespace IotEdgeQuickstart
             await eventHubClient.CloseAsync();
         }
 
+        protected Task RemoveTempSensorFromEdgeDevice()
+        {
+            string deployJson = DeployJson;
+            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", this.EdgeAgentImage());
+            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", this.EdgeHubImage());
+
+            var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
+            config.ModuleContent["$edgeAgent"].TargetContent["modules"] = new { };
+
+            return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
+        }
+
         protected static Task IotedgectlStop()
         {
             return RunProcessAsync("iotedgectl", "stop", 60);

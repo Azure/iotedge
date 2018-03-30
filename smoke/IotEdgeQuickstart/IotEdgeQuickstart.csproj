@@ -21,7 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.1.1" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.2.0-*" />
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.16.0-preview-003" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="1.1.0" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
