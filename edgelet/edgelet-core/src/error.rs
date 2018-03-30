@@ -12,9 +12,12 @@ pub struct Error {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")] Io,
-    #[fail(display = "A module runtime error occurred.")] ModuleRuntime,
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)] Sign(usize),
+    #[fail(display = "An IO error occurred.")]
+    Io,
+    #[fail(display = "A module runtime error occurred.")]
+    ModuleRuntime,
+    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
+    Sign(usize),
 }
 
 impl Fail for Error {

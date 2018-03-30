@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
-    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")] ID: Option<String>,
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
+    ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
     /// Date and time at which the node was added to the swarm in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format with nano-seconds.

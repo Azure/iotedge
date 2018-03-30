@@ -13,16 +13,26 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageSummary {
-    #[serde(rename = "Id")] id: String,
-    #[serde(rename = "ParentId")] parent_id: String,
-    #[serde(rename = "RepoTags")] repo_tags: Vec<String>,
-    #[serde(rename = "RepoDigests")] repo_digests: Vec<String>,
-    #[serde(rename = "Created")] created: i32,
-    #[serde(rename = "Size")] size: i32,
-    #[serde(rename = "SharedSize")] shared_size: i32,
-    #[serde(rename = "VirtualSize")] virtual_size: i32,
-    #[serde(rename = "Labels")] labels: ::std::collections::HashMap<String, String>,
-    #[serde(rename = "Containers")] containers: i32,
+    #[serde(rename = "Id")]
+    id: String,
+    #[serde(rename = "ParentId")]
+    parent_id: String,
+    #[serde(rename = "RepoTags")]
+    repo_tags: Vec<String>,
+    #[serde(rename = "RepoDigests")]
+    repo_digests: Vec<String>,
+    #[serde(rename = "Created")]
+    created: i32,
+    #[serde(rename = "Size")]
+    size: i32,
+    #[serde(rename = "SharedSize")]
+    shared_size: i32,
+    #[serde(rename = "VirtualSize")]
+    virtual_size: i32,
+    #[serde(rename = "Labels")]
+    labels: ::std::collections::HashMap<String, String>,
+    #[serde(rename = "Containers")]
+    containers: i32,
 }
 
 impl ImageSummary {

@@ -16,7 +16,8 @@ pub struct InlineResponse2011 {
     /// The ID of the created network.
     #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
     id: Option<String>,
-    #[serde(rename = "Warning", skip_serializing_if = "Option::is_none")] warning: Option<String>,
+    #[serde(rename = "Warning", skip_serializing_if = "Option::is_none")]
+    warning: Option<String>,
 }
 
 impl InlineResponse2011 {

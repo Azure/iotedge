@@ -13,13 +13,18 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildInfo {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")] id: Option<String>,
-    #[serde(rename = "stream", skip_serializing_if = "Option::is_none")] stream: Option<String>,
-    #[serde(rename = "error", skip_serializing_if = "Option::is_none")] error: Option<String>,
+    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(rename = "stream", skip_serializing_if = "Option::is_none")]
+    stream: Option<String>,
+    #[serde(rename = "error", skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
     #[serde(rename = "errorDetail", skip_serializing_if = "Option::is_none")]
     error_detail: Option<::models::ErrorDetail>,
-    #[serde(rename = "status", skip_serializing_if = "Option::is_none")] status: Option<String>,
-    #[serde(rename = "progress", skip_serializing_if = "Option::is_none")] progress: Option<String>,
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
+    status: Option<String>,
+    #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
+    progress: Option<String>,
     #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
     progress_detail: Option<::models::ProgressDetail>,
 }

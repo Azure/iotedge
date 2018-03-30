@@ -13,18 +13,26 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
-    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
-    #[serde(rename = "Id", skip_serializing_if = "Option::is_none")] id: Option<String>,
-    #[serde(rename = "Created", skip_serializing_if = "Option::is_none")] created: Option<String>,
-    #[serde(rename = "Scope", skip_serializing_if = "Option::is_none")] scope: Option<String>,
-    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")] driver: Option<String>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[serde(rename = "Created", skip_serializing_if = "Option::is_none")]
+    created: Option<String>,
+    #[serde(rename = "Scope", skip_serializing_if = "Option::is_none")]
+    scope: Option<String>,
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
+    driver: Option<String>,
     #[serde(rename = "EnableIPv6", skip_serializing_if = "Option::is_none")]
     enable_i_pv6: Option<bool>,
-    #[serde(rename = "IPAM", skip_serializing_if = "Option::is_none")] IPAM: Option<::models::Ipam>,
-    #[serde(rename = "Internal", skip_serializing_if = "Option::is_none")] internal: Option<bool>,
+    #[serde(rename = "IPAM", skip_serializing_if = "Option::is_none")]
+    IPAM: Option<::models::Ipam>,
+    #[serde(rename = "Internal", skip_serializing_if = "Option::is_none")]
+    internal: Option<bool>,
     #[serde(rename = "Attachable", skip_serializing_if = "Option::is_none")]
     attachable: Option<bool>,
-    #[serde(rename = "Ingress", skip_serializing_if = "Option::is_none")] ingress: Option<bool>,
+    #[serde(rename = "Ingress", skip_serializing_if = "Option::is_none")]
+    ingress: Option<bool>,
     #[serde(rename = "Containers", skip_serializing_if = "Option::is_none")]
     containers: Option<::std::collections::HashMap<String, ::models::NetworkContainer>>,
     #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]

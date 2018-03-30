@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigRootfs {
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")] _type: Option<String>,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    _type: Option<String>,
     #[serde(rename = "diff_ids", skip_serializing_if = "Option::is_none")]
     diff_ids: Option<Vec<String>>,
 }

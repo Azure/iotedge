@@ -14,11 +14,16 @@ pub struct Error {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")] Io,
-    #[fail(display = "An error occured in the core service.")] Core,
-    #[fail(display = "Invalid Url.")] Url,
-    #[fail(display = "An error occurred in the h2 layer.")] H2,
-    #[fail(display = "Missing scheme or authority.")] MissingAuthorityOrScheme,
+    #[fail(display = "An IO error occurred.")]
+    Io,
+    #[fail(display = "An error occured in the core service.")]
+    Core,
+    #[fail(display = "Invalid Url.")]
+    Url,
+    #[fail(display = "An error occurred in the h2 layer.")]
+    H2,
+    #[fail(display = "Missing scheme or authority.")]
+    MissingAuthorityOrScheme,
 }
 
 impl Fail for Error {

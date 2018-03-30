@@ -13,8 +13,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourcesBlkioWeightDevice {
-    #[serde(rename = "Path", skip_serializing_if = "Option::is_none")] path: Option<String>,
-    #[serde(rename = "Weight", skip_serializing_if = "Option::is_none")] weight: Option<i32>,
+    #[serde(rename = "Path", skip_serializing_if = "Option::is_none")]
+    path: Option<String>,
+    #[serde(rename = "Weight", skip_serializing_if = "Option::is_none")]
+    weight: Option<i32>,
 }
 
 impl ResourcesBlkioWeightDevice {

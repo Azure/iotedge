@@ -15,7 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ObjectVersion {
-    #[serde(rename = "Index", skip_serializing_if = "Option::is_none")] index: Option<i32>,
+    #[serde(rename = "Index", skip_serializing_if = "Option::is_none")]
+    index: Option<i32>,
 }
 
 impl ObjectVersion {

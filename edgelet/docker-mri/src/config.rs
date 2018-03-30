@@ -9,7 +9,8 @@ use error::Result;
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
-    #[serde(deserialize_with = "string_or_struct")] create_options: ContainerCreateBody,
+    #[serde(deserialize_with = "string_or_struct")]
+    create_options: ContainerCreateBody,
 }
 
 impl DockerConfig {

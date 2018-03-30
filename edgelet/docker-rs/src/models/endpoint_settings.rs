@@ -17,7 +17,8 @@ use serde_json::Value;
 pub struct EndpointSettings {
     #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
     ipam_config: Option<::models::EndpointIpamConfig>,
-    #[serde(rename = "Links", skip_serializing_if = "Option::is_none")] links: Option<Vec<String>>,
+    #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
+    links: Option<Vec<String>>,
     #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
     aliases: Option<Vec<String>>,
     /// Unique ID of the network.

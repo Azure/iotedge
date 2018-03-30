@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20011 {
-    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")] version: Option<String>,
+    #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
+    version: Option<String>,
     #[serde(rename = "ApiVersion", skip_serializing_if = "Option::is_none")]
     api_version: Option<String>,
     #[serde(rename = "MinAPIVersion", skip_serializing_if = "Option::is_none")]
@@ -22,8 +23,10 @@ pub struct InlineResponse20011 {
     git_commit: Option<String>,
     #[serde(rename = "GoVersion", skip_serializing_if = "Option::is_none")]
     go_version: Option<String>,
-    #[serde(rename = "Os", skip_serializing_if = "Option::is_none")] os: Option<String>,
-    #[serde(rename = "Arch", skip_serializing_if = "Option::is_none")] arch: Option<String>,
+    #[serde(rename = "Os", skip_serializing_if = "Option::is_none")]
+    os: Option<String>,
+    #[serde(rename = "Arch", skip_serializing_if = "Option::is_none")]
+    arch: Option<String>,
     #[serde(rename = "KernelVersion", skip_serializing_if = "Option::is_none")]
     kernel_version: Option<String>,
     #[serde(rename = "Experimental", skip_serializing_if = "Option::is_none")]

@@ -13,9 +13,12 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PushImageInfo {
-    #[serde(rename = "error", skip_serializing_if = "Option::is_none")] error: Option<String>,
-    #[serde(rename = "status", skip_serializing_if = "Option::is_none")] status: Option<String>,
-    #[serde(rename = "progress", skip_serializing_if = "Option::is_none")] progress: Option<String>,
+    #[serde(rename = "error", skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
+    status: Option<String>,
+    #[serde(rename = "progress", skip_serializing_if = "Option::is_none")]
+    progress: Option<String>,
     #[serde(rename = "progressDetail", skip_serializing_if = "Option::is_none")]
     progress_detail: Option<::models::ProgressDetail>,
 }

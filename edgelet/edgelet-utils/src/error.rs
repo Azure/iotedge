@@ -12,7 +12,8 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Invalid argument - [{}]", _0)] Argument(String),
+    #[fail(display = "Invalid argument - [{}]", _0)]
+    Argument(String),
 
     #[fail(display = "Argument {} out of range [{}, {}) ", _0, _1, _2)]
     ArgumentOutOfRange(String, String, String),
@@ -20,7 +21,8 @@ pub enum ErrorKind {
     #[fail(display = "Argument {} should be greater than {}", _0, _1)]
     ArgumentTooLow(String, String),
 
-    #[fail(display = "Argument is empty or only has whitespace - [{}]", _0)] ArgumentEmpty(String),
+    #[fail(display = "Argument is empty or only has whitespace - [{}]", _0)]
+    ArgumentEmpty(String),
 }
 
 impl Fail for Error {

@@ -77,7 +77,8 @@ mod tests {
 
     #[derive(Debug, Deserialize)]
     struct Container {
-        #[serde(deserialize_with = "string_or_struct")] options: Options,
+        #[serde(deserialize_with = "string_or_struct")]
+        options: Options,
     }
 
     #[test]

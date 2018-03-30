@@ -13,9 +13,12 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthConfig {
-    #[serde(rename = "username", skip_serializing_if = "Option::is_none")] username: Option<String>,
-    #[serde(rename = "password", skip_serializing_if = "Option::is_none")] password: Option<String>,
-    #[serde(rename = "email", skip_serializing_if = "Option::is_none")] email: Option<String>,
+    #[serde(rename = "username", skip_serializing_if = "Option::is_none")]
+    username: Option<String>,
+    #[serde(rename = "password", skip_serializing_if = "Option::is_none")]
+    password: Option<String>,
+    #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
+    email: Option<String>,
     #[serde(rename = "serveraddress", skip_serializing_if = "Option::is_none")]
     serveraddress: Option<String>,
 }

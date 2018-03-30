@@ -15,14 +15,20 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MountPoint {
-    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")] _type: Option<String>,
-    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
-    #[serde(rename = "Source", skip_serializing_if = "Option::is_none")] source: Option<String>,
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
+    _type: Option<String>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(rename = "Source", skip_serializing_if = "Option::is_none")]
+    source: Option<String>,
     #[serde(rename = "Destination", skip_serializing_if = "Option::is_none")]
     destination: Option<String>,
-    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")] driver: Option<String>,
-    #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")] mode: Option<String>,
-    #[serde(rename = "RW", skip_serializing_if = "Option::is_none")] RW: Option<bool>,
+    #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
+    driver: Option<String>,
+    #[serde(rename = "Mode", skip_serializing_if = "Option::is_none")]
+    mode: Option<String>,
+    #[serde(rename = "RW", skip_serializing_if = "Option::is_none")]
+    RW: Option<bool>,
     #[serde(rename = "Propagation", skip_serializing_if = "Option::is_none")]
     propagation: Option<String>,
 }

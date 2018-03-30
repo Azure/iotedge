@@ -15,7 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NodeDescription {
-    #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")] hostname: Option<String>,
+    #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
+    hostname: Option<String>,
     #[serde(rename = "Platform", skip_serializing_if = "Option::is_none")]
     platform: Option<::models::Platform>,
     #[serde(rename = "Resources", skip_serializing_if = "Option::is_none")]

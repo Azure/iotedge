@@ -15,8 +15,10 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigInterface {
-    #[serde(rename = "Types")] types: Vec<::models::PluginInterfaceType>,
-    #[serde(rename = "Socket")] socket: String,
+    #[serde(rename = "Types")]
+    types: Vec<::models::PluginInterfaceType>,
+    #[serde(rename = "Socket")]
+    socket: String,
 }
 
 impl PluginConfigInterface {

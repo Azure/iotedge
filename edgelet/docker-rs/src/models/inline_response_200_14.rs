@@ -13,9 +13,12 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InlineResponse20014 {
-    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")] ID: Option<String>,
-    #[serde(rename = "Running", skip_serializing_if = "Option::is_none")] running: Option<bool>,
-    #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")] exit_code: Option<i32>,
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
+    ID: Option<String>,
+    #[serde(rename = "Running", skip_serializing_if = "Option::is_none")]
+    running: Option<bool>,
+    #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")]
+    exit_code: Option<i32>,
     #[serde(rename = "ProcessConfig", skip_serializing_if = "Option::is_none")]
     process_config: Option<::models::ProcessConfig>,
     #[serde(rename = "OpenStdin", skip_serializing_if = "Option::is_none")]

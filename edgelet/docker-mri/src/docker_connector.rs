@@ -36,7 +36,8 @@ const HTTP_SCHEME: &str = "http";
 
 pub enum DockerConnector {
     Http(HttpConnector),
-    #[cfg(unix)] Unix(UnixConnector),
+    #[cfg(unix)]
+    Unix(UnixConnector),
 }
 
 impl DockerConnector {
@@ -63,7 +64,8 @@ impl DockerConnector {
 
 pub enum StreamSelector {
     Tcp(TcpStream),
-    #[cfg(unix)] Unix(UnixStream),
+    #[cfg(unix)]
+    Unix(UnixStream),
 }
 
 impl Read for StreamSelector {

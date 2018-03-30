@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NetworkContainer {
-    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")] name: Option<String>,
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
     #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
     endpoint_id: Option<String>,
     #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]

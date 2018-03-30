@@ -33,7 +33,8 @@ pub struct Task {
     /// The ID of the service this task is part of.
     #[serde(rename = "ServiceID", skip_serializing_if = "Option::is_none")]
     service_id: Option<String>,
-    #[serde(rename = "Slot", skip_serializing_if = "Option::is_none")] slot: Option<i32>,
+    #[serde(rename = "Slot", skip_serializing_if = "Option::is_none")]
+    slot: Option<i32>,
     /// The ID of the node that this task is on.
     #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]
     node_id: Option<String>,

@@ -31,7 +31,8 @@ use calculator::{AddReply, AddRequest};
 
 #[derive(Debug, Fail)]
 pub enum Error {
-    #[fail(display = "general failure")] General,
+    #[fail(display = "general failure")]
+    General,
 }
 
 trait Calculator {

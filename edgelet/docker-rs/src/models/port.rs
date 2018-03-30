@@ -15,14 +15,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Port {
-    #[serde(rename = "IP", skip_serializing_if = "Option::is_none")] IP: Option<String>,
+    #[serde(rename = "IP", skip_serializing_if = "Option::is_none")]
+    IP: Option<String>,
     /// Port on the container
     #[serde(rename = "PrivatePort")]
     private_port: i32,
     /// Port exposed on the host
     #[serde(rename = "PublicPort", skip_serializing_if = "Option::is_none")]
     public_port: Option<i32>,
-    #[serde(rename = "Type")] _type: String,
+    #[serde(rename = "Type")]
+    _type: String,
 }
 
 impl Port {

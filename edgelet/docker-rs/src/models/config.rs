@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")] ID: Option<String>,
+    #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
+    ID: Option<String>,
     #[serde(rename = "Version", skip_serializing_if = "Option::is_none")]
     version: Option<::models::ObjectVersion>,
     #[serde(rename = "CreatedAt", skip_serializing_if = "Option::is_none")]

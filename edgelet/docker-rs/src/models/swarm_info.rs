@@ -25,7 +25,8 @@ pub struct SwarmInfo {
     local_node_state: Option<::models::LocalNodeState>,
     #[serde(rename = "ControlAvailable", skip_serializing_if = "Option::is_none")]
     control_available: Option<bool>,
-    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")] error: Option<String>,
+    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
     /// List of ID's and addresses of other managers in the swarm.
     #[serde(rename = "RemoteManagers", skip_serializing_if = "Option::is_none")]
     remote_managers: Option<Vec<::models::PeerNode>>,

@@ -13,13 +13,20 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginMount {
-    #[serde(rename = "Name")] name: String,
-    #[serde(rename = "Description")] description: String,
-    #[serde(rename = "Settable")] settable: Vec<String>,
-    #[serde(rename = "Source")] source: String,
-    #[serde(rename = "Destination")] destination: String,
-    #[serde(rename = "Type")] _type: String,
-    #[serde(rename = "Options")] options: Vec<String>,
+    #[serde(rename = "Name")]
+    name: String,
+    #[serde(rename = "Description")]
+    description: String,
+    #[serde(rename = "Settable")]
+    settable: Vec<String>,
+    #[serde(rename = "Source")]
+    source: String,
+    #[serde(rename = "Destination")]
+    destination: String,
+    #[serde(rename = "Type")]
+    _type: String,
+    #[serde(rename = "Options")]
+    options: Vec<String>,
 }
 
 impl PluginMount {

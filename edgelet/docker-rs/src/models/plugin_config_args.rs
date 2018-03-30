@@ -13,10 +13,14 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigArgs {
-    #[serde(rename = "Name")] name: String,
-    #[serde(rename = "Description")] description: String,
-    #[serde(rename = "Settable")] settable: Vec<String>,
-    #[serde(rename = "Value")] value: Vec<String>,
+    #[serde(rename = "Name")]
+    name: String,
+    #[serde(rename = "Description")]
+    description: String,
+    #[serde(rename = "Settable")]
+    settable: Vec<String>,
+    #[serde(rename = "Value")]
+    value: Vec<String>,
 }
 
 impl PluginConfigArgs {

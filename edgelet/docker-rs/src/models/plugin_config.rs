@@ -18,21 +18,34 @@ pub struct PluginConfig {
     /// Docker Version used to create the plugin
     #[serde(rename = "DockerVersion", skip_serializing_if = "Option::is_none")]
     docker_version: Option<String>,
-    #[serde(rename = "Description")] description: String,
-    #[serde(rename = "Documentation")] documentation: String,
-    #[serde(rename = "Interface")] interface: ::models::PluginConfigInterface,
-    #[serde(rename = "Entrypoint")] entrypoint: Vec<String>,
-    #[serde(rename = "WorkDir")] work_dir: String,
+    #[serde(rename = "Description")]
+    description: String,
+    #[serde(rename = "Documentation")]
+    documentation: String,
+    #[serde(rename = "Interface")]
+    interface: ::models::PluginConfigInterface,
+    #[serde(rename = "Entrypoint")]
+    entrypoint: Vec<String>,
+    #[serde(rename = "WorkDir")]
+    work_dir: String,
     #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     user: Option<::models::PluginConfigUser>,
-    #[serde(rename = "Network")] network: ::models::PluginConfigNetwork,
-    #[serde(rename = "Linux")] linux: ::models::PluginConfigLinux,
-    #[serde(rename = "PropagatedMount")] propagated_mount: String,
-    #[serde(rename = "IpcHost")] ipc_host: bool,
-    #[serde(rename = "PidHost")] pid_host: bool,
-    #[serde(rename = "Mounts")] mounts: Vec<::models::PluginMount>,
-    #[serde(rename = "Env")] env: Vec<::models::PluginEnv>,
-    #[serde(rename = "Args")] args: ::models::PluginConfigArgs,
+    #[serde(rename = "Network")]
+    network: ::models::PluginConfigNetwork,
+    #[serde(rename = "Linux")]
+    linux: ::models::PluginConfigLinux,
+    #[serde(rename = "PropagatedMount")]
+    propagated_mount: String,
+    #[serde(rename = "IpcHost")]
+    ipc_host: bool,
+    #[serde(rename = "PidHost")]
+    pid_host: bool,
+    #[serde(rename = "Mounts")]
+    mounts: Vec<::models::PluginMount>,
+    #[serde(rename = "Env")]
+    env: Vec<::models::PluginEnv>,
+    #[serde(rename = "Args")]
+    args: ::models::PluginConfigArgs,
     #[serde(rename = "rootfs", skip_serializing_if = "Option::is_none")]
     rootfs: Option<::models::PluginConfigRootfs>,
 }

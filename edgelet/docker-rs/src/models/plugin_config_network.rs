@@ -13,7 +13,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginConfigNetwork {
-    #[serde(rename = "Type")] _type: String,
+    #[serde(rename = "Type")]
+    _type: String,
 }
 
 impl PluginConfigNetwork {

@@ -19,7 +19,8 @@ pub struct InlineResponse2008 {
     is_official: Option<bool>,
     #[serde(rename = "is_automated", skip_serializing_if = "Option::is_none")]
     is_automated: Option<bool>,
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")] name: Option<String>,
+    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
     #[serde(rename = "star_count", skip_serializing_if = "Option::is_none")]
     star_count: Option<i32>,
 }

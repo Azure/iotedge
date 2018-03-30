@@ -15,7 +15,8 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HostConfigLogConfig {
-    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")] _type: Option<String>,
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
+    _type: Option<String>,
     #[serde(rename = "Config", skip_serializing_if = "Option::is_none")]
     config: Option<::std::collections::HashMap<String, String>>,
 }

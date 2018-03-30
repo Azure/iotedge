@@ -18,10 +18,14 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Invalid docker URI - {}", _0)] InvalidDockerUri(String),
-    #[fail(display = "Invalid unix domain socket URI - {}", _0)] InvalidUdsUri(String),
-    #[fail(display = "Docker runtime error")] Docker(DockerError<serde_json::Value>),
-    #[fail(display = "Edgelet utils error")] Utils(UtilsError),
+    #[fail(display = "Invalid docker URI - {}", _0)]
+    InvalidDockerUri(String),
+    #[fail(display = "Invalid unix domain socket URI - {}", _0)]
+    InvalidUdsUri(String),
+    #[fail(display = "Docker runtime error")]
+    Docker(DockerError<serde_json::Value>),
+    #[fail(display = "Edgelet utils error")]
+    Utils(UtilsError),
 }
 
 impl Fail for Error {

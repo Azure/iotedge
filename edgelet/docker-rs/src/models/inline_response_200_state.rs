@@ -30,14 +30,16 @@ pub struct InlineResponse200State {
     /// Whether this container has been killed because it ran out of memory.
     #[serde(rename = "OOMKilled", skip_serializing_if = "Option::is_none")]
     oom_killed: Option<bool>,
-    #[serde(rename = "Dead", skip_serializing_if = "Option::is_none")] dead: Option<bool>,
+    #[serde(rename = "Dead", skip_serializing_if = "Option::is_none")]
+    dead: Option<bool>,
     /// The process ID of this container
     #[serde(rename = "Pid", skip_serializing_if = "Option::is_none")]
     pid: Option<i32>,
     /// The last exit code of this container
     #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")]
     exit_code: Option<i32>,
-    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")] error: Option<String>,
+    #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
     /// The time when this container was last started.
     #[serde(rename = "StartedAt", skip_serializing_if = "Option::is_none")]
     started_at: Option<String>,
