@@ -6,7 +6,7 @@ use std::ptr;
 use std::slice;
 
 use error::{Error, ErrorKind};
-use hsm_sys::*;
+use super::*;
 use super::{ManageTpmKeys, SignWithTpm};
 
 extern "C" {
@@ -38,7 +38,12 @@ impl HsmTpm {
     pub fn new() -> HsmTpm {
         // If we can't get the interface, this is a critical failure, so
         // we should let this function panic.
-        let interface = unsafe { *hsm_client_tpm_interface() };
+        let _hsm_sys = get_hsm();
+        let if_ptr = unsafe { hsm_client_tpm_interface() };
+        if if_ptr.is_null() {
+            panic!("Null TPM client interface");
+        }
+        let interface = unsafe { *if_ptr };
         HsmTpm {
             handle: interface
                 .hsm_client_tpm_create

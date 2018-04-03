@@ -6,7 +6,7 @@ use std::os::raw::{c_char, c_void};
 use std::string::String;
 
 use error::{Error, ErrorKind};
-use hsm_sys::*;
+use super::*;
 use super::GetCerts;
 
 extern "C" {
@@ -37,7 +37,12 @@ impl HsmX509 {
     pub fn new() -> HsmX509 {
         // If we can't get the interface, this is a critical failure, so
         // we should let this function panic.
-        let interface = unsafe { *hsm_client_x509_interface() };
+        let _hsm_sys = get_hsm();
+        let if_ptr = unsafe { hsm_client_x509_interface() };
+        if if_ptr.is_null() {
+            panic!("Null x509 interface");
+        }
+        let interface = unsafe { *if_ptr };
         HsmX509 {
             handle: interface
                 .hsm_client_x509_create

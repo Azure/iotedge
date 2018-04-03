@@ -1,0 +1,8 @@
+LIBRARY iothsm
+EXPORTS
+    hsm_client_x509_init
+    hsm_client_x509_deinit
+    hsm_client_tpm_init
+    hsm_client_tpm_deinit
+    hsm_client_tpm_interface
+    hsm_client_x509_interface

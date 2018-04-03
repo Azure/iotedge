@@ -108,12 +108,7 @@ impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
         }
     }
 }
-extern "C" {
-    pub fn initialize_hsm_system() -> c_int;
-}
-extern "C" {
-    pub fn deinitialize_hsm_system();
-}
+
 extern "C" {
     pub fn hsm_client_tpm_interface() -> *const HSM_CLIENT_TPM_INTERFACE;
 }

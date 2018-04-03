@@ -4,6 +4,7 @@ extern crate failure;
 extern crate hsm_sys;
 
 use std::ops::Drop;
+use std::sync::{Once, ONCE_INIT};
 use hsm_sys::*;
 
 mod error;
@@ -15,28 +16,35 @@ pub use tpm::{HsmTpm, TpmKey};
 pub use x509::{HsmX509, X509Data};
 
 // General HSM functions.
+// TODO: Rust doesn't guarantee dropping static variables, this code
+// may need to be scrapped in favor of creating a local variable in main().
+static mut HSM_SYSTEM: Option<HsmSystem> = None;
+static HSM_INIT: Once = ONCE_INIT;
 
-pub struct HsmSystem {}
+fn get_hsm() -> &'static Option<HsmSystem> {
+    unsafe {
+        HSM_INIT.call_once(|| {
+            HSM_SYSTEM = Some(HsmSystem::new().expect("HSM system failed to initialize"));
+        });
+        &HSM_SYSTEM
+    }
+}
+
+struct HsmSystem {}
 
 impl HsmSystem {
     /// Called once in the beginning to initialize the HSM system
-    pub fn new() -> Result<HsmSystem, Error> {
-        let result = unsafe { initialize_hsm_system() as isize };
-        if result != 0 {
-            return Err(Error::from(result));
-        }
+    fn new() -> Result<HsmSystem, Error> {
         let result = unsafe { hsm_client_x509_init() as isize };
         if result != 0 {
-            unsafe { deinitialize_hsm_system() };
-            return Err(Error::from(result));
+            Err(result)?
         }
         let result = unsafe { hsm_client_tpm_init() as isize };
         if result != 0 {
             unsafe {
-                deinitialize_hsm_system();
                 hsm_client_x509_deinit();
             };
-            return Err(Error::from(result));
+            Err(result)?
         }
         Ok(HsmSystem {})
     }
@@ -46,7 +54,6 @@ impl HsmSystem {
 impl Drop for HsmSystem {
     fn drop(&mut self) {
         unsafe {
-            deinitialize_hsm_system();
             hsm_client_x509_deinit();
             hsm_client_tpm_deinit();
         };
@@ -55,17 +62,17 @@ impl Drop for HsmSystem {
 
 // Traits
 
-trait ManageTpmKeys {
+pub trait ManageTpmKeys {
     fn activate_identity_key(&self, key: &[u8]) -> Result<(), Error>;
     fn get_ek(&self) -> Result<TpmKey, Error>;
     fn get_srk(&self) -> Result<TpmKey, Error>;
 }
 
-trait SignWithTpm {
+pub trait SignWithTpm {
     fn sign_with_identity(&self, data: &[u8]) -> Result<TpmKey, Error>;
 }
 
-trait GetCerts {
+pub trait GetCerts {
     fn get_cert(&self) -> Result<X509Data, Error>;
     fn get_key(&self) -> Result<X509Data, Error>;
     fn get_common_name(&self) -> Result<String, Error>;

@@ -2,5 +2,10 @@
 name = "hsm-sys"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+links = "iothsm"
+build = "build.rs"
 
 [dependencies]
+
+[build-dependencies]
+cmake = "0.1"
