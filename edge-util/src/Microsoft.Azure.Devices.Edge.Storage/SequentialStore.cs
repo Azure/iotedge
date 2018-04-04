@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task<long> Append(T item)
         {
-            using (await this.headLockObject.LockAsync())
+            using (await this.tailLockObject.LockAsync())
             {
                 long currentOffset = this.tailOffset + 1;
                 byte[] key = StoreUtils.GetKeyFromOffset(currentOffset);
@@ -58,9 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate)
         {
-            using (await this.tailLockObject.LockAsync())
+            using (await this.headLockObject.LockAsync())
             {
-                if (this.headOffset > this.tailOffset)
+                // Tail offset could change here, but not holding a lock for efficiency. 
+                if (this.IsEmpty())
                 {
                     return false;
                 }
@@ -89,6 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckRange(startingOffset, this.headOffset, nameof(startingOffset));
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
 
+            if(this.IsEmpty() || this.tailOffset < startingOffset)
+            {
+                return Enumerable.Empty<(long, T)>();
+            }
+
             var batch = new List<(long, T)>();
             byte[] startingKey = StoreUtils.GetKeyFromOffset(startingOffset);
             await this.entityStore.IterateBatch(startingKey, batchSize, (k, v) =>
@@ -113,5 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        bool IsEmpty() => this.headOffset > this.tailOffset;
     }
 }

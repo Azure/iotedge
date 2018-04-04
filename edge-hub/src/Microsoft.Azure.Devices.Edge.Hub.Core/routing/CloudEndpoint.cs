@@ -69,9 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 SendFailureDetails sendFailureDetails = null;
 
                 IMessage message = this.cloudEndpoint.messageConverter.ToMessage(routingMessage);
-
+                
                 Util.Option<ICloudProxy> cloudProxy = this.GetCloudProxy(routingMessage);
-
                 if (!cloudProxy.HasValue)
                 {
                     sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException("IoT Hub is not connected"));
@@ -120,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
                     Devices.Routing.Core.Util.Option.None<SendFailureDetails>();
 
+                Events.ProcessingMessages(routingMessages);
                 foreach (IRoutingMessage routingMessage in routingMessages)
                 {
                     if (token.IsCancellationRequested)
@@ -181,7 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 DeviceIdNotFound = IdStart,
                 IoTHubNotConnected,
                 RetryingMessages,
-                InvalidMessage
+                InvalidMessage,
+                ProcessingMessages
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -218,6 +219,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 // TODO - Add more info to this log message
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
+            }
+
+            public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
+            {
+                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
             }
         }
     }

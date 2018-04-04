@@ -21,34 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             : base(connectionManager)
         {
             this.sessionStore = Preconditions.CheckNotNull(sessionStore, nameof(sessionStore));
-            connectionManager.CloudConnectionEstablished += this.OnCloudConnectionEstablished;
-        }
-
-        async void OnCloudConnectionEstablished(object sender, IIdentity identity)
-        {
-            try
-            {
-                Preconditions.CheckNotNull(identity, nameof(identity));
-                Events.SetSubscriptionsStarted(identity);
-                Option<SessionState> sessionState = await this.sessionStore.Get(identity.Id);
-                if (!sessionState.HasValue)
-                {
-                    Events.NoSessionStateFoundInStore(identity);
-                }
-                else
-                {
-                    await sessionState.ForEachAsync(
-                        async s =>
-                        {
-                            await this.ProcessSessionSubscriptions(identity.Id, s);
-                            Events.SetSubscriptionsSuccess(identity);
-                        });
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ClientReconnectError(ex, identity);
-            }
         }
 
         public override async Task<ISessionState> GetAsync(IDeviceIdentity identity) => (await this.sessionStore.Get(identity.Id)).GetOrElse((SessionState)null);

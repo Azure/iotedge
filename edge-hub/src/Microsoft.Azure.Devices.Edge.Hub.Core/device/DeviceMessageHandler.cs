@@ -177,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             var taskCompletionSource = new TaskCompletionSource<bool>();
             this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
+            Events.SendingMessage(this.Identity, lockToken);
             await this.underlyingProxy.SendMessageAsync(message, input);
 
             Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromSeconds(60)));
@@ -244,7 +245,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 InvalidMethodResponse,
                 MessageFeedbackTimedout,
                 MessageFeedbackReceived,
-                MessageFeedbackWithNoMessageId
+                MessageFeedbackWithNoMessageId,
+                MessageSentToClient
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -295,6 +297,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void MethodCallSentToClient(IIdentity identity, string id, string correlationId)
             {
                 Log.LogDebug((int)EventIds.MethodSentToClient, Invariant($"Sent method invoke call from device/module {identity.Id} for {id} with correlation ID {correlationId}"));
+            }
+
+            public static void SendingMessage(IIdentity identity, string lockToken)
+            {
+                Log.LogDebug((int)EventIds.MessageSentToClient, Invariant($"Sent message with correlation ID {lockToken} to {identity.Id}"));
             }
         }
     }

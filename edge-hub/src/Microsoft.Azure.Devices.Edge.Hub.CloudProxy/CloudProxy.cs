@@ -129,15 +129,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task SetupCallMethodAsync() => this.cloudReceiver.SetupCallMethodAsync;
+        public Task SetupCallMethodAsync() =>
+            this.EnsureCloudReceiver(nameof(this.SetupCallMethodAsync)) ? this.cloudReceiver.SetupCallMethodAsync() : Task.CompletedTask;
 
-        public Task RemoveCallMethodAsync() => this.cloudReceiver.RemoveCallMethodAsync;
+        public Task RemoveCallMethodAsync() =>
+            this.EnsureCloudReceiver(nameof(this.RemoveCallMethodAsync)) ? this.cloudReceiver.RemoveCallMethodAsync() : Task.CompletedTask;
 
-        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudReceiver.SetupDesiredPropertyUpdatesAsync();
+        public Task SetupDesiredPropertyUpdatesAsync() =>
+            this.EnsureCloudReceiver(nameof(this.SetupDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.SetupDesiredPropertyUpdatesAsync() : Task.CompletedTask;
 
-        public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync();
+        public Task RemoveDesiredPropertyUpdatesAsync() =>
+            this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)) ? this.cloudReceiver.RemoveDesiredPropertyUpdatesAsync() : Task.CompletedTask;
 
-        public void StartListening() => this.cloudReceiver.StartListening();
+        public void StartListening()
+        {
+            if (this.EnsureCloudReceiver(nameof(this.RemoveDesiredPropertyUpdatesAsync)))
+            {
+                this.cloudReceiver.StartListening();
+            }
+        }
+
+        bool EnsureCloudReceiver(string operation)
+        {
+            if (this.cloudReceiver == null)
+            {
+                Events.CloudReceiverNull(this.clientId, operation);
+                return false;
+            }
+            return true;
+        }
 
         Task HandleException(Exception ex)
         {
@@ -243,9 +263,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return this.receiveMessageTask.GetOrElse(Task.CompletedTask);
             }
 
-            public Task SetupCallMethodAsync => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
+            public Task SetupCallMethodAsync() => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
 
-            public Task RemoveCallMethodAsync => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(null, null);
+            public Task RemoveCallMethodAsync() => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(null, null);
 
             internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
             {
@@ -314,7 +334,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ReceiveError,
                 ReceiverStopped,
                 MethodReceived,
-                StartListening
+                StartListening,
+                CloudReceiverNull
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -400,6 +421,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void TerminatingErrorReceivingMessage(string clientId, Exception e)
             {
                 Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {clientId}. Closing receive loop."));
+            }
+
+            internal static void CloudReceiverNull(string clientId, string operation)
+            {
+                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
             }
         }
     }

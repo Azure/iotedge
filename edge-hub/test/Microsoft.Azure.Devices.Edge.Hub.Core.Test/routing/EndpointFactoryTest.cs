@@ -27,6 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Endpoint endpoint = this.endpointFactory.CreateSystemEndpoint("$upstream");
             Assert.NotNull(endpoint);
             Assert.IsType<CloudEndpoint>(endpoint);
+
+            Endpoint endpoint2 = this.endpointFactory.CreateSystemEndpoint("$upstream");
+            Assert.NotNull(endpoint2);
+            Assert.IsType<CloudEndpoint>(endpoint2);
+            Assert.Equal(endpoint, endpoint2);
         }
 
         [Fact]

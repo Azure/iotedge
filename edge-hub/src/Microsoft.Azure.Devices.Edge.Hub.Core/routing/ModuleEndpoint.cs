@@ -79,8 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
                 SendFailureDetails sendFailureDetails = null;
 
+                Events.ProcessingMessages(this.moduleEndpoint, routingMessages);
                 Util.Option<IDeviceProxy> deviceProxy = this.GetDeviceProxy();
-
                 if (!deviceProxy.HasValue)
                 {
                     failed.AddRange(routingMessages);
@@ -159,7 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 NoDeviceProxy = IdStart,
                 ErrorSendingMessages,
                 RetryingMessages,
-                InvalidMessage
+                InvalidMessage,
+                ProcessingMessages
             }
 
             public static void NoDeviceProxy(ModuleEndpoint moduleEndpoint)
@@ -182,6 +183,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 // TODO - Add more info to this log message
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message."));
+            }
+
+            public static void ProcessingMessages(ModuleEndpoint moduleEndpoint, ICollection<IRoutingMessage> routingMessages)
+            {
+                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) to module {moduleEndpoint.moduleId}."));
             }
         }
     }

@@ -29,9 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
         [Fact]
         public async Task BasicTest()
-        {
-            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>("basicTestEntity");
-            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
+        {            
+            ISequentialStore<Item> sequentialStore = await this.GetSequentialStore("basicTest");
             var tasks = new List<Task>();
             for (int i = 0; i < 10; i++)
             {
@@ -60,8 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task RemoveTest()
         {
-            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>("removeTestEntity");
-            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            ISequentialStore<Item> sequentialStore = await this.GetSequentialStore("removeTestEntity");
             for (int i = 0; i < 10; i++)
             {
                 long offset = await sequentialStore.Append(new Item { Prop1 = i });
@@ -108,6 +106,61 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
+        }
+
+        [Fact]
+        public async Task GetBatchInvalidInputTest()
+        {
+            // Arrange
+            
+            ISequentialStore<Item> sequentialStore = await this.GetSequentialStore("invalidGetBatch");
+
+            // Try to get the batch, should return empty batch. 
+            List<(long, Item)> batch = (await sequentialStore.GetBatch(0, 10)).ToList();
+            Assert.NotNull(batch);
+            Assert.Equal(0, batch.Count);
+
+            // Add 10 elements and remove 4, so that the range of elements is 4 - 9
+            for (int i = 0; i < 10; i++)
+            {
+                long offset = await sequentialStore.Append(new Item { Prop1 = i });
+                Assert.Equal(i, offset);
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                await sequentialStore.RemoveFirst((o, itm) => Task.FromResult(true));
+            }
+
+            // Try to get with starting offset < 4, should throw. 
+            for (int i = 0; i < 4; i++)
+            {
+                await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sequentialStore.GetBatch(i, 10));
+            }
+
+            // Try to get with starting offset between 4 and 9, should return a valid batch. 
+            for (int i = 4; i < 10; i++)
+            {
+                batch = (await sequentialStore.GetBatch(i, 10)).ToList();
+                Assert.NotNull(batch);
+                Assert.Equal(10 - i, batch.Count);
+                Assert.Equal(i, batch[0].Item1);
+            }
+
+            // Try to get with starting offset > 10, should return empty batch
+            for (int i = 10; i < 14; i++)
+            {
+                batch = (await sequentialStore.GetBatch(i, 10)).ToList();
+                Assert.NotNull(batch);
+                Assert.Equal(0, batch.Count);
+            }            
+        }
+
+        async Task<ISequentialStore<Item>> GetSequentialStore(string entityName)
+        {
+            IEntityStore<byte[], Item> entityStore = this.GetEntityStore<Item>(entityName);
+            ISequentialStore<Item> sequentialStore = await SequentialStore<Item>.Create(entityStore);
+            return sequentialStore;
         }
 
         public class Item

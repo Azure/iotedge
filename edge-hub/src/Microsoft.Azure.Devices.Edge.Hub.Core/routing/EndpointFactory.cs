@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
@@ -8,10 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class EndpointFactory : IEndpointFactory
     {
-        const string CloudEndpoint = "$upstream";
+        const string CloudEndpointName = "$upstream";
         const string FunctionEndpoint = "BrokeredEndpoint";
         static readonly char[] BrokeredEndpointSplitChars = { '/' };
-
+        readonly CloudEndpoint cloudEndpoint;
         readonly IConnectionManager connectionManager;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly string edgeDeviceId;
@@ -23,13 +23,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.cloudEndpoint = new CloudEndpoint("iothub", (id) => this.connectionManager.GetCloudConnection(id), this.messageConverter);
         }
 
         public Endpoint CreateSystemEndpoint(string endpoint)
         {
-            if (CloudEndpoint.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
+            if (CloudEndpointName.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
             {
-                return new CloudEndpoint("iothub", (id) => this.connectionManager.GetCloudConnection(id), this.messageConverter);
+                return this.cloudEndpoint;
             }
             else
             {

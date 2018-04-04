@@ -166,6 +166,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(expected.SystemProperties.Keys, actual.SystemProperties.Keys);
         }
 
+        [Fact]
+        [TestPriority(407)]
+        public async Task CloudProxyNullReceiverTest()
+        {
+            // Arrange
+            string deviceConnectionStringKey = "device2ConnStrKey";
+            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey);
+
+            // Act/assert
+            // Without setting up the cloudlistener, the following methods should not throw. 
+            await cloudProxy.SetupCallMethodAsync();
+            await cloudProxy.RemoveCallMethodAsync();
+            await cloudProxy.SetupDesiredPropertyUpdatesAsync();
+            await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
+            cloudProxy.StartListening();
+        }
+
         async Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey)
         {
             const int ConnectionPoolSize = 10;

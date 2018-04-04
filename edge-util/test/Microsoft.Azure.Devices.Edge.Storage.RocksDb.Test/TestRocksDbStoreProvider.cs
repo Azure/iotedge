@@ -9,8 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
     public class TestRocksDbStoreProvider : IDisposable
     {
-        private string rocksDbFolder;
-        private DbStoreProvider rocksDbStoreProvider;
+        readonly string rocksDbFolder;
+        readonly DbStoreProvider rocksDbStoreProvider;
 
         public TestRocksDbStoreProvider()
         {
