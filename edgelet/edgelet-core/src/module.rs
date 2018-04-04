@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::HashMap;
 use std::fmt;
+use std::result::Result as StdResult;
 use std::str::FromStr;
 
 use chrono::prelude::*;
 use futures::Future;
 use failure::Fail;
 use serde_json;
+
+use error::Result;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -24,7 +28,7 @@ pub enum ModuleStatus {
 impl FromStr for ModuleStatus {
     type Err = serde_json::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> StdResult<Self, Self::Err> {
         serde_json::from_str(&format!("\"{}\"", s))
     }
 }
@@ -112,6 +116,45 @@ impl ModuleRuntimeState {
     }
 }
 
+pub struct ModuleConfig<T> {
+    name: String,
+    type_: String,
+    config: T,
+    env: HashMap<String, String>,
+}
+
+impl<T> ModuleConfig<T> {
+    pub fn new(
+        name: &str,
+        type_: &str,
+        config: T,
+        env: HashMap<String, String>,
+    ) -> Result<ModuleConfig<T>> {
+        Ok(ModuleConfig {
+            name: ensure_not_empty!(name).to_string(),
+            type_: ensure_not_empty!(type_).to_string(),
+            config,
+            env,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn type_(&self) -> &str {
+        &self.type_
+    }
+
+    pub fn config(&self) -> &T {
+        &self.config
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+}
+
 pub trait Module {
     type Config;
     type Error: Fail;
@@ -119,11 +162,9 @@ pub trait Module {
     type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = Self::Error>;
 
     fn name(&self) -> &str;
-    fn version(&self) -> &str;
     fn type_(&self) -> &str;
     fn status(&self) -> Self::StatusFuture;
     fn config(&self) -> &Self::Config;
-    fn labels(&self) -> &Vec<String>;
     fn runtime_state(&self) -> Self::RuntimeStateFuture;
 }
 
@@ -138,15 +179,18 @@ pub trait ModuleRegistry {
 
 pub trait ModuleRuntime {
     type Error: Fail;
-    type Module: Module;
+    type Config;
+    type Module: Module<Config = Self::Config>;
     type ModuleRegistry: ModuleRegistry;
     type CreateFuture: Future<Item = (), Error = Self::Error>;
+    type UpdateFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
 
-    fn create(&mut self, options: Self::Module) -> Self::CreateFuture;
+    fn create(&mut self, module: ModuleConfig<Self::Config>) -> Self::CreateFuture;
+    fn update(&mut self, module: ModuleConfig<Self::Config>) -> Self::UpdateFuture;
     fn start(&mut self, id: &str) -> Self::StartFuture;
     fn stop(&mut self, id: &str) -> Self::StopFuture;
     fn remove(&mut self, id: &str) -> Self::RemoveFuture;
@@ -156,9 +200,12 @@ pub trait ModuleRuntime {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::str::FromStr;
     use std::string::ToString;
 
+    use error::ErrorKind;
     use module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
@@ -187,6 +234,50 @@ mod tests {
         let inputs = get_inputs();
         for &(status, ref expected) in &inputs {
             assert_eq!(*expected, ModuleStatus::from_str(status).unwrap());
+        }
+    }
+
+    #[test]
+    fn module_config_empty_name_fails() {
+        match ModuleConfig::new("", "docker", 10i32, HashMap::new()) {
+            Ok(_) => panic!("Expected error"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => (),
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        }
+    }
+
+    #[test]
+    fn module_config_white_space_name_fails() {
+        match ModuleConfig::new("    ", "docker", 10i32, HashMap::new()) {
+            Ok(_) => panic!("Expected error"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => (),
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        }
+    }
+
+    #[test]
+    fn module_config_empty_type_fails() {
+        match ModuleConfig::new("m1", "", 10i32, HashMap::new()) {
+            Ok(_) => panic!("Expected error"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => (),
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        }
+    }
+
+    #[test]
+    fn module_config_white_space_type_fails() {
+        match ModuleConfig::new("m1", "     ", 10i32, HashMap::new()) {
+            Ok(_) => panic!("Expected error"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => (),
+                _ => panic!("Expected utils error. Got some other error."),
+            },
         }
     }
 }

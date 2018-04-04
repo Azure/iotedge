@@ -4,6 +4,7 @@ extern crate futures;
 extern crate hyper;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[macro_use]
 extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
@@ -13,7 +14,6 @@ extern crate docker_rs;
 extern crate edgelet_core;
 extern crate edgelet_test_utils;
 
-#[cfg(unix)]
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -28,9 +28,10 @@ use tokio_core::reactor::Core;
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
 
-use docker_rs::models::ImageDeleteResponseItem;
-use docker_mri::DockerModuleRuntime;
-use edgelet_core::ModuleRegistry;
+use docker_rs::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings,
+                        ImageDeleteResponseItem};
+use docker_mri::{DockerConfig, DockerModuleRuntime};
+use edgelet_core::{ModuleConfig, ModuleRegistry, ModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
 const IMAGE_NAME: &str = "nginx:latest";
@@ -125,6 +126,113 @@ fn image_remove_succeeds() {
         &core.handle(),
     ).unwrap();
 
-    let task = mri.remove(IMAGE_NAME);
+    let task = ModuleRegistry::remove(&mut mri, IMAGE_NAME);
+    core.run(task).unwrap();
+}
+
+fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Post);
+    assert_eq!(req.path(), "/containers/create");
+
+    let response = json!({
+        "Id": "12345",
+        "Warnings": []
+    }).to_string();
+
+    Box::new(
+        req.body()
+            .concat2()
+            .and_then(|body| {
+                let create_options: ContainerCreateBody =
+                    serde_json::from_slice(body.as_ref()).unwrap();
+
+                assert_eq!("nginx:latest", create_options.image().unwrap());
+
+                for v in vec!["k1=v1", "k2=v2", "k3=v3", "k4=v4", "k5=v5"].iter() {
+                    assert!(create_options.env().unwrap().contains(&v.to_string()))
+                }
+
+                let port_bindings = create_options
+                    .host_config()
+                    .unwrap()
+                    .port_bindings()
+                    .unwrap();
+                assert_eq!(
+                    "8080",
+                    port_bindings.get("80/tcp").unwrap().host_port().unwrap()
+                );
+                assert_eq!(
+                    "11022",
+                    port_bindings.get("22/tcp").unwrap().host_port().unwrap()
+                );
+
+                assert!(
+                    create_options
+                        .networking_config()
+                        .unwrap()
+                        .endpoints_config()
+                        .unwrap()
+                        .contains_key(&"edge-network".to_string())
+                );
+
+                Ok(())
+            })
+            .map(|_| {
+                Response::new()
+                    .with_header(ContentLength(response.len() as u64))
+                    .with_header(ContentType::json())
+                    .with_body(response)
+                    .with_status(StatusCode::Ok)
+            }),
+    )
+}
+
+#[test]
+fn container_create_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &container_create_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut env = HashMap::new();
+    env.insert("k1".to_string(), "v1".to_string());
+    env.insert("k2".to_string(), "v2".to_string());
+    env.insert("k3".to_string(), "v3".to_string());
+
+    // add some create options
+    let mut port_bindings = HashMap::new();
+    port_bindings.insert(
+        "22/tcp".to_string(),
+        HostConfigPortBindings::new().with_host_port("11022".to_string()),
+    );
+    port_bindings.insert(
+        "80/tcp".to_string(),
+        HostConfigPortBindings::new().with_host_port("8080".to_string()),
+    );
+
+    let create_options = ContainerCreateBody::new()
+        .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
+        .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()]);
+
+    let module_config = ModuleConfig::new(
+        "m1",
+        "docker",
+        DockerConfig::new("nginx:latest", create_options).unwrap(),
+        env,
+    ).unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mut mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap()
+        .with_network_id("edge-network".to_string());
+
+    let task = mri.create(module_config);
     core.run(task).unwrap();
 }

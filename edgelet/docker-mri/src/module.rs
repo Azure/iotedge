@@ -11,28 +11,20 @@ use docker_rs::apis::client::APIClient;
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use error::{Error, ErrorKind, Result};
 
+pub const MODULE_TYPE: &str = "docker";
+
 pub struct DockerModule<C: Connect> {
     client: APIClient<C>,
     name: String,
-    version: String,
     config: DockerConfig,
-    labels: Vec<String>,
 }
 
 impl<C: Connect> DockerModule<C> {
-    pub fn new(
-        client: APIClient<C>,
-        name: &str,
-        version: &str,
-        config: DockerConfig,
-        labels: &[&str],
-    ) -> Result<DockerModule<C>> {
+    pub fn new(client: APIClient<C>, name: &str, config: DockerConfig) -> Result<DockerModule<C>> {
         Ok(DockerModule {
             client,
             name: ensure_not_empty!(name.to_string()),
-            version: ensure_not_empty!(version.to_string()),
             config,
-            labels: labels.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
         })
     }
 }
@@ -47,12 +39,8 @@ impl<C: Connect> Module for DockerModule<C> {
         &self.name
     }
 
-    fn version(&self) -> &str {
-        &self.version
-    }
-
     fn type_(&self) -> &str {
-        "docker"
+        MODULE_TYPE
     }
 
     fn status(&self) -> Self::StatusFuture {
@@ -72,10 +60,6 @@ impl<C: Connect> Module for DockerModule<C> {
 
     fn config(&self) -> &Self::Config {
         &self.config
-    }
-
-    fn labels(&self) -> &Vec<String> {
-        &self.labels
     }
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
@@ -149,24 +133,11 @@ mod tests {
         let docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "mod1",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &["l1", "l2", "l3"],
         ).unwrap();
         assert_eq!("mod1", docker_module.name());
-        assert_eq!("1.0", docker_module.version());
         assert_eq!("docker", docker_module.type_());
         assert_eq!("ubuntu", docker_module.config().image());
-        for i in 0..3 {
-            assert_eq!(
-                i,
-                docker_module
-                    .labels()
-                    .iter()
-                    .position(|ref s| &*s as &str == &format!("l{}", i + 1))
-                    .unwrap()
-            );
-        }
     }
 
     #[test]
@@ -176,9 +147,7 @@ mod tests {
         let _docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &["l1", "l2", "l3"],
         ).unwrap();
     }
 
@@ -189,53 +158,8 @@ mod tests {
         let _docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "     ",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &["l1", "l2", "l3"],
         ).unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn empty_version_fails() {
-        let core = Core::new().unwrap();
-        let _docker_module = DockerModule::new(
-            create_api_client(&core, "boo"),
-            "mod1",
-            "",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &["l1", "l2", "l3"],
-        ).unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn white_space_version_fails() {
-        let core = Core::new().unwrap();
-        let _docker_module = DockerModule::new(
-            create_api_client(&core, "boo"),
-            "mod1",
-            "         ",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &["l1", "l2", "l3"],
-        ).unwrap();
-    }
-
-    #[test]
-    fn empty_labels() {
-        let core = Core::new().unwrap();
-        let docker_module = DockerModule::new(
-            create_api_client(&core, "boo"),
-            "mod1",
-            "1.0",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &[],
-        ).unwrap();
-        assert_eq!("mod1", docker_module.name());
-        assert_eq!("1.0", docker_module.version());
-        assert_eq!("docker", docker_module.type_());
-        assert_eq!("ubuntu", docker_module.config().image());
-        assert_eq!(0, docker_module.labels().len());
     }
 
     fn verify_module_status(core: &mut Core, status: &ModuleStatus) {
@@ -246,9 +170,7 @@ mod tests {
                     .with_state(InlineResponse200State::new().with_status(status.to_string())),
             ),
             "mod1",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &[],
         ).unwrap();
 
         let actual_status = core.run(docker_module.status()).unwrap();
@@ -293,9 +215,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &[],
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
@@ -327,9 +247,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &[],
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
@@ -355,9 +273,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            "1.0",
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
-            &[],
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();

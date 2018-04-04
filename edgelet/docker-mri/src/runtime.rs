@@ -1,23 +1,30 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::{collections::HashMap, convert::From};
+
+use futures::future;
 use futures::prelude::*;
 use hyper::Client;
 use tokio_core::reactor::Handle;
 use url::Url;
 
-use docker_rs::apis::client::APIClient;
-use docker_rs::apis::configuration::Configuration;
-use edgelet_core::ModuleRegistry;
+use config::DockerConfig;
+use docker_rs::{apis::{client::APIClient, configuration::Configuration},
+                models::{ContainerCreateBodyNetworkingConfig, EndpointSettings}};
+use edgelet_core::{ModuleConfig, ModuleRegistry, ModuleRuntime};
+use edgelet_utils::serde_clone;
 
 use docker_connector::DockerConnector;
-use error::{Error, ErrorKind};
+use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use error::{Error, ErrorKind, Result};
 
 pub struct DockerModuleRuntime {
     client: APIClient<DockerConnector>,
+    network_id: Option<String>,
 }
 
 impl DockerModuleRuntime {
-    pub fn new(docker_url: &Url, handle: &Handle) -> Result<DockerModuleRuntime, Error> {
+    pub fn new(docker_url: &Url, handle: &Handle) -> Result<DockerModuleRuntime> {
         // build the hyper client
         let client = Client::configure()
             .connector(DockerConnector::new(docker_url, handle)?)
@@ -43,7 +50,35 @@ impl DockerModuleRuntime {
 
         Ok(DockerModuleRuntime {
             client: APIClient::new(configuration),
+            network_id: None,
         })
+    }
+
+    pub fn with_network_id(mut self, network_id: String) -> DockerModuleRuntime {
+        self.network_id = Some(network_id);
+        self
+    }
+
+    fn merge_env(cur_env: Option<&Vec<String>>, new_env: &HashMap<String, String>) -> Vec<String> {
+        // build a new merged hashmap containing string slices for keys and values
+        // pointing into String instances in new_env
+        let mut merged_env = HashMap::new();
+        merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+
+        if let Some(env) = cur_env {
+            // extend merged_env with variables in cur_env (again, these are
+            // only string slices pointing into strings inside cur_env)
+            merged_env.extend(env.iter().filter_map(|s| {
+                let mut tokens = s.splitn(2, '=');
+                tokens.nth(0).map(|key| (key, tokens.nth(0).unwrap_or("")))
+            }));
+        }
+
+        // finally build a new Vec<String>; we alloc new strings here
+        merged_env
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect()
     }
 }
 
@@ -79,21 +114,105 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 }
 
+impl ModuleRuntime for DockerModuleRuntime {
+    type Error = Error;
+    type Config = DockerConfig;
+    type Module = DockerModule<DockerConnector>;
+    type ModuleRegistry = Self;
+    type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type UpdateFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
+
+    fn create(&mut self, module: ModuleConfig<Self::Config>) -> Self::CreateFuture {
+        // we only want "docker" modules
+        fensure!(module.type_(), module.type_() == DOCKER_MODULE_TYPE);
+
+        let result = module
+            .config()
+            .clone_create_options()
+            .and_then(|create_options| {
+                // merge environment variables
+                let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+
+                let mut create_options = create_options
+                    .with_image(module.config().image().to_string())
+                    .with_env(merged_env);
+
+                // add the container to the custom network
+                if let Some(ref network_id) = self.network_id {
+                    let mut network_config = create_options
+                        .networking_config()
+                        .and_then(|network_config| serde_clone(network_config).ok())
+                        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
+
+                    let mut endpoints_config = network_config
+                        .endpoints_config()
+                        .and_then(|endpoints_config| serde_clone(endpoints_config).ok())
+                        .unwrap_or_else(HashMap::new);
+                    if !endpoints_config.contains_key(network_id.as_str()) {
+                        endpoints_config.insert(network_id.clone(), EndpointSettings::new());
+                    }
+
+                    network_config = network_config.with_endpoints_config(endpoints_config);
+                    create_options = create_options.with_networking_config(network_config);
+                }
+
+                Ok(self.client
+                    .container_api()
+                    .container_create(create_options, module.name())
+                    .map_err(Error::from)
+                    .map(|_| ()))
+            });
+
+        match result {
+            Ok(f) => Box::new(f),
+            Err(err) => Box::new(future::err(err)),
+        }
+    }
+
+    fn update(&mut self, _module: ModuleConfig<Self::Config>) -> Self::UpdateFuture {
+        Box::new(future::ok(()))
+    }
+
+    fn start(&mut self, _id: &str) -> Self::StartFuture {
+        Box::new(future::ok(()))
+    }
+
+    fn stop(&mut self, _id: &str) -> Self::StopFuture {
+        Box::new(future::ok(()))
+    }
+
+    fn remove(&mut self, _id: &str) -> Self::RemoveFuture {
+        Box::new(future::ok(()))
+    }
+
+    fn list(&self, _label_filters: Option<&[&str]>) -> Self::ListFuture {
+        Box::new(future::ok(vec![]))
+    }
+
+    fn registry_mut(&mut self) -> &mut Self::ModuleRegistry {
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::mem;
 
-    use futures::prelude::*;
     #[cfg(unix)]
     use tempfile::NamedTempFile;
     use tokio_core::reactor::Core;
     use url::Url;
 
+    use docker_rs::models::ContainerCreateBody;
     use edgelet_core::ModuleRegistry;
     use edgelet_utils::{Error as UtilsError, ErrorKind as UtilsErrorKind};
 
     use error::{Error, ErrorKind};
-    use runtime::DockerModuleRuntime;
 
     #[test]
     #[should_panic(expected = "Invalid docker URI")]
@@ -170,11 +289,76 @@ mod tests {
 
     #[test]
     fn image_remove_with_empty_name_fails() {
-        empty_test(|ref mut mri| mri.remove(""));
+        empty_test(|ref mut mri| <DockerModuleRuntime as ModuleRegistry>::remove(mri, ""));
     }
 
     #[test]
     fn image_remove_with_white_space_name_fails() {
-        empty_test(|ref mut mri| mri.remove("     "));
+        empty_test(|ref mut mri| <DockerModuleRuntime as ModuleRegistry>::remove(mri, "     "));
+    }
+
+    #[test]
+    fn merge_env_empty() {
+        let cur_env = Some(vec![]);
+        let new_env = HashMap::new();
+        assert_eq!(
+            0,
+            DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env).len()
+        );
+    }
+
+    #[test]
+    fn merge_env_new_empty() {
+        let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
+        let new_env = HashMap::new();
+        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        merged_env.sort();
+        assert_eq!(vec!["k1=v1", "k2=v2"], merged_env);
+    }
+
+    #[test]
+    fn merge_env_extend_new() {
+        let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
+        let mut new_env = HashMap::new();
+        new_env.insert("k3".to_string(), "v3".to_string());
+        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        merged_env.sort();
+        assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
+    }
+
+    #[test]
+    fn merge_env_extend_replace_new() {
+        let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
+        let mut new_env = HashMap::new();
+        new_env.insert("k2".to_string(), "v02".to_string());
+        new_env.insert("k3".to_string(), "v3".to_string());
+        let mut merged_env = DockerModuleRuntime::merge_env(cur_env.as_ref(), &new_env);
+        merged_env.sort();
+        assert_eq!(vec!["k1=v1", "k2=v2", "k3=v3"], merged_env);
+    }
+
+    #[test]
+    fn create_fails_for_non_docker_type() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let module_config = ModuleConfig::new(
+            "m1",
+            "not_docker",
+            DockerConfig::new("nginx:latest", ContainerCreateBody::new()).unwrap(),
+            HashMap::new(),
+        ).unwrap();
+
+        let task = mri.create(module_config).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
     }
 }

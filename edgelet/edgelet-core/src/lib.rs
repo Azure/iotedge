@@ -15,17 +15,20 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate sha2;
 
+#[macro_use]
+extern crate edgelet_utils;
+
 mod crypto;
 mod error;
 mod module;
 
 use std::rc::Rc;
 
-use futures::future;
-use futures::future::FutureResult;
+use futures::{future, future::FutureResult};
 
 pub use error::{Error, ErrorKind};
-pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
+pub use module::{Module, ModuleConfig, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+                 ModuleStatus};
 
 pub struct Edgelet<T>
 where

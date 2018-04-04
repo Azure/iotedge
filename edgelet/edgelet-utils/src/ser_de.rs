@@ -2,14 +2,18 @@
 
 use std::fmt;
 use std::marker::PhantomData;
+use std::result::Result as StdResult;
 use std::str::FromStr;
 
-use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
+use serde::{de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor},
+            ser::Serialize};
 use serde_json;
+
+use error::Result;
 
 // This implementation has been adapted from: https://serde.rs/string-or-struct.html
 
-pub fn string_or_struct<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+pub fn string_or_struct<'de, T, D>(deserializer: D) -> StdResult<T, D::Error>
 where
     T: Deserialize<'de> + FromStr<Err = serde_json::Error>,
     D: Deserializer<'de>,
@@ -31,14 +35,14 @@ where
             formatter.write_str("string or map")
         }
 
-        fn visit_str<E>(self, value: &str) -> Result<T, E>
+        fn visit_str<E>(self, value: &str) -> StdResult<T, E>
         where
             E: de::Error,
         {
             FromStr::from_str(value).map_err(de::Error::custom)
         }
 
-        fn visit_map<M>(self, visitor: M) -> Result<T, M::Error>
+        fn visit_map<M>(self, visitor: M) -> StdResult<T, M::Error>
         where
             M: MapAccess<'de>,
         {
@@ -53,13 +57,19 @@ where
     deserializer.deserialize_any(StringOrStruct(PhantomData))
 }
 
+pub fn serde_clone<T>(inp: &T) -> Result<T>
+where
+    T: Serialize + DeserializeOwned,
+{
+    Ok(serde_json::from_str(&serde_json::to_string(inp)?)?)
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::str::FromStr;
 
     use serde_json;
-
-    use ser_de::string_or_struct;
 
     #[derive(Debug, Deserialize)]
     struct Options {
@@ -70,7 +80,7 @@ mod tests {
     impl FromStr for Options {
         type Err = serde_json::Error;
 
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn from_str(s: &str) -> StdResult<Self, Self::Err> {
             serde_json::from_str(s)
         }
     }
@@ -117,5 +127,22 @@ mod tests {
 		}).to_string();
 
         let _container: Container = serde_json::from_str(&container_json).unwrap();
+    }
+
+    #[test]
+    fn serde_clone_succeeds() {
+        #[derive(Serialize, Deserialize)]
+        struct CloneMe {
+            name: String,
+            age: u8,
+        }
+
+        let c1 = CloneMe {
+            name: "p1".to_string(),
+            age: 10,
+        };
+        let c2 = serde_clone(&c1).unwrap();
+        assert_eq!(c1.name, c2.name);
+        assert_eq!(c1.age, c2.age);
     }
 }

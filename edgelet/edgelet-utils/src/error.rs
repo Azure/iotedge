@@ -4,6 +4,9 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
+use serde_json;
+
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
@@ -23,6 +26,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Argument is empty or only has whitespace - [{}]", _0)]
     ArgumentEmpty(String),
+
+    #[fail(display = "Serde error")]
+    Serde(serde_json::Error),
 }
 
 impl Fail for Error {
@@ -58,5 +64,11 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Error {
+        Error::from(ErrorKind::Serde(err))
     }
 }

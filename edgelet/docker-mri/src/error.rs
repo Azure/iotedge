@@ -26,6 +26,8 @@ pub enum ErrorKind {
     Docker(DockerError<serde_json::Value>),
     #[fail(display = "Edgelet utils error")]
     Utils(UtilsError),
+    #[fail(display = "Serde error")]
+    Serde(serde_json::Error),
 }
 
 impl Fail for Error {
@@ -67,5 +69,17 @@ impl From<Context<ErrorKind>> for Error {
 impl From<UtilsError> for Error {
     fn from(err: UtilsError) -> Error {
         Error::from(ErrorKind::Utils(err))
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Error {
+        Error::from(ErrorKind::Serde(err))
+    }
+}
+
+impl From<DockerError<serde_json::Value>> for Error {
+    fn from(err: DockerError<serde_json::Value>) -> Error {
+        Error::from(ErrorKind::Docker(err))
     }
 }

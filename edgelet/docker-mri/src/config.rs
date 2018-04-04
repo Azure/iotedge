@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use docker_rs::models::ContainerCreateBody;
-use edgelet_utils::string_or_struct;
+use edgelet_utils::{serde_clone, string_or_struct};
 
 use error::Result;
 
@@ -19,6 +19,10 @@ impl DockerConfig {
             image: ensure_not_empty!(image.to_string()),
             create_options,
         })
+    }
+
+    pub fn clone_create_options(&self) -> Result<ContainerCreateBody> {
+        Ok(serde_clone(&self.create_options)?)
     }
 
     pub fn image(&self) -> &str {
