@@ -18,6 +18,8 @@ use docker_connector::DockerConnector;
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use error::{Error, ErrorKind, Result};
 
+const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
+
 pub struct DockerModuleRuntime {
     client: APIClient<DockerConnector>,
     network_id: Option<String>,
@@ -120,7 +122,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Module = DockerModule<DockerConnector>;
     type ModuleRegistry = Self;
     type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type UpdateFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
@@ -173,20 +174,34 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
     }
 
-    fn update(&mut self, _module: ModuleConfig<Self::Config>) -> Self::UpdateFuture {
-        Box::new(future::ok(()))
+    fn start(&mut self, id: &str) -> Self::StartFuture {
+        Box::new(
+            self.client
+                .container_api()
+                .container_start(fensure_not_empty!(id), "")
+                .map_err(Error::from)
+                .map(|_| ()),
+        )
     }
 
-    fn start(&mut self, _id: &str) -> Self::StartFuture {
-        Box::new(future::ok(()))
+    fn stop(&mut self, id: &str) -> Self::StopFuture {
+        Box::new(
+            self.client
+                .container_api()
+                .container_stop(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
+                .map_err(Error::from)
+                .map(|_| ()),
+        )
     }
 
-    fn stop(&mut self, _id: &str) -> Self::StopFuture {
-        Box::new(future::ok(()))
-    }
-
-    fn remove(&mut self, _id: &str) -> Self::RemoveFuture {
-        Box::new(future::ok(()))
+    fn remove(&mut self, id: &str) -> Self::RemoveFuture {
+        Box::new(
+            self.client
+                .container_api()
+                .container_delete(fensure_not_empty!(id), false, true, true)
+                .map_err(Error::from)
+                .map(|_| ()),
+        )
     }
 
     fn list(&self, _label_filters: Option<&[&str]>) -> Self::ListFuture {
@@ -352,6 +367,114 @@ mod tests {
         ).unwrap();
 
         let task = mri.create(module_config).then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn start_fails_for_empty_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.start("").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn start_fails_for_white_space_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.start("      ").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn stop_fails_for_empty_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.stop("").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn stop_fails_for_white_space_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.stop("     ").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn remove_fails_for_empty_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = ModuleRuntime::remove(&mut mri, "").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn remove_fails_for_white_space_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = ModuleRuntime::remove(&mut mri, "    ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => Ok(()) as Result<()>,

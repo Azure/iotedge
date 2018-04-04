@@ -183,14 +183,12 @@ pub trait ModuleRuntime {
     type Module: Module<Config = Self::Config>;
     type ModuleRegistry: ModuleRegistry;
     type CreateFuture: Future<Item = (), Error = Self::Error>;
-    type UpdateFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
 
     fn create(&mut self, module: ModuleConfig<Self::Config>) -> Self::CreateFuture;
-    fn update(&mut self, module: ModuleConfig<Self::Config>) -> Self::UpdateFuture;
     fn start(&mut self, id: &str) -> Self::StartFuture;
     fn stop(&mut self, id: &str) -> Self::StopFuture;
     fn remove(&mut self, id: &str) -> Self::RemoveFuture;

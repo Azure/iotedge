@@ -236,3 +236,90 @@ fn container_create_succeeds() {
     let task = mri.create(module_config);
     core.run(task).unwrap();
 }
+
+fn container_start_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Post);
+    assert_eq!(req.path(), "/containers/m1/start");
+
+    Box::new(future::ok(Response::new().with_status(StatusCode::Ok)))
+}
+
+#[test]
+fn container_start_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &container_start_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mut mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let task = mri.start("m1");
+    core.run(task).unwrap();
+}
+
+fn container_stop_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Post);
+    assert_eq!(req.path(), "/containers/m1/stop");
+
+    Box::new(future::ok(Response::new().with_status(StatusCode::Ok)))
+}
+
+#[test]
+fn container_stop_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &container_stop_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mut mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let task = mri.stop("m1");
+    core.run(task).unwrap();
+}
+
+fn container_remove_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Delete);
+    assert_eq!(req.path(), "/containers/m1");
+
+    Box::new(future::ok(Response::new().with_status(StatusCode::Ok)))
+}
+
+#[test]
+fn container_remove_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &container_remove_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mut mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let task = ModuleRuntime::remove(&mut mri, "m1");
+    core.run(task).unwrap();
+}
