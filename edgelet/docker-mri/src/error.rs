@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 use serde_json;
+use url::ParseError;
 
 use docker_rs::apis::Error as DockerError;
 use edgelet_utils::Error as UtilsError;
@@ -28,6 +29,8 @@ pub enum ErrorKind {
     Utils(UtilsError),
     #[fail(display = "Serde error")]
     Serde(serde_json::Error),
+    #[fail(display = "Invalid URL")]
+    UrlParse,
 }
 
 impl Fail for Error {
@@ -81,5 +84,11 @@ impl From<serde_json::Error> for Error {
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
         Error::from(ErrorKind::Docker(err))
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(_: ParseError) -> Error {
+        Error::from(ErrorKind::UrlParse)
     }
 }

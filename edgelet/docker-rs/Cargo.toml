@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 base64 = "0.9.0"
+failure = "0.1"
 futures = "0.1"
 hyper = "0.11"
 serde = "1.0"

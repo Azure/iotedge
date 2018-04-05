@@ -36,18 +36,10 @@ impl DockerModuleRuntime {
         let base_path = get_base_path(docker_url);
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path.to_string();
-        configuration.uri_composer = Box::new(|base_path, path| {
-            // TODO: We are using `unwrap` here instead of `map_err`
-            //       because `hyper::error::UriError` cannot be
-            //       instantiated (it relies on private types). We may
-            //       be able to fix this by changing the definition of
-            //       `uri_composer` in the `docker-rs` crate to return
-            //       some other kind of error instead of `UriError`.
-            Url::parse(base_path)
-                .and_then(|base| base.join(path))
-                .unwrap()
-                .as_str()
-                .parse()
+
+        let scheme = docker_url.scheme().to_string();
+        configuration.uri_composer = Box::new(move |base_path, path| {
+            Ok(DockerConnector::build_hyper_uri(&scheme, base_path, path)?)
         });
 
         Ok(DockerModuleRuntime {

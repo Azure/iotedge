@@ -17,18 +17,17 @@ use std::io::{Error as IoError, Read, Result as IoResult, Write};
 use std::path::Path;
 
 use futures::{Future, Poll};
-use hyper::client::{HttpConnector, Service};
-use hyper::Uri;
+use hyper::{Uri, client::{HttpConnector, Service}};
 #[cfg(unix)]
-use hyperlocal::UnixConnector;
+use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
 use tokio_io::{AsyncRead, AsyncWrite};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
-use url::Url;
+use url::{ParseError, Url};
 
-use error::{Error, ErrorKind};
+use error::{Error, ErrorKind, Result};
 
 #[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
@@ -41,7 +40,7 @@ pub enum DockerConnector {
 }
 
 impl DockerConnector {
-    pub fn new(url: &Url, handle: &Handle) -> Result<DockerConnector, Error> {
+    pub fn new(url: &Url, handle: &Handle) -> Result<DockerConnector> {
         match url.scheme() {
             #[cfg(unix)]
             UNIX_SCHEME => {
@@ -58,6 +57,18 @@ impl DockerConnector {
                 Ok(DockerConnector::Http(HttpConnector::new(4, handle)))
             }
             _ => Err(ErrorKind::InvalidDockerUri(url.to_string()))?,
+        }
+    }
+
+    pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri> {
+        match scheme {
+            #[cfg(unix)]
+            UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, path).into()),
+            HTTP_SCHEME => Ok(Url::parse(base_path)
+                .and_then(|base| base.join(path))
+                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))
+                .map_err(Error::from)?),
+            _ => Err(ErrorKind::UrlParse)?,
         }
     }
 }
