@@ -12,28 +12,33 @@ EXE_DIR=$(readlink -f ${EXE_DIR})
 
 echo "Test base directory: ${EXE_DIR}"
 
-echo "#############################################################################################"
-echo "Building python 2.7.14 Linux image..."
-echo "#############################################################################################"
-docker build -t iotedgectl_py2 --file $EXE_DIR/docker/python2/linux/Dockerfile $EXE_DIR
+TAG_BASE=iotedgectl_py
+BASE_VERSION_LIST=(2.7.14-jessie 3.4.8-jessie 3.5.5-jessie 3.6.4-jessie 3.6.5-jessie 3.7.0b2-stretch)
 
-echo "#############################################################################################"
-echo "Building python 3.x Linux image..."
-echo "#############################################################################################"
-docker build -t iotedgectl_py3 --file $EXE_DIR/docker/python3/linux/Dockerfile $EXE_DIR
+# Build images
+for version in ${BASE_VERSION_LIST[*]}
+do
+    echo ""
+    echo "#########################################################################################"
+    echo "Building python ${version} Linux image..."
+    echo "#########################################################################################"
+    docker build --build-arg BASE_VERSION=${version} -t $TAG_BASE${version} --file $EXE_DIR/docker/linux/Dockerfile $EXE_DIR
+done
 
-echo "#############################################################################################"
-echo "Executing 2.x Tests..."
-echo "#############################################################################################"
-docker run --rm iotedgectl_py2
+for version in ${BASE_VERSION_LIST[*]}
+do
+    echo ""
+    echo "#########################################################################################"
+    echo "Executing python ${version} Tests.."
+    echo "#########################################################################################"
+    docker run --rm $TAG_BASE${version}
+done
 
-echo "#############################################################################################"
-echo "Executing 3.x Tests..."
-echo "#############################################################################################"
-docker run --rm iotedgectl_py3
-
-echo "#############################################################################################"
-echo "Cleanup test images"
-echo "#############################################################################################"
-docker rmi iotedgectl_py2
-docker rmi iotedgectl_py3
+for version in ${BASE_VERSION_LIST[*]}
+do
+    echo ""
+    echo "#########################################################################################"
+    echo "Removing python ${version} Linux image..."
+    echo "#########################################################################################"
+    docker rmi $TAG_BASE${version}
+done

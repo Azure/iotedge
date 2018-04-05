@@ -14,52 +14,45 @@ if !ERRORLEVEL! NEQ 0 goto test_error
 
 echo Docker engine OS type: %OS_TYPE%
 
-REM Note: python 2.x tests are disabled for Windows because of no embedded python distribution
-REM is available for installation in a nanoserver image. For python 2.x images there is a public
-REM windowsservercore image available which is 6GB and has proven to be flaky to download and run.
+set TAG_BASE=iotedgectl_py
 if "%OS_TYPE%" == "linux" (
+    set BASE_VERSION_LIST=2.7.14-jessie 3.4.8-jessie 3.5.5-jessie 3.6.4-jessie 3.6.5-jessie 3.7.0b2-stretch
+) else (
+    REM Note: python 2.x tests are disabled for Windows because of no embedded python distribution
+    REM is available for installation in a nanoserver image. For python 2.x images there is a public
+    REM windowsservercore image available which is 6GB and has proven to be flaky to download and run.
+    set BASE_VERSION_LIST=3.5.4 3.6.4 3.6.5 3.7.0b2
+)
+
+REM Build images
+(for %%v in (%BASE_VERSION_LIST%) do (
     echo.
     echo ###########################################################################################
-    echo Building python 2.7.14 image...
+    echo Building python %%v image...
     echo ###########################################################################################
-    docker build -t iotedgectl_py2 --file %EXE_DIR%\docker\python2\%OS_TYPE%\Dockerfile %EXE_DIR%
+    docker build --build-arg BASE_VERSION=%%v -t %TAG_BASE%%%v --file %EXE_DIR%\docker\%OS_TYPE%\Dockerfile %EXE_DIR%
     if !ERRORLEVEL! NEQ 0 goto test_error
-)
+))
 
-echo.
-echo #############################################################################################
-echo Building python 3.x image...
-echo #############################################################################################
-docker build -t iotedgectl_py3 --file %EXE_DIR%\docker\python3\%OS_TYPE%\Dockerfile %EXE_DIR%
-if !ERRORLEVEL! NEQ 0 goto test_error
-
-if "%OS_TYPE%" == "linux" (
+REM Create containers and run tests
+(for %%v in (%BASE_VERSION_LIST%) do (
     echo.
     echo ###########################################################################################
-    echo Executing 2.x Tests...
+    echo Executing python %%v Tests...
     echo ###########################################################################################
-    docker run --rm iotedgectl_py2
+    docker run --rm %TAG_BASE%%%v
     if !ERRORLEVEL! NEQ 0 goto test_error
-)
+))
 
-echo.
-echo #############################################################################################
-echo Executing 3.x Tests...
-echo #############################################################################################
-docker run --rm iotedgectl_py3
-if !ERRORLEVEL! NEQ 0 goto test_error
-
-echo.
-echo #############################################################################################
-echo Cleanup test images
-echo #############################################################################################
-if "%OS_TYPE%" == "linux" (
-    docker rmi iotedgectl_py2
+REM Remove images
+(for %%v in (%BASE_VERSION_LIST%) do (
+    echo.
+    echo ###########################################################################################
+    echo Executing python %%v Tests...
+    echo ###########################################################################################
+    docker rmi %TAG_BASE%%%v
     if !ERRORLEVEL! NEQ 0 goto test_error
-)
-
-docker rmi iotedgectl_py3
-if !ERRORLEVEL! NEQ 0 goto test_error
+))
 
 goto test_end
 

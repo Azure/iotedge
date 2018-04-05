@@ -1,4 +1,5 @@
-FROM python:3-jessie
+ARG BASE_VERSION=2.7.14-jessie
+FROM python:${BASE_VERSION}
 
 ARG EXE_DIR=.
 

@@ -6,9 +6,10 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-USER ContainerAdministrator 
+USER ContainerAdministrator
 # install embedded Python 3.6.x in the container and run tests
-ENV PythonEmbedVersion=3.6.4
+ARG BASE_VERSION=3.6.4
+ENV PythonEmbedVersion=$BASE_VERSION
 RUN setx /M PATH "%PATH%;C:\\Program Files\\PowerShell"
 RUN pwsh.exe -executionpolicy bypass .\scripts\install_python.ps1
 RUN setx /M PATH "%PATH%;C:\\ProgramData\\pyiotedge;C:\\ProgramData\\pyiotedge\\Scripts"
