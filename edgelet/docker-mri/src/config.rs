@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use docker_rs::models::ContainerCreateBody;
+use docker::models::ContainerCreateBody;
 use edgelet_utils::{serde_clone, string_or_struct};
 
 use error::Result;
@@ -39,7 +39,7 @@ mod tests {
     use std::collections::HashMap;
 
     use serde_json;
-    use docker_rs::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
+    use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
 
     use config::DockerConfig;
 

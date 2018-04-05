@@ -9,8 +9,8 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
 
+extern crate docker;
 extern crate docker_mri;
-extern crate docker_rs;
 extern crate edgelet_core;
 extern crate edgelet_test_utils;
 
@@ -27,9 +27,8 @@ use tokio_core::reactor::Core;
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
 
-use docker_rs::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
-                        ContainerSummary, HostConfig, HostConfigPortBindings,
-                        ImageDeleteResponseItem};
+use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
+                     ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
 use docker_mri::{DockerConfig, DockerModuleRuntime};
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};

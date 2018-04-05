@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use hyper::client::Connect;
 
-use docker_rs::apis::client::APIClient;
+use docker::apis::client::APIClient;
 
 pub struct DockerClient<C: Connect> {
     client: Rc<APIClient<C>>,

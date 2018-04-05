@@ -11,9 +11,8 @@ use url::Url;
 
 use client::DockerClient;
 use config::DockerConfig;
-use docker_rs::{apis::{client::APIClient, configuration::Configuration},
-                models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig,
-                         EndpointSettings}};
+use docker::{apis::{client::APIClient, configuration::Configuration},
+             models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings}};
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_utils::serde_clone;
 
@@ -267,7 +266,7 @@ mod tests {
     use tokio_core::reactor::Core;
     use url::Url;
 
-    use docker_rs::models::ContainerCreateBody;
+    use docker::models::ContainerCreateBody;
     use edgelet_core::ModuleRegistry;
     use edgelet_utils::{Error as UtilsError, ErrorKind as UtilsErrorKind};
 

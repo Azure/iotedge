@@ -33,7 +33,7 @@ extern crate tokio_io;
 #[cfg(unix)]
 extern crate tokio_uds;
 
-extern crate docker_rs;
+extern crate docker;
 extern crate edgelet_core;
 #[macro_use]
 extern crate edgelet_utils;

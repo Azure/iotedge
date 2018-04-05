@@ -7,7 +7,7 @@ use failure::{Backtrace, Context, Fail};
 use serde_json;
 use url::ParseError;
 
-use docker_rs::apis::Error as DockerError;
+use docker::apis::Error as DockerError;
 use edgelet_utils::Error as UtilsError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;

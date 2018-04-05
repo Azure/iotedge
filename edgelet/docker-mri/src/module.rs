@@ -106,9 +106,9 @@ mod tests {
     use time::Duration;
     use tokio_core::reactor::Core;
 
-    use docker_rs::apis::client::APIClient;
-    use docker_rs::apis::configuration::Configuration;
-    use docker_rs::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
+    use docker::apis::client::APIClient;
+    use docker::apis::configuration::Configuration;
+    use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
