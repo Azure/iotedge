@@ -12,10 +12,304 @@
 use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ContainerSummary {}
+pub struct ContainerSummary {
+    #[serde(rename = "Id")]
+    id: String,
+    #[serde(rename = "Names")]
+    names: Vec<String>,
+    #[serde(rename = "Image")]
+    image: String,
+    #[serde(rename = "ImageID")]
+    image_id: String,
+    #[serde(rename = "Command")]
+    command: String,
+    #[serde(rename = "Created")]
+    created: i64,
+    #[serde(rename = "Ports")]
+    ports: Vec<::models::Port>,
+    #[serde(rename = "SizeRw")]
+    size_rw: i64,
+    #[serde(rename = "SizeRootFs")]
+    size_root_fs: i64,
+    #[serde(rename = "Labels")]
+    labels: ::std::collections::HashMap<String, String>,
+    #[serde(rename = "State")]
+    state: String,
+    #[serde(rename = "Status")]
+    status: String,
+    #[serde(rename = "HostConfig")]
+    host_config: ContainerHostConfig,
+    #[serde(rename = "NetworkSettings")]
+    network_settings: ContainerNetworkSettings,
+    #[serde(rename = "Mounts")]
+    mounts: Vec<::models::Mount>,
+}
 
 impl ContainerSummary {
-    pub fn new() -> ContainerSummary {
-        ContainerSummary {}
+    pub fn new(
+        id: String,
+        names: Vec<String>,
+        image: String,
+        image_id: String,
+        command: String,
+        created: i64,
+        ports: Vec<::models::Port>,
+        size_rw: i64,
+        size_root_fs: i64,
+        labels: ::std::collections::HashMap<String, String>,
+        state: String,
+        status: String,
+        host_config: ContainerHostConfig,
+        network_settings: ContainerNetworkSettings,
+        mounts: Vec<::models::Mount>,
+    ) -> ContainerSummary {
+        ContainerSummary {
+            id,
+            names,
+            image,
+            image_id,
+            command,
+            created,
+            ports,
+            size_rw,
+            size_root_fs,
+            labels,
+            state,
+            status,
+            host_config,
+            network_settings,
+            mounts,
+        }
+    }
+
+    pub fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+    pub fn with_id(mut self, id: String) -> ContainerSummary {
+        self.id = id;
+        self
+    }
+    pub fn id(&self) -> &String {
+        &self.id
+    }
+
+    pub fn set_names(&mut self, names: Vec<String>) {
+        self.names = names;
+    }
+    pub fn with_names(mut self, names: Vec<String>) -> ContainerSummary {
+        self.names = names;
+        self
+    }
+    pub fn names(&self) -> &Vec<String> {
+        &self.names
+    }
+
+    pub fn set_image(&mut self, image: String) {
+        self.image = image;
+    }
+    pub fn with_image(mut self, image: String) -> ContainerSummary {
+        self.image = image;
+        self
+    }
+    pub fn image(&self) -> &String {
+        &self.image
+    }
+
+    pub fn set_image_id(&mut self, image_id: String) {
+        self.image_id = image_id;
+    }
+    pub fn with_image_id(mut self, image_id: String) -> ContainerSummary {
+        self.image_id = image_id;
+        self
+    }
+    pub fn image_id(&self) -> &String {
+        &self.image_id
+    }
+
+    pub fn set_command(&mut self, command: String) {
+        self.command = command;
+    }
+    pub fn with_command(mut self, command: String) -> ContainerSummary {
+        self.command = command;
+        self
+    }
+    pub fn command(&self) -> &String {
+        &self.command
+    }
+
+    pub fn set_created(&mut self, created: i64) {
+        self.created = created;
+    }
+    pub fn with_created(mut self, created: i64) -> ContainerSummary {
+        self.created = created;
+        self
+    }
+    pub fn created(&self) -> &i64 {
+        &self.created
+    }
+
+    pub fn set_ports(&mut self, ports: Vec<::models::Port>) {
+        self.ports = ports;
+    }
+    pub fn with_ports(mut self, ports: Vec<::models::Port>) -> ContainerSummary {
+        self.ports = ports;
+        self
+    }
+    pub fn ports(&self) -> &Vec<::models::Port> {
+        &self.ports
+    }
+
+    pub fn set_size_rw(&mut self, size_rw: i64) {
+        self.size_rw = size_rw;
+    }
+    pub fn with_size_rw(mut self, size_rw: i64) -> ContainerSummary {
+        self.size_rw = size_rw;
+        self
+    }
+    pub fn size_rw(&self) -> &i64 {
+        &self.size_rw
+    }
+
+    pub fn set_size_root_fs(&mut self, size_root_fs: i64) {
+        self.size_root_fs = size_root_fs;
+    }
+    pub fn with_size_root_fs(mut self, size_root_fs: i64) -> ContainerSummary {
+        self.size_root_fs = size_root_fs;
+        self
+    }
+    pub fn size_root_fs(&self) -> &i64 {
+        &self.size_root_fs
+    }
+
+    pub fn set_labels(&mut self, labels: ::std::collections::HashMap<String, String>) {
+        self.labels = labels;
+    }
+    pub fn with_labels(
+        mut self,
+        labels: ::std::collections::HashMap<String, String>,
+    ) -> ContainerSummary {
+        self.labels = labels;
+        self
+    }
+    pub fn labels(&self) -> &::std::collections::HashMap<String, String> {
+        &self.labels
+    }
+
+    pub fn set_state(&mut self, state: String) {
+        self.state = state;
+    }
+    pub fn with_state(mut self, state: String) -> ContainerSummary {
+        self.state = state;
+        self
+    }
+    pub fn state(&self) -> &String {
+        &self.state
+    }
+
+    pub fn set_status(&mut self, status: String) {
+        self.status = status;
+    }
+    pub fn with_status(mut self, status: String) -> ContainerSummary {
+        self.status = status;
+        self
+    }
+    pub fn status(&self) -> &String {
+        &self.status
+    }
+
+    pub fn set_host_config(&mut self, host_config: ContainerHostConfig) {
+        self.host_config = host_config;
+    }
+    pub fn with_host_config(mut self, host_config: ContainerHostConfig) -> ContainerSummary {
+        self.host_config = host_config;
+        self
+    }
+    pub fn host_config(&self) -> &ContainerHostConfig {
+        &self.host_config
+    }
+
+    pub fn set_network_settings(&mut self, network_settings: ContainerNetworkSettings) {
+        self.network_settings = network_settings;
+    }
+    pub fn with_network_settings(
+        mut self,
+        network_settings: ContainerNetworkSettings,
+    ) -> ContainerSummary {
+        self.network_settings = network_settings;
+        self
+    }
+    pub fn network_settings(&self) -> &ContainerNetworkSettings {
+        &self.network_settings
+    }
+
+    pub fn set_mounts(&mut self, mounts: Vec<::models::Mount>) {
+        self.mounts = mounts;
+    }
+    pub fn with_mounts(mut self, mounts: Vec<::models::Mount>) -> ContainerSummary {
+        self.mounts = mounts;
+        self
+    }
+    pub fn mounts(&self) -> &Vec<::models::Mount> {
+        &self.mounts
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContainerHostConfig {
+    #[serde(rename = "NetworkMode")]
+    network_mode: String,
+}
+
+impl ContainerHostConfig {
+    pub fn new(network_mode: &str) -> ContainerHostConfig {
+        ContainerHostConfig {
+            network_mode: network_mode.to_string(),
+        }
+    }
+
+    pub fn network_mode(&self) -> &str {
+        &self.network_mode
+    }
+
+    pub fn with_network_mode(mut self, network_mode: String) -> ContainerHostConfig {
+        self.network_mode = network_mode;
+        self
+    }
+
+    pub fn set_network_mode(&mut self, network_mode: String) {
+        self.network_mode = network_mode;
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContainerNetworkSettings {
+    #[serde(rename = "Networks")]
+    networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+}
+
+impl ContainerNetworkSettings {
+    pub fn new(
+        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+    ) -> ContainerNetworkSettings {
+        ContainerNetworkSettings { networks }
+    }
+
+    pub fn set_networks(
+        &mut self,
+        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+    ) {
+        self.networks = networks;
+    }
+
+    pub fn with_networks(
+        mut self,
+        networks: ::std::collections::HashMap<String, ::models::EndpointSettings>,
+    ) -> ContainerNetworkSettings {
+        self.networks = networks;
+        self
+    }
+
+    pub fn networks(&self) -> &::std::collections::HashMap<String, ::models::EndpointSettings> {
+        &self.networks
     }
 }

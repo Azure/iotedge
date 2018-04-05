@@ -116,21 +116,21 @@ impl ModuleRuntimeState {
     }
 }
 
-pub struct ModuleConfig<T> {
+pub struct ModuleSpec<T> {
     name: String,
     type_: String,
     config: T,
     env: HashMap<String, String>,
 }
 
-impl<T> ModuleConfig<T> {
+impl<T> ModuleSpec<T> {
     pub fn new(
         name: &str,
         type_: &str,
         config: T,
         env: HashMap<String, String>,
-    ) -> Result<ModuleConfig<T>> {
-        Ok(ModuleConfig {
+    ) -> Result<ModuleSpec<T>> {
+        Ok(ModuleSpec {
             name: ensure_not_empty!(name).to_string(),
             type_: ensure_not_empty!(type_).to_string(),
             config,
@@ -188,11 +188,11 @@ pub trait ModuleRuntime {
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
 
-    fn create(&mut self, module: ModuleConfig<Self::Config>) -> Self::CreateFuture;
+    fn create(&mut self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn start(&mut self, id: &str) -> Self::StartFuture;
     fn stop(&mut self, id: &str) -> Self::StopFuture;
     fn remove(&mut self, id: &str) -> Self::RemoveFuture;
-    fn list(&self, label_filters: Option<&[&str]>) -> Self::ListFuture;
+    fn list(&self) -> Self::ListFuture;
     fn registry_mut(&mut self) -> &mut Self::ModuleRegistry;
 }
 
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        match ModuleConfig::new("", "docker", 10i32, HashMap::new()) {
+        match ModuleSpec::new("", "docker", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => (),
@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn module_config_white_space_name_fails() {
-        match ModuleConfig::new("    ", "docker", 10i32, HashMap::new()) {
+        match ModuleSpec::new("    ", "docker", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => (),
@@ -259,7 +259,7 @@ mod tests {
 
     #[test]
     fn module_config_empty_type_fails() {
-        match ModuleConfig::new("m1", "", 10i32, HashMap::new()) {
+        match ModuleSpec::new("m1", "", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => (),
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn module_config_white_space_type_fails() {
-        match ModuleConfig::new("m1", "     ", 10i32, HashMap::new()) {
+        match ModuleSpec::new("m1", "     ", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => (),

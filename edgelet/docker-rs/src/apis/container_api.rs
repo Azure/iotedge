@@ -100,7 +100,7 @@ pub trait ContainerApi {
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Box<Future<Item = ::models::ContainerSummary, Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Vec<::models::ContainerSummary>, Error = Error<serde_json::Value>>>;
     fn container_logs(
         &self,
         id: &str,
@@ -718,7 +718,7 @@ impl<C: hyper::client::Connect> ContainerApi for ContainerApiClient<C> {
         limit: i32,
         size: bool,
         filters: &str,
-    ) -> Box<Future<Item = ::models::ContainerSummary, Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Vec<::models::ContainerSummary>, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Get;
@@ -764,7 +764,7 @@ impl<C: hyper::client::Connect> ContainerApi for ContainerApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<::models::ContainerSummary, _> =
+                    let parsed: Result<Vec<::models::ContainerSummary>, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),

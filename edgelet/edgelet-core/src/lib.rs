@@ -27,7 +27,7 @@ use std::rc::Rc;
 use futures::{future, future::FutureResult};
 
 pub use error::{Error, ErrorKind};
-pub use module::{Module, ModuleConfig, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
                  ModuleStatus};
 
 pub struct Edgelet<T>

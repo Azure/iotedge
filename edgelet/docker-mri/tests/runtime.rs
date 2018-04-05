@@ -24,14 +24,14 @@ use hyper::{Error as HyperError, Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
 use tokio_core::reactor::Core;
-#[cfg(unix)]
 use url::form_urlencoded::parse as parse_query;
 use url::Url;
 
-use docker_rs::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings,
+use docker_rs::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
+                        ContainerSummary, HostConfig, HostConfigPortBindings,
                         ImageDeleteResponseItem};
 use docker_mri::{DockerConfig, DockerModuleRuntime};
-use edgelet_core::{ModuleConfig, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
 const IMAGE_NAME: &str = "nginx:latest";
@@ -219,7 +219,7 @@ fn container_create_succeeds() {
         .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
         .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()]);
 
-    let module_config = ModuleConfig::new(
+    let module_config = ModuleSpec::new(
         "m1",
         "docker",
         DockerConfig::new("nginx:latest", create_options).unwrap(),
@@ -322,4 +322,136 @@ fn container_remove_succeeds() {
 
     let task = ModuleRuntime::remove(&mut mri, "m1");
     core.run(task).unwrap();
+}
+
+fn container_list_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Get);
+    assert_eq!(req.path(), "/containers/json");
+
+    let query_map: HashMap<String, String> = parse_query(req.query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("filters"));
+    assert_eq!(
+        query_map.get("filters"),
+        Some(&json!({
+                "label": {
+                    "net.azure-devices.edge.owner": "Microsoft.Azure.Devices.Edge.Agent"
+                }
+            }).to_string())
+    );
+
+    let mut labels = HashMap::new();
+    labels.insert("l1".to_string(), "v1".to_string());
+    labels.insert("l2".to_string(), "v2".to_string());
+    labels.insert("l3".to_string(), "v3".to_string());
+
+    let modules = vec![
+        ContainerSummary::new(
+            "m1".to_string(),
+            vec!["/m1".to_string()],
+            "nginx:latest".to_string(),
+            "img1".to_string(),
+            "".to_string(),
+            10,
+            vec![],
+            10,
+            10,
+            labels.clone(),
+            "".to_string(),
+            "".to_string(),
+            ContainerHostConfig::new(""),
+            ContainerNetworkSettings::new(HashMap::new()),
+            vec![],
+        ),
+        ContainerSummary::new(
+            "m2".to_string(),
+            vec!["/m2".to_string()],
+            "ubuntu:latest".to_string(),
+            "img2".to_string(),
+            "".to_string(),
+            10,
+            vec![],
+            10,
+            10,
+            labels.clone(),
+            "".to_string(),
+            "".to_string(),
+            ContainerHostConfig::new(""),
+            ContainerNetworkSettings::new(HashMap::new()),
+            vec![],
+        ),
+        ContainerSummary::new(
+            "m3".to_string(),
+            vec!["/m3".to_string()],
+            "mongo:latest".to_string(),
+            "img3".to_string(),
+            "".to_string(),
+            10,
+            vec![],
+            10,
+            10,
+            labels.clone(),
+            "".to_string(),
+            "".to_string(),
+            ContainerHostConfig::new(""),
+            ContainerNetworkSettings::new(HashMap::new()),
+            vec![],
+        ),
+    ];
+
+    let response = serde_json::to_string(&modules).unwrap();
+    Box::new(future::ok(
+        Response::new()
+            .with_header(ContentLength(response.len() as u64))
+            .with_header(ContentType::json())
+            .with_body(response)
+            .with_status(StatusCode::Ok),
+    ))
+}
+
+#[test]
+fn container_list_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &container_list_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let task = mri.list();
+    let modules = core.run(task).unwrap();
+
+    assert_eq!(3, modules.len());
+
+    assert_eq!("m1", modules[0].name());
+    assert_eq!("m2", modules[1].name());
+    assert_eq!("m3", modules[2].name());
+
+    assert_eq!("nginx:latest", modules[0].config().image());
+    assert_eq!("ubuntu:latest", modules[1].config().image());
+    assert_eq!("mongo:latest", modules[2].config().image());
+
+    for i in 0..3 {
+        for j in 0..3 {
+            assert_eq!(
+                modules[i]
+                    .config()
+                    .create_options()
+                    .labels()
+                    .unwrap()
+                    .get(&format!("l{}", j + 1)),
+                Some(&format!("v{}", j + 1))
+            );
+        }
+    }
 }

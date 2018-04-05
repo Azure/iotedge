@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::{collections::HashMap, convert::From};
+use std::{collections::HashMap, convert::From, ops::Deref};
 
 use futures::future;
 use futures::prelude::*;
 use hyper::Client;
+use serde_json;
 use tokio_core::reactor::Handle;
 use url::Url;
 
+use client::DockerClient;
 use config::DockerConfig;
 use docker_rs::{apis::{client::APIClient, configuration::Configuration},
-                models::{ContainerCreateBodyNetworkingConfig, EndpointSettings}};
-use edgelet_core::{ModuleConfig, ModuleRegistry, ModuleRuntime};
+                models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig,
+                         EndpointSettings}};
+use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_utils::serde_clone;
 
 use docker_connector::DockerConnector;
@@ -20,8 +23,16 @@ use error::{Error, ErrorKind, Result};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
+lazy_static! {
+    static ref LABELS: HashMap<&'static str, &'static str> = {
+        let mut labels = HashMap::new();
+        labels.insert("net.azure-devices.edge.owner", "Microsoft.Azure.Devices.Edge.Agent");
+        labels
+    };
+}
+
 pub struct DockerModuleRuntime {
-    client: APIClient<DockerConnector>,
+    client: DockerClient<DockerConnector>,
     network_id: Option<String>,
 }
 
@@ -43,7 +54,7 @@ impl DockerModuleRuntime {
         });
 
         Ok(DockerModuleRuntime {
-            client: APIClient::new(configuration),
+            client: DockerClient::new(APIClient::new(configuration)),
             network_id: None,
         })
     }
@@ -119,7 +130,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
 
-    fn create(&mut self, module: ModuleConfig<Self::Config>) -> Self::CreateFuture {
+    fn create(&mut self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         // we only want "docker" modules
         fensure!(module.type_(), module.type_() == DOCKER_MODULE_TYPE);
 
@@ -196,8 +207,49 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn list(&self, _label_filters: Option<&[&str]>) -> Self::ListFuture {
-        Box::new(future::ok(vec![]))
+    fn list(&self) -> Self::ListFuture {
+        let mut filters = HashMap::new();
+        filters.insert("label", LABELS.deref());
+
+        let client_copy = self.client.clone();
+
+        let result = serde_json::to_string(&filters)
+            .and_then(|filters| {
+                Ok(self.client
+                    .container_api()
+                    .container_list(true, 0, false, &filters)
+                    .map(move |containers| {
+                        containers
+                            .iter()
+                            .flat_map(|container| {
+                                DockerConfig::new(
+                                    container.image(),
+                                    ContainerCreateBody::new()
+                                        .with_labels(container.labels().clone()),
+                                ).map(|config| (container, config))
+                            })
+                            .flat_map(|(container, config)| {
+                                DockerModule::new(
+                                    client_copy.clone(),
+                                    container
+                                        .names()
+                                        .iter()
+                                        .nth(0)
+                                        .map(|s| &s[1..])
+                                        .unwrap_or("Unknown"),
+                                    config,
+                                )
+                            })
+                            .collect()
+                    })
+                    .map_err(Error::from))
+            })
+            .map_err(Error::from);
+
+        match result {
+            Ok(f) => Box::new(f),
+            Err(err) => Box::new(future::err(err)),
+        }
     }
 
     fn registry_mut(&mut self) -> &mut Self::ModuleRegistry {
@@ -351,7 +403,7 @@ mod tests {
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
-        let module_config = ModuleConfig::new(
+        let module_config = ModuleSpec::new(
             "m1",
             "not_docker",
             DockerConfig::new("nginx:latest", ContainerCreateBody::new()).unwrap(),

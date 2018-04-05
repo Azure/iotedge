@@ -6,21 +6,25 @@ use chrono::prelude::*;
 use futures::Future;
 use hyper::client::Connect;
 
+use client::DockerClient;
 use config::DockerConfig;
-use docker_rs::apis::client::APIClient;
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use error::{Error, ErrorKind, Result};
 
 pub const MODULE_TYPE: &str = "docker";
 
 pub struct DockerModule<C: Connect> {
-    client: APIClient<C>,
+    client: DockerClient<C>,
     name: String,
     config: DockerConfig,
 }
 
 impl<C: Connect> DockerModule<C> {
-    pub fn new(client: APIClient<C>, name: &str, config: DockerConfig) -> Result<DockerModule<C>> {
+    pub fn new(
+        client: DockerClient<C>,
+        name: &str,
+        config: DockerConfig,
+    ) -> Result<DockerModule<C>> {
         Ok(DockerModule {
             client,
             name: ensure_not_empty!(name.to_string()),
@@ -108,13 +112,14 @@ mod tests {
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
+    use client::DockerClient;
     use config::DockerConfig;
     use module::DockerModule;
 
     fn create_api_client<T: 'static + Serialize>(
         core: &Core,
         body: T,
-    ) -> APIClient<JsonConnector<T>> {
+    ) -> DockerClient<JsonConnector<T>> {
         let client = Client::configure()
             .connector(JsonConnector::new(body))
             .build(&core.handle());
@@ -124,7 +129,7 @@ mod tests {
         config.uri_composer =
             Box::new(|base_path, path| Ok(format!("{}{}", base_path, path).parse().unwrap()));
 
-        APIClient::new(config)
+        DockerClient::new(APIClient::new(config))
     }
 
     #[test]
