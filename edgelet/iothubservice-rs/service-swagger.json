@@ -1,0 +1,2965 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "Service",
+    "title": "IotHub Gateway Service APIs"
+  },
+  "host": "fully-qualified-iothubname.azure-devices.net",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/configurations/{id}": {
+      "get": {
+        "tags": [
+          "ConfigurationApi"
+        ],
+        "summary": "Retrieve a configuration for Iot Hub devices and modules by it identifier.",
+        "operationId": "ConfigurationApi_GetConfiguration",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Configuration object",
+            "schema": {
+              "$ref": "#/definitions/Configuration"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ConfigurationApi"
+        ],
+        "summary": "Create or update the configuration for devices or modules of an IoT hub. An ETag must not be specified for the create operation. An ETag must be specified for the update operation. Note that configuration Id and Content cannot be updated by the user.",
+        "operationId": "ConfigurationApi_PutConfiguration",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "configuration",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Configuration"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the updated Configuration object",
+            "schema": {
+              "$ref": "#/definitions/Configuration"
+            }
+          },
+          "201": {
+            "description": "Returns the created Configuration object",
+            "schema": {
+              "$ref": "#/definitions/Configuration"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ConfigurationApi"
+        ],
+        "summary": "Delete the configuration for devices or modules of an IoT hub. This request requires the If-Match header. The client may specify the ETag for the device identity on the request in order to compare to the ETag maintained by the service for the purpose of optimistic concurrency. The delete operation is performed only if the ETag sent by the client matches the value maintained by the server, indicating that the device identity has not been modified since it was retrieved by the client. To force an unconditional delete, set If-Match to the wildcard character (*).",
+        "operationId": "ConfigurationApi_DeleteConfiguration",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/configurations": {
+      "get": {
+        "tags": [
+          "ConfigurationApi"
+        ],
+        "summary": "Get multiple configurations for devices or modules of an IoT Hub. Returns the specified number of configurations for Iot Hub. Pagination is not supported.",
+        "operationId": "ConfigurationApi_GetConfigurations",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "top",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of Configuration objects",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Configuration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/devices": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Retrieves statistics about device identities in the IoT hub’s identity registry.",
+        "operationId": "DeviceApi_GetRegistryStatistics",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/RegistryStatistics"
+            }
+          }
+        }
+      }
+    },
+    "/statistics/service": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Retrieves service statistics for this IoT hub’s identity registry.",
+        "operationId": "DeviceApi_GetServiceStatistics",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ServiceStatistics"
+            }
+          }
+        }
+      }
+    },
+    "/devices": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Get the identities of multiple devices from the IoT hub identity registry. Not recommended. Use the IoT Hub query language to retrieve device twin and device identity information. See https://docs.microsoft.com/en-us/rest/api/iothub/deviceapi/querydevices",
+        "operationId": "DeviceApi_GetDevices",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "top",
+            "in": "query",
+            "description": "This parameter when specified, defines the maximum number of device identities that are returned. Any value outside the range of 1-1000 is considered to be 1000.",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Device"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Create, update, or delete the identities of multiple devices from the IoT hub identity registry.",
+        "operationId": "DeviceApi_BulkDeviceOperation",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "devices",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ExportImportDevice"
+              }
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/BulkRegistryOperationResult"
+            }
+          },
+          "400": {
+            "description": "BadRequest",
+            "schema": {
+              "$ref": "#/definitions/BulkRegistryOperationResult"
+            }
+          }
+        }
+      }
+    },
+    "/devices/query": {
+      "post": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Query an IoT hub to retrieve information regarding device twins using a SQL-like language.",
+        "operationId": "DeviceApi_QueryDevices",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "querySpecification",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/QuerySpecification"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query result with continuation token if appropriate.",
+            "schema": {
+              "$ref": "#/definitions/QueryResult"
+            }
+          }
+        }
+      }
+    },
+    "/devices/{id}": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Retrieve a device from the identity registry of an IoT hub.",
+        "operationId": "DeviceApi_GetDevice",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Device object",
+            "schema": {
+              "$ref": "#/definitions/Device"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Create or update the identity of a device in the identity registry of an IoT hub.",
+        "operationId": "DeviceApi_PutDevice",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "device",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Device"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Device object",
+            "schema": {
+              "$ref": "#/definitions/Device"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Delete the identity of a device from the identity registry of an IoT hub.",
+        "operationId": "DeviceApi_DeleteDevice",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/devices/{id}/applyConfigurationContent": {
+      "post": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "operationId": "DeviceApi_ApplyConfigurationContentOnDevice",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConfigurationContent"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/jobs/create": {
+      "post": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "operationId": "DeviceApi_CreateJob",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "jobProperties",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobProperties"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "operationId": "DeviceApi_GetJobs",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "operationId": "DeviceApi_GetJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "operationId": "DeviceApi_CancelJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/devices/{id}/commands": {
+      "delete": {
+        "tags": [
+          "DeviceApi"
+        ],
+        "summary": "Delete all the pending commands for this device from the IoT hub.",
+        "operationId": "DeviceApi_PurgeCommandQueue",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PurgeMessageQueueResult"
+            }
+          }
+        }
+      }
+    },
+    "/twins/{id}": {
+      "get": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "summary": "Get a device twin.",
+        "operationId": "DeviceTwinApi_GetDeviceTwin",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the device twin object",
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "summary": "Updates tags and desired properties of a device twin.",
+        "operationId": "DeviceTwinApi_ReplaceDeviceTwin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "deviceTwinInfo",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the device twin object",
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "summary": "Updates tags and desired properties of a device twin.",
+        "operationId": "DeviceTwinApi_UpdateDeviceTwin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "deviceTwinInfo",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the device twin object",
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          }
+        }
+      }
+    },
+    "/twins/{id}/modules/{mid}": {
+      "get": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "operationId": "DeviceTwinApi_GetModuleTwin",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "operationId": "DeviceTwinApi_ReplaceModuleTwin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "deviceTwinInfo",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "operationId": "DeviceTwinApi_UpdateModuleTwin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "deviceTwinInfo",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceTwinInfo"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/jobs/v2/{id}": {
+      "get": {
+        "tags": [
+          "JobApi"
+        ],
+        "summary": "Retrieve details of an existing job from an IoT hub.",
+        "operationId": "JobApi_GetJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Job response object",
+            "schema": {
+              "$ref": "#/definitions/JobResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "JobApi"
+        ],
+        "summary": "Create a new job on an IoT hub.",
+        "operationId": "JobApi_CreateJob",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "jobRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobRequest"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Job response object",
+            "schema": {
+              "$ref": "#/definitions/JobResponse"
+            }
+          }
+        }
+      }
+    },
+    "/jobs/v2/{id}/cancel": {
+      "post": {
+        "tags": [
+          "JobApi"
+        ],
+        "summary": "Cancel an existing job on an IoT hub.",
+        "operationId": "JobApi_CancelJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Job response object",
+            "schema": {
+              "$ref": "#/definitions/JobResponse"
+            }
+          }
+        }
+      }
+    },
+    "/jobs/v2/query": {
+      "get": {
+        "tags": [
+          "JobApi"
+        ],
+        "summary": "Query an IoT hub to retrieve information regarding jobs using the IoT Hub query language",
+        "operationId": "JobApi_QueryJobs",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "jobType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "jobStatus",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/{iotHubName}/{iotHubId}/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_GetJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "iotHubName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "iotHubId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_CreateJob",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "iotHubName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "iotHubId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "jobRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobRequest"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/{iotHubName}/{iotHubId}/jobs/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_CancelJob",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "iotHubName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "iotHubId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/{iotHubName}/{iotHubId}/jobs": {
+      "get": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_QueryJobs",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "iotHubName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "iotHubId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "jobType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "jobStatus",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "continuationToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/{iotHubName}/{iotHubId}/jobs/{jobId}/jobDocument": {
+      "get": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_GetJobDocument",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "iotHubName",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "iotHubId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/jobDocument": {
+      "put": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_UpdateJobDocument",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "requestInput",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobServiceOrchestrationDocumentUpdateRequest"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/query/jobDocuments": {
+      "post": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_QueryJobDocuments",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "requestInput",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobServiceOrchestrationDocumentQueryRequest"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{correlationId}": {
+      "post": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_Notifify",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "correlationId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "commandOutcome",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CommandOutcome"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/failover": {
+      "post": {
+        "tags": [
+          "JobServiceApi"
+        ],
+        "operationId": "JobServiceApi_JobServiceDrFailover",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "input",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JobServiceDrFailoverRequestInput"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/devices/{id}/modules": {
+      "get": {
+        "tags": [
+          "ModuleApi"
+        ],
+        "summary": "Retrieve all the module identities on the device.",
+        "operationId": "ModuleApi_GetModulesOnDevice",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Device object",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DeviceModule"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices/{id}/modules/{mid}": {
+      "get": {
+        "tags": [
+          "ModuleApi"
+        ],
+        "summary": "Retrieve the specified module identity on the device.",
+        "operationId": "ModuleApi_GetModule",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "description": "Module ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the DeviceModule object",
+            "schema": {
+              "$ref": "#/definitions/DeviceModule"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ModuleApi"
+        ],
+        "summary": "Create or update the module identity for device in IoT hub. An ETag must not be specified for the create operation. An ETag must be specified for the update operation. Note that moduleId and generation cannot be updated by the user.",
+        "operationId": "ModuleApi_PutModule",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "description": "Module ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "module",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceModule"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the updated DeviceModule object",
+            "schema": {
+              "$ref": "#/definitions/DeviceModule"
+            }
+          },
+          "201": {
+            "description": "Returns the created DeviceModule object",
+            "schema": {
+              "$ref": "#/definitions/DeviceModule"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ModuleApi"
+        ],
+        "summary": "Delete the module identity for device of an IoT hub. This request requires the If-Match header. The client may specify the ETag for the device identity on the request in order to compare to the ETag maintained by the service for the purpose of optimistic concurrency. The delete operation is performed only if the ETag sent by the client matches the value maintained by the server, indicating that the device identity has not been modified since it was retrieved by the client. To force an unconditional delete, set If-Match to the wildcard character (*).",
+        "operationId": "ModuleApi_DeleteDeviceModule",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Device ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "mid",
+            "in": "path",
+            "description": "Module ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/twins/{id}/methods": {
+      "post": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "summary": "Invoke a direct method on a device.",
+        "description": "Invoke a direct method on a device. See https://docs.microsoft.com/azure/iot-hub/iot-hub-devguide-direct-methods for more information.",
+        "operationId": "DeviceTwinApi_InvokeDeviceMethod",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "deviceid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "directMethodRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CloudToDeviceMethod"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/CloudToDeviceMethodResult"
+            }
+          }
+        }
+      }
+    },
+    "/twins/{id}/modules/{moduleId}/methods": {
+      "post": {
+        "tags": [
+          "DeviceTwinApi"
+        ],
+        "summary": "Invoke a direct method on a device.",
+        "description": "Invoke a direct method on a device. See https://docs.microsoft.com/azure/iot-hub/iot-hub-devguide-direct-methods for more information.",
+        "operationId": "DeviceTwinApi_InvokeDeviceMethod",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "moduleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "directMethodRequest",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CloudToDeviceMethod"
+            }
+          },
+          {
+            "$ref": "#/parameters/api-version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/CloudToDeviceMethodResult"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Configuration": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "SchemaVersion": {
+          "type": "string"
+        },
+        "InternalVersion": {
+          "type": "string"
+        },
+        "Labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "Content": {
+          "$ref": "#/definitions/ConfigurationContent"
+        },
+        "ContentType": {
+          "type": "string"
+        },
+        "TargetCondition": {
+          "type": "string"
+        },
+        "CreatedTimeUtc": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "LastUpdatedTimeUtc": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "Priority": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "SystemMetrics": {
+          "$ref": "#/definitions/ConfigurationMetrics"
+        },
+        "Metrics": {
+          "$ref": "#/definitions/ConfigurationMetrics"
+        },
+        "ETag": {
+          "type": "string"
+        },
+        "ConfigurationType": {
+          "enum": [
+            "Exclusive"
+          ],
+          "type": "string",
+          "readOnly": true
+        },
+        "BodyQuery": {
+          "type": "string"
+        },
+        "Target": {
+          "enum": [
+            "devices",
+            "devices.jobs",
+            "devices.modules"
+          ],
+          "type": "string"
+        },
+        "MetricBodyQueries": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ConfigurationBodyQuery"
+          }
+        },
+        "Version": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "IsEdgeDeployment": {
+          "type": "boolean",
+          "readOnly": true
+        }
+      }
+    },
+    "ConfigurationContent": {
+      "type": "object",
+      "properties": {
+        "ModulesContent": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/TwinContent"
+            }
+          }
+        },
+        "DeviceContent": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TwinContent"
+          }
+        },
+        "ModuleContent": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TwinContent"
+          }
+        },
+        "IsEdgeContent": {
+          "type": "boolean",
+          "readOnly": true
+        }
+      }
+    },
+    "ConfigurationMetrics": {
+      "description": "Configuration Metrics",
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "object",
+          "additionalProperties": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "queries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ConfigurationBodyQuery": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "enum": [
+            "devices",
+            "devices.jobs",
+            "devices.modules"
+          ],
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        }
+      }
+    },
+    "TwinContent": {
+      "type": "object",
+      "properties": {
+        "TargetPropertyPath": {
+          "type": "string"
+        },
+        "TargetContent": {
+          "$ref": "#/definitions/VariantValue"
+        },
+        "PropertyNamesListFromRoot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "readOnly": true
+        }
+      }
+    },
+    "VariantValue": {
+      "description": "Base class for serializable value of indetermined type.",
+      "type": "object",
+      "properties": {
+        "ObjectValue": {
+          "type": "object",
+          "readOnly": true
+        },
+        "IsNull": {
+          "type": "boolean",
+          "readOnly": true
+        }
+      }
+    },
+    "RegistryStatistics": {
+      "type": "object",
+      "properties": {
+        "totalDeviceCount": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "enabledDeviceCount": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "disabledDeviceCount": {
+          "format": "int64",
+          "type": "integer"
+        }
+      }
+    },
+    "ServiceStatistics": {
+      "type": "object",
+      "properties": {
+        "connectedDeviceCount": {
+          "format": "int64",
+          "type": "integer"
+        }
+      }
+    },
+    "Device": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string"
+        },
+        "generationId": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "connectionState": {
+          "enum": [
+            "Disconnected",
+            "Connected"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ],
+          "type": "string"
+        },
+        "statusReason": {
+          "type": "string"
+        },
+        "connectionStateUpdatedTime": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "statusUpdatedTime": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "lastActivityTime": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "cloudToDeviceMessageCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "authentication": {
+          "$ref": "#/definitions/AuthenticationMechanism"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/DeviceCapabilities",
+          "description": "Capabilities get saved in DMC but rendered out on this object\r\nBased on API Version we set this to null so we dont render them."
+        }
+      }
+    },
+    "AuthenticationMechanism": {
+      "type": "object",
+      "properties": {
+        "symmetricKey": {
+          "$ref": "#/definitions/SymmetricKey"
+        },
+        "x509Thumbprint": {
+          "$ref": "#/definitions/X509Thumbprint"
+        },
+        "type": {
+          "enum": [
+            "sas",
+            "selfSigned",
+            "certificateAuthority",
+            "none"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "DeviceCapabilities": {
+      "description": "Status of Capabilities enabled on the device",
+      "type": "object",
+      "properties": {
+        "iotEdge": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SymmetricKey": {
+      "type": "object",
+      "properties": {
+        "primaryKey": {
+          "type": "string"
+        },
+        "secondaryKey": {
+          "type": "string"
+        }
+      }
+    },
+    "X509Thumbprint": {
+      "type": "object",
+      "properties": {
+        "primaryThumbprint": {
+          "type": "string"
+        },
+        "secondaryThumbprint": {
+          "type": "string"
+        }
+      }
+    },
+    "ExportImportDevice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "moduleId": {
+          "type": "string"
+        },
+        "eTag": {
+          "type": "string"
+        },
+        "importMode": {
+          "enum": [
+            "createOrUpdate",
+            "create",
+            "update",
+            "updateIfMatchETag",
+            "createOrUpdateIfMatchETag",
+            "delete",
+            "deleteIfMatchETag",
+            "updateTwin",
+            "updateTwinIfMatchETag"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ],
+          "type": "string"
+        },
+        "statusReason": {
+          "type": "string"
+        },
+        "authentication": {
+          "$ref": "#/definitions/AuthenticationMechanism"
+        },
+        "twinETag": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "properties": {
+          "$ref": "#/definitions/PropertyContainer"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/DeviceCapabilities"
+        },
+        "managedBy": {
+          "type": "string"
+        }
+      }
+    },
+    "PropertyContainer": {
+      "type": "object",
+      "properties": {
+        "desired": {
+          "$ref": "#/definitions/DeviceTwinProperties"
+        },
+        "reported": {
+          "$ref": "#/definitions/DeviceTwinProperties"
+        }
+      }
+    },
+    "DeviceTwinProperties": {
+      "description": "Represents 'desired/reported properties' in DeviceTwin model",
+      "type": "object",
+      "properties": {
+        "Version": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "Properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "Metadata": {
+          "$ref": "#/definitions/Metadata"
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "LastUpdatedUtc": {
+          "$ref": "#/definitions/VariantValueDateTime"
+        },
+        "LastUpdatedVersion": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "LastUpdatedBy": {
+          "type": "string"
+        },
+        "LastUpdatedByDigest": {
+          "type": "string"
+        },
+        "HasChildren": {
+          "type": "boolean",
+          "readOnly": true
+        },
+        "Nested": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Metadata"
+          },
+          "readOnly": true
+        }
+      }
+    },
+    "VariantValueDateTime": {
+      "type": "object",
+      "properties": {
+        "Value": {
+          "format": "date-time",
+          "type": "string",
+          "readOnly": true
+        },
+        "ObjectValue": {
+          "type": "object",
+          "readOnly": true
+        },
+        "IsNull": {
+          "type": "boolean",
+          "readOnly": true
+        }
+      }
+    },
+    "BulkRegistryOperationResult": {
+      "description": "Encapsulates the result of a bulk registry operation.",
+      "type": "object",
+      "properties": {
+        "isSuccessful": {
+          "description": "Whether or not the operation was successful.",
+          "type": "boolean"
+        },
+        "errors": {
+          "description": "If the operation was not successful, this contains an array of DeviceRegistryOperationError objects.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DeviceRegistryOperationError"
+          }
+        },
+        "warnings": {
+          "description": "If the operation was partially successful, this contains an array of DeviceRegistryOperationWarning objects.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DeviceRegistryOperationWarning"
+          }
+        }
+      }
+    },
+    "DeviceRegistryOperationError": {
+      "description": "Encapsulates device registry operation error details.",
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "description": "The ID of the device that indicated the error.",
+          "type": "string"
+        },
+        "errorCode": {
+          "description": "ErrorCode associated with the error.",
+          "enum": [
+            "InvalidErrorCode",
+            "GenericBadRequest",
+            "InvalidProtocolVersion",
+            "DeviceInvalidResultCount",
+            "InvalidOperation",
+            "ArgumentInvalid",
+            "ArgumentNull",
+            "IotHubFormatError",
+            "DeviceStorageEntitySerializationError",
+            "BlobContainerValidationError",
+            "ImportWarningExistsError",
+            "InvalidSchemaVersion",
+            "DeviceDefinedMultipleTimes",
+            "DeserializationError",
+            "BulkRegistryOperationFailure",
+            "DefaultStorageEndpointNotConfigured",
+            "InvalidFileUploadCorrelationId",
+            "ExpiredFileUploadCorrelationId",
+            "InvalidStorageEndpoint",
+            "InvalidMessagingEndpoint",
+            "InvalidFileUploadCompletionStatus",
+            "InvalidStorageEndpointOrBlob",
+            "RequestCanceled",
+            "InvalidStorageEndpointProperty",
+            "EtagDoesNotMatch",
+            "RequestTimedOut",
+            "UnsupportedOperationOnReplica",
+            "NullMessage",
+            "InvalidRouteTestInput",
+            "InvalidSourceOnRoute",
+            "RoutingNotEnabled",
+            "InvalidEndorsementKey",
+            "InvalidRegistrationId",
+            "InvalidStorageRootKey",
+            "InvalidEnrollmentGroupId",
+            "TooManyEnrollments",
+            "RegistrationIdDefinedMultipleTimes",
+            "CannotRegisterModuleToModule",
+            "TenantHubRoutingNotEnabled",
+            "InvalidConfigurationTargetCondition",
+            "InvalidConfigurationContent",
+            "CannotModifyImmutableConfigurationContent",
+            "InvalidConfigurationCustomMetricsQuery",
+            "GenericUnauthorized",
+            "IotHubNotFound",
+            "IotHubUnauthorizedAccess",
+            "IotHubUnauthorized",
+            "ElasticPoolNotFound",
+            "SystemModuleModifyUnauthorizedAccess",
+            "GenericForbidden",
+            "IotHubSuspended",
+            "IotHubQuotaExceeded",
+            "JobQuotaExceeded",
+            "DeviceMaximumQueueDepthExceeded",
+            "IotHubMaxCbsTokenExceeded",
+            "DeviceMaximumActiveFileUploadLimitExceeded",
+            "DeviceMaximumQueueSizeExceeded",
+            "RoutingEndpointResponseForbidden",
+            "InvalidMessageExpiryTime",
+            "OperationNotAvailableInCurrentTier",
+            "DeviceModelMaxPropertiesExceeded",
+            "DeviceModelMaxIndexablePropertiesExceeded",
+            "GenericNotFound",
+            "DeviceNotFound",
+            "JobNotFound",
+            "QuotaMetricNotFound",
+            "SystemPropertyNotFound",
+            "AmqpAddressNotFound",
+            "RoutingEndpointResponseNotFound",
+            "CertificateNotFound",
+            "ElasticPoolTenantHubNotFound",
+            "ModuleNotFound",
+            "AzureTableStoreNotFound",
+            "QueryStoreClusterNotFound",
+            "DeviceNotOnline",
+            "DeviceConnectionClosedRemotely",
+            "EnrollmentNotFound",
+            "DeviceRegistrationNotFound",
+            "AsyncOperationNotFound",
+            "EnrollmentGroupNotFound",
+            "ConfigurationNotFound",
+            "GenericMethodNotAllowed",
+            "OperationNotAllowedInCurrentState",
+            "ImportDevicesNotSupported",
+            "BulkAddDevicesNotSupported",
+            "GenericConflict",
+            "DeviceAlreadyExists",
+            "LinkCreationConflict",
+            "CallbackSubscriptionConflict",
+            "ModelAlreadyExists",
+            "DeviceLocked",
+            "DeviceJobAlreadyExists",
+            "JobAlreadyExists",
+            "EnrollmentConflict",
+            "EnrollmentGroupConflict",
+            "RegistrationStatusConflict",
+            "ModuleAlreadyExistsOnDevice",
+            "ConfigurationAlreadyExists",
+            "ApplyConfigurationAlreadyInProgressOnDevice",
+            "GenericPreconditionFailed",
+            "PreconditionFailed",
+            "DeviceMessageLockLost",
+            "JobRunPreconditionFailed",
+            "GenericRequestEntityTooLarge",
+            "MessageTooLarge",
+            "TooManyDevices",
+            "TooManyModulesOnDevice",
+            "ConfigurationCountLimitExceeded",
+            "GenericUnsupportedMediaType",
+            "IncompatibleDataType",
+            "GenericTooManyRequests",
+            "ThrottlingException",
+            "ThrottleBacklogLimitExceeded",
+            "ThrottlingBacklogTimeout",
+            "ThrottlingMaxActiveJobCountExceeded",
+            "GenericServerError",
+            "ServerError",
+            "JobCancelled",
+            "StatisticsRetrievalError",
+            "ConnectionForcefullyClosed",
+            "InvalidBlobState",
+            "BackupTimedOut",
+            "AzureStorageTimeout",
+            "GenericTimeout",
+            "InvalidThrottleParameter",
+            "EventHubLinkAlreadyClosed",
+            "ReliableBlobStoreError",
+            "RetryAttemptsExhausted",
+            "AzureTableStoreError",
+            "CheckpointStoreNotFound",
+            "DocumentDbInvalidReturnValue",
+            "ReliableDocDbStoreStoreError",
+            "ReliableBlobStoreTimeoutError",
+            "ConfigReadFailed",
+            "InvalidContainerReceiveLink",
+            "InvalidPartitionEpoch",
+            "RestoreTimedOut",
+            "StreamReservationFailure",
+            "UnexpectedPropertyValue",
+            "OrchestrationOperationFailed",
+            "GenericBadGateway",
+            "InvalidResponseWhileProxying",
+            "GenericServiceUnavailable",
+            "ServiceUnavailable",
+            "IotHubFailingOver",
+            "PartitionNotFound",
+            "IotHubActivationFailed",
+            "ServerBusy",
+            "IotHubRestoring",
+            "ConnectionUnavailable",
+            "DeviceUnavailable",
+            "ConfigurationNotAvailable",
+            "GenericGatewayTimeout",
+            "GatewayTimeout"
+          ],
+          "type": "string"
+        },
+        "errorStatus": {
+          "description": "Additional details associated with the error.",
+          "type": "string"
+        },
+        "moduleId": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        }
+      }
+    },
+    "DeviceRegistryOperationWarning": {
+      "description": "Encapsulates device registry operation error details.",
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "description": "The ID of the device that indicated the warning.",
+          "type": "string"
+        },
+        "warningCode": {
+          "enum": [
+            "DeviceRegisteredWithoutTwin"
+          ],
+          "type": "string"
+        },
+        "warningStatus": {
+          "description": "Additional details associated with the warning.",
+          "type": "string"
+        }
+      }
+    },
+    "QuerySpecification": {
+      "description": "A Json query request",
+      "type": "object",
+      "properties": {
+        "query": {
+          "description": "The query.",
+          "type": "string"
+        }
+      }
+    },
+    "QueryResult": {
+      "description": "The query result.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "The query result type.",
+          "enum": [
+            "unknown",
+            "twin",
+            "deviceJob",
+            "jobResponse",
+            "raw",
+            "enrollment",
+            "enrollmentGroup",
+            "deviceRegistration"
+          ],
+          "type": "string"
+        },
+        "items": {
+          "description": "The query result items, as a collection.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "continuationToken": {
+          "description": "Request continuation token.",
+          "type": "string"
+        }
+      }
+    },
+    "JobProperties": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "description": "System generated.  Ignored at creation.",
+          "type": "string"
+        },
+        "startTimeUtc": {
+          "format": "date-time",
+          "description": "System generated.  Ignored at creation.",
+          "type": "string"
+        },
+        "endTimeUtc": {
+          "format": "date-time",
+          "description": "System generated.  Ignored at creation.\r\nRepresents the time the job stopped processing.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Required.\r\nThe type of job to execute.",
+          "enum": [
+            "unknown",
+            "export",
+            "import",
+            "backup",
+            "readDeviceProperties",
+            "writeDeviceProperties",
+            "updateDeviceConfiguration",
+            "rebootDevice",
+            "factoryResetDevice",
+            "firmwareUpdate",
+            "scheduleDeviceMethod",
+            "scheduleUpdateTwin",
+            "restoreFromBackup",
+            "failoverDataCopy"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "description": "System generated.  Ignored at creation.",
+          "enum": [
+            "unknown",
+            "enqueued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+            "queued"
+          ],
+          "type": "string"
+        },
+        "progress": {
+          "format": "int32",
+          "description": "System generated.  Ignored at creation.\r\nRepresents the percentage of completion.",
+          "type": "integer"
+        },
+        "inputBlobContainerUri": {
+          "description": "URI containing SAS token to a blob container that contains registry data to sync.",
+          "type": "string"
+        },
+        "inputBlobName": {
+          "description": "The blob name to be used when importing from the provided input blob container.",
+          "type": "string"
+        },
+        "outputBlobContainerUri": {
+          "description": "URI containing SAS token to a blob container.  This is used to output the status of the job and the results.",
+          "type": "string"
+        },
+        "outputBlobName": {
+          "description": "The name of the blob that will be created in the provided output blob container.  This blob will contain\r\nthe exported device registry information for the IoT Hub.",
+          "type": "string"
+        },
+        "excludeKeysInExport": {
+          "description": "Optional for export jobs; ignored for other jobs.  Default: false.  If false, authorization keys are included\r\nin export output.  Keys are exported as null otherwise.",
+          "type": "boolean"
+        },
+        "failureReason": {
+          "description": "System genereated.  Ignored at creation.\r\nIf status == failure, this represents a string containing the reason.",
+          "type": "string"
+        },
+        "destinationContainerMap": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "useSecondaryStorageAsSource ": {
+          "type": "boolean"
+        },
+        "sourceContainerMap": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/StorageAccountProperties"
+          }
+        }
+      }
+    },
+    "StorageAccountProperties": {
+      "type": "object",
+      "properties": {
+        "PrimarySasUri": {
+          "type": "string"
+        },
+        "SecondarySasUri": {
+          "type": "string"
+        }
+      }
+    },
+    "PurgeMessageQueueResult": {
+      "description": "Result of a device message queue purge operation.",
+      "type": "object",
+      "properties": {
+        "totalMessagesPurged": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "deviceId": {
+          "description": "The ID of the device whose messages are being purged.",
+          "type": "string"
+        },
+        "moduleId": {
+          "description": "The ID of the device whose messages are being purged.",
+          "type": "string"
+        }
+      }
+    },
+    "DeviceTwinInfo": {
+      "description": "Container of IoT Hub device twin properties and their accessors.",
+      "type": "object",
+      "properties": {
+        "DeviceId": {
+          "description": "The deviceId uniquely identifies the device in the IoT hub's identity registry. A case-sensitive string (up to 128 char long) of ASCII 7-bit alphanumeric chars + {'-', ':', '.', '+', '%', '_', '#', '*', '?', '!', '(', ')', ',', '=', '@', ';', '$', '''}.",
+          "type": "string"
+        },
+        "LastActivityTimeUtc": {
+          "$ref": "#/definitions/VariantValueDateTime",
+          "description": "The last time the device connected, received or sent a message. In ISO8601 datetime format in UTC, for example, 2015-01-28T16:24:48.789Z. This does not update if the device uses the HTTP/1 protocol to perform messaging operations."
+        },
+        "IsConnected": {
+          "description": "Indicates if the device is currently connected to the IoT hub or not.",
+          "type": "boolean"
+        },
+        "LastConnectedTimeUtc": {
+          "$ref": "#/definitions/VariantValueDateTime",
+          "description": "The last time the device connected to the IoT hub. In ISO8601 datetime format in UTC, for example, 2015-01-28T16:24:48.789Z. This does not update if the device uses the HTTP/1 protocol to perform messaging operations."
+        },
+        "Version": {
+          "format": "int64",
+          "description": "Version for device twin, including tags and desired properties",
+          "type": "integer"
+        },
+        "Tags": {
+          "description": "A JSON document read and written by the solution back end. Tags are not visible to device apps.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "DesiredProperties": {
+          "$ref": "#/definitions/DeviceTwinProperties",
+          "description": "Used in conjunction with reported properties to synchronize device configuration or condition. Desired properties can only be set by the solution back end and can be read by the device app. The device app can also be notified in real time of changes on the desired properties."
+        },
+        "ReportedProperties": {
+          "$ref": "#/definitions/DeviceTwinProperties",
+          "description": "Used in conjunction with desired properties to synchronize device configuration or condition. Reported properties can only be set by the device app and can be read and queried by the solution back end."
+        },
+        "ProvisioningState": {
+          "description": "Provisioning state of device twin.",
+          "enum": [
+            "Creating",
+            "Deleting",
+            "Active",
+            "Deleted"
+          ],
+          "type": "string"
+        },
+        "ModuleId": {
+          "type": "string"
+        },
+        "Configurations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ConfigurationVersion"
+          }
+        },
+        "Capabilities": {
+          "$ref": "#/definitions/DeviceCapabilities"
+        },
+        "Status": {
+          "enum": [
+            "enabled",
+            "disabled"
+          ],
+          "type": "string",
+          "readOnly": true
+        },
+        "StatusReason": {
+          "type": "string",
+          "readOnly": true
+        },
+        "StatusUpdatedTime": {
+          "format": "date-time",
+          "type": "string",
+          "readOnly": true
+        },
+        "ConnectionState": {
+          "enum": [
+            "Disconnected",
+            "Connected"
+          ],
+          "type": "string",
+          "readOnly": true
+        },
+        "LastActivityTime": {
+          "format": "date-time",
+          "type": "string",
+          "readOnly": true
+        },
+        "CloudToDeviceMessageCount": {
+          "format": "int32",
+          "type": "integer",
+          "readOnly": true
+        },
+        "AuthenticationType": {
+          "enum": [
+            "sas",
+            "selfSigned",
+            "certificateAuthority",
+            "none"
+          ],
+          "type": "string",
+          "readOnly": true
+        },
+        "X509Thumbprint": {
+          "$ref": "#/definitions/X509ThumbprintInfo",
+          "readOnly": true
+        },
+        "DeviceETag": {
+          "type": "string",
+          "readOnly": true
+        },
+        "TwinVersion": {
+          "format": "int64",
+          "type": "integer",
+          "readOnly": true
+        }
+      }
+    },
+    "ConfigurationVersion": {
+      "description": "Class that represents {Microsoft.Azure.Devices.Cloud.Configuration} on {Microsoft.Azure.Devices.Common.Api.DeviceTwinInfo}\r\nIt is a combination of configuration (InternalVersion, type, status) and twin version.",
+      "type": "object",
+      "properties": {
+        "ConfigurationId": {
+          "description": "Configuration identifier.",
+          "type": "string"
+        },
+        "InternalVersion": {
+          "description": "Configuration's InternalVersion",
+          "type": "string"
+        },
+        "DeviceVersion": {
+          "format": "int64",
+          "description": "Device Core version (Desired Properties + Tags, doesn't include reported properties version)",
+          "type": "integer"
+        },
+        "ConfigurationType": {
+          "description": "Type of configuration.",
+          "enum": [
+            "Exclusive"
+          ],
+          "type": "string"
+        },
+        "Status": {
+          "description": "Status of configuration on device.",
+          "enum": [
+            "None",
+            "Targeted",
+            "Applied"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "X509ThumbprintInfo": {
+      "type": "object",
+      "properties": {
+        "primaryThumbprint": {
+          "type": "string"
+        },
+        "secondaryThumbprint": {
+          "type": "string"
+        }
+      }
+    },
+    "JobRequest": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "description": "Job identifier",
+          "type": "string"
+        },
+        "type": {
+          "description": "Required.\r\nThe type of job to execute.",
+          "enum": [
+            "unknown",
+            "export",
+            "import",
+            "backup",
+            "readDeviceProperties",
+            "writeDeviceProperties",
+            "updateDeviceConfiguration",
+            "rebootDevice",
+            "factoryResetDevice",
+            "firmwareUpdate",
+            "scheduleDeviceMethod",
+            "scheduleUpdateTwin",
+            "restoreFromBackup",
+            "failoverDataCopy"
+          ],
+          "type": "string"
+        },
+        "cloudToDeviceMethod": {
+          "$ref": "#/definitions/CloudToDeviceMethod",
+          "description": "Required if jobType is cloudToDeviceMethod.\r\nThe method type and parameters."
+        },
+        "updateTwin": {
+          "$ref": "#/definitions/DeviceTwinInfo"
+        },
+        "queryCondition": {
+          "description": "Required if jobType is updateTwin or cloudToDeviceMethod.\r\nCondition for device query to get devices to execute the job on",
+          "type": "string"
+        },
+        "startTime": {
+          "format": "date-time",
+          "description": "ISO 8601 date time to start the job",
+          "type": "string"
+        },
+        "maxExecutionTimeInSeconds": {
+          "format": "int64",
+          "description": "Max execution time in secounds (ttl duration)",
+          "type": "integer"
+        }
+      }
+    },
+    "CloudToDeviceMethod": {
+      "description": "Parameters to execute a direct method on the device",
+      "type": "object",
+      "properties": {
+        "methodName": {
+          "description": "Method to run",
+          "type": "string"
+        },
+        "payload": {
+          "description": "Payload",
+          "type": "object",
+          "readOnly": true
+        },
+        "responseTimeoutInSeconds": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "connectTimeoutInSeconds": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "JobResponse": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "description": "System generated.  Ignored at creation.",
+          "type": "string"
+        },
+        "queryCondition": {
+          "description": "Device query condition.",
+          "type": "string"
+        },
+        "createdTime": {
+          "format": "date-time",
+          "description": "System generated.  Ignored at creation.",
+          "type": "string"
+        },
+        "startTime": {
+          "format": "date-time",
+          "description": "Scheduled job start time in UTC.",
+          "type": "string"
+        },
+        "endTime": {
+          "format": "date-time",
+          "description": "System generated.  Ignored at creation.\r\nRepresents the time the job stopped processing.",
+          "type": "string"
+        },
+        "maxExecutionTimeInSeconds": {
+          "format": "int64",
+          "description": "Max execution time in secounds (ttl duration)",
+          "type": "integer"
+        },
+        "type": {
+          "description": "Required.\r\nThe type of job to execute.",
+          "enum": [
+            "unknown",
+            "export",
+            "import",
+            "backup",
+            "readDeviceProperties",
+            "writeDeviceProperties",
+            "updateDeviceConfiguration",
+            "rebootDevice",
+            "factoryResetDevice",
+            "firmwareUpdate",
+            "scheduleDeviceMethod",
+            "scheduleUpdateTwin",
+            "restoreFromBackup",
+            "failoverDataCopy"
+          ],
+          "type": "string"
+        },
+        "cloudToDeviceMethod": {
+          "$ref": "#/definitions/CloudToDeviceMethod",
+          "description": "Required if jobType is cloudToDeviceMethod.\r\nThe method type and parameters."
+        },
+        "updateTwin": {
+          "$ref": "#/definitions/DeviceTwinInfo"
+        },
+        "status": {
+          "description": "System generated.  Ignored at creation.",
+          "enum": [
+            "unknown",
+            "enqueued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "scheduled",
+            "queued"
+          ],
+          "type": "string"
+        },
+        "failureReason": {
+          "description": "System generated.  Ignored at creation.\r\nIf status == failure, this represents a string containing the reason.",
+          "type": "string"
+        },
+        "statusMessage": {
+          "description": "Status message for the job",
+          "type": "string"
+        },
+        "deviceJobStatistics": {
+          "$ref": "#/definitions/DeviceJobStatistics",
+          "description": "Job details"
+        }
+      }
+    },
+    "DeviceJobStatistics": {
+      "description": "The job counts, e.g., number of failed/succeeded devices",
+      "type": "object",
+      "properties": {
+        "deviceCount": {
+          "format": "int32",
+          "description": "Number of devices in the job",
+          "type": "integer"
+        },
+        "failedCount": {
+          "format": "int32",
+          "description": "The number of failed jobs",
+          "type": "integer"
+        },
+        "succeededCount": {
+          "format": "int32",
+          "description": "The number of Successed jobs",
+          "type": "integer"
+        },
+        "runningCount": {
+          "format": "int32",
+          "description": "The number of running jobs",
+          "type": "integer"
+        },
+        "pendingCount": {
+          "format": "int32",
+          "description": "The number of pending (scheduled) jobs",
+          "type": "integer"
+        }
+      }
+    },
+    "JobServiceOrchestrationDocumentUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "documentJson": {
+          "type": "string"
+        },
+        "iotHubName": {
+          "type": "string"
+        }
+      }
+    },
+    "JobServiceOrchestrationDocumentQueryRequest": {
+      "type": "object",
+      "properties": {
+        "sqlQuery": {
+          "type": "string"
+        },
+        "onNativeStore": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CommandOutcome": {
+      "type": "object",
+      "properties": {
+        "IsSuccess": {
+          "type": "boolean"
+        },
+        "Exception": {
+          "type": "object"
+        },
+        "CommandResult": {
+          "type": "object"
+        }
+      }
+    },
+    "JobServiceDrFailoverRequestInput": {
+      "type": "object",
+      "properties": {
+        "ActOnNativeOrchestrationManager": {
+          "type": "boolean"
+        },
+        "DeleteAndRecreateQueues": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DeviceModule": {
+      "type": "object",
+      "properties": {
+        "moduleId": {
+          "type": "string"
+        },
+        "managedBy": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "generationId": {
+          "type": "string"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "connectionState": {
+          "enum": [
+            "Disconnected",
+            "Connected"
+          ],
+          "type": "string"
+        },
+        "connectionStateUpdatedTime": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "lastActivityTime": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "cloudToDeviceMessageCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "authentication": {
+          "$ref": "#/definitions/AuthenticationMechanism"
+        }
+      }
+    },
+    "CloudToDeviceMethodResult": {
+      "description": "Represents the Device Method Invocation Results.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "format": "int32",
+          "description": "Method invocation result status.",
+          "type": "integer"
+        },
+        "payload": {
+          "description": "Method invocation result payload.",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "parameters": {
+    "api-version": {
+      "name": "api-version",
+      "in": "query",
+      "description": "Version of the Api.",
+      "required": true,
+      "type": "string",
+      "default": "2016-02-03"
+    }
+  }
+}
