@@ -41,7 +41,7 @@ pub trait DeviceApi {
         id: &str,
         content: ::models::ConfigurationContent,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>; //CHANGES: Before this code was Iteam = Type (which didn't compile), so everywhere we had Type we changed to ().
     fn device_api_bulk_device_operation(
         &self,
         devices: Vec<::models::ExportImportDevice>,

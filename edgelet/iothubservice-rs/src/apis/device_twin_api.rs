@@ -33,6 +33,7 @@ impl<C: hyper::client::Connect> DeviceTwinApiClient<C> {
 }
 
 pub trait DeviceTwinApi {
+    //CHANGES: The Swagger Code Gen generated this and other classes with 2 Api on name. (e.g.: DeviceTwinApiApi.). This got fixed.
     fn device_twin_api_get_device_twin(
         &self,
         id: &str,

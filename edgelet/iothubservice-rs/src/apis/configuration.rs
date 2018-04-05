@@ -24,13 +24,13 @@ impl<C: Connect> Configuration<C> {
     pub fn new(client: Client<C>) -> Configuration<C> {
         Configuration {
             base_path: "https://fully-qualified-iothubname.azure-devices.net".to_owned(),
-            user_agent: Some("edgelet/0.1.0".to_owned()),
+            user_agent: Some("edgelet/0.1.0".to_owned()), //CHANGES: Changed the user agent.
             client: client,
             uri_composer: Box::new(|base_path, path| {
                 format!("{}{}", base_path, path)
                     .parse()
                     .map_err(|_| format_err!("Url parse error"))
-            }),
+            }), //CHANGES: Changed so we return a generic Error instead UriError and added a error message.
         }
     }
 }

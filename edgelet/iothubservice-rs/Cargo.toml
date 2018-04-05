@@ -1,10 +1,10 @@
-[package]
+[package] #CHANGES: Updated package name, version and Author. And Added publish = false.
 name = "iothubservice"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
 publish = false
 
-[dependencies]
+[dependencies] #CHANGES: Added failure dependency and put in alphabetic order.
 base64 = "~0.7.0"
 failure = "0.1"
 futures = "0.1"
