@@ -15,6 +15,7 @@ extern crate edgelet_core;
 extern crate edgelet_test_utils;
 
 use std::collections::HashMap;
+use std::str;
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -29,7 +30,11 @@ use url::Url;
 
 use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
                      ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
+#[cfg(unix)]
+use docker::models::AuthConfig;
 use docker_mri::{DockerConfig, DockerModuleRuntime};
+#[cfg(unix)]
+use docker_mri::DockerRegistryAuthConfig;
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
@@ -85,7 +90,81 @@ fn image_pull_succeeds() {
         &core.handle(),
     ).unwrap();
 
-    let task = mri.pull(IMAGE_NAME);
+    let task = mri.pull(IMAGE_NAME, None);
+    core.run(task).unwrap();
+}
+
+#[cfg(unix)]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+fn image_pull_with_creds_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    // verify that path is /images/create and that the "fromImage" query
+    // parameter has the image name we expect
+    assert_eq!(req.path(), "/images/create");
+
+    let query_map: HashMap<String, String> = parse_query(req.query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("fromImage"));
+    assert_eq!(query_map.get("fromImage"), Some(&IMAGE_NAME.to_string()));
+
+    // verify registry creds
+    let auth_str = req.headers()
+        .get_raw("X-Registry-Auth")
+        .unwrap()
+        .iter()
+        .map(|raw| str::from_utf8(raw).unwrap())
+        .collect::<Vec<&str>>()
+        .join("");
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+    assert_eq!(auth_config.username(), Some(&"u1".to_string()));
+    assert_eq!(auth_config.password(), Some(&"bleh".to_string()));
+    assert_eq!(auth_config.email(), Some(&"u1@bleh.com".to_string()));
+    assert_eq!(auth_config.serveraddress(), Some(&"svr1".to_string()));
+
+    let response = r#"
+    {
+        "Id": "img1",
+        "Warnings": []
+    }
+    "#;
+    Box::new(future::ok(
+        Response::new()
+            .with_header(ContentLength(response.len() as u64))
+            .with_header(ContentType::json())
+            .with_body(response)
+            .with_status(StatusCode::Ok),
+    ))
+}
+
+// This test is super flaky on Windows for some reason. It keeps occassionally
+// failing on Windows with error 10054 which means the server keeps dropping the
+// socket for no reason apparently.
+#[cfg(unix)]
+#[test]
+fn image_pull_with_creds_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, &image_pull_with_creds_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mut mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let registry_creds = DockerRegistryAuthConfig::default()
+        .with_user_name("u1")
+        .with_password("bleh")
+        .with_email("u1@bleh.com")
+        .with_server("svr1");
+
+    let task = mri.pull(IMAGE_NAME, Some(&registry_creds));
     core.run(task).unwrap();
 }
 

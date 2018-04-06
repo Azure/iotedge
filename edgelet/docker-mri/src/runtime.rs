@@ -12,7 +12,8 @@ use url::Url;
 use client::DockerClient;
 use config::DockerConfig;
 use docker::{apis::{client::APIClient, configuration::Configuration},
-             models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings}};
+             models::{AuthConfig, ContainerCreateBody, ContainerCreateBodyNetworkingConfig,
+                      EndpointSettings}};
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_utils::serde_clone;
 
@@ -93,18 +94,114 @@ fn get_base_path(url: &Url) -> &str {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct DockerRegistryAuthConfig {
+    #[serde(rename = "username", skip_serializing_if = "Option::is_none")]
+    user_name: Option<String>,
+    #[serde(rename = "password", skip_serializing_if = "Option::is_none")]
+    password: Option<String>,
+    #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
+    email: Option<String>,
+    #[serde(rename = "serveraddress", skip_serializing_if = "Option::is_none")]
+    server: Option<String>,
+}
+
+impl Default for DockerRegistryAuthConfig {
+    fn default() -> Self {
+        DockerRegistryAuthConfig {
+            user_name: None,
+            password: None,
+            email: None,
+            server: None,
+        }
+    }
+}
+
+impl DockerRegistryAuthConfig {
+    pub fn user_name(&self) -> Option<&String> {
+        self.user_name.as_ref()
+    }
+
+    pub fn with_user_name(mut self, user_name: &str) -> DockerRegistryAuthConfig {
+        self.user_name = Some(user_name.to_string());
+        self
+    }
+
+    pub fn password(&self) -> Option<&String> {
+        self.password.as_ref()
+    }
+
+    pub fn with_password(mut self, password: &str) -> DockerRegistryAuthConfig {
+        self.password = Some(password.to_string());
+        self
+    }
+
+    pub fn email(&self) -> Option<&String> {
+        self.email.as_ref()
+    }
+
+    pub fn with_email(mut self, email: &str) -> DockerRegistryAuthConfig {
+        self.email = Some(email.to_string());
+        self
+    }
+
+    pub fn server(&self) -> Option<&String> {
+        self.server.as_ref()
+    }
+
+    pub fn with_server(mut self, server: &str) -> DockerRegistryAuthConfig {
+        self.server = Some(server.to_string());
+        self
+    }
+}
+
+fn serialize_registry_creds(credentials: Option<&DockerRegistryAuthConfig>) -> Result<String> {
+    Ok(credentials
+        .map(|creds| {
+            let mut auth_config = AuthConfig::new();
+            if let Some(user_name) = creds.user_name() {
+                auth_config.set_username(user_name.clone());
+            }
+            if let Some(password) = creds.password() {
+                auth_config.set_password(password.clone());
+            }
+            if let Some(email) = creds.email() {
+                auth_config.set_email(email.clone());
+            }
+            if let Some(server) = creds.server() {
+                auth_config.set_serveraddress(server.clone());
+            }
+
+            auth_config
+        })
+        .map_or_else(
+            || Ok("".to_string()),
+            |auth_config| serde_json::to_string(&auth_config),
+        )?)
+}
+
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type RegistryAuthConfig = DockerRegistryAuthConfig;
 
-    fn pull(&mut self, name: &str) -> Self::PullFuture {
-        Box::new(
-            self.client
+    fn pull(
+        &mut self,
+        name: &str,
+        credentials: Option<&Self::RegistryAuthConfig>,
+    ) -> Self::PullFuture {
+        let result = serialize_registry_creds(credentials).and_then(|registry_creds| {
+            Ok(self.client
                 .image_api()
-                .image_create(fensure_not_empty!(name), "", "", "", "", "", "")
-                .map_err(|err| Error::from(ErrorKind::Docker(err))),
-        )
+                .image_create(ensure_not_empty!(name), "", "", "", "", &registry_creds, "")
+                .map_err(|err| Error::from(ErrorKind::Docker(err))))
+        });
+
+        match result {
+            Ok(f) => Box::new(f),
+            Err(err) => Box::new(future::err(err)),
+        }
     }
 
     fn remove(&mut self, name: &str) -> Self::RemoveFuture {
@@ -337,12 +434,12 @@ mod tests {
 
     #[test]
     fn image_pull_with_empty_name_fails() {
-        empty_test(|ref mut mri| mri.pull(""));
+        empty_test(|ref mut mri| mri.pull("", None));
     }
 
     #[test]
     fn image_pull_with_white_space_name_fails() {
-        empty_test(|ref mut mri| mri.pull("     "));
+        empty_test(|ref mut mri| mri.pull("     ", None));
     }
 
     #[test]

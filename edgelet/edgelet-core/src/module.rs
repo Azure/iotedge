@@ -172,8 +172,13 @@ pub trait ModuleRegistry {
     type Error: Fail;
     type PullFuture: Future<Item = (), Error = Self::Error>;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
+    type RegistryAuthConfig;
 
-    fn pull(&mut self, name: &str) -> Self::PullFuture;
+    fn pull(
+        &mut self,
+        name: &str,
+        credentials: Option<&Self::RegistryAuthConfig>,
+    ) -> Self::PullFuture;
     fn remove(&mut self, name: &str) -> Self::RemoveFuture;
 }
 
