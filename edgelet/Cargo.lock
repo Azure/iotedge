@@ -291,6 +291,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-http"
+version = "0.1.0"
+dependencies = [
+ "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
