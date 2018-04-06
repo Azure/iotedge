@@ -17,7 +17,7 @@ use serde_json;
 use futures;
 use futures::{Future, Stream};
 
-use hyper::header::UserAgent;
+use hyper::header::{Authorization, UserAgent};
 
 use super::{configuration, Error};
 
@@ -88,6 +88,10 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
         // send request
         Box::new(
             configuration
@@ -137,6 +141,10 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -190,6 +198,10 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -246,6 +258,10 @@ impl<C: hyper::client::Connect> ModuleApi for ModuleApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&module).unwrap();

@@ -14,11 +14,14 @@ use std::borrow::Cow;
 
 use hyper;
 use serde_json;
+use futures;
 use futures::{Future, Stream};
 
-use hyper::header::UserAgent;
+use hyper::header::{Authorization, UserAgent};
 
 use super::{configuration, Error};
+
+type Value = ();
 
 pub struct DeviceTwinApiClient<C: hyper::client::Connect> {
     configuration: Rc<configuration::Configuration<C>>,
@@ -33,7 +36,6 @@ impl<C: hyper::client::Connect> DeviceTwinApiClient<C> {
 }
 
 pub trait DeviceTwinApi {
-    //CHANGES: The Swagger Code Gen generated this and other classes with 2 Api on name. (e.g.: DeviceTwinApiApi.). This got fixed.
     fn device_twin_api_get_device_twin(
         &self,
         id: &str,
@@ -44,7 +46,7 @@ pub trait DeviceTwinApi {
         id: &str,
         mid: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = ::models::DeviceTwinInfo, Error = Error<serde_json::Value>>>;
     fn device_twin_api_invoke_device_method(
         &self,
         deviceid: &str,
@@ -70,7 +72,7 @@ pub trait DeviceTwinApi {
         mid: &str,
         device_twin_info: ::models::DeviceTwinInfo,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
     fn device_twin_api_update_device_twin(
         &self,
         id: &str,
@@ -83,7 +85,7 @@ pub trait DeviceTwinApi {
         mid: &str,
         device_twin_info: ::models::DeviceTwinInfo,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
 }
 
 impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
@@ -111,6 +113,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -145,7 +151,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         id: &str,
         mid: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = ::models::DeviceTwinInfo, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Get;
@@ -165,6 +171,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -188,7 +198,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<::models::DeviceTwinInfo, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -220,6 +230,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&direct_method_request).unwrap();
@@ -290,6 +304,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
         let serialized = serde_json::to_string(&direct_method_request).unwrap();
         req.headers_mut().set(hyper::header::ContentType::json());
         req.headers_mut()
@@ -351,6 +369,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
         let serialized = serde_json::to_string(&device_twin_info).unwrap();
         req.headers_mut().set(hyper::header::ContentType::json());
         req.headers_mut()
@@ -390,7 +412,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         mid: &str,
         device_twin_info: ::models::DeviceTwinInfo,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Put;
@@ -410,6 +432,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&device_twin_info).unwrap();
@@ -439,7 +465,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -470,6 +496,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&device_twin_info).unwrap();
@@ -511,7 +541,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         mid: &str,
         device_twin_info: ::models::DeviceTwinInfo,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Patch;
@@ -531,6 +561,10 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&device_twin_info).unwrap();
@@ -560,7 +594,7 @@ impl<C: hyper::client::Connect> DeviceTwinApi for DeviceTwinApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )

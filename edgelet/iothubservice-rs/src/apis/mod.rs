@@ -48,6 +48,8 @@ impl<T> From<serde_json::Error> for Error<T> {
     }
 }
 
+use super::models::*;
+
 mod device_api;
 pub use self::device_api::{DeviceApi, DeviceApiClient};
 mod device_twin_api;

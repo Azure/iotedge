@@ -760,7 +760,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "type": "object"
+              "$ref": "#/definitions/DeviceTwinInfo"
             }
           }
         }

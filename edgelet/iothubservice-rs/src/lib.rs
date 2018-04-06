@@ -4,7 +4,7 @@
 extern crate serde_derive;
 
 #[macro_use]
-extern crate failure; //CHANGES: Added failure and put in alphabetic order.
+extern crate failure;
 extern crate futures;
 extern crate hyper;
 extern crate serde;

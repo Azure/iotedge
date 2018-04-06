@@ -17,11 +17,12 @@ use serde_json;
 use futures;
 use futures::{Future, Stream};
 
-use hyper::header::UserAgent;
+use hyper::header::{Authorization, UserAgent};
 
 use super::{configuration, Error};
 
 type RegOpResult = ::models::BulkRegistryOperationResult;
+type Value = ();
 
 pub struct DeviceApiClient<C: hyper::client::Connect> {
     configuration: Rc<configuration::Configuration<C>>,
@@ -41,7 +42,7 @@ pub trait DeviceApi {
         id: &str,
         content: ::models::ConfigurationContent,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>; //CHANGES: Before this code was Iteam = Type (which didn't compile), so everywhere we had Type we changed to ().
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
     fn device_api_bulk_device_operation(
         &self,
         devices: Vec<::models::ExportImportDevice>,
@@ -51,7 +52,7 @@ pub trait DeviceApi {
         &self,
         id: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
     fn device_api_delete_device(
         &self,
         id: &str,
@@ -71,11 +72,11 @@ pub trait DeviceApi {
         &self,
         id: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
     fn device_api_get_jobs(
         &self,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>>;
     fn device_api_get_registry_statistics(
         &self,
         api_version: &str,
@@ -108,7 +109,7 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         id: &str,
         content: ::models::ConfigurationContent,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Post;
@@ -128,6 +129,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&content).unwrap();
@@ -157,7 +162,7 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -188,6 +193,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&devices).unwrap();
@@ -230,7 +239,7 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         &self,
         id: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Delete;
@@ -250,6 +259,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -273,7 +286,7 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -303,6 +316,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -353,6 +370,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -409,6 +430,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
         // send request
         Box::new(
             configuration
@@ -440,7 +465,7 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         &self,
         id: &str,
         api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Get;
@@ -462,56 +487,8 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
-        // send request
-        Box::new(
-            configuration
-                .client
-                .request(req)
-                .map_err(|e| Error::from(e))
-                .and_then(|resp| {
-                    let status = resp.status();
-                    resp.body()
-                        .concat2()
-                        .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
-                    if status.is_success() {
-                        Ok(body)
-                    } else {
-                        Err(Error::from((status, &*body)))
-                    }
-                })
-                .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
-                }),
-        )
-    }
-
-    fn device_api_get_jobs(
-        &self,
-        api_version: &str,
-    ) -> Box<Future<Item = (), Error = Error<serde_json::Value>>> {
-        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
-
-        let method = hyper::Method::Get;
-
-        let query = ::url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("api-version", &api_version.to_string())
-            .finish();
-        let uri_str = format!("/jobs?{}", query);
-
-        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
-        let mut req = hyper::Request::new(method, uri.unwrap());
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            req.headers_mut()
-                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -535,7 +512,63 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                     }
                 })
                 .and_then(|body| {
-                    let parsed: Result<(), _> = serde_json::from_slice(&body);
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
+                    parsed.map_err(|e| Error::from(e))
+                }),
+        )
+    }
+
+    fn device_api_get_jobs(
+        &self,
+        api_version: &str,
+    ) -> Box<Future<Item = Value, Error = Error<serde_json::Value>>> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::Get;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("/jobs?{}", query);
+
+        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut req = hyper::Request::new(method, uri.unwrap());
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.headers_mut()
+                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
+        // send request
+        Box::new(
+            configuration
+                .client
+                .request(req)
+                .map_err(|e| Error::from(e))
+                .and_then(|resp| {
+                    let status = resp.status();
+                    resp.body()
+                        .concat2()
+                        .and_then(move |body| Ok((status, body)))
+                        .map_err(|e| Error::from(e))
+                })
+                .and_then(|(status, body)| {
+                    if status.is_success() {
+                        Ok(body)
+                    } else {
+                        Err(Error::from((status, &*body)))
+                    }
+                })
+                .and_then(|body| {
+                    let parsed: Result<Value, _> = serde_json::from_slice(&body);
                     parsed.map_err(|e| Error::from(e))
                 }),
         )
@@ -564,6 +597,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -617,6 +654,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         // send request
@@ -674,6 +715,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
         }
 
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
+        }
+
         // send request
         Box::new(
             configuration
@@ -727,6 +772,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&device).unwrap();
@@ -786,6 +835,10 @@ impl<C: hyper::client::Connect> DeviceApi for DeviceApiClient<C> {
         if let Some(ref user_agent) = configuration.user_agent {
             req.headers_mut()
                 .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        if let Some(ref sas_token) = configuration.sas_token {
+            req.headers_mut().set(Authorization(sas_token.clone()));
         }
 
         let serialized = serde_json::to_string(&query_specification).unwrap();
