@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;

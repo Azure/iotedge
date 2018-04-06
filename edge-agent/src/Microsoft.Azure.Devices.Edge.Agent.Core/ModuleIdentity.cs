@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
+namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class ModuleIdentity : IModuleIdentity
+    public class ModuleIdentity : IModuleIdentity
     {
         public ModuleIdentity(string moduleId, string connectionString)
         {

@@ -179,6 +179,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "smoke", "smoke", "{871A0862
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IotEdgeQuickstart", "smoke\IotEdgeQuickstart\IotEdgeQuickstart.csproj", "{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Edgelet\Microsoft.Azure.Devices.Edge.Agent.Edgelet.csproj", "{2B10082F-01D6-4708-AA67-0D1C00414A12}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.csproj", "{77CF0F04-0DE0-4D81-93DE-56006D7BE213}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeCoverage|Any CPU = CodeCoverage|Any CPU
@@ -384,6 +388,18 @@ Global
 		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B10082F-01D6-4708-AA67-0D1C00414A12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -442,6 +458,8 @@ Global
 		{D2977437-B83D-4E9F-87C3-5AB3A3178BB3} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
 		{78AD43FD-F672-449C-BAC9-FC5A21DECFF3} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81} = {871A0862-7480-49C3-ACEB-9A60E9CE5B61}
+		{2B10082F-01D6-4708-AA67-0D1C00414A12} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{77CF0F04-0DE0-4D81-93DE-56006D7BE213} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

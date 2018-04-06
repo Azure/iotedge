@@ -50,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string UpstreamProtocolKey = "UpstreamProtocol";
 
+        public const string ModuleIdentityEdgeManagedByValue = "IotEdge";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";
