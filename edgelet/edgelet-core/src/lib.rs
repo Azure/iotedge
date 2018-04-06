@@ -20,6 +20,7 @@ extern crate edgelet_utils;
 
 mod crypto;
 mod error;
+mod identity;
 mod module;
 
 use std::rc::Rc;
@@ -27,6 +28,7 @@ use std::rc::Rc;
 use futures::{future, future::FutureResult};
 
 pub use error::{Error, ErrorKind};
+pub use identity::{Identity, IdentityManager, IdentitySpec};
 pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
                  ModuleStatus};
 
