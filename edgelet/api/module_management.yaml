@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Module Management API
-  version: 1.0.0
+  version: '2018-06-28'
 tags:
   - name: Module
     x-displayName: Modules
@@ -55,7 +55,7 @@ paths:
         '201':
           description: Created
           schema:
-            $ref: '#/definitions/ModuleSpec'
+            $ref: '#/definitions/ModuleDetails'
         '409':
           description: Conflict. Returned if module already exists.
           schema:
@@ -155,7 +155,7 @@ paths:
     post:
       tags:
         - Module
-      summary: ''
+      summary: Start a module.
       operationId: StartModule
       parameters:
         - $ref: '#/parameters/api-version'
@@ -179,7 +179,7 @@ paths:
     post:
       tags:
         - Module
-      summary: ''
+      summary: Stop a module.
       operationId: StopModule
       parameters:
         - $ref: '#/parameters/api-version'
@@ -203,7 +203,7 @@ paths:
     post:
       tags:
         - Module
-      summary: ''
+      summary: Restart a module.
       operationId: RestartModule
       parameters:
         - $ref: '#/parameters/api-version'
@@ -245,10 +245,11 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-    post:
+  '/identities/{name}':
+    put:
       tags:
         - Identity
-      summary: 'Create an identity.'
+      summary: Create or update an identity.
       operationId: CreateIdentity
       consumes:
         - application/json
@@ -256,25 +257,29 @@ paths:
         - application/json
       parameters:
         - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the identity to create/update. (urlencoded)
+          required: true
+          type: string
         - in: body
           name: identity
           required: true
           schema:
-            $ref: '#/definitions/Identity'
+            $ref: '#/definitions/IdentitySpec'
       responses:
+        '200':
+          description: Updated
+          schema:
+            $ref: '#/definitions/Identity'
         '201':
           description: Created
           schema:
             $ref: '#/definitions/Identity'
-        '409':
-          description: Conflict. Returned if module already exists.
-          schema:
-            $ref: '#/definitions/ErrorResponse'
         default:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-  '/identities/{name}':
     delete:
       tags:
         - Identity
@@ -403,12 +408,24 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Identity'
+  IdentitySpec:
+    type: object
+    properties:
+      moduleId:
+        type: string
+        example: "edgeHub"
   Identity:
     type: object
     properties:
-      id:
+      moduleId:
         type: string
-        example: "hub.azure-devices.net/devices/{deviceId}/modules/{moduleId}"
+        example: "edgeHub"
+      managedBy:
+        type: string
+        example: "iot-edge"
+      generationId:
+        type: string
+        example: "731f88d3-cf72-4a23-aca1-cd91fd4f52ff"
 
   ErrorResponse:
     type: object
