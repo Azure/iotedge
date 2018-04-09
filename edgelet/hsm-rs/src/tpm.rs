@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::default::Default;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
 use std::ptr;
@@ -51,6 +52,12 @@ impl HsmTpm {
                 .unwrap(),
             interface,
         }
+    }
+}
+
+impl Default for HsmTpm {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -150,7 +157,7 @@ impl TpmKey {
 impl Deref for TpmKey {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { &slice::from_raw_parts(self.key, self.len) }
+        unsafe { slice::from_raw_parts(self.key, self.len) }
     }
 }
 

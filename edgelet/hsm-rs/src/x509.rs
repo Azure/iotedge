@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::default::Default;
 use std::ffi::CStr;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_char, c_void};
@@ -50,6 +51,12 @@ impl HsmX509 {
                 .unwrap(),
             interface,
         }
+    }
+}
+
+impl Default for HsmX509 {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
