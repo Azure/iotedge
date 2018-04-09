@@ -11,6 +11,7 @@ use futures::{future, Future};
 use hyper::{Error as HyperError, Method, StatusCode};
 use hyper::server::{NewService, Request, Response, Service};
 
+pub mod macros;
 mod regex;
 
 pub type BoxFuture<T, E> = Box<Future<Item = T, Error = E>>;

@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[macro_use]
 extern crate edgelet_http;
 extern crate futures;
 extern crate hyper;
 
-use edgelet_http::route::{BoxFuture, Builder, Parameters, RegexRoutesBuilder, Router};
+use edgelet_http::route::{BoxFuture, Builder, Parameters, Router};
 use futures::future;
 use hyper::{Error as HyperError, Request, Response, StatusCode};
 use hyper::header::ContentType;
@@ -45,13 +46,13 @@ fn identities_delete(_req: Request, _params: Parameters) -> BoxFuture<Response, 
 }
 
 fn main() {
-    let recognizer = RegexRoutesBuilder::default()
-        .get("/", index)
-        .get("/identities", identities_list)
-        .put("/identities/(?P<name>[^/]+)", identities_update)
-        .delete("/identities/(?P<name>[^/]+)", identities_delete)
-        .finish();
-    let router = Router::from(recognizer);
+    let router = router!(
+        get "/" => index,
+        get "/identities" => identities_list,
+        put "/identities/(?P<name>[^/]+)" => identities_update,
+        delete "/identities/(?P<name>[^/]+)" => identities_delete,
+    );
+
     let addr = "0.0.0.0:8080".parse().unwrap();
 
     println!("Starting server on {}", addr);
