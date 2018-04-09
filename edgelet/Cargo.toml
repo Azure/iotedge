@@ -8,7 +8,7 @@ members = [
     "edgelet-http",
     "edgelet-utils",
     "edgelet-test-utils",
-    "iothubservice-rs",
+    "iothubservice",
     "hsm-rs",
     "hsm-sys",
 ]

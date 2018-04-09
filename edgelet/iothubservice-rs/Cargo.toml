@@ -1,5 +1,5 @@
 [package] #CHANGES: Updated package name, version and Author. And Added publish = false.
-name = "iothubservice"
+name = "iothubservice-old"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
 publish = false
