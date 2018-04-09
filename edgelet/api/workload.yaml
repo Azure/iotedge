@@ -1,0 +1,182 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: IoT Edge Module Workload API
+  version: '2018-06-28'
+tags:
+  - name: Workload
+    x-displayName: Workload
+    description: |
+
+paths:
+  '/modules/{name}/sign':
+    post:
+      tags:
+        - Workload
+      summary: ''
+      operationId: Sign
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to sign on behalf of. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: payload
+          description: Data to be signed.
+          required: true
+          schema:
+            $ref: '#/definitions/SignRequest'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/SignResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/certificate/identity':
+    post:
+      tags:
+        - Workload
+      summary: ''
+      operationId: CreateIdentityCertificate
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to get certificate. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/CertificateResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/certificate/server':
+    post:
+      tags:
+        - Workload
+      summary: ''
+      operationId: CreateServerCertificate
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to get certificate. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: request
+          description: Parameters for certificate creation.
+          required: true
+          schema:
+            $ref: '#/definitions/ServerCertificateRequest'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/CertificateResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  SignRequest:
+    type: object
+    properties:
+      keyId:
+        type: string
+        description: Name of key to perform sign operation.
+        example: device_key
+      algo:
+        type: string
+        description: Sign algorithm to be used.
+        enum:
+          - HMACSHA256
+      data:
+        type: string
+        format: byte
+        description: Data to be signed.
+  SignResponse:
+    type: object
+    properties:
+      digest:
+        type: string
+        format: byte
+        description: Signature of the data.
+  ServerCertificateRequest:
+    type: object
+    properties:
+      commonName:
+        type: string
+        description: subject common name
+      expiration:
+        type: string
+        format: date-time
+        description: Certificate expiration date-time (ISO 8601)
+  CertificateResponse:
+    type: object
+    properties:
+      privateKey:
+        $ref: '#/definitions/PrivateKey'
+      certificate: 
+        type: string
+        format: bytes
+        description: Base64 encoded PEM formatted byte array containing the certificate.
+      expiration:
+        type: string
+        format: date-time
+        description: Certificate expiration date-time (ISO 8601)
+  
+  PrivateKey:
+    type: object
+    properties:
+      type:
+        type: string
+        description: Indicates format of the key (present in PEM formatted bytes or a reference)
+        enum:
+          - ref
+          - bytes
+      ref:
+        type: string
+        description: Reference to private key.
+      bytes:
+        type: string
+        format: bytes
+        description: Base64 encoded PEM formatted byte array
+
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2018-06-28'
