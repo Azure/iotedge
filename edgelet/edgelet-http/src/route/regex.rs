@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use regex::Regex;
 use hyper::{Method, StatusCode};
 
-use super::{Builder, Handler, Recognizer};
+use super::{Builder, Handler, HandlerParamsPair, Recognizer};
 
 #[derive(Debug, PartialEq)]
 pub struct Parameters {
@@ -16,9 +16,9 @@ pub struct Parameters {
 impl Parameters {
     pub fn name(&self, k: &str) -> Option<&str> {
         for capture in &self.captures {
-            if let &(Some(ref key), ref val) = capture {
+            if let (Some(ref key), ref val) = *capture {
                 if key == k {
-                    return Some(&val);
+                    return Some(val);
                 }
             }
         }
@@ -49,7 +49,7 @@ impl Builder for RegexRoutesBuilder {
         let handler = Box::new(handler);
         self.routes
             .entry(method)
-            .or_insert(Vec::new())
+            .or_insert_with(Vec::new)
             .push(RegexRoute { pattern, handler });
         self
     }
@@ -72,7 +72,7 @@ impl Recognizer for RegexRecognizer {
         &self,
         method: &Method,
         path: &str,
-    ) -> Result<(&Handler<Self::Parameters>, Self::Parameters), StatusCode> {
+    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode> {
         let routes = self.routes.get(method).ok_or(StatusCode::NotFound)?;
         for route in routes {
             if let Some(params) = match_route(&route.pattern, path) {
@@ -99,9 +99,9 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
 fn normalize_pattern(pattern: &str) -> Cow<str> {
     let pattern = pattern
         .trim()
-        .trim_left_matches("^")
-        .trim_right_matches("$")
-        .trim_right_matches("/");
+        .trim_left_matches('^')
+        .trim_right_matches('$')
+        .trim_right_matches('/');
     match pattern {
         "" => "^/$".into(),
         s => format!("^{}/?$", s).into(),

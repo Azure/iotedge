@@ -29,6 +29,8 @@ where
     }
 }
 
+pub type HandlerParamsPair<'a, P> = (&'a Handler<P>, P);
+
 pub trait Recognizer {
     type Parameters: 'static;
 
@@ -36,7 +38,7 @@ pub trait Recognizer {
         &self,
         method: &Method,
         path: &str,
-    ) -> Result<(&Handler<Self::Parameters>, Self::Parameters), StatusCode>;
+    ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode>;
 }
 
 pub trait Builder: Sized {
