@@ -36,7 +36,6 @@ impl<C: Connect> DockerModule<C> {
 impl<C: Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
-    type StatusFuture = Box<Future<Item = ModuleStatus, Error = Self::Error>>;
     type RuntimeStateFuture = Box<Future<Item = ModuleRuntimeState, Error = Self::Error>>;
 
     fn name(&self) -> &str {
@@ -45,21 +44,6 @@ impl<C: Connect> Module for DockerModule<C> {
 
     fn type_(&self) -> &str {
         MODULE_TYPE
-    }
-
-    fn status(&self) -> Self::StatusFuture {
-        Box::new(
-            self.client
-                .container_api()
-                .container_inspect(&self.name, false)
-                .map(|resp| {
-                    resp.state()
-                        .and_then(|state| state.status())
-                        .and_then(|status| ModuleStatus::from_str(status).ok())
-                        .unwrap_or_else(|| ModuleStatus::Unknown)
-                })
-                .map_err(|err| Error::from(ErrorKind::Docker(err))),
-        )
     }
 
     fn config(&self) -> &Self::Config {
@@ -74,7 +58,12 @@ impl<C: Connect> Module for DockerModule<C> {
                 .map(|resp| {
                     resp.state()
                         .map(|state| {
+                            let status = state
+                                .status()
+                                .and_then(|status| ModuleStatus::from_str(status).ok())
+                                .unwrap_or_else(|| ModuleStatus::Unknown);
                             ModuleRuntimeState::default()
+                                .with_status(status)
                                 .with_exit_code(state.exit_code().cloned())
                                 .with_status_description(state.status().cloned())
                                 .with_started_at(
@@ -178,8 +167,8 @@ mod tests {
             DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
         ).unwrap();
 
-        let actual_status = core.run(docker_module.status()).unwrap();
-        assert_eq!(*status, actual_status);
+        let state = core.run(docker_module.runtime_state()).unwrap();
+        assert_eq!(status, state.status());
     }
 
     #[test]
@@ -224,6 +213,7 @@ mod tests {
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
+        assert_eq!(ModuleStatus::Running, *runtime_state.status());
         assert_eq!(10, *runtime_state.exit_code().unwrap());
         assert_eq!(&"running", &runtime_state.status_description().unwrap());
         assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());

@@ -47,6 +47,7 @@ impl fmt::Display for ModuleStatus {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ModuleRuntimeState {
+    status: ModuleStatus,
     exit_code: Option<i32>,
     status_description: Option<String>,
     started_at: Option<DateTime<Utc>>,
@@ -57,6 +58,7 @@ pub struct ModuleRuntimeState {
 impl Default for ModuleRuntimeState {
     fn default() -> ModuleRuntimeState {
         ModuleRuntimeState {
+            status: ModuleStatus::Unknown,
             exit_code: None,
             status_description: None,
             started_at: None,
@@ -67,6 +69,15 @@ impl Default for ModuleRuntimeState {
 }
 
 impl ModuleRuntimeState {
+    pub fn status(&self) -> &ModuleStatus {
+        &self.status
+    }
+
+    pub fn with_status(mut self, status: ModuleStatus) -> ModuleRuntimeState {
+        self.status = status;
+        self
+    }
+
     pub fn exit_code(&self) -> Option<&i32> {
         self.exit_code.as_ref()
     }
@@ -158,12 +169,10 @@ impl<T> ModuleSpec<T> {
 pub trait Module {
     type Config;
     type Error: Fail;
-    type StatusFuture: Future<Item = ModuleStatus, Error = Self::Error>;
     type RuntimeStateFuture: Future<Item = ModuleRuntimeState, Error = Self::Error>;
 
     fn name(&self) -> &str;
     fn type_(&self) -> &str;
-    fn status(&self) -> Self::StatusFuture;
     fn config(&self) -> &Self::Config;
     fn runtime_state(&self) -> Self::RuntimeStateFuture;
 }
