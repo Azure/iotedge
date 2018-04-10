@@ -3,6 +3,7 @@
 use hyper::client::Connect;
 
 use client::Client;
+use error::Result;
 
 pub struct ModuleClient<C: Connect> {
     _client: Client<C>,
@@ -11,12 +12,12 @@ pub struct ModuleClient<C: Connect> {
 }
 
 impl<C: Connect> ModuleClient<C> {
-    pub fn new(client: Client<C>, device_id: &str, module_id: &str) -> ModuleClient<C> {
-        ModuleClient {
+    pub fn new(client: Client<C>, device_id: &str, module_id: &str) -> Result<ModuleClient<C>> {
+        Ok(ModuleClient {
             _client: client,
-            device_id: device_id.to_string(),
-            module_id: module_id.to_string(),
-        }
+            device_id: ensure_not_empty!(device_id).to_string(),
+            module_id: ensure_not_empty!(module_id).to_string(),
+        })
     }
 
     pub fn device_id(&self) -> &str {
