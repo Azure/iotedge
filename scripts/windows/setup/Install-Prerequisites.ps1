@@ -48,6 +48,8 @@ if (-not $BuildRepositoryLocalPath) {
 
 $All = -not $Dotnet -and -not $Python -and -not $Nuget -and -not $Coverage
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 <#
  # Install .NET Core
  #>
