@@ -313,6 +313,8 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/ModuleDetails'
+    required:
+      - modules
   ModuleDetails:
     type: object
     properties:
@@ -332,6 +334,12 @@ definitions:
         $ref: '#/definitions/Config'
       status:
         $ref: '#/definitions/Status'
+    required:
+      - id
+      - name
+      - type
+      - config
+      - status
   ModuleSpec:
     type: object
     properties:
@@ -344,6 +352,10 @@ definitions:
         example: docker
       config:
         $ref: '#/definitions/Config'
+    required:
+      - name
+      - type
+      - config
   Config:
     type: object
     properties:
@@ -360,6 +372,8 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/EnvVar'
+    required:
+      - settings
   Status:
     type: object
     properties:
@@ -370,6 +384,8 @@ definitions:
         $ref: '#/definitions/ExitStatus'
       runtimeStatus:
         $ref: '#/definitions/RuntimeStatus'
+    required:
+      - runtimeStatus
   EnvVar:
     type: object
     properties:
@@ -379,6 +395,9 @@ definitions:
       value:
         type: string
         example: the_value
+    required:
+      - key
+      - value
   ExitStatus:
     type: object
     properties:
@@ -387,6 +406,9 @@ definitions:
         format: date-time
       statusCode:
         type: string
+    required:
+      - exitTime
+      - statusCode
     example:
       exitTime: '2018-04-03T09:31:00.000Z'
       statusCode: '101'
@@ -397,6 +419,8 @@ definitions:
         type: string
       description:
         type: string
+    required:
+      - status
     example:
       status: the status
       description: the description
@@ -408,12 +432,16 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Identity'
+    required:
+      - identities
   IdentitySpec:
     type: object
     properties:
       moduleId:
         type: string
         example: "edgeHub"
+    required:
+      - moduleId
   Identity:
     type: object
     properties:
@@ -426,12 +454,18 @@ definitions:
       generationId:
         type: string
         example: "731f88d3-cf72-4a23-aca1-cd91fd4f52ff"
+    required:
+      - moduleId
+      - managedBy
+      - generationId
 
   ErrorResponse:
     type: object
     properties:
       message:
         type: string
+    required:
+      - message
 
 parameters:
   api-version:

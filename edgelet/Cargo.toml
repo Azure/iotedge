@@ -6,6 +6,7 @@ members = [
     "edgelet-core",
     "edgelet-grpc",
     "edgelet-http",
+    "edgelet-http-mgmt",
     "edgelet-utils",
     "edgelet-test-utils",
     "iothubservice",
