@@ -100,7 +100,7 @@ impl Properties {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct X509Thumbprint {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -142,7 +142,7 @@ impl Default for X509Thumbprint {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SymmetricKey {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -184,13 +184,15 @@ impl Default for SymmetricKey {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthMechanism {
     #[serde(skip_serializing_if = "Option::is_none")]
     symmetric_key: Option<SymmetricKey>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     x509_thumbprint: Option<X509Thumbprint>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     _type: Option<AuthType>,
 }
@@ -238,7 +240,7 @@ impl Default for AuthMechanism {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Module {
     #[serde(skip_serializing_if = "Option::is_none")]

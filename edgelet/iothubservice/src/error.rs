@@ -2,9 +2,12 @@
 
 use std::fmt;
 use std::fmt::Display;
+use std::str;
 
 use failure::{Backtrace, Context, Fail};
+use hyper::{Error as HyperError, StatusCode};
 use serde_json;
+use url::ParseError;
 
 use edgelet_utils::Error as UtilsError;
 
@@ -21,6 +24,24 @@ pub enum ErrorKind {
     Utils(UtilsError),
     #[fail(display = "Serde error")]
     Serde(serde_json::Error),
+    #[fail(display = "Url parse error")]
+    Url(ParseError),
+    #[fail(display = "Hyper HTTP error")]
+    Hyper(HyperError),
+    #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
+    HubServiceError(StatusCode, String),
+}
+
+impl<'a> From<(StatusCode, &'a [u8])> for Error {
+    fn from(err: (StatusCode, &'a [u8])) -> Self {
+        let (status_code, msg) = err;
+        Error::from(ErrorKind::HubServiceError(
+            status_code,
+            str::from_utf8(msg)
+                .unwrap_or_else(|_| "Could not decode error message")
+                .to_string(),
+        ))
+    }
 }
 
 impl Fail for Error {
@@ -68,5 +89,17 @@ impl From<UtilsError> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
         Error::from(ErrorKind::Serde(err))
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(err: ParseError) -> Error {
+        Error::from(ErrorKind::Url(err))
+    }
+}
+
+impl From<HyperError> for Error {
+    fn from(err: HyperError) -> Error {
+        Error::from(ErrorKind::Hyper(err))
     }
 }

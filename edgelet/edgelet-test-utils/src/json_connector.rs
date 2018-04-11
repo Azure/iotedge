@@ -14,6 +14,15 @@ pub struct StaticStream {
     body: Cursor<Vec<u8>>,
 }
 
+impl StaticStream {
+    pub fn new(body: Vec<u8>) -> StaticStream {
+        StaticStream {
+            wrote: false,
+            body: Cursor::new(body),
+        }
+    }
+}
+
 impl Read for StaticStream {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.wrote {
