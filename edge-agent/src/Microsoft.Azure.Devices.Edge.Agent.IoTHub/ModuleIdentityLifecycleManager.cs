@@ -13,12 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
         readonly IServiceClient serviceClient;
-        readonly EdgeHubConnectionString deviceConnectionDetails;
+        readonly ModuleConnectionStringBuilder moduleConnectionStringBuilder;
+        readonly string gatewayHostName;
 
-        public ModuleIdentityLifecycleManager(IServiceClient serviceClient, EdgeHubConnectionString connectionDetails)
+        public ModuleIdentityLifecycleManager(IServiceClient serviceClient, ModuleConnectionStringBuilder moduleConnectionStringBuilder, string gatewayHostName)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
-            this.deviceConnectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
+            this.moduleConnectionStringBuilder = Preconditions.CheckNotNull(moduleConnectionStringBuilder, nameof(moduleConnectionStringBuilder));
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
         }
 
         // Modules in IoTHub can be created in one of two ways - 1. single deployment:
@@ -94,18 +96,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 throw new ArgumentException($"Authentication type {module.Authentication.Type} is not supported.");
             }
 
-            EdgeHubConnectionString.EdgeHubConnectionStringBuilder connectionStringBuilder = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(this.deviceConnectionDetails.HostName, this.deviceConnectionDetails.DeviceId)
-                .SetModuleId(module.Id)
-                .SetSharedAccessKey(module.Authentication.SymmetricKey.PrimaryKey);
+            ModuleConnectionStringBuilder.ModuleConnectionString moduleConnectionString = this.moduleConnectionStringBuilder.Create(module.Id)
+                .WithSharedAccessKey(module.Authentication.SymmetricKey.PrimaryKey);
 
-            if (!module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
-            {
-                connectionStringBuilder = connectionStringBuilder
-                    .SetGatewayHostName(this.deviceConnectionDetails.GatewayHostName);
-            }
-
-            return connectionStringBuilder.Build()
-                .ToConnectionString();
+            return module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
+                ? moduleConnectionString
+                : moduleConnectionString.WithGatewayHostName(this.gatewayHostName);
         }
 
         async Task<Module[]> UpdateServiceModulesIdentityAsync(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)

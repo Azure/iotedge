@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -19,7 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class AgentModule : Module
     {
-        readonly Uri dockerHostname;
+        readonly string deviceId;
+        readonly string iotHubHostName;
+        readonly string edgeDeviceConnectionString;
+        readonly string gatewayHostName;
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
         readonly int coolOffTimeUnitInSeconds;
@@ -62,10 +66,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(Uri dockerHostname, int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
+        public AgentModule(string edgeDeviceConnectionString, string gatewayHostName,
+            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
             bool usePersistentStorage, string storagePath)
         {
-            this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
+            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(this.edgeDeviceConnectionString);
+            this.deviceId = connectionStringParser.DeviceId;
+            this.iotHubHostName = connectionStringParser.HostName;
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
             this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
@@ -75,6 +84,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
+            // IServiceClient
+            builder.Register(c => new RetryingServiceClient(new ServiceClient(this.edgeDeviceConnectionString, this.deviceId)))
+                .As<IServiceClient>()
+                .SingleInstance();
+
+            // IModuleIdentityLifecycleManager
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), new ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId), this.gatewayHostName))
+                .As<IModuleIdentityLifecycleManager>()
+                .SingleInstance();
+
+            // ISerde<Diff>
+            builder.Register(c => new DiffSerde(
+                    new Dictionary<string, Type>
+                    {
+                        { DockerType, typeof(DockerModule) }
+                    }
+                ))
+                .As<ISerde<Diff>>()
+                .SingleInstance();
+
+            // ISerde<ModuleSet>
+            builder.Register(c => new ModuleSetSerde(
+                    new Dictionary<string, Type>
+                    {
+                        { DockerType, typeof(DockerModule) }
+                    }
+                ))
+                .As<ISerde<ModuleSet>>()
+                .SingleInstance();
+
             // ISerde<DeploymentConfig>
             builder.Register(
                 c =>
@@ -95,19 +134,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<ISerde<DeploymentConfigInfo>>()
                 .SingleInstance();
 
-            // IDockerClient
-            builder.Register(c => new DockerClientConfiguration(this.dockerHostname).CreateClient())
-                .As<IDockerClient>()
-                .SingleInstance();
-
             // Detect system environment
             builder.Register(c => new SystemEnvironment())
                 .As<ISystemEnvironment>()
                 .SingleInstance();
 
-            // DataBase options
-            builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>()))
-                .As<Storage.RocksDb.IRocksDbOptionsProvider>()
+            // IRocksDbOptionsProvider
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>()))
+                .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
             // IDbStore
@@ -123,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var partitionsList = new List<string> { Constants.MmaStorePartitionKey };
                         try
                         {
-                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
+                            IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(c.Resolve<IRocksDbOptionsProvider>(),
                                 this.storagePath, partitionsList);
                             logger.LogInformation($"Created persistent store at {this.storagePath}");
                             return dbStoreprovider;
@@ -151,20 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IEntityStore<string, RestartState>
             builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>(Constants.MmaStorePartitionKey))
                 .As<IEntityStore<string, ModuleState>>()
-                .SingleInstance();
-
-            // IEnvironment
-            builder.Register(
-                async c =>
-                {
-                    IEnvironment dockerEnvironment = await DockerEnvironment.CreateAsync(
-                        c.Resolve<IDockerClient>(),
-                        c.Resolve<IEntityStore<string, ModuleState>>(),
-                        c.Resolve<IRestartPolicyManager>());
-                    return dockerEnvironment;
-                })
-             .As<Task<IEnvironment>>()
-             .SingleInstance();
+                .SingleInstance();            
 
             // IRestartManager
             builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnitInSeconds))

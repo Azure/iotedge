@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
-    using global::Docker.DotNet;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -16,26 +15,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
 
-    public class FileBackupConfigSourceModule : Module
+    public class TwinConfigSourceModule : Module
     {
-        readonly EdgeHubConnectionString connectionDetails;
         readonly string edgeDeviceConnectionString;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
 
-        public FileBackupConfigSourceModule(
-            EdgeHubConnectionString connectionDetails,
+        public TwinConfigSourceModule(
             string edgeDeviceConnectionString,
             string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo
         )
-        {
-            this.connectionDetails = Preconditions.CheckNotNull(connectionDetails, nameof(connectionDetails));
+        {            
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
@@ -44,49 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterModule(new ServiceClientModule(this.connectionDetails, this.edgeDeviceConnectionString));
-
             // IDeviceClientProvider
-            builder.Register(c => new DeviceClientProvider(this.connectionDetails, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
+            builder.Register(c => new DeviceClientProvider(this.edgeDeviceConnectionString, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
                 .As<IDeviceClientProvider>()
-                .SingleInstance();
-
-            // ISerde<Diff>
-            builder.Register(c => new DiffSerde(
-                    new Dictionary<string, Type>
-                    {
-                        { DockerType, typeof(DockerModule) }
-                    }
-                ))
-                .As<ISerde<Diff>>()
-                .SingleInstance();
-
-            // IModuleIdentityLifecycleManager
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.connectionDetails))
-                .As<IModuleIdentityLifecycleManager>()
-                .SingleInstance();
-
-            // ICommandFactory
-            builder.Register(
-                    async c =>
-                    {
-                        var dockerFactory = new DockerCommandFactory(
-                                c.Resolve<IDockerClient>(),
-                                c.Resolve<DockerLoggingConfig>(),
-                                await c.Resolve<Task<IConfigSource>>());
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
-                    })
-                .As<Task<ICommandFactory>>()
-                .SingleInstance();
-
-            // ISerde<ModuleSet>
-            builder.Register(c => new ModuleSetSerde(
-                    new Dictionary<string, Type>
-                    {
-                        { DockerType, typeof(DockerModule) }
-                    }
-                ))
-                .As<ISerde<ModuleSet>>()
                 .SingleInstance();
 
             // IEdgeAgentConnection

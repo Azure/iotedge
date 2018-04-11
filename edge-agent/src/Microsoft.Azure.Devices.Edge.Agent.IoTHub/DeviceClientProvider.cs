@@ -12,20 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly string edgeAgentConnectionString;
         readonly Option<UpstreamProtocol> upstreamProtocol;
 
-        public DeviceClientProvider(EdgeHubConnectionString connectionStringBuilder, Option<UpstreamProtocol> upstreamProtocol)
+        public DeviceClientProvider(string deviceConnectionString, Option<UpstreamProtocol> upstreamProtocol)
         {
-            this.edgeAgentConnectionString = ConstructModuleConnectionString(Preconditions.CheckNotNull(connectionStringBuilder, nameof(connectionStringBuilder)));
+            this.edgeAgentConnectionString = ConstructModuleConnectionString(Preconditions.CheckNonWhiteSpace(deviceConnectionString, nameof(deviceConnectionString)));
             this.upstreamProtocol = upstreamProtocol;
         }
 
-        static string ConstructModuleConnectionString(EdgeHubConnectionString connectionDetails)
-        {
-            EdgeHubConnectionString agentConnectionString = new EdgeHubConnectionString.EdgeHubConnectionStringBuilder(connectionDetails.HostName, connectionDetails.DeviceId)
-                .SetSharedAccessKey(connectionDetails.SharedAccessKey)
-                .SetModuleId(Constants.EdgeAgentModuleIdentityName)
-                .Build();
-            return agentConnectionString.ToConnectionString();
-        }
+        static string ConstructModuleConnectionString(string deviceConnectionString) =>
+            $"{deviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
 
         public Task<IDeviceClient> Create(
             ConnectionStatusChangesHandler statusChangedHandler,
