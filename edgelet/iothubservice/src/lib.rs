@@ -24,4 +24,4 @@ mod model;
 
 pub use client::Client;
 pub use device::DeviceClient;
-pub use model::{AuthMechanism, AuthType, Module, Properties, Twin, X509Thumbprint};
+pub use model::{AuthMechanism, AuthType, Module, Properties, SymmetricKey, Twin, X509Thumbprint};

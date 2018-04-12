@@ -54,3 +54,7 @@ if command -v "$RUSTUP" >/dev/null; then
 else
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi
+
+# Install OpenSSL
+sudo apt-get update && \
+    sudo apt-get install -y pkg-config libssl-dev

@@ -4,7 +4,7 @@ use std::default::Default;
 
 use serde_json::Value;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AuthType {
     None,
@@ -100,7 +100,7 @@ impl Properties {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct X509Thumbprint {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -142,7 +142,7 @@ impl Default for X509Thumbprint {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SymmetricKey {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -184,7 +184,7 @@ impl Default for SymmetricKey {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthMechanism {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -240,7 +240,7 @@ impl Default for AuthMechanism {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Module {
     #[serde(skip_serializing_if = "Option::is_none")]

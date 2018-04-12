@@ -30,6 +30,8 @@ pub enum ErrorKind {
     Hyper(HyperError),
     #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
     HubServiceError(StatusCode, String),
+    #[fail(display = "IoT Hub returned an empty response when a value was expected")]
+    EmptyResponse,
 }
 
 impl<'a> From<(StatusCode, &'a [u8])> for Error {

@@ -7,7 +7,7 @@ use futures::{Future, Stream};
 use futures::future;
 use hyper::{Error as HyperError, Method, Request, Response, Uri};
 use hyper::client::Service;
-use hyper::header::{Authorization, ContentLength, ContentType, UserAgent};
+use hyper::header::{Authorization, ContentLength, ContentType, IfMatch, UserAgent};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json;
 use url::{Url, form_urlencoded::Serializer as UrlSerializer};
@@ -71,7 +71,7 @@ where
     }
 
     pub fn create_device_client(&self, device_id: &str) -> Result<DeviceClient<S>> {
-        DeviceClient::new(self.clone(), device_id)
+        DeviceClient::new(self.clone(), ensure_not_empty!(device_id))
     }
 
     pub fn request<BodyT, ResponseT>(
@@ -80,6 +80,7 @@ where
         path: &str,
         query: Option<HashMap<&str, &str>>,
         body: Option<BodyT>,
+        add_if_match: bool,
     ) -> Box<Future<Item = Option<ResponseT>, Error = Error>>
     where
         BodyT: Serialize,
@@ -118,12 +119,17 @@ where
                     req.headers_mut().set(Authorization(sas_token.clone()));
                 }
 
+                // add an `If-Match: "*"` header if we've been asked to
+                if add_if_match {
+                    req.headers_mut().set(IfMatch::Any);
+                }
+
                 // add request body if there is any
                 if let Some(body) = body {
                     let serialized = serde_json::to_string(&body)?;
                     req.headers_mut().set(ContentType::json());
-                    req.headers_mut()
-                        .set(ContentLength(serialized.len() as u64));
+                    req.headers_mut().set(ContentLength(serialized.len() as u64));
+
                     req.set_body(serialized);
                 }
 
@@ -185,8 +191,10 @@ mod tests {
     use std::str;
 
     use futures::future;
-    use hyper::{Request, Response, StatusCode, client::Client as HyperClient,
-                header::{Authorization, ContentType, UserAgent}, server::service_fn};
+    use hyper::{Request, Response, StatusCode};
+    use hyper::client::Client as HyperClient;
+    use hyper::header::{Authorization, ContentType, UserAgent};
+    use hyper::server::service_fn;
     use tokio_core::reactor::Core;
     use url::form_urlencoded::parse as parse_query;
 
@@ -200,7 +208,7 @@ mod tests {
         let core = Core::new().unwrap();
         let hyper_client = HyperClient::new(&core.handle());
         match Client::new(hyper_client, "", Url::parse("http://localhost").unwrap()) {
-            Ok(_) => panic!("Expected error but got a result.".to_string()),
+            Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
                 let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
                 if mem::discriminant(err.kind())
@@ -221,7 +229,51 @@ mod tests {
             "      ",
             Url::parse("http://localhost").unwrap(),
         ) {
-            Ok(_) => panic!("Expected error but got a result.".to_string()),
+            Ok(_) => panic!("Expected error but got a result."),
+            Err(err) => {
+                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
+                if mem::discriminant(err.kind())
+                    != mem::discriminant(&ErrorKind::Utils(utils_error))
+                {
+                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
+                }
+            }
+        };
+    }
+
+    #[test]
+    fn create_device_client_empty_id_fails() {
+        let core = Core::new().unwrap();
+        let hyper_client = HyperClient::new(&core.handle());
+        let client = Client::new(
+            hyper_client,
+            "2018-04-11",
+            Url::parse("http://localhost").unwrap(),
+        ).unwrap();
+        match client.create_device_client("") {
+            Ok(_) => panic!("Expected error but got a result."),
+            Err(err) => {
+                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
+                if mem::discriminant(err.kind())
+                    != mem::discriminant(&ErrorKind::Utils(utils_error))
+                {
+                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
+                }
+            }
+        };
+    }
+
+    #[test]
+    fn create_device_client_white_space_id_fails() {
+        let core = Core::new().unwrap();
+        let hyper_client = HyperClient::new(&core.handle());
+        let client = Client::new(
+            hyper_client,
+            "2018-04-11",
+            Url::parse("http://localhost").unwrap(),
+        ).unwrap();
+        match client.create_device_client("      ") {
+            Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
                 let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
                 if mem::discriminant(err.kind())
@@ -244,6 +296,7 @@ mod tests {
 
         let handler = move |req: Request| {
             assert_eq!(req.path(), "/boo");
+            assert_eq!(None, req.headers().get::<IfMatch>());
 
             // check that the query has api version_
             let query_map: HashMap<String, String> = parse_query(req.query().unwrap().as_bytes())
@@ -260,7 +313,7 @@ mod tests {
         };
         let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None);
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
         let _result: SymmetricKey = core.run(task).unwrap().unwrap();
     }
 
@@ -275,6 +328,7 @@ mod tests {
 
         let handler = move |req: Request| {
             assert_eq!(req.path(), "/boo");
+            assert_eq!(None, req.headers().get::<IfMatch>());
 
             // check that the query has api version
             let query_map: HashMap<String, String> = parse_query(req.query().unwrap().as_bytes())
@@ -298,7 +352,7 @@ mod tests {
         query.insert("k1", "v1");
         query.insert("k2", "this value has spaces and 🐮🐮🐮");
 
-        let task = client.request::<String, _>(Method::Get, "/boo", Some(query), None);
+        let task = client.request::<String, _>(Method::Get, "/boo", Some(query), None, false);
         let _result: SymmetricKey = core.run(task).unwrap().unwrap();
     }
 
@@ -317,6 +371,7 @@ mod tests {
                 user_agent,
                 &req.headers().get::<UserAgent>().unwrap().to_string()
             );
+            assert_eq!(None, req.headers().get::<IfMatch>());
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
@@ -327,7 +382,7 @@ mod tests {
             .unwrap()
             .with_user_agent(user_agent);
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None);
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
         let _result: SymmetricKey = core.run(task).unwrap().unwrap();
     }
 
@@ -349,6 +404,7 @@ mod tests {
                     .unwrap()
                     .to_string()
             );
+            assert_eq!(None, req.headers().get::<IfMatch>());
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
@@ -359,7 +415,30 @@ mod tests {
             .unwrap()
             .with_sas_token(sas_token);
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None);
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
+        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+    }
+
+    #[test]
+    fn request_adds_if_match_header() {
+        let mut core = Core::new().unwrap();
+        let api_version = "2018-04-10";
+        let host_name = Url::parse("http://localhost").unwrap();
+        let response = SymmetricKey::default()
+            .with_primary_key("pkey".to_string())
+            .with_secondary_key("skey".to_string());
+
+        let handler = move |req: Request| {
+            assert_eq!(Some(&IfMatch::Any), req.headers().get::<IfMatch>());
+
+            Ok(Response::new()
+                .with_status(StatusCode::Ok)
+                .with_header(ContentType::json())
+                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+        };
+        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, true);
         let _result: SymmetricKey = core.run(task).unwrap().unwrap();
     }
 
@@ -370,6 +449,8 @@ mod tests {
         let host_name = Url::parse("http://localhost").unwrap();
 
         let handler = move |req: Request| {
+            assert_eq!(None, req.headers().get::<IfMatch>());
+
             req.body()
                 .concat2()
                 .and_then(|req_body| {
@@ -396,6 +477,7 @@ mod tests {
             "/boo",
             None,
             Some("Here be dragons".to_string()),
+            false,
         );
         let _result: SymmetricKey = core.run(task).unwrap().unwrap();
     }
@@ -407,6 +489,8 @@ mod tests {
         let host_name = Url::parse("http://localhost").unwrap();
 
         let handler = move |req: Request| {
+            assert_eq!(None, req.headers().get::<IfMatch>());
+
             req.body()
                 .concat2()
                 .and_then(|req_body| {
@@ -425,6 +509,7 @@ mod tests {
             "/boo",
             None,
             Some("Here be dragons".to_string()),
+            false,
         );
         let result: Option<SymmetricKey> = core.run(task).unwrap();
         assert_eq!(result, None);
@@ -439,7 +524,9 @@ mod tests {
             .with_primary_key("pkey".to_string())
             .with_secondary_key("skey".to_string());
 
-        let handler = move |_req: Request| {
+        let handler = move |req: Request| {
+            assert_eq!(None, req.headers().get::<IfMatch>());
+
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
                 .with_header(ContentType::json())
@@ -447,7 +534,7 @@ mod tests {
         };
         let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None);
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
         let result: SymmetricKey = core.run(task).unwrap().unwrap();
 
         assert_eq!(result.primary_key(), Some(&"pkey".to_string()));
