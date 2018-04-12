@@ -118,6 +118,10 @@ definitions:
         type: string
         format: byte
         description: Data to be signed.
+    required:
+      - keyId
+      - algo
+      - data
   SignResponse:
     type: object
     properties:
@@ -125,6 +129,8 @@ definitions:
         type: string
         format: byte
         description: Signature of the data.
+    required:
+      - digest
   ServerCertificateRequest:
     type: object
     properties:
@@ -135,12 +141,15 @@ definitions:
         type: string
         format: date-time
         description: Certificate expiration date-time (ISO 8601)
+    required:
+      - commonName
+      - expiration
   CertificateResponse:
     type: object
     properties:
       privateKey:
         $ref: '#/definitions/PrivateKey'
-      certificate: 
+      certificate:
         type: string
         format: bytes
         description: Base64 encoded PEM formatted byte array containing the certificate.
@@ -148,7 +157,11 @@ definitions:
         type: string
         format: date-time
         description: Certificate expiration date-time (ISO 8601)
-  
+    required:
+      - privateKey
+      - certificate
+      - expiration
+
   PrivateKey:
     type: object
     properties:
@@ -165,13 +178,17 @@ definitions:
         type: string
         format: bytes
         description: Base64 encoded PEM formatted byte array
+    required:
+      - type
 
   ErrorResponse:
     type: object
     properties:
       message:
         type: string
-    
+    required:
+      - message
+
 parameters:
   api-version:
     name: api-version
