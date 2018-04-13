@@ -21,6 +21,7 @@ SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
 SRC_BIN_DIR=$ROOT_FOLDER/bin
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
+DOTNET_RUNTIME=netcoreapp2.0
 
 # Process script arguments
 PUBLISH_TESTS=${1:-""}
@@ -86,7 +87,7 @@ while read proj; do
     echo "Publishing project - $proj"
     PROJ_FILE=$(basename "$proj")
     PROJ_NAME="${PROJ_FILE%.*}"
-    $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
+    $DOTNET_ROOT_PATH/dotnet publish -f $DOTNET_RUNTIME -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -104,14 +105,18 @@ done < <(find $ROOT_FOLDER -type f -name $FUNCTION_BINDING_CSPROJ_PATTERN)
 
 echo "Publishing IotEdgeQuickstart for Linux arm32v7"
 $DOTNET_ROOT_PATH/dotnet publish \
-    -r linux-arm \
-    -f netcoreapp2.0 \
     -c $CONFIGURATION \
-    -o $PUBLISH_FOLDER/linux-arm/IotEdgeQuickstart \
+    -f $DOTNET_RUNTIME \
+    -r linux-arm \
     $ROOT_FOLDER/smoke/IotEdgeQuickstart
 if [ $? -gt 0 ]; then
     RES=1
 fi
+
+tar \
+    -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/linux-arm/publish/" \
+    -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.linux-arm.tar.gz" \
+    .
 
 echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
 rm -fr $PUBLISH_FOLDER/docker
@@ -132,7 +137,7 @@ if [ "$PUBLISH_TESTS" == "--publish-tests" ]; then
         echo "Publishing Tests from solution - $proj"
         PROJ_FILE=$(basename "$proj")
         PROJ_NAME="${PROJ_FILE%.*}"
-        $DOTNET_ROOT_PATH/dotnet publish -f netcoreapp2.0 -c $CONFIGURATION -o $RELEASE_TESTS_FOLDER/target $proj
+        $DOTNET_ROOT_PATH/dotnet publish -f $DOTNET_RUNTIME -c $CONFIGURATION -o $RELEASE_TESTS_FOLDER/target $proj
         if [ $? -gt 0 ]; then
             RES=1
         fi

@@ -159,12 +159,13 @@ namespace IotEdgeQuickstart
             await RunProcessAsync(
                 "iotedgectl",
                 $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {this.EdgeAgentImage()} --edge-hostname {this.hostname}",
-                60);
+                120);
         }
 
         protected static Task IotedgectlStart()
         {
-            return RunProcessAsync("iotedgectl", "start", 120);
+            return RunProcessAsync("iotedgectl", "start",
+                300); // 5 min timeout because docker pull can be slow on raspberry pi
         }
 
         protected static Task VerifyEdgeAgentIsRunning()
@@ -294,7 +295,7 @@ namespace IotEdgeQuickstart
 
         protected static Task IotedgectlStop()
         {
-            return RunProcessAsync("iotedgectl", "stop", 60);
+            return RunProcessAsync("iotedgectl", "stop", 120);
         }
 
         protected static Task IotedgectlUninstall()
@@ -344,7 +345,7 @@ namespace IotEdgeQuickstart
 
         static async Task VerifyDockerContainerIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
                 string errorMessage = null;
 
