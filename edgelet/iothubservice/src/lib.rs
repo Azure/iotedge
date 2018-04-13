@@ -19,7 +19,7 @@ extern crate edgelet_utils;
 
 mod client;
 mod device;
-mod error;
+pub mod error;
 mod model;
 
 pub use client::Client;

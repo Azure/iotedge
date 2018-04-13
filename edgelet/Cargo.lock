@@ -376,6 +376,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-identity"
+version = "0.1.0"
+dependencies = [
+ "base64 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "edgelet-utils 0.1.0",
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iothubservice 0.1.0",
+ "serde_json 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [

@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// TODO remove me when warnings are cleaned up
-#![allow(warnings)]
 use std::collections::HashMap;
+use std::convert::AsRef;
 
 use bytes::Bytes;
 use consistenttime::ct_u8_slice_eq;
-use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
@@ -51,6 +49,14 @@ pub struct InMemoryKey {
     key: Bytes,
 }
 
+impl InMemoryKey {
+    pub fn new(key: &str) -> InMemoryKey {
+        InMemoryKey {
+            key: Bytes::from(key),
+        }
+    }
+}
+
 impl Sign for InMemoryKey {
     fn sign(
         &self,
@@ -79,12 +85,19 @@ impl Sign for InMemoryKey {
     }
 }
 
+impl AsRef<[u8]> for InMemoryKey {
+    fn as_ref(&self) -> &[u8] {
+        &self.key
+    }
+}
+
 pub trait KeyStore {
     type Key: Sign;
 
     fn get(&self, identity: &str, key_name: &str) -> Option<&Self::Key>;
 }
 
+#[derive(Default)]
 pub struct MemoryKeyStore {
     keys: HashMap<String, InMemoryKey>,
 }
@@ -197,33 +210,33 @@ mod tests {
     fn create_empty_memory_keystore() {
         //Arrange
         //Act
-        let memoryKeyStore = MemoryKeyStore::new();
+        let memory_key_store = MemoryKeyStore::new();
 
         //Assert
-        assert_eq!(true, memoryKeyStore.keys.is_empty());
+        assert_eq!(true, memory_key_store.keys.is_empty());
     }
 
     #[test]
     fn create_memory_keystore_1key() {
         //Arrange
-        let mut memoryKeyStore = MemoryKeyStore::new();
+        let mut memory_key_store = MemoryKeyStore::new();
         let in_memory_key = InMemoryKey {
             key: Bytes::from("anykey"),
         };
 
         //Act
-        memoryKeyStore.insert("mod1", "key1", in_memory_key);
+        memory_key_store.insert("mod1", "key1", in_memory_key);
 
         //Assert
-        assert_eq!(false, memoryKeyStore.keys.is_empty());
-        assert_eq!(false, memoryKeyStore.get("mod1", "invalidKey").is_some());
-        assert_eq!(true, memoryKeyStore.get("mod1", "key1").is_some());
+        assert_eq!(false, memory_key_store.keys.is_empty());
+        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
+        assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
     }
 
     #[test]
     fn create_memory_keystore_2keys() {
         //Arrange
-        let mut memoryKeyStore = MemoryKeyStore::new();
+        let mut memory_key_store = MemoryKeyStore::new();
         let in_memory_key = InMemoryKey {
             key: Bytes::from("anykey"),
         };
@@ -233,14 +246,14 @@ mod tests {
         };
 
         //Act
-        memoryKeyStore.insert("mod1", "key1", in_memory_key);
-        memoryKeyStore.insert("mod2", "key2", in_memory_key2);
+        memory_key_store.insert("mod1", "key1", in_memory_key);
+        memory_key_store.insert("mod2", "key2", in_memory_key2);
 
         //Assert
-        assert_eq!(false, memoryKeyStore.keys.is_empty());
-        assert_eq!(false, memoryKeyStore.get("mod1", "invalidKey").is_some());
-        assert_eq!(true, memoryKeyStore.get("mod1", "key1").is_some());
-        assert_eq!(true, memoryKeyStore.get("mod2", "key2").is_some());
-        assert_eq!(2, memoryKeyStore.keys.len());
+        assert_eq!(false, memory_key_store.keys.is_empty());
+        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
+        assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
+        assert_eq!(true, memory_key_store.get("mod2", "key2").is_some());
+        assert_eq!(2, memory_key_store.keys.len());
     }
 }

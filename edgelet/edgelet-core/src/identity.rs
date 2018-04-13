@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use failure::Fail;
 use futures::Future;
 

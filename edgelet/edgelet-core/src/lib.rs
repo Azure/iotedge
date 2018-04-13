@@ -18,7 +18,7 @@ extern crate sha2;
 #[macro_use]
 extern crate edgelet_utils;
 
-mod crypto;
+pub mod crypto;
 mod error;
 mod identity;
 mod module;

@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use futures::Future;
-use hyper::{Error as HyperError, Method, Request, Response, client::Service};
+use hyper::{Error as HyperError, Method, Request, Response};
+use hyper::client::Service;
 
 use client::Client;
 use error::{Error, ErrorKind, Result};
@@ -103,6 +104,18 @@ where
                 )
                 .and_then(|_| Ok(())),
         )
+    }
+}
+
+impl<S> Clone for DeviceClient<S>
+where
+    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+{
+    fn clone(&self) -> Self {
+        DeviceClient {
+            client: self.client.clone(),
+            device_id: self.device_id.clone(),
+        }
     }
 }
 
