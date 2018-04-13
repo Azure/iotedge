@@ -289,7 +289,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "edgelet"
 version = "0.1.0"
 dependencies = [
+ "docker-mri 0.1.0",
  "edgelet-core 0.1.0",
+ "edgelet-http-mgmt 0.1.0",
+ "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -347,16 +353,16 @@ dependencies = [
 name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
- "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "edgelet-http 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "management 0.1.0",
  "serde 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_yaml 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-core 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -758,6 +764,22 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "management"
+version = "0.1.0"
+dependencies = [
+ "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.33 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_yaml 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

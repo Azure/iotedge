@@ -24,9 +24,9 @@ use error::{Error, ErrorKind, Result};
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
 lazy_static! {
-    static ref LABELS: HashMap<&'static str, &'static str> = {
-        let mut labels = HashMap::new();
-        labels.insert("net.azure-devices.edge.owner", "Microsoft.Azure.Devices.Edge.Agent");
+    static ref LABELS: Vec<&'static str> = {
+        let mut labels = Vec::new();
+        labels.push("net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent");
         labels
     };
 }
@@ -313,7 +313,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .and_then(|filters| {
                 Ok(self.client
                     .container_api()
-                    .container_list(true, 0, false, &filters)
+                    .container_list(true, 0, true, &filters)
                     .map(move |containers| {
                         containers
                             .iter()

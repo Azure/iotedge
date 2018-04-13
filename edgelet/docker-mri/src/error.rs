@@ -23,11 +23,11 @@ pub enum ErrorKind {
     InvalidDockerUri(String),
     #[fail(display = "Invalid unix domain socket URI - {}", _0)]
     InvalidUdsUri(String),
-    #[fail(display = "Docker runtime error")]
+    #[fail(display = "Docker runtime error - {:?}", _0)]
     Docker(DockerError<serde_json::Value>),
     #[fail(display = "Edgelet utils error")]
     Utils(UtilsError),
-    #[fail(display = "Serde error")]
+    #[fail(display = "Serde error - {}", _0)]
     Serde(serde_json::Error),
     #[fail(display = "Invalid URL")]
     UrlParse,

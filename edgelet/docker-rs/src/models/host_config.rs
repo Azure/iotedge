@@ -118,7 +118,8 @@ pub struct HostConfig {
     network_mode: Option<String>,
     /// A map of exposed container ports and the host port they should map to.
     #[serde(rename = "PortBindings", skip_serializing_if = "Option::is_none")]
-    port_bindings: Option<::std::collections::HashMap<String, ::models::HostConfigPortBindings>>,
+    port_bindings:
+        Option<::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>>,
     #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
     restart_policy: Option<::models::RestartPolicy>,
     /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
@@ -892,14 +893,14 @@ impl HostConfig {
 
     pub fn set_port_bindings(
         &mut self,
-        port_bindings: ::std::collections::HashMap<String, ::models::HostConfigPortBindings>,
+        port_bindings: ::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>,
     ) {
         self.port_bindings = Some(port_bindings);
     }
 
     pub fn with_port_bindings(
         mut self,
-        port_bindings: ::std::collections::HashMap<String, ::models::HostConfigPortBindings>,
+        port_bindings: ::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>,
     ) -> HostConfig {
         self.port_bindings = Some(port_bindings);
         self
@@ -907,7 +908,7 @@ impl HostConfig {
 
     pub fn port_bindings(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, ::models::HostConfigPortBindings>> {
+    ) -> Option<&::std::collections::HashMap<String, Vec<::models::HostConfigPortBindings>>> {
         self.port_bindings.as_ref()
     }
 

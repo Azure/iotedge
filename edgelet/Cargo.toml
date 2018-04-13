@@ -14,4 +14,5 @@ members = [
     "iothubservice",
     "hsm-rs",
     "hsm-sys",
+    "management",
 ]

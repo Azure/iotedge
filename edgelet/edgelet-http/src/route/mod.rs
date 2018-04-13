@@ -4,6 +4,7 @@
 /// with some changes to improve usability of the captured parameters
 /// when using regex based routes.
 
+use std::clone::Clone;
 use std::io;
 use std::sync::Arc;
 
@@ -16,13 +17,13 @@ mod regex;
 
 pub type BoxFuture<T, E> = Box<Future<Item = T, Error = E>>;
 
-pub trait Handler<P>: 'static + Send + Sync {
+pub trait Handler<P>: 'static {
     fn handle(&self, req: Request, params: P) -> BoxFuture<Response, HyperError>;
 }
 
 impl<F, P> Handler<P> for F
 where
-    F: 'static + Send + Sync + Fn(Request, P) -> BoxFuture<Response, HyperError>,
+    F: 'static + Fn(Request, P) -> BoxFuture<Response, HyperError>,
 {
     fn handle(&self, req: Request, params: P) -> BoxFuture<Response, HyperError> {
         (*self)(req, params)
@@ -114,6 +115,17 @@ where
 
 pub struct RouterService<R: Recognizer> {
     inner: Arc<R>,
+}
+
+impl<R> Clone for RouterService<R>
+where
+    R: Recognizer,
+{
+    fn clone(&self) -> Self {
+        RouterService {
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 impl<R> Service for RouterService<R>

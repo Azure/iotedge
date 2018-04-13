@@ -237,11 +237,25 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                     .unwrap();
                 assert_eq!(
                     "8080",
-                    port_bindings.get("80/tcp").unwrap().host_port().unwrap()
+                    port_bindings
+                        .get("80/tcp")
+                        .unwrap()
+                        .iter()
+                        .next()
+                        .unwrap()
+                        .host_port()
+                        .unwrap()
                 );
                 assert_eq!(
                     "11022",
-                    port_bindings.get("22/tcp").unwrap().host_port().unwrap()
+                    port_bindings
+                        .get("22/tcp")
+                        .unwrap()
+                        .iter()
+                        .next()
+                        .unwrap()
+                        .host_port()
+                        .unwrap()
                 );
 
                 assert!(
@@ -286,11 +300,15 @@ fn container_create_succeeds() {
     let mut port_bindings = HashMap::new();
     port_bindings.insert(
         "22/tcp".to_string(),
-        HostConfigPortBindings::new().with_host_port("11022".to_string()),
+        vec![
+            HostConfigPortBindings::new().with_host_port("11022".to_string()),
+        ],
     );
     port_bindings.insert(
         "80/tcp".to_string(),
-        HostConfigPortBindings::new().with_host_port("8080".to_string()),
+        vec![
+            HostConfigPortBindings::new().with_host_port("8080".to_string()),
+        ],
     );
 
     let create_options = ContainerCreateBody::new()
@@ -413,10 +431,11 @@ fn container_list_handler(req: Request) -> Box<Future<Item = Response, Error = H
     assert_eq!(
         query_map.get("filters"),
         Some(&json!({
-                "label": {
-                    "net.azure-devices.edge.owner": "Microsoft.Azure.Devices.Edge.Agent"
-                }
-            }).to_string())
+            "label":
+                vec![
+                    "net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent",
+                ]
+        }).to_string())
     );
 
     let mut labels = HashMap::new();

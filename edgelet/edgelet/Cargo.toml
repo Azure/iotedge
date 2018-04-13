@@ -5,4 +5,11 @@ authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
 publish = false
 
 [dependencies]
+futures = "0.1"
+hyper = "0.11"
+tokio-core = "0.1"
+url = "1.7"
+
+docker-mri = { path = "../docker-mri" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }

@@ -64,7 +64,9 @@ mod tests {
         let mut port_bindings = HashMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
-            HostConfigPortBindings::new().with_host_port("27017".to_string()),
+            vec![
+                HostConfigPortBindings::new().with_host_port("27017".to_string()),
+            ],
         );
 
         let create_options = ContainerCreateBody::new()
@@ -74,21 +76,23 @@ mod tests {
         let config = DockerConfig::new("ubuntu", create_options).unwrap();
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
-			"image": "ubuntu",
-			"createOptions": {
-				"Labels": {
-					"k1": "v1",
-					"k2": "v2"
-				},
-				"HostConfig": {
-					"PortBindings": {
-						"27017/tcp": {
-							"HostPort": "27017"
-						}
-					}
-				}
-			}
-		});
+            "image": "ubuntu",
+            "createOptions": {
+                "Labels": {
+                    "k1": "v1",
+                    "k2": "v2"
+                },
+                "HostConfig": {
+                    "PortBindings": {
+                        "27017/tcp": [
+                            {
+                                "HostPort": "27017"
+                            }
+                        ]
+                    }
+                }
+            }
+        });
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&actual_json).unwrap(),
             expected_json
@@ -98,21 +102,23 @@ mod tests {
     #[test]
     fn docker_config_deser_from_map() {
         let input_json = json!({
-			"image": "ubuntu",
-			"createOptions": {
-				"Labels": {
-					"k1": "v1",
-					"k2": "v2"
-				},
-				"HostConfig": {
-					"PortBindings": {
-						"27017/tcp": {
-							"HostPort": "27017"
-						}
-					}
-				}
-			}
-		});
+            "image": "ubuntu",
+            "createOptions": {
+                "Labels": {
+                    "k1": "v1",
+                    "k2": "v2"
+                },
+                "HostConfig": {
+                    "PortBindings": {
+                        "27017/tcp": [
+                            {
+                                "HostPort": "27017"
+                            }
+                        ]
+                    }
+                }
+            }
+        });
 
         let config: DockerConfig = serde_json::from_str(&input_json.to_string()).unwrap();
         assert_eq!(config.image, "ubuntu");
@@ -125,27 +131,32 @@ mod tests {
             .unwrap()
             .port_bindings()
             .unwrap()["27017/tcp"];
-        assert_eq!(port_binding.host_port().unwrap(), "27017");
+        assert_eq!(
+            port_binding.iter().next().unwrap().host_port().unwrap(),
+            "27017"
+        );
     }
 
     #[test]
     fn docker_config_deser_from_str() {
         let input_json = json!({
-			"image": "ubuntu",
-			"createOptions": json!({
-				"Labels": {
-					"k1": "v1",
-					"k2": "v2"
-				},
-				"HostConfig": {
-					"PortBindings": {
-						"27017/tcp": {
-							"HostPort": "27017"
-						}
-					}
-				}
-			}).to_string()
-		});
+            "image": "ubuntu",
+            "createOptions": json!({
+                "Labels": {
+                    "k1": "v1",
+                    "k2": "v2"
+                },
+                "HostConfig": {
+                    "PortBindings": {
+                        "27017/tcp": [
+                            {
+                                "HostPort": "27017"
+                            }
+                        ]
+                    }
+                }
+            }).to_string()
+        });
 
         let config: DockerConfig = serde_json::from_str(&input_json.to_string()).unwrap();
         assert_eq!(config.image, "ubuntu");
@@ -158,6 +169,9 @@ mod tests {
             .unwrap()
             .port_bindings()
             .unwrap()["27017/tcp"];
-        assert_eq!(port_binding.host_port().unwrap(), "27017");
+        assert_eq!(
+            port_binding.iter().next().unwrap().host_port().unwrap(),
+            "27017"
+        );
     }
 }
