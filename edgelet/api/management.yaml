@@ -2,7 +2,7 @@ swagger: '2.0'
 schemes:
   - http
 info:
-  title: IoT Edge Module Management API
+  title: IoT Edge Management API
   version: '2018-06-28'
 tags:
   - name: Module
