@@ -19,6 +19,8 @@ pub enum ErrorKind {
     Api(c_int),
     #[fail(display = "HSM API Not Implemented")]
     NoneFn,
+    #[fail(display = "HSM API failed to create Certificate properties")]
+    CertProps,
     #[fail(display = "HSM API returned an invalid null response")]
     NullResponse,
 }

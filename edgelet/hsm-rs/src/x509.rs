@@ -10,21 +10,17 @@ use error::{Error, ErrorKind};
 use super::*;
 use super::GetCerts;
 
-extern "C" {
-    pub fn free(__ptr: *mut c_void);
-}
-
 /// Hsm for x509
 /// create an instance of this to use the x509 interface of an HSM
 ///
 #[derive(Debug)]
-pub struct HsmX509 {
+pub struct X509 {
     handle: HSM_CLIENT_HANDLE,
     interface: HSM_CLIENT_X509_INTERFACE,
 }
 // HSM x509
 
-impl Drop for HsmX509 {
+impl Drop for X509 {
     fn drop(&mut self) {
         self.interface
             .hsm_client_x509_destroy
@@ -32,10 +28,10 @@ impl Drop for HsmX509 {
     }
 }
 
-impl HsmX509 {
+impl X509 {
     /// Create a new x509 implementation for the HSM API. Will panic if
     /// interface is not found.
-    pub fn new() -> HsmX509 {
+    pub fn new() -> X509 {
         // If we can't get the interface, this is a critical failure, so
         // we should let this function panic.
         let _hsm_sys = get_hsm();
@@ -44,7 +40,7 @@ impl HsmX509 {
             panic!("Null x509 interface");
         }
         let interface = unsafe { *if_ptr };
-        HsmX509 {
+        X509 {
             handle: interface
                 .hsm_client_x509_create
                 .map(|f| unsafe { f() })
@@ -54,13 +50,13 @@ impl HsmX509 {
     }
 }
 
-impl Default for HsmX509 {
+impl Default for X509 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl GetCerts for HsmX509 {
+impl GetCerts for X509 {
     /// Retrieves the certificate to be used for x509 communication.
     fn get_cert(&self) -> Result<X509Data, Error> {
         let key_fn = self.interface.hsm_client_get_cert.ok_or(ErrorKind::NoneFn)?;
@@ -68,7 +64,7 @@ impl GetCerts for HsmX509 {
         if result.is_null() {
             Err(ErrorKind::NullResponse)?
         } else {
-            Ok(X509Data::new(result))
+            Ok(X509Data::new(self.interface, result))
         }
     }
 
@@ -79,7 +75,7 @@ impl GetCerts for HsmX509 {
         if result.is_null() {
             Err(ErrorKind::NullResponse)?
         } else {
-            Ok(X509Data::new(result))
+            Ok(X509Data::new(self.interface, result))
         }
     }
 
@@ -93,7 +89,7 @@ impl GetCerts for HsmX509 {
             if name.is_null() {
                 Err(ErrorKind::NullResponse)
             } else {
-                Ok(X509Data::new(name))
+                Ok(X509Data::new(self.interface, name))
             }
         }?;
         let common_name = unsafe { CStr::from_ptr(*result).to_string_lossy().into_owned() };
@@ -106,20 +102,23 @@ impl GetCerts for HsmX509 {
 /// TODO: get this to return a &[u8] so you don't need to access a raw pointer.
 #[derive(Debug)]
 pub struct X509Data {
+    interface: HSM_CLIENT_X509_INTERFACE,
     data: *const c_char,
 }
 
 impl Drop for X509Data {
     fn drop(&mut self) {
-        unsafe {
-            free(self.data as *mut c_void);
-        }
+        let free_fn = self.interface
+            .hsm_client_free_buffer
+            .expect("Unknown Free function for X509 buffer");
+        unsafe { free_fn(self.data as *mut c_void) };
     }
 }
 
 impl X509Data {
-    pub fn new(data: *mut c_char) -> X509Data {
+    fn new(interface: HSM_CLIENT_X509_INTERFACE, data: *mut c_char) -> X509Data {
         X509Data {
+            interface: interface,
             data: data as *const c_char,
         }
     }
@@ -140,13 +139,25 @@ mod tests {
     use std::slice;
 
     use hsm_sys::*;
-    use super::{HsmX509, X509Data};
+    use super::{X509, X509Data};
     use super::super::GetCerts;
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
         pub fn memset(s: *mut c_void, c: c_int, size: usize) -> *mut c_void;
         pub fn memcpy(dest: *mut c_void, src: *const c_void, size: usize) -> *mut c_void;
+        pub fn free(s: *mut c_void);
+    }
+
+    unsafe extern "C" fn real_buffer_destroy(b: *mut c_void) {
+        free(b);
+    }
+
+    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE_TAG {
+        HSM_CLIENT_X509_INTERFACE_TAG {
+            hsm_client_free_buffer: Some(real_buffer_destroy),
+            ..HSM_CLIENT_X509_INTERFACE_TAG::default()
+        }
     }
 
     #[test]
@@ -157,12 +168,29 @@ mod tests {
             memset(v, 32 as c_int, len)
         };
 
-        let key2 = X509Data::new(key as *mut c_char);
+        let key2 = X509Data::new(fake_good_x509_buffer_free(), key as *mut c_char);
 
         let slice1 = unsafe { slice::from_raw_parts(*key2, len) };
 
         assert_eq!(slice1[0], 32);
         assert_eq!(slice1[len - 1], 32);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unknown Free function for X509 buffer")]
+    fn x509_data_free_fn_none() {
+        let key = b"0123456789";
+        let len = key.len();
+
+        let key2 = X509Data::new(
+            HSM_CLIENT_X509_INTERFACE_TAG::default(),
+            key.as_ptr() as *mut c_char,
+        );
+
+        let slice1 = unsafe { slice::from_raw_parts(*key2, len) };
+
+        assert_eq!(slice1[0], '0' as i8);
+        // function will panic on drop.
     }
 
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
@@ -171,6 +199,7 @@ mod tests {
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void
     }
+    unsafe extern "C" fn fake_buffer_destroy(_b: *mut c_void) {}
 
     const DEFAULT_BUF_LEN: usize = 10;
 
@@ -202,8 +231,8 @@ mod tests {
         }
     }
 
-    fn fake_no_if_x509_hsm() -> HsmX509 {
-        HsmX509 {
+    fn fake_no_if_x509_hsm() -> X509 {
+        X509 {
             handle: unsafe { fake_handle_create_good() },
             interface: HSM_CLIENT_X509_INTERFACE {
                 hsm_client_x509_create: Some(fake_handle_create_good),
@@ -237,8 +266,8 @@ mod tests {
         println!("You should never see this print {:?}", result);
     }
 
-    fn fake_good_x509_hsm() -> HsmX509 {
-        HsmX509 {
+    fn fake_good_x509_hsm() -> X509 {
+        X509 {
             handle: unsafe { fake_handle_create_good() },
             interface: HSM_CLIENT_X509_INTERFACE {
                 hsm_client_x509_create: Some(fake_handle_create_good),
@@ -246,6 +275,7 @@ mod tests {
                 hsm_client_get_cert: Some(fake_get_cert),
                 hsm_client_get_key: Some(fake_get_cert_key),
                 hsm_client_get_common_name: Some(fake_get_name),
+                hsm_client_free_buffer: Some(fake_buffer_destroy),
             },
         }
     }
@@ -269,8 +299,8 @@ mod tests {
         }
     }
 
-    fn fake_bad_x509_hsm() -> HsmX509 {
-        HsmX509 {
+    fn fake_bad_x509_hsm() -> X509 {
+        X509 {
             handle: unsafe { fake_handle_create_bad() },
             interface: HSM_CLIENT_X509_INTERFACE {
                 hsm_client_x509_create: Some(fake_handle_create_bad),
@@ -278,6 +308,7 @@ mod tests {
                 hsm_client_get_cert: Some(fake_get_cert),
                 hsm_client_get_key: Some(fake_get_cert_key),
                 hsm_client_get_common_name: Some(fake_get_name),
+                hsm_client_free_buffer: Some(fake_buffer_destroy),
             },
         }
     }

@@ -1,8 +1,27 @@
 LIBRARY iothsm
 EXPORTS
-    hsm_client_x509_init
-    hsm_client_x509_deinit
-    hsm_client_tpm_init
+    create_certificate_props
+    destroy_certificate_props
+    get_alias
+    get_certificate
+    get_certificate_chain
+    get_certificate_type
+    get_common_name
+    get_issuer_alias
+    get_private_key
+    get_public_key
+    get_validity_in_mins
+    hsm_client_crypto_deinit
+    hsm_client_crypto_init
+    hsm_client_crypto_interface
     hsm_client_tpm_deinit
+    hsm_client_tpm_init
     hsm_client_tpm_interface
+    hsm_client_x509_deinit
+    hsm_client_x509_init
     hsm_client_x509_interface
+    set_alias
+    set_certificate_type
+    set_common_name
+    set_issuer_alias
+    set_validity_in_mins

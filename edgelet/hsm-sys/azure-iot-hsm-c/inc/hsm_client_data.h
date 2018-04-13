@@ -13,8 +13,9 @@ extern "C" {
 #include <stdlib.h>
 #endif /* __cplusplus */
 
-typedef void* HSM_CLIENT_HANDLE;
-struct SIZED_BUFFER_TAG {
+typedef void *HSM_CLIENT_HANDLE;
+struct SIZED_BUFFER_TAG
+{
     unsigned char *buffer;
     size_t size;
 };
@@ -23,12 +24,11 @@ typedef struct SIZED_BUFFER_TAG SIZED_BUFFER;
 typedef HSM_CLIENT_HANDLE (*HSM_CLIENT_CREATE)();
 typedef void (*HSM_CLIENT_DESTROY)(HSM_CLIENT_HANDLE handle);
 
-
 // TPM
-typedef int (*HSM_CLIENT_ACTIVATE_IDENTITY_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char* key, size_t key_len);
-typedef int (*HSM_CLIENT_GET_ENDORSEMENT_KEY)(HSM_CLIENT_HANDLE handle, unsigned char** key, size_t* key_len);
-typedef int (*HSM_CLIENT_GET_STORAGE_ROOT_KEY)(HSM_CLIENT_HANDLE handle, unsigned char** key, size_t* key_len);
-typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char* data, size_t data_len, unsigned char** key, size_t* key_len);
+typedef int (*HSM_CLIENT_ACTIVATE_IDENTITY_KEY)(HSM_CLIENT_HANDLE handle, const unsigned char *key, size_t key_len);
+typedef int (*HSM_CLIENT_GET_ENDORSEMENT_KEY)(HSM_CLIENT_HANDLE handle, unsigned char **key, size_t *key_len);
+typedef int (*HSM_CLIENT_GET_STORAGE_ROOT_KEY)(HSM_CLIENT_HANDLE handle, unsigned char **key, size_t *key_len);
+typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char *data, size_t data_len, unsigned char **key, size_t *key_len);
 /**
     API to derive the SAS key and use it to sign the data. The key
     should never leave the HSM.
@@ -47,27 +47,23 @@ typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const uns
       0  -- On success
       Non 0 -- otherwise
 */
-typedef int (*HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char* data_to_be_signed, size_t data_to_be_signed_len, const char* identity, unsigned char** digest, size_t* digest_size);
+typedef int (*HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char *data_to_be_signed, size_t data_to_be_signed_len, const char *identity, unsigned char **digest, size_t *digest_size);
 
 // x509
-typedef char* (*HSM_CLIENT_GET_CERTIFICATE)(HSM_CLIENT_HANDLE handle);
-typedef char* (*HSM_CLIENT_GET_CERT_KEY)(HSM_CLIENT_HANDLE handle);
-typedef char* (*HSM_CLIENT_GET_COMMON_NAME)(HSM_CLIENT_HANDLE handle);
+typedef char *(*HSM_CLIENT_GET_CERTIFICATE)(HSM_CLIENT_HANDLE handle);
+typedef char *(*HSM_CLIENT_GET_CERT_KEY)(HSM_CLIENT_HANDLE handle);
+typedef char *(*HSM_CLIENT_GET_COMMON_NAME)(HSM_CLIENT_HANDLE handle);
 
-// common
-/**
-    API to return a random number string of specified length
-    generated using HSM hardware.
+/**  
+   API to free buffers allocated by the HSM library.
+   Used to ensure that the buffers allocated in one CRT are freed in the same 
+   CRT. Intended to be used for TPM keys, x509 buffers, and SIZED_BUFFER output.
 
-    handle[in] -- A valid HSM client handle
-    random_num_buffer[out] -- Buffer to be filled with random characters
-    num_characters[in] -- Number of characters to fill
+   buffer[in] -- a buffer allocated and owned by HSM library. 
 
-    Return
-      0  -- On success
-      Non 0 -- otherwise
+   No return value. 
 */
-typedef int (*HSM_CLIENT_GET_RANDOM_STRING)(HSM_CLIENT_HANDLE handle, unsigned char* random_num_buffer, size_t num_characters);
+typedef void (*HSM_CLIENT_FREE_BUFFER)(void *buffer);
 
 /**
     API to return the limits of a random number generated from HSM hardware.
@@ -82,7 +78,7 @@ typedef int (*HSM_CLIENT_GET_RANDOM_STRING)(HSM_CLIENT_HANDLE handle, unsigned c
       0  -- On success
       Non 0 -- otherwise
 */
-typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS)(HSM_CLIENT_HANDLE handle, size_t* min_random_num, size_t* max_random_num);
+typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS)(HSM_CLIENT_HANDLE handle, size_t *min_random_num, size_t *max_random_num);
 
 /**
     API to return a random number generated from HSM hardware. The number
@@ -96,7 +92,7 @@ typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS)(HSM_CLIENT_HANDLE handle, siz
       0  -- On success
       Non 0 -- otherwise
 */
-typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER)(HSM_CLIENT_HANDLE handle, size_t* random_num);
+typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER)(HSM_CLIENT_HANDLE handle, size_t *random_num);
 
 /**
     API to provision a master symmetric encryption key in the HSM.
@@ -111,7 +107,6 @@ typedef int (*HSM_CLIENT_GET_RANDOM_NUMBER)(HSM_CLIENT_HANDLE handle, size_t* ra
       Non 0 -- otherwise
 */
 typedef int (*HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY)(HSM_CLIENT_HANDLE handle);
-
 
 /**
     API to remove the master encryption key from the HSM. This is expected
@@ -147,12 +142,11 @@ typedef int (*HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY)(HSM_CLIENT_HANDLE handle
         Non 0 otherwise
 */
 typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle,
-                                       const char* client_id,
-                                       const SIZED_BUFFER* plaintext,
-                                       const char* passphrase,
-                                       const char* initialization_vector,
-                                       SIZED_BUFFER* ciphertext);
-
+                                       const SIZED_BUFFER *client_id,
+                                       const SIZED_BUFFER *plaintext,
+                                       const SIZED_BUFFER *passphrase,
+                                       const SIZED_BUFFER *initialization_vector,
+                                       SIZED_BUFFER *ciphertext);
 
 /**
     API to decrypt a blob of cipher text data and return its corresponding
@@ -174,12 +168,11 @@ typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle,
         Non 0 otherwise
 */
 typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle,
-                                       const char* client_id,
-                                       const SIZED_BUFFER* ciphertext,
-                                       const char* passphrase,
-                                       const char* initialization_vector,
-                                       SIZED_BUFFER* plaintext);
-
+                                       const SIZED_BUFFER *client_id,
+                                       const SIZED_BUFFER *ciphertext,
+                                       const SIZED_BUFFER *passphrase,
+                                       const SIZED_BUFFER *initialization_vector,
+                                       SIZED_BUFFER *plaintext);
 
 enum CRYPTO_ENCODING_TAG
 {
@@ -206,8 +199,8 @@ enum CERTIFICATE_TYPE_TAG
 };
 typedef enum CERTIFICATE_TYPE_TAG CERTIFICATE_TYPE;
 
-typedef struct HSM_CERTIFICATE_PROPS_TAG* CERT_PROPS_HANDLE;
-typedef struct HSM_CERTIFICATE_TAG* CERT_HANDLE;
+typedef struct HSM_CERTIFICATE_PROPS_TAG *CERT_PROPS_HANDLE;
+typedef struct HSM_CERTIFICATE_TAG *CERT_HANDLE;
 
 extern CERT_PROPS_HANDLE create_certificate_props(void);
 extern void destroy_certificate_props(CERT_PROPS_HANDLE handle);
@@ -280,7 +273,7 @@ typedef void (*HSM_CLIENT_DESTROY_CERTIFICATE)(HSM_CLIENT_HANDLE handle, CERT_HA
 
     handle[in]   -- Valid handle to certificate resources
 */
-typedef void (*HSM_CLIENT_DESTROY_CERTIFICATE_BY_ID)(const char* id);
+typedef void (*HSM_CLIENT_DESTROY_CERTIFICATE_BY_ID)(const char *id);
 
 /**
     This API releases any memory associated with the handle
@@ -358,7 +351,6 @@ extern int get_private_key(CERT_HANDLE handle,
                            PRIVATE_KEY_TYPE *type,
                            CRYPTO_ENCODING *enc);
 
-
 typedef struct HSM_CLIENT_TPM_INTERFACE_TAG
 {
     HSM_CLIENT_CREATE hsm_client_tpm_create;
@@ -369,6 +361,7 @@ typedef struct HSM_CLIENT_TPM_INTERFACE_TAG
     HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk;
     HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity;
     HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity;
+    HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
 } HSM_CLIENT_TPM_INTERFACE;
 
 typedef struct HSM_CLIENT_X509_INTERFACE_TAG
@@ -379,14 +372,14 @@ typedef struct HSM_CLIENT_X509_INTERFACE_TAG
     HSM_CLIENT_GET_CERTIFICATE hsm_client_get_cert;
     HSM_CLIENT_GET_CERT_KEY hsm_client_get_key;
     HSM_CLIENT_GET_COMMON_NAME hsm_client_get_common_name;
+    HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
 } HSM_CLIENT_X509_INTERFACE;
 
-typedef struct HSM_CLIENT_COMMON_INTERFACE_TAG
+typedef struct HSM_CLIENT_CRYPTO_INTERFACE_TAG
 {
-    HSM_CLIENT_CREATE hsm_client_common_create;
-    HSM_CLIENT_DESTROY hsm_client_common_destroy;
+    HSM_CLIENT_CREATE hsm_client_crypto_create;
+    HSM_CLIENT_DESTROY hsm_client_crypto_destroy;
 
-    HSM_CLIENT_GET_RANDOM_STRING hsm_client_get_random_string;
     HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS hsm_client_get_random_number_limits;
     HSM_CLIENT_GET_RANDOM_NUMBER hsm_client_get_random_number;
     HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
@@ -395,19 +388,20 @@ typedef struct HSM_CLIENT_COMMON_INTERFACE_TAG
     HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate;
     HSM_CLIENT_ENCRYPT_DATA hsm_client_encrypt_data;
     HSM_CLIENT_DECRYPT_DATA hsm_client_decrypt_data;
+    HSM_CLIENT_FREE_BUFFER hsm_client_free_buffer;
 
-} HSM_CLIENT_COMMON_INTERFACE;
+} HSM_CLIENT_CRYPTO_INTERFACE;
 
-extern const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface();
-extern const HSM_CLIENT_X509_INTERFACE* hsm_client_x509_interface();
-extern const HSM_CLIENT_COMMON_INTERFACE* hsm_client_common_interface();
+extern const HSM_CLIENT_TPM_INTERFACE *hsm_client_tpm_interface();
+extern const HSM_CLIENT_X509_INTERFACE *hsm_client_x509_interface();
+extern const HSM_CLIENT_CRYPTO_INTERFACE *hsm_client_crypto_interface();
 
 extern int hsm_client_x509_init();
 extern void hsm_client_x509_deinit();
 extern int hsm_client_tpm_init();
 extern void hsm_client_tpm_deinit();
-extern int hsm_client_common_init();
-extern void hsm_client_common_deinit();
+extern int hsm_client_crypto_init();
+extern void hsm_client_crypto_deinit();
 
 #ifdef __cplusplus
 }

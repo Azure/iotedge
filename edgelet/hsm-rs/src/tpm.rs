@@ -2,7 +2,7 @@
 
 use std::default::Default;
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_uchar, c_void};
+use std::os::raw::{c_char, c_uchar, c_void};
 use std::ptr;
 use std::slice;
 
@@ -10,22 +10,18 @@ use error::{Error, ErrorKind};
 use super::*;
 use super::{ManageTpmKeys, SignWithTpm};
 
-extern "C" {
-    pub fn free(__ptr: *mut c_void);
-}
-
 /// Hsm for TPM
 /// create an instance of this to use the TPM interface of an HSM
 ///
 #[derive(Debug)]
-pub struct HsmTpm {
+pub struct Tpm {
     handle: HSM_CLIENT_HANDLE,
     interface: HSM_CLIENT_TPM_INTERFACE,
 }
 
 // HSM TPM
 
-impl Drop for HsmTpm {
+impl Drop for Tpm {
     fn drop(&mut self) {
         self.interface
             .hsm_client_tpm_destroy
@@ -33,10 +29,10 @@ impl Drop for HsmTpm {
     }
 }
 
-impl HsmTpm {
+impl Tpm {
     /// Create a new TPM implementation for the HSM API. Will panic if
     /// interface not found.
-    pub fn new() -> HsmTpm {
+    pub fn new() -> Tpm {
         // If we can't get the interface, this is a critical failure, so
         // we should let this function panic.
         let _hsm_sys = get_hsm();
@@ -45,7 +41,7 @@ impl HsmTpm {
             panic!("Null TPM client interface");
         }
         let interface = unsafe { *if_ptr };
-        HsmTpm {
+        Tpm {
             handle: interface
                 .hsm_client_tpm_create
                 .map(|f| unsafe { f() })
@@ -55,13 +51,13 @@ impl HsmTpm {
     }
 }
 
-impl Default for HsmTpm {
+impl Default for Tpm {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ManageTpmKeys for HsmTpm {
+impl ManageTpmKeys for Tpm {
     /// Imports key that has been previously encrypted with the endorsement key and storage root key into the TPM key storage.
     fn activate_identity_key(&self, key: &[u8]) -> Result<(), Error> {
         let key_fn = self.interface
@@ -69,10 +65,9 @@ impl ManageTpmKeys for HsmTpm {
             .ok_or(ErrorKind::NoneFn)?;
 
         let result = unsafe { key_fn(self.handle, key.as_ptr(), key.len()) };
-        if result == 0 {
-            Ok(())
-        } else {
-            Err(result)?
+        match result {
+            0 => Ok(()),
+            r => Err(r)?,
         }
     }
 
@@ -83,10 +78,9 @@ impl ManageTpmKeys for HsmTpm {
 
         let key_fn = self.interface.hsm_client_get_ek.ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
-        if result == 0 {
-            Ok(TpmKey::new(ptr as *const _, key_ln))
-        } else {
-            Err(result)?
+        match result {
+            0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
+            r => Err(r)?,
         }
     }
 
@@ -97,18 +91,16 @@ impl ManageTpmKeys for HsmTpm {
 
         let key_fn = self.interface.hsm_client_get_srk.ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
-
-        if result == 0 {
-            Ok(TpmKey::new(ptr as *const _, key_ln))
-        } else {
-            Err(result)?
+        match result {
+            0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
+            r => Err(r)?,
         }
     }
 }
 
-impl SignWithTpm for HsmTpm {
+impl SignWithTpm for Tpm {
     /// Hashes the parameter data with the key previously stored in the TPM and returns the value
-    fn sign_with_identity(&self, data: &[u8]) -> Result<TpmKey, Error> {
+    fn sign_with_identity(&self, data: &[u8]) -> Result<TpmDigest, Error> {
         let mut key_ln: usize = 0;
         let mut ptr = ptr::null_mut();
 
@@ -124,8 +116,34 @@ impl SignWithTpm for HsmTpm {
                 &mut key_ln,
             )
         };
+        match result {
+            0 => Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln)),
+            r => Err(r)?,
+        }
+    }
+
+    fn derive_and_sign_with_identity(
+        &self,
+        data: &[u8],
+        identity: &str,
+    ) -> Result<TpmDigest, Error> {
+        let mut key_ln: usize = 0;
+        let mut ptr = ptr::null_mut();
+        let key_fn = self.interface
+            .hsm_client_derive_and_sign_with_identity
+            .ok_or(ErrorKind::NoneFn)?;
+        let result = unsafe {
+            key_fn(
+                self.handle,
+                data.as_ptr(),
+                data.len(),
+                identity.as_ptr() as *const c_char,
+                &mut ptr,
+                &mut key_ln,
+            )
+        };
         if result == 0 {
-            Ok(TpmKey::new(ptr as *const _, key_ln))
+            Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln))
         } else {
             Err(result)?
         }
@@ -135,44 +153,66 @@ impl SignWithTpm for HsmTpm {
 /// When buffer data is returned from TPM interface, it is placed in this struct.
 /// This is a buffer allocated by the C library.
 #[derive(Debug)]
-pub struct TpmKey {
+pub struct TpmBuffer {
+    interface: HSM_CLIENT_TPM_INTERFACE,
     key: *const c_uchar,
     len: usize,
 }
 
-impl Drop for TpmKey {
+impl Drop for TpmBuffer {
     fn drop(&mut self) {
-        unsafe {
-            free(self.key as *mut c_void);
+        let free_fn = self.interface
+            .hsm_client_free_buffer
+            .expect("Unknown Free function for TpmBuffer");
+        unsafe { free_fn(self.key as *mut c_void) };
+    }
+}
+
+impl TpmBuffer {
+    pub fn new(interface: HSM_CLIENT_TPM_INTERFACE, key: *const c_uchar, len: usize) -> TpmBuffer {
+        TpmBuffer {
+            interface,
+            key,
+            len,
         }
     }
 }
 
-impl TpmKey {
-    pub fn new(key: *const c_uchar, len: usize) -> TpmKey {
-        TpmKey { key, len }
-    }
-}
-
-impl Deref for TpmKey {
+impl Deref for TpmBuffer {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         unsafe { slice::from_raw_parts(self.key, self.len) }
     }
 }
 
+pub type TpmKey = TpmBuffer;
+pub type TpmDigest = TpmBuffer;
+
 #[cfg(test)]
 mod tests {
-    use std::os::raw::{c_int, c_uchar, c_void};
+    use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
     use hsm_sys::*;
-    use super::{HsmTpm, TpmKey};
+    use super::{Tpm, TpmKey};
     use super::super::{ManageTpmKeys, SignWithTpm};
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
         pub fn memset(s: *mut c_void, c: c_int, size: usize) -> *mut c_void;
+        pub fn free(s: *mut c_void);
     }
+
+    unsafe extern "C" fn real_buffer_destroy(b: *mut c_void) {
+        free(b);
+    }
+
+    fn fake_good_tpm_buffer_free() -> HSM_CLIENT_TPM_INTERFACE_TAG {
+        HSM_CLIENT_TPM_INTERFACE_TAG {
+            hsm_client_free_buffer: Some(real_buffer_destroy),
+            ..HSM_CLIENT_TPM_INTERFACE_TAG::default()
+        }
+    }
+
     #[test]
     fn tpm_data_test() {
         let len = 10;
@@ -181,13 +221,31 @@ mod tests {
             memset(v, 6 as c_int, len)
         };
 
-        let key2 = TpmKey::new(key as *const c_uchar, len);
+        let key2 = TpmKey::new(fake_good_tpm_buffer_free(), key as *const c_uchar, len);
 
         let slice1 = &key2;
 
         assert_eq!(slice1.len(), len);
         assert_eq!(slice1[0], 6);
         assert_eq!(slice1[len - 1], 6);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unknown Free function for TpmBuffer")]
+    fn tpm_free_fn_none() {
+        let key = b"0123456789";
+        let len = key.len();
+
+        let key2 = TpmKey::new(
+            HSM_CLIENT_TPM_INTERFACE_TAG::default(),
+            key.as_ptr() as *const c_uchar,
+            len,
+        );
+
+        let slice1 = &key2;
+
+        assert_eq!(slice1.len(), len);
+        // function will panic on drop.
     }
 
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
@@ -198,6 +256,8 @@ mod tests {
     }
 
     unsafe extern "C" fn fake_handle_destroy(_h: HSM_CLIENT_HANDLE) {}
+
+    unsafe extern "C" fn fake_buffer_destroy(_b: *mut c_void) {}
 
     unsafe extern "C" fn fake_activate_id_key(
         handle: HSM_CLIENT_HANDLE,
@@ -261,8 +321,26 @@ mod tests {
         }
     }
 
-    fn fake_no_if_tpm_hsm() -> HsmTpm {
-        HsmTpm {
+    unsafe extern "C" fn fake_derive_and_sign(
+        handle: HSM_CLIENT_HANDLE,
+        _data_to_be_signed: *const c_uchar,
+        _data_to_be_signed_len: usize,
+        _identity: *const c_char,
+        digest: *mut *mut c_uchar,
+        digest_size: *mut usize,
+    ) -> c_int {
+        let n = handle as isize;
+        if n == 0 {
+            *digest = malloc(DEFAULT_KEY_LEN) as *mut c_uchar;
+            *digest_size = DEFAULT_KEY_LEN;
+            0
+        } else {
+            1
+        }
+    }
+
+    fn fake_no_if_tpm_hsm() -> Tpm {
+        Tpm {
             handle: unsafe { fake_handle_create_good() },
             interface: HSM_CLIENT_TPM_INTERFACE_TAG {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
@@ -306,8 +384,20 @@ mod tests {
         println!("You should never see this print {:?}", result);
     }
 
-    fn fake_good_tpm_hsm() -> HsmTpm {
-        HsmTpm {
+    #[test]
+    #[should_panic(expected = "HSM API Not Implemented")]
+    fn tpm_no_derive_and_sign_function_fail() {
+        let hsm_tpm = fake_no_if_tpm_hsm();
+        let key = b"key data";
+        let identity = "identity";
+        let result = hsm_tpm
+            .derive_and_sign_with_identity(key, &identity)
+            .unwrap();
+        println!("You should never see this print {:?}", result);
+    }
+
+    fn fake_good_tpm_hsm() -> Tpm {
+        Tpm {
             handle: unsafe { fake_handle_create_good() },
             interface: HSM_CLIENT_TPM_INTERFACE_TAG {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
@@ -316,6 +406,8 @@ mod tests {
                 hsm_client_get_ek: Some(fake_ek),
                 hsm_client_get_srk: Some(fake_srk),
                 hsm_client_sign_with_identity: Some(fake_sign),
+                hsm_client_derive_and_sign_with_identity: Some(fake_derive_and_sign),
+                hsm_client_free_buffer: Some(fake_buffer_destroy),
             },
         }
     }
@@ -339,10 +431,18 @@ mod tests {
         let result4 = hsm_tpm.sign_with_identity(k2).unwrap();
         let buf4 = &result4;
         assert_eq!(buf4.len(), DEFAULT_KEY_LEN);
+
+        let k3 = b"a buffer";
+        let identity = "some identity";
+        let result5 = hsm_tpm
+            .derive_and_sign_with_identity(k3, &identity)
+            .unwrap();
+        let buf5 = &result5;
+        assert_eq!(buf5.len(), DEFAULT_KEY_LEN);
     }
 
-    fn fake_bad_tpm_hsm() -> HsmTpm {
-        HsmTpm {
+    fn fake_bad_tpm_hsm() -> Tpm {
+        Tpm {
             handle: unsafe { fake_handle_create_bad() },
             interface: HSM_CLIENT_TPM_INTERFACE_TAG {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
@@ -351,6 +451,8 @@ mod tests {
                 hsm_client_get_ek: Some(fake_ek),
                 hsm_client_get_srk: Some(fake_srk),
                 hsm_client_sign_with_identity: Some(fake_sign),
+                hsm_client_derive_and_sign_with_identity: Some(fake_derive_and_sign),
+                hsm_client_free_buffer: Some(fake_buffer_destroy),
             },
         }
     }
@@ -386,6 +488,18 @@ mod tests {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";
         let result = hsm_tpm.sign_with_identity(k1).unwrap();
+        println!("You should never see this print {:?}", result);
+    }
+
+    #[test]
+    #[should_panic(expected = "HSM API failure occured")]
+    fn tpm_derive_and_sign_errors() {
+        let hsm_tpm = fake_bad_tpm_hsm();
+        let k1 = b"A fake buffer";
+        let identity = "an identity";
+        let result = hsm_tpm
+            .derive_and_sign_with_identity(k1, &identity)
+            .unwrap();
         println!("You should never see this print {:?}", result);
     }
 
