@@ -15,21 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     public class PullCommand : ICommand
     {
         readonly IDockerClient client;
-        readonly DockerModule module;
-        readonly Option<AuthConfig> authConfig;
+        readonly CombinedDockerConfig combinedDockerConfig;
 
-        public PullCommand(IDockerClient client, DockerModule module, Option<AuthConfig> authConfig)
+        public PullCommand(IDockerClient client, CombinedDockerConfig combinedDockerConfig)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.module = Preconditions.CheckNotNull(module, nameof(module));
-            this.authConfig = Preconditions.CheckNotNull(authConfig, nameof(authConfig));
+            this.combinedDockerConfig = Preconditions.CheckNotNull(combinedDockerConfig, nameof(combinedDockerConfig));
         }
 
-        public string Id => $"PullCommand({this.module.Config.Image})";
+        public string Id => $"PullCommand({this.combinedDockerConfig.Image})";
 
         public async Task ExecuteAsync(CancellationToken token)
         {
-            string[] imageParts = this.module.Config.Image.Split(':');
+            string[] imageParts = this.combinedDockerConfig.Image.Split(':');
             string image;
             string tag;
             if (imageParts.Length > 1)
@@ -51,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             try
             {
                 await this.client.Images.CreateImageAsync(pullParameters,
-                                                          this.authConfig.OrDefault(),
+                                                          this.combinedDockerConfig.AuthConfig.OrDefault(),
                                                           new Progress<JSONMessage>(),
                                                           token);
             }
@@ -72,6 +70,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        public string Show() => $"docker pull {this.module.Config.Image}";
+        public string Show() => $"docker pull {this.combinedDockerConfig.Image}";
     }
 }

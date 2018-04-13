@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 IEntityStore<string, ModuleState> restartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
                 IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
 
-                var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object);
+                var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 DockerEnvironment environment = await DockerEnvironment.CreateAsync(client, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
 

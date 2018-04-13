@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task DeleteModuleAsync(string name);
 
+        Task RestartModuleAsync(string name);
+
         Task UpdateModuleAsync(ModuleSpec moduleSpec);
 
         Task<IEnumerable<ModuleDetails>> GetModules();

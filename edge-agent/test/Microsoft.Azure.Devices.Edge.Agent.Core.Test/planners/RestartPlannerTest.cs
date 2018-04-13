@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
 
         [Fact]
         [Unit]
@@ -28,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var token = new CancellationToken();
 
             var addExecutionList = new List<TestRecordType>();
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -51,11 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPull, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -77,10 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             var addStoppedExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPull, stoppedModule),
                 new TestRecordType(TestCommandType.TestCreate, stoppedModule),
             };
-            Plan addStoppedPlan = await planner.PlanAsync(addStopped, ModuleSet.Empty, moduleIdentities);
+            Plan addStoppedPlan = await planner.PlanAsync(addStopped, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addStoppedPlan, token);
 
@@ -105,11 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var updateExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestStop, currentModule),
-                new TestRecordType(TestCommandType.TestPull, desiredModule),
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -131,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, removeModule),
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
             };
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -175,16 +173,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, currentModules[3]),
                 new TestRecordType(TestCommandType.TestRemove, currentModules[2]),
                 new TestRecordType(TestCommandType.TestRemove, currentModules[3]),
-                new TestRecordType(TestCommandType.TestPull, desiredModules[0]),
-                new TestRecordType(TestCommandType.TestPull, desiredModules[1]),
-                new TestRecordType(TestCommandType.TestPull, desiredModules[2]),
-                new TestRecordType(TestCommandType.TestPull, desiredModules[3]),
                 new TestRecordType(TestCommandType.TestCreate, desiredModules[0]),
                 new TestRecordType(TestCommandType.TestCreate, desiredModules[1]),
                 new TestRecordType(TestCommandType.TestStart, desiredModules[0]),
                 new TestRecordType(TestCommandType.TestStart, desiredModules[2]),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -196,19 +190,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     // One way to validate order
                     // UpdateMod1
                     Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[13])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
                     // UpdateMod2
                     Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[1])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[9])));
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
                     // RemoveMod1
                     Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[3])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[5])));
                     // RemoveMod2
                     Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[4])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
                     // AddMod1
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[12])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[8])));
                     // AddModTrue2
-                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[7])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[10])));
+                    Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
                 });
         }
 

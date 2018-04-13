@@ -66,10 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void TestPlanFactoryCommands()
         {
             var factory = new TestCommandFactory();
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var moduleExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestPull, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
@@ -78,12 +78,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
             {
-                await factory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
-                await factory.PullAsync(moduleExecutionList[1].Module),
-                await factory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
-                await factory.RemoveAsync(moduleExecutionList[3].Module),
-                await factory.StartAsync(moduleExecutionList[4].Module),
-                await factory.StopAsync(moduleExecutionList[5].Module),
+                await factory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object), runtimeInfo),
+                await factory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[1].Module, identity.Object), runtimeInfo),
+                await factory.RemoveAsync(moduleExecutionList[2].Module),
+                await factory.StartAsync(moduleExecutionList[3].Module),
+                await factory.StopAsync(moduleExecutionList[4].Module),
             };
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
@@ -103,12 +102,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void TestPlanContinueOnFailure()
         {
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var factory = new TestCommandFactory();
             var failureFactory = new TestCommandFailureFactory();
             var moduleExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestPull, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
                 new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
@@ -117,18 +116,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
             {
-                await failureFactory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
-                await factory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object)),
-                await failureFactory.PullAsync(moduleExecutionList[1].Module),
-                await factory.PullAsync(moduleExecutionList[1].Module),
-                await failureFactory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
-                await factory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[2].Module, identity.Object)),
-                await failureFactory.RemoveAsync(moduleExecutionList[3].Module),
-                await factory.RemoveAsync(moduleExecutionList[3].Module),
-                await failureFactory.StartAsync(moduleExecutionList[4].Module),
-                await factory.StartAsync(moduleExecutionList[4].Module),
-                await failureFactory.StopAsync(moduleExecutionList[5].Module),
-                await factory.StopAsync(moduleExecutionList[5].Module),
+                await failureFactory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object), runtimeInfo),
+                await factory.CreateAsync(new ModuleWithIdentity(moduleExecutionList[0].Module, identity.Object), runtimeInfo),
+                await failureFactory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[1].Module, identity.Object), runtimeInfo),
+                await factory.UpdateAsync(moduleExecutionList[0].Module, new ModuleWithIdentity(moduleExecutionList[1].Module, identity.Object), runtimeInfo),
+                await failureFactory.RemoveAsync(moduleExecutionList[2].Module),
+                await factory.RemoveAsync(moduleExecutionList[2].Module),
+                await failureFactory.StartAsync(moduleExecutionList[3].Module),
+                await factory.StartAsync(moduleExecutionList[3].Module),
+                await failureFactory.StopAsync(moduleExecutionList[4].Module),
+                await factory.StopAsync(moduleExecutionList[4].Module),
             };
             var plan1 = new Plan(commandList);
             var token = new CancellationToken();
@@ -137,11 +134,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             Assert.True(ex.InnerExceptions.Count == commandList.Count / 2);
             Assert.True(commandList.Where(command =>
-                {
-                    var c = command as TestCommand;
-                    Assert.NotNull(c);
-                    return c.CommandExecuted;
-                }).Count() == commandList.Count / 2);
+            {
+                var c = command as TestCommand;
+                Assert.NotNull(c);
+                return c.CommandExecuted;
+            }).Count() == commandList.Count / 2);
             Assert.True(commandList.Where(command =>
             {
                 var c = command as TestCommand;

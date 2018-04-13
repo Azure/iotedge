@@ -51,6 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 () => this.edgeletHttpClient.DeleteModuleAsync(ApiVersion, name),
                 $"Create module {name}");
 
+        public Task RestartModuleAsync(string name) => this.Execute(
+                () => this.edgeletHttpClient.RestartModuleAsync(ApiVersion, name),
+                $"Create module {name}");
+
         public async Task<IEnumerable<ModuleDetails>> GetModules()
         {
             ModuleList moduleList = await this.Execute(

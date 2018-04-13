@@ -6,11 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface ICommandFactory
     {
-        Task<ICommand> CreateAsync(IModuleWithIdentity module);
+        Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo);
 
-        Task<ICommand> PullAsync(IModule module);
-
-        Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next);
+        Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo);
 
         Task<ICommand> RemoveAsync(IModule module);
 

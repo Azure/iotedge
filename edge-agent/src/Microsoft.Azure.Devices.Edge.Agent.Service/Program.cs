@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -66,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
+            IEnumerable<AuthConfig> dockerAuthConfig;
 
             try
             {
@@ -81,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
+                dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>() ?? new List<AuthConfig>();
             }
             catch (Exception ex)
             {
@@ -94,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new AgentModule(deviceConnectionString, edgeDeviceHostName, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
-                builder.RegisterModule(new DockerModule(dockerUri));
+                builder.RegisterModule(new DockerModule(dockerUri, dockerAuthConfig));
                 switch (configSourceConfig.ToLower())
                 {
                     case "twin":

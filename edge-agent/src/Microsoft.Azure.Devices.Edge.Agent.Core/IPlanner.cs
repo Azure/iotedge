@@ -11,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     /// </summary>
     public interface IPlanner
     {
-        Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities);
+        Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo, IImmutableDictionary<string, IModuleIdentity> moduleIdentities);
     }
 }

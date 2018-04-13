@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(
                         desiredModuleSet, current
                     );
-                    Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, identities);
+                    Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
                     if (!plan.IsEmpty)
                     {
                         try

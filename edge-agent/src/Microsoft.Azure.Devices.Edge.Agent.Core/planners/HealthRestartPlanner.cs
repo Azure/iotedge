@@ -85,16 +85,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         )
         {
             // new modules become a command group containing:
-            //   pull & create followed by a start command if the desired
+            //   create followed by a start command if the desired
             //   status is "running"
             IEnumerable<Task<ICommand[]>> addedTasks = modules.Select(m =>
             {
-                var tasks = new Task<ICommand>[m.DesiredStatus == ModuleStatus.Running ? 3 : 2];
-                tasks[0] = this.commandFactory.PullAsync(m);
-                tasks[1] = createUpdateCommandMaker(m);
+                var tasks = new List<Task<ICommand>>();
+                tasks.Add(createUpdateCommandMaker(m));
                 if (m.DesiredStatus == ModuleStatus.Running)
                 {
-                    tasks[2] = this.commandFactory.StartAsync(m);
+                    tasks.Add(this.commandFactory.StartAsync(m));
                 }
                 return Task.WhenAll(tasks);
             });
@@ -175,7 +174,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return (added, updateDeployed, updateStateChanged, removed, runningGreat);
         }
 
-        public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
+        public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo,
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
@@ -200,12 +200,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // create pull, create, update and start commands for added/updated modules
             IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
                 added,
-                m => this.commandFactory.CreateAsync(
-                        new ModuleWithIdentity(
-                            m, moduleIdentities.GetValueOrDefault(m.Name)
-                        )
-                    )
+                m => this.commandFactory.CreateAsync(new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)), runtimeInfo)
             );
+
             IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
                 updateDeployed,
                 m =>
@@ -213,10 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     current.TryGetModule(m.Name, out IModule currentModule);
                     return this.commandFactory.UpdateAsync(
                         currentModule,
-                        new ModuleWithIdentity(
-                            m, moduleIdentities.GetValueOrDefault(m.Name)
-                        )
-                    );
+                        new ModuleWithIdentity(m, moduleIdentities.GetValueOrDefault(m.Name)),
+                        runtimeInfo);
                 }
             );
 

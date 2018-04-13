@@ -53,14 +53,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var logFactoryMock = new Mock<ILoggerFactory>();
             var factoryMock = new Mock<ICommandFactory>();
             var moduleIdentity = new Mock<IModuleIdentity>();
-            Task<ICommand> nullCmd = NullCommandFactory.Instance.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
+            Task<ICommand> nullCmd = NullCommandFactory.Instance.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object), runtimeInfo);
 
-            factoryMock.Setup(f => f.CreateAsync(It.IsAny<IModuleWithIdentity>()))
+            factoryMock.Setup(f => f.CreateAsync(It.IsAny<IModuleWithIdentity>(), runtimeInfo))
                 .Returns(nullCmd);
 
             var factory = new LoggingCommandFactory(factoryMock.Object, logFactoryMock.Object);
 
-            ICommand create = await factory.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object));
+            ICommand create = await factory.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object), runtimeInfo);
 
             Assert.Equal(create.Show(), nullCmd.Result.Show());
 
@@ -75,24 +76,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             var moduleIdentity = new Mock<IModuleIdentity>();
             var testModule = new ModuleWithIdentity(TestModule, moduleIdentity.Object);
             var updateModule = new ModuleWithIdentity(UpdateModule, moduleIdentity.Object);
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             // CommandMethodBeingTested - factory command under test
             // Command - command object to be mocked.
             // TestExpr - the expression to execute test.
             (CommandMethodExpr CommandMethodBeingTested, Task<ICommand> Command, TestExecutionExpr TestExpr)[] testInputRecords = {
                 (
-                    f => f.CreateAsync(testModule),
-                    NullCommandFactory.Instance.CreateAsync(testModule),
-                    factory => factory.CreateAsync(testModule)
+                    f => f.CreateAsync(testModule, runtimeInfo),
+                    NullCommandFactory.Instance.CreateAsync(testModule, runtimeInfo),
+                    factory => factory.CreateAsync(testModule, runtimeInfo)
                 ),
                 (
-                    f => f.PullAsync(TestModule),
-                    NullCommandFactory.Instance.PullAsync(TestModule),
-                    factory => factory.PullAsync(TestModule)
-                ),
-                (
-                    f => f.UpdateAsync(TestModule, updateModule),
-                    NullCommandFactory.Instance.UpdateAsync(TestModule, updateModule),
-                    factory => factory.UpdateAsync(TestModule, updateModule)
+                    f => f.UpdateAsync(TestModule, updateModule, runtimeInfo),
+                    NullCommandFactory.Instance.UpdateAsync(TestModule, updateModule, runtimeInfo),
+                    factory => factory.UpdateAsync(TestModule, updateModule, runtimeInfo)
                 ),
                 (
                     f => f.RemoveAsync(TestModule),

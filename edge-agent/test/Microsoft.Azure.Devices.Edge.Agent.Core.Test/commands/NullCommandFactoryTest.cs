@@ -14,11 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
         {
             NullCommandFactory nf = NullCommandFactory.Instance;
             var moduleIdentity = new Mock<IModuleIdentity>();
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var nm = new TestModule("null", "version_null", "null", ModuleStatus.Running, new TestConfig("null"), RestartPolicy.OnUnhealthy, new ConfigurationInfo());
             var nmn = new TestModule("next", "version_null", "null", ModuleStatus.Running, new TestConfig("null"), RestartPolicy.OnUnhealthy, new ConfigurationInfo());
-            ICommand createCommand = await nf.CreateAsync(new ModuleWithIdentity(nm, moduleIdentity.Object));
-            ICommand pullCommand = await nf.PullAsync(nm);
-            ICommand updateCommand = await nf.UpdateAsync(nm, new ModuleWithIdentity(nmn, moduleIdentity.Object));
+            ICommand createCommand = await nf.CreateAsync(new ModuleWithIdentity(nm, moduleIdentity.Object), runtimeInfo);
+            ICommand updateCommand = await nf.UpdateAsync(nm, new ModuleWithIdentity(nmn, moduleIdentity.Object), runtimeInfo);
             ICommand removeCommand = await nf.RemoveAsync(nm);
             ICommand startCommand = await nf.StartAsync(nm);
             ICommand stopCommand = await nf.StopAsync(nm);
@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             ICommand wrapCommand = await nf.WrapAsync(createCommand);
 
             Assert.Equal(NullCommand.Instance, createCommand);
-            Assert.Equal(NullCommand.Instance, pullCommand);
             Assert.Equal(NullCommand.Instance, updateCommand);
             Assert.Equal(NullCommand.Instance, removeCommand);
             Assert.Equal(NullCommand.Instance, startCommand);

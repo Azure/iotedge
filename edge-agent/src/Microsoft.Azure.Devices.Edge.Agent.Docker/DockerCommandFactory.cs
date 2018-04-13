@@ -17,28 +17,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly IDockerClient client;
         readonly DockerLoggingConfig dockerLoggerConfig;
         readonly IConfigSource configSource;
+        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
 
-        public DockerCommandFactory(IDockerClient dockerClient, DockerLoggingConfig dockerLoggingConfig, IConfigSource configSource)
+        public DockerCommandFactory(IDockerClient dockerClient, DockerLoggingConfig dockerLoggingConfig, IConfigSource configSource, ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.client = Preconditions.CheckNotNull(dockerClient, nameof(dockerClient));
             this.dockerLoggerConfig = Preconditions.CheckNotNull(dockerLoggingConfig, nameof(dockerLoggingConfig));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
+            this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
 
-        public async Task<ICommand> CreateAsync(IModuleWithIdentity module) =>
-            module.Module is DockerModule
-                ? await CreateCommand.BuildAsync(this.client, (DockerModule)module.Module, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule)
-                : NullCommand.Instance;
+        public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
+        {
+            if (module.Module is DockerModule dockerModule)
+            {
+                CombinedDockerConfig combinedDockerConfig = this.combinedConfigProvider.GetCombinedConfig(dockerModule, runtimeInfo);
+                return new GroupCommand(
+                    new PullCommand(this.client, combinedDockerConfig),
+                    await CreateCommand.BuildAsync(this.client, dockerModule, module.ModuleIdentity, this.dockerLoggerConfig, this.configSource, module.Module is EdgeHubDockerModule));
+            }
+            return NullCommand.Instance;
+        }
 
-        public Task<ICommand> PullAsync(IModule module) =>
-            Task.FromResult(module is DockerModule
-                ? new PullCommand(this.client, (DockerModule)module, this.FirstAuthConfigOrDefault((DockerModule)module))
-                : (ICommand)NullCommand.Instance);
-
-        public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next) =>
-            current is DockerModule && next.Module is DockerModule
-                ? await UpdateCommand.BuildAsync(this.client, (DockerModule)current, (DockerModule)next.Module, next.ModuleIdentity, this.dockerLoggerConfig, this.configSource)
-                : NullCommand.Instance;
+        public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
+        {
+            if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
+            {
+                return new GroupCommand(
+                    new RemoveCommand(client, currentDockerModule),
+                    await this.CreateAsync(next, runtimeInfo));
+            }
+            return NullCommand.Instance;
+        }
 
         public Task<ICommand> RemoveAsync(IModule module) =>
             Task.FromResult(module is DockerModule

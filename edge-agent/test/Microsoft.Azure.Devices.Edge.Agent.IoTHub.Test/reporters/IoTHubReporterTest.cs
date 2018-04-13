@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         {
 
             // Arrange
-            using (var cts = new CancellationTokenSource(Timeout))  
+            using (var cts = new CancellationTokenSource(Timeout))
             {
                 const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
@@ -163,11 +163,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 await reporter.ReportAsync(cts.Token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success);
 
                 //Assert
-                Assert.Equal(2,patches.Count);
+                Assert.Equal(2, patches.Count);
                 JObject patch1Json = JObject.Parse(patches[0].ToJson());
                 foreach (KeyValuePair<string, JToken> keyValuePair in patch1Json)
                 {
-                    Assert.Equal(JTokenType.Null,keyValuePair.Value.Type);
+                    Assert.Equal(JTokenType.Null, keyValuePair.Value.Type);
                 }
 
                 JObject patch2Json = JObject.Parse(patches[1].ToJson());
@@ -191,7 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         settings = new
                         {
                             minDockerVersion = MinDockerVersion,
-                            loggingOptions = LoggingOptions
+                            loggingOptions = LoggingOptions,
+                            registryCredentials = new { }
                         },
                         platform = new
                         {
@@ -329,7 +330,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         settings = new
                         {
                             minDockerVersion = MinDockerVersion,
-                            loggingOptions = LoggingOptions
+                            loggingOptions = LoggingOptions,
+                            registryCredentials = new { }
                         },
                         platform = new
                         {
@@ -479,7 +481,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         settings = new
                         {
                             minDockerVersion = MinDockerVersion,
-                            loggingOptions = LoggingOptions
+                            loggingOptions = LoggingOptions,
+                            registryCredentials = new { }
                         },
                         platform = new
                         {
@@ -849,7 +852,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         settings = new
                         {
                             minDockerVersion = MinDockerVersion,
-                            loggingOptions = LoggingOptions
+                            loggingOptions = LoggingOptions,
+                            registryCredentials = new { }
                         },
                         platform = new
                         {

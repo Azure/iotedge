@@ -66,19 +66,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
 
-        public Task<ICommand> CreateAsync(IModuleWithIdentity module)
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder));
         }
 
-        public Task<ICommand> PullAsync(IModule module)
-        {
-            Assert.True(module is TestModule);
-            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPull, module, this.Recorder));
-        }
-
-        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next)
+        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             Assert.True(current is TestModule);
             Assert.True(next.Module is TestModule);
@@ -125,19 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Recorder = Option.Some(new TestPlanRecorder());
         }
 
-        public Task<ICommand> CreateAsync(IModuleWithIdentity module)
+        public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             Assert.True(module.Module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestCreate, module.Module, this.Recorder, true));
         }
 
-        public Task<ICommand> PullAsync(IModule module)
-        {
-            Assert.True(module is TestModule);
-            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPull, module, this.Recorder, true));
-        }
-
-        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next)
+        public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             Assert.True(current is TestModule);
             Assert.True(next.Module is TestModule);

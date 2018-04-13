@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         const int CoolOffTimeUnitInSeconds = 10;
         static readonly TimeSpan IntensiveCareTime = TimeSpan.FromMinutes(10);
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
 
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var expectedExecutionList = new List<TestRecordType>();
 
             // Act
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, token);
 
@@ -76,11 +77,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPull, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule),
                 new TestRecordType(TestCommandType.TestStart, addModule),
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
@@ -98,10 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestPull, addModule),
                 new TestRecordType(TestCommandType.TestCreate, addModule)
             };
-            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
@@ -125,11 +124,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var updateExecutionList = new List<TestRecordType>
             {
                 new TestRecordType(TestCommandType.TestStop, desiredModule),
-                new TestRecordType(TestCommandType.TestPull, desiredModule),
                 new TestRecordType(TestCommandType.TestUpdate, desiredModule),
                 new TestRecordType(TestCommandType.TestStart, desiredModule),
             };
-            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, moduleIdentities);
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
@@ -151,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, removeModule),
                 new TestRecordType(TestCommandType.TestRemove, removeModule),
             };
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
@@ -247,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 new TestRecordType(TestCommandType.TestStop, m),
                 new TestRecordType(TestCommandType.TestRemove, m)
             }).ToList();
-            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, removeRunning, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, addPlan, CancellationToken.None);
 
@@ -409,13 +407,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IEnumerable<TestRecordType> expectedExecutionList = data.SelectMany(d => new[]
             {
                 new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
-                new TestRecordType(TestCommandType.TestPull, d.UpdatedModule),
                 new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                 new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
             });
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
@@ -837,7 +834,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 .SelectMany(d => new[]
                 {
                     new TestRecordType(TestCommandType.TestStop, d.UpdatedModule),
-                    new TestRecordType(TestCommandType.TestPull, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestUpdate, d.UpdatedModule),
                     new TestRecordType(TestCommandType.TestStart, d.UpdatedModule)
                 })
@@ -857,7 +853,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 );
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, moduleIdentities);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, moduleIdentities);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
@@ -888,7 +884,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet desiredModuleSet = ModuleSet.Create(runningGreatModules.ToArray<IModule>());
 
             // Act
-            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
