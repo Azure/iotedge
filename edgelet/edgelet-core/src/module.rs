@@ -12,7 +12,7 @@ use serde_json;
 
 use error::Result;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -45,7 +45,7 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i32>,

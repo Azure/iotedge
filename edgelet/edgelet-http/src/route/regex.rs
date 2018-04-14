@@ -14,6 +14,12 @@ pub struct Parameters {
 }
 
 impl Parameters {
+    pub fn new() -> Self {
+        Parameters {
+            captures: Vec::new(),
+        }
+    }
+
     pub fn name(&self, k: &str) -> Option<&str> {
         for capture in &self.captures {
             if let (Some(ref key), ref val) = *capture {
