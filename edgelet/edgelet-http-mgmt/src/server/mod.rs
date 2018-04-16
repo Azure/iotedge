@@ -11,6 +11,7 @@ use hyper::Error as HyperError;
 use hyper::server::{NewService, Request, Response, Service};
 use serde::Serialize;
 
+use IntoResponse;
 use self::module::*;
 
 #[derive(Clone)]
@@ -19,20 +20,21 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    pub fn new<M>(modules: M) -> Result<Self, HyperError>
+    pub fn new<M>(runtime: M) -> Result<Self, HyperError>
     where
-        M: 'static + ModuleRuntime,
+        M: 'static + ModuleRuntime + Clone,
         <M::Module as Module>::Config: Serialize,
+        <M as ModuleRuntime>::Error: IntoResponse,
     {
         let router = router!(
-            get    "/modules"                         => ListModules::new(modules),
+            get    "/modules"                         => ListModules::new(runtime.clone()),
             post   "/modules"                         => CreateModule,
             get    "/modules/(?P<name>[^/]+)"         => GetModule,
             put    "/modules/(?P<name>[^/]+)"         => UpdateModule,
-            delete "/modules/(?P<name>[^/]+)"         => DeleteModule,
-            post   "/modules/(?P<name>[^/]+)/start"   => StartModule,
-            post   "/modules/(?P<name>[^/]+)/stop"    => StopModule,
-            post   "/modules/(?P<name>[^/]+)/restart" => RestartModule,
+            delete "/modules/(?P<name>[^/]+)"         => DeleteModule::new(runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/start"   => StartModule::new(runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/stop"    => StopModule::new(runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/restart" => RestartModule::new(runtime.clone()),
         );
         let inner = router.new_service()?;
         let service = ManagementService { inner };

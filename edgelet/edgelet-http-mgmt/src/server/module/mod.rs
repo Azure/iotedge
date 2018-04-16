@@ -1,15 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Context, ResultExt};
+use failure::{Fail, ResultExt};
 use futures::Future;
+use hyper::StatusCode;
 use hyper::server::Response;
 use serde::Serialize;
 use serde_json;
 
+use docker_mri::{Error as DockerError, ErrorKind as DockerErrorKind};
 use edgelet_core::Module;
+use hyper::header::{ContentLength, ContentType};
 use management::models::*;
 
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 mod create;
 mod delete;
@@ -29,9 +33,39 @@ pub use self::start::StartModule;
 pub use self::stop::StopModule;
 pub use self::update::UpdateModule;
 
-fn from_context(context: Context<ErrorKind>) -> Response {
-    let error: Error = context.into();
-    error.into()
+impl IntoResponse for DockerError {
+    fn into_response(self) -> Response {
+        let mut fail: &Fail = &self;
+        let mut message = self.to_string();
+        while let Some(cause) = fail.cause() {
+            message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
+            fail = cause;
+        }
+
+        let status_code = match *self.kind() {
+            DockerErrorKind::NotFound => StatusCode::NotFound,
+            DockerErrorKind::Conflict => StatusCode::Conflict,
+            DockerErrorKind::NotModified => StatusCode::NotModified,
+            _ => StatusCode::InternalServerError,
+        };
+
+        // Per the RFC, status code NotModified should not have a body
+        let body = if status_code != StatusCode::NotModified {
+            let b = serde_json::to_string(&ErrorResponse::new(message))
+                .expect("serialization of ErrorResponse failed.");
+            Some(b)
+        } else {
+            None
+        };
+
+        body.map(|b| {
+            Response::new()
+                .with_status(status_code)
+                .with_header(ContentLength(b.len() as u64))
+                .with_header(ContentType::json())
+                .with_body(b)
+        }).unwrap_or_else(|| Response::new().with_status(status_code))
+    }
 }
 
 fn core_to_details<M>(module: M) -> Box<Future<Item = ModuleDetails, Error = Error>>
@@ -80,9 +114,16 @@ where
 
 #[cfg(test)]
 mod tests {
+    use docker_mri::{Error as DockerError, ErrorKind as DockerErrorKind};
     use edgelet_core::*;
-    use futures::IntoFuture;
+    use futures::{Future, IntoFuture, Stream};
     use futures::future::{self, FutureResult};
+    use hyper::StatusCode;
+    use hyper::server::Response;
+    use management::models::ErrorResponse;
+    use serde_json;
+
+    use IntoResponse;
 
     #[derive(Clone, Debug, Fail)]
     pub enum Error {
@@ -90,7 +131,17 @@ mod tests {
         General,
     }
 
-    #[derive(Debug)]
+    impl IntoResponse for Error {
+        fn into_response(self) -> Response {
+            let body = serde_json::to_string(&ErrorResponse::new(self.to_string()))
+                .expect("serialization of ErrorResponse failed.");
+            Response::new()
+                .with_status(StatusCode::InternalServerError)
+                .with_body(body)
+        }
+    }
+
+    #[derive(Clone, Debug)]
     pub struct NullRegistry;
 
     impl ModuleRegistry for NullRegistry {
@@ -170,6 +221,7 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
     pub struct TestRuntime {
         module: Result<TestModule, Error>,
         registry: NullRegistry,
@@ -192,6 +244,7 @@ mod tests {
         type CreateFuture = FutureResult<(), Self::Error>;
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
+        type RestartFuture = FutureResult<(), Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
 
@@ -216,6 +269,13 @@ mod tests {
             }
         }
 
+        fn restart(&mut self, _id: &str) -> Self::RestartFuture {
+            match self.module {
+                Ok(_) => future::ok(()),
+                Err(ref e) => future::err(e.clone()),
+            }
+        }
+
         fn remove(&mut self, _id: &str) -> Self::RemoveFuture {
             match self.module {
                 Ok(_) => future::ok(()),
@@ -233,5 +293,71 @@ mod tests {
         fn registry_mut(&mut self) -> &mut Self::ModuleRegistry {
             &mut self.registry
         }
+    }
+
+    #[test]
+    fn not_found() {
+        // arrange
+        let error = DockerError::from(DockerErrorKind::NotFound);
+
+        // act
+        let response = error.into_response();
+
+        // assert
+        assert_eq!(StatusCode::NotFound, response.status());
+        response
+            .body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("Container not found", error.message());
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn conflict() {
+        // arrange
+        let error = DockerError::from(DockerErrorKind::Conflict);
+
+        // act
+        let response = error.into_response();
+
+        // assert
+        assert_eq!(StatusCode::Conflict, response.status());
+        response
+            .body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("Conflict with current operation", error.message());
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn internal_server() {
+        // arrange
+        let error = DockerError::from(DockerErrorKind::UrlParse);
+
+        // act
+        let response = error.into_response();
+
+        // assert
+        assert_eq!(StatusCode::InternalServerError, response.status());
+        response
+            .body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("Invalid URL", error.message());
+                Ok(())
+            })
+            .wait()
+            .unwrap();
     }
 }

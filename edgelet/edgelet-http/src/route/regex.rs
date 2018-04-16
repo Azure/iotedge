@@ -20,6 +20,10 @@ impl Parameters {
         }
     }
 
+    pub fn with_captures(captures: Vec<(Option<String>, String)>) -> Parameters {
+        Parameters { captures }
+    }
+
     pub fn name(&self, k: &str) -> Option<&str> {
         for capture in &self.captures {
             if let (Some(ref key), ref val) = *capture {

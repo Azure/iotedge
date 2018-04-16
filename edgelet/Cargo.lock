@@ -382,6 +382,7 @@ name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docker-mri 0.1.0",
  "edgelet-core 0.1.0",
  "edgelet-http 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",

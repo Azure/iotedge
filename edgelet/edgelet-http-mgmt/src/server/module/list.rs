@@ -2,8 +2,9 @@
 
 use failure::ResultExt;
 use futures::{future, Future};
+use hyper::{Error as HyperError, StatusCode};
+use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
-use hyper::Error as HyperError;
 use serde::Serialize;
 use serde_json;
 
@@ -12,7 +13,8 @@ use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use management::models::*;
 
 use error::ErrorKind;
-use super::{core_to_details, from_context};
+use IntoResponse;
+use super::core_to_details;
 
 pub struct ListModules<M>
 where
@@ -48,13 +50,19 @@ where
                             let body = ModuleList::new(details);
                             serde_json::to_string(&body)
                                 .context(ErrorKind::Serde)
-                                .map(|b| Response::new().with_body(b))
-                                .unwrap_or_else(from_context)
+                                .map(|b| {
+                                    Response::new()
+                                        .with_status(StatusCode::Ok)
+                                        .with_header(ContentLength(b.len() as u64))
+                                        .with_header(ContentType::json())
+                                        .with_body(b)
+                                })
+                                .unwrap_or_else(|e| e.into_response())
                         })
-                        .or_else(|e| future::ok(e.into()));
+                        .or_else(|e| future::ok(e.into_response()));
                     future::Either::A(response)
                 }
-                Err(e) => future::Either::B(future::ok(from_context(e))),
+                Err(e) => future::Either::B(future::ok(e.into_response())),
             }
         });
         Box::new(response)

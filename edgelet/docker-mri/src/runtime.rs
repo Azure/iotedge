@@ -31,6 +31,7 @@ lazy_static! {
     };
 }
 
+#[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<DockerConnector>,
     network_id: Option<String>,
@@ -223,6 +224,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
 
@@ -288,6 +290,16 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_stop(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
+                .map_err(Error::from)
+                .map(|_| ()),
+        )
+    }
+
+    fn restart(&mut self, id: &str) -> Self::RestartFuture {
+        Box::new(
+            self.client
+                .container_api()
+                .container_restart(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
                 .map_err(Error::from)
                 .map(|_| ()),
         )
@@ -579,6 +591,42 @@ mod tests {
                 .unwrap();
 
         let task = mri.stop("     ").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn restart_fails_for_empty_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.restart("").then(|result| match result {
+            Ok(_) => panic!("Expected test to fail but it didn't!"),
+            Err(err) => match err.kind() {
+                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                _ => panic!("Expected utils error. Got some other error."),
+            },
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn restart_fails_for_white_space_id() {
+        let mut core = Core::new().unwrap();
+        let mut mri =
+            DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
+                .unwrap();
+
+        let task = mri.restart("     ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => Ok(()) as Result<()>,

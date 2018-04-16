@@ -141,8 +141,8 @@ paths:
           required: true
           type: string
       responses:
-        '200':
-          description: Ok
+        '204':
+          description: No Content
         '404':
           description: Not Found
           schema:
@@ -166,7 +166,9 @@ paths:
           type: string
       responses:
         '204':
-          description: Ok
+          description: No Content
+        '304':
+          description: Not Modified
         '404':
           description: Not Found
           schema:
@@ -190,7 +192,9 @@ paths:
           type: string
       responses:
         '204':
-          description: Ok
+          description: No Content
+        '304':
+          description: Not Modified
         '404':
           description: Not Found
           schema:
@@ -214,7 +218,9 @@ paths:
           type: string
       responses:
         '204':
-          description: Ok
+          description: No Content
+        '304':
+          description: Not Modified
         '404':
           description: Not Found
           schema:

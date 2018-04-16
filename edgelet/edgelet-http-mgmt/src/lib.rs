@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 extern crate chrono;
+extern crate docker_mri;
 extern crate edgelet_core;
 #[macro_use]
 extern crate edgelet_http;
@@ -19,7 +20,19 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use hyper::Response;
+
 mod error;
 mod server;
 
 pub use server::ManagementService;
+
+pub trait IntoResponse {
+    fn into_response(self) -> Response;
+}
+
+impl IntoResponse for Response {
+    fn into_response(self) -> Response {
+        self
+    }
+}

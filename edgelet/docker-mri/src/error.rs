@@ -4,6 +4,7 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
+use hyper::{Error as HyperError, StatusCode};
 use serde_json;
 use url::ParseError;
 
@@ -23,14 +24,22 @@ pub enum ErrorKind {
     InvalidDockerUri(String),
     #[fail(display = "Invalid unix domain socket URI - {}", _0)]
     InvalidUdsUri(String),
-    #[fail(display = "Docker runtime error - {:?}", _0)]
-    Docker(DockerError<serde_json::Value>),
     #[fail(display = "Edgelet utils error")]
     Utils(UtilsError),
     #[fail(display = "Serde error - {}", _0)]
     Serde(serde_json::Error),
+    #[fail(display = "Transport error - {}", _0)]
+    Transport(HyperError),
     #[fail(display = "Invalid URL")]
     UrlParse,
+    #[fail(display = "Container not found")]
+    NotFound,
+    #[fail(display = "Conflict with current operation")]
+    Conflict,
+    #[fail(display = "Container already in this state")]
+    NotModified,
+    #[fail(display = "Docker runtime error - {:?}", _0)]
+    Docker(DockerError<serde_json::Value>),
 }
 
 impl Fail for Error {
@@ -81,9 +90,28 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+impl From<HyperError> for Error {
+    fn from(err: HyperError) -> Error {
+        Error::from(ErrorKind::Transport(err))
+    }
+}
+
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
-        Error::from(ErrorKind::Docker(err))
+        match err {
+            DockerError::Hyper(error) => Error::from(ErrorKind::Transport(error)),
+            DockerError::Serde(error) => Error::from(ErrorKind::Serde(error)),
+            DockerError::ApiError(ref error) if error.code == StatusCode::NotFound => {
+                Error::from(ErrorKind::NotFound)
+            }
+            DockerError::ApiError(ref error) if error.code == StatusCode::Conflict => {
+                Error::from(ErrorKind::Conflict)
+            }
+            DockerError::ApiError(ref error) if error.code == StatusCode::NotModified => {
+                Error::from(ErrorKind::NotModified)
+            }
+            _ => Error::from(ErrorKind::Docker(err)),
+        }
     }
 }
 

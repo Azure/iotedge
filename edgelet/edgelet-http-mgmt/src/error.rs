@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt;
-use std::fmt::Display;
+use std::fmt::{self, Display};
 
 use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
+use hyper::header::{ContentLength, ContentType};
 use hyper::server::Response;
 use management::models::ErrorResponse;
 use serde_json;
+
+use IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -22,6 +24,8 @@ pub enum ErrorKind {
     Serde,
     #[fail(display = "Hyper error")]
     Hyper,
+    #[fail(display = "Bad parameter")]
+    BadParam,
 }
 
 impl Fail for Error {
@@ -82,19 +86,42 @@ impl From<Error> for HyperError {
     }
 }
 
-impl From<Error> for Response {
-    fn from(error: Error) -> Response {
-        let mut fail: &Fail = &error;
-        let mut message = error.to_string();
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        let mut fail: &Fail = &self;
+        let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
             message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
             fail = cause;
         }
 
-        let body = serde_json::to_string(&ErrorResponse::new(message))
-            .expect("serialization of ErrorResponse failed.");
-        Response::new()
-            .with_status(StatusCode::InternalServerError)
-            .with_body(body)
+        let status_code = match *self.kind() {
+            ErrorKind::BadParam => StatusCode::BadRequest,
+            _ => StatusCode::InternalServerError,
+        };
+
+        // Per the RFC, status code NotModified should not have a body
+        let body = if status_code != StatusCode::NotModified {
+            let b = serde_json::to_string(&ErrorResponse::new(message))
+                .expect("serialization of ErrorResponse failed.");
+            Some(b)
+        } else {
+            None
+        };
+
+        body.map(|b| {
+            Response::new()
+                .with_status(status_code)
+                .with_header(ContentLength(b.len() as u64))
+                .with_header(ContentType::json())
+                .with_body(b)
+        }).unwrap_or_else(|| Response::new().with_status(status_code))
+    }
+}
+
+impl IntoResponse for Context<ErrorKind> {
+    fn into_response(self) -> Response {
+        let error: Error = Error::from(self);
+        error.into_response()
     }
 }
