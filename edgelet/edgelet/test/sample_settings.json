@@ -1,0 +1,8 @@
+{
+    "provisioning": {
+      "source": "manual",
+      "manual": {
+        "device_connection_string": "sample"
+      }
+    }
+}
