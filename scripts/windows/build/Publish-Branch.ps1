@@ -128,7 +128,7 @@ Write-Host "`nPublishing .NET Core apps`n"
 foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $CSPROJ_PATTERN -Recurse | Select-String "<OutputType>Exe</OutputType>")) {
     Write-Host "Publishing Solution - $($Project.Filename)"
     $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($Project.Filename -replace @(".csproj", ""))
-    &$DOTNET_PATH publish -f netcoreapp2.0 -c $Configuration -o $ProjectPublishPath $Project.Path |
+    &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $Project.Path |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed publishing $($Project.Filename)."
@@ -164,7 +164,7 @@ if ($PublishTests) {
     foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_CSPROJ_PATTERN -Recurse)) {
         Write-Host "Publishing - $Project"
         $ProjectPublishPath = Join-Path $RELEASE_TESTS_FOLDER "target"
-        &$DOTNET_PATH publish -f netcoreapp2.0 -c $Configuration -o $ProjectPublishPath $Project |
+        &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $Project |
             Write-Host
         if ($LASTEXITCODE -ne 0) {
             throw "Failed publishing $Project."

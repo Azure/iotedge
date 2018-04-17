@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
             var containerOperations = new Mock<IContainerOperations>();
             containerOperations
-                .Setup(co => co.RestartContainerAsync(ModuleName, It.IsAny<ConatinerRestartParameters>(), CancellationToken.None))
+                .Setup(co => co.RestartContainerAsync(ModuleName, It.IsAny<ContainerRestartParameters>(), CancellationToken.None))
                 .Returns(Task.CompletedTask);
 
             var dockerClient = new Mock<IDockerClient>();

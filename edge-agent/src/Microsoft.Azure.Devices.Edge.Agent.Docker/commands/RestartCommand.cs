@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         public string Id => $"RestartCommand({this.module.Name})";
 
-        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.RestartContainerAsync(this.module.Name, new ConatinerRestartParameters(), token);
+        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.RestartContainerAsync(this.module.Name, new ContainerRestartParameters(), token);
 
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 

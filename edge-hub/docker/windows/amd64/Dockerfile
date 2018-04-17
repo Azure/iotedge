@@ -1,4 +1,4 @@
-ARG base_tag=2.0.6-runtime-nanoserver-1709
+ARG base_tag=2.1-runtime-nanoserver-1709
 FROM microsoft/dotnet:${base_tag}
 
 ENV SSL_CERTIFICATE_PATH=c:\\mnt\\edgehub

@@ -1,4 +1,4 @@
-ARG base_tag=2.0.6-runtime
+ARG base_tag=2.1-runtime-stretch-slim
 FROM microsoft/dotnet:${base_tag}
 
 # Add an unprivileged user account for running Edge Hub

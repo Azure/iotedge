@@ -829,7 +829,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             retryStrategy.Setup(rs => rs.GetShouldRetry())
-                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => false);
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => {
+                    delay = TimeSpan.Zero;
+                    return false;
+                });
 
             // Act
             IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object);
@@ -874,7 +877,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             retryStrategy.SetupSequence(rs => rs.GetShouldRetry())
-                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => true);
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => {
+                    delay = TimeSpan.Zero;
+                    return true;
+                });
 
             var twin = new Twin
             {
