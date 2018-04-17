@@ -28,16 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.CreateOrUpdateAsync(next, runtimeInfo, true);
 
         Task<ICommand> CreateOrUpdateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo, bool isUpdate) =>
-            Task.FromResult(module.Module is IModule<T> moduleWithConfig
-                ? CreateOrUpdateCommand.Build(
-                    this.moduleManager,
-                    moduleWithConfig,
-                    module.ModuleIdentity,
-                    this.configSource,
-                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
-                    module.Module.Name.Equals(Constants.EdgeHubModuleName),
-                    isUpdate)
-                : NullCommand.Instance as ICommand);
+            Task.FromResult(CreateOrUpdateCommand.Build(
+                 this.moduleManager,
+                 module.Module,
+                 module.ModuleIdentity,
+                 this.configSource,
+                 this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
+                 module.Module.Name.Equals(Constants.EdgeHubModuleName),
+                 isUpdate) as ICommand);
 
         public Task<ICommand> RemoveAsync(IModule module) => Task.FromResult(new RemoveCommand(this.moduleManager, module) as ICommand);
 

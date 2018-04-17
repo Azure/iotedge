@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             this.isUpdate = isUpdate;
         }
 
-        public static CreateOrUpdateCommand Build<T>(IModuleManager moduleManager, IModule<T> module, IModuleIdentity identity,
+        public static CreateOrUpdateCommand Build(IModuleManager moduleManager, IModule module, IModuleIdentity identity,
             IConfigSource configSource, object settings, bool isEdgeHub, bool isUpdate)
         {
             Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
@@ -44,17 +44,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public string Id => this.id.Value;
 
-        public Task ExecuteAsync(CancellationToken token) => this.isUpdate
+        public Task ExecuteAsync(CancellationToken token) => !this.isUpdate
             ? this.moduleManager.CreateModuleAsync(moduleSpec)
             : this.moduleManager.UpdateModuleAsync(moduleSpec);
 
-        public string Show() => this.isUpdate
+        public string Show() => !this.isUpdate
             ? $"Create module {this.moduleSpec.Name}"
             : $"Update module {this.moduleSpec.Name}";
 
         public Task UndoAsync(CancellationToken token) => TaskEx.Done;
 
-        static ModuleSpec BuildModuleSpec<T>(IModule<T> module, IEnumerable<EnvVar> envVars, object settings)
+        static ModuleSpec BuildModuleSpec(IModule module, IEnumerable<EnvVar> envVars, object settings)
         {
             var moduleSpec = new ModuleSpec
             {
