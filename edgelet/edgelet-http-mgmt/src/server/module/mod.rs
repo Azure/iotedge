@@ -151,14 +151,14 @@ mod tests {
         type RegistryAuthConfig = ();
 
         fn pull(
-            &mut self,
+            &self,
             _name: &str,
             _credentials: Option<&Self::RegistryAuthConfig>,
         ) -> Self::PullFuture {
             future::ok(())
         }
 
-        fn remove(&mut self, _name: &str) -> Self::RemoveFuture {
+        fn remove(&self, _name: &str) -> Self::RemoveFuture {
             future::ok(())
         }
     }
@@ -248,35 +248,35 @@ mod tests {
         type RemoveFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
 
-        fn create(&mut self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+        fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             match self.module {
                 Ok(_) => future::ok(()),
                 Err(ref e) => future::err(e.clone()),
             }
         }
 
-        fn start(&mut self, _id: &str) -> Self::StartFuture {
+        fn start(&self, _id: &str) -> Self::StartFuture {
             match self.module {
                 Ok(_) => future::ok(()),
                 Err(ref e) => future::err(e.clone()),
             }
         }
 
-        fn stop(&mut self, _id: &str) -> Self::StopFuture {
+        fn stop(&self, _id: &str) -> Self::StopFuture {
             match self.module {
                 Ok(_) => future::ok(()),
                 Err(ref e) => future::err(e.clone()),
             }
         }
 
-        fn restart(&mut self, _id: &str) -> Self::RestartFuture {
+        fn restart(&self, _id: &str) -> Self::RestartFuture {
             match self.module {
                 Ok(_) => future::ok(()),
                 Err(ref e) => future::err(e.clone()),
             }
         }
 
-        fn remove(&mut self, _id: &str) -> Self::RemoveFuture {
+        fn remove(&self, _id: &str) -> Self::RemoveFuture {
             match self.module {
                 Ok(_) => future::ok(()),
                 Err(ref e) => future::err(e.clone()),
@@ -290,8 +290,8 @@ mod tests {
             }
         }
 
-        fn registry_mut(&mut self) -> &mut Self::ModuleRegistry {
-            &mut self.registry
+        fn registry(&self) -> &Self::ModuleRegistry {
+            &self.registry
         }
     }
 

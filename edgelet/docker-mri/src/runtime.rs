@@ -187,11 +187,7 @@ impl ModuleRegistry for DockerModuleRuntime {
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RegistryAuthConfig = DockerRegistryAuthConfig;
 
-    fn pull(
-        &mut self,
-        name: &str,
-        credentials: Option<&Self::RegistryAuthConfig>,
-    ) -> Self::PullFuture {
+    fn pull(&self, name: &str, credentials: Option<&Self::RegistryAuthConfig>) -> Self::PullFuture {
         let result = serialize_registry_creds(credentials).and_then(|registry_creds| {
             Ok(self.client
                 .image_api()
@@ -205,7 +201,7 @@ impl ModuleRegistry for DockerModuleRuntime {
         }
     }
 
-    fn remove(&mut self, name: &str) -> Self::RemoveFuture {
+    fn remove(&self, name: &str) -> Self::RemoveFuture {
         Box::new(
             self.client
                 .image_api()
@@ -228,7 +224,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
 
-    fn create(&mut self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         // we only want "docker" modules
         fensure!(module.type_(), module.type_() == DOCKER_MODULE_TYPE);
 
@@ -275,7 +271,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
     }
 
-    fn start(&mut self, id: &str) -> Self::StartFuture {
+    fn start(&self, id: &str) -> Self::StartFuture {
         Box::new(
             self.client
                 .container_api()
@@ -285,7 +281,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn stop(&mut self, id: &str) -> Self::StopFuture {
+    fn stop(&self, id: &str) -> Self::StopFuture {
         Box::new(
             self.client
                 .container_api()
@@ -295,7 +291,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn restart(&mut self, id: &str) -> Self::RestartFuture {
+    fn restart(&self, id: &str) -> Self::RestartFuture {
         Box::new(
             self.client
                 .container_api()
@@ -305,7 +301,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn remove(&mut self, id: &str) -> Self::RemoveFuture {
+    fn remove(&self, id: &str) -> Self::RemoveFuture {
         Box::new(
             self.client
                 .container_api()
@@ -360,7 +356,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
     }
 
-    fn registry_mut(&mut self) -> &mut Self::ModuleRegistry {
+    fn registry(&self) -> &Self::ModuleRegistry {
         self
     }
 }
@@ -507,7 +503,7 @@ mod tests {
     #[test]
     fn create_fails_for_non_docker_type() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -532,7 +528,7 @@ mod tests {
     #[test]
     fn start_fails_for_empty_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -550,7 +546,7 @@ mod tests {
     #[test]
     fn start_fails_for_white_space_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -568,7 +564,7 @@ mod tests {
     #[test]
     fn stop_fails_for_empty_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -586,7 +582,7 @@ mod tests {
     #[test]
     fn stop_fails_for_white_space_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -604,7 +600,7 @@ mod tests {
     #[test]
     fn restart_fails_for_empty_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -622,7 +618,7 @@ mod tests {
     #[test]
     fn restart_fails_for_white_space_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
@@ -640,11 +636,11 @@ mod tests {
     #[test]
     fn remove_fails_for_empty_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
-        let task = ModuleRuntime::remove(&mut mri, "").then(|result| match result {
+        let task = ModuleRuntime::remove(&mri, "").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => Ok(()) as Result<()>,
@@ -658,11 +654,11 @@ mod tests {
     #[test]
     fn remove_fails_for_white_space_id() {
         let mut core = Core::new().unwrap();
-        let mut mri =
+        let mri =
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
-        let task = ModuleRuntime::remove(&mut mri, "    ").then(|result| match result {
+        let task = ModuleRuntime::remove(&mri, "    ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils(_) => Ok(()) as Result<()>,

@@ -183,12 +183,8 @@ pub trait ModuleRegistry {
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type RegistryAuthConfig;
 
-    fn pull(
-        &mut self,
-        name: &str,
-        credentials: Option<&Self::RegistryAuthConfig>,
-    ) -> Self::PullFuture;
-    fn remove(&mut self, name: &str) -> Self::RemoveFuture;
+    fn pull(&self, name: &str, credentials: Option<&Self::RegistryAuthConfig>) -> Self::PullFuture;
+    fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
 pub trait ModuleRuntime {
@@ -203,13 +199,13 @@ pub trait ModuleRuntime {
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
 
-    fn create(&mut self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
-    fn start(&mut self, id: &str) -> Self::StartFuture;
-    fn stop(&mut self, id: &str) -> Self::StopFuture;
-    fn restart(&mut self, id: &str) -> Self::RestartFuture;
-    fn remove(&mut self, id: &str) -> Self::RemoveFuture;
+    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
+    fn start(&self, id: &str) -> Self::StartFuture;
+    fn stop(&self, id: &str) -> Self::StopFuture;
+    fn restart(&self, id: &str) -> Self::RestartFuture;
+    fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn list(&self) -> Self::ListFuture;
-    fn registry_mut(&mut self) -> &mut Self::ModuleRegistry;
+    fn registry(&self) -> &Self::ModuleRegistry;
 }
 
 #[cfg(test)]

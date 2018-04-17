@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::RefCell;
-
 use edgelet_core::ModuleRuntime;
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use futures::{future, Future};
@@ -16,7 +14,7 @@ where
     M: 'static + ModuleRuntime,
     <M as ModuleRuntime>::Error: IntoResponse,
 {
-    runtime: RefCell<M>,
+    runtime: M,
 }
 
 impl<M> DeleteModule<M>
@@ -25,9 +23,7 @@ where
     <M as ModuleRuntime>::Error: IntoResponse,
 {
     pub fn new(runtime: M) -> Self {
-        DeleteModule {
-            runtime: RefCell::new(runtime),
-        }
+        DeleteModule { runtime }
     }
 }
 
@@ -42,7 +38,6 @@ where
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
                 let result = self.runtime
-                    .borrow_mut()
                     .remove(name)
                     .map(|_| Response::new().with_status(StatusCode::NoContent))
                     .or_else(|e| future::ok(e.into_response()));

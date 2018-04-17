@@ -85,7 +85,7 @@ fn image_pull_succeeds() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let mut mri = DockerModuleRuntime::new(
+    let mri = DockerModuleRuntime::new(
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap();
@@ -153,7 +153,7 @@ fn image_pull_with_creds_succeeds() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let mut mri = DockerModuleRuntime::new(
+    let mri = DockerModuleRuntime::new(
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap();
@@ -323,7 +323,7 @@ fn container_create_succeeds() {
     ).unwrap();
 
     let mut core = Core::new().unwrap();
-    let mut mri = DockerModuleRuntime::new(
+    let mri = DockerModuleRuntime::new(
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap()
@@ -353,7 +353,7 @@ fn container_start_succeeds() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let mut mri = DockerModuleRuntime::new(
+    let mri = DockerModuleRuntime::new(
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap();
@@ -382,7 +382,7 @@ fn container_stop_succeeds() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let mut mri = DockerModuleRuntime::new(
+    let mri = DockerModuleRuntime::new(
         &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
         &core.handle(),
     ).unwrap();
