@@ -254,7 +254,7 @@ namespace IotEdgeQuickstart
                 DateTime.Now);
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
