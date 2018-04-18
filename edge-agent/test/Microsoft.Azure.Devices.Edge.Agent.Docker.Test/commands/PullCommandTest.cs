@@ -74,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             Assert.Equal(tag, testTag);
         }
 
+        [Fact]
         [Integration]
         public async Task ImageNotFoundTest()
         {
