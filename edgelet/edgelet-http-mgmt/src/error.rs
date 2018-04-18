@@ -26,6 +26,8 @@ pub enum ErrorKind {
     Hyper,
     #[fail(display = "Bad parameter")]
     BadParam,
+    #[fail(display = "Invalid or missing API version")]
+    InvalidApiVersion,
 }
 
 impl Fail for Error {
@@ -96,7 +98,7 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::BadParam => StatusCode::BadRequest,
+            ErrorKind::BadParam | ErrorKind::InvalidApiVersion => StatusCode::BadRequest,
             _ => StatusCode::InternalServerError,
         };
 

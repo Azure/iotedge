@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(warnings)]
+
 #[cfg(test)]
 extern crate chrono;
 extern crate docker_mri;
@@ -19,13 +21,14 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate url;
 
 use hyper::Response;
 
 mod error;
 mod server;
 
-pub use server::ManagementService;
+pub use server::{ApiVersionService, ManagementService, API_VERSION};
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;

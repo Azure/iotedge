@@ -25,7 +25,7 @@ use error::Error;
 
 use settings::Settings;
 use docker_mri::DockerModuleRuntime;
-use edgelet_http_mgmt::ManagementService;
+use edgelet_http_mgmt::{ApiVersionService, ManagementService};
 use futures::{future, Future, Stream};
 use hyper::server::Http;
 use tokio_core::reactor::Core;
@@ -71,7 +71,7 @@ fn main_runner() -> Result<(), Error> {
 
     let docker = Url::parse("unix:///var/run/docker.sock").unwrap();
     let mgmt = DockerModuleRuntime::new(&docker, &core.handle()).unwrap();
-    let service = ManagementService::new(mgmt).unwrap();
+    let service = ApiVersionService::new(ManagementService::new(&mgmt).unwrap());
 
     let server_handle = core.handle();
     let serve = Http::new()
