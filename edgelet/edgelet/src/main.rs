@@ -5,7 +5,9 @@
 extern crate clap;
 extern crate config;
 extern crate docker_mri;
+extern crate edgelet_core;
 extern crate edgelet_http_mgmt;
+extern crate edgelet_http_workload;
 #[macro_use]
 extern crate failure;
 extern crate futures;
@@ -25,10 +27,12 @@ use error::Error;
 
 use settings::Settings;
 use docker_mri::DockerModuleRuntime;
+use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 use edgelet_http_mgmt::{ApiVersionService, ManagementService};
+use edgelet_http_workload::WorkloadService;
 use futures::{future, Future, Stream};
 use hyper::server::Http;
-use tokio_core::reactor::Core;
+use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
 fn main() {
@@ -66,19 +70,28 @@ fn main_runner() -> Result<(), Error> {
 
     let _settings = Settings::new(config_file)?;
 
-    let addr = "0.0.0.0:8080".parse().unwrap();
     let mut core = Core::new().unwrap();
+    start_management("0.0.0.0:8080", &core.handle());
+    start_workload("0.0.0.0:8081", &core.handle());
+    core.run(future::empty::<(), ()>()).unwrap();
+    Ok(())
+}
+
+fn start_management(addr: &str, handle: &Handle) {
+    let uri = addr.parse().unwrap();
+    let client_handle = handle.clone();
+    let server_handle = handle.clone();
 
     let docker = Url::parse("unix:///var/run/docker.sock").unwrap();
-    let mgmt = DockerModuleRuntime::new(&docker, &core.handle()).unwrap();
+    let mgmt = DockerModuleRuntime::new(&docker, &client_handle).unwrap();
     let service = ApiVersionService::new(ManagementService::new(&mgmt).unwrap());
 
-    let server_handle = core.handle();
     let serve = Http::new()
-        .serve_addr_handle(&addr, &server_handle, service)
+        .serve_addr_handle(&uri, &server_handle, service)
         .unwrap();
+
     println!(
-        "Listening on http://{} with 1 thread.",
+        "Listening on http://{} with 1 thread for management API.",
         serve.incoming_ref().local_addr()
     );
 
@@ -94,6 +107,34 @@ fn main_runner() -> Result<(), Error> {
             })
             .map_err(|_| ()),
     );
-    core.run(future::empty::<(), ()>()).unwrap();
-    Ok(())
+}
+
+fn start_workload(addr: &str, handle: &Handle) {
+    let uri = addr.parse().unwrap();
+    let server_handle = handle.clone();
+    let mut key_store = MemoryKeyStore::new();
+    key_store.insert("themodule", "primary", MemoryKey::new("key"));
+    let service = WorkloadService::new(key_store).unwrap();
+
+    let serve = Http::new()
+        .serve_addr_handle(&uri, &server_handle, service)
+        .unwrap();
+
+    println!(
+        "Listening on http://{} with 1 thread for workload API.",
+        serve.incoming_ref().local_addr()
+    );
+
+    let h2 = server_handle.clone();
+    server_handle.spawn(
+        serve
+            .for_each(move |conn| {
+                h2.spawn(
+                    conn.map(|_| ())
+                        .map_err(|err| println!("serve error: {:?}", err)),
+                );
+                Ok(())
+            })
+            .map_err(|_| ()),
+    );
 }

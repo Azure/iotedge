@@ -95,7 +95,7 @@ where
         HubIdentityManager { key_store, client }
     }
 
-    fn get_key_pair(&self, id: &IdentitySpec) -> Result<(&K::Key, &K::Key)> {
+    fn get_key_pair(&self, id: &IdentitySpec) -> Result<(K::Key, K::Key)> {
         self.key_store
             .get(id.module_id(), KEY_PRIMARY)
             .and_then(|primary_key| {
@@ -172,7 +172,7 @@ mod tests {
     use tokio_core::reactor::Core;
     use url::Url;
 
-    use edgelet_core::crypto::{InMemoryKey, MemoryKeyStore};
+    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
     use iothubservice::Client;
 
     #[test]
@@ -186,8 +186,8 @@ mod tests {
     #[test]
     fn get_key_pair_succeeds() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, InMemoryKey::new("pkey"));
-        key_store.insert("m1", KEY_SECONDARY, InMemoryKey::new("skey"));
+        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
+        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -224,7 +224,7 @@ mod tests {
     #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_pkey() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_SECONDARY, InMemoryKey::new("skey"));
+        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -242,7 +242,7 @@ mod tests {
     #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_skey() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, InMemoryKey::new("pkey"));
+        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -259,8 +259,8 @@ mod tests {
     #[test]
     fn create_succeeds() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, InMemoryKey::new("pkey"));
-        key_store.insert("m1", KEY_SECONDARY, InMemoryKey::new("skey"));
+        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
+        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -272,8 +272,8 @@ mod tests {
                     .with_type(AuthType::Sas)
                     .with_symmetric_key(
                         SymmetricKey::default()
-                            .with_primary_key(base64::encode(InMemoryKey::new("pkey").as_ref()))
-                            .with_secondary_key(base64::encode(InMemoryKey::new("skey").as_ref())),
+                            .with_primary_key(base64::encode(MemoryKey::new("pkey").as_ref()))
+                            .with_secondary_key(base64::encode(MemoryKey::new("skey").as_ref())),
                     ),
             );
         let expected_module_result = expected_module
@@ -323,10 +323,10 @@ mod tests {
         let m2skey = "m2skey";
 
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, InMemoryKey::new(m1pkey));
-        key_store.insert("m1", KEY_SECONDARY, InMemoryKey::new(m1skey));
-        key_store.insert("m2", KEY_PRIMARY, InMemoryKey::new(m2pkey));
-        key_store.insert("m2", KEY_SECONDARY, InMemoryKey::new(m2skey));
+        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new(m1pkey));
+        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new(m1skey));
+        key_store.insert("m2", KEY_PRIMARY, MemoryKey::new(m2pkey));
+        key_store.insert("m2", KEY_SECONDARY, MemoryKey::new(m2skey));
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -339,9 +339,9 @@ mod tests {
                         .with_type(AuthType::Sas)
                         .with_symmetric_key(
                             SymmetricKey::default()
-                                .with_primary_key(base64::encode(InMemoryKey::new(m1pkey).as_ref()))
+                                .with_primary_key(base64::encode(MemoryKey::new(m1pkey).as_ref()))
                                 .with_secondary_key(base64::encode(
-                                    InMemoryKey::new(m1skey).as_ref(),
+                                    MemoryKey::new(m1skey).as_ref(),
                                 )),
                         ),
                 ),
@@ -353,9 +353,9 @@ mod tests {
                         .with_type(AuthType::Sas)
                         .with_symmetric_key(
                             SymmetricKey::default()
-                                .with_primary_key(base64::encode(InMemoryKey::new(m2pkey).as_ref()))
+                                .with_primary_key(base64::encode(MemoryKey::new(m2pkey).as_ref()))
                                 .with_secondary_key(base64::encode(
-                                    InMemoryKey::new(m2skey).as_ref(),
+                                    MemoryKey::new(m2skey).as_ref(),
                                 )),
                         ),
                 ),

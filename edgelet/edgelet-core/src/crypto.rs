@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::convert::AsRef;
+use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
 use consistenttime::ct_u8_slice_eq;
@@ -44,20 +45,20 @@ impl Signature {
     }
 }
 
-#[derive(Debug)]
-pub struct InMemoryKey {
+#[derive(Clone, Debug)]
+pub struct MemoryKey {
     key: Bytes,
 }
 
-impl InMemoryKey {
-    pub fn new(key: &str) -> InMemoryKey {
-        InMemoryKey {
-            key: Bytes::from(key),
+impl MemoryKey {
+    pub fn new<B: AsRef<[u8]>>(key: B) -> MemoryKey {
+        MemoryKey {
+            key: Bytes::from(key.as_ref()),
         }
     }
 }
 
-impl Sign for InMemoryKey {
+impl Sign for MemoryKey {
     fn sign(
         &self,
         signature_algorithm: SignatureAlgorithm,
@@ -85,7 +86,7 @@ impl Sign for InMemoryKey {
     }
 }
 
-impl AsRef<[u8]> for InMemoryKey {
+impl AsRef<[u8]> for MemoryKey {
     fn as_ref(&self) -> &[u8] {
         &self.key
     }
@@ -94,18 +95,18 @@ impl AsRef<[u8]> for InMemoryKey {
 pub trait KeyStore {
     type Key: Sign;
 
-    fn get(&self, identity: &str, key_name: &str) -> Option<&Self::Key>;
+    fn get(&self, identity: &str, key_name: &str) -> Option<Self::Key>;
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MemoryKeyStore {
-    keys: HashMap<String, InMemoryKey>,
+    keys: Arc<RwLock<HashMap<String, MemoryKey>>>,
 }
 
 impl MemoryKeyStore {
     pub fn new() -> MemoryKeyStore {
         MemoryKeyStore {
-            keys: HashMap::new(),
+            keys: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -118,18 +119,38 @@ impl MemoryKeyStore {
         &mut self,
         identity: &str,
         key_name: &str,
-        key_value: InMemoryKey,
-    ) -> Option<InMemoryKey> {
+        key_value: MemoryKey,
+    ) -> Option<MemoryKey> {
         self.keys
+            .write()
+            .expect("Failed to acquire a write lock")
             .insert(format!("{}{}", identity, key_name), key_value)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.keys
+            .read()
+            .expect("Failed to acquire a read lock")
+            .is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.keys
+            .read()
+            .expect("Failed to acquire a read lock")
+            .len()
     }
 }
 
 impl KeyStore for MemoryKeyStore {
-    type Key = InMemoryKey;
+    type Key = MemoryKey;
 
-    fn get(&self, identity: &str, key_name: &str) -> Option<&Self::Key> {
-        self.keys.get(&format!("{}{}", identity, key_name))
+    fn get(&self, identity: &str, key_name: &str) -> Option<Self::Key> {
+        self.keys
+            .read()
+            .expect("Failed to acquire a read lock")
+            .get(&format!("{}{}", identity, key_name))
+            .cloned()
     }
 }
 
@@ -141,7 +162,7 @@ mod tests {
     #[test]
     fn sha256_sign_test_positive() {
         //Arrange
-        let in_memory_key = InMemoryKey {
+        let in_memory_key = MemoryKey {
             key: Bytes::from("key"),
         };
         let data = b"The quick brown fox jumps over the lazy dog";
@@ -164,7 +185,7 @@ mod tests {
     #[test]
     fn sha256_sign_test_data_not_matching_shall_fail() {
         //Arrange
-        let in_memory_key = InMemoryKey {
+        let in_memory_key = MemoryKey {
             key: Bytes::from("key"),
         };
         let data = b"The quick brown fox jumps over the lazy do";
@@ -187,7 +208,7 @@ mod tests {
     #[test]
     fn sha256_sign_test_key_not_mathing_shall_fail() {
         //Arrange
-        let in_memory_key = InMemoryKey {
+        let in_memory_key = MemoryKey {
             key: Bytes::from("wrongkey"),
         };
         let data = b"The quick brown fox jumps over the lazy dog";
@@ -213,14 +234,14 @@ mod tests {
         let memory_key_store = MemoryKeyStore::new();
 
         //Assert
-        assert_eq!(true, memory_key_store.keys.is_empty());
+        assert_eq!(true, memory_key_store.is_empty());
     }
 
     #[test]
     fn create_memory_keystore_1key() {
         //Arrange
         let mut memory_key_store = MemoryKeyStore::new();
-        let in_memory_key = InMemoryKey {
+        let in_memory_key = MemoryKey {
             key: Bytes::from("anykey"),
         };
 
@@ -228,7 +249,7 @@ mod tests {
         memory_key_store.insert("mod1", "key1", in_memory_key);
 
         //Assert
-        assert_eq!(false, memory_key_store.keys.is_empty());
+        assert_eq!(false, memory_key_store.is_empty());
         assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
         assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
     }
@@ -237,11 +258,11 @@ mod tests {
     fn create_memory_keystore_2keys() {
         //Arrange
         let mut memory_key_store = MemoryKeyStore::new();
-        let in_memory_key = InMemoryKey {
+        let in_memory_key = MemoryKey {
             key: Bytes::from("anykey"),
         };
 
-        let in_memory_key2 = InMemoryKey {
+        let in_memory_key2 = MemoryKey {
             key: Bytes::from("anykey"),
         };
 
@@ -250,10 +271,10 @@ mod tests {
         memory_key_store.insert("mod2", "key2", in_memory_key2);
 
         //Assert
-        assert_eq!(false, memory_key_store.keys.is_empty());
+        assert_eq!(false, memory_key_store.is_empty());
         assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
         assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
         assert_eq!(true, memory_key_store.get("mod2", "key2").is_some());
-        assert_eq!(2, memory_key_store.keys.len());
+        assert_eq!(2, memory_key_store.len());
     }
 }

@@ -27,6 +27,7 @@ use std::rc::Rc;
 
 use futures::{future, future::FutureResult};
 
+pub use crypto::KeyStore;
 pub use error::{Error, ErrorKind};
 pub use identity::{Identity, IdentityManager, IdentitySpec};
 pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
