@@ -2,6 +2,8 @@
 
 #![deny(warnings)]
 
+#[cfg(test)]
+extern crate base64;
 extern crate bytes;
 extern crate chrono;
 extern crate consistenttime;

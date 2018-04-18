@@ -13,7 +13,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Invalid argument - [{}]", _0)]
     Argument(String),
@@ -28,7 +28,7 @@ pub enum ErrorKind {
     ArgumentEmpty(String),
 
     #[fail(display = "Serde error")]
-    Serde(serde_json::Error),
+    Serde,
 }
 
 impl Fail for Error {
@@ -68,7 +68,9 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::from(ErrorKind::Serde(err))
+    fn from(error: serde_json::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Serde),
+        }
     }
 }

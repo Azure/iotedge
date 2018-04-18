@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
 use consistenttime::ct_u8_slice_eq;
+use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
@@ -17,6 +18,12 @@ pub trait Sign {
         signature_algorithm: SignatureAlgorithm,
         data: &[u8],
     ) -> Result<Signature, Error>;
+}
+
+pub trait KeyStore {
+    type Key: Sign;
+
+    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error>;
 }
 
 pub enum SignatureAlgorithm {
@@ -92,12 +99,6 @@ impl AsRef<[u8]> for MemoryKey {
     }
 }
 
-pub trait KeyStore {
-    type Key: Sign;
-
-    fn get(&self, identity: &str, key_name: &str) -> Option<Self::Key>;
-}
-
 #[derive(Clone, Default)]
 pub struct MemoryKeyStore {
     keys: Arc<RwLock<HashMap<String, MemoryKey>>>,
@@ -145,18 +146,48 @@ impl MemoryKeyStore {
 impl KeyStore for MemoryKeyStore {
     type Key = MemoryKey;
 
-    fn get(&self, identity: &str, key_name: &str) -> Option<Self::Key> {
+    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error> {
         self.keys
             .read()
             .expect("Failed to acquire a read lock")
             .get(&format!("{}{}", identity, key_name))
             .cloned()
+            .ok_or_else(|| Error::from(ErrorKind::NotFound))
+    }
+}
+
+#[derive(Clone)]
+pub struct DerivedKeyStore<K> {
+    root: Arc<K>,
+}
+
+impl<K> DerivedKeyStore<K> {
+    pub fn new(root: K) -> Self {
+        DerivedKeyStore {
+            root: Arc::new(root),
+        }
+    }
+}
+
+impl<K: Sign> KeyStore for DerivedKeyStore<K> {
+    type Key = MemoryKey;
+
+    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error> {
+        self.root
+            .sign(
+                SignatureAlgorithm::HMACSHA256,
+                format!("{}{}", identity, key_name).as_bytes(),
+            )
+            .map(|d| MemoryKey::new(d.as_bytes()))
+            .context(ErrorKind::KeyStore)
+            .map_err(Error::from)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64;
     use bytes::Bytes;
 
     #[test]
@@ -250,8 +281,8 @@ mod tests {
 
         //Assert
         assert_eq!(false, memory_key_store.is_empty());
-        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
-        assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
+        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_ok());
+        assert_eq!(true, memory_key_store.get("mod1", "key1").is_ok());
     }
 
     #[test]
@@ -272,9 +303,23 @@ mod tests {
 
         //Assert
         assert_eq!(false, memory_key_store.is_empty());
-        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_some());
-        assert_eq!(true, memory_key_store.get("mod1", "key1").is_some());
-        assert_eq!(true, memory_key_store.get("mod2", "key2").is_some());
+        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_ok());
+        assert_eq!(true, memory_key_store.get("mod1", "key1").is_ok());
+        assert_eq!(true, memory_key_store.get("mod2", "key2").is_ok());
         assert_eq!(2, memory_key_store.len());
+    }
+
+    #[test]
+    fn derived_key_store() {
+        let key_store = DerivedKeyStore::new(MemoryKey::new("key"));
+        let key = key_store.get("key2", "primary").unwrap();
+        let digest = key.sign(
+            SignatureAlgorithm::HMACSHA256,
+            b"The quick brown fox jumps over the lazy dog",
+        ).unwrap();
+        assert_eq!(
+            "wBXO109hMjTfjUtQGtTmeqiqoqboLl8F5b7tR0of5yE=",
+            base64::encode(digest.as_bytes())
+        );
     }
 }

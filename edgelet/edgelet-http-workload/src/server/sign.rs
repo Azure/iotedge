@@ -39,7 +39,8 @@ pub fn sign<K: KeyStore>(
 ) -> Result<SignResponse, Error> {
     key_store
         .get(&id, request.key_id())
-        .ok_or_else(|| Error::from(ErrorKind::NotFound))
+        .context(ErrorKind::NotFound)
+        .map_err(Error::from)
         .and_then(|k| {
             let data: Vec<u8> = base64::decode(request.data())?;
             let signature = k.sign(SignatureAlgorithm::HMACSHA256, &data)?;
@@ -89,7 +90,7 @@ where
 mod tests {
     use std::str::FromStr;
 
-    use edgelet_core::KeyStore;
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
     use edgelet_core::crypto::MemoryKey;
     use edgelet_http::route::Parameters;
     use hyper::{Method, StatusCode, Uri};
@@ -100,11 +101,11 @@ mod tests {
 
     #[derive(Clone, Debug)]
     struct TestKeyStore {
-        key: Option<MemoryKey>,
+        key: MemoryKey,
     }
 
     impl TestKeyStore {
-        pub fn new(key: Option<MemoryKey>) -> Self {
+        pub fn new(key: MemoryKey) -> Self {
             TestKeyStore { key }
         }
     }
@@ -112,8 +113,25 @@ mod tests {
     impl KeyStore for TestKeyStore {
         type Key = MemoryKey;
 
-        fn get(&self, _identity: &str, _key_name: &str) -> Option<Self::Key> {
-            self.key.clone()
+        fn get(&self, _identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
+            Ok(self.key.clone())
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    struct NullKeyStore;
+
+    impl NullKeyStore {
+        pub fn new() -> Self {
+            NullKeyStore
+        }
+    }
+
+    impl KeyStore for NullKeyStore {
+        type Key = MemoryKey;
+
+        fn get(&self, _identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
+            Err(CoreError::from(CoreErrorKind::NotFound))
         }
     }
 
@@ -121,7 +139,7 @@ mod tests {
     fn success() {
         // arrange
         let key = MemoryKey::new("key");
-        let store = TestKeyStore::new(Some(key));
+        let store = TestKeyStore::new(key);
         let handler = SignHandler::new(store);
 
         let sign_request = SignRequest::new(
@@ -160,8 +178,7 @@ mod tests {
     #[test]
     fn not_found() {
         // arrange
-        let key = MemoryKey::new("key");
-        let store = TestKeyStore::new(None);
+        let store = NullKeyStore::new();
         let handler = SignHandler::new(store);
 
         let sign_request = SignRequest::new(
@@ -189,7 +206,10 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Module not found", error_response.message());
+                assert_eq!(
+                    "Module not found\n\tcaused by: Item not found.",
+                    error_response.message()
+                );
                 Ok(())
             })
             .wait()
@@ -200,7 +220,7 @@ mod tests {
     fn sign_bad_params() {
         // arrange
         let key = MemoryKey::new("key");
-        let store = TestKeyStore::new(Some(key));
+        let store = TestKeyStore::new(key);
         let handler = SignHandler::new(store);
 
         let sign_request = SignRequest::new(
@@ -227,7 +247,7 @@ mod tests {
     fn bad_data_base64() {
         // arrange
         let key = MemoryKey::new("key");
-        let store = TestKeyStore::new(Some(key));
+        let store = TestKeyStore::new(key);
         let handler = SignHandler::new(store);
 
         let sign_request = SignRequest::new(
@@ -268,7 +288,7 @@ mod tests {
     fn bad_body() {
         // arrange
         let key = MemoryKey::new("key");
-        let store = TestKeyStore::new(Some(key));
+        let store = TestKeyStore::new(key);
         let handler = SignHandler::new(store);
 
         let body = "invalid";

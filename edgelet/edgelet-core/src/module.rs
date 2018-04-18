@@ -252,7 +252,7 @@ mod tests {
         match ModuleSpec::new("", "docker", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => (),
+                &ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -263,7 +263,7 @@ mod tests {
         match ModuleSpec::new("    ", "docker", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => (),
+                &ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -274,7 +274,7 @@ mod tests {
         match ModuleSpec::new("m1", "", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => (),
+                &ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
@@ -285,7 +285,7 @@ mod tests {
         match ModuleSpec::new("m1", "     ", 10i32, HashMap::new()) {
             Ok(_) => panic!("Expected error"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => (),
+                &ErrorKind::Utils => (),
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }

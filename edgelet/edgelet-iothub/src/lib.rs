@@ -24,6 +24,7 @@ mod error;
 
 use std::convert::AsRef;
 
+use failure::ResultExt;
 use futures::Future;
 use futures::future;
 use hyper::{Error as HyperError, Request, Response};
@@ -103,7 +104,8 @@ where
                     .get(id.module_id(), KEY_SECONDARY)
                     .map(|secondary_key| (primary_key, secondary_key))
             })
-            .ok_or_else(|| Error::from(ErrorKind::CannotGetKey(id.module_id().to_string())))
+            .context(ErrorKind::CannotGetKey(id.module_id().to_string()))
+            .map_err(Error::from)
     }
 }
 

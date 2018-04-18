@@ -22,8 +22,12 @@ pub enum ErrorKind {
     ModuleRuntime,
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     Sign(usize),
+    #[fail(display = "A error occurred retrieving a key from the key store.")]
+    KeyStore,
+    #[fail(display = "Item not found.")]
+    NotFound,
     #[fail(display = "Edgelet utils error")]
-    Utils(UtilsError),
+    Utils,
 }
 
 impl Fail for Error {
@@ -67,7 +71,9 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
-        Error::from(ErrorKind::Utils(err))
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
     }
 }

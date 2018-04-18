@@ -27,7 +27,7 @@ use error::Error;
 
 use settings::Settings;
 use docker_mri::DockerModuleRuntime;
-use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
+use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_http_mgmt::{ApiVersionService, ManagementService};
 use edgelet_http_workload::WorkloadService;
 use futures::{future, Future, Stream};
@@ -70,9 +70,12 @@ fn main_runner() -> Result<(), Error> {
 
     let _settings = Settings::new(config_file)?;
 
+    let root_key = MemoryKey::new("key");
+    let key_store = DerivedKeyStore::new(root_key);
+
     let mut core = Core::new().unwrap();
     start_management("0.0.0.0:8080", &core.handle());
-    start_workload("0.0.0.0:8081", &core.handle());
+    start_workload("0.0.0.0:8081", key_store, &core.handle());
     core.run(future::empty::<(), ()>()).unwrap();
     Ok(())
 }
@@ -109,11 +112,12 @@ fn start_management(addr: &str, handle: &Handle) {
     );
 }
 
-fn start_workload(addr: &str, handle: &Handle) {
+fn start_workload<K>(addr: &str, key_store: K, handle: &Handle)
+where
+    K: 'static + KeyStore + Clone,
+{
     let uri = addr.parse().unwrap();
     let server_handle = handle.clone();
-    let mut key_store = MemoryKeyStore::new();
-    key_store.insert("themodule", "primary", MemoryKey::new("key"));
     let service = WorkloadService::new(key_store).unwrap();
 
     let serve = Http::new()
