@@ -6,6 +6,7 @@ extern crate clap;
 extern crate config;
 extern crate edgelet_core;
 extern crate edgelet_docker;
+extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 #[macro_use]
@@ -28,7 +29,8 @@ use error::Error;
 use settings::Settings;
 use edgelet_docker::DockerModuleRuntime;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
-use edgelet_http_mgmt::{ApiVersionService, ManagementService};
+use edgelet_http::ApiVersionService;
+use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use futures::{future, Future, Stream};
 use hyper::server::Http;
@@ -118,7 +120,7 @@ where
 {
     let uri = addr.parse().unwrap();
     let server_handle = handle.clone();
-    let service = WorkloadService::new(key_store).unwrap();
+    let service = ApiVersionService::new(WorkloadService::new(key_store).unwrap());
 
     let serve = Http::new()
         .serve_addr_handle(&uri, &server_handle, service)

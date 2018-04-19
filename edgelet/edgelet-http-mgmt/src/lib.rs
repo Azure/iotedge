@@ -21,14 +21,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate url;
 
 use hyper::Response;
 
 mod error;
 mod server;
 
-pub use server::{ApiVersionService, ManagementService, API_VERSION};
+pub use server::ManagementService;
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;

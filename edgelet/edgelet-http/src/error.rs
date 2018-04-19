@@ -6,8 +6,6 @@ use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::Response;
-use management::models::ErrorResponse;
-use serde_json;
 
 use IntoResponse;
 
@@ -18,14 +16,10 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Module runtime error")]
-    ModuleRuntime,
-    #[fail(display = "Serde error")]
-    Serde,
     #[fail(display = "Hyper error")]
     Hyper,
-    #[fail(display = "Bad parameter")]
-    BadParam,
+    #[fail(display = "Invalid or missing API version")]
+    InvalidApiVersion,
 }
 
 impl Fail for Error {
@@ -64,14 +58,6 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
 impl From<HyperError> for Error {
     fn from(error: HyperError) -> Error {
         Error {
@@ -96,12 +82,13 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::BadParam => StatusCode::BadRequest,
+            ErrorKind::InvalidApiVersion => StatusCode::BadRequest,
             _ => StatusCode::InternalServerError,
         };
 
-        let body = serde_json::to_string(&ErrorResponse::new(message))
-            .expect("serialization of ErrorResponse failed.");
+        let body = json!({
+            "message": message,
+        }).to_string();
 
         Response::new()
             .with_status(status_code)
