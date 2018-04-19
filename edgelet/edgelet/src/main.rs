@@ -4,11 +4,6 @@
 
 extern crate clap;
 extern crate config;
-extern crate edgelet_core;
-extern crate edgelet_docker;
-extern crate edgelet_http;
-extern crate edgelet_http_mgmt;
-extern crate edgelet_http_workload;
 #[macro_use]
 extern crate failure;
 extern crate futures;
@@ -20,22 +15,36 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
 
+extern crate edgelet_core;
+extern crate edgelet_docker;
+extern crate edgelet_http;
+extern crate edgelet_http_mgmt;
+extern crate edgelet_http_workload;
+extern crate edgelet_iothub;
+extern crate iothubservice;
+
 mod settings;
 mod error;
 
-use clap::{App, Arg};
-use error::Error;
+use std::convert::AsRef;
 
-use settings::Settings;
-use edgelet_docker::DockerModuleRuntime;
-use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
-use edgelet_http::ApiVersionService;
-use edgelet_http_mgmt::ManagementService;
-use edgelet_http_workload::WorkloadService;
+use clap::{App, Arg};
 use futures::{future, Future, Stream};
+use hyper::Client as HyperClient;
 use hyper::server::Http;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
+
+use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
+use edgelet_docker::DockerModuleRuntime;
+use edgelet_http::{ApiVersionService, API_VERSION};
+use edgelet_http_mgmt::ManagementService;
+use edgelet_http_workload::WorkloadService;
+use edgelet_iothub::HubIdentityManager;
+use iothubservice::{Client as HttpClient, DeviceClient};
+
+use error::Error;
+use settings::Settings;
 
 fn main() {
     ::std::process::exit(match main_runner() {
@@ -76,20 +85,34 @@ fn main_runner() -> Result<(), Error> {
     let key_store = DerivedKeyStore::new(root_key);
 
     let mut core = Core::new().unwrap();
-    start_management("0.0.0.0:8080", &core.handle());
+    start_management("0.0.0.0:8080", key_store.clone(), &core.handle());
     start_workload("0.0.0.0:8081", key_store, &core.handle());
     core.run(future::empty::<(), ()>()).unwrap();
     Ok(())
 }
 
-fn start_management(addr: &str, handle: &Handle) {
+fn start_management<K>(addr: &str, key_store: K, handle: &Handle)
+where
+    K: 'static + KeyStore + Clone,
+    K::Key: AsRef<[u8]>,
+{
     let uri = addr.parse().unwrap();
     let client_handle = handle.clone();
     let server_handle = handle.clone();
 
     let docker = Url::parse("unix:///var/run/docker.sock").unwrap();
     let mgmt = DockerModuleRuntime::new(&docker, &client_handle).unwrap();
-    let service = ApiVersionService::new(ManagementService::new(&mgmt).unwrap());
+
+    let hyper_client = HyperClient::new(&client_handle);
+    let http_client = HttpClient::new(
+        hyper_client,
+        API_VERSION,
+        Url::parse("http://HUB_NAME.azure-devices.net").unwrap(),
+    ).unwrap();
+    let device_client = DeviceClient::new(http_client, "DEVICE_ID").unwrap();
+    let id_man = HubIdentityManager::new(key_store, device_client);
+
+    let service = ApiVersionService::new(ManagementService::new(&mgmt, &id_man).unwrap());
 
     let serve = Http::new()
         .serve_addr_handle(&uri, &server_handle, service)

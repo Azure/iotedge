@@ -17,6 +17,7 @@ serde_json = "1.0"
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
+edgelet-iothub = { path = "../edgelet-iothub" }
 management = { path = "../management" }
 
 [dev-dependencies]

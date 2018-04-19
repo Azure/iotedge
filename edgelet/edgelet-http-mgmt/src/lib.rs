@@ -8,6 +8,7 @@ extern crate edgelet_core;
 extern crate edgelet_docker;
 #[macro_use]
 extern crate edgelet_http;
+extern crate edgelet_iothub;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;

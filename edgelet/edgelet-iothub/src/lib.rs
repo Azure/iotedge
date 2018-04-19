@@ -9,6 +9,9 @@ extern crate bytes;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_json;
 #[cfg(test)]
@@ -23,6 +26,7 @@ extern crate iothubservice;
 mod error;
 
 use std::convert::AsRef;
+use std::rc::Rc;
 
 use failure::ResultExt;
 use futures::Future;
@@ -34,11 +38,13 @@ use edgelet_core::{Identity, IdentityManager, IdentitySpec};
 use edgelet_core::crypto::KeyStore;
 use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey};
 
-use error::{Error, ErrorKind, Result};
+pub use error::{Error, ErrorKind};
+use error::Result;
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
 
+#[derive(Serialize)]
 pub struct HubIdentity {
     hub_module: Module,
 }
@@ -76,7 +82,7 @@ impl Identity for HubIdentity {
     }
 }
 
-pub struct HubIdentityManager<K, S>
+struct State<K, S>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]>,
@@ -86,6 +92,15 @@ where
     client: DeviceClient<S>,
 }
 
+pub struct HubIdentityManager<K, S>
+where
+    K: KeyStore,
+    K::Key: AsRef<[u8]>,
+    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+{
+    state: Rc<State<K, S>>,
+}
+
 impl<K, S> HubIdentityManager<K, S>
 where
     K: KeyStore,
@@ -93,19 +108,36 @@ where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     pub fn new(key_store: K, client: DeviceClient<S>) -> HubIdentityManager<K, S> {
-        HubIdentityManager { key_store, client }
+        HubIdentityManager {
+            state: Rc::new(State { key_store, client }),
+        }
     }
 
     fn get_key_pair(&self, id: &IdentitySpec) -> Result<(K::Key, K::Key)> {
-        self.key_store
+        self.state
+            .key_store
             .get(id.module_id(), KEY_PRIMARY)
             .and_then(|primary_key| {
-                self.key_store
+                self.state
+                    .key_store
                     .get(id.module_id(), KEY_SECONDARY)
                     .map(|secondary_key| (primary_key, secondary_key))
             })
             .context(ErrorKind::CannotGetKey(id.module_id().to_string()))
             .map_err(Error::from)
+    }
+}
+
+impl<K, S> Clone for HubIdentityManager<K, S>
+where
+    K: KeyStore,
+    K::Key: AsRef<[u8]>,
+    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+{
+    fn clone(&self) -> Self {
+        HubIdentityManager {
+            state: self.state.clone(),
+        }
     }
 }
 
@@ -132,7 +164,8 @@ where
                             .with_secondary_key(base64::encode(secondary_key.as_ref())),
                     );
 
-                Ok(self.client
+                Ok(self.state
+                    .client
                     .create_module(id.module_id(), Some(auth))
                     .map_err(Error::from)
                     .map(HubIdentity::new))
@@ -146,7 +179,8 @@ where
 
     fn get(&self) -> Self::GetFuture {
         Box::new(
-            self.client
+            self.state
+                .client
                 .list_modules()
                 .map_err(Error::from)
                 .map(|modules| modules.into_iter().map(HubIdentity::new).collect()),
@@ -155,7 +189,8 @@ where
 
     fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture {
         Box::new(
-            self.client
+            self.state
+                .client
                 .delete_module(id.module_id())
                 .map_err(Error::from),
         )

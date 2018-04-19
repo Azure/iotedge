@@ -13,9 +13,6 @@ extern crate futures;
 extern crate hyper;
 extern crate log;
 extern crate serde;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
 extern crate workload;
 

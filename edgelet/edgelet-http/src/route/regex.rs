@@ -2,6 +2,7 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::default::Default;
 
 use regex::Regex;
 use hyper::{Method, StatusCode};
@@ -33,6 +34,12 @@ impl Parameters {
             }
         }
         None
+    }
+}
+
+impl Default for Parameters {
+    fn default() -> Self {
+        Parameters::new()
     }
 }
 

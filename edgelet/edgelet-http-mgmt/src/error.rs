@@ -6,8 +6,9 @@ use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::Response;
-use management::models::ErrorResponse;
 use serde_json;
+
+use management::models::ErrorResponse;
 
 use IntoResponse;
 
@@ -20,6 +21,8 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "Module runtime error")]
     ModuleRuntime,
+    #[fail(display = "Identity manager error")]
+    IdentityManager,
     #[fail(display = "Serde error")]
     Serde,
     #[fail(display = "Hyper error")]
