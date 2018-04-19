@@ -1,5 +1,5 @@
 [package]
-name = "docker-mri"
+name = "edgelet-docker"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
 publish = false

@@ -15,8 +15,8 @@ serde_derive = "1.0"
 serde_json = "1.0"
 url = "1.7"
 
-docker-mri = { path = "../docker-mri" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 management = { path = "../management" }
 

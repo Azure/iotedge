@@ -11,7 +11,6 @@ extern crate failure;
 extern crate failure_derive;
 extern crate futures;
 extern crate hyper;
-#[macro_use]
 extern crate log;
 extern crate serde;
 #[cfg(test)]

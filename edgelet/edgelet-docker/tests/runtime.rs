@@ -10,8 +10,8 @@ extern crate tokio_core;
 extern crate url;
 
 extern crate docker;
-extern crate docker_mri;
 extern crate edgelet_core;
+extern crate edgelet_docker;
 extern crate edgelet_test_utils;
 
 use std::collections::HashMap;
@@ -32,9 +32,9 @@ use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkS
                      ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
 #[cfg(unix)]
 use docker::models::AuthConfig;
-use docker_mri::{DockerConfig, DockerModuleRuntime};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 #[cfg(unix)]
-use docker_mri::DockerRegistryAuthConfig;
+use edgelet_docker::DockerRegistryAuthConfig;
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 

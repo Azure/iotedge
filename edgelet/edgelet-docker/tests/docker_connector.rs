@@ -10,7 +10,7 @@ extern crate scopeguard;
 extern crate tokio_core;
 extern crate url;
 
-extern crate docker_mri;
+extern crate edgelet_docker;
 extern crate edgelet_test_utils;
 
 use std::sync::mpsc::channel;
@@ -27,7 +27,7 @@ use hyperlocal::Uri as HyperlocalUri;
 use tokio_core::reactor::Core;
 use url::Url;
 
-use docker_mri::docker_connector::DockerConnector;
+use edgelet_docker::docker_connector::DockerConnector;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 #[cfg(unix)]
 use edgelet_test_utils::run_uds_server;

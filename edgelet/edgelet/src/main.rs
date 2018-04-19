@@ -4,8 +4,8 @@
 
 extern crate clap;
 extern crate config;
-extern crate docker_mri;
 extern crate edgelet_core;
+extern crate edgelet_docker;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 #[macro_use]
@@ -26,7 +26,7 @@ use clap::{App, Arg};
 use error::Error;
 
 use settings::Settings;
-use docker_mri::DockerModuleRuntime;
+use edgelet_docker::DockerModuleRuntime;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_http_mgmt::{ApiVersionService, ManagementService};
 use edgelet_http_workload::WorkloadService;

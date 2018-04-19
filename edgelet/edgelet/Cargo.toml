@@ -16,7 +16,7 @@ serde_json = "1.0"
 tokio-core = "0.1"
 url = "1.7"
 
-docker-mri = { path = "../docker-mri" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }

@@ -7,7 +7,7 @@ use hyper::server::Response;
 use serde::Serialize;
 use serde_json;
 
-use docker_mri::{Error as DockerError, ErrorKind as DockerErrorKind};
+use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use edgelet_core::Module;
 use hyper::header::{ContentLength, ContentType};
 use management::models::*;
@@ -114,7 +114,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use docker_mri::{Error as DockerError, ErrorKind as DockerErrorKind};
+    use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use edgelet_core::*;
     use futures::{Future, IntoFuture, Stream};
     use futures::future::{self, FutureResult};

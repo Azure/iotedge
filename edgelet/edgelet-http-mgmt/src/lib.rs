@@ -4,8 +4,8 @@
 
 #[cfg(test)]
 extern crate chrono;
-extern crate docker_mri;
 extern crate edgelet_core;
+extern crate edgelet_docker;
 #[macro_use]
 extern crate edgelet_http;
 extern crate failure;
