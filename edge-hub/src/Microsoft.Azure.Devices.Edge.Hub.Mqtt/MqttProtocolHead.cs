@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Security;
+    using System.Net.Sockets;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -78,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 this.logger.LogInformation("Initializing TLS endpoint on port {0} for MQTT head.", MqttsPort);
 
-                this.serverChannel = await bootstrap.BindAsync(IPAddress.IPv6Any, MqttsPort);
+                this.serverChannel = await bootstrap.BindAsync(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, MqttsPort);
 
                 this.logger.LogInformation("Started MQTT head");
             }

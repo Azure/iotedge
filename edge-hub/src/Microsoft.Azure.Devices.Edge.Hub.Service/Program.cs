@@ -41,7 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 Routing.Core.Routing.LoggerFactory = Logger.Factory;
             }
-
             string certPath = Path.Combine(
                 configuration.GetValue<string>(Constants.SslCertPathEnvName),
                 configuration.GetValue<string>(Constants.SslCertEnvName));

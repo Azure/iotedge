@@ -104,8 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         c.Resolve<ISessionStatePersistenceProvider>(),
                         c.Resolve<IWebSocketListenerRegistry>(),
                         this.clientCertAuthAllowed,
-                        this.caChainPath
-                    ))
+                        this.caChainPath))
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();
 
