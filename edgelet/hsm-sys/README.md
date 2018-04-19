@@ -22,6 +22,17 @@ small effort. The version of the HSM API this is based from is the "Commit Id"
 in `lib.rs`- please update the commit id when updating from a new version of 
 the header file.
 
+## Build dependencies
+
+This crate is dependent on CMake being installed. On Debian based linux systems, 
+this can be installed with 
+
+```
+sudo apt-get install build-essential cmake
+```
+
+On Windows, install CMake from [cmake.org](https://cmake.org/).
+
 ## Linking
 
 This crate needs to be linked to a library which implements the functions in 

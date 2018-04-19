@@ -55,6 +55,6 @@ else
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi
 
-# Install OpenSSL
+# Install OpenSSL, curl and uuid
 sudo apt-get update && \
-    sudo apt-get install -y pkg-config libssl-dev
+    sudo apt-get install -y pkg-config libssl-dev uuid-dev curl libcurl4-openssl-dev

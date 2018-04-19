@@ -36,5 +36,9 @@ ELSE()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 ENDIF(WIN32)
 
-add_library(iothsm ${source_c_files} ${source_h_files})
+# We want this to always be a shared library and let the dynamic linker on the 
+# target system find the HSM library.
+add_library(iothsm SHARED ${source_c_files} ${source_h_files})
 install(TARGETS iothsm DESTINATION .)
+
+add_subdirectory(./azure-c-shared-utility)
