@@ -76,7 +76,7 @@ pub trait SignWithTpm {
     fn derive_and_sign_with_identity(
         &self,
         data: &[u8],
-        identity: &str,
+        identity: &[u8],
     ) -> Result<TpmDigest, Error>;
 }
 

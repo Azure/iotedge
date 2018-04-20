@@ -1,8 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+
+//#############################################################################
+// Memory allocator test hooks
+//#############################################################################
 
 static void* my_gballoc_malloc(size_t size)
 {
@@ -29,30 +34,49 @@ static void my_gballoc_free(void* ptr)
 #include "umock_c_negative_tests.h"
 #include "umocktypes_charptr.h"
 
+//#############################################################################
+// Declare and enable MOCK definitions
+//#############################################################################
+
 #define ENABLE_MOCKS
 
 #include "azure_c_shared_utility/gballoc.h"
 
 #undef ENABLE_MOCKS
 
-#include "testrunnerswitcher.h"
+//#############################################################################
+// Interface(s) under test
+//#############################################################################
+
 #include "hsm_client_data.h"
 
+//#############################################################################
+// Test defines and data
+//#############################################################################
 
 #define TEST_STRING_64 "0123456789012345678901234567890123456789012345678901234567890123"
 #define TEST_STRING_65  TEST_STRING_64 "1"
 
 DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
-static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
+static TEST_MUTEX_HANDLE g_testByTest;
+static TEST_MUTEX_HANDLE g_dllByDll;
+
+//#############################################################################
+// Mocked functions test hooks
+//#############################################################################
+
+static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     char temp_str[256];
-    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s", ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
+    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
+                   ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
     ASSERT_FAIL(temp_str);
 }
 
-static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
+//#############################################################################
+// Test cases
+//#############################################################################
 
 BEGIN_TEST_SUITE(cert_props_unittests)
 
@@ -62,7 +86,7 @@ BEGIN_TEST_SUITE(cert_props_unittests)
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
-            umock_c_init(on_umock_c_error);
+            umock_c_init(test_hook_on_umock_c_error);
 
             REGISTER_UMOCK_ALIAS_TYPE(CERT_PROPS_HANDLE, void*);
             ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );

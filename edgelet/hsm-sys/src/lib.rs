@@ -87,8 +87,9 @@ pub type HSM_CLIENT_SIGN_WITH_IDENTITY = Option<
 ///
 /// handle[in] -- A valid HSM client handle
 /// data_to_be_signed[in] -- Data to be signed
-/// data_to_be_signed_len[in] -- Length of the data to be signed
+/// data_to_be_signed_size[in] -- Length of the data to be signed
 /// identity[in] -- Identity to be used to derive the SAS key
+/// identity_size[in] -- Identity buffer size
 /// digest[out]  -- Pointer to a buffer to be filled with the signed digest
 /// digest_size[out]  -- Length of signed digest
 ///
@@ -102,8 +103,9 @@ pub type HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY = Option<
     unsafe extern "C" fn(
         handle: HSM_CLIENT_HANDLE,
         data_to_be_signed: *const c_uchar,
-        data_to_be_signed_len: usize,
-        identity: *const c_char,
+        data_to_be_signed_size: usize,
+        identity: *const c_uchar,
+        identity_size: usize,
         digest: *mut *mut c_uchar,
         digest_size: *mut usize,
     ) -> c_int,

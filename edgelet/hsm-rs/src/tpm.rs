@@ -2,7 +2,7 @@
 
 use std::default::Default;
 use std::ops::{Deref, Drop};
-use std::os::raw::{c_char, c_uchar, c_void};
+use std::os::raw::{c_uchar, c_void};
 use std::ptr;
 use std::slice;
 
@@ -125,7 +125,7 @@ impl SignWithTpm for Tpm {
     fn derive_and_sign_with_identity(
         &self,
         data: &[u8],
-        identity: &str,
+        identity: &[u8],
     ) -> Result<TpmDigest, Error> {
         let mut key_ln: usize = 0;
         let mut ptr = ptr::null_mut();
@@ -137,7 +137,8 @@ impl SignWithTpm for Tpm {
                 self.handle,
                 data.as_ptr(),
                 data.len(),
-                identity.as_ptr() as *const c_char,
+                identity.as_ptr(),
+                identity.len(),
                 &mut ptr,
                 &mut key_ln,
             )
@@ -190,7 +191,7 @@ pub type TpmDigest = TpmBuffer;
 
 #[cfg(test)]
 mod tests {
-    use std::os::raw::{c_char, c_int, c_uchar, c_void};
+    use std::os::raw::{c_int, c_uchar, c_void};
 
     use hsm_sys::*;
     use super::{Tpm, TpmKey};
@@ -324,8 +325,9 @@ mod tests {
     unsafe extern "C" fn fake_derive_and_sign(
         handle: HSM_CLIENT_HANDLE,
         _data_to_be_signed: *const c_uchar,
-        _data_to_be_signed_len: usize,
-        _identity: *const c_char,
+        _data_to_be_signed_size: usize,
+        _identity: *const c_uchar,
+        _identity_size: usize,
         digest: *mut *mut c_uchar,
         digest_size: *mut usize,
     ) -> c_int {
@@ -389,9 +391,9 @@ mod tests {
     fn tpm_no_derive_and_sign_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
         let key = b"key data";
-        let identity = "identity";
+        let identity = b"identity";
         let result = hsm_tpm
-            .derive_and_sign_with_identity(key, &identity)
+            .derive_and_sign_with_identity(key, identity)
             .unwrap();
         println!("You should never see this print {:?}", result);
     }
@@ -433,10 +435,8 @@ mod tests {
         assert_eq!(buf4.len(), DEFAULT_KEY_LEN);
 
         let k3 = b"a buffer";
-        let identity = "some identity";
-        let result5 = hsm_tpm
-            .derive_and_sign_with_identity(k3, &identity)
-            .unwrap();
+        let identity = b"some identity";
+        let result5 = hsm_tpm.derive_and_sign_with_identity(k3, identity).unwrap();
         let buf5 = &result5;
         assert_eq!(buf5.len(), DEFAULT_KEY_LEN);
     }
@@ -496,10 +496,8 @@ mod tests {
     fn tpm_derive_and_sign_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";
-        let identity = "an identity";
-        let result = hsm_tpm
-            .derive_and_sign_with_identity(k1, &identity)
-            .unwrap();
+        let identity = b"an identity";
+        let result = hsm_tpm.derive_and_sign_with_identity(k1, identity).unwrap();
         println!("You should never see this print {:?}", result);
     }
 

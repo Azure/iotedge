@@ -7,16 +7,24 @@ project(iothsm)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-#find_package(OpenSSL REQUIRED)
+include_directories(./azure-c-shared-utility/inc)
 include_directories(. ./inc)
 
 set(source_c_files
-    ./src/hsm_client_data.c
+    ./src/cert_props.c
+    ./src/edge_hsm_client_crypto.c
+    ./src/edge_hsm_client_store.c
+    ./src/edge_hsm_client_tpm.c
+    ./src/edge_hsm_client_x509.c
+    ./src/edge_hsm_key_interface.c
+    ./src/edge_sas_key.c
+    ./src/hsm_log.c
 )
 
 set(source_h_files
     ./inc/hsm_client_data.h
 )
+
 
 IF(WIN32)
     #windows needs this define
@@ -27,18 +35,32 @@ IF(WIN32)
 
     # export functions in DLL
     set(source_c_files ${source_c_files}
-    ./src/hsm_client_data.def
+        ./src/hsm_client_data.def
     )
 
+    add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 ELSE()
+    find_package(OpenSSL REQUIRED)
+    include_directories(${OPENSSL_INCLUDE_DIR})
     # Make warning as error
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -fPIC")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+    # todo add -Wall -Werror ...
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC")
 ENDIF(WIN32)
 
-# We want this to always be a shared library and let the dynamic linker on the 
+# We want this to always be a shared library and let the dynamic linker on the
 # target system find the HSM library.
 add_library(iothsm SHARED ${source_c_files} ${source_h_files})
-install(TARGETS iothsm DESTINATION .)
 
 add_subdirectory(./azure-c-shared-utility)
+
+if (${run_unittests})
+    add_subdirectory(test)
+endif()
+
+IF(WIN32)
+     target_link_libraries(iothsm aziotsharedutil)
+ELSE()
+     target_link_libraries(iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
+ENDIF(WIN32)
+install(TARGETS iothsm DESTINATION .)

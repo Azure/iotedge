@@ -72,6 +72,5 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
     println!("cargo:rustc-link-search=native={}/lib", iothsm.display());
-    println!("cargo:rustc-link-lib=aziotsharedutil");
     println!("cargo:rustc-link-lib=iothsm");
 }

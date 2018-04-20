@@ -37,6 +37,7 @@ typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const uns
     data_to_be_signed[in] -- Data to be signed
     data_to_be_signed_len[in] -- Length of the data to be signed
     identity[in] -- Identity to be used to derive the SAS key
+    identity_size[in] -- Size of the identity buffer
     digest[out]  -- Pointer to a buffer to be filled with the signed digest
     digest_size[out]  -- Length of signed digest
 
@@ -47,21 +48,21 @@ typedef int (*HSM_CLIENT_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const uns
       0  -- On success
       Non 0 -- otherwise
 */
-typedef int (*HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char *data_to_be_signed, size_t data_to_be_signed_len, const char *identity, unsigned char **digest, size_t *digest_size);
+typedef int (*HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY)(HSM_CLIENT_HANDLE handle, const unsigned char *data_to_be_signed, size_t data_to_be_signed_len, const unsigned char *identity, size_t identity_size, unsigned char **digest, size_t *digest_size);
 
 // x509
 typedef char *(*HSM_CLIENT_GET_CERTIFICATE)(HSM_CLIENT_HANDLE handle);
 typedef char *(*HSM_CLIENT_GET_CERT_KEY)(HSM_CLIENT_HANDLE handle);
 typedef char *(*HSM_CLIENT_GET_COMMON_NAME)(HSM_CLIENT_HANDLE handle);
 
-/**  
+/**
    API to free buffers allocated by the HSM library.
-   Used to ensure that the buffers allocated in one CRT are freed in the same 
+   Used to ensure that the buffers allocated in one CRT are freed in the same
    CRT. Intended to be used for TPM keys, x509 buffers, and SIZED_BUFFER output.
 
-   buffer[in] -- a buffer allocated and owned by HSM library. 
+   buffer[in] -- a buffer allocated and owned by HSM library.
 
-   No return value. 
+   No return value.
 */
 typedef void (*HSM_CLIENT_FREE_BUFFER)(void *buffer);
 

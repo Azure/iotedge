@@ -342,7 +342,7 @@ impl DecryptData for Crypto {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct CertificateProperties {
     pub validity_in_mins: usize,
     pub common_name: String,
@@ -354,6 +354,23 @@ pub struct CertificateProperties {
     pub organization_unit: Option<String>,
     pub issuer_alias: Option<String>,
     pub alias: Option<String>,
+}
+
+impl Default for CertificateProperties {
+    fn default() -> Self {
+        CertificateProperties {
+            validity_in_mins: 60,
+            common_name: String::from("CN"),
+            certificate_type: Some(CertificateType::Client),
+            country: None,
+            state: None,
+            locality: None,
+            organization: None,
+            organization_unit: None,
+            issuer_alias: None,
+            alias: None,
+        }
+    }
 }
 
 /// A structure representing a Certificate in the HSM.
