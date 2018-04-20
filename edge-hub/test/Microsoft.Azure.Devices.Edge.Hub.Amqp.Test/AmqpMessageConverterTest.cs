@@ -72,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             ulong sequenceNumber = 100;
             string messageSchema = "testSchema";
             string operation = "foo";
+            string outputName = "output1";
 
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(bytes) }))
             {
@@ -91,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMessageSchemaKey] = messageSchema;
                 amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesCreationTimeKey] = creationTime;
                 amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOperationKey] = operation;
+                amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOutputNameKey] = outputName;
 
                 amqpMessage.ApplicationProperties.Map["Prop1"] = "Value1";
                 amqpMessage.ApplicationProperties.Map["Prop2"] = "Value2";
@@ -104,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Assert
             Assert.NotNull(receivedMessage);
             Assert.Equal(receivedMessage.Body, bytes);
-            Assert.Equal(receivedMessage.SystemProperties.Count, 14);
+            Assert.Equal(receivedMessage.SystemProperties.Count, 15);
             Assert.Equal(receivedMessage.Properties.Count, 2);
 
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageId], messageId);
@@ -121,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageSchema], messageSchema);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.CreationTime], creationTime);
             Assert.Equal(receivedMessage.SystemProperties[SystemProperties.Operation], operation);
+            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.OutputName], outputName);
 
             Assert.Equal(receivedMessage.Properties["Prop1"], "Value1");
             Assert.Equal(receivedMessage.Properties["Prop2"], "Value2");
@@ -196,6 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             ulong sequenceNumber = 100;
             string messageSchema = "testSchema";
             string operation = "foo";
+            string inputName = "inputName";
+            string outputName = "outputName";
 
             var systemProperties = new Dictionary<string, string>
             {
@@ -212,7 +217,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 [SystemProperties.SequenceNumber] = sequenceNumber.ToString(),
                 [SystemProperties.MessageSchema] = messageSchema,
                 [SystemProperties.CreationTime] = creationTime,
-                [SystemProperties.Operation] = operation
+                [SystemProperties.Operation] = operation,
+                [SystemProperties.InputName] = inputName,
+                [SystemProperties.OutputName] = outputName
             };
 
             var properties = new Dictionary<string, string>
@@ -252,10 +259,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(deliveryCount, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsDeliveryCountKey]);
                 Assert.Equal(lockToken, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsLockTokenName]);
                 Assert.Equal(sequenceNumber, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsSequenceNumberName]);
+                Assert.Equal(inputName, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsInputNameKey]);
 
                 Assert.Equal(messageSchema, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMessageSchemaKey]);
                 Assert.Equal(creationTime, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesCreationTimeKey]);
                 Assert.Equal(operation, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesOperationKey]);
+                Assert.False(amqpMessage.ApplicationProperties.Map.TryGetValue(Amqp.Constants.MessagePropertiesOutputNameKey, out string _));
 
                 Assert.Equal("Value1", amqpMessage.ApplicationProperties.Map["Prop1"].ToString());
                 Assert.Equal("Value2", amqpMessage.ApplicationProperties.Map["Prop2"].ToString());

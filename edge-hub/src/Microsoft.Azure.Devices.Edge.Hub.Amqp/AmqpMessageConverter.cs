@@ -77,6 +77,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         systemProperties[SystemProperties.Operation] = value;
                         break;
 
+                    case Constants.MessagePropertiesOutputNameKey:
+                        systemProperties[SystemProperties.OutputName] = value;
+                        break;
+
                     default:
                         properties[key] = value;
                         break;

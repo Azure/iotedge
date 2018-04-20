@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { To, OnTheWireSystemPropertyNames.ToOnTheWireName },
             { UserId, OnTheWireSystemPropertyNames.UserIdOnTheWireName },
             { Ack, OnTheWireSystemPropertyNames.AckOnTheWireName },
-            { OutputName, OnTheWireSystemPropertyNames.OutputNameOnTheWireName },
             { ContentType, OnTheWireSystemPropertyNames.ContentTypeOnTheWireName },
             { ContentEncoding, OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName },
             { MessageSchema, OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName },

@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public const string MessageAnnotationsSequenceNumberName = "x-opt-sequence-number";
         public const string MessagePropertiesOperationKey = "iothub-operation";
         public const string MessagePropertiesStatusKey = "IoThub-status";
+        public const string MessagePropertiesOutputNameKey = "iothub-outputname";
         public const string MessagePropertiesMethodNameKey = "IoThub-methodname";
         public const string MessageAnnotationsInputNameKey = "x-opt-input-name";
     }

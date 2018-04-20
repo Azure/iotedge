@@ -211,6 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 [TemplateParameters.DeviceIdTemplateParam] = DeviceId,
                 [Mqtt.Constants.ModuleIdTemplateParameter] = ModuleId,
                 [SystemProperties.InputName] = Input,
+                [SystemProperties.OutputName] = "output",
                 [SystemProperties.ContentEncoding] = "utf-8",
                 [SystemProperties.ContentType] = "application/json",
                 [SystemProperties.MessageSchema] = "schema1",
@@ -245,6 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("m1", pgMessage.Properties["$.mid"]);
             Assert.Equal("fromDevice1", pgMessage.Properties["$.cdid"]);
             Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
+            Assert.False(pgMessage.Properties.ContainsKey("$.on"));
         }
     }
 }
