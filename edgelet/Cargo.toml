@@ -4,7 +4,6 @@ members = [
     "edgelet",
     "edgelet-core",
     "edgelet-docker",
-    "edgelet-grpc",
     "edgelet-http",
     "edgelet-http-mgmt",
     "edgelet-http-workload",
