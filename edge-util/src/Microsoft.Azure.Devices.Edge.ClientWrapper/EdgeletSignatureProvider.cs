@@ -15,28 +15,28 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
         const string DefaultApiVersion = "2018-06-28";
         const SignRequestAlgo DefaultSignRequestAlgo = SignRequestAlgo.HMACSHA256;
         readonly string apiVersion;
-        readonly string edgeletHttpUrl;
+        readonly string edgeletUri;
         readonly EdgeletWorkloadHttpClient edgeletWorkloadHttpClient;
 
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
-        public EdgeletSignatureProvider(string edgeletHttpUrl) : this(edgeletHttpUrl, DefaultApiVersion)
+        public EdgeletSignatureProvider(string edgeletUri) : this(edgeletUri, DefaultApiVersion)
         {
         }
 
-        public EdgeletSignatureProvider(string edgeletHttpUrl, string apiVersion)
+        public EdgeletSignatureProvider(string edgeletUri, string apiVersion)
         {
-            Preconditions.CheckNonWhiteSpace(edgeletHttpUrl, nameof(edgeletHttpUrl));
+            Preconditions.CheckNonWhiteSpace(edgeletUri, nameof(edgeletUri));
             Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
 
             this.edgeletWorkloadHttpClient = new EdgeletWorkloadHttpClient()
             {
-                BaseUrl = edgeletHttpUrl
+                BaseUrl = edgeletUri
             };
             this.apiVersion = apiVersion;
-            this.edgeletHttpUrl = edgeletHttpUrl;
+            this.edgeletUri = edgeletUri;
         }
 
         public async Task<string> SignAsync(string keyName, string data)
@@ -53,9 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
 
             try
             {
-                Events.ExecuteSignAsync(this.edgeletHttpUrl);
+                Events.ExecuteSignAsync(this.edgeletUri);
                 SignResponse response = await this.SignAsyncWithRetry(keyName, signRequest);
-                Events.SuccessfullyExecutedSignAsync(this.edgeletHttpUrl);
+                Events.SuccessfullyExecutedSignAsync(this.edgeletUri);
 
                 return Convert.ToBase64String(response.Digest);
             }
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
         async Task<SignResponse> SignAsyncWithRetry(string keyName, SignRequest signRequest)
         {
             var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => Events.RetryingSignAsync(this.edgeletHttpUrl, args);
+            transientRetryPolicy.Retrying += (_, args) => Events.RetryingSignAsync(this.edgeletUri, args);
             SignResponse response = await transientRetryPolicy.ExecuteAsync(() => this.edgeletWorkloadHttpClient.SignAsync(this.apiVersion, keyName, signRequest));
             return response;
         }

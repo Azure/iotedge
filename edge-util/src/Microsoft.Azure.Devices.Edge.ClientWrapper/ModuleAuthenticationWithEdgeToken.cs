@@ -6,9 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Util;
 
-    public class ModuleAuthenticationWithEdgeToken : ModuleAuthenticationWithTokenRefresh
+    class ModuleAuthenticationWithEdgeToken : ModuleAuthenticationWithTokenRefresh
     {
         readonly ISignatureProvider signatureProvider;
 

@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
 {
     using System;
 
-    class EdgeletCommunicationException : Exception
+    public class EdgeletCommunicationException : Exception
     {
         public int StatusCode { get; }
 
