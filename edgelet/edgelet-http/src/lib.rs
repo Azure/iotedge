@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+extern crate chrono;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
+#[macro_use]
 extern crate futures;
 extern crate hyper;
+#[macro_use]
+extern crate log;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
@@ -18,6 +22,7 @@ use hyper::server::{NewService, Request, Response, Service};
 use url::form_urlencoded::parse as parse_query;
 
 mod error;
+pub mod logging;
 pub mod route;
 
 pub use error::{Error, ErrorKind};
