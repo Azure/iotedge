@@ -18,14 +18,14 @@ pub struct InlineResponse201 {
     id: String,
     /// Warnings encountered when creating the container
     #[serde(rename = "Warnings")]
-    warnings: Vec<String>,
+    warnings: Option<Vec<String>>,
 }
 
 impl InlineResponse201 {
-    pub fn new(id: String, warnings: Vec<String>) -> InlineResponse201 {
+    pub fn new(id: String) -> InlineResponse201 {
         InlineResponse201 {
             id: id,
-            warnings: warnings,
+            warnings: None,
         }
     }
 
@@ -43,15 +43,19 @@ impl InlineResponse201 {
     }
 
     pub fn set_warnings(&mut self, warnings: Vec<String>) {
-        self.warnings = warnings;
+        self.warnings = Some(warnings);
     }
 
     pub fn with_warnings(mut self, warnings: Vec<String>) -> InlineResponse201 {
-        self.warnings = warnings;
+        self.warnings = Some(warnings);
         self
     }
 
-    pub fn warnings(&self) -> &Vec<String> {
-        &self.warnings
+    pub fn warnings(&self) -> Option<&Vec<String>> {
+        self.warnings.as_ref()
+    }
+
+    pub fn reset_warnings(&mut self) {
+        self.warnings = None;
     }
 }

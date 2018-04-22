@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::{collections::HashMap, convert::From, ops::Deref};
+use std::collections::HashMap;
+use std::convert::From;
+use std::ops::Deref;
 
 use futures::future;
 use futures::prelude::*;
@@ -11,9 +13,9 @@ use url::Url;
 
 use client::DockerClient;
 use config::DockerConfig;
-use docker::{apis::{client::APIClient, configuration::Configuration},
-             models::{AuthConfig, ContainerCreateBody, ContainerCreateBodyNetworkingConfig,
-                      EndpointSettings}};
+use docker::apis::client::APIClient;
+use docker::apis::configuration::Configuration;
+use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings};
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_utils::serde_clone;
 
@@ -22,6 +24,9 @@ use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use error::{Error, ErrorKind, Result};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
+
+static LABEL_KEY: &str = "net.azure-devices.edge.owner";
+static LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 
 lazy_static! {
     static ref LABELS: Vec<&'static str> = {
@@ -95,110 +100,26 @@ fn get_base_path(url: &Url) -> &str {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct DockerRegistryAuthConfig {
-    #[serde(rename = "username", skip_serializing_if = "Option::is_none")]
-    user_name: Option<String>,
-    #[serde(rename = "password", skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-    #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
-    #[serde(rename = "serveraddress", skip_serializing_if = "Option::is_none")]
-    server: Option<String>,
-}
-
-impl Default for DockerRegistryAuthConfig {
-    fn default() -> Self {
-        DockerRegistryAuthConfig {
-            user_name: None,
-            password: None,
-            email: None,
-            server: None,
-        }
-    }
-}
-
-impl DockerRegistryAuthConfig {
-    pub fn user_name(&self) -> Option<&String> {
-        self.user_name.as_ref()
-    }
-
-    pub fn with_user_name(mut self, user_name: &str) -> DockerRegistryAuthConfig {
-        self.user_name = Some(user_name.to_string());
-        self
-    }
-
-    pub fn password(&self) -> Option<&String> {
-        self.password.as_ref()
-    }
-
-    pub fn with_password(mut self, password: &str) -> DockerRegistryAuthConfig {
-        self.password = Some(password.to_string());
-        self
-    }
-
-    pub fn email(&self) -> Option<&String> {
-        self.email.as_ref()
-    }
-
-    pub fn with_email(mut self, email: &str) -> DockerRegistryAuthConfig {
-        self.email = Some(email.to_string());
-        self
-    }
-
-    pub fn server(&self) -> Option<&String> {
-        self.server.as_ref()
-    }
-
-    pub fn with_server(mut self, server: &str) -> DockerRegistryAuthConfig {
-        self.server = Some(server.to_string());
-        self
-    }
-}
-
-fn serialize_registry_creds(credentials: Option<&DockerRegistryAuthConfig>) -> Result<String> {
-    Ok(credentials
-        .map(|creds| {
-            let mut auth_config = AuthConfig::new();
-            if let Some(user_name) = creds.user_name() {
-                auth_config.set_username(user_name.clone());
-            }
-            if let Some(password) = creds.password() {
-                auth_config.set_password(password.clone());
-            }
-            if let Some(email) = creds.email() {
-                auth_config.set_email(email.clone());
-            }
-            if let Some(server) = creds.server() {
-                auth_config.set_serveraddress(server.clone());
-            }
-
-            auth_config
-        })
-        .map_or_else(
-            || Ok("".to_string()),
-            |auth_config| serde_json::to_string(&auth_config),
-        )?)
-}
-
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RegistryAuthConfig = DockerRegistryAuthConfig;
+    type Config = DockerConfig;
 
-    fn pull(&self, name: &str, credentials: Option<&Self::RegistryAuthConfig>) -> Self::PullFuture {
-        let result = serialize_registry_creds(credentials).and_then(|registry_creds| {
-            Ok(self.client
-                .image_api()
-                .image_create(ensure_not_empty!(name), "", "", "", "", &registry_creds, "")
-                .map_err(|err| Error::from(ErrorKind::Docker(err))))
-        });
-
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
-        }
+    fn pull(&self, config: &Self::Config) -> Self::PullFuture {
+        let response = config
+            .auth()
+            .map(|a| serde_json::to_string(a))
+            .unwrap_or_else(|| Ok("".to_string()))
+            .map(|creds: String| {
+                let ok = self.client
+                    .image_api()
+                    .image_create(config.image(), "", "", "", "", &creds, "")
+                    .map_err(|e| Error::from(ErrorKind::Docker(e)));
+                future::Either::A(ok)
+            })
+            .unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
+        Box::new(response)
     }
 
     fn remove(&self, name: &str) -> Self::RemoveFuture {
@@ -235,9 +156,16 @@ impl ModuleRuntime for DockerModuleRuntime {
                 // merge environment variables
                 let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
+                let mut labels = create_options
+                    .labels()
+                    .cloned()
+                    .unwrap_or_else(HashMap::new);
+                labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
+
                 let mut create_options = create_options
                     .with_image(module.config().image().to_string())
-                    .with_env(merged_env);
+                    .with_env(merged_env)
+                    .with_labels(labels);
 
                 // add the container to the custom network
                 if let Some(ref network_id) = self.network_id {
@@ -330,6 +258,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     container.image(),
                                     ContainerCreateBody::new()
                                         .with_labels(container.labels().clone()),
+                                    None,
                                 ).map(|config| (container, config))
                             })
                             .flat_map(|(container, config)| {
@@ -441,16 +370,6 @@ mod tests {
     }
 
     #[test]
-    fn image_pull_with_empty_name_fails() {
-        empty_test(|ref mut mri| mri.pull("", None));
-    }
-
-    #[test]
-    fn image_pull_with_white_space_name_fails() {
-        empty_test(|ref mut mri| mri.pull("     ", None));
-    }
-
-    #[test]
     fn image_remove_with_empty_name_fails() {
         empty_test(|ref mut mri| <DockerModuleRuntime as ModuleRegistry>::remove(mri, ""));
     }
@@ -510,7 +429,7 @@ mod tests {
         let module_config = ModuleSpec::new(
             "m1",
             "not_docker",
-            DockerConfig::new("nginx:latest", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("nginx:latest", ContainerCreateBody::new(), None).unwrap(),
             HashMap::new(),
         ).unwrap();
 

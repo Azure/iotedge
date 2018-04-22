@@ -33,8 +33,6 @@ use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkS
 #[cfg(unix)]
 use docker::models::AuthConfig;
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
-#[cfg(unix)]
-use edgelet_docker::DockerRegistryAuthConfig;
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
@@ -90,7 +88,14 @@ fn image_pull_succeeds() {
         &core.handle(),
     ).unwrap();
 
-    let task = mri.pull(IMAGE_NAME, None);
+    let auth = AuthConfig::new()
+        .with_username("u1".to_string())
+        .with_password("bleh".to_string())
+        .with_email("u1@bleh.com".to_string())
+        .with_serveraddress("svr1".to_string());
+    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
+
+    let task = mri.pull(&config);
     core.run(task).unwrap();
 }
 
@@ -158,13 +163,14 @@ fn image_pull_with_creds_succeeds() {
         &core.handle(),
     ).unwrap();
 
-    let registry_creds = DockerRegistryAuthConfig::default()
-        .with_user_name("u1")
-        .with_password("bleh")
-        .with_email("u1@bleh.com")
-        .with_server("svr1");
+    let auth = AuthConfig::new()
+        .with_username("u1".to_string())
+        .with_password("bleh".to_string())
+        .with_email("u1@bleh.com".to_string())
+        .with_serveraddress("svr1".to_string());
+    let config = DockerConfig::new(IMAGE_NAME, ContainerCreateBody::new(), Some(auth)).unwrap();
 
-    let task = mri.pull(IMAGE_NAME, Some(&registry_creds));
+    let task = mri.pull(&config);
     core.run(task).unwrap();
 }
 
@@ -318,7 +324,7 @@ fn container_create_succeeds() {
     let module_config = ModuleSpec::new(
         "m1",
         "docker",
-        DockerConfig::new("nginx:latest", create_options).unwrap(),
+        DockerConfig::new("nginx:latest", create_options, None).unwrap(),
         env,
     ).unwrap();
 

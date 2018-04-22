@@ -181,9 +181,9 @@ pub trait ModuleRegistry {
     type Error: Fail;
     type PullFuture: Future<Item = (), Error = Self::Error>;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
-    type RegistryAuthConfig;
+    type Config;
 
-    fn pull(&self, name: &str, credentials: Option<&Self::RegistryAuthConfig>) -> Self::PullFuture;
+    fn pull(&self, config: &Self::Config) -> Self::PullFuture;
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
@@ -191,7 +191,7 @@ pub trait ModuleRuntime {
     type Error: Fail;
     type Config;
     type Module: Module<Config = Self::Config>;
-    type ModuleRegistry: ModuleRegistry;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config>;
     type CreateFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;

@@ -2,6 +2,7 @@
 
 use std::fmt::{self, Display};
 
+use edgelet_core::Error as CoreError;
 use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
 use hyper::header::{ContentLength, ContentType};
@@ -19,6 +20,8 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
+    #[fail(display = "Core error")]
+    Core,
     #[fail(display = "Module runtime error")]
     ModuleRuntime,
     #[fail(display = "Identity manager error")]
@@ -29,6 +32,10 @@ pub enum ErrorKind {
     Hyper,
     #[fail(display = "Bad parameter")]
     BadParam,
+    #[fail(display = "Bad body")]
+    BadBody,
+    #[fail(display = "Invalid or missing API version")]
+    InvalidApiVersion,
 }
 
 impl Fail for Error {
@@ -67,6 +74,14 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Core),
+        }
+    }
+}
+
 impl From<serde_json::Error> for Error {
     fn from(error: serde_json::Error) -> Error {
         Error {
@@ -100,6 +115,8 @@ impl IntoResponse for Error {
 
         let status_code = match *self.kind() {
             ErrorKind::BadParam => StatusCode::BadRequest,
+            ErrorKind::BadBody => StatusCode::BadRequest,
+            ErrorKind::InvalidApiVersion => StatusCode::BadRequest,
             _ => StatusCode::InternalServerError,
         };
 
@@ -118,5 +135,11 @@ impl IntoResponse for Context<ErrorKind> {
     fn into_response(self) -> Response {
         let error: Error = Error::from(self);
         error.into_response()
+    }
+}
+
+impl IntoResponse for HyperError {
+    fn into_response(self) -> Response {
+        Error::from(self).into_response()
     }
 }

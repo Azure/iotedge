@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::HashMap;
+
+use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec};
+use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use failure::{Fail, ResultExt};
 use futures::Future;
 use hyper::StatusCode;
-use hyper::server::Response;
-use serde::Serialize;
-use serde_json;
-
-use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
-use edgelet_core::Module;
 use hyper::header::{ContentLength, ContentType};
+use hyper::server::Response;
 use management::models::*;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_json;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
@@ -82,21 +84,21 @@ where
                     .map(|settings| {
                         let config = Config::new(settings).with_env(Vec::new());
                         let mut runtime_status = RuntimeStatus::new(state.status().to_string());
-                        state
-                            .status_description()
-                            .map(|d| runtime_status.set_description(d.to_string()));
+                        if let Some(description) = state.status_description() {
+                            runtime_status.set_description(description.to_string());
+                        }
                         let mut status = Status::new(runtime_status);
-                        state
-                            .started_at()
-                            .map(|s| status.set_start_time(s.to_rfc3339()));
-                        state.exit_code().and_then(|code| {
-                            state.finished_at().map(|f| {
+                        if let Some(started_at) = state.started_at() {
+                            status.set_start_time(started_at.to_rfc3339());
+                        }
+                        if let Some(code) = state.exit_code() {
+                            if let Some(finished_at) = state.finished_at() {
                                 status.set_exit_status(ExitStatus::new(
-                                    f.to_rfc3339(),
+                                    finished_at.to_rfc3339(),
                                     code.to_string(),
-                                ))
-                            })
-                        });
+                                ));
+                            }
+                        }
 
                         ModuleDetails::new(
                             "id".to_string(),
@@ -110,6 +112,28 @@ where
         })
         .map_err(From::from);
     Box::new(details)
+}
+
+fn spec_to_core<M>(
+    spec: &ModuleSpec,
+) -> Result<CoreModuleSpec<<M::Module as Module>::Config>, Error>
+where
+    M: 'static + ModuleRuntime,
+    <M::Module as Module>::Config: DeserializeOwned + Serialize,
+{
+    let name = spec.name();
+    let type_ = spec.type_();
+    let env = spec.config()
+        .env()
+        .map(|vars| {
+            vars.into_iter()
+                .map(|var| (var.key().clone(), var.value().clone()))
+                .collect()
+        })
+        .unwrap_or_else(HashMap::new);
+    let config = serde_json::from_value(spec.config().settings().clone())?;
+    let module_spec = CoreModuleSpec::new(name, type_, config, env)?;
+    Ok(module_spec)
 }
 
 #[cfg(test)]
@@ -148,13 +172,9 @@ mod tests {
         type Error = Error;
         type PullFuture = FutureResult<(), Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
-        type RegistryAuthConfig = ();
+        type Config = TestConfig;
 
-        fn pull(
-            &self,
-            _name: &str,
-            _credentials: Option<&Self::RegistryAuthConfig>,
-        ) -> Self::PullFuture {
+        fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
             future::ok(())
         }
 

@@ -5,12 +5,12 @@ mod module;
 
 use std::io;
 
+use edgelet_core::{IdentityManager, Module, ModuleRegistry, ModuleRuntime};
+use edgelet_http::route::*;
 use hyper::Error as HyperError;
 use hyper::server::{NewService, Request, Response, Service};
 use serde::Serialize;
-
-use edgelet_core::{IdentityManager, Module, ModuleRuntime};
-use edgelet_http::route::*;
+use serde::de::DeserializeOwned;
 
 use IntoResponse;
 use self::module::*;
@@ -25,15 +25,16 @@ impl ManagementService {
     pub fn new<M, I>(runtime: &M, identity: &I) -> Result<Self, HyperError>
     where
         M: 'static + ModuleRuntime + Clone,
-        <M::Module as Module>::Config: Serialize,
+        <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Error: IntoResponse,
+        <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
         I: 'static + IdentityManager + Clone,
         I::Identity: Serialize,
         I::Error: IntoResponse,
     {
         let router = router!(
             get    "/modules"                         => ListModules::new(runtime.clone()),
-            post   "/modules"                         => CreateModule,
+            post   "/modules"                         => CreateModule::new(runtime.clone()),
             get    "/modules/(?P<name>[^/]+)"         => GetModule,
             put    "/modules/(?P<name>[^/]+)"         => UpdateModule,
             delete "/modules/(?P<name>[^/]+)"         => DeleteModule::new(runtime.clone()),

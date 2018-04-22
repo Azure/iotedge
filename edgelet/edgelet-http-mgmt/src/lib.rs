@@ -14,6 +14,9 @@ extern crate failure;
 extern crate failure_derive;
 extern crate futures;
 extern crate hyper;
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate management;
@@ -21,6 +24,10 @@ extern crate serde;
 #[cfg(test)]
 #[macro_use]
 extern crate serde_derive;
+#[cfg(test)]
+#[macro_use]
+extern crate serde_json;
+#[cfg(not(test))]
 extern crate serde_json;
 
 use hyper::Response;

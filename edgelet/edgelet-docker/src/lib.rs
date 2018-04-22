@@ -52,4 +52,4 @@ pub use config::DockerConfig;
 pub use error::{Error, ErrorKind};
 pub use module::DockerModule;
 
-pub use runtime::{DockerModuleRuntime, DockerRegistryAuthConfig};
+pub use runtime::DockerModuleRuntime;

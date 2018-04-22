@@ -127,7 +127,7 @@ mod tests {
         let docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
         assert_eq!("mod1", docker_module.name());
         assert_eq!("docker", docker_module.type_());
@@ -141,7 +141,7 @@ mod tests {
         let _docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
     }
 
@@ -152,7 +152,7 @@ mod tests {
         let _docker_module = DockerModule::new(
             create_api_client(&core, "boo"),
             "     ",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
     }
 
@@ -164,7 +164,7 @@ mod tests {
                     .with_state(InlineResponse200State::new().with_status(status.to_string())),
             ),
             "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
 
         let state = core.run(docker_module.runtime_state()).unwrap();
@@ -209,7 +209,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
@@ -242,7 +242,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
@@ -268,7 +268,7 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new()).unwrap(),
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
