@@ -16,7 +16,9 @@ $TestCommand = [IO.Path]::Combine(
     "run_docker_image_tests.bat")
 
 Write-Host "Running iotedgectl tests: $TestCommand"
-Invoke-Expression $TestCommand
+Invoke-Expression "$TestCommand 2>&1"
 if ($LASTEXITCODE -ne 0) {
     throw "Failed running iotedgectl tests"
 }
+
+Write-Host "Done!"

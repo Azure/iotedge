@@ -1,20 +1,20 @@
 <#
-    This script installs embedded python and pip specified by environment
-    variable %PythonEmbedVersion%. This is useful when installing python
-    within a Windows docker image.
+    Installs python in a Docker image for use in CI
 #>
 
-& {
+#Requires -RunAsAdministrator
+
+param (
+    [Parameter(Mandatory = $true)]
+    [String] $Version
+)
+
 $ErrorActionPreference = "Stop"
-Set-StrictMode -Version 5
+Set-StrictMode -Version "Latest"
 
-function Get-WindowsBuild {
-    (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
-}
-
-function Get-WindowsEdition {
-    (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID")
-}
+<#
+    Helper functions
+#>
 
 function Invoke-Native {
     [CmdletBinding()]
@@ -33,70 +33,66 @@ function Invoke-Native {
 
         if ($LASTEXITCODE) {
             throw $out
-        } elseif ($Passthru) {
+        }
+        elseif ($Passthru) {
             $out
         }
     }
 }
 
 <#
-    Verify that the script is running as an administrator
+    Parse version
 #>
 
-$CurrentUser = New-Object `
-    -TypeName Security.Principal.WindowsPrincipal `
-    -ArgumentList $([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not ($Version -match "^(\d+)(?:\.(\d+))?(?:\.(\d+)(\w*))?$")) {
+    throw "$Version is not a valid version string."
+}
+$Major = $matches[1]
+$Minor = $matches[2]
+$Patch = $matches[3]
 
-if (-not $CurrentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Write-Host ("This script must be run as an administrator. " +
-        "Please rerun this script in a new PowerShell session running as an administrator.") `
-        -ForegroundColor "Red"
-    return
+<#
+    Download python
+#>
+
+$PythonUrl = "https://www.python.org/ftp/python/${Major}.${Minor}.${Patch}/python-$Version-embed-amd64.zip"
+$PythonArchive = Join-Path $env:TEMP "py.zip"
+
+Write-Host "Downloading python from $PythonUrl"
+Invoke-WebRequest -Uri $PythonUrl -OutFile $PythonArchive
+
+<#
+    Install python
+#>
+
+$PythonLibArchive = Join-Path $Env:PYTHONHOME "python$Major$Minor.zip"
+$PythonLibDirectory = Join-Path $Env:PYTHONHOME "Lib"
+$PythonPathOverride = Join-Path $Env:PYTHONHOME "python$Major$Minor._pth"
+
+Write-Host "Installing python $Version"
+try {
+    Expand-Archive $PythonArchive $Env:PYTHONHOME -Force
+    Expand-Archive $PythonLibArchive $PythonLibDirectory -Force
+    Remove-Item $PythonPathOverride -Force -ErrorAction "SilentlyContinue"
+}
+finally {
+    Remove-Item @($PythonArchive, $PythonLibArchive) -Force -ErrorAction "SilentlyContinue"
 }
 
 <#
-    Install Python with pip within a Windows docker image.
+    Install pip
 #>
-    try {
-        Invoke-Native "python --help"
-    } catch {
-        $PythonEmbedVersion = $env:PythonEmbedVersion
-        Write-Progress -Activity "Downloading Python version $PythonEmbedVersion"
-        Invoke-WebRequest `
-            -Uri "https://www.python.org/ftp/python/$PythonEmbedVersion/python-$PythonEmbedVersion-embed-amd64.zip" `
-            -OutFile (Join-Path $env:TEMP "py.zip")
-        Write-Progress -Activity "Downloading Python..." -Completed
 
-        Write-Progress -Activity "Installing Python..."
-        try {
-            $env:PYTHONHOME = Join-Path $env:ProgramData "pyiotedge"
-            @($env:PYTHONHOME, "$env:PYTHONHOME\scripts") |
-                ForEach-Object {$env:PATH = $env:PATH -replace "$([Regex]::Escape($_))(;|$)", ""}
-            $env:PATH += ";$env:PYTHONHOME;$env:PYTHONHOME\scripts"
-            $env:PYTHONPATH = "$env:PYTHONHOME\python36;$env:PYTHONHOME\Lib;$env:PYTHONHOME\Lib\site-packages;"
-            Expand-Archive (Join-Path $env:TEMP "py.zip") $env:PYTHONHOME -Force
-            Expand-Archive (Join-Path $env:PYTHONHOME "python36.zip") (Join-Path $env:PYTHONHOME "python36") -Force
-        } finally {
-            Remove-Item (Join-Path $env:TEMP "py.zip") -Recurse -Force -ErrorAction "SilentlyContinue"
-            Remove-Item (Join-Path $env:TEMP "python36.zip") -Recurse -Force -ErrorAction "SilentlyContinue"
-        }
-        Write-Progress -Activity "Installing Python..." -Completed
+$PipUrl = "https://bootstrap.pypa.io/get-pip.py"
+$PipInstaller = Join-Path $Env:PYTHONHOME "get-dependency-manager.py"
 
-        Write-Progress -Activity "Downloading pip..."
-        Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile (Join-Path $env:PYTHONHOME "pip.py")
-        Write-Progress -Activity "Downloading pip..." -Completed
-
-        Write-Progress -Activity "Installing pip..."
-        Remove-Item (Join-Path $env:PYTHONHOME "python36._pth") -Force
-        Invoke-Native "python $env:PYTHONHOME\pip.py"
-        Write-Progress -Activity "Installing pip..." -Completed
-
-        # note: this does not seem to take effect when running in a container
-        # which is why it is required to be set in the docker file as well
-        Invoke-Native "setx /M PATH `"$env:Path`""
-        Invoke-Native "setx /M PYTHONHOME `"$env:PYTHONHOME`""
-        Invoke-Native "setx /M PYTHONPATH `"$env:PYTHONPATH`""
-    }
-
-    Write-Host "Python and pip are installed." -ForegroundColor "Green"
+Write-Host "Installing pip"
+Invoke-WebRequest -Uri $PipUrl -OutFile $PipInstaller
+try {
+    Invoke-Native "python $PipInstaller"
 }
+finally {
+    Remove-Item $PipInstaller -Force -ErrorAction "SilentlyContinue"
+}
+
+Write-Host "Done!"

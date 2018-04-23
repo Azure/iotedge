@@ -67,10 +67,10 @@ if (-not (Test-Path $DOTNET_PATH -PathType Leaf)) {
  #>
 
 $BaseTestCommand = if ($Filter) {
-    "test --no-build --logger `"$LOGGER_ARG`" --filter `"$Filter`" $Project" 
+    "test --no-build --logger `"$LOGGER_ARG`" --filter `"$Filter`"" 
 }
 else {
-    "test --no-build --logger `"$LOGGER_ARG`" $Project"
+    "test --no-build --logger `"$LOGGER_ARG`""
 }
 
 Write-Host "Running tests in all test projects with filter '$Filter'."
@@ -81,7 +81,7 @@ foreach ($Project in (Get-ChildItem $BuildRepositoryLocalPath -Include $TEST_PRO
         &$OPENCOVER `
             -register:user `
             -target:$DOTNET_PATH `
-            -targetargs:$BaseTestCommand `
+            -targetargs:"$BaseTestCommand $Project" `
             -skipautoprops `
             -hideskipped:All `
             -oldstyle `

@@ -21,7 +21,7 @@ if "%OS_TYPE%" == "linux" (
     REM Note: python 2.x tests are disabled for Windows because of no embedded python distribution
     REM is available for installation in a nanoserver image. For python 2.x images there is a public
     REM windowsservercore image available which is 6GB and has proven to be flaky to download and run.
-    set BASE_VERSION_LIST=3.5.4 3.6.4 3.6.5 3.7.0b2
+    set BASE_VERSION_LIST=3.5.4 3.6.4 3.6.5
 )
 
 REM Build images
