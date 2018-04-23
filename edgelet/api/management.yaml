@@ -54,6 +54,8 @@ paths:
       responses:
         '201':
           description: Created
+          schema:
+            $ref: '#/definitions/ModuleDetails'
         '409':
           description: Conflict. Returned if module already exists.
           schema:

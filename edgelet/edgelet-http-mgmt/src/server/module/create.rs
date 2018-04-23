@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
 use hyper::{Error as HyperError, StatusCode};
+use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
-use management::models::ModuleSpec;
+use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json;
@@ -52,15 +53,28 @@ where
                         spec_to_core::<M>(&spec)
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
+                            .map(|core_spec| (core_spec, spec))
                     })
-                    .map(move |spec| {
+                    .map(move |(core_spec, spec)| {
                         let created = runtime
                             .registry()
-                            .pull(spec.config())
+                            .pull(core_spec.config())
                             .and_then(move |_| {
                                 runtime
-                                    .create(spec)
-                                    .map(|_| Response::new().with_status(StatusCode::Created))
+                                    .create(core_spec)
+                                    .map(move |_| {
+                                        let details = spec_to_details(&spec);
+                                        serde_json::to_string(&details)
+                                            .context(ErrorKind::Serde)
+                                            .map(|b| {
+                                                Response::new()
+                                                    .with_status(StatusCode::Created)
+                                                    .with_header(ContentLength(b.len() as u64))
+                                                    .with_header(ContentType::json())
+                                                    .with_body(b)
+                                            })
+                                            .unwrap_or_else(|e| e.into_response())
+                                    })
                                     .or_else(|e| future::ok(e.into_response()))
                             })
                             .or_else(|e| future::ok(e.into_response()));
@@ -71,6 +85,26 @@ where
             .or_else(|e| future::ok(e.into_response()));
         Box::new(response)
     }
+}
+
+fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
+    let id = spec.name().clone();
+    let name = spec.name().clone();
+    let type_ = spec.type_().clone();
+
+    let env = spec.config().env().map(|e| {
+        e.iter()
+            .map(|ev| EnvVar::new(ev.key().clone(), ev.value().clone()))
+            .collect()
+    });
+    let mut config = Config::new(spec.config().settings().clone());
+    if let Some(e) = env {
+        config.set_env(e);
+    }
+
+    let runtime_status = RuntimeStatus::new(ModuleStatus::Created.to_string());
+    let status = Status::new(runtime_status);
+    ModuleDetails::new(id, name, type_, config, status)
 }
 
 #[cfg(test)]
@@ -107,7 +141,7 @@ mod tests {
     fn success() {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
+        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
         let mut request = Request::new(
             Method::Post,
             Uri::from_str("http://localhost/modules").unwrap(),
@@ -119,11 +153,28 @@ mod tests {
 
         // assert
         assert_eq!(StatusCode::Created, response.status());
+        assert_eq!(
+            ContentLength(160),
+            *response.headers().get::<ContentLength>().unwrap()
+        );
+        assert_eq!(
+            ContentType::json(),
+            *response.headers().get::<ContentType>().unwrap()
+        );
         response
             .body()
             .concat2()
             .and_then(|b| {
-                assert_eq!(0, b.len());
+                let details: ModuleDetails = serde_json::from_slice(&b).unwrap();
+                assert_eq!("test-module", details.name());
+                assert_eq!("docker", details.type_());
+                assert_eq!(
+                    "microsoft/test-image",
+                    details.config().settings().get("image").unwrap()
+                );
+                assert_eq!("created", details.status().runtime_status().status());
+
+                assert_eq!(160, b.len());
                 Ok(())
             })
             .wait()
