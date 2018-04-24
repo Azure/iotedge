@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         // modules that are running great
         System.Collections.Generic.IList<IRuntimeModule>
     >;
+    using Newtonsoft.Json;
 
     public class HealthRestartPlanner : IPlanner
     {
@@ -52,7 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
         {
             IEnumerable<IRuntimeModule> modulesToBeRestarted = this.restartManager.ApplyRestartPolicy(modules);
-
             IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(async module =>
             {
                 ICommand group = new GroupCommand(
@@ -68,9 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
                     // Update restart count and last restart time in store
                     await this.commandFactory.WrapAsync(
-                        new UpdateModuleStateCommand(
-                            module, this.store, new ModuleState(module.RestartCount + 1, DateTime.UtcNow)
-                        )
+                        new AddToStoreCommand<ModuleState>(this.store, module.Name, new ModuleState(module.RestartCount + 1, DateTime.UtcNow))
                     )
                 );
 
@@ -123,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     {
                         // NOTE: This is a "special" command in that it doesn't come from an "ICommandFactory". This
                         // command clears the health stats from the store.
-                        resetHealthStats.Add(await this.commandFactory.WrapAsync(new RemoveModuleStateCommand(module, this.store)));
+                        resetHealthStats.Add(await this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, module.Name)));
                         Events.ClearingRestartStats(module, this.intensiveCareTime);
                     }
                 }
@@ -177,6 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         public async Task<Plan> PlanAsync(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo,
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
+            Events.LogDesired(desired);
+            Events.LogCurrent(current);
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
 
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // are being updated because of a deployment
             IEnumerable<Task<ICommand>> removeStateTasks = removed
                 .Concat(updateDeployed)
-                .Select(m => this.commandFactory.WrapAsync(new RemoveModuleStateCommand(m, this.store)));
+                .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m.Name)));
             IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
 
             // create pull, create, update and start commands for added/updated modules
@@ -245,7 +245,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         enum EventIds
         {
             PlanCreated = IdStart,
-            ClearRestartStats = IdStart + 3
+            ClearRestartStats,
+            DesiredModules,
+            CurrentModules
         }
 
         public static void PlanCreated(IList<ICommand> commands)
@@ -256,6 +258,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         public static void ClearingRestartStats(IRuntimeModule module, TimeSpan intensiveCareTime)
         {
             Log.LogInformation((int)EventIds.ClearRestartStats, $"HealthRestartPlanner is clearing restart stats for module '{module.Name}' as it has been running healthy for {intensiveCareTime}.");
+        }
+
+        internal static void LogDesired(ModuleSet desired)
+        {
+            IDictionary<string, IModule> modules = desired.Modules.ToImmutableDictionary();
+            Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is - {JsonConvert.SerializeObject(modules)}");
+        }
+
+        internal static void LogCurrent(ModuleSet current)
+        {
+            IDictionary<string, IModule> modules = current.Modules.ToImmutableDictionary();
+            Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {JsonConvert.SerializeObject(modules)}");
         }
     }
 }

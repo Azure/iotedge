@@ -21,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         const string CurrentReportedPropertiesSchemaVersion = "1.0";
 
         readonly IEdgeAgentConnection edgeAgentConnection;
-        readonly IEnvironment environment;
         readonly AsyncLock sync;
         Option<AgentState> reportedState;
         readonly ISerde<AgentState> agentStateSerde;
@@ -29,13 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         public IoTHubReporter(
             IEdgeAgentConnection edgeAgentConnection,
-            IEnvironment environment,
             ISerde<AgentState> agentStateSerde,
             VersionInfo versionInfo
         )
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
-            this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.agentStateSerde = Preconditions.CheckNotNull(agentStateSerde, nameof(agentStateSerde));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
 
@@ -87,62 +84,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             }
         }
 
-        async Task<
-        (
-            Option<AgentState> reportedState,
-            Option<AgentState> currentState
-        )> BuildStatesAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status)
+        AgentState BuildCurrentStateAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus status)
         {
-            // produce JSONs for previously reported state and current state
-            Option<AgentState> agentState = await this.GetReportedStateAsync();
-            Option<AgentState> currentState = Option.None<AgentState>();
-
-            // if there is no reported JSON to compare against, then we don't do anything
-            // because this typically means that we never connected to IoT Hub before and
-            // we have no connection yet
-            return await agentState.Match(async rs =>
+            IEdgeAgentModule edgeAgentModule;
+            IEdgeHubModule edgeHubModule;
+            ImmutableDictionary<string, IModule> userModules;
+            IImmutableDictionary<string, IModule> currentModules = moduleSet?.Modules;
+            if (currentModules == null)
             {
-                // build system module objects
-                IEdgeAgentModule edgeAgentModule = await this.environment.GetEdgeAgentModuleAsync(token);
-                IEdgeHubModule edgeHubModule = (moduleSet?.Modules?.ContainsKey(Constants.EdgeHubModuleName) ?? false)
-                    ? moduleSet.Modules[Constants.EdgeHubModuleName] as IEdgeHubModule
-                    : UnknownEdgeHubModule.Instance;
-                edgeHubModule = edgeHubModule ?? UnknownEdgeHubModule.Instance;
-
-                IImmutableDictionary<string, IModule> userModules =
-                    moduleSet?.Modules?.Remove(edgeAgentModule.Name)?.Remove(edgeHubModule.Name) ??
-                    ImmutableDictionary<string, IModule>.Empty;
-
-                currentState = Option.Some(new AgentState(
-                    deploymentConfigInfo?.Version ?? rs.LastDesiredVersion,
-                    status,
-                    deploymentConfigInfo != null ? (await this.environment.GetUpdatedRuntimeInfoAsync(deploymentConfigInfo.DeploymentConfig.Runtime)) : rs.RuntimeInfo,
-                    new SystemModules(edgeAgentModule, edgeHubModule),
-                    userModules.ToImmutableDictionary(),
-                    CurrentReportedPropertiesSchemaVersion,
-                    this.versionInfo
-                ));
-
-                return (agentState, currentState);
-            },
-            () =>
+                edgeAgentModule = UnknownEdgeAgentModule.Instance;
+                edgeHubModule = UnknownEdgeHubModule.Instance;
+                userModules = ImmutableDictionary<string, IModule>.Empty;
+            }
+            else
             {
-                Events.NoSavedReportedProperties();
-                return Task.FromResult((agentState, currentState));
-            });
+                edgeAgentModule = currentModules.ContainsKey(Constants.EdgeAgentModuleName) ? moduleSet.Modules[Constants.EdgeAgentModuleName] as IEdgeAgentModule : UnknownEdgeAgentModule.Instance;
+                edgeHubModule = currentModules.ContainsKey(Constants.EdgeHubModuleName) ? moduleSet.Modules[Constants.EdgeHubModuleName] as IEdgeHubModule : UnknownEdgeHubModule.Instance;
+                userModules = currentModules.RemoveRange(new[] { Constants.EdgeAgentModuleName, Constants.EdgeHubModuleName }).ToImmutableDictionary();
+            }
+
+            var currentState = new AgentState(version, status, runtimeInfo, new SystemModules(edgeAgentModule, edgeHubModule),
+                userModules, CurrentReportedPropertiesSchemaVersion, this.versionInfo);
+            return currentState;
         }
 
-        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, DeploymentConfigInfo deploymentConfigInfo, DeploymentStatus status)
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus status)
         {
             Preconditions.CheckNotNull(status, nameof(status));
 
             Option<AgentState> agentState = Option.None<AgentState>();
-            Option<AgentState> currentState = Option.None<AgentState>();
             using (await this.sync.LockAsync(token))
             {
                 try
                 {
-                    (agentState, currentState) = await this.BuildStatesAsync(token, moduleSet, deploymentConfigInfo, status);
+                    agentState = await this.GetReportedStateAsync();
+                    // if there is no reported JSON to compare against, then we don't do anything
+                    // because this typically means that we never connected to IoT Hub before and
+                    // we have no connection yet
+                    await agentState.ForEachAsync(async rs =>
+                    {
+                        AgentState currentState = this.BuildCurrentStateAsync(token, moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, status);
+                        // diff, prepare patch and report
+                        await this.DiffAndReportAsync(currentState, rs);
+                    });
+
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
@@ -160,23 +145,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     {
                         await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
                     }
-                    catch (Exception ex2) when (!ex.IsFatal())
+                    catch (Exception ex2) when (!ex2.IsFatal())
                     {
                         Events.UpdateErrorInfoFailed(ex2);
                     }
                 }
-
-                // if there is no reported JSON to compare against, then we don't do anything
-                // because this typically means that we never connected to IoT Hub before and
-                // we have no connection yet
-                await agentState.ForEachAsync(async rs =>
-                {
-                    await currentState.ForEachAsync(async cs =>
-                    {
-                    // diff and prepare patch
-                    await this.DiffAndReportAsync(cs, rs);
-                    });
-                }); 
             }
         }
 
@@ -186,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             {
                 Preconditions.CheckNotNull(status, nameof(status));
                 Option<AgentState> agentState = await this.GetReportedStateAsync();
-                await agentState.ForEachAsync(state => this.ReportShutdownInternal(state, status)); 
+                await agentState.ForEachAsync(state => this.ReportShutdownInternal(state, status));
             }
         }
 

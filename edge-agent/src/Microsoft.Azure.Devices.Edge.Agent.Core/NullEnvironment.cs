@@ -21,6 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public Task<IEdgeAgentModule> GetEdgeAgentModuleAsync(CancellationToken token) => Task.FromResult((IEdgeAgentModule)null);
 
-        public Task<IRuntimeInfo> GetUpdatedRuntimeInfoAsync(IRuntimeInfo runtimeInfo) => Task.FromResult(runtimeInfo);
+        public Task<IRuntimeInfo> GetRuntimeInfoAsync() => Task.FromResult(UnknownRuntimeInfo.Instance as IRuntimeInfo);
     }
 }

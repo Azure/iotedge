@@ -11,13 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
+        readonly CreateContainerParameters createOptions;
+
         [JsonProperty(Required = Required.Always, PropertyName = "image")]
         public string Image { get; }
 
+        // Do a serialization roundtrip to clone the createOptions
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
-        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
-        readonly CreateContainerParameters createOptions;
+        public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));        
 
         public DockerConfig(string image)
             : this(image, string.Empty)
@@ -27,10 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonConstructor]
         public DockerConfig(string image, string createOptions)
         {
-            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+            this.Image = image?.Trim() ?? string.Empty;
             this.createOptions = string.IsNullOrWhiteSpace(createOptions)
                 ? new CreateContainerParameters()
                 : JsonConvert.DeserializeObject<CreateContainerParameters>(createOptions);
+        }
+
+        public DockerConfig(string image, CreateContainerParameters createOptions)
+        {
+            this.Image = image?.Trim() ?? string.Empty;
+            this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);

@@ -55,7 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
             LogLogo(logger);
 
+            string mode;
             Uri dockerUri;
+            string edgeletUrl;
             string configSourceConfig;
             string backupConfigFilePath;
             int maxRestartCount;
@@ -64,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool usePersistentStorage;
             string storagePath;
             string deviceConnectionString;
+            string edgeAgentConnectionString;
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
@@ -71,7 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
+                mode = configuration.GetValue<string>("Mode", "docker");
                 dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
+                edgeletUrl = configuration.GetValue<string>("EdgeletUrl");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -80,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
                 deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+                edgeAgentConnectionString = configuration.GetValue<string>("ModuleConnectionString", string.Empty);
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -95,13 +101,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             try
             {
                 var builder = new ContainerBuilder();
-                builder.RegisterModule(new AgentModule(deviceConnectionString, edgeDeviceHostName, maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
+                builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
-                builder.RegisterModule(new DockerModule(dockerUri, dockerAuthConfig));
+
+                switch(mode.ToLower())
+                {
+                    case "docker":
+                        IConfiguration dockerConfig = configuration.GetSection("DockerConfig");
+                        edgeAgentConnectionString = $"{deviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig));
+                        break;
+
+                    case "edgelet":
+                        builder.RegisterModule(new EdgeletModule(edgeAgentConnectionString, edgeDeviceHostName, edgeletUrl, dockerAuthConfig));
+                        break;
+
+                    default:
+                        throw new InvalidOperationException($"Mode '{mode}' not supported.");
+                }                
+
                 switch (configSourceConfig.ToLower())
                 {
                     case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(deviceConnectionString, backupConfigFilePath, configuration, versionInfo));
+                        builder.RegisterModule(new TwinConfigSourceModule(edgeAgentConnectionString, backupConfigFilePath, configuration, versionInfo));
                         break;
 
                     case "local":
@@ -109,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         break;
 
                     default:
-                        throw new Exception($"ConfigSource '{configSourceConfig}' not supported.");
+                        throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
 
                 container = builder.Build();

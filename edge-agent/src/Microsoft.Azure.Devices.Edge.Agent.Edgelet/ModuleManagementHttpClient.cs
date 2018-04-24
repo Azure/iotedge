@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
@@ -19,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         readonly EdgeletHttpClient edgeletHttpClient;
-        readonly string EdgeletHttpUrl;
+        readonly string edgeletUrl;
 
-        public ModuleManagementHttpClient(string edgeletHttpUrl)
+        public ModuleManagementHttpClient(string edgeletUrl)
         {
-            this.EdgeletHttpUrl = Preconditions.CheckNonWhiteSpace(edgeletHttpUrl, nameof(edgeletHttpUrl));
-            this.edgeletHttpClient = new EdgeletHttpClient { BaseUrl = this.EdgeletHttpUrl };
+            this.edgeletUrl = Preconditions.CheckNotNull(edgeletUrl, nameof(edgeletUrl));
+            this.edgeletHttpClient = new EdgeletHttpClient { BaseUrl = this.edgeletUrl.ToString() };
         }
 
         public Task<Identity> CreateIdentityAsync(string name) => this.Execute(
@@ -55,10 +56,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 () => this.edgeletHttpClient.RestartModuleAsync(ApiVersion, name),
                 $"Create module {name}");
 
-        public async Task<IEnumerable<ModuleDetails>> GetModules()
+        public async Task<IEnumerable<ModuleDetails>> GetModules(CancellationToken cancellationToken)
         {
             ModuleList moduleList = await this.Execute(
-                () => this.edgeletHttpClient.ListModulesAsync(ApiVersion),
+                () => this.edgeletHttpClient.ListModulesAsync(ApiVersion, cancellationToken),
                 $"List modules");
             return moduleList.Modules;
         }
@@ -86,9 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             try
             {
-                Events.ExecutingOperation(operation, this.EdgeletHttpUrl);
-                T result = await ExecuteWithRetry(func, (r) => Events.RetryingOperation(operation, this.EdgeletHttpUrl, r));
-                Events.SuccessfullyExecutedOperation(operation, this.EdgeletHttpUrl);
+                Events.ExecutingOperation(operation, this.edgeletUrl);
+                T result = await ExecuteWithRetry(func, (r) => Events.RetryingOperation(operation, this.edgeletUrl, r));
+                Events.SuccessfullyExecutedOperation(operation, this.edgeletUrl);
                 return result;
             }
             catch (Exception ex)

@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running, new ConfigurationInfo("1"));
         static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, new ConfigurationInfo("1"));
 
-        static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", null, "sha256:75");
+        static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
         static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, new ConfigurationInfo("1"));
 
         const string SerializedModule1 = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""exitcode"":0,""restartcount"":0,""lastrestarttimeutc"":""0001-01-01T00:00:00Z"",""runtimestatus"":""running"",""settings"":{""image"":""image1:42"",""createOptions"":{""HostConfig"":{""PortBinding"":{""42/tcp"":[{""HostPort"":""42""}],""43/udp"":[{""HostPort"":""43""}]}}}},""configuration"":{""id"":""1""}}";
@@ -680,8 +680,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m1, newM1);
             Assert.NotEqual(m2, newM2);
             Assert.NotNull(newM2);
-            Assert.Equal(newM2.RuntimeStatus , ModuleStatus.Stopped);
-            Assert.Equal(m2.Config , newM2.Config);
+            Assert.Equal(newM2.RuntimeStatus, ModuleStatus.Stopped);
+            Assert.Equal(m2.Config, newM2.Config);
             Assert.Equal(m2.ConfigurationInfo, newM2.ConfigurationInfo);
             Assert.Equal(m2.DesiredStatus, newM2.DesiredStatus);
             Assert.Equal(m2.ExitCode, newM2.ExitCode);
@@ -690,7 +690,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m2.LastStartTimeUtc, newM2.LastStartTimeUtc);
             Assert.Equal(m2.Name, newM2.Name);
             Assert.Equal(m2.RestartCount, newM2.RestartCount);
-            Assert.Equal(m2.RestartPolicy , newM2.RestartPolicy);
+            Assert.Equal(m2.RestartPolicy, newM2.RestartPolicy);
             Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
             Assert.Equal(m2.Type, newM2.Type);
             Assert.Equal(m2.Version, newM2.Version);

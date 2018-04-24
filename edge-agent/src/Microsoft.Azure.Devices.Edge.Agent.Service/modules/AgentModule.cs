@@ -6,13 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
-    using global::Docker.DotNet;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -20,10 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class AgentModule : Module
     {
-        readonly string deviceId;
-        readonly string iotHubHostName;
-        readonly string edgeDeviceConnectionString;
-        readonly string gatewayHostName;
         readonly int maxRestartCount;
         readonly TimeSpan intensiveCareTime;
         readonly int coolOffTimeUnitInSeconds;
@@ -66,15 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(string edgeDeviceConnectionString, string gatewayHostName,
-            int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
             bool usePersistentStorage, string storagePath)
         {
-            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
-            IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(this.edgeDeviceConnectionString);
-            this.deviceId = connectionStringParser.DeviceId;
-            this.iotHubHostName = connectionStringParser.HostName;
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
             this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
@@ -84,16 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IServiceClient
-            builder.Register(c => new RetryingServiceClient(new ServiceClient(this.edgeDeviceConnectionString, this.deviceId)))
-                .As<IServiceClient>()
-                .SingleInstance();
-
-            // IModuleIdentityLifecycleManager
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), new ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId), this.gatewayHostName))
-                .As<IModuleIdentityLifecycleManager>()
-                .SingleInstance();
-
             // ISerde<Diff>
             builder.Register(c => new DiffSerde(
                     new Dictionary<string, Type>
@@ -154,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     if (this.usePersistentStorage)
                     {
                         // Create partition for mma
-                        var partitionsList = new List<string> { Constants.MmaStorePartitionKey };
+                        var partitionsList = new List<string> { "moduleState", "deploymentConfig" };
                         try
                         {
                             IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(c.Resolve<IRocksDbOptionsProvider>(),
@@ -182,10 +160,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IStoreProvider>()
                 .SingleInstance();
 
-            // IEntityStore<string, RestartState>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>(Constants.MmaStorePartitionKey))
+            // IEntityStore<string, ModuleState>
+            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>("moduleState"))
                 .As<IEntityStore<string, ModuleState>>()
-                .SingleInstance();            
+                .SingleInstance();
+
+            // IEntityStore<string, DeploymentConfigInfo>
+            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, string>("deploymentConfig"))
+                .As<IEntityStore<string, string>>()
+                .SingleInstance();
 
             // IRestartManager
             builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnitInSeconds))
@@ -212,18 +195,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     var configSource = c.Resolve<Task<IConfigSource>>();
-                    var environment = c.Resolve<Task<IEnvironment>>();
+                    var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
                     var planner = c.Resolve<Task<IPlanner>>();
                     var planRunner = c.Resolve<IPlanRunner>();
-                    var reporter = c.Resolve<Task<IReporter>>();
+                    var reporter = c.Resolve<IReporter>();
                     var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
-                    return new Agent(
+                    var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
+                    return await Agent.Create(
                         await configSource,
-                        await environment,
                         await planner,
                         planRunner,
-                        await reporter,
-                        moduleIdentityLifecycleManager);
+                        reporter,
+                        moduleIdentityLifecycleManager,
+                        await environmentProvider,
+                        deploymentConfigInfoStore,
+                        deploymentConfigInfoSerde);
                 })
                 .As<Task<Agent>>()
                 .SingleInstance();

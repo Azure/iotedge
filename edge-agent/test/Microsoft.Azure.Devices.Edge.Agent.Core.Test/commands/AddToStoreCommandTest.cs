@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
@@ -11,18 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     using Moq;
     using Xunit;
 
-    public class RemoveModuleStateCommandTest
+    public class AddToStoreCommandTest
     {
         [Fact]
         [Unit]
         public void TestCreateValidation()
         {
-            IModule module = new Mock<IModule>().Object;
             IEntityStore<string, ModuleState> store = new Mock<IEntityStore<string, ModuleState>>().Object;
+            var state = new ModuleState(0, DateTime.UtcNow);
 
-            Assert.Throws<ArgumentNullException>(() => new RemoveModuleStateCommand(null, store));
-            Assert.Throws<ArgumentNullException>(() => new RemoveModuleStateCommand(module, null));
-            Assert.NotNull(new RemoveModuleStateCommand(module, store));
+            Assert.Throws<ArgumentException>(() => new AddToStoreCommand<ModuleState>(store, null, state));
+            Assert.Throws<ArgumentNullException>(() => new AddToStoreCommand<ModuleState>(null, "foo", state));
+            Assert.Throws<ArgumentNullException>(() => new AddToStoreCommand<ModuleState>(store, "foo", null));
+            Assert.NotNull(new AddToStoreCommand<ModuleState>(store, "foo", state));
         }
 
         [Fact]
@@ -33,10 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             var module = new Mock<IModule>();
             module.SetupGet(m => m.Name).Returns("module1");
 
-            var store = new Mock<IEntityStore<string, ModuleState>>();
-            store.Setup(s => s.Remove("module1")).Returns(Task.CompletedTask);
+            var state = new ModuleState(0, DateTime.UtcNow);
 
-            var cmd = new RemoveModuleStateCommand(module.Object, store.Object);
+            var store = new Mock<IEntityStore<string, ModuleState>>();
+            store.Setup(s => s.Put("module1", state))
+                .Returns(Task.CompletedTask);
+
+            var cmd = new AddToStoreCommand<ModuleState>(store.Object, module.Object.Name, state);
 
             // Act
             await cmd.ExecuteAsync(CancellationToken.None);

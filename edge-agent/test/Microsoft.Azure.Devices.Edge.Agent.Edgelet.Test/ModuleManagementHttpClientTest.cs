@@ -2,8 +2,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Act
             await client.CreateModuleAsync(moduleSpec);
-            ModuleDetails moduleDetails = (await client.GetModules()).FirstOrDefault();
+            ModuleDetails moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();
 
             // Assert
             Assert.NotNull(moduleDetails);
@@ -86,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Act
             await client.StartModuleAsync(moduleSpec.Name);
-            moduleDetails = (await client.GetModules()).FirstOrDefault();
+            moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();
 
             // Assert
             Assert.NotNull(moduleDetails);
@@ -94,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Act
             await client.StopModuleAsync(moduleSpec.Name);
-            moduleDetails = (await client.GetModules()).FirstOrDefault();
+            moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();
 
             // Assert
             Assert.NotNull(moduleDetails);
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Act
             await client.DeleteModuleAsync(moduleSpec.Name);
-            moduleDetails = (await client.GetModules()).FirstOrDefault();
+            moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();
 
             // Assert
             Assert.Null(moduleDetails);

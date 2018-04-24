@@ -11,20 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     using Moq;
     using Xunit;
 
-    public class UpdateModuleStateCommandTest
+    public class RemoveFromStoreCommandTest
     {
         [Fact]
         [Unit]
         public void TestCreateValidation()
         {
-            IModule module = new Mock<IModule>().Object;
             IEntityStore<string, ModuleState> store = new Mock<IEntityStore<string, ModuleState>>().Object;
-            var state = new ModuleState(0, DateTime.UtcNow);
 
-            Assert.Throws<ArgumentNullException>(() => new UpdateModuleStateCommand(null, store, state));
-            Assert.Throws<ArgumentNullException>(() => new UpdateModuleStateCommand(module, null, state));
-            Assert.Throws<ArgumentNullException>(() => new UpdateModuleStateCommand(module, store, null));
-            Assert.NotNull(new UpdateModuleStateCommand(module, store, state));
+            Assert.Throws<ArgumentException>(() => new RemoveFromStoreCommand<ModuleState>(store, null));
+            Assert.Throws<ArgumentNullException>(() => new RemoveFromStoreCommand<ModuleState>(null, "key"));
+            Assert.NotNull(new RemoveFromStoreCommand<ModuleState>(store, "key"));
         }
 
         [Fact]
@@ -35,13 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             var module = new Mock<IModule>();
             module.SetupGet(m => m.Name).Returns("module1");
 
-            var state = new ModuleState(0, DateTime.UtcNow);
-
             var store = new Mock<IEntityStore<string, ModuleState>>();
-            store.Setup(s => s.Put("module1", state))
-                .Returns(Task.CompletedTask);
+            store.Setup(s => s.Remove("module1")).Returns(Task.CompletedTask);
 
-            var cmd = new UpdateModuleStateCommand(module.Object, store.Object, state);
+            var cmd = new RemoveFromStoreCommand<ModuleState>(store.Object, module.Object.Name);
 
             // Act
             await cmd.ExecuteAsync(CancellationToken.None);

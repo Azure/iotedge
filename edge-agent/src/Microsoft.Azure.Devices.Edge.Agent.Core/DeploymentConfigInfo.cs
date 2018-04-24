@@ -25,8 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.DeploymentConfig = DeploymentConfig.Empty;
         }
 
+        [JsonProperty("version")]
         public long Version { get; }
 
+        [JsonProperty("deploymentConfig")]
         public DeploymentConfig DeploymentConfig { get; }
 
         [JsonIgnore]

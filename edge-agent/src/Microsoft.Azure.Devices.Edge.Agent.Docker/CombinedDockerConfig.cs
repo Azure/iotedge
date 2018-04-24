@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.AllowNull, PropertyName = "createOptions")]
         public CreateContainerParameters CreateOptions { get; }
 
-        [JsonProperty(Required = Required.AllowNull, PropertyName = "authConfig")]
+        [JsonProperty(Required = Required.AllowNull, PropertyName = "auth")]
         [JsonConverter(typeof(OptionConverter<AuthConfig>))]
         public Option<AuthConfig> AuthConfig { get; }
 

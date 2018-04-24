@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         }
 
         string GetModuleConnectionString(Identity identity) => identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
-                ? this.connectionStringBuilder.Create(identity.ModuleId)
-                : this.connectionStringBuilder.Create(identity.ModuleId).WithGatewayHostName(this.gatewayHostName);
+            ? this.connectionStringBuilder.Create(identity.ModuleId)
+            : this.connectionStringBuilder.Create(identity.ModuleId).WithGatewayHostName(this.gatewayHostName);
     }
 }

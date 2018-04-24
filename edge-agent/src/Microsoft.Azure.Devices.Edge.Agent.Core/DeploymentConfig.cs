@@ -38,12 +38,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
             ImmutableDictionary<string, IModule>.Empty);
 
+        [JsonProperty("schemaVersion")]
         public string SchemaVersion { get; }
 
+        [JsonProperty("runtime")]
         public IRuntimeInfo Runtime { get; }
 
+        [JsonProperty("systemModules")]
         public SystemModules SystemModules { get; }
 
+        [JsonProperty("modules")]
         public IImmutableDictionary<string, IModule> Modules { get; }
 
         public ModuleSet GetModuleSet()
@@ -53,8 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 modules.Add(module.Key, module.Value);
             }
-            this.SystemModules.EdgeHub.ForEach(h => modules.Add(h.Name, h));
-
+            this.SystemModules.EdgeHub.Filter(e => e != UnknownEdgeHubModule.Instance).ForEach(h => modules.Add(h.Name, h));
+            this.SystemModules.EdgeAgent.Filter(e => e != UnknownEdgeAgentModule.Instance).ForEach(h => modules.Add(h.Name, h));
             return modules.Count == 0
                 ? ModuleSet.Empty
                 : new ModuleSet(modules);

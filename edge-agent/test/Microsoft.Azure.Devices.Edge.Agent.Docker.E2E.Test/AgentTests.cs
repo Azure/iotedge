@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
@@ -87,11 +88,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 // the real configuration source that talks to IoT Hub above.
                 NullReporter reporter = NullReporter.Instance;
 
-                IEntityStore<string, ModuleState> restartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
+                IEntityStore<string, ModuleState> restartStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
+                IEntityStore<string, string> configStore = Mock.Of<IEntityStore<string, string>>();
+                ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde = Mock.Of<ISerde<DeploymentConfigInfo>>();
                 IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
-                DockerEnvironment environment = await DockerEnvironment.CreateAsync(client, restartStateStore, restartManager);
+                IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
+                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
 
                 string credential = "fake";
@@ -105,7 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
-                var agent = new Agent(configSource.Object, environment, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter, moduleIdentityLifecycleManager.Object);
+                var agent = await Agent.Create(configSource.Object, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter,
+                    moduleIdentityLifecycleManager.Object, environmentProvider, configStore, deploymentConfigInfoSerde);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

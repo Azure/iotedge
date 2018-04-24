@@ -9,27 +9,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     public class Agent
     {
-        readonly IEnvironment environment;
+        const string StoreConfigKey = "CurrentConfig";
+        IEnvironment environment;
         readonly IPlanner planner;
         readonly IPlanRunner planRunner;
         readonly IReporter reporter;
         readonly IConfigSource configSource;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
+        readonly IEntityStore<string, string> configStore;
+        readonly IEnvironmentProvider environmentProvider;
+        readonly AsyncLock reconcileLock = new AsyncLock();
+        readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
+        DeploymentConfigInfo currentConfig;
 
-        public Agent(IConfigSource configSource, IEnvironment environment, IPlanner planner, IPlanRunner planRunner, IReporter reporter, IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
+        public Agent(IConfigSource configSource, IEnvironmentProvider environmentProvider,
+            IPlanner planner, IPlanRunner planRunner, IReporter reporter,
+            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
+            IEntityStore<string, string> configStore, DeploymentConfigInfo initialDeployedConfigInfo,
+            ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
-            this.environment = Preconditions.CheckNotNull(environment, nameof(environment));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
             this.planRunner = Preconditions.CheckNotNull(planRunner, nameof(planRunner));
             this.reporter = Preconditions.CheckNotNull(reporter, nameof(reporter));
             this.moduleIdentityLifecycleManager = Preconditions.CheckNotNull(moduleIdentityLifecycleManager, nameof(moduleIdentityLifecycleManager));
+            this.configStore = Preconditions.CheckNotNull(configStore, nameof(configStore));
+            this.environmentProvider = Preconditions.CheckNotNull(environmentProvider, nameof(environmentProvider));
+            this.currentConfig = Preconditions.CheckNotNull(initialDeployedConfigInfo);
+            this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
+            this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             Events.AgentCreated();
+        }
+
+        public static async Task<Agent> Create(IConfigSource configSource, IPlanner planner, IPlanRunner planRunner, IReporter reporter,
+            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager, IEnvironmentProvider environmentProvider,
+            IEntityStore<string, string> configStore, ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde)
+        {
+            Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
+            Preconditions.CheckNotNull(configStore, nameof(configStore));
+
+            Option<DeploymentConfigInfo> deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
+            try
+            {
+                Option<string> deploymentConfigInfoJson = await Preconditions.CheckNotNull(configStore, nameof(configStore)).Get(StoreConfigKey);
+                deploymentConfigInfo = deploymentConfigInfoJson.Map(json => deploymentConfigInfoSerde.Deserialize(json));
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Events.ErrorDeserializingConfig(ex);
+            }
+            var agent = new Agent(configSource, environmentProvider, planner, planRunner, reporter, moduleIdentityLifecycleManager,
+                configStore, deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty), deploymentConfigInfoSerde);
+            return agent;
         }
 
         async Task<(ModuleSet current, Exception ex)> GetCurrentModuleSetAsync(CancellationToken token)
@@ -41,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 current = await this.environment.GetModulesAsync(token);
             }
-            catch (Exception e)
+            catch (Exception e) when (!ex.IsFatal())
             {
                 ex = e;
             }
@@ -60,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
                 Events.ObtainedDeploymentConfigInfo(deploymentConfigInfo);
             }
-            catch (Exception e)
+            catch (Exception e) when (!ex.IsFatal())
             {
                 ex = e;
             }
@@ -92,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Exception exception = null;
             if (exceptions.Any())
             {
-                exception = exceptions.Count > 1 ? new AggregateException(exceptions) : exceptions.First();
+                exception = exceptions.Count > 1 ? new AggregateException(exceptions) : exceptions[0];
             }
 
             return (current, deploymentConfigInfo, exception);
@@ -100,76 +140,81 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            ModuleSet updated = null;
-            DeploymentConfigInfo deploymentConfigInfo = null;
-
-            try
+            DeploymentStatus status = DeploymentStatus.Success;
+            ModuleSet moduleSetToReport = null;
+            using (await this.reconcileLock.LockAsync())
             {
-                Exception exception;
-                ModuleSet current;
-                (current, deploymentConfigInfo, exception) = await this.GetReconcileData(token);
-                updated = current;
-                if (exception != null)
+                try
                 {
-                    throw exception;
-                }
-
-                DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
-                if (deploymentConfig != DeploymentConfig.Empty)
-                {
-                    ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                    IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(
-                        desiredModuleSet, current
-                    );
-                    Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
-                    if (!plan.IsEmpty)
+                    (ModuleSet current, DeploymentConfigInfo deploymentConfigInfo, Exception exception) = await this.GetReconcileData(token);
+                    moduleSetToReport = current;
+                    if (exception != null)
                     {
-                        try
-                        {
-                            await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                        throw exception;
+                    }
 
-                            // get post plan execution state
-                            updated = await this.environment.GetModulesAsync(token);
-                        }
-                        catch (Exception ex)
+                    DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
+                    if (deploymentConfig != DeploymentConfig.Empty)
+                    {
+                        ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                        // Remove EdgeAgent from current and desired module sets, before handling off to planner.
+                        // TODO: EdgeAgent updates need to be handled separately (currently a No-op)
+                        ModuleSet desiredModulesToPlan = new ModuleSet(desiredModuleSet.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
+                        ModuleSet currentModules = new ModuleSet(current.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
+                        IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
+                        Plan plan = await this.planner.PlanAsync(desiredModulesToPlan, currentModules, deploymentConfig.Runtime, identities);
+                        if (!plan.IsEmpty)
                         {
-                            Events.PlanExecutionFailed(ex);
+                            try
+                            {
+                                await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                await this.UpdateCurrentConfig(deploymentConfigInfo);
+                            }
+                            catch (Exception ex) when (!ex.IsFatal())
+                            {
+                                Events.PlanExecutionFailed(ex);
+                                await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                throw;
+                            }
 
-                            // even though plan execution failed, the environment might
-                            // still have changed (as a result of partial execution of
-                            // the plan for example)
-                            updated = await this.environment.GetModulesAsync(token);
-                            throw;
                         }
                     }
                 }
+                catch (Exception ex) when (!ex.IsFatal())
+                {
+                    switch (ex)
+                    {
+                        case ConfigEmptyException _:
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                            Events.EmptyConfig(ex);
+                            break;
 
-                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, DeploymentStatus.Success);
+                        case InvalidSchemaVersionException _:
+                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                            Events.InvalidSchemaVersion(ex);
+                            break;
+
+                        case ConfigFormatException _:
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                            Events.InvalidConfigFormat(ex);
+                            break;
+
+                        default:
+                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                            Events.UnknownFailure(ex);
+                            break;
+                    }
+                }
+                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, status);
             }
-            catch (ConfigEmptyException ex)
-            {
-                var status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
-                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                Events.EmptyConfig(ex);
-            }
-            catch (InvalidSchemaVersionException ex)
-            {
-                var status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
-                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                Events.InvalidSchemaVersion(ex);
-            }
-            catch (ConfigFormatException ex)
-            {
-                var status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
-                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                Events.InvalidConfigFormat(ex);
-            }
-            catch (Exception ex)
-            {
-                var status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
-                await this.reporter.ReportAsync(token, updated, deploymentConfigInfo, status);
-                throw;
-            }
+        }
+
+        // This should be called only within the reconcile lock. 
+        private async Task UpdateCurrentConfig(DeploymentConfigInfo deploymentConfigInfo)
+        {
+            this.environment = this.environmentProvider.Create(deploymentConfigInfo.DeploymentConfig);
+            this.currentConfig = deploymentConfigInfo;
+            await this.configStore.Put(StoreConfigKey, this.deploymentConfigInfoSerde.Serialize(deploymentConfigInfo));
         }
 
         public async Task ReportShutdownAsync(CancellationToken token)
@@ -181,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 await this.reporter.ReportShutdown(status, token);
                 Events.ReportShutdown();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ReportShutdownFailed(ex);
                 throw;
@@ -203,7 +248,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 ReportShutdown,
                 ReportShutdownFailed,
                 GettingDeploymentConfigInfo,
-                ObtainedDeploymentConfigInfo
+                ObtainedDeploymentConfigInfo,
+                UnknownFailure,
+                ErrorDeserializingConfig
             }
 
             public static void AgentCreated()
@@ -216,19 +263,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 Log.LogError((int)EventIds.PlanExecutionFailed, ex, "Edge agent plan execution failed.");
             }
 
-            public static void EmptyConfig(ConfigEmptyException ex)
+            public static void EmptyConfig(Exception ex)
             {
                 Log.LogDebug((int)EventIds.EmptyConfig, ex.Message);
             }
 
-            public static void InvalidSchemaVersion(InvalidSchemaVersionException ex)
+            public static void InvalidSchemaVersion(Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidSchemaVersion, ex.Message);
             }
 
-            public static void InvalidConfigFormat(ConfigFormatException ex)
+            public static void InvalidConfigFormat(Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidConfigFormat, ex.Message);
+            }
+
+            public static void UnknownFailure(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.UnknownFailure, ex.Message);
             }
 
             public static void ReportShutdown()
@@ -252,6 +304,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 {
                     Log.LogDebug((int)EventIds.ObtainedDeploymentConfigInfo, "Obtained edge agent config");
                 }
+            }
+
+            internal static void ErrorDeserializingConfig(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorDeserializingConfig, ex, "There was an error deserializing stored deployment configuration information");
             }
         }
     }

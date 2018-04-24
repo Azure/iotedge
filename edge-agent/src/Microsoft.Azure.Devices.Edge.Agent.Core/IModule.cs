@@ -76,7 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         OnUnhealthy = 2,
 
         [EnumMember(Value = "always")]
-        Always = 3
+        Always = 3,
+
+        [EnumMember(Value = "unknown")]
+        Unknown
     }
 
     public interface IModule : IEquatable<IModule>

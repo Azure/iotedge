@@ -9,6 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -21,17 +23,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void AgentConstructorInvalidArgs()
         {
             var mockConfigSource = new Mock<IConfigSource>();
-            var mockEnvironment = new Mock<IEnvironment>();
+            var mockEnvironmentProvider = new Mock<IEnvironmentProvider>();
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var mockModuleLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
 
-            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, null, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, null, mockReporter.Object, mockModuleLifecycleManager.Object));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, null, mockModuleLifecycleManager.Object));
+            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, null, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, null, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, null, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, null, configStore, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, null, DeploymentConfigInfo.Empty, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, null, serde));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, null));
         }
 
         [Fact]
@@ -39,14 +47,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public async void ReconcileAsyncOnEmptyPlan()
         {
             var token = new CancellationToken();
-
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
+            var mockEnvironmentProvider = new Mock<IEnvironmentProvider>();
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
             var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
@@ -55,22 +65,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             ModuleSet currentModuleSet = desiredModuleSet;
 
+            mockEnvironmentProvider.Setup(m => m.Create(It.IsAny<DeploymentConfig>())).Returns(mockEnvironment.Object);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentModuleSet);
+            mockEnvironment.Setup(env => env.GetRuntimeInfoAsync()).ReturnsAsync(runtimeInfo);
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet))
                 .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(Plan.Empty));
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             await agent.ReconcileAsync(token);
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
-            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, deploymentConfigInfo, DeploymentStatus.Success), Times.Once);
+            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, runtimeInfo, DeploymentConfigInfo.Empty.Version, DeploymentStatus.Success), Times.Once);
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, Plan.Empty, token), Times.Never);
         }
 
@@ -87,18 +99,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
             ModuleSet currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).Throws<InvalidOperationException>();
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockReporter.Setup(r => r.ReportAsync(token, currentSet, null, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             // Act
             // Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            await agent.ReconcileAsync(token);
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
@@ -144,16 +159,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
             ModuleSet currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfigInfo = new DeploymentConfigInfo(10, testException);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockReporter.Setup(r => r.ReportAsync(token, currentSet, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == statusCode)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == statusCode)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             // Act
             // Assert
@@ -175,20 +192,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var token = new CancellationToken();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token)).Throws<InvalidOperationException>();
-            mockReporter.Setup(r => r.ReportAsync(token, null, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             // Act
             // Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            await agent.ReconcileAsync(token);
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
@@ -206,7 +225,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var token = new CancellationToken();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
@@ -219,14 +240,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(ModuleSet.Empty);
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), ModuleSet.Empty))
                 .Throws<InvalidOperationException>();
-            mockReporter.Setup(r => r.ReportAsync(token, ModuleSet.Empty, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             // Act
             // Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            await agent.ReconcileAsync(token);
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
@@ -266,7 +287,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var planRunner = new OrderedPlanRunner();
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
@@ -277,14 +300,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Returns(Task.FromResult(testPlan));
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet))
                 .Returns(Task.FromResult((IImmutableDictionary<string, IModuleIdentity>)ImmutableDictionary<string, IModuleIdentity>.Empty));
-            mockReporter.Setup(r => r.ReportAsync(token, currentSet, deploymentConfigInfo, DeploymentStatus.Success))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             await agent.ReconcileAsync(token);
 
-            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Exactly(2));
+            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Exactly(1));
             mockPlanner.Verify(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
             mockReporter.VerifyAll();
             recordKeeper.ForEach(r => Assert.Equal(moduleExecutionList, r.ExecutionList));
@@ -303,7 +326,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var runtimeInfo = new Mock<IRuntimeInfo>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var token = new CancellationToken();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo.Object, new SystemModules(null, null), ImmutableDictionary<string, IModule>.Empty));
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -311,11 +336,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Throws<InvalidOperationException>();
 
             // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            await agent.ReconcileAsync(token);
 
             // Assert
-            mockReporter.Verify(r => r.ReportAsync(token, null, deploymentConfigInfo, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
+            mockReporter.Verify(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
@@ -331,18 +356,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var token = new CancellationToken();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .Throws<InvalidOperationException>();
             mockEnvironment.Setup(e => e.GetModulesAsync(token))
                 .ReturnsAsync(ModuleSet.Empty);
 
             // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => agent.ReconcileAsync(token));
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            await agent.ReconcileAsync(token);
 
             // Assert
-            mockReporter.Verify(r => r.ReportAsync(token, ModuleSet.Empty, null, It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
+            mockReporter.Verify(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
@@ -358,11 +385,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var token = new CancellationToken();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             mockReporter.Setup(mr => mr.ReportShutdown(It.IsAny<DeploymentStatus>(), token)).Throws<ArgumentNullException>();
 
             // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
 
             // Assert
             await Assert.ThrowsAsync<ArgumentNullException>(() => agent.ReportShutdownAsync(token));
@@ -379,7 +408,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
@@ -392,7 +423,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockEnvironment.Setup(e => e.GetModulesAsync(token))
                 .ReturnsAsync(ModuleSet.Empty);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironment.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
             await agent.ReportShutdownAsync(token);
 
             // Assert

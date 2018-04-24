@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ModuleIdKey = "ModuleId";
 
-        public const string MmaStorePartitionKey = "mma";
-
         public const RestartPolicy DefaultRestartPolicy = RestartPolicy.OnUnhealthy;
 
         public const ModuleStatus DefaultDesiredStatus = ModuleStatus.Running;

@@ -2,54 +2,52 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
-    using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class DockerModule : Module
+    /// <summary>
+    /// Initializes Edgelet specific types.
+    /// TODO: Right now, it assumes Edgelet supports docker. Need to make it completely implementation agnostic
+    /// But that requires IModule implementations to be made generic
+    /// </summary>
+    public class EdgeletModule : Module
     {
         readonly string deviceId;
         readonly string iotHubHostName;
-        readonly string edgeDeviceConnectionString;
         readonly string gatewayHostName;
-        readonly Uri dockerHostname;
+        readonly string edgeletUrl;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
 
-        public DockerModule(string edgeDeviceConnectionString, string gatewayHostName, Uri dockerHostname, IEnumerable<AuthConfig> dockerAuthConfig)
+        public EdgeletModule(string edgeDeviceConnectionString, string gatewayHostName, string edgeletUri, IEnumerable<AuthConfig> dockerAuthConfig)
         {
-            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
+            Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
-            IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(this.edgeDeviceConnectionString);
+            IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             this.deviceId = connectionStringParser.DeviceId;
             this.iotHubHostName = connectionStringParser.HostName;
-            this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
+            this.edgeletUrl = Preconditions.CheckNonWhiteSpace(edgeletUri, nameof(edgeletUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IServiceClient
-            builder.Register(c => new RetryingServiceClient(new ServiceClient(this.edgeDeviceConnectionString, this.deviceId)))
-                .As<IServiceClient>()
+            // IModuleManager
+            builder.Register(c => new ModuleManagementHttpClient(this.edgeletUrl))
+                .As<IModuleManager>()
+                .As<IIdentityManager>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), new ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId), this.gatewayHostName))
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), new ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId), this.gatewayHostName))
                 .As<IModuleIdentityLifecycleManager>()
-                .SingleInstance();
-
-            // IDockerClient
-            builder.Register(c => new DockerClientConfiguration(this.dockerHostname).CreateClient())
-                .As<IDockerClient>()
                 .SingleInstance();
 
             // ICombinedConfigProvider<CombinedDockerConfig>
@@ -61,24 +59,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var dockerClient = c.Resolve<IDockerClient>();
-                        var dockerLoggingConfig = c.Resolve<DockerLoggingConfig>();
+                        var moduleManager = c.Resolve<IModuleManager>();
                         var combinedDockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
                         IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        var dockerFactory = new DockerCommandFactory(dockerClient, dockerLoggingConfig, configSource, combinedDockerConfigProvider);
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
+                        var edgeletCommandFactory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
+                        return new LoggingCommandFactory(edgeletCommandFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
 
-            // IRuntimeInfoProvider
-            builder.Register(
-                async c =>
-                {
-                    IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(c.Resolve<IDockerClient>());
-                    return runtimeInfoProvider;
-                })
-                .As<Task<IRuntimeInfoProvider>>()
+            // IModuleRuntimeInfoProvider
+            builder.Register(c => new RuntimeInfoProvider<DockerReportedConfig>(c.Resolve<IModuleManager>()))
+                .As<IRuntimeInfoProvider>()
                 .SingleInstance();
 
             // Task<IEnvironmentProvider>
@@ -87,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     IEntityStore<string, ModuleState> moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
                     IRestartPolicyManager restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                    IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
+                    IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
                     IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
                     return dockerEnvironmentProvider;
                 })

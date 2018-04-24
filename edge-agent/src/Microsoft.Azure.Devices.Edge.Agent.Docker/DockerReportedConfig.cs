@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Collections.Generic;
+    using global::Docker.DotNet.Models;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using CoreConstants = Core.Constants;
@@ -18,6 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonConstructor]
         public DockerReportedConfig(string image, string createOptions, string imageHash)
+            : base(image, createOptions)
+        {
+            this.ImageHash = imageHash ?? string.Empty;
+        }
+
+        public DockerReportedConfig(string image, CreateContainerParameters createOptions, string imageHash)
             : base(image, createOptions)
         {
             this.ImageHash = imageHash ?? string.Empty;

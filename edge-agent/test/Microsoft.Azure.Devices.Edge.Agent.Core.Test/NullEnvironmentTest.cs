@@ -21,11 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.NotNull(testModuleSet);
             Assert.Equal(testModuleSet, ModuleSet.Empty);
 
-            var inputRuntimeInfo = new Mock<IRuntimeInfo>();
-
-            IRuntimeInfo runtimeInfo = await testNullEnvironment.GetUpdatedRuntimeInfoAsync(inputRuntimeInfo.Object);
+            IRuntimeInfo runtimeInfo = await testNullEnvironment.GetRuntimeInfoAsync();
             Assert.NotNull(runtimeInfo);
-            Assert.True(ReferenceEquals(runtimeInfo, inputRuntimeInfo.Object));
+            Assert.True(ReferenceEquals(runtimeInfo, UnknownRuntimeInfo.Instance));
         }
     }
 }

@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
 
@@ -20,6 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task UpdateModuleAsync(ModuleSpec moduleSpec);
 
-        Task<IEnumerable<ModuleDetails>> GetModules();
+        Task<IEnumerable<ModuleDetails>> GetModules(CancellationToken token);
     }
 }

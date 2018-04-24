@@ -18,20 +18,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class TwinConfigSourceModule : Module
     {
-        readonly string edgeDeviceConnectionString;
+        readonly string edgeAgentConnectionString;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
 
         public TwinConfigSourceModule(
-            string edgeDeviceConnectionString,
+            string edgeAgentConnectionString,
             string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo
         )
-        {            
-            this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
+        {
+            this.edgeAgentConnectionString = Preconditions.CheckNonWhiteSpace(edgeAgentConnectionString, nameof(edgeAgentConnectionString));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IDeviceClientProvider
-            builder.Register(c => new DeviceClientProvider(this.edgeDeviceConnectionString, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
+            builder.Register(c => new DeviceClientProvider(this.edgeAgentConnectionString, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
                 .As<IDeviceClientProvider>()
                 .SingleInstance();
 
@@ -69,9 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IConfigSource>>()
                 .SingleInstance();
 
-            // Task<IReporter>
+            // IReporter
             builder.Register(
-                    async c =>
+                    c =>
                     {
                         var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
                         {
@@ -81,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
                         var edgeAgentDeserializerTypes = new Dictionary<string, Type>
                         {
-                            [DockerType] = typeof(EdgeAgentDockerRuntimeModule)
+                            [DockerType] = typeof(EdgeAgentDockerRuntimeModule),
+                            [Constants.Unknown] = typeof(UnknownEdgeAgentModule)
                         };
 
                         var edgeHubDeserializerTypes = new Dictionary<string, Type>
@@ -105,13 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
                         return new IoTHubReporter(
                             c.Resolve<IEdgeAgentConnection>(),
-                            await c.Resolve<Task<IEnvironment>>(),
                             new TypeSpecificSerDe<AgentState>(deserializerTypesMap),
                             this.versionInfo
                         ) as IReporter;
                     }
                 )
-                .As<Task<IReporter>>()
+                .As<IReporter>()
                 .SingleInstance();
 
             base.Load(builder);

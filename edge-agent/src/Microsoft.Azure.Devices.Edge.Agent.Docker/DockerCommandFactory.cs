@@ -2,15 +2,12 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
 
     public class DockerCommandFactory : ICommandFactory
     {
@@ -71,11 +68,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 : (ICommand)NullCommand.Instance);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
-
-        Option<AuthConfig> FirstAuthConfigOrDefault(DockerModule module) =>
-            this.configSource.Configuration
-                .GetSection("DockerRegistryAuth")
-                .Get<List<AuthConfig>>()
-                .FirstAuthConfig(module.Config.Image);
     }
 }
