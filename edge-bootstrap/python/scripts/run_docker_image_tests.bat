@@ -17,11 +17,13 @@ echo Docker engine OS type: %OS_TYPE%
 set TAG_BASE=iotedgectl_py
 if "%OS_TYPE%" == "linux" (
     set BASE_VERSION_LIST=2.7.14-jessie 3.4.8-jessie 3.5.5-jessie 3.6.4-jessie 3.6.5-jessie 3.7.0b2-stretch
+    set DOCKER_MOUNT=/var/run/docker.sock
 ) else (
     REM Note: python 2.x tests are disabled for Windows because of no embedded python distribution
     REM is available for installation in a nanoserver image. For python 2.x images there is a public
     REM windowsservercore image available which is 6GB and has proven to be flaky to download and run.
     set BASE_VERSION_LIST=3.5.4 3.6.4 3.6.5
+    set DOCKER_MOUNT=\\.\pipe\docker_engine
 )
 
 REM Build images
@@ -40,7 +42,7 @@ REM Create containers and run tests
     echo ###########################################################################################
     echo Executing python %%v Tests...
     echo ###########################################################################################
-    docker run --rm %TAG_BASE%%%v
+    docker run -v %DOCKER_MOUNT%:%DOCKER_MOUNT% --rm %TAG_BASE%%%v
     if !ERRORLEVEL! NEQ 0 goto test_error
 ))
 

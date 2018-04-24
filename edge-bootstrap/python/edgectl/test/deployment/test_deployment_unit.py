@@ -1274,6 +1274,41 @@ class TestEdgeDeploymentDockerStart(unittest.TestCase):
                                                                   restart_policy=self.RESTART_POLICY_DICT)
                             mock_client.start.assert_called_with(EDGE_AGENT_DOCKER_CONTAINER_NAME)
 
+class TestEdgeDeploymentDockerClose(unittest.TestCase):
+    """Unit tests for class EdgeDeploymentCommandDocker.close"""
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_closed_invoked_using_with_statement(self, mock_client):
+        """ Test fails if close is not called implicitly using the with statement"""
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+
+        # act
+        with EdgeDeploymentCommandDocker.create_using_client(config, mock_client) as command:
+            command.status()
+
+        # assert
+        mock_client.close.assert_called()
+
+    @mock.patch('edgectl.host.EdgeDockerClient', autospec=True)
+    def test_closed_invoked(self, mock_client):
+        """ Test fails if close is not called """
+        # arrange
+        mock_client.check_availability.return_value = True
+        mock_client.get_os_type.return_value = 'linux'
+        mock_client.status.return_value = 'running'
+        config = _create_edge_configuration_valid()
+        command = EdgeDeploymentCommandDocker.create_using_client(config, mock_client)
+
+        # act
+        command.close()
+
+        # assert
+        mock_client.close.assert_called()
+
 class TestEdgeCommandFactory(unittest.TestCase):
     """Unit tests for EdgeCommandFactory APIs"""
     def test_supported_commands(self):
@@ -1355,6 +1390,7 @@ if __name__ == '__main__':
         TestEdgeDeploymentDockerUpdate,
         TestEdgeDeploymentDockerUninstall,
         TestEdgeDeploymentDockerStatus,
+        TestEdgeDeploymentDockerClose,
         TestEdgeCommandFactory
     ]
     suites_list = []

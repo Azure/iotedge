@@ -14,6 +14,7 @@ echo "Test base directory: ${EXE_DIR}"
 
 TAG_BASE=iotedgectl_py
 BASE_VERSION_LIST=(2.7.14-jessie 3.4.8-jessie 3.5.5-jessie 3.6.4-jessie 3.6.5-jessie 3.7.0b2-stretch)
+DOCKER_MOUNT=/var/run/docker.sock
 
 # Build images
 for version in ${BASE_VERSION_LIST[*]}
@@ -31,7 +32,7 @@ do
     echo "#########################################################################################"
     echo "Executing python ${version} Tests.."
     echo "#########################################################################################"
-    docker run --rm $TAG_BASE${version}
+    docker run -v ${DOCKER_MOUNT}:${DOCKER_MOUNT} --rm $TAG_BASE${version}
 done
 
 for version in ${BASE_VERSION_LIST[*]}

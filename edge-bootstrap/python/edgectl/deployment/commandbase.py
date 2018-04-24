@@ -46,14 +46,28 @@ class EdgeDeploymentCommand(object):
         """ API to add registry credentials in order to download and install modules """
         pass
 
+    def close(self):
+        """ API to close any resources used by the Edge deployment command """
+        pass
+
 class EdgeCommand(object):
     """ Class implements the base class of the command pattern"""
     def __init__(self, obj):
         self._obj = obj
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._obj.close()
+
     def execute(self):
         """ API to execute a deployment command """
         pass
+
+    def close(self):
+        """ API to close any resources used by the Edge command """
+        self._obj.close()
 
 class EdgeSetupCommand(EdgeCommand):
     """ Executor class for Edge runtime setup """

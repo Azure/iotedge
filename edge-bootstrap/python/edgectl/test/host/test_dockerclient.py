@@ -23,14 +23,13 @@ else:
 # pylint: disable=too-many-arguments
 class TestEdgeDockerClientCheckAvailability(unittest.TestCase):
     """Unit tests for API EdgeDockerClient.check_availability"""
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_check_availability_valid(self, mock_docker_client, mock_docker_api_client):
+    def test_check_availability_valid(self, mock_docker_client):
         """
             Tests call stack when API check_availability returns true
         """
         # arrange
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         result = client.check_availability()
@@ -39,15 +38,14 @@ class TestEdgeDockerClientCheckAvailability(unittest.TestCase):
         mock_docker_client.info.assert_called_with()
         self.assertTrue(result)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_check_availability_invalid(self, mock_docker_client, mock_docker_api_client):
+    def test_check_availability_invalid(self, mock_docker_client):
         """
             Tests call stack when API check_availability returns false
         """
         # arrange
         mock_docker_client.info.side_effect = docker.errors.APIError('docker unavailable')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         result = client.check_availability()
@@ -60,14 +58,13 @@ class TestEdgeDockerClientCheckAvailability(unittest.TestCase):
 class TestEdgeDockerClientLogin(unittest.TestCase):
     """Unit tests for API EdgeDockerClient.login"""
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_login_valid(self, mock_docker_client, mock_docker_api_client):
+    def test_login_valid(self, mock_docker_client):
         """
             Tests call stack when API login is called using valid input arguments
         """
         # arrange
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         address = 'test_address'
         uname = 'test_user'
         password = 'test_pass'
@@ -79,15 +76,14 @@ class TestEdgeDockerClientLogin(unittest.TestCase):
         mock_docker_client.login.assert_called_with(username=uname,
                                                     password=password, registry=address)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_login_fails(self, mock_docker_client, mock_docker_api_client):
+    def test_login_fails(self, mock_docker_client):
         """
             Tests call stack when docker login raises an exception
         """
         # arrange
         mock_docker_client.login.side_effect = docker.errors.APIError('login fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         address = 'test_address'
         uname = 'test_user'
         password = 'test_pass'
@@ -100,16 +96,15 @@ class TestEdgeDockerClientLogin(unittest.TestCase):
 class TestEdgeDockerClientGetOSType(unittest.TestCase):
     """Unit tests for API EdgeDockerClient.get_os_type"""
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_get_os_valid(self, mock_docker_client, mock_docker_api_client):
+    def test_get_os_valid(self, mock_docker_client):
         """
             Tests call stack when docker client API info returns a valid OSType
         """
         # arrange
         os_type = 'TEST_OS'
         mock_docker_client.info.return_value = {'OSType': os_type}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         result = client.get_os_type()
@@ -118,15 +113,14 @@ class TestEdgeDockerClientGetOSType(unittest.TestCase):
         mock_docker_client.info.assert_called_with()
         self.assertEqual(result, os_type.lower())
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_get_os_fails(self, mock_docker_client, mock_docker_api_client):
+    def test_get_os_fails(self, mock_docker_client):
         """
             Tests call stack when docker info raises an exception
         """
         # arrange
         mock_docker_client.info.side_effect = docker.errors.APIError('info fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeError):
@@ -145,7 +139,8 @@ class TestEdgeDockerClientGetLocalImageSHAId(unittest.TestCase):
         # arrange
         test_id = '1234'
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
 
         # act
@@ -163,7 +158,8 @@ class TestEdgeDockerClientGetLocalImageSHAId(unittest.TestCase):
         """
         # arrange
         mock_docker_api_client.inspect_image.side_effect = docker.errors.APIError('inspect fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
 
         # act
@@ -185,14 +181,15 @@ class TestEdgeDockerClientPull(unittest.TestCase):
                                                                  mock_docker_api_client,
                                                                  mock_get_local_id):
         """
-            Tests call stack when docker client pull is called with a locally avilable image
+            Tests call stack when docker client pull is called with a locally available image
             and no newer image available in the registry
         """
         # arrange
         test_id = '1234'
         mock_get_local_id.return_value = test_id
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
         username = "test_user"
         password = "test_password"
@@ -215,14 +212,15 @@ class TestEdgeDockerClientPull(unittest.TestCase):
                                                               mock_docker_api_client,
                                                               mock_get_local_id):
         """
-            Tests call stack when docker client pull is called with a locally avilable image
+            Tests call stack when docker client pull is called with a locally available image
             and a newer image available in the registry
         """
         # arrange
         test_id = '1234'
         mock_get_local_id.return_value = '1000'
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
         username = "test_user"
         password = "test_password"
@@ -245,14 +243,15 @@ class TestEdgeDockerClientPull(unittest.TestCase):
                                                                              mock_docker_api_client,
                                                                              mock_get_local_id):
         """
-            Tests call stack when docker client pull is called with a locally avilable image
+            Tests call stack when docker client pull is called with a locally available image
             and no newer image available in the registry to be accessed without any credentials
         """
         # arrange
         test_id = '1234'
         mock_get_local_id.return_value = '1000'
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
         auth_dict = None
 
@@ -273,13 +272,14 @@ class TestEdgeDockerClientPull(unittest.TestCase):
                                                 mock_docker_api_client,
                                                 mock_get_local_id):
         """
-            Tests call stack when docker client pull is called with no locally avilable image
+            Tests call stack when docker client pull is called with no locally available image
         """
         # arrange
         test_id = '1234'
         mock_get_local_id.return_value = None
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
         username = "test_user"
         password = "test_password"
@@ -302,14 +302,15 @@ class TestEdgeDockerClientPull(unittest.TestCase):
                                    mock_docker_api_client,
                                    mock_get_local_id):
         """
-            Tests call stack when docker client pull raises exeception
+            Tests call stack when docker client pull raises exception
         """
         # arrange
         test_id = '1234'
         mock_get_local_id.return_value = None
         mock_docker_api_client.inspect_image.return_value = {'Id': test_id}
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
         mock_docker_client.images.pull.side_effect = docker.errors.APIError('docker unavailable')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         image = 'test_image'
         username = "test_user"
         password = "test_password"
@@ -352,15 +353,14 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
     TEST_LABEL = 'test_label'
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_start_valid(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_start_valid(self, mock_docker_client, mock_container):
         """
             Tests execution of a valid start command
         """
         # arrange
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.start(self.TEST_CONTAINER_NAME)
@@ -370,45 +370,42 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container.start.assert_called_with()
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_start_fails_raises_exception(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_start_fails_raises_exception(self, mock_docker_client, mock_container):
         """
             Tests whether EdgeDeploymentError is raised when docker container start fails
         """
         # arrange
         mock_container.start.side_effect = docker.errors.APIError('start failure')
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.start(self.TEST_CONTAINER_NAME)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_start_invalid_container_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_start_invalid_container_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker container start fails
         """
         # arrange
         mock_docker_client.containers.get.side_effect = docker.errors.NotFound('invalid image')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.start(self.TEST_CONTAINER_NAME)
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_restart_valid(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_restart_valid(self, mock_docker_client, mock_container):
         """
             Tests execution of a valid restart command
         """
         # arrange
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.restart(self.TEST_CONTAINER_NAME)
@@ -418,15 +415,14 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container.restart.assert_called_with(timeout=5)
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_restart_with_args_valid(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_restart_with_args_valid(self, mock_docker_client, mock_container):
         """
             Tests execution of a valid restart command with args
         """
         # arrange
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.restart(self.TEST_CONTAINER_NAME, timeout_int=50)
@@ -436,45 +432,42 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container.restart.assert_called_with(timeout=50)
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_restart_fails_raises_exception(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_restart_fails_raises_exception(self, mock_docker_client, mock_container):
         """
             Tests whether EdgeDeploymentError is raised when docker container restart fails
         """
         # arrange
         mock_container.restart.side_effect = docker.errors.APIError('restart failure')
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.restart(self.TEST_CONTAINER_NAME)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_restart_invalid_container_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_restart_invalid_container_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker container restart fails
         """
         # arrange
         mock_docker_client.containers.get.side_effect = docker.errors.NotFound('invalid image')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.restart(self.TEST_CONTAINER_NAME)
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_stop_valid(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_stop_valid(self, mock_docker_client, mock_container):
         """
             Tests execution of a valid stop command
         """
         # arrange
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.stop(self.TEST_CONTAINER_NAME)
@@ -484,45 +477,42 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container.stop.assert_called_with()
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_stop_fails_raises_exception(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_stop_fails_raises_exception(self, mock_docker_client, mock_container):
         """
             Tests whether EdgeDeploymentError is raised when docker container stop fails
         """
         # arrange
         mock_container.stop.side_effect = docker.errors.APIError('stop failure')
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.stop(self.TEST_CONTAINER_NAME)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_stop_invalid_container_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_stop_invalid_container_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker container stop fails
         """
         # arrange
         mock_docker_client.containers.get.side_effect = docker.errors.NotFound('invalid image')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.stop(self.TEST_CONTAINER_NAME)
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_valid(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_remove_valid(self, mock_docker_client, mock_container):
         """
             Tests execution of a valid remove command
         """
         # arrange
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.remove(self.TEST_CONTAINER_NAME)
@@ -532,30 +522,28 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container.remove.assert_called_with()
 
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_fails_raises_exception(self, mock_docker_client, mock_docker_api_client, mock_container):
+    def test_remove_fails_raises_exception(self, mock_docker_client, mock_container):
         """
             Tests whether EdgeDeploymentError is raised when docker container remove fails
         """
         # arrange
         mock_container.remove.side_effect = docker.errors.APIError('remove failure')
         mock_docker_client.containers.get.return_value = mock_container
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.remove(self.TEST_CONTAINER_NAME)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_invalid_container_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_remove_invalid_container_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker container remove fails
         """
         # arrange
         mock_docker_client.containers.get.side_effect = docker.errors.NotFound('invalid image')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -563,10 +551,8 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
 
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_status_valid(self, mock_docker_client, mock_docker_api_client,
-                          mock_container, mock_non_match_container):
+    def test_status_valid(self, mock_docker_client, mock_container, mock_non_match_container):
         """
             Tests execution of a valid status command
         """
@@ -584,7 +570,7 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         type(mock_non_match_container).status = PropertyMock(return_value='running')
         type(mock_non_match_container).name = PropertyMock(return_value='blah')
         mock_docker_client.containers.list.return_value = [mock_non_match_container, mock_container]
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         result = client.status(self.TEST_CONTAINER_NAME)
@@ -593,15 +579,14 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_docker_client.containers.list.assert_called_with(all=True)
         self.assertEqual(test_status, result)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_status_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_status_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker containers list fails
         """
         # arrange
         mock_docker_client.containers.list.side_effect = docker.errors.APIError('list failure')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -609,9 +594,8 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
 
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_stop_by_label_valid(self, mock_docker_client, mock_docker_api_client,
+    def test_stop_by_label_valid(self, mock_docker_client,
                                  mock_container1, mock_container2):
         """
             Tests execution of a valid stop by label command
@@ -621,7 +605,7 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
 
         # arrange
         mock_docker_client.containers.list.return_value = [mock_container1, mock_container2]
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         filter_dict = {'label': self.TEST_LABEL}
 
         # act
@@ -632,15 +616,14 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container1.stop.assert_called_with()
         mock_container2.stop.assert_called_with()
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_stop_by_label_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_stop_by_label_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker containers list fails
         """
         # arrange
         mock_docker_client.containers.list.side_effect = docker.errors.APIError('list failure')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -648,9 +631,8 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
 
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
     @mock.patch('docker.models.containers.Container', autospec=TestContainerSpec)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_by_label_valid(self, mock_docker_client, mock_docker_api_client,
+    def test_remove_by_label_valid(self, mock_docker_client,
                                    mock_container1, mock_container2):
         """
             Tests execution of a valid remove by label command
@@ -660,7 +642,7 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
 
         # arrange
         mock_docker_client.containers.list.return_value = [mock_container1, mock_container2]
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         filter_dict = {'label': self.TEST_LABEL}
 
         # act
@@ -671,23 +653,21 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         mock_container1.remove.assert_called_with()
         mock_container2.remove.assert_called_with()
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_by_label_raises_exception(self, mock_docker_client, mock_docker_api_client):
+    def test_remove_by_label_raises_exception(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker containers list fails
         """
         # arrange
         mock_docker_client.containers.list.side_effect = docker.errors.APIError('list failure')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.remove_by_label(self.TEST_LABEL)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_valid(self, mock_docker_client, mock_docker_api_client):
+    def test_create_valid(self, mock_docker_client):
         """
             Tests execution of a valid docker create container command
         """
@@ -702,7 +682,7 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         log_config_dict = {'type': 'test_val_log', 'config': {'opt1':'val1'}}
         mounts_list = ['mount1', 'mount2']
         restart_policy_dict = {'test_key_restart': 'test_val_restart'}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create(image,
@@ -752,11 +732,9 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
                       mounts=mounts_list,
                       restart_policy=restart_policy_dict)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_create_raises_except_when_containerError_is_raised(self,
-                                                                mock_docker_client,
-                                                                mock_docker_api_client):
+                                                                mock_docker_client):
         """
             Tests execution of create container raises exception edgectl.errors.EdgeDeploymentError
             when docker client API create raises ContainerError
@@ -764,17 +742,15 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         # arrange
         except_obj = docker.errors.ContainerError('container', 1, 'cmd', 'image', 'stderr')
         mock_docker_client.containers.create.side_effect = except_obj
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             self._create_common_invocation(client)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_create_raises_except_when_ImageNotFound_is_raised(self,
-                                                               mock_docker_client,
-                                                               mock_docker_api_client):
+                                                               mock_docker_client):
         """
             Tests execution of create container raises exception edgectl.errors.EdgeDeploymentError
             when docker client API create raises ImageNotFound
@@ -782,17 +758,15 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         # arrange
         except_obj = docker.errors.ImageNotFound('image error')
         mock_docker_client.containers.create.side_effect = except_obj
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             self._create_common_invocation(client)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_create_raises_except_when_APIError_is_raised(self,
-                                                          mock_docker_client,
-                                                          mock_docker_api_client):
+                                                          mock_docker_client):
         """
             Tests execution of create container raises exception edgectl.errors.EdgeDeploymentError
             when docker client API create raises APIError
@@ -800,7 +774,7 @@ class TestEdgeDockerContainerOps(unittest.TestCase):
         # arrange
         except_obj = docker.errors.APIError('image error')
         mock_docker_client.containers.create.side_effect = except_obj
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -811,9 +785,8 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
 
     TEST_NETWORK = 'test_network'
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_nw_create_no_networks_exist_linux(self, mock_docker_client, mock_docker_api_client):
+    def test_nw_create_no_networks_exist_linux(self, mock_docker_client):
         """
             Tests call stack when docker network create is called when there are no networks
             available for Linux type OS.
@@ -821,7 +794,7 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.networks.list.return_value = None
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
 
         # act
@@ -830,9 +803,8 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # assert
         mock_docker_client.networks.create.assert_called_with(self.TEST_NETWORK, driver='bridge')
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_nw_create_no_networks_exist_windows(self, mock_docker_client, mock_docker_api_client):
+    def test_nw_create_no_networks_exist_windows(self, mock_docker_client):
         """
             Tests call stack when docker network create is called when there are no networks
             available for Windows type OS.
@@ -840,7 +812,7 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Windows'}
         mock_docker_client.networks.list.return_value = None
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create_network(self.TEST_NETWORK)
@@ -848,9 +820,8 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # assert
         mock_docker_client.networks.create.assert_called_with(self.TEST_NETWORK, driver='nat')
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_nw_create_other_non_matching_networks_exist(self, mock_docker_client, mock_docker_api_client):
+    def test_nw_create_other_non_matching_networks_exist(self, mock_docker_client):
         """
             Tests call stack when docker network create is called when there are
             other networks available that do not match the provided network name.
@@ -858,7 +829,7 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.networks.list.return_value = []
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create_network(self.TEST_NETWORK)
@@ -867,9 +838,8 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         mock_docker_client.networks.create.assert_called_with(self.TEST_NETWORK, driver='bridge')
 
     @mock.patch('docker.models.networks.Network', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_nw_create_network_exists(self, mock_docker_client, mock_docker_api_client, mock_network):
+    def test_nw_create_network_exists(self, mock_docker_client, mock_network):
         """
             Tests call stack when docker network create is called when there are
             other networks available that do not match the provided network name.
@@ -877,7 +847,7 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.networks.list.return_value = [mock_network]
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create_network(self.TEST_NETWORK)
@@ -885,38 +855,35 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         # assert
         mock_docker_client.networks.create.assert_not_called()
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_network_raises_exception_when_info_fails(self, mock_docker_client, mock_docker_api_client):
+    def test_create_network_raises_exception_when_info_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker info list fails
         """
         # arrange
         mock_docker_client.info.side_effect = docker.errors.APIError('info failure')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.create_network(self.TEST_NETWORK)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_network_raises_exception_when_list_fails(self, mock_docker_client, mock_docker_api_client):
+    def test_create_network_raises_exception_when_list_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker network list fails
         """
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.networks.list.side_effect = docker.errors.APIError('list failure')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.create_network(self.TEST_NETWORK)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_network_raises_exception_when_create_fails(self, mock_docker_client, mock_docker_api_client):
+    def test_create_network_raises_exception_when_create_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker network list fails
         """
@@ -925,7 +892,7 @@ class TestEdgeDockerNetworkCreate(unittest.TestCase):
         mock_docker_client.networks.list.return_value = None
         mock_docker_client.networks.create.side_effect = docker.errors.APIError('nw create failed')
 
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -938,15 +905,14 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     TEST_CONTAINER_NAME = 'test_container'
     TEST_VOLUME_NAME = 'test_volume'
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_volume_when_it_does_not_exist(self, mock_docker_client, mock_docker_api_client):
+    def test_create_volume_when_it_does_not_exist(self, mock_docker_client):
         """
             Tests call stack when docker volume create is called when the volume does not exist.
         """
         # arrange
         mock_docker_client.volumes.get.side_effect = docker.errors.NotFound('no volume exists')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create_volume(self.TEST_VOLUME_NAME)
@@ -955,16 +921,14 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.volumes.create.assert_called_with(self.TEST_VOLUME_NAME)
 
     @mock.patch('docker.models.volumes.Volume', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_volume_when_volume_exits(self, mock_docker_client,
-                                             mock_docker_api_client, mock_volume):
+    def test_create_volume_when_volume_exits(self, mock_docker_client, mock_volume):
         """
             Tests call stack when docker volume create is not called when the volume exists.
         """
         # arrange
         mock_docker_client.volumes.get.return_value = mock_volume
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.create_volume(self.TEST_VOLUME_NAME)
@@ -972,35 +936,29 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # assert
         mock_docker_client.volumes.create.assert_not_called()
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_volume_raises_exception_when_volume_get_fails(self,
-                                                                  mock_docker_client,
-                                                                  mock_docker_api_client):
+    def test_create_volume_raises_exception_when_volume_get_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker volume get fails
         """
         # arrange
         mock_docker_client.volumes.get.side_effect = docker.errors.APIError('volume get fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.create_volume(self.TEST_VOLUME_NAME)
             mock_docker_client.volumes.create.assert_not_called()
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_create_volume_raises_exception_when_volume_create_fails(self,
-                                                                     mock_docker_client,
-                                                                     mock_docker_api_client):
+    def test_create_volume_raises_exception_when_volume_create_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker volume create fails
         """
         # arrange
         mock_docker_client.volumes.get.side_effect = docker.errors.NotFound('no volume exists')
         mock_docker_client.volumes.create.side_effect = docker.errors.APIError('vol create fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -1008,16 +966,14 @@ class TestEdgeDockerVolumes(unittest.TestCase):
             mock_docker_client.volumes.create.assert_not_called()
 
     @mock.patch('docker.models.volumes.Volume', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_volume_when_volume_exits(self, mock_docker_client,
-                                             mock_docker_api_client, mock_volume):
+    def test_remove_volume_when_volume_exits(self, mock_docker_client, mock_volume):
         """
             Tests call stack when docker volume remove is called when the volume exists.
         """
         # arrange
         mock_docker_client.volumes.get.return_value = mock_volume
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act
         client.remove_volume(self.TEST_VOLUME_NAME)
@@ -1026,16 +982,14 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_volume.remove.assert_called_with(False)
 
     @mock.patch('docker.models.volumes.Volume', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_volume_with_args_when_volume_exits(self, mock_docker_client,
-                                                       mock_docker_api_client, mock_volume):
+    def test_remove_volume_with_args_when_volume_exits(self, mock_docker_client, mock_volume):
         """
             Tests call stack when docker volume remove is called when the volume exists.
         """
         # arrange
         mock_docker_client.volumes.get.return_value = mock_volume
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         force_flag = True
 
         # act
@@ -1045,11 +999,8 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_volume.remove.assert_called_with(force_flag)
 
     @mock.patch('docker.models.volumes.Volume', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_remove_volume_raises_exception_when_volume_get_fails(self,
-                                                                  mock_docker_client,
-                                                                  mock_docker_api_client,
+    def test_remove_volume_raises_exception_when_volume_get_fails(self, mock_docker_client,
                                                                   mock_volume):
         """
             Tests whether EdgeDeploymentError is raised when docker volume get fails
@@ -1057,7 +1008,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # arrange
         mock_docker_client.volumes.get.return_value = mock_volume
         mock_docker_client.volumes.get.side_effect = docker.errors.APIError('volume get fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
@@ -1065,11 +1016,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
             mock_volume.remove.assert_not_called()
 
     @mock.patch('docker.models.volumes.Volume', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_remove_volume_raises_exception_when_volume_remove_fails(self,
                                                                      mock_docker_client,
-                                                                     mock_docker_api_client,
                                                                      mock_volume):
         """
             Tests whether EdgeDeploymentError is raised when docker volume remove fails
@@ -1077,24 +1026,21 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # arrange
         mock_volume.remove.side_effect = docker.errors.APIError('vol remove fails')
         mock_docker_client.volumes.get.return_value = mock_volume
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
 
         # act, assert
         with self.assertRaises(edgectl.errors.EdgeDeploymentError):
             client.remove_volume(self.TEST_VOLUME_NAME)
             mock_volume.remove.assert_called_with(True)
 
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_copy_file_to_volume_raises_exception_when_info_fails(self,
-                                                                  mock_docker_client,
-                                                                  mock_docker_api_client):
+    def test_copy_file_to_volume_raises_exception_when_info_fails(self, mock_docker_client):
         """
             Tests whether EdgeDeploymentError is raised when docker info fails
         """
         # arrange
         mock_docker_client.info.side_effect = docker.errors.APIError('info fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1106,17 +1052,16 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('edgectl.utils.EdgeUtils.copy_files')
     @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
-    def test_copy_file_to_volume_windows_valid(self,
-                                               mock_docker_client,
-                                               mock_docker_api_client,
-                                               mock_copy_utils):
+    def test_copy_file_to_volume_windows_valid(self, mock_docker_client,
+                                               mock_docker_api_client, mock_copy_utils):
         """
             Tests a valid invocation of copy_file_to_volume
         """
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Windows'}
         mock_docker_api_client.inspect_volume.return_value = {'Mountpoint': '\\\\some_path\\\\mount\\'}
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1139,7 +1084,8 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Windows'}
         mock_docker_api_client.inspect_volume.side_effect = docker.errors.APIError('inspect fails')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1161,8 +1107,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Windows'}
         mock_docker_api_client.inspect_volume.return_value = {'Mountpoint': '\\\\some_path\\\\mount\\'}
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
         mock_copy_utils.side_effect = OSError('os access error')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1184,8 +1131,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         # arrange
         mock_docker_client.info.return_value = {'OSType': 'Windows'}
         mock_docker_api_client.inspect_volume.return_value = {'Mountpoint': '\\\\some_path\\\\mount\\'}
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
         mock_copy_utils.side_effect = IOError('io access error')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1199,11 +1147,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('tarfile.TarInfo', autospec=True)
     @mock.patch('io.BytesIO', autospec=True)
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_ins_file_in_ctr_linux_raises_except_when_io_except_raised(self,
                                                                        mock_docker_client,
-                                                                       mock_docker_api_client,
                                                                        mock_container,
                                                                        mock_tar_stream,
                                                                        mock_tarinfo,
@@ -1216,7 +1162,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.containers.get.return_value = mock_container
         mock_tar_factory.return_value = (mock_tar_stream, mock_tarinfo, mock_tarfile)
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1235,11 +1181,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('tarfile.TarInfo', autospec=True)
     @mock.patch('io.BytesIO', autospec=True)
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_ins_file_in_ctr_linux_raises_except_when_os_except_raised(self,
                                                                        mock_docker_client,
-                                                                       mock_docker_api_client,
                                                                        mock_container,
                                                                        mock_tar_stream,
                                                                        mock_tarinfo,
@@ -1252,7 +1196,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.containers.get.return_value = mock_container
         mock_tar_factory.return_value = (mock_tar_stream, mock_tarinfo, mock_tarfile)
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1271,11 +1215,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('tarfile.TarInfo', autospec=True)
     @mock.patch('io.BytesIO', autospec=True)
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_ins_file_in_ctr_linux_raises_except_when_put_archive_fails(self,
                                                                         mock_docker_client,
-                                                                        mock_docker_api_client,
                                                                         mock_container,
                                                                         mock_tar_stream,
                                                                         mock_tarinfo,
@@ -1289,7 +1231,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.containers.get.return_value = mock_container
         mock_tar_factory.return_value = (mock_tar_stream, mock_tarinfo, mock_tarfile)
         mock_container.put_archive.side_effect = docker.errors.APIError('put archive error')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1307,11 +1249,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('tarfile.TarInfo', autospec=True)
     @mock.patch('io.BytesIO', autospec=True)
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_ins_file_in_ctr_linux_raises_except_when_container_get_fails(self,
                                                                           mock_docker_client,
-                                                                          mock_docker_api_client,
                                                                           mock_container,
                                                                           mock_tar_stream,
                                                                           mock_tarinfo,
@@ -1325,7 +1265,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.containers.get.return_value = mock_container
         mock_tar_factory.return_value = (mock_tar_stream, mock_tarinfo, mock_tarfile)
         mock_docker_client.containers.get.side_effect = docker.errors.APIError('get error')
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1343,11 +1283,9 @@ class TestEdgeDockerVolumes(unittest.TestCase):
     @mock.patch('tarfile.TarInfo', autospec=True)
     @mock.patch('io.BytesIO', autospec=True)
     @mock.patch('docker.models.containers.Container', autospec=True)
-    @mock.patch('docker.APIClient', autospec=True)
     @mock.patch('docker.DockerClient', autospec=True)
     def test_copy_file_to_volume_linux_valid(self,
                                              mock_docker_client,
-                                             mock_docker_api_client,
                                              mock_container,
                                              mock_tar_stream,
                                              mock_tarinfo,
@@ -1360,7 +1298,7 @@ class TestEdgeDockerVolumes(unittest.TestCase):
         mock_docker_client.info.return_value = {'OSType': 'Linux'}
         mock_docker_client.containers.get.return_value = mock_container
         mock_tar_factory.return_value = (mock_tar_stream, mock_tarinfo, mock_tarfile)
-        client = EdgeDockerClient.create_instance(mock_docker_client, mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
         src_file = 'src.txt'
         dest_file = 'dest.txt'
         dest_dir = 'dest'
@@ -1384,6 +1322,42 @@ class TestEdgeDockerVolumes(unittest.TestCase):
                 mock_docker_client.containers.get.assert_called_with(self.TEST_CONTAINER_NAME)
                 mock_container.put_archive(dest_dir, mock_tar_stream)
 
+class TestEdgeDockerClose(unittest.TestCase):
+    """Unit tests for API EdgeDockerClient.close"""
+
+    @mock.patch('docker.APIClient', autospec=True)
+    @mock.patch('docker.DockerClient', autospec=True)
+    def test_closed_invoked_using_with_statement(self, mock_docker_client, mock_docker_api_client):
+        """ Test fails if close is not called implicitly using the with statement"""
+        # arrange
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        os_type = 'TEST_OS'
+        mock_docker_client.info.return_value = {'OSType': os_type}
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+
+        client = EdgeDockerClient.create_instance(mock_docker_client)
+
+        # act
+        with EdgeDockerClient.create_instance(mock_docker_client) as client:
+            client.get_os_type()
+
+        # assert
+        mock_docker_api_client.close.assert_called_with()
+
+    @mock.patch('docker.APIClient', autospec=True)
+    @mock.patch('docker.DockerClient', autospec=True)
+    def test_closed_invoked(self, mock_docker_client, mock_docker_api_client):
+        """ Test fails if close is not called """
+        # arrange
+        type(mock_docker_client).api = PropertyMock(return_value=mock_docker_api_client)
+        client = EdgeDockerClient.create_instance(mock_docker_client)
+
+        # act
+        client.close()
+
+        # assert
+        mock_docker_api_client.close.assert_called_with()
+
 if __name__ == '__main__':
     test_classes = [
         TestEdgeDockerClientCheckAvailability,
@@ -1394,6 +1368,7 @@ if __name__ == '__main__':
         TestEdgeDockerContainerOps,
         TestEdgeDockerNetworkCreate,
         TestEdgeDockerVolumes,
+        TestEdgeDockerClose
     ]
     suites_list = []
     for test_class in test_classes:

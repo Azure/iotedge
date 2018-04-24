@@ -80,9 +80,9 @@ class EdgeCLI(object):
 
     def _execute_command(self):
         log.debug('Executing command \'%s\'', self._command)
-        edge_cmd = EdgeCommandFactory.create_command(self._command,
-                                                     self.edge_config)
-        return edge_cmd.execute()
+        with EdgeCommandFactory.create_command(self._command,
+                                               self.edge_config) as edge_cmd:
+            return edge_cmd.execute()
 
     @staticmethod
     def _prog():

@@ -19,32 +19,28 @@ class EdgeDockerClient(object):
     """
     _DOCKER_INFO_OS_TYPE_KEY = 'OSType'
 
-    def __init__(self, docker_client=None, docker_api_client=None):
+    def __init__(self, docker_client=None):
         if docker_client is not None:
             self._client = docker_client
         else:
             self._client = docker.DockerClient.from_env()
 
-        if docker_api_client is not None:
-            self._api_client = docker_api_client
-        else:
-            params_dict = docker.utils.kwargs_from_env()
-            base_url = None
-            tls = None
-            if params_dict:
-                keys_list = list(params_dict.keys())
-                if 'base_url' in keys_list:
-                    base_url = params_dict['base_url']
-                if 'tls' in keys_list:
-                    tls = params_dict['tls']
-            self._api_client = docker.APIClient(base_url=base_url, tls=tls)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self._client is not None:
+            self._client.api.close()
 
     @classmethod
-    def create_instance(cls, docker_client, docker_api_client):
+    def create_instance(cls, docker_client):
         """
         Factory method useful in testing.
         """
-        return cls(docker_client, docker_api_client)
+        return cls(docker_client)
+
+    def close(self):
+        self._client.api.close()
 
     def check_availability(self):
         """
@@ -120,7 +116,7 @@ class EdgeDockerClient(object):
         local_id = None
         try:
             logging.info('Checking if image exists locally: %s', image)
-            inspect_dict = self._api_client.inspect_image(image)
+            inspect_dict = self._client.api.inspect_image(image)
             local_id = inspect_dict['Id']
             logging.info('Image exists locally. Id: %s', local_id)
         except docker.errors.APIError:
@@ -163,7 +159,7 @@ class EdgeDockerClient(object):
             self._client.images.pull(image, auth_config=auth_dict)
             logging.info('Completed pull for image: %s', image)
             if old_id is not None:
-                inspect_dict = self._api_client.inspect_image(image)
+                inspect_dict = self._client.api.inspect_image(image)
                 new_id = inspect_dict['Id']
                 logging.debug('Newly pulled image id: %s', new_id)
                 if new_id == old_id:
@@ -352,7 +348,7 @@ class EdgeDockerClient(object):
         create_network = False
         try:
             networks = self._client.networks.list(names=[network_name])
-            if networks:
+            if networks is not None:
                 num_networks = len(networks)
                 if num_networks == 0:
                     create_network = True
@@ -367,6 +363,31 @@ class EdgeDockerClient(object):
                     self._client.networks.create(network_name, driver="bridge")
         except docker.errors.APIError as ex:
             msg = 'Could not create docker network: {0}'.format(network_name)
+            logging.error(msg)
+            print(ex)
+            raise edgectl.errors.EdgeDeploymentError(msg, ex)
+
+    def destroy_network(self, network_name):
+        """
+        API to destroy a docker network given the network name if one
+        is available.
+
+        Args:
+            network_name (str): Network name string
+
+        Raises:
+            edgectl.errors.EdgeDeploymentError if there were problems
+            encountered when destroying the network.
+        """
+        logging.info('Destroying network: ' + network_name)
+        try:
+            networks = self._client.networks.list(names=[network_name])
+            if networks is not None:
+                for network in networks:
+                    if network.name == network_name:
+                        network.remove()
+        except docker.errors.APIError as ex:
+            msg = 'Could not remove docker network: {0}'.format(network_name)
             logging.error(msg)
             print(ex)
             raise edgectl.errors.EdgeDeploymentError(msg, ex)
@@ -402,10 +423,10 @@ class EdgeDockerClient(object):
             detach_bool = kwargs.get('detach', False)
             container_name = kwargs.get('name')
             nw_name = kwargs.get('network')
-            env_dict = kwargs.get('environment')
-            ports_dict = kwargs.get('ports')
-            volume_dict = kwargs.get('volumes')
-            log_config_dict = kwargs.get('log_config')
+            env_dict = kwargs.get('environment', {})
+            ports_dict = kwargs.get('ports', {})
+            volume_dict = kwargs.get('volumes', {})
+            log_config_dict = kwargs.get('log_config', {})
 
             logging.info('Executing docker create %s  name: %s  detach: %s' \
                          ' network: %s', image, container_name,
@@ -545,7 +566,8 @@ class EdgeDockerClient(object):
         try:
             (tar_stream, dest_archive_info, container_tar_file) = \
                 self.create_tar_objects(volume_dest_file_name)
-            file_data = open(host_src_file, 'rb').read()
+            with open(host_src_file, 'rb') as hostfile:
+                file_data = hostfile.read()
             dest_archive_info.size = len(file_data)
             dest_archive_info.mtime = time.time()
             dest_archive_info.mode = 0o444
@@ -574,7 +596,7 @@ class EdgeDockerClient(object):
         """
         try:
             volume_name = (volume_name.split('/'))[-1]
-            volume_info = self._api_client.inspect_volume(volume_name)
+            volume_info = self._client.api.inspect_volume(volume_name)
             EdgeUtils.copy_files(host_src_file.replace('\\\\', '\\'),
                                  os.path.join(volume_info['Mountpoint'].replace('\\\\', '\\'), volume_dest_file_name))
         except docker.errors.APIError as docker_ex:

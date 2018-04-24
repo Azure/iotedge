@@ -61,7 +61,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "docker[tls]==3.0",
+        "docker[tls]~=3.1",
         "pyOpenSSL",
         "enum34",
     ],

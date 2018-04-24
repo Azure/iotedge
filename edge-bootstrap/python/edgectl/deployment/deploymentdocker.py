@@ -30,6 +30,19 @@ class EdgeDeploymentCommandDocker(EdgeDeploymentCommand):
         else:
             self._client = docker_client
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self._client is not None:
+            self._client.close()
+
+    def close(self):
+        """
+        API to close any resources needed for docker based deployments
+        """
+        self._client.close()
+
     @classmethod
     def create_using_client(cls, config_obj, docker_client):
         """

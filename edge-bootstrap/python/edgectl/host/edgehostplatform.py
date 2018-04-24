@@ -16,16 +16,17 @@ import edgectl.errors
 class EdgeHostPlatform(object):
     @staticmethod
     def get_docker_uri():
-        dc = EdgeDockerClient()
-        engine_os = dc.get_os_type()
-        return EdgeDefault.get_docker_uri(platform.system(), engine_os)
+        with EdgeDockerClient() as dc:
+            dc = EdgeDockerClient()
+            engine_os = dc.get_os_type()
+            return EdgeDefault.get_docker_uri(platform.system(), engine_os)
 
     @staticmethod
     def is_deployment_supported(deployment):
         result = EdgeDefault.is_deployment_supported(platform.system(), deployment)
         if result is True:
-            dc = EdgeDockerClient()
-            result = dc.check_availability()
+            with EdgeDockerClient() as dc:
+                result = dc.check_availability()
         return result
 
     @staticmethod
