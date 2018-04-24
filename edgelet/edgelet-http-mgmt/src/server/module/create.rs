@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -14,7 +14,7 @@ use serde_json;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
-use super::spec_to_core;
+use super::{spec_to_core, spec_to_details};
 
 pub struct CreateModule<M>
 where
@@ -85,26 +85,6 @@ where
             .or_else(|e| future::ok(e.into_response()));
         Box::new(response)
     }
-}
-
-fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
-    let id = spec.name().clone();
-    let name = spec.name().clone();
-    let type_ = spec.type_().clone();
-
-    let env = spec.config().env().map(|e| {
-        e.iter()
-            .map(|ev| EnvVar::new(ev.key().clone(), ev.value().clone()))
-            .collect()
-    });
-    let mut config = Config::new(spec.config().settings().clone());
-    if let Some(e) = env {
-        config.set_env(e);
-    }
-
-    let runtime_status = RuntimeStatus::new(ModuleStatus::Created.to_string());
-    let status = Status::new(runtime_status);
-    ModuleDetails::new(id, name, type_, config, status)
 }
 
 #[cfg(test)]

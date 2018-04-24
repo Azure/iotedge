@@ -36,7 +36,7 @@ impl ManagementService {
             get    "/modules"                         => ListModules::new(runtime.clone()),
             post   "/modules"                         => CreateModule::new(runtime.clone()),
             get    "/modules/(?P<name>[^/]+)"         => GetModule,
-            put    "/modules/(?P<name>[^/]+)"         => UpdateModule,
+            put    "/modules/(?P<name>[^/]+)"         => UpdateModule::new(runtime.clone()),
             delete "/modules/(?P<name>[^/]+)"         => DeleteModule::new(runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/start"   => StartModule::new(runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/stop"    => StopModule::new(runtime.clone()),

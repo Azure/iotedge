@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec};
+use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus};
 use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use failure::{Fail, ResultExt};
 use futures::Future;
@@ -134,6 +134,26 @@ where
     let config = serde_json::from_value(spec.config().settings().clone())?;
     let module_spec = CoreModuleSpec::new(name, type_, config, env)?;
     Ok(module_spec)
+}
+
+fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
+    let id = spec.name().clone();
+    let name = spec.name().clone();
+    let type_ = spec.type_().clone();
+
+    let env = spec.config().env().map(|e| {
+        e.iter()
+            .map(|ev| EnvVar::new(ev.key().clone(), ev.value().clone()))
+            .collect()
+    });
+    let mut config = Config::new(spec.config().settings().clone());
+    if let Some(e) = env {
+        config.set_env(e);
+    }
+
+    let runtime_status = RuntimeStatus::new(ModuleStatus::Created.to_string());
+    let status = Status::new(runtime_status);
+    ModuleDetails::new(id, name, type_, config, status)
 }
 
 #[cfg(test)]
