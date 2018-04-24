@@ -30,6 +30,15 @@ mod error;
 use std::convert::AsRef;
 
 use clap::{App, Arg};
+use futures::{future, Future, Stream};
+use hyper::Client as HyperClient;
+use hyper::server::Http;
+use tokio_core::reactor::{Core, Handle};
+use url::Url;
+
+use error::Error;
+use settings::{Provisioning, Settings};
+use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_docker::DockerModuleRuntime;
 use edgelet_http::{ApiVersionService, API_VERSION};
@@ -37,15 +46,7 @@ use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::HubIdentityManager;
-use futures::{future, Future, Stream};
-use hyper::Client as HyperClient;
-use hyper::server::Http;
 use iothubservice::{Client as HttpClient, DeviceClient};
-use tokio_core::reactor::{Core, Handle};
-use url::Url;
-
-use error::Error;
-use settings::Settings;
 
 fn main() {
     env_logger::init();
@@ -81,16 +82,38 @@ fn main_runner() -> Result<(), Error> {
             None
         });
 
-    let _settings = Settings::new(config_file)?;
-
-    let root_key = MemoryKey::new("key");
-    let key_store = DerivedKeyStore::new(root_key);
+    let settings = Settings::new(config_file)?;
+    let provisioning_settings = settings.provisioning();
+    let provisioning_result = provision(provisioning_settings)?;
+    let key_store = provisioning_result;
 
     let mut core = Core::new().unwrap();
     start_management("0.0.0.0:8080", key_store.clone(), &core.handle());
     start_workload("0.0.0.0:8081", key_store, &core.handle());
     core.run(future::empty::<(), ()>()).unwrap();
     Ok(())
+}
+
+fn provision(provisioning: &Provisioning) -> Result<DerivedKeyStore<MemoryKey>, Error> {
+    let &mut key_store;
+    match *provisioning {
+        Provisioning::Manual {
+            ref device_connection_string,
+        } => {
+            let mut provision = ManualProvisioning::new(device_connection_string.as_str())?;
+            let root_key = provision.key()?;
+            println!(
+                "Device Id: {}\nHost Name: {}",
+                provision.device_id(),
+                provision.host_name()
+            );
+            key_store = DerivedKeyStore::new(MemoryKey::new(root_key));
+        }
+        Provisioning::Dps { .. } => {
+            key_store = DerivedKeyStore::new(MemoryKey::new("no dps"));
+        }
+    }
+    Ok(key_store)
 }
 
 fn start_management<K>(addr: &str, key_store: K, handle: &Handle)

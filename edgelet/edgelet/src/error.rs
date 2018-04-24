@@ -4,9 +4,10 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
-
 use config::ConfigError as SettingsError;
 use serde_json::Error as JsonError;
+
+use edgelet_core::Error as CoreError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -19,6 +20,8 @@ pub enum ErrorKind {
     Settings(SettingsError),
     #[fail(display = "Invalid configuration json")]
     Json(JsonError),
+    #[fail(display = "Edgelet utils error")]
+    Core,
 }
 
 impl Fail for Error {
@@ -62,5 +65,13 @@ impl From<SettingsError> for Error {
 impl From<JsonError> for Error {
     fn from(err: JsonError) -> Error {
         Error::from(ErrorKind::Json(err))
+    }
+}
+
+impl From<CoreError> for Error {
+    fn from(err: CoreError) -> Error {
+        Error {
+            inner: err.context(ErrorKind::Core),
+        }
     }
 }

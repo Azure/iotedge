@@ -11,6 +11,7 @@ extern crate consistenttime;
 extern crate failure;
 extern crate futures;
 extern crate hmac;
+extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -24,6 +25,7 @@ pub mod crypto;
 mod error;
 mod identity;
 mod module;
+pub mod provisioning;
 
 use std::rc::Rc;
 

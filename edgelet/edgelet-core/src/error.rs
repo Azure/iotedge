@@ -28,6 +28,8 @@ pub enum ErrorKind {
     NotFound,
     #[fail(display = "Edgelet utils error")]
     Utils,
+    #[fail(display = "Provisioning error")]
+    Provision(String),
 }
 
 impl Fail for Error {

@@ -1,8 +1,6 @@
 {
     "provisioning": {
       "source": "manual",
-      "manual": {
-        "device_connection_string": "sample"
-      }
+      "device_connection_string": "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
     }
 }

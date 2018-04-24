@@ -7,14 +7,16 @@ use serde_json;
 use error::Error;
 
 #[derive(Debug, Deserialize)]
-struct DeviceConnectionString {
-    device_connection_string: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Provisioning {
-    source: String,
-    manual: DeviceConnectionString,
+#[serde(tag = "source")]
+#[serde(rename_all = "lowercase")]
+pub enum Provisioning {
+    Manual {
+        device_connection_string: String,
+    },
+    Dps {
+        global_endpoint: String,
+        scope_id: String,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,9 +27,7 @@ pub struct Settings {
 static DEFAULTS: &'static str = r#"{
     "provisioning": {
       "source": "manual",
-      "manual": {
-        "device_connection_string": "cs"
-      }
+      "device_connection_string": "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
     }
 }"#;
 
@@ -52,33 +52,38 @@ impl Settings {
             )
     }
 
-    pub fn _device_connection_string(&self) -> &str {
-        &self.provisioning.manual.device_connection_string
+    pub fn provisioning(&self) -> &Provisioning {
+        &self.provisioning
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn gets_default_connection_string() {
-        let settings = Settings::new(None);
-        assert_eq!(settings.is_ok(), true);
-        assert_eq!(
-            settings
-                .unwrap()
-                .provisioning
-                .manual
-                .device_connection_string,
-            "cs"
-        );
+    fn unwrap_manual_provisioning(p: &Provisioning) -> Result<String, Error> {
+        match p {
+            &Provisioning::Manual {
+                ref device_connection_string,
+            } => Ok(device_connection_string.to_string()),
+            &Provisioning::Dps {
+                global_endpoint: _,
+                scope_id: _,
+            } => Ok("not implemented".to_string()),
+        }
     }
 
     #[test]
-    fn gets_default_provisioning_mode() {
+    fn manual_gets_default_connection_string() {
         let settings = Settings::new(None);
         assert_eq!(settings.is_ok(), true);
-        assert_eq!(settings.unwrap().provisioning.source, "manual");
+        let s = settings.unwrap();
+        let p = s.provisioning();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(connection_string.is_ok(), true);
+        assert_eq!(
+            connection_string.expect("unexpected"),
+            "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
+        );
     }
 
     #[test]
@@ -94,16 +99,16 @@ mod tests {
     }
 
     #[test]
-    fn file_gets_sample_connection_string() {
+    fn manual_file_gets_sample_connection_string() {
         let settings = Settings::new(Some("test/sample_settings.json"));
         assert_eq!(settings.is_ok(), true);
+        let s = settings.unwrap();
+        let p = s.provisioning();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(connection_string.is_ok(), true);
         assert_eq!(
-            settings
-                .unwrap()
-                .provisioning
-                .manual
-                .device_connection_string,
-            "sample"
+            connection_string.expect("unexpected"),
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
         );
     }
 }
