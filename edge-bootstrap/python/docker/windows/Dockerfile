@@ -5,7 +5,7 @@ WORKDIR /app
 
 # set ENV - must use setx to read and append to existing PATH
 ENV PYTHONHOME="C:\\ProgramData\\pyiotedge" PYTHONPATH="C:\\ProgramData\\pyiotedge\\Lib;C:\\ProgramData\\pyiotedge\\Lib\\site-packages"
-RUN setx /M PATH "%PATH%;C:\\Program Files\\PowerShell;C:\\ProgramData\\pyiotedge;C:\\ProgramData\\pyiotedge\\Scripts"
+RUN setx /M PATH "%PATH%;C:\Program Files\PowerShell;C:\ProgramData\pyiotedge;C:\ProgramData\pyiotedge\Scripts"
 
 ARG EXE_DIR=.
 COPY $EXE_DIR/ ./
