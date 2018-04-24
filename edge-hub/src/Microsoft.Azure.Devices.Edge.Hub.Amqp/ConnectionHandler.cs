@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public class DeviceProxy : IDeviceProxy
         {
             readonly ConnectionHandler connectionHandler;
-            bool isActive = true;
+            AtomicBoolean isActive = new AtomicBoolean(true);
 
             public DeviceProxy(ConnectionHandler connectionHandler, IIdentity identity)
             {
@@ -167,8 +167,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public Task CloseAsync(Exception ex)
             {
-                Events.ClosingProxy(this.Identity, ex);
-                return this.connectionHandler.connection.Close();
+                if (this.isActive.GetAndSet(false))
+                {
+                    Events.ClosingProxy(this.Identity, ex);
+                    return this.connectionHandler.connection.Close();
+                }
+                return Task.CompletedTask;
             }
 
             public Task SendC2DMessageAsync(IMessage message)
@@ -244,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             public void SetInactive()
             {
                 Events.SettingProxyInactive(this.Identity);
-                this.isActive = false;
+                this.isActive.Set(false);
             }
 
             public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.connectionHandler.GetUpdatedAuthenticatedIdentity();

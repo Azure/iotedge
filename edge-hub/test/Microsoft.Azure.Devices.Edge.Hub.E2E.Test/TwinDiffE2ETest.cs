@@ -18,6 +18,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class TwinDiffE2ETest : IClassFixture<ProtocolHeadFixture>
     {
+        static readonly ITransportSettings[] MqttTransportSettings =
+        {
+            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            }
+        };
+
+        static readonly ITransportSettings[] AmqpTransportSettings =
+        {
+            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            }
+        };
+
         const string DeviceNamePrefix = "E2E_twin_";
         string deviceName;
         RegistryManager rm;
@@ -25,7 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         string deviceConnectionString;
 
         [Fact, TestPriority(101)]
-        public async void AddPropertySuccess()
+        public Task AddPropertySuccess_Amqp() => AddPropertySuccess(AmqpTransportSettings);
+
+        [Fact, TestPriority(102)]
+        public Task AddPropertySuccess_Mqtt() => AddPropertySuccess(MqttTransportSettings); 
+
+        async Task AddPropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -33,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["101"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -48,15 +69,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(102)]
-        public async void OverwritePropertySuccess()
+        [Fact, TestPriority(103)]
+        public Task OverwritePropertySuccess_Amqp() => this.OverwritePropertySuccess(AmqpTransportSettings);
+
+        [Fact, TestPriority(104)]
+        public Task OverwritePropertySuccess_Mqtt() => this.OverwritePropertySuccess(MqttTransportSettings); 
+
+        async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -64,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["102"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -75,15 +101,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["102"] = "overwritten value"
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(103)]
-        public async void UnchangedPropertySuccess()
+        [Fact, TestPriority(105)]
+        public Task UnchangedPropertySuccess_Amqp() => this.UnchangedPropertySuccess(AmqpTransportSettings); 
+
+        [Fact, TestPriority(106)]
+        public Task UnchangedPropertySuccess_Mqtt() => this.UnchangedPropertySuccess(MqttTransportSettings);
+
+        async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -100,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -120,15 +151,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(104)]
-        public async void RemovePropertySuccess()
+        [Fact, TestPriority(107)]
+        public Task RemovePropertySuccess_Amqp() => this.RemovePropertySuccess(AmqpTransportSettings);
+
+        [Fact, TestPriority(108)]
+        public Task RemovePropertySuccess_Mqtt() => this.RemovePropertySuccess(MqttTransportSettings); 
+
+        public async Task RemovePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -145,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -165,15 +201,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(105)]
-        public async void NonexistantRemovePropertySuccess()
+        [Fact, TestPriority(109)]
+        public Task NonexistantRemovePropertySuccess_Amqp() => this.NonexistantRemovePropertySuccess(AmqpTransportSettings);
+
+        [Fact, TestPriority(110)]
+        public Task NonexistantRemovePropertySuccess_Mqtt() => this.NonexistantRemovePropertySuccess(MqttTransportSettings); 
+
+        async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -190,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -211,15 +252,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(106)]
-        public async void OverwriteValueWithObjectSuccess()
+        [Fact, TestPriority(111)]
+        public Task OverwriteValueWithObjectSuccess_Mqtt() => this.OverwriteValueWithObjectSuccess(MqttTransportSettings);
+
+        [Fact, TestPriority(112)]
+        public Task OverwriteValueWithObjectSuccess_Amqp() => this.OverwriteValueWithObjectSuccess(AmqpTransportSettings);
+
+        async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -227,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["106"] = "value"
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -247,15 +293,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(107)]
-        public async void OverwriteObjectWithValueSuccess()
+        [Fact, TestPriority(113)]
+        public Task OverwriteObjectWithValueSuccess_Mqtt() => this.OverwriteObjectWithValueSuccess(MqttTransportSettings);
+
+        [Fact, TestPriority(114)]
+        public Task OverwriteObjectWithValueSuccess_Amqp() => this.OverwriteObjectWithValueSuccess(AmqpTransportSettings);
+
+        async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -272,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, false);
+            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
@@ -283,14 +334,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["107"] = "value"
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, MqttTransportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        async Task Setup(DesiredPropertyUpdateCallback callback, Twin twinPatch, Func<Twin, Task> afterSetup, Func<Task> afterCallback)
+        async Task Setup(DesiredPropertyUpdateCallback callback, Twin twinPatch, Func<Twin, Task> afterSetup, Func<Task> afterCallback, ITransportSettings[] settings)
         {
             if (this.rm == null)
             {
@@ -299,11 +350,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 this.rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
                 (this.deviceName, this.deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, this.rm);
 
-                var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-                {
-                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-                };
-                ITransportSettings[] settings = { mqttSetting };
                 this.deviceClient = DeviceClient.CreateFromConnectionString(this.deviceConnectionString, settings);
                 await this.deviceClient.OpenAsync();
             }
@@ -319,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.rm = null;
         }
 
-        async Task<Tuple<TwinCollection, TwinCollection>> RunTestCase(CancellationTokenSource cts, Twin twinPatch, bool teardown)
+        async Task<Tuple<TwinCollection, TwinCollection>> RunTestCase(CancellationTokenSource cts, Twin twinPatch, ITransportSettings[] transportSettings, bool teardown)
         {
             var desiredPropertyPatch = new TwinCollection();
             var originalCloudTwin = new Twin();
@@ -351,7 +397,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // replicate the patch operation locally
                 string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, desiredPropertyPatch, true);
                 localMergedTwinProperties = new TwinCollection(mergedJson);
-            });
+            },
+            transportSettings);
 
             while (!cts.IsCancellationRequested)
             {

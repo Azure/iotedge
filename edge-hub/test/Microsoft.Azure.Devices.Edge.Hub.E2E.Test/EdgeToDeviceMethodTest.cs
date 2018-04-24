@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     [E2E]
@@ -17,336 +17,163 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
+        static readonly ITransportSettings[] MqttTransportSettings =
+        {
+            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            }
+        };
+
+        static readonly ITransportSettings[] AmqpTransportSettings =
+        {
+            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
+            {
+                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+            }
+        };
+
         const string DeviceNamePrefix = "E2E_DirectMethods_";
         const string MethodName = "WriteToConsole";
-        const string DataAsJson = "{\"MethodPayload\":\"Payload\"}";
-        const int MethodNotFoundStatus = 501;
-        const int MethodOkStatus = 200;
+
         static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(60);
         static readonly string GatewayDeviceId = ConfigHelper.TestConfig["GatewayDeviceId"];
         static readonly string ModuleId = $"{GatewayDeviceId}/module1";
 
-        [Fact(Skip = "Module not implemented by service or device SDK - SWITCH APIs from Device to Module"), TestPriority(201)]
-        public async Task Receive_DirectMethodCall_Module_WhenRegistered_ShouldCallHandler()
-        {
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+        [Fact, TestPriority(301)]
+        public Task InvokeMethodModuleTest_Amqp() => this.InvokeMethodOnModuleTest(AmqpTransportSettings);
 
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
+        [Fact, TestPriority(302)]
+        public Task InvokeMethodModuleTest_Mqtt() => this.InvokeMethodOnModuleTest(MqttTransportSettings);
+
+        async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
+        {
+            // Arrange
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            ServiceClient sender = null;
+            DeviceClient receiver = null;
+
+            var request = new TestMethodRequest("Prop1", 10);
+            var response = new TestMethodResponse("RespProp1", 20);
+            TestMethodRequest receivedRequest = null;
+            Task<MethodResponse> MethodHandler(MethodRequest methodRequest, object context)
+            {
+                receivedRequest = JsonConvert.DeserializeObject<TestMethodRequest>(methodRequest.DataAsJson);
+                return Task.FromResult(new MethodResponse(
+                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
+            }
 
             try
             {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
+                string receiverModuleName = "receiver1";
+                sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                // Connect to the Edge Hub and create the device client
-                string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotEdgeModuleConnStrKey");
-                client = await this.ConnectToEdge(connectionString);
+                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, receiverModuleName);
+                receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
+                await receiver.OpenAsync();
+                await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                // Setup mocked callback for direct method call
-                var callback = new Mock<MethodCallback>();
-                callback.Setup(f => f(It.IsAny<MethodRequest>(), It.IsAny<object>()))
-                    .Returns(Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(DataAsJson), MethodOkStatus)));
+                // Act
+                CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
+                    connectionStringBuilder.DeviceId,
+                    receiverModuleName,
+                    new CloudToDeviceMethod("poke").SetPayloadJson(JsonConvert.SerializeObject(request)));
 
-                // Set the callback to be invoked upon direct method request
-                await client.SetMethodDefaultHandlerAsync(callback.Object, null);
+                // Assert
+                Assert.NotNull(cloudToDeviceMethodResult);
+                Assert.NotNull(receivedRequest);
+                Assert.Equal(receivedRequest.RequestProp1, request.RequestProp1);
+                Assert.Equal(receivedRequest.RequestProp2, request.RequestProp2);
 
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    ModuleId,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Await the response from the client
-                CloudToDeviceMethodResult response = await directResponseFuture;
-
-                // Validate results
-                Assert.Equal(MethodOkStatus, response.Status);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Once());
+                Assert.Equal(200, cloudToDeviceMethodResult.Status);
+                TestMethodResponse receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
+                Assert.NotNull(receivedResponse);
+                Assert.Equal(receivedResponse.ResponseProp1, response.ResponseProp1);
+                Assert.Equal(receivedResponse.ResponseProp2, response.ResponseProp2);
             }
             finally
             {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
-            }
-        }
-
-        [Fact(Skip = "Module not implemented by service or device SDK - SWITCH APIs from Device to Module"), TestPriority(202)]
-        public async Task Receive_DirectMethodCall_Module_WhenOtherMethodRegistered_ShouldNotCallHandler()
-        {
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
-
-            try
-            {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
-
-                // Connect to the Edge Hub and create the device client
-                string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotEdgeModuleConnStrKey");
-                client = await this.ConnectToEdge(connectionString);
-
-                // Setup mocked callback for direct method call
-                var callback = new Mock<MethodCallback>();
-
-                // Set the callback to be invoked upon direct method request
-                await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
-
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    ModuleId,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Await the response from the client
-                CloudToDeviceMethodResult response = await directResponseFuture;
-
-                // Validate results
-                Assert.Equal(MethodNotFoundStatus, response.Status);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
-            }
-            finally
-            {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
-            }
-        }
-
-        [Fact(Skip = "Module not implemented by service or device SDK - SWITCH APIs from Device to Module"), TestPriority(203)]
-        public async Task Receive_DirectMethodCall_Module_WhenNoMethodRegistered_ShouldNotCallHandler()
-        {
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
-
-            try
-            {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
-
-                // Connect to the Edge Hub and create the device client
-                string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotEdgeModuleConnStrKey");
-                client = await this.ConnectToEdge(connectionString);
-                var callback = new Mock<MethodCallback>();
-
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    ModuleId,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Validate results
-                await Assert.ThrowsAsync<Common.Exceptions.DeviceNotFoundException>(() => directResponseFuture);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
-            }
-            finally
-
-            {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
-            }
-        }
-
-        [Fact, TestPriority(204)]
-        public async Task Receive_DirectMethodCall_Device_WhenRegistered_ShouldCallHandler()
-        {
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
-
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
-            try
-            {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
-
-                // Connect to the Edge Hub and create the device client
-                client = await this.ConnectToEdge(deviceConnectionString);
-
-                // Setup mocked callback for direct method call
-                var callback = new Mock<MethodCallback>();
-                callback.Setup(f => f(It.IsAny<MethodRequest>(), null))
-                    .Returns(Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(DataAsJson), MethodOkStatus)));
-
-                // Set the callback to be invoked upon direct method request
-                await client.SetMethodHandlerAsync(MethodName, callback.Object, null);
-
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    deviceName,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Await the response from the client
-                CloudToDeviceMethodResult response = await directResponseFuture;
-
-                // Validate results
-                Assert.Equal(MethodOkStatus, response.Status);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Once());
-            }
-            finally
-            {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
                 if (rm != null)
                 {
-                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
                     await rm.CloseAsync();
                 }
+                if (receiver != null)
+                {
+                    await receiver.CloseAsync();
+                }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
-        [Fact, TestPriority(205)]
-        public async Task Receive_DirectMethodCall_Device_WhenOtherMethodRegistered_ShouldNotCallHandler()
+        [Fact, TestPriority(303)]
+        public Task InvokeMethodDeviceTest_Amqp() => this.InvokeMethodOnDeviceTest(AmqpTransportSettings);
+
+        [Fact, TestPriority(304)]
+        public Task InvokeMethodDeviceTest_Mqtt() => this.InvokeMethodOnDeviceTest(MqttTransportSettings);
+
+        async Task InvokeMethodOnDeviceTest(ITransportSettings[] transportSettings)
         {
-            // Get the connection string from the secret store
+            // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            ServiceClient sender = null;
+            DeviceClient receiver = null;
 
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
+            var request = new TestMethodRequest("Prop1", 10);
+            var response = new TestMethodResponse("RespProp1", 20);
+            TestMethodRequest receivedRequest = null;
+            Task<MethodResponse> MethodHandler(MethodRequest methodRequest, object context)
+            {
+                receivedRequest = JsonConvert.DeserializeObject<TestMethodRequest>(methodRequest.DataAsJson);
+                return Task.FromResult(new MethodResponse(
+                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response)), 200));
+            }
+
             try
             {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
+                sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                // Connect to the Edge Hub and create the device client
-                client = await this.ConnectToEdge(deviceConnectionString);
+                (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice("methodTest", iotHubConnectionString, rm, false, true);
+                receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
+                await receiver.OpenAsync();
+                await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
-                // Setup mocked callback for direct method call
-                var callback = new Mock<MethodCallback>();
+                // Act
+                CloudToDeviceMethodResult cloudToDeviceMethodResult = await sender.InvokeDeviceMethodAsync(
+                    deviceId,
+                    new CloudToDeviceMethod("poke").SetPayloadJson(JsonConvert.SerializeObject(request)));
 
-                // Set the callback to be invoked upon direct method request
-                await client.SetMethodHandlerAsync(MethodName + "1", callback.Object, null);
+                // Assert
+                Assert.NotNull(cloudToDeviceMethodResult);
+                Assert.NotNull(receivedRequest);
+                Assert.Equal(receivedRequest.RequestProp1, request.RequestProp1);
+                Assert.Equal(receivedRequest.RequestProp2, request.RequestProp2);
 
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    deviceName,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Await the response from the client
-                CloudToDeviceMethodResult response = await directResponseFuture;
-
-                // Validate results
-                Assert.Equal(MethodNotFoundStatus, response.Status);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
+                Assert.Equal(200, cloudToDeviceMethodResult.Status);
+                TestMethodResponse receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
+                Assert.NotNull(receivedResponse);
+                Assert.Equal(receivedResponse.ResponseProp1, response.ResponseProp1);
+                Assert.Equal(receivedResponse.ResponseProp2, response.ResponseProp2);
             }
             finally
             {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
                 if (rm != null)
                 {
-                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
                     await rm.CloseAsync();
                 }
+                if (receiver != null)
+                {
+                    await receiver.CloseAsync();
+                }
             }
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
-
-        [Fact, TestPriority(206)]
-        public async Task Receive_DirectMethodCall_Device_WhenNoMethodRegistered_ShouldNotCallHandler()
-        {
-            // Get the connection string from the secret store
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
-
-            ServiceClient serviceClient = null;
-            DeviceClient client = null;
-            try
-            {
-                // Create a service client using the IoT Hub connection string (local service)
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
-
-                // Connect to the Edge Hub and create the device client
-                client = await this.ConnectToEdge(deviceConnectionString);
-
-                // Setup mocked callback for direct method call
-                var callback = new Mock<MethodCallback>();
-
-                // Invoke the direct method from the local service
-                Task<CloudToDeviceMethodResult> directResponseFuture = serviceClient.InvokeDeviceMethodAsync(
-                    deviceName,
-                    new CloudToDeviceMethod(MethodName, ResponseTimeout).SetPayloadJson(DataAsJson)
-                );
-
-                // Validate results
-                await Assert.ThrowsAsync<Common.Exceptions.DeviceNotFoundException>(() => directResponseFuture);
-                callback.Verify(f => f(It.Is<MethodRequest>(request => request.Name == MethodName && request.DataAsJson == DataAsJson), It.IsAny<object>()), Times.Never());
-            }
-            finally
-            {
-                // Clean-up resources
-                if (serviceClient != null)
-                {
-                    await serviceClient.CloseAsync();
-                }
-                if (client != null)
-                {
-                    await client.CloseAsync();
-                }
-                if (rm != null)
-                {
-                    await RegistryManagerHelper.RemoveDevice(deviceName, rm);
-                    await rm.CloseAsync();
-                }
-            }
-        }
-
+        
         async Task<DeviceClient> ConnectToEdge(string connectionString)
         {
             var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
@@ -361,6 +188,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await client.OpenAsync();
 
             return client;
+        }
+
+        class TestMethodRequest
+        {
+            [JsonConstructor]
+            public TestMethodRequest(string requestProp1, int requestProp2)
+            {
+                RequestProp1 = requestProp1;
+                RequestProp2 = requestProp2;
+            }
+
+            [JsonProperty("requestProp1")]
+            public string RequestProp1 { get; }
+
+            [JsonProperty("requestProp2")]
+            public int RequestProp2 { get; }
+        }
+
+        class TestMethodResponse
+        {
+            [JsonConstructor]
+            public TestMethodResponse(string responseProp1, int responseProp2)
+            {
+                ResponseProp1 = responseProp1;
+                ResponseProp2 = responseProp2;
+            }
+
+            [JsonProperty("responseProp1")]
+            public string ResponseProp1 { get; }
+
+            [JsonProperty("responseProp2")]
+            public int ResponseProp2 { get; }
         }
     }
 }

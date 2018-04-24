@@ -9,10 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
@@ -24,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public class ProtocolHeadFixture : IDisposable
     {
-        public InternalProtocolHeadFixture Head { get; }
+        public IProtocolHead ProtocolHead { get; }
 
         public ProtocolHeadFixture()
         {
-            this.Head = InternalProtocolHeadFixture.GetInstance();
+            this.ProtocolHead = InternalProtocolHeadFixture.Instance.ProtocolHead;
         }
 
         public void Dispose()
@@ -37,9 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public class InternalProtocolHeadFixture
         {
-            IProtocolHead protocolHead;
             IContainer container;
-            static readonly InternalProtocolHeadFixture Instance = new InternalProtocolHeadFixture();
+            IProtocolHead protocolHead;
+
+            public IProtocolHead ProtocolHead => this.protocolHead;
+
+            public static InternalProtocolHeadFixture Instance { get; } = new InternalProtocolHeadFixture();
 
             readonly IList<string> inboundTemplates = new List<string>()
             {
@@ -76,17 +81,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["r13"] = "FROM /messages/modules/sender10 INTO BrokeredEndpoint(\"/modules/receiver10/inputs/input1\")"
             };
 
-            public static InternalProtocolHeadFixture GetInstance()
-            {
-                return Instance;
-            }
-
             private InternalProtocolHeadFixture()
             {
                 bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
                 if (shouldStartEdge)
                 {
-                    this.StartMqttHead(this.routes, null).Wait();
+                    this.StartProtocolHead(this.routes, null).Wait();
                 }
             }
 
@@ -97,8 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.protocolHead.Dispose();
                 }
             }
-
-            public async Task StartMqttHead(IDictionary<string, string> routesInput, Action<ContainerBuilder> setupMocks)
+            
+            async Task StartProtocolHead(IDictionary<string, string> routesInput, Action<ContainerBuilder> setupMocks)
             {
                 const int ConnectionPoolSize = 10;
                 string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
@@ -139,6 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 );
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty));
+                builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
                 setupMocks?.Invoke(builder);
                 this.container = builder.Build();
 
@@ -146,7 +147,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();
                 await configUpdater.Init(configSource);
 
-                this.protocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
+                ILogger logger = this.container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
+                var mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
+                var amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
+                this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
             }
         }
