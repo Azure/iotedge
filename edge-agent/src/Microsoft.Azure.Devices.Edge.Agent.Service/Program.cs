@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static int Main()
         {
+            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Agent Main()");
             try
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()

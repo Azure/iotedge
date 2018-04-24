@@ -13,4 +13,5 @@ COPY $EXE_DIR/ ./
 RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
-CMD ["/usr/bin/dotnet", "SimulatedTemperatureSensor.dll"]
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
+    exec /usr/bin/dotnet SimulatedTemperatureSensor.dll

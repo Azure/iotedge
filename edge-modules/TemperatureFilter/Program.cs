@@ -26,6 +26,8 @@ namespace TemperatureFilter
 
         static void Main()
         {
+            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Main()");
+
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("config/appsettings.json", optional: true)

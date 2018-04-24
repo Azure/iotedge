@@ -29,6 +29,8 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
+            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Main()");
+
             InstallCert();
 
             IConfiguration configuration = new ConfigurationBuilder()
