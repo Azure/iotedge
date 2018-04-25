@@ -23,7 +23,7 @@ class EdgeDockerClient(object):
         if docker_client is not None:
             self._client = docker_client
         else:
-            self._client = docker.DockerClient.from_env()
+            self._client = docker.DockerClient.from_env(version='auto')
 
     def __enter__(self):
         return self
