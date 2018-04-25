@@ -3,6 +3,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::os::raw::c_int;
+use std::str::Utf8Error;
 
 use failure::{Backtrace, Context, Fail};
 
@@ -23,6 +24,10 @@ pub enum ErrorKind {
     CertProps,
     #[fail(display = "HSM API returned an invalid null response")]
     NullResponse,
+    #[fail(display = "Could not parse bytes as utf-8")]
+    Utf8,
+    #[fail(display = "Invalid private key type: {}", _0)]
+    PrivateKeyType(u32),
 }
 
 impl Fail for Error {
@@ -77,6 +82,14 @@ impl From<isize> for Error {
     fn from(result: isize) -> Error {
         Error {
             inner: Context::new(ErrorKind::Init(result)),
+        }
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(error: Utf8Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utf8),
         }
     }
 }

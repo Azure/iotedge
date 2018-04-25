@@ -14,6 +14,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate failure;
 extern crate futures;
+extern crate hsm;
 extern crate hyper;
 extern crate iothubservice;
 #[macro_use]
@@ -49,6 +50,7 @@ use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::HubIdentityManager;
+use hsm::Crypto;
 use iothubservice::{Client as HttpClient, DeviceClient};
 
 fn main() {
@@ -169,7 +171,10 @@ where
 {
     let uri = addr.parse()?;
     let server_handle = handle.clone();
-    let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(key_store)?));
+    let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
+        key_store,
+        Crypto::new(),
+    )?));
 
     let serve = Http::new().serve_addr_handle(&uri, &server_handle, service)?;
 

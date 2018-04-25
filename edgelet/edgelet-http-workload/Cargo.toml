@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 base64 = "0.9.0"
+chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
 failure_derive = "0.1"
 futures = "0.1"
@@ -16,7 +17,6 @@ serde_json = "1.0"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
+edgelet-utils = { path = "../edgelet-utils" }
+hsm = { path = "../hsm-rs" }
 workload = { path = "../workload" }
-
-[dev-dependencies]
-chrono = { version = "0.4", features = ["serde"] }

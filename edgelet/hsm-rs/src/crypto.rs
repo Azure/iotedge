@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::AsRef;
 use std::ffi::CString;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
 use std::slice;
+use std::str;
 
 use error::{Error, ErrorKind};
 use hsm_sys::*;
@@ -29,7 +31,7 @@ pub enum CertificateType {
 /// - EncryptData
 /// - DecryptData
 ///
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Crypto {
     handle: HSM_CLIENT_HANDLE,
     interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
@@ -350,16 +352,111 @@ impl DecryptData for Crypto {
 
 #[derive(Debug, Clone)]
 pub struct CertificateProperties {
-    pub validity_in_mins: usize,
-    pub common_name: String,
-    pub certificate_type: Option<CertificateType>,
-    pub country: Option<String>,
-    pub state: Option<String>,
-    pub locality: Option<String>,
-    pub organization: Option<String>,
-    pub organization_unit: Option<String>,
-    pub issuer_alias: Option<String>,
-    pub alias: Option<String>,
+    validity_in_mins: usize,
+    common_name: String,
+    certificate_type: Option<CertificateType>,
+    country: Option<String>,
+    state: Option<String>,
+    locality: Option<String>,
+    organization: Option<String>,
+    organization_unit: Option<String>,
+    issuer_alias: Option<String>,
+    alias: Option<String>,
+}
+
+impl CertificateProperties {
+    pub fn validity_in_mins(&self) -> &usize {
+        &self.validity_in_mins
+    }
+
+    pub fn with_validity_in_mins(mut self, validity_in_mins: usize) -> CertificateProperties {
+        self.validity_in_mins = validity_in_mins;
+        self
+    }
+
+    pub fn common_name(&self) -> &str {
+        &self.common_name
+    }
+
+    pub fn with_common_name(mut self, common_name: &str) -> CertificateProperties {
+        self.common_name = common_name.to_string();
+        self
+    }
+
+    pub fn certificate_type(&self) -> Option<&CertificateType> {
+        self.certificate_type.as_ref()
+    }
+
+    pub fn with_certificate_type(
+        mut self,
+        certificate_type: CertificateType,
+    ) -> CertificateProperties {
+        self.certificate_type = Some(certificate_type);
+        self
+    }
+
+    pub fn country(&self) -> Option<&String> {
+        self.country.as_ref()
+    }
+
+    pub fn with_country(mut self, country: String) -> CertificateProperties {
+        self.country = Some(country);
+        self
+    }
+
+    pub fn state(&self) -> Option<&String> {
+        self.state.as_ref()
+    }
+
+    pub fn with_state(mut self, state: String) -> CertificateProperties {
+        self.state = Some(state);
+        self
+    }
+
+    pub fn locality(&self) -> Option<&String> {
+        self.locality.as_ref()
+    }
+
+    pub fn with_locality(mut self, locality: String) -> CertificateProperties {
+        self.locality = Some(locality);
+        self
+    }
+
+    pub fn organization(&self) -> Option<&String> {
+        self.organization.as_ref()
+    }
+
+    pub fn with_organization(mut self, organization: String) -> CertificateProperties {
+        self.organization = Some(organization);
+        self
+    }
+
+    pub fn organization_unit(&self) -> Option<&String> {
+        self.organization_unit.as_ref()
+    }
+
+    pub fn with_organization_unit(mut self, organization_unit: String) -> CertificateProperties {
+        self.organization_unit = Some(organization_unit);
+        self
+    }
+
+    pub fn issuer_alias(&self) -> Option<&String> {
+        self.issuer_alias.as_ref()
+    }
+
+    pub fn with_issuer_alias(mut self, issuer_alias: String) -> CertificateProperties {
+        self.issuer_alias = Some(issuer_alias);
+        self
+    }
+
+    pub fn alias(&self) -> Option<&String> {
+        self.alias.as_ref()
+    }
+
+    pub fn with_alias(mut self, alias: String) -> CertificateProperties {
+        self.alias = Some(alias);
+        self
+    }
 }
 
 impl Default for CertificateProperties {
@@ -379,12 +476,72 @@ impl Default for CertificateProperties {
     }
 }
 
+pub enum PrivateKey<T: AsRef<[u8]>> {
+    Ref(String),
+    Key(T),
+}
+
 /// A structure representing a Certificate in the HSM.
 #[derive(Debug)]
 pub struct HsmCertificate {
     crypto_handle: HSM_CLIENT_HANDLE,
     interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
     cert_handle: CERT_HANDLE,
+}
+
+impl HsmCertificate {
+    pub fn get(&self) -> Result<(u32, Buffer), Error> {
+        let mut buffer = SIZED_BUFFER {
+            buffer: std::ptr::null_mut() as *mut c_uchar,
+            size: 0,
+        };
+        let mut encoding: u32 = 0;
+        let result = unsafe { get_certificate(self.cert_handle, &mut buffer, &mut encoding) };
+
+        match result {
+            0 => Ok((encoding, Buffer::new(self.interface, buffer))),
+            e => Err(e)?,
+        }
+    }
+
+    pub fn get_public_key(&self) -> Result<(u32, Buffer), Error> {
+        let mut buffer = SIZED_BUFFER {
+            buffer: std::ptr::null_mut() as *mut c_uchar,
+            size: 0,
+        };
+        let mut encoding: u32 = 0;
+        let result = unsafe { get_public_key(self.cert_handle, &mut buffer, &mut encoding) };
+
+        match result {
+            0 => Ok((encoding, Buffer::new(self.interface, buffer))),
+            e => Err(e)?,
+        }
+    }
+
+    pub fn get_private_key(&self) -> Result<(u32, PrivateKey<Buffer>), Error> {
+        let mut buffer = SIZED_BUFFER {
+            buffer: std::ptr::null_mut() as *mut c_uchar,
+            size: 0,
+        };
+        let mut encoding: u32 = 0;
+        let mut key_type: u32 = 0;
+        let result =
+            unsafe { get_private_key(self.cert_handle, &mut buffer, &mut key_type, &mut encoding) };
+
+        match result {
+            0 => {
+                let buffer = Buffer::new(self.interface, buffer);
+                let private_key = match key_type {
+                    0 => Ok(PrivateKey::Key(buffer)),
+                    1 => Ok(PrivateKey::Ref(str::from_utf8(&buffer)?.to_string())),
+                    e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
+                }?;
+
+                Ok((encoding, private_key))
+            }
+            e => Err(e)?,
+        }
+    }
 }
 
 impl Drop for HsmCertificate {
@@ -423,6 +580,12 @@ impl Deref for Buffer {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         unsafe { slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
+    }
+}
+
+impl AsRef<[u8]> for Buffer {
+    fn as_ref(&self) -> &[u8] {
+        self.deref()
     }
 }
 

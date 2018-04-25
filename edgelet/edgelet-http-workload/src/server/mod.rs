@@ -7,6 +7,8 @@ use edgelet_http::route::*;
 use hyper::Error as HyperError;
 use hyper::server::{NewService, Request, Response, Service};
 
+use hsm::CreateCertificate;
+
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::sign::SignHandler;
 
@@ -19,14 +21,15 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    pub fn new<K>(key_store: &K) -> Result<Self, HyperError>
+    pub fn new<K, H>(key_store: &K, hsm: H) -> Result<Self, HyperError>
     where
         K: 'static + KeyStore + Clone,
+        H: 'static + CreateCertificate + Clone,
     {
         let router = router!(
             post   "/modules/(?P<name>[^/]+)/sign" => SignHandler::new(key_store.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,
-            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler,
+            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
         );
         let inner = router.new_service()?;
         let service = WorkloadService { inner };

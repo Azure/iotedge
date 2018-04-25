@@ -3,8 +3,11 @@
 use std::fmt::{self, Display};
 
 use base64::DecodeError;
+use chrono::format::ParseError;
 use edgelet_core::Error as CoreError;
+use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
+use hsm::Error as HsmError;
 use hyper::{Error as HyperError, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::Response;
@@ -12,6 +15,8 @@ use workload::models::ErrorResponse;
 use serde_json;
 
 use IntoResponse;
+
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
@@ -36,6 +41,12 @@ pub enum ErrorKind {
     Sign,
     #[fail(display = "Invalid base64 string")]
     Base64,
+    #[fail(display = "Invalid ISO 8601 date")]
+    DateParse,
+    #[fail(display = "Utils error")]
+    Utils,
+    #[fail(display = "Hsm error")]
+    Hsm,
 }
 
 impl Fail for Error {
@@ -102,6 +113,30 @@ impl From<CoreError> for Error {
     fn from(error: CoreError) -> Error {
         Error {
             inner: error.context(ErrorKind::Sign),
+        }
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::DateParse),
+        }
+    }
+}
+
+impl From<UtilsError> for Error {
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
+    }
+}
+
+impl From<HsmError> for Error {
+    fn from(error: HsmError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Hsm),
         }
     }
 }

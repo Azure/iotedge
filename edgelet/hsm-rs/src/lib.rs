@@ -15,7 +15,8 @@ mod crypto;
 pub use error::{Error, ErrorKind};
 pub use tpm::{Tpm, TpmDigest, TpmKey};
 pub use x509::{X509, X509Data};
-pub use crypto::{CertificateProperties, Crypto, DecryptedBuffer, EncryptedBuffer, HsmCertificate};
+pub use crypto::{CertificateProperties, CertificateType, Crypto, DecryptedBuffer, EncryptedBuffer,
+                 HsmCertificate, PrivateKey};
 
 // General HSM functions.
 // TODO: Rust doesn't guarantee dropping static variables, this code
