@@ -132,6 +132,58 @@ int sas_key_derive_and_sign
     return result;
 }
 
+static int sas_key_verify(KEY_HANDLE key_handle,
+                           const unsigned char* data_to_be_signed,
+                           size_t data_to_be_signed_size,
+                           const unsigned char* signature_to_verify,
+                           size_t signature_to_verify_size,
+                           bool* verification_status)
+{
+    LOG_ERROR("Shared access key verify operation not supported");
+    *verification_status = false;
+    return 1;
+}
+
+static int sas_key_derive_and_verify(KEY_HANDLE key_handle,
+                                      const unsigned char* data_to_be_signed,
+                                      size_t data_to_be_signed_size,
+                                      const unsigned char* identity,
+                                      size_t identity_size,
+                                      const unsigned char* signature_to_verify,
+                                      size_t signature_to_verify_size,
+                                      bool* verification_status)
+{
+    LOG_ERROR("Shared access key derive and verify operation not supported");
+    *verification_status = false;
+    return 1;
+}
+
+static int sas_key_encrypt(KEY_HANDLE key_handle,
+                            const SIZED_BUFFER *identity,
+                            const SIZED_BUFFER *plaintext,
+                            const SIZED_BUFFER *passphrase,
+                            const SIZED_BUFFER *initialization_vector,
+                            SIZED_BUFFER *ciphertext)
+{
+    LOG_ERROR("Shared access key encrypt operation not supported");
+    ciphertext->buffer = NULL;
+    ciphertext->size = 0;
+    return 1;
+}
+
+static int sas_key_decrypt(KEY_HANDLE key_handle,
+                            const SIZED_BUFFER *identity,
+                            const SIZED_BUFFER *ciphertext,
+                            const SIZED_BUFFER *passphrase,
+                            const SIZED_BUFFER *initialization_vector,
+                            SIZED_BUFFER *plaintext)
+{
+    LOG_ERROR("Shared access key decrypt operation not supported");
+    plaintext->buffer = NULL;
+    plaintext->size = 0;
+    return 1;
+}
+
 KEY_HANDLE create_sas_key(const unsigned char* key, size_t key_len)
 {
     SAS_KEY* sas_key;
@@ -157,6 +209,10 @@ KEY_HANDLE create_sas_key(const unsigned char* key, size_t key_len)
         {
             sas_key->interface.hsm_client_key_sign = sas_key_sign;
             sas_key->interface.hsm_client_key_derive_and_sign = sas_key_derive_and_sign;
+            sas_key->interface.hsm_client_key_verify = sas_key_verify;
+            sas_key->interface.hsm_client_key_derive_and_verify = sas_key_derive_and_verify;
+            sas_key->interface.hsm_client_key_encrypt = sas_key_encrypt;
+            sas_key->interface.hsm_client_key_decrypt = sas_key_decrypt;
             memcpy(sas_key->key, key, key_len);
             sas_key->key_len = key_len;
         }

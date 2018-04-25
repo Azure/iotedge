@@ -40,6 +40,9 @@ IF(WIN32)
 
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 ELSE()
+    set(source_c_files ${source_c_files}
+        ./src/edge_cert_key.c
+    )
     find_package(OpenSSL REQUIRED)
     include_directories(${OPENSSL_INCLUDE_DIR})
     # Make warning as error

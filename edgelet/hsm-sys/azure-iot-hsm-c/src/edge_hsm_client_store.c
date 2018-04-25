@@ -152,7 +152,9 @@ static const HSM_CLIENT_STORE_INTERFACE edge_hsm_client_store_interface =
     edge_hsm_client_open_key,
     edge_hsm_client_close_key,
     edge_hsm_client_store_remove_key,
-    edge_hsm_client_store_insert_sas_key
+    edge_hsm_client_store_insert_sas_key,
+    NULL,
+    NULL
 };
 
 const HSM_CLIENT_STORE_INTERFACE* hsm_client_store_interface(void)

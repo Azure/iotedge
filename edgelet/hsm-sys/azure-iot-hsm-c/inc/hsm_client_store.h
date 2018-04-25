@@ -84,6 +84,9 @@ typedef int (*HSM_CLIENT_STORE_INSERT_SAS_KEY)(HSM_CLIENT_STORE_HANDLE handle,
                                                const unsigned char* key,
                                                size_t key_len);
 typedef int (*HSM_CLIENT_STORE_INSERT_ENCRYPTION_KEY)(HSM_CLIENT_STORE_HANDLE handle, const char* key_name);
+typedef int (*HSM_CLIENT_STORE_INSERT_CERT_KEY)(HSM_CLIENT_STORE_HANDLE handle,
+                                                const char* key_name,
+                                                CERTIFICATE_TYPE type);
 
 struct HSM_CLIENT_STORE_INTERFACE_TAG {
     HSM_CLIENT_STORE_CREATE hsm_client_store_create;
@@ -95,6 +98,7 @@ struct HSM_CLIENT_STORE_INTERFACE_TAG {
     HSM_CLIENT_STORE_REMOVE_KEY hsm_client_store_remove_key;
     HSM_CLIENT_STORE_INSERT_SAS_KEY hsm_client_store_insert_sas_key;
     HSM_CLIENT_STORE_INSERT_ENCRYPTION_KEY hsm_client_store_insert_encryption_key;
+    HSM_CLIENT_STORE_INSERT_CERT_KEY hsm_client_store_insert_cert_key;
 };
 typedef struct HSM_CLIENT_STORE_INTERFACE_TAG HSM_CLIENT_STORE_INTERFACE;
 const HSM_CLIENT_STORE_INTERFACE* hsm_client_store_interface(void);
