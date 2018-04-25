@@ -139,32 +139,3 @@ const HSM_CLIENT_X509_INTERFACE* hsm_client_x509_interface()
 {
     return &x509_interface;
 }
-
-int get_certificate(CERT_HANDLE handle,
-                    SIZED_BUFFER *cert_buffer,
-                    CRYPTO_ENCODING *enc)
-{
-    return 0;
-}
-
-int get_certificate_chain(CERT_HANDLE handle,
-                          SIZED_BUFFER *cert_buffer,
-                          CRYPTO_ENCODING *enc)
-{
-    return 0;
-}
-
-int get_public_key(CERT_HANDLE handle,
-                   SIZED_BUFFER *key_buffer,
-                   CRYPTO_ENCODING *enc)
-{
-    return 0;
-}
-
-int get_private_key(CERT_HANDLE handle,
-                    SIZED_BUFFER *key_buffer,
-                    PRIVATE_KEY_TYPE *type,
-                    CRYPTO_ENCODING *enc)
-{
-    return 0;
-}
