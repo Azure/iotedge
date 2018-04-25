@@ -32,6 +32,7 @@ where
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 pub fn sign<K: KeyStore>(
     key_store: K,
     id: String,

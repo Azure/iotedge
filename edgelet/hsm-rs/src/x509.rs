@@ -118,7 +118,7 @@ impl Drop for X509Data {
 impl X509Data {
     fn new(interface: HSM_CLIENT_X509_INTERFACE, data: *mut c_char) -> X509Data {
         X509Data {
-            interface: interface,
+            interface,
             data: data as *const c_char,
         }
     }

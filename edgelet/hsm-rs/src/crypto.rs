@@ -65,6 +65,12 @@ impl Crypto {
     }
 }
 
+impl Default for Crypto {
+    fn default() -> Self {
+        Crypto::new()
+    }
+}
+
 impl MakeRandom for Crypto {
     fn get_random_number_limits(&self) -> Result<(isize, isize), Error> {
         let if_fn = self.interface
@@ -142,10 +148,10 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         })?;
 
     if let Some(cert_type) = props.certificate_type.as_ref() {
-        let c_cert_type = match cert_type {
-            &CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
-            &CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
-            &CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
+        let c_cert_type = match *cert_type {
+            CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
+            CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
+            CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
             _ => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN,
         };
         let result = unsafe { set_certificate_type(handle, c_cert_type) };
@@ -210,7 +216,7 @@ impl CreateCertificate for Crypto {
             Ok(HsmCertificate {
                 crypto_handle: self.handle,
                 interface: self.interface,
-                cert_handle: cert_handle,
+                cert_handle,
             })
         }
     }
@@ -416,7 +422,7 @@ impl Drop for Buffer {
 impl Deref for Buffer {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { &slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
+        unsafe { slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
     }
 }
 

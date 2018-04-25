@@ -92,7 +92,7 @@ fn main_runner() -> Result<(), Error> {
 
     let mut core = Core::new()?;
     start_management("0.0.0.0:8080", key_store.clone(), &core.handle())?;
-    start_workload("0.0.0.0:8081", key_store, &core.handle())?;
+    start_workload("0.0.0.0:8081", &key_store, &core.handle())?;
     core.run(future::empty::<(), Error>())
 }
 
@@ -163,7 +163,7 @@ where
     Ok(())
 }
 
-fn start_workload<K>(addr: &str, key_store: K, handle: &Handle) -> Result<(), Error>
+fn start_workload<K>(addr: &str, key_store: &K, handle: &Handle) -> Result<(), Error>
 where
     K: 'static + KeyStore + Clone,
 {

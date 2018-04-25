@@ -19,7 +19,7 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    pub fn new<K>(key_store: K) -> Result<Self, HyperError>
+    pub fn new<K>(key_store: &K) -> Result<Self, HyperError>
     where
         K: 'static + KeyStore + Clone,
     {
