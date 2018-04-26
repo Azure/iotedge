@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use futures::future::{self, FutureResult};
 
 use Command;

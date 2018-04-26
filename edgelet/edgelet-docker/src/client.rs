@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::ops::Deref;
 use std::rc::Rc;
 

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 #[cfg(unix)]
 use std::fs;
 use std::sync::mpsc::Sender;

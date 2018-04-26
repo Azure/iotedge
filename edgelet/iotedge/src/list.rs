@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::cell::RefCell;
 use std::io::Write;
 use std::sync::Arc;

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 #[macro_use]
 extern crate clap;
 extern crate edgelet_http_mgmt;

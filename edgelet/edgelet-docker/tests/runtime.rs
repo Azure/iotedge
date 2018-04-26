@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 #![deny(warnings)]
 
 extern crate futures;
