@@ -13,6 +13,7 @@ const SSL_OPTION: &str = "use_openssl";
 
 trait SetPlatformDefines {
     fn set_platform_defines(&mut self) -> &mut Self;
+    fn set_build_shared(&mut self) -> &mut Self;
 }
 
 impl SetPlatformDefines for Config {
@@ -29,6 +30,18 @@ impl SetPlatformDefines for Config {
     #[cfg(unix)]
     fn set_platform_defines(&mut self) -> &mut Self {
         self
+    }
+
+    // The "debug_assertions" configuration flag seems to be the way to detect
+    // if this is a "dev" build or any other kind of build.
+    #[cfg(debug_assertions)]
+    fn set_build_shared(&mut self) -> &mut Self {
+        self.define("BUILD_SHARED", "OFF")
+    }
+
+    #[cfg(not(debug_assertions))]
+    fn set_build_shared(&mut self) -> &mut Self {
+        self.define("BUILD_SHARED", "ON")
     }
 }
 
@@ -62,6 +75,7 @@ fn main() {
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .set_platform_defines()
+        .set_build_shared()
         .profile("Release")
         .build();
 
@@ -73,4 +87,9 @@ fn main() {
     // For libraries (ie. C Shared) which will install in $target/lib
     println!("cargo:rustc-link-search=native={}/lib", iothsm.display());
     println!("cargo:rustc-link-lib=iothsm");
+
+    // we need to explicitly link with c shared util only when we build the C
+    // library as a static lib which we do only in rust debug builds
+    #[cfg(debug_assertions)]
+    println!("cargo:rustc-link-lib=aziotsharedutil");
 }

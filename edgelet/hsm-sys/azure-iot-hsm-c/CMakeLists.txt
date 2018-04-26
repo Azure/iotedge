@@ -53,7 +53,11 @@ ENDIF(WIN32)
 
 # We want this to always be a shared library and let the dynamic linker on the
 # target system find the HSM library.
-add_library(iothsm SHARED ${source_c_files} ${source_h_files})
+IF(BUILD_SHARED)
+    add_library(iothsm SHARED ${source_c_files} ${source_h_files})
+ELSE()
+    add_library(iothsm STATIC ${source_c_files} ${source_h_files})
+ENDIF(BUILD_SHARED)
 
 add_subdirectory(./azure-c-shared-utility)
 
