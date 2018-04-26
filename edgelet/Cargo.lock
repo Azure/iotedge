@@ -297,32 +297,6 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "edgelet"
-version = "0.1.0"
-dependencies = [
- "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "config 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "edgelet-core 0.1.0",
- "edgelet-docker 0.1.0",
- "edgelet-http 0.1.0",
- "edgelet-http-mgmt 0.1.0",
- "edgelet-http-workload 0.1.0",
- "edgelet-iothub 0.1.0",
- "env_logger 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "hsm 0.1.0",
- "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "iothubservice 0.1.0",
- "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "edgelet-core"
 version = "0.1.0"
 dependencies = [
@@ -667,6 +641,32 @@ dependencies = [
  "matches 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-normalization 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "iotedged"
+version = "0.1.0"
+dependencies = [
+ "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "config 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "edgelet-docker 0.1.0",
+ "edgelet-http 0.1.0",
+ "edgelet-http-mgmt 0.1.0",
+ "edgelet-http-workload 0.1.0",
+ "edgelet-iothub 0.1.0",
+ "env_logger 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hsm 0.1.0",
+ "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "iothubservice 0.1.0",
+ "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

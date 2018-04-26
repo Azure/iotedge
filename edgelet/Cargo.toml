@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "docker-rs",
-    "edgelet",
     "edgelet-core",
     "edgelet-docker",
     "edgelet-http",
@@ -10,6 +9,7 @@ members = [
     "edgelet-iothub",
     "edgelet-utils",
     "edgelet-test-utils",
+    "iotedged",
     "iothubservice",
     "hsm-rs",
     "hsm-sys",

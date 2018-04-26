@@ -2,33 +2,24 @@
 
 #![deny(warnings)]
 
+#[macro_use]
 extern crate clap;
-extern crate config;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 extern crate edgelet_iothub;
-extern crate env_logger;
-#[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hsm;
 extern crate hyper;
+extern crate iotedged;
 extern crate iothubservice;
 #[macro_use]
 extern crate log;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
-
-mod error;
-mod logging;
-mod settings;
 
 use std::convert::AsRef;
 
@@ -40,8 +31,6 @@ use hyper::server::Http;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
-use error::Error;
-use settings::{Provisioning, Settings};
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_docker::DockerModuleRuntime;
@@ -51,6 +40,8 @@ use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::HubIdentityManager;
 use hsm::Crypto;
+use iotedged::{logging, Error};
+use iotedged::settings::{Provisioning, Settings};
 use iothubservice::{Client as HttpClient, DeviceClient};
 
 fn main() {
@@ -65,13 +56,16 @@ fn main() {
 }
 
 fn main_runner() -> Result<(), Error> {
-    let matches = App::new("edgelet")
+    let matches = App::new(crate_name!())
+        .version(crate_version!())
+        .author(crate_authors!("\n"))
+        .about(crate_description!())
         .arg(
             Arg::with_name("config-file")
                 .short("c")
                 .long("config-file")
                 .value_name("FILE")
-                .help("Sets an edgelet config file")
+                .help("Sets daemon configuration file")
                 .takes_value(true),
         )
         .get_matches();
