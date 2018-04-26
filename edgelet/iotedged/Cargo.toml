@@ -5,8 +5,8 @@ authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 publish = false
 
 [dependencies]
-clap = "2.31.2"
-config = "0.8.0"
+clap = "2.31"
+config = "0.8"
 env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"

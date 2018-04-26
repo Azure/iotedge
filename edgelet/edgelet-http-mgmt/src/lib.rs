@@ -32,9 +32,11 @@ extern crate serde_json;
 
 use hyper::Response;
 
+mod client;
 mod error;
 mod server;
 
+pub use client::ModuleClient;
 pub use server::ManagementService;
 
 pub trait IntoResponse {

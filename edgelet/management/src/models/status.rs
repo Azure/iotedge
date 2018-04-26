@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Status {
     #[serde(rename = "startTime", skip_serializing_if = "Option::is_none")]
     start_time: Option<String>,

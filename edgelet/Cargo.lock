@@ -644,6 +644,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "iotedge"
+version = "0.1.0"
+dependencies = [
+ "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "edgelet-core 0.1.0",
+ "edgelet-http-mgmt 0.1.0",
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "management 0.1.0",
+ "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "iotedged"
 version = "0.1.0"
 dependencies = [

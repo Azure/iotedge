@@ -9,6 +9,7 @@ use hyper::header::{ContentLength, ContentType};
 use hyper::server::Response;
 use serde_json;
 
+use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
 
 use IntoResponse;
@@ -36,6 +37,8 @@ pub enum ErrorKind {
     BadBody,
     #[fail(display = "Invalid or missing API version")]
     InvalidApiVersion,
+    #[fail(display = "Client error")]
+    Client(MgmtError<serde_json::Value>),
 }
 
 impl Fail for Error {
@@ -101,6 +104,16 @@ impl From<HyperError> for Error {
 impl From<Error> for HyperError {
     fn from(_error: Error) -> HyperError {
         HyperError::Method
+    }
+}
+
+impl From<MgmtError<serde_json::Value>> for Error {
+    fn from(error: MgmtError<serde_json::Value>) -> Error {
+        match error {
+            MgmtError::Hyper(h) => From::from(h),
+            MgmtError::Serde(s) => From::from(s),
+            MgmtError::ApiError(_) => From::from(ErrorKind::Client(error)),
+        }
     }
 }
 
