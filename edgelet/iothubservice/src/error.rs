@@ -11,8 +11,6 @@ use url::ParseError;
 
 use edgelet_utils::Error as UtilsError;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
-
 #[derive(Debug)]
 pub struct Error {
     inner: Context<ErrorKind>,
@@ -32,6 +30,8 @@ pub enum ErrorKind {
     HubServiceError(StatusCode, String),
     #[fail(display = "IoT Hub returned an empty response when a value was expected")]
     EmptyResponse,
+    #[fail(display = "Failed to get sas token")]
+    Token,
 }
 
 impl<'a> From<(StatusCode, &'a [u8])> for Error {

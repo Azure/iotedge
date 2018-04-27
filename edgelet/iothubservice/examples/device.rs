@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+extern crate chrono;
 extern crate clap;
 extern crate hyper;
 extern crate hyper_tls;
@@ -9,6 +10,7 @@ extern crate url;
 
 extern crate iothubservice;
 
+use chrono::{DateTime, Utc};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
 use hyper::client::Service;
@@ -16,7 +18,24 @@ use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use url::Url;
 
-use iothubservice::{Client, DeviceClient};
+use iothubservice::{Client, DeviceClient, TokenSource};
+use iothubservice::error::Error;
+
+struct StaticTokenSource {
+    token: String,
+}
+
+impl StaticTokenSource {
+    pub fn new(token: String) -> Self {
+        StaticTokenSource { token }
+    }
+}
+
+impl TokenSource for StaticTokenSource {
+    fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
+        Ok(self.token.clone())
+    }
+}
 
 fn main() {
     let matches = parse_args();
@@ -30,12 +49,14 @@ fn main() {
         .connector(HttpsConnector::new(4, &core.handle()).unwrap())
         .build(&core.handle());
 
+    let token_source = StaticTokenSource::new(sas_token.to_string());
+
     let client = Client::new(
         hyper_client,
+        token_source,
         "2018-03-01-preview",
         Url::parse(&format!("https://{}.azure-devices.net", hub_name)).unwrap(),
-    ).unwrap()
-        .with_sas_token(sas_token);
+    ).unwrap();
 
     let device_client = client.create_device_client(device_id).unwrap();
 
@@ -50,26 +71,29 @@ fn main() {
     }
 }
 
-fn list_modules<S>(core: &mut Core, device_client: DeviceClient<S>)
+fn list_modules<S, T>(core: &mut Core, device_client: DeviceClient<S, T>)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
     let response = core.run(device_client.list_modules()).unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }
 
-fn create_module<S>(core: &mut Core, device_client: DeviceClient<S>, module_id: &str)
+fn create_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
     let response = core.run(device_client.create_module(module_id, None))
         .unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }
 
-fn delete_module<S>(core: &mut Core, device_client: DeviceClient<S>, module_id: &str)
+fn delete_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
     core.run(device_client.delete_module(module_id)).unwrap();
     println!("Module {} deleted", module_id);

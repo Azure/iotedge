@@ -5,10 +5,9 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 
+use edgelet_core::Error as CoreError;
 use edgelet_utils::Error as UtilsError;
-use iothubservice::error::Error as HubServiceError;
-
-pub type Result<T> = ::std::result::Result<T, Error>;
+use iothubservice::error::{Error as HubServiceError, ErrorKind as HubServiceErrorKind};
 
 #[derive(Debug)]
 pub struct Error {
@@ -22,9 +21,13 @@ pub enum ErrorKind {
     #[fail(display = "Edgelet utils error")]
     Utils(UtilsError),
     #[fail(display = "IoT Hub service error")]
-    HubService(HubServiceError),
+    HubService,
     #[fail(display = "KeyStore could not fetch keys for module {}", _0)]
     CannotGetKey(String),
+    #[fail(display = "Core error occurred.")]
+    Core,
+    #[fail(display = "Failed to get sas token.")]
+    TokenSource,
 }
 
 impl Fail for Error {
@@ -74,7 +77,23 @@ impl From<UtilsError> for Error {
 }
 
 impl From<HubServiceError> for Error {
-    fn from(err: HubServiceError) -> Error {
-        Error::from(ErrorKind::HubService(err))
+    fn from(error: HubServiceError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HubService),
+        }
+    }
+}
+
+impl From<Error> for HubServiceError {
+    fn from(error: Error) -> HubServiceError {
+        HubServiceError::from(error.context(HubServiceErrorKind::Token))
+    }
+}
+
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Core),
+        }
     }
 }

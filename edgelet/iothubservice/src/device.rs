@@ -4,23 +4,25 @@ use futures::Future;
 use hyper::{Error as HyperError, Method, Request, Response};
 use hyper::client::Service;
 
-use client::Client;
-use error::{Error, ErrorKind, Result};
+use client::{Client, TokenSource};
+use error::{Error, ErrorKind};
 use model::{AuthMechanism, Module};
 
-pub struct DeviceClient<S>
+pub struct DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
-    client: Client<S>,
+    client: Client<S, T>,
     device_id: String,
 }
 
-impl<S> DeviceClient<S>
+impl<S, T> DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
-    pub fn new(client: Client<S>, device_id: &str) -> Result<DeviceClient<S>> {
+    pub fn new(client: Client<S, T>, device_id: &str) -> Result<DeviceClient<S, T>, Error> {
         Ok(DeviceClient {
             client,
             device_id: ensure_not_empty!(device_id).to_string(),
@@ -107,9 +109,10 @@ where
     }
 }
 
-impl<S> Clone for DeviceClient<S>
+impl<S, T> Clone for DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: TokenSource,
 {
     fn clone(&self) -> Self {
         DeviceClient {
@@ -124,6 +127,7 @@ mod tests {
     use super::*;
     use std::mem;
 
+    use chrono::{DateTime, Utc};
     use futures::Stream;
     use hyper::{Client as HyperClient, Method, StatusCode};
     use hyper::header::{ContentType, IfMatch};
@@ -137,12 +141,21 @@ mod tests {
 
     use model::{AuthType, SymmetricKey};
 
+    struct NullTokenSource;
+
+    impl TokenSource for NullTokenSource {
+        fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
+            Ok("token".to_string())
+        }
+    }
+
     #[test]
     fn device_client_create_empty_id_fails() {
         let core = Core::new().unwrap();
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -165,6 +178,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -187,6 +201,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -205,7 +220,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                     }
 
-                    Ok(()) as Result<()>
+                    Ok(()) as Result<(), Error>
                 }
             });
 
@@ -218,6 +233,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -236,7 +252,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                     }
 
-                    Ok(()) as Result<()>
+                    Ok(()) as Result<(), Error>
                 }
             });
 
@@ -288,12 +304,13 @@ mod tests {
                         ))
                 })
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let client =
+            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .upsert_module("m1", Some(auth), false)
-            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<()>);
+            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
 
         core.run(task).unwrap();
     }
@@ -343,12 +360,13 @@ mod tests {
                         ))
                 })
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let client =
+            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .upsert_module("m1", Some(auth), true)
-            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<()>);
+            .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
 
         core.run(task).unwrap();
     }
@@ -359,6 +377,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -374,7 +393,7 @@ mod tests {
                     panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                 }
 
-                Ok(()) as Result<()>
+                Ok(()) as Result<(), Error>
             }
         });
 
@@ -387,6 +406,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
+            NullTokenSource,
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -405,7 +425,7 @@ mod tests {
                         panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                     }
 
-                    Ok(()) as Result<()>
+                    Ok(()) as Result<(), Error>
                 }
             });
 
@@ -425,12 +445,13 @@ mod tests {
 
             Ok(Response::new().with_status(StatusCode::Ok))
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let client =
+            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
             .delete_module("m1")
-            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<()>);
+            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<(), Error>);
 
         core.run(task).unwrap();
     }
@@ -473,7 +494,8 @@ mod tests {
                 .with_header(ContentType::json())
                 .with_body(serde_json::to_string(&modules).unwrap().into_bytes()))
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let client =
+            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client.list_modules().then(|modules| {
@@ -482,7 +504,7 @@ mod tests {
             for i in 0..modules.len() {
                 assert_eq!(expected_modules[i], modules[i])
             }
-            Ok(()) as Result<()>
+            Ok(()) as Result<(), Error>
         });
 
         core.run(task).unwrap();

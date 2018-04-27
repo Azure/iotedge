@@ -22,8 +22,6 @@ extern crate log;
 extern crate tokio_core;
 extern crate url;
 
-use std::convert::AsRef;
-
 use clap::{App, Arg};
 use failure::Fail;
 use futures::{future, Future, Stream};
@@ -40,7 +38,7 @@ use edgelet_http::{ApiVersionService, API_VERSION};
 use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
-use edgelet_iothub::HubIdentityManager;
+use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use hsm::Crypto;
 use iotedged::{logging, Error};
 use iotedged::settings::{Provisioning, Settings};
@@ -85,8 +83,7 @@ fn main_runner() -> Result<(), Error> {
 
     let settings = Settings::new(config_file)?;
     let provisioning_settings = settings.provisioning();
-    let provisioning_result = provision(provisioning_settings)?;
-    let (key_store, hub_name, device_id) = provisioning_result;
+    let (key_store, hub_name, device_id, root_key) = provision(provisioning_settings)?;
 
     info!(
         "Manual provisioning with DeviceId({}) and HostName({})",
@@ -100,6 +97,7 @@ fn main_runner() -> Result<(), Error> {
         &core.handle(),
         &hub_name,
         &device_id,
+        root_key,
     )?;
     start_workload("0.0.0.0:8081", &key_store, &core.handle())?;
     core.run(future::empty::<(), Error>())
@@ -107,23 +105,20 @@ fn main_runner() -> Result<(), Error> {
 
 fn provision(
     provisioning: &Provisioning,
-) -> Result<(DerivedKeyStore<MemoryKey>, String, String), Error> {
-    let &mut key_store;
-    let hub_name: String;
-    let device_id: String;
+) -> Result<(DerivedKeyStore<MemoryKey>, String, String, MemoryKey), Error> {
     match *provisioning {
         Provisioning::Manual {
             ref device_connection_string,
         } => {
             let provision = ManualProvisioning::new(device_connection_string.as_str())?;
-            let root_key = provision.key()?;
-            key_store = DerivedKeyStore::new(MemoryKey::new(root_key));
-            hub_name = provision.host_name().to_string();
-            device_id = provision.device_id().to_string();
+            let root_key = MemoryKey::new(provision.key()?);
+            let key_store = DerivedKeyStore::new(root_key.clone());
+            let hub_name = provision.host_name().to_string();
+            let device_id = provision.device_id().to_string();
+            Ok((key_store, hub_name, device_id, root_key))
         }
         _ => unimplemented!(),
     }
-    Ok((key_store, hub_name, device_id))
 }
 
 fn start_management<K>(
@@ -132,10 +127,10 @@ fn start_management<K>(
     handle: &Handle,
     hub_name: &str,
     device_id: &str,
+    root_key: MemoryKey,
 ) -> Result<(), Error>
 where
-    K: 'static + KeyStore + Clone,
-    K::Key: AsRef<[u8]>,
+    K: 'static + KeyStore<Key = MemoryKey> + Clone,
 {
     let uri = addr.parse()?;
     let client_handle = handle.clone();
@@ -149,6 +144,7 @@ where
         .build(&client_handle);
     let http_client = HttpClient::new(
         hyper_client,
+        SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key),
         API_VERSION,
         Url::parse(&format!("https://{}.azure-devices.net", hub_name))?,
     )?;

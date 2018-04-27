@@ -5,6 +5,7 @@
 extern crate base64;
 #[cfg(test)]
 extern crate bytes;
+extern crate chrono;
 #[macro_use]
 extern crate failure;
 extern crate futures;
@@ -16,7 +17,6 @@ extern crate serde_derive;
 extern crate serde_json;
 #[cfg(test)]
 extern crate tokio_core;
-#[cfg(test)]
 extern crate url;
 
 extern crate edgelet_core;
@@ -28,18 +28,20 @@ mod error;
 use std::convert::AsRef;
 use std::rc::Rc;
 
+use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::Future;
 use futures::future;
 use hyper::{Error as HyperError, Request, Response};
 use hyper::client::Service;
+use url::form_urlencoded;
 
 use edgelet_core::{Identity, IdentityManager, IdentitySpec};
-use edgelet_core::crypto::KeyStore;
-use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey};
+use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
+use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey, TokenSource};
+use iothubservice::error::Error as IotError;
 
 pub use error::{Error, ErrorKind};
-use error::Result;
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
@@ -89,7 +91,53 @@ where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     key_store: K,
-    client: DeviceClient<S>,
+    client: DeviceClient<S, SasTokenSource<K::Key>>,
+}
+
+pub struct SasTokenSource<K> {
+    hub_id: String,
+    device_id: String,
+    key: K,
+}
+
+impl<K> SasTokenSource<K> {
+    pub fn new(hub_id: String, device_id: String, key: K) -> Self {
+        SasTokenSource {
+            hub_id,
+            device_id,
+            key,
+        }
+    }
+}
+
+impl<K> TokenSource for SasTokenSource<K>
+where
+    K: Sign,
+{
+    fn get(&self, expiry: &DateTime<Utc>) -> Result<String, IotError> {
+        let expiry = expiry.timestamp().to_string();
+        let audience = format!(
+            "{}.azure-devices.net/devices/{}",
+            self.hub_id, self.device_id
+        );
+
+        let resource_uri = form_urlencoded::byte_serialize(audience.to_lowercase().as_bytes())
+            .collect::<Vec<&str>>()
+            .concat();
+        let sig_data = format!("{}\n{}", &resource_uri, expiry);
+
+        let signature = self.key
+            .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
+            .map(|s| base64::encode(s.as_bytes()))
+            .context(ErrorKind::TokenSource)
+            .map_err(Error::from)?;
+
+        let token = form_urlencoded::Serializer::new(format!("sr={}", resource_uri))
+            .append_pair("sig", &signature)
+            .append_pair("se", &expiry)
+            .finish();
+        Ok(token)
+    }
 }
 
 pub struct HubIdentityManager<K, S>
@@ -107,13 +155,16 @@ where
     K::Key: AsRef<[u8]>,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
-    pub fn new(key_store: K, client: DeviceClient<S>) -> HubIdentityManager<K, S> {
+    pub fn new(
+        key_store: K,
+        client: DeviceClient<S, SasTokenSource<K::Key>>,
+    ) -> HubIdentityManager<K, S> {
         HubIdentityManager {
             state: Rc::new(State { key_store, client }),
         }
     }
 
-    fn get_key_pair(&self, id: &IdentitySpec) -> Result<(K::Key, K::Key)> {
+    fn get_key_pair(&self, id: &IdentitySpec) -> Result<(K::Key, K::Key), Error> {
         self.state
             .key_store
             .get(id.module_id(), KEY_PRIMARY)
@@ -202,6 +253,7 @@ mod tests {
     use super::*;
 
     use bytes::Bytes;
+    use chrono::TimeZone;
     use futures::Stream;
     use hyper::{Method, Request, Response, StatusCode};
     use hyper::header::ContentType;
@@ -229,7 +281,13 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
         let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -248,7 +306,13 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
         let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -266,7 +330,13 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
         let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -284,7 +354,13 @@ mod tests {
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
         let handler = |_req: Request| Ok(Response::new().with_status(StatusCode::Ok));
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -341,7 +417,13 @@ mod tests {
                         ))
                 })
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -429,7 +511,13 @@ mod tests {
                         .into_bytes(),
                 ))
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -460,14 +548,41 @@ mod tests {
 
             Ok(Response::new().with_status(StatusCode::Ok))
         };
-        let client = Client::new(service_fn(handler), api_version, host_name).unwrap();
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client =
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager
             .delete(IdentitySpec::new("m1"))
-            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<()>);
+            .then(|result| Ok(assert_eq!(result.unwrap(), ())) as Result<(), Error>);
 
         Core::new().unwrap().run(task).unwrap();
+    }
+
+    #[test]
+    fn token_source_success() {
+        // arrange
+        let hub_id = "Miyagley-Edge".to_string();
+        let device_id = "miYagley1".to_string();
+        let key = MemoryKey::new(base64::decode("key").unwrap());
+        let token_source = SasTokenSource::new(hub_id, device_id, key);
+        let expiry = Utc.ymd(2018, 4, 26).and_hms(20, 54, 15);
+
+        // act
+        let token = token_source.get(&expiry).unwrap();
+
+        // assert
+        let expected = concat!(
+            "sr=miyagley-edge.azure-devices.net",
+            "%2Fdevices%2Fmiyagley1&sig=ynXM1wWasX%2FGvvgnhV%2BLZ5",
+            "rxWOiCWtyqHMG2Dcd9Pg8%3D&se=1524776055"
+        );
+        assert_eq!(expected, token);
     }
 }

@@ -2,6 +2,7 @@
 
 #![deny(warnings)]
 
+extern crate chrono;
 #[macro_use]
 extern crate failure;
 extern crate futures;
@@ -22,6 +23,6 @@ mod device;
 pub mod error;
 mod model;
 
-pub use client::Client;
+pub use client::{Client, TokenSource};
 pub use device::DeviceClient;
 pub use model::{AuthMechanism, AuthType, Module, Properties, SymmetricKey, Twin, X509Thumbprint};
