@@ -10,6 +10,7 @@ use edgelet_core::Error as CoreError;
 use edgelet_docker::Error as DockerError;
 use failure::{Backtrace, Context, Fail};
 use hyper::Error as HyperError;
+use hyper_tls::Error as HyperTlsError;
 use iothubservice::error::Error as IotHubError;
 use serde_json::Error as JsonError;
 use url::ParseError;
@@ -31,6 +32,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "An HTTP server error occurred.")]
     Hyper,
+    #[fail(display = "A TLS error occurred.")]
+    HyperTls,
     #[fail(display = "A Docker error occurred.")]
     Docker,
     #[fail(display = "An IoT Hub error occurred.")]
@@ -109,6 +112,14 @@ impl From<HyperError> for Error {
     fn from(error: HyperError) -> Error {
         Error {
             inner: error.context(ErrorKind::Hyper),
+        }
+    }
+}
+
+impl From<HyperTlsError> for Error {
+    fn from(error: HyperTlsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HyperTls),
         }
     }
 }

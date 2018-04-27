@@ -14,6 +14,7 @@ extern crate failure;
 extern crate futures;
 extern crate hsm;
 extern crate hyper;
+extern crate hyper_tls;
 extern crate iotedged;
 extern crate iothubservice;
 #[macro_use]
@@ -28,6 +29,7 @@ use failure::Fail;
 use futures::{future, Future, Stream};
 use hyper::Client as HyperClient;
 use hyper::server::Http;
+use hyper_tls::HttpsConnector;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
@@ -142,11 +144,13 @@ where
     let docker = Url::parse("unix:///var/run/docker.sock")?;
     let mgmt = DockerModuleRuntime::new(&docker, &client_handle)?;
 
-    let hyper_client = HyperClient::new(&client_handle);
+    let hyper_client = HyperClient::configure()
+        .connector(HttpsConnector::new(4, &client_handle)?)
+        .build(&client_handle);
     let http_client = HttpClient::new(
         hyper_client,
         API_VERSION,
-        Url::parse(&format!("http://{}.azure-devices.net", hub_name))?,
+        Url::parse(&format!("https://{}.azure-devices.net", hub_name))?,
     )?;
     let device_client = DeviceClient::new(http_client, device_id)?;
     let id_man = HubIdentityManager::new(key_store, device_client);
