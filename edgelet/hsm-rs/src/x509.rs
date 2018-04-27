@@ -25,34 +25,36 @@ impl Drop for X509 {
         self.interface
             .hsm_client_x509_destroy
             .map(|f| unsafe { f(self.handle) });
+        unsafe { hsm_client_x509_deinit() };
     }
 }
 
 impl X509 {
-    /// Create a new x509 implementation for the HSM API. Will panic if
-    /// interface is not found.
-    pub fn new() -> X509 {
-        // If we can't get the interface, this is a critical failure, so
-        // we should let this function panic.
-        let _hsm_sys = get_hsm();
+    /// Create a new x509 implementation for the HSM API.
+    pub fn new() -> Result<X509, Error> {
+        let result = unsafe { hsm_client_x509_init() as isize };
+        if result != 0 {
+            Err(result)?
+        }
         let if_ptr = unsafe { hsm_client_x509_interface() };
         if if_ptr.is_null() {
-            panic!("Null x509 interface");
+            Err(ErrorKind::NullResponse)?
         }
         let interface = unsafe { *if_ptr };
-        X509 {
-            handle: interface
-                .hsm_client_x509_create
-                .map(|f| unsafe { f() })
-                .unwrap(),
-            interface,
+        if let Some(handle) = interface.hsm_client_x509_create.map(|f| unsafe { f() }) {
+            if handle.is_null() {
+                Err(ErrorKind::NullResponse)?
+            }
+            Ok(X509 { handle, interface })
+        } else {
+            Err(ErrorKind::NullResponse)?
         }
     }
 }
 
 impl Default for X509 {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Default X509 failed to create")
     }
 }
 

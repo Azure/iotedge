@@ -3,6 +3,7 @@ members = [
     "docker-rs",
     "edgelet-core",
     "edgelet-docker",
+    "edgelet-hsm",
     "edgelet-http",
     "edgelet-http-mgmt",
     "edgelet-http-workload",

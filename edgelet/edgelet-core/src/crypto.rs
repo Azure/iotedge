@@ -13,11 +13,13 @@ use sha2::Sha256;
 use error::{Error, ErrorKind};
 
 pub trait Sign {
+    type Signature: Signature;
+
     fn sign(
         &self,
         signature_algorithm: SignatureAlgorithm,
         data: &[u8],
-    ) -> Result<Signature, Error>;
+    ) -> Result<Self::Signature, Error>;
 }
 
 pub trait KeyStore {
@@ -30,25 +32,39 @@ pub enum SignatureAlgorithm {
     HMACSHA256,
 }
 
-// TODO add cryptographically secure equal
+pub trait Signature {
+    fn as_bytes(&self) -> &[u8];
+}
+
+impl<T> Signature for T
+where
+    T: AsRef<[u8]>,
+{
+    fn as_bytes(&self) -> &[u8] {
+        self.as_ref()
+    }
+}
+
 #[derive(Debug)]
-pub struct Signature {
+pub struct Digest {
     bytes: Bytes,
 }
 
-impl PartialEq for Signature {
-    fn eq(&self, other: &Signature) -> bool {
+impl PartialEq for Digest {
+    fn eq(&self, other: &Digest) -> bool {
         ct_u8_slice_eq(self.bytes.as_ref(), other.bytes.as_ref())
     }
 }
 
-impl Signature {
-    pub fn new(bytes: Bytes) -> Signature {
-        Signature { bytes }
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
+impl Signature for Digest {
+    fn as_bytes(&self) -> &[u8] {
         self.bytes.as_ref()
+    }
+}
+
+impl Digest {
+    pub fn new(bytes: Bytes) -> Digest {
+        Digest { bytes }
     }
 }
 
@@ -66,11 +82,13 @@ impl MemoryKey {
 }
 
 impl Sign for MemoryKey {
+    type Signature = Digest;
+
     fn sign(
         &self,
         signature_algorithm: SignatureAlgorithm,
         data: &[u8],
-    ) -> Result<Signature, Error> {
+    ) -> Result<Self::Signature, Error> {
         let signature = match signature_algorithm {
             SignatureAlgorithm::HMACSHA256 => {
                 // Create `Mac` trait implementation, namely HMAC-SHA256
@@ -86,7 +104,7 @@ impl Sign for MemoryKey {
                 // the security provided by the `MacResult` (https://docs.rs/hmac/0.5.0/hmac/)
                 let code_bytes = result.code();
 
-                Signature::new(Bytes::from(code_bytes.as_ref()))
+                Digest::new(Bytes::from(code_bytes.as_ref()))
             }
         };
         Ok(signature)
@@ -207,7 +225,7 @@ mod tests {
             0xb1, 0x43, 0xef, 0x4d, 0x59, 0xa1, 0x49, 0x46, 0x17, 0x59, 0x97, 0x47, 0x9d, 0xbc,
             0x2d, 0x1a, 0x3c, 0xd8,
         ];
-        let expected_signature = Signature::new(Bytes::from(expected_bytes.as_ref()));
+        let expected_signature = Digest::new(Bytes::from(expected_bytes.as_ref()));
 
         assert_eq!(expected_bytes, result_hmac256.as_bytes());
         assert_eq!(expected_signature, result_hmac256);
@@ -231,7 +249,7 @@ mod tests {
             0x2d, 0x1a, 0x3c, 0xd8,
         ];
 
-        let expected_signature = Signature::new(Bytes::from(expected_bytes.as_ref()));
+        let expected_signature = Digest::new(Bytes::from(expected_bytes.as_ref()));
 
         assert_ne!(expected_signature, result_hmac256);
     }

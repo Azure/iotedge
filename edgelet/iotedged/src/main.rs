@@ -167,7 +167,7 @@ where
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
         key_store,
-        Crypto::new(),
+        Crypto::default(),
     )?));
 
     let serve = Http::new().serve_addr_handle(&uri, &server_handle, service)?;

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::AsRef;
 use std::default::Default;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
@@ -26,34 +27,39 @@ impl Drop for Tpm {
         self.interface
             .hsm_client_tpm_destroy
             .map(|f| unsafe { f(self.handle) });
+        unsafe { hsm_client_tpm_deinit() };
     }
 }
 
 impl Tpm {
-    /// Create a new TPM implementation for the HSM API. Will panic if
-    /// interface not found.
-    pub fn new() -> Tpm {
-        // If we can't get the interface, this is a critical failure, so
-        // we should let this function panic.
-        let _hsm_sys = get_hsm();
+    /// Create a new TPM implementation for the HSM API.
+    pub fn new() -> Result<Tpm, Error> {
+        let result = unsafe { hsm_client_tpm_init() as isize };
+        if result != 0 {
+            Err(result)?
+        }
         let if_ptr = unsafe { hsm_client_tpm_interface() };
         if if_ptr.is_null() {
-            panic!("Null TPM client interface");
+            unsafe { hsm_client_tpm_deinit() };
+            Err(ErrorKind::NullResponse)?
         }
         let interface = unsafe { *if_ptr };
-        Tpm {
-            handle: interface
-                .hsm_client_tpm_create
-                .map(|f| unsafe { f() })
-                .unwrap(),
-            interface,
+        if let Some(handle) = interface.hsm_client_tpm_create.map(|f| unsafe { f() }) {
+            if handle.is_null() {
+                unsafe { hsm_client_tpm_deinit() };
+                Err(ErrorKind::NullResponse)?
+            }
+            Ok(Tpm { handle, interface })
+        } else {
+            unsafe { hsm_client_tpm_deinit() };
+            Err(ErrorKind::NullResponse)?
         }
     }
 }
 
 impl Default for Tpm {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Default TPM failed to create")
     }
 }
 
@@ -182,12 +188,18 @@ impl TpmBuffer {
 impl Deref for TpmBuffer {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.key, self.len) }
+        self.as_ref()
     }
 }
 
 pub type TpmKey = TpmBuffer;
 pub type TpmDigest = TpmBuffer;
+
+impl AsRef<[u8]> for TpmBuffer {
+    fn as_ref(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.key, self.len) }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -458,7 +470,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_activate_identity_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake key";
@@ -467,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_getek_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let result = hsm_tpm.get_ek().unwrap();
@@ -475,7 +487,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_getsrk_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let result = hsm_tpm.get_srk().unwrap();
@@ -483,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_sign_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";
@@ -492,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_derive_and_sign_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";

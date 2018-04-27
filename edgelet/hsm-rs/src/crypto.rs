@@ -42,34 +42,39 @@ impl Drop for Crypto {
         self.interface
             .hsm_client_crypto_destroy
             .map(|f| unsafe { f(self.handle) });
+        unsafe { hsm_client_crypto_deinit() };
     }
 }
 
 impl Crypto {
-    /// Create a new Cryptography implementation for the HSM API. Will panic if
-    /// interface is not found.
-    pub fn new() -> Crypto {
-        // If we can't get the interface, this is a critical failure, so
-        // we should let this function panic.
-        let _hsm_sys = get_hsm();
+    /// Create a new Cryptography implementation for the HSM API.
+    pub fn new() -> Result<Crypto, Error> {
+        let result = unsafe { hsm_client_crypto_init() as isize };
+        if result != 0 {
+            Err(result)?
+        }
         let if_ptr = unsafe { hsm_client_crypto_interface() };
         if if_ptr.is_null() {
-            panic!("Null HSM crypto interface");
+            unsafe { hsm_client_crypto_deinit() };
+            Err(ErrorKind::NullResponse)?
         }
         let interface = unsafe { *if_ptr };
-        Crypto {
-            handle: interface
-                .hsm_client_crypto_create
-                .map(|f| unsafe { f() })
-                .unwrap(),
-            interface,
+        if let Some(handle) = interface.hsm_client_crypto_create.map(|f| unsafe { f() }) {
+            if handle.is_null() {
+                unsafe { hsm_client_crypto_deinit() };
+                Err(ErrorKind::NullResponse)?
+            }
+            Ok(Crypto { handle, interface })
+        } else {
+            unsafe { hsm_client_crypto_deinit() };
+            Err(ErrorKind::NullResponse)?
         }
     }
 }
 
 impl Default for Crypto {
     fn default() -> Self {
-        Crypto::new()
+        Self::new().expect("Default Crypto struct failed to create")
     }
 }
 
@@ -579,16 +584,15 @@ impl Drop for Buffer {
 impl Deref for Buffer {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
+        self.as_ref()
     }
 }
 
 impl AsRef<[u8]> for Buffer {
     fn as_ref(&self) -> &[u8] {
-        self.deref()
+        unsafe { &slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
     }
 }
-
 pub type EncryptedBuffer = Buffer;
 pub type DecryptedBuffer = Buffer;
 
@@ -877,7 +881,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_random_number_limits_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto.get_random_number_limits().unwrap();
@@ -885,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_get_random_number_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto.get_random_number().unwrap();
@@ -893,7 +897,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_create_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto.create_master_encryption_key().unwrap();
@@ -901,7 +905,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_destroy_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto.destroy_master_encryption_key().unwrap();
@@ -919,7 +923,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_encrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto
@@ -928,7 +932,7 @@ mod tests {
         println!("You should never see this print {:?}", result);
     }
     #[test]
-    #[should_panic(expected = "HSM API failure occured")]
+    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_decrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto

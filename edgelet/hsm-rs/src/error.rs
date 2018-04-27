@@ -14,9 +14,9 @@ pub struct Error {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "HSM Init failure")]
+    #[fail(display = "HSM Init failure: {}", _0)]
     Init(isize),
-    #[fail(display = "HSM API failure occured")]
+    #[fail(display = "HSM API failure occurred: {}", _0)]
     Api(c_int),
     #[fail(display = "HSM API Not Implemented")]
     NoneFn,

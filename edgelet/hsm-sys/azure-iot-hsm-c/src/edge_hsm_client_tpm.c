@@ -402,6 +402,15 @@ static int edge_hsm_client_derive_and_sign_with_identity
                         identity, identity_size, digest, digest_size, 1);
 }
 
+static void edge_hsm_free_buffer(
+    void *buffer)
+{
+    if (buffer != NULL)
+    {
+        free(buffer);
+    }
+}
+
 static const HSM_CLIENT_TPM_INTERFACE edge_tpm_interface =
 {
     edge_hsm_client_tpm_create,
@@ -410,7 +419,8 @@ static const HSM_CLIENT_TPM_INTERFACE edge_tpm_interface =
     edge_hsm_client_get_ek,
     edge_hsm_client_get_srk,
     edge_hsm_client_sign_with_identity,
-    edge_hsm_client_derive_and_sign_with_identity
+    edge_hsm_client_derive_and_sign_with_identity,
+    edge_hsm_free_buffer
 };
 
 const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface()

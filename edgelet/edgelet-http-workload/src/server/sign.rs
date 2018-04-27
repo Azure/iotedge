@@ -9,7 +9,7 @@ use hyper::server::{Request, Response};
 use serde_json;
 
 use edgelet_core::KeyStore;
-use edgelet_core::crypto::{Sign, SignatureAlgorithm};
+use edgelet_core::crypto::{Sign, Signature, SignatureAlgorithm};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::{SignRequest, SignResponse};
 

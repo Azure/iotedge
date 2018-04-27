@@ -3,8 +3,6 @@
 extern crate failure;
 extern crate hsm_sys;
 
-use std::ops::Drop;
-use std::sync::{Once, ONCE_INIT};
 use hsm_sys::*;
 
 mod error;
@@ -17,52 +15,6 @@ pub use tpm::{Tpm, TpmDigest, TpmKey};
 pub use x509::{X509, X509Data};
 pub use crypto::{CertificateProperties, CertificateType, Crypto, DecryptedBuffer, EncryptedBuffer,
                  HsmCertificate, PrivateKey};
-
-// General HSM functions.
-// TODO: Rust doesn't guarantee dropping static variables, this code
-// may need to be scrapped in favor of creating a local variable in main().
-static mut HSM_SYSTEM: Option<HsmSystem> = None;
-static HSM_INIT: Once = ONCE_INIT;
-
-fn get_hsm() -> &'static Option<HsmSystem> {
-    unsafe {
-        HSM_INIT.call_once(|| {
-            HSM_SYSTEM = Some(HsmSystem::new().expect("HSM system failed to initialize"));
-        });
-        &HSM_SYSTEM
-    }
-}
-
-struct HsmSystem {}
-
-impl HsmSystem {
-    /// Called once in the beginning to initialize the HSM system
-    /// /// TODO:: add hsm_client_crypto_init()
-    fn new() -> Result<HsmSystem, Error> {
-        let result = unsafe { hsm_client_x509_init() as isize };
-        if result != 0 {
-            Err(result)?
-        }
-        let result = unsafe { hsm_client_tpm_init() as isize };
-        if result != 0 {
-            unsafe {
-                hsm_client_x509_deinit();
-            };
-            Err(result)?
-        }
-        Ok(HsmSystem {})
-    }
-}
-
-/// Called once at the end to deinitialize the HSM system
-impl Drop for HsmSystem {
-    fn drop(&mut self) {
-        unsafe {
-            hsm_client_x509_deinit();
-            hsm_client_tpm_deinit();
-        };
-    }
-}
 
 // Traits
 
