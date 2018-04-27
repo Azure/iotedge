@@ -41,7 +41,8 @@ Push-Location $BuildRepositoryLocalPath\edge-bootstrap\python
  #>
 
 Write-Host "Creating source distribution for Python bootstrap script."
-$Python = Join-Path $Env:SystemDrive "python27\python.exe"
+<#$Python = Join-Path $Env:SystemDrive "python27\python.exe"#>
+$Python = python.exe
 $Command = if ($EggInfoOptions) {
     "$Python setup.py egg_info $EggInfoOptions sdist --dist-dir $BuildBinariesDirectory $SDistOptions 2>&1"
 }

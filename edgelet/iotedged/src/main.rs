@@ -84,34 +84,53 @@ fn main_runner() -> Result<(), Error> {
     let settings = Settings::new(config_file)?;
     let provisioning_settings = settings.provisioning();
     let provisioning_result = provision(provisioning_settings)?;
-    let key_store = provisioning_result;
+    let (key_store, hub_name, device_id) = provisioning_result;
+
+    info!(
+        "Manual provisioning with DeviceId({}) and HostName({})",
+        device_id, hub_name
+    );
 
     let mut core = Core::new()?;
-    start_management("0.0.0.0:8080", key_store.clone(), &core.handle())?;
+    start_management(
+        "0.0.0.0:8080",
+        key_store.clone(),
+        &core.handle(),
+        &hub_name,
+        &device_id,
+    )?;
     start_workload("0.0.0.0:8081", &key_store, &core.handle())?;
     core.run(future::empty::<(), Error>())
 }
 
-fn provision(provisioning: &Provisioning) -> Result<DerivedKeyStore<MemoryKey>, Error> {
-    let key_store = match *provisioning {
+fn provision(
+    provisioning: &Provisioning,
+) -> Result<(DerivedKeyStore<MemoryKey>, String, String), Error> {
+    let &mut key_store;
+    let hub_name: String;
+    let device_id: String;
+    match *provisioning {
         Provisioning::Manual {
             ref device_connection_string,
         } => {
             let provision = ManualProvisioning::new(device_connection_string.as_str())?;
             let root_key = provision.key()?;
-            info!(
-                "Manually provisioning with DeviceId({}) and HostName({})",
-                provision.device_id(),
-                provision.host_name(),
-            );
-            DerivedKeyStore::new(MemoryKey::new(root_key))
+            key_store = DerivedKeyStore::new(MemoryKey::new(root_key));
+            hub_name = provision.host_name().to_string();
+            device_id = provision.device_id().to_string();
         }
-        Provisioning::Dps { .. } => DerivedKeyStore::new(MemoryKey::new("no dps")),
-    };
-    Ok(key_store)
+        _ => unimplemented!(),
+    }
+    Ok((key_store, hub_name, device_id))
 }
 
-fn start_management<K>(addr: &str, key_store: K, handle: &Handle) -> Result<(), Error>
+fn start_management<K>(
+    addr: &str,
+    key_store: K,
+    handle: &Handle,
+    hub_name: &str,
+    device_id: &str,
+) -> Result<(), Error>
 where
     K: 'static + KeyStore + Clone,
     K::Key: AsRef<[u8]>,
@@ -127,9 +146,9 @@ where
     let http_client = HttpClient::new(
         hyper_client,
         API_VERSION,
-        Url::parse("http://HUB_NAME.azure-devices.net")?,
+        Url::parse(&format!("http://{}.azure-devices.net", hub_name))?,
     )?;
-    let device_client = DeviceClient::new(http_client, "DEVICE_ID")?;
+    let device_client = DeviceClient::new(http_client, device_id)?;
     let id_man = HubIdentityManager::new(key_store, device_client);
 
     let service = LoggingService::new(ApiVersionService::new(ManagementService::new(

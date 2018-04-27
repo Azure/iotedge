@@ -311,5 +311,6 @@ backup.json
 # JetBrains Rider files
 .idea/
 
-# linux swap files
+# linux dev files
 *.swp
+*.vi
