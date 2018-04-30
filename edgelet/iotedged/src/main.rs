@@ -2,6 +2,7 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
@@ -34,7 +35,7 @@ use url::Url;
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_docker::DockerModuleRuntime;
-use edgelet_http::{ApiVersionService, API_VERSION};
+use edgelet_http::ApiVersionService;
 use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -111,7 +112,7 @@ fn provision(
             ref device_connection_string,
         } => {
             let provision = ManualProvisioning::new(device_connection_string.as_str())?;
-            let root_key = MemoryKey::new(provision.key()?);
+            let root_key = MemoryKey::new(base64::decode(provision.key()?)?);
             let key_store = DerivedKeyStore::new(root_key.clone());
             let hub_name = provision.host_name().to_string();
             let device_id = provision.device_id().to_string();
@@ -145,8 +146,8 @@ where
     let http_client = HttpClient::new(
         hyper_client,
         SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key),
-        API_VERSION,
-        Url::parse(&format!("https://{}.azure-devices.net", hub_name))?,
+        "2017-11-08-preview",
+        Url::parse(&format!("https://{}", hub_name))?,
     )?;
     let device_client = DeviceClient::new(http_client, device_id)?;
     let id_man = HubIdentityManager::new(key_store, device_client);

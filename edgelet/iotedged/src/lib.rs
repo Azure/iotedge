@@ -2,6 +2,7 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 extern crate config;
 extern crate edgelet_core;
 extern crate edgelet_docker;

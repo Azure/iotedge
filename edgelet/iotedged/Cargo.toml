@@ -5,6 +5,7 @@ authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 publish = false
 
 [dependencies]
+base64 = "0.9.0"
 clap = "2.31"
 config = "0.8"
 env_logger = "0.5"

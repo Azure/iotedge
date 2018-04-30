@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::io;
 use std::net::AddrParseError;
 
+use base64::DecodeError;
 use config::ConfigError as SettingsError;
 use edgelet_core::Error as CoreError;
 use edgelet_docker::Error as DockerError;
@@ -28,6 +29,8 @@ pub enum ErrorKind {
     Json(JsonError),
     #[fail(display = "Edgelet core error")]
     Core,
+    #[fail(display = "Base64 decode error")]
+    DecodeError,
     #[fail(display = "An IO error occurred.")]
     Io,
     #[fail(display = "An HTTP server error occurred.")]
@@ -96,6 +99,14 @@ impl From<io::Error> for Error {
     fn from(error: io::Error) -> Error {
         Error {
             inner: error.context(ErrorKind::Io),
+        }
+    }
+}
+
+impl From<DecodeError> for Error {
+    fn from(error: DecodeError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::DecodeError),
         }
     }
 }

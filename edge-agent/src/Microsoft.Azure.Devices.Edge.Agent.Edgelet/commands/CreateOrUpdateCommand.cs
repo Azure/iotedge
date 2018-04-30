@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 Name = module.Name,
                 Config = new Config
                 {
-                    Settings = JsonConvert.SerializeObject(settings),
+                    Settings = settings,
                     Env = new ObservableCollection<EnvVar>(envVars)
                 },
                 Type = module.Type

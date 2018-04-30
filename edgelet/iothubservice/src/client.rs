@@ -153,7 +153,7 @@ where
 
                 Ok(self.service
                     .call(req)
-                    .map_err(Error::from)
+                    .map_err(|e| { error!("{:?}", e); Error::from(e) })
                     .and_then(|resp| {
                         let status = resp.status();
                         resp.body()

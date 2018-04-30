@@ -28,7 +28,7 @@ This crate is dependent on CMake being installed. On Debian based linux systems,
 this can be installed with 
 
 ```
-sudo apt-get install build-essential cmake
+sudo apt-get install build-essential cmake libcurl4-openssl-dev uuid-dev
 ```
 
 On Windows, install CMake from [cmake.org](https://cmake.org/).
