@@ -103,20 +103,27 @@ while read proj; do
     fi
 done < <(find $ROOT_FOLDER -type f -name $FUNCTION_BINDING_CSPROJ_PATTERN)
 
-echo "Publishing IotEdgeQuickstart for Linux arm32v7"
-$DOTNET_ROOT_PATH/dotnet publish \
-    -c $CONFIGURATION \
-    -f $DOTNET_RUNTIME \
-    -r linux-arm \
-    $ROOT_FOLDER/smoke/IotEdgeQuickstart
-if [ $? -gt 0 ]; then
-    RES=1
-fi
+publish_quickstart()
+{
+    RID="$1"
+    echo "Publishing IotEdgeQuickstart for '$RID'"
+    $DOTNET_ROOT_PATH/dotnet publish \
+        -c $CONFIGURATION \
+        -f $DOTNET_RUNTIME \
+        -r $RID \
+        $ROOT_FOLDER/smoke/IotEdgeQuickstart
+    if [ $? -gt 0 ]; then
+        RES=1
+    fi
 
-tar \
-    -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/linux-arm/publish/" \
-    -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.linux-arm.tar.gz" \
-    .
+    tar \
+        -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/$RID/publish/" \
+        -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.$RID.tar.gz" \
+        .
+}
+
+publish_quickstart linux-arm
+publish_quickstart linux-x64
 
 echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
 rm -fr $PUBLISH_FOLDER/docker
