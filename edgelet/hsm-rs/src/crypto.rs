@@ -39,9 +39,11 @@ pub struct Crypto {
 
 impl Drop for Crypto {
     fn drop(&mut self) {
-        self.interface
-            .hsm_client_crypto_destroy
-            .map(|f| unsafe { f(self.handle) });
+        if let Some(f) = self.interface.hsm_client_crypto_destroy {
+            unsafe {
+                f(self.handle);
+            }
+        }
         unsafe { hsm_client_crypto_deinit() };
     }
 }

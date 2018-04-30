@@ -22,9 +22,11 @@ pub struct X509 {
 
 impl Drop for X509 {
     fn drop(&mut self) {
-        self.interface
-            .hsm_client_x509_destroy
-            .map(|f| unsafe { f(self.handle) });
+        if let Some(f) = self.interface.hsm_client_x509_destroy {
+            unsafe {
+                f(self.handle);
+            }
+        }
         unsafe { hsm_client_x509_deinit() };
     }
 }

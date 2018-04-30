@@ -24,9 +24,11 @@ pub struct Tpm {
 
 impl Drop for Tpm {
     fn drop(&mut self) {
-        self.interface
-            .hsm_client_tpm_destroy
-            .map(|f| unsafe { f(self.handle) });
+        if let Some(f) = self.interface.hsm_client_tpm_destroy {
+            unsafe {
+                f(self.handle);
+            }
+        }
         unsafe { hsm_client_tpm_deinit() };
     }
 }
