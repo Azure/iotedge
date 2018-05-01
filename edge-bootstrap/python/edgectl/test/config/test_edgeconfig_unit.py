@@ -144,13 +144,15 @@ class TestEdgeConfigMethods(unittest.TestCase):
         test_cases = []
         test_cases.append({TEST_IP_KEY: 'Amqp', TEST_OP_KEY: EdgeUpstreamProtocol.AMQP})
         test_cases.append({TEST_IP_KEY: 'AmqpWs', TEST_OP_KEY: EdgeUpstreamProtocol.AMQPWS})
+        test_cases.append({TEST_IP_KEY: 'Mqtt', TEST_OP_KEY: EdgeUpstreamProtocol.MQTT})
+        test_cases.append({TEST_IP_KEY: 'MqttWs', TEST_OP_KEY: EdgeUpstreamProtocol.MQTTWS})
         self._valid_test_cases_helper(test_attr, test_cases)
 
     def test_upstream_protocol_invalid(self):
         """ Tests getter and setter for the UpstreamProtocol using invalid input values """
         test_attr = 'upstream_protocol'
         test_cases = []
-        test_cases.append({TEST_IP_KEY: 'Mqtt', TEST_OP_KEY: None})
+        test_cases.append({TEST_IP_KEY: 'NotARealProtocol', TEST_OP_KEY: None})
         test_cases.append({TEST_IP_KEY: ' ', TEST_OP_KEY: None})
         self._invalid_test_cases_helper(test_attr, test_cases)
 

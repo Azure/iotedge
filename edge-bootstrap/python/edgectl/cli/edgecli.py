@@ -261,7 +261,8 @@ class EdgeCLI(object):
 
         cmd_setup.add_argument('--upstream-protocol',
                                help='Set the protocol that the edge runtime should use to communicate with the IoTHub. Optional.\n'
-                               + 'Permitted values are Amqp (Amqp over TCP) and AmqpWs (Amqp over Websocket)\n',
+                               + 'Permitted values are Amqp (Amqp over TCP), AmqpWs (Amqp over WebSockets), \n'
+                               + 'Mqtt (Mqtt over TCP) and MqttWs (Mqtt over WebSockets)\n',
                                metavar='')
 
         cmd_setup.add_argument('--auto-cert-gen-force-no-passwords', '--nopass',

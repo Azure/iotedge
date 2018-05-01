@@ -146,5 +146,7 @@ class EdgeUpstreamProtocol(Enum):
         to communicate to IoT Hub upstream
     """
     AMQP = 'Amqp'
-    AMQPWS = 'AmqpWs'    
+    AMQPWS = 'AmqpWs'
+    MQTT = 'Mqtt'
+    MQTTWS = 'MqttWs'
     NONE = ''
