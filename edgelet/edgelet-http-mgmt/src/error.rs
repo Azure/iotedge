@@ -39,6 +39,8 @@ pub enum ErrorKind {
     InvalidApiVersion,
     #[fail(display = "Client error")]
     Client(MgmtError<serde_json::Value>),
+    #[fail(display = "State not modified")]
+    NotModified,
 }
 
 impl Fail for Error {
@@ -112,6 +114,9 @@ impl From<MgmtError<serde_json::Value>> for Error {
         match error {
             MgmtError::Hyper(h) => From::from(h),
             MgmtError::Serde(s) => From::from(s),
+            MgmtError::ApiError(ref e) if e.code == StatusCode::NotModified => {
+                From::from(ErrorKind::NotModified)
+            }
             MgmtError::ApiError(_) => From::from(ErrorKind::Client(error)),
         }
     }

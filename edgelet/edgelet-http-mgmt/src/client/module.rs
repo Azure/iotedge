@@ -10,7 +10,9 @@ use hyper::client::Connect;
 use management::apis::client::APIClient;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
 
-use error::Error;
+use error::{Error, ErrorKind};
+
+pub const API_VERSION: &str = "2018-06-28";
 
 pub struct ModuleClient<C: Connect> {
     client: Rc<APIClient<C>>,
@@ -111,16 +113,49 @@ impl<C: Connect> ModuleRuntime for ModuleClient<C> {
         unimplemented!()
     }
 
-    fn start(&self, _id: &str) -> Self::StartFuture {
-        unimplemented!()
+    fn start(&self, id: &str) -> Self::StartFuture {
+        let start = self.client
+            .module_api()
+            .start_module(API_VERSION, id)
+            .map_err(Error::from)
+            .then(|result| match result {
+                Err(e) => match *e.kind() {
+                    ErrorKind::NotModified => Ok(()),
+                    _ => Err(e),
+                },
+                other => other,
+            });
+        Box::new(start)
     }
 
-    fn stop(&self, _id: &str) -> Self::StopFuture {
-        unimplemented!()
+    fn stop(&self, id: &str) -> Self::StopFuture {
+        let stop = self.client
+            .module_api()
+            .stop_module(API_VERSION, id)
+            .map_err(Error::from)
+            .then(|result| match result {
+                Err(e) => match *e.kind() {
+                    ErrorKind::NotModified => Ok(()),
+                    _ => Err(e),
+                },
+                other => other,
+            });
+        Box::new(stop)
     }
 
-    fn restart(&self, _id: &str) -> Self::RestartFuture {
-        unimplemented!()
+    fn restart(&self, id: &str) -> Self::RestartFuture {
+        let restart = self.client
+            .module_api()
+            .restart_module(API_VERSION, id)
+            .map_err(Error::from)
+            .then(|result| match result {
+                Err(e) => match *e.kind() {
+                    ErrorKind::NotModified => Ok(()),
+                    _ => Err(e),
+                },
+                other => other,
+            });
+        Box::new(restart)
     }
 
     fn remove(&self, _id: &str) -> Self::RemoveFuture {
@@ -130,7 +165,7 @@ impl<C: Connect> ModuleRuntime for ModuleClient<C> {
     fn list(&self) -> Self::ListFuture {
         let modules = self.client
             .module_api()
-            .list_modules("2018-06-28")
+            .list_modules(API_VERSION)
             .map(|list| {
                 list.modules()
                     .into_iter()

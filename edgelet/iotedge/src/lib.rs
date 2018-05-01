@@ -12,11 +12,17 @@ use futures::Future;
 
 mod error;
 mod list;
+mod restart;
+mod start;
+mod stop;
 mod unknown;
 mod version;
 
 pub use error::{Error, ErrorKind};
 pub use list::List;
+pub use restart::Restart;
+pub use start::Start;
+pub use stop::Stop;
 pub use unknown::Unknown;
 pub use version::Version;
 
