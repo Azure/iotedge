@@ -19,7 +19,19 @@ pub fn init() {
                 Level::Error => "ERR!",
             };
             let timestamp = fmt.timestamp();
-            writeln!(fmt, "{} [{}] - {}", timestamp, level, record.args())
+
+            if record.level() >= Level::Debug {
+                writeln!(
+                    fmt,
+                    "{} [{}] - [{}] {}",
+                    timestamp,
+                    level,
+                    record.target(),
+                    record.args()
+                )
+            } else {
+                writeln!(fmt, "{} [{}] - {}", timestamp, level, record.args())
+            }
         })
         .filter_level(LevelFilter::Info)
         .parse(&env::var(ENV_LOG).unwrap_or_default())

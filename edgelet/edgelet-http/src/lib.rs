@@ -12,20 +12,25 @@ extern crate log;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
+extern crate tokio_core;
+extern crate tokio_io;
 extern crate url;
 
 use std::io;
 
-use futures::{future, Future};
+use futures::{future, Future, Poll, Stream};
 use hyper::Error as HyperError;
-use hyper::server::{NewService, Request, Response, Service};
-use url::form_urlencoded::parse as parse_query;
+use hyper::server::{NewService, Request, Response, Serve};
+use tokio_core::reactor::Handle;
+use tokio_io::{AsyncRead, AsyncWrite};
 
 mod error;
 pub mod logging;
 pub mod route;
+mod version;
 
 pub use error::{Error, ErrorKind};
+pub use version::{ApiVersionService, API_VERSION};
 
 pub trait IntoResponse {
     fn into_response(self) -> Response;
@@ -37,158 +42,64 @@ impl IntoResponse for Response {
     }
 }
 
-pub const API_VERSION: &str = "2018-06-28";
+pub struct Run(Box<Future<Item = (), Error = HyperError> + 'static>);
 
-#[derive(Clone)]
-pub struct ApiVersionService<T> {
-    upstream: T,
-}
+impl Future for Run {
+    type Item = ();
+    type Error = HyperError;
 
-impl<T> ApiVersionService<T> {
-    pub fn new(upstream: T) -> ApiVersionService<T> {
-        ApiVersionService { upstream }
+    fn poll(&mut self) -> Poll<(), Self::Error> {
+        self.0.poll()
     }
 }
 
-impl IntoResponse for HyperError {
-    fn into_response(self) -> Response {
-        Error::from(self).into_response()
-    }
+pub trait Runnable {
+    fn run(self, handle: &Handle) -> Run;
+
+    fn run_until<F>(self, handle: &Handle, shutdown_signal: F) -> Run
+    where
+        F: Future<Item = (), Error = ()> + 'static;
 }
 
-impl<T> Service for ApiVersionService<T>
+impl<I, S, B> Runnable for Serve<I, S>
 where
-    T: Service<Request = Request, Response = Response, Error = HyperError>,
-    T::Future: 'static,
+    I: 'static + Stream<Error = io::Error>,
+    I::Item: AsyncRead + AsyncWrite,
+    S: 'static + NewService<Request = Request, Response = Response<B>, Error = HyperError>,
+    B: 'static + Stream<Error = HyperError>,
+    B::Item: AsRef<[u8]>,
 {
-    type Request = T::Request;
-    type Response = T::Response;
-    type Error = T::Error;
-    type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
+    fn run(self, handle: &Handle) -> Run {
+        self.run_until(handle, future::empty())
+    }
 
-    fn call(&self, req: Self::Request) -> Self::Future {
-        let response = req.query()
-            .map(|query| query.to_owned())
-            .and_then(|query| {
-                parse_query(query.as_bytes())
-                    .find(|&(ref key, _)| key == "api-version")
-                    .and_then(|(_, v)| if v == API_VERSION { Some(()) } else { None })
-                    .map(|_| {
-                        future::Either::A(
-                            self.upstream
-                                .call(req)
-                                .or_else(|e| future::ok(e.into_response())),
-                        )
-                    })
-            })
-            .unwrap_or_else(|| {
-                let err = Error::from(ErrorKind::InvalidApiVersion);
-                future::Either::B(future::ok(err.into_response()))
+    fn run_until<F>(self, handle: &Handle, shutdown_signal: F) -> Run
+    where
+        F: Future<Item = (), Error = ()> + 'static,
+    {
+        // setup the listening server
+        let h2 = handle.clone();
+        let server = self.for_each(move |conn| {
+            debug!("accepted new connection");
+            let serve = conn.map(|_| ())
+                .map_err(|err| error!("serve error: {:?}", err));
+            h2.spawn(serve);
+            Ok(())
+        });
+
+        // We don't care if the shut_down signal errors.
+        // Swallow the error.
+        let shutdown_signal = shutdown_signal.then(|_| Ok(()));
+
+        // Main execution
+        // Use select to wait for either `incoming` or `f` to resolve.
+        let main_execution = shutdown_signal
+            .select(server)
+            .then(move |result| match result {
+                Ok(((), _incoming)) => future::ok(()),
+                Err((e, _other)) => future::err(e.into()),
             });
 
-        Box::new(response)
-    }
-}
-
-impl<T> NewService for ApiVersionService<T>
-where
-    T: Clone + Service<Request = Request, Response = Response, Error = HyperError>,
-    T::Future: 'static,
-{
-    type Request = T::Request;
-    type Response = Response;
-    type Error = HyperError;
-    type Instance = Self;
-
-    fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(self.clone())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use hyper::{Method, StatusCode};
-
-    use super::*;
-
-    #[derive(Clone)]
-    struct TestService {
-        status_code: StatusCode,
-        error: bool,
-    }
-
-    impl Service for TestService {
-        type Request = Request;
-        type Response = Response;
-        type Error = HyperError;
-        type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
-
-        fn call(&self, _req: Self::Request) -> Self::Future {
-            Box::new(if self.error {
-                future::err(HyperError::TooLarge)
-            } else {
-                future::ok(Response::new().with_status(self.status_code))
-            })
-        }
-    }
-
-    #[test]
-    fn api_version_check_succeeds() {
-        let url = &format!("http://localhost?api-version={}", API_VERSION);
-        let req = Request::new(Method::Get, url.parse().unwrap());
-        let api_service = ApiVersionService::new(TestService {
-            status_code: StatusCode::Ok,
-            error: false,
-        });
-        let response = Service::call(&api_service, req).wait().unwrap();
-        assert_eq!(StatusCode::Ok, response.status());
-    }
-
-    #[test]
-    fn api_version_check_passes_status_code_through() {
-        let url = &format!("http://localhost?api-version={}", API_VERSION);
-        let req = Request::new(Method::Get, url.parse().unwrap());
-        let api_service = ApiVersionService::new(TestService {
-            status_code: StatusCode::ImATeapot,
-            error: false,
-        });
-        let response = Service::call(&api_service, req).wait().unwrap();
-        assert_eq!(StatusCode::ImATeapot, response.status());
-    }
-
-    #[test]
-    fn api_version_check_returns_error_as_response() {
-        let url = &format!("http://localhost?api-version={}", API_VERSION);
-        let req = Request::new(Method::Get, url.parse().unwrap());
-        let api_service = ApiVersionService::new(TestService {
-            status_code: StatusCode::ImATeapot,
-            error: true,
-        });
-        let response = Service::call(&api_service, req).wait().unwrap();
-        assert_eq!(StatusCode::InternalServerError, response.status());
-    }
-
-    #[test]
-    fn api_version_does_not_exist() {
-        let url = "http://localhost";
-        let req = Request::new(Method::Get, url.parse().unwrap());
-        let api_service = ApiVersionService::new(TestService {
-            status_code: StatusCode::Ok,
-            error: false,
-        });
-        let response = Service::call(&api_service, req).wait().unwrap();
-        assert_eq!(StatusCode::BadRequest, response.status());
-    }
-
-    #[test]
-    fn api_version_is_unsupported() {
-        let url = "http://localhost?api-version=not-a-valid-version";
-        let req = Request::new(Method::Get, url.parse().unwrap());
-        let api_service = ApiVersionService::new(TestService {
-            status_code: StatusCode::Ok,
-            error: false,
-        });
-        let response = Service::call(&api_service, req).wait().unwrap();
-        assert_eq!(StatusCode::BadRequest, response.status());
+        Run(Box::new(main_execution))
     }
 }

@@ -25,7 +25,8 @@ extern crate url;
 
 use clap::{App, Arg};
 use failure::Fail;
-use futures::{future, Future, Stream};
+use futures::Future;
+use futures::sync::oneshot::{self, Receiver};
 use hyper::Client as HyperClient;
 use hyper::server::Http;
 use hyper_tls::HttpsConnector;
@@ -35,25 +36,27 @@ use url::Url;
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_docker::DockerModuleRuntime;
-use edgelet_http::ApiVersionService;
+use edgelet_http::{ApiVersionService, Run, Runnable};
 use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use hsm::Crypto;
-use iotedged::{logging, Error};
+use iotedged::{logging, signal, Error};
 use iotedged::settings::{Provisioning, Settings};
 use iothubservice::{Client as HttpClient, DeviceClient};
 
 fn main() {
     logging::init();
-    ::std::process::exit(match main_runner() {
+    let code = match main_runner() {
         Ok(_) => 0,
         Err(err) => {
             log_error(&err);
             1
         }
-    });
+    };
+    info!("Exiting with code {}", code);
+    ::std::process::exit(code);
 }
 
 fn main_runner() -> Result<(), Error> {
@@ -92,16 +95,29 @@ fn main_runner() -> Result<(), Error> {
     );
 
     let mut core = Core::new()?;
-    start_management(
+
+    let (mgmt_tx, mgmt_rx) = oneshot::channel();
+    let (work_tx, work_rx) = oneshot::channel();
+
+    let mgmt = start_management(
         "0.0.0.0:8080",
         key_store.clone(),
         &core.handle(),
         &hub_name,
         &device_id,
         root_key,
+        mgmt_rx,
     )?;
-    start_workload("0.0.0.0:8081", &key_store, &core.handle())?;
-    core.run(future::empty::<(), Error>())
+    let workload = start_workload("0.0.0.0:8081", &key_store, &core.handle(), work_rx)?;
+
+    let shutdown = signal::shutdown(&core.handle()).map(move |_| {
+        mgmt_tx.send(()).unwrap_or(());
+        work_tx.send(()).unwrap_or(());
+    });
+
+    core.handle().spawn(shutdown);
+    core.run(mgmt.join(workload)).map_err(Error::from)?;
+    Ok(())
 }
 
 fn provision(
@@ -129,7 +145,8 @@ fn start_management<K>(
     hub_name: &str,
     device_id: &str,
     root_key: MemoryKey,
-) -> Result<(), Error>
+    shutdown: Receiver<()>,
+) -> Result<Run, Error>
 where
     K: 'static + KeyStore<Key = MemoryKey> + Clone,
 {
@@ -157,29 +174,23 @@ where
         &id_man,
     )?));
 
-    let serve = Http::new().serve_addr_handle(&uri, &server_handle, service)?;
-
     info!(
         "Listening on http://{} with 1 thread for management API.",
-        serve.incoming_ref().local_addr()
+        addr
     );
 
-    let h2 = server_handle.clone();
-    server_handle.spawn(
-        serve
-            .for_each(move |conn| {
-                h2.spawn(
-                    conn.map(|_| ())
-                        .map_err(|err| error!("serve error: {:?}", err)),
-                );
-                Ok(())
-            })
-            .map_err(|_| ()),
-    );
-    Ok(())
+    let run = Http::new()
+        .serve_addr_handle(&uri, &server_handle, service)?
+        .run_until(handle, shutdown.map_err(|_| ()));
+    Ok(run)
 }
 
-fn start_workload<K>(addr: &str, key_store: &K, handle: &Handle) -> Result<(), Error>
+fn start_workload<K>(
+    addr: &str,
+    key_store: &K,
+    handle: &Handle,
+    shutdown: Receiver<()>,
+) -> Result<Run, Error>
 where
     K: 'static + KeyStore + Clone,
 {
@@ -190,26 +201,15 @@ where
         Crypto::default(),
     )?));
 
-    let serve = Http::new().serve_addr_handle(&uri, &server_handle, service)?;
-
     info!(
         "Listening on http://{} with 1 thread for workload API.",
-        serve.incoming_ref().local_addr()
+        addr
     );
 
-    let h2 = server_handle.clone();
-    server_handle.spawn(
-        serve
-            .for_each(move |conn| {
-                h2.spawn(
-                    conn.map(|_| ())
-                        .map_err(|err| error!("serve error: {:?}", err)),
-                );
-                Ok(())
-            })
-            .map_err(|_| ()),
-    );
-    Ok(())
+    let run = Http::new()
+        .serve_addr_handle(&uri, &server_handle, service)?
+        .run_until(handle, shutdown.map_err(|_| ()));
+    Ok(run)
 }
 
 fn log_error(error: &Error) {
