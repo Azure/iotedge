@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::fmt;
 use std::rc::Rc;
 use std::str::FromStr;
 
 use edgelet_core::*;
+use edgelet_docker::{self, DockerConfig};
 use futures::Future;
 use futures::future::{self, FutureResult};
 use hyper::client::Connect;
 use management::apis::client::APIClient;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
+use serde_json;
 
 use error::{Error, ErrorKind};
 
@@ -35,10 +38,24 @@ impl<C: Connect> Clone for ModuleClient<C> {
 }
 
 #[derive(Clone, Debug)]
-pub struct ModuleDetails(HttpModuleDetails);
+pub struct ModuleDetails(HttpModuleDetails, ModuleConfig);
+
+#[derive(Clone, Debug)]
+pub struct ModuleConfig(String, Config);
+
+impl fmt::Display for ModuleConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let edgelet_docker::MODULE_TYPE = self.0.as_ref() {
+            if let Ok(c) = serde_json::from_value::<DockerConfig>(self.1.settings().clone()) {
+                write!(f, "{}", c.image())?;
+            }
+        }
+        Ok(())
+    }
+}
 
 impl Module for ModuleDetails {
-    type Config = Config;
+    type Config = ModuleConfig;
     type Error = Error;
     type RuntimeStateFuture = FutureResult<ModuleRuntimeState, Self::Error>;
 
@@ -51,7 +68,7 @@ impl Module for ModuleDetails {
     }
 
     fn config(&self) -> &Self::Config {
-        self.0.config()
+        &self.1
     }
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
@@ -85,7 +102,7 @@ impl<C: Connect> ModuleRegistry for ModuleClient<C> {
     type Error = Error;
     type PullFuture = FutureResult<(), Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
-    type Config = Config;
+    type Config = ModuleConfig;
 
     fn pull(&self, _config: &Self::Config) -> Self::PullFuture {
         future::ok(())
@@ -98,7 +115,7 @@ impl<C: Connect> ModuleRegistry for ModuleClient<C> {
 
 impl<C: Connect> ModuleRuntime for ModuleClient<C> {
     type Error = Error;
-    type Config = Config;
+    type Config = ModuleConfig;
     type Module = ModuleDetails;
     type ModuleRegistry = Self;
 
@@ -170,7 +187,11 @@ impl<C: Connect> ModuleRuntime for ModuleClient<C> {
                 list.modules()
                     .into_iter()
                     .cloned()
-                    .map(ModuleDetails)
+                    .map(|m| {
+                        let type_ = m.type_().clone();
+                        let config = m.config().clone();
+                        ModuleDetails(m, ModuleConfig(type_, config))
+                    })
                     .collect()
             })
             .map_err(From::from);

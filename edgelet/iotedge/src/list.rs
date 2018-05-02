@@ -1,25 +1,33 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::io::Write;
 use std::sync::Arc;
 
-use edgelet_core::{Module, ModuleRuntime};
+use chrono::{Duration, Utc};
+use chrono_humanize::{Accuracy, HumanTime, Tense};
+use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 use futures::{future, Future};
+use tabwriter::TabWriter;
 
 use Command;
 use error::{Error, ErrorKind};
 
 pub struct List<M, W> {
     runtime: M,
-    output: Arc<RefCell<W>>,
+    output: Arc<RefCell<TabWriter<W>>>,
 }
 
-impl<M, W> List<M, W> {
+impl<M, W> List<M, W>
+where
+    W: Write,
+{
     pub fn new(runtime: M, output: W) -> Self {
+        let tab = TabWriter::new(output).minwidth(15);
         List {
             runtime,
-            output: Arc::new(RefCell::new(output)),
+            output: Arc::new(RefCell::new(tab)),
         }
     }
 }
@@ -28,6 +36,7 @@ impl<M, W> Command for List<M, W>
 where
     M: 'static + ModuleRuntime + Clone,
     M::Module: Clone,
+    M::Config: Display,
     W: 'static + Write,
 {
     type Future = Box<Future<Item = (), Error = Error>>;
@@ -44,19 +53,66 @@ where
                     .map_err(|_e| Error::from(ErrorKind::ModuleRuntime))
                     .and_then(move |states| {
                         let mut w = write.borrow_mut();
-                        writeln!(w, "{0: <20} {1: <20} {2: <20}", "NAME", "TYPE", "STATUS")?;
+                        writeln!(w, "NAME\tTYPE\tSTATUS\tDESCRIPTION\tCONFIG")?;
                         for (module, state) in modules.iter().zip(states) {
                             writeln!(
                                 w,
-                                "{0: <20} {1: <20} {2: <20}",
+                                "{}\t{}\t{}\t{}\t{}",
                                 module.name(),
                                 module.type_(),
-                                state.status()
+                                state.status(),
+                                humanize_state(&state),
+                                module.config(),
                             )?;
                         }
+                        w.flush()?;
                         Ok(())
                     })
             });
         Box::new(result)
+    }
+}
+
+fn humanize_state(state: &ModuleRuntimeState) -> String {
+    match *state.status() {
+        ModuleStatus::Unknown => "Unknown".to_string(),
+        ModuleStatus::Stopped => state
+            .finished_at()
+            .map(|time| {
+                format!(
+                    "Stopped {}",
+                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
+                )
+            })
+            .unwrap_or_else(|| "Stopped".to_string()),
+        ModuleStatus::Failed => state
+            .finished_at()
+            .and_then(|time| {
+                state.exit_code().map(|code| {
+                    format!(
+                        "Failed ({}) {}",
+                        code,
+                        time_string(&HumanTime::from(Utc::now() - *time), Tense::Past)
+                    )
+                })
+            })
+            .unwrap_or_else(|| "Failed".to_string()),
+        ModuleStatus::Running => state
+            .started_at()
+            .map(|time| {
+                format!(
+                    "Up {}",
+                    time_string(&HumanTime::from(Utc::now() - *time), Tense::Present)
+                )
+            })
+            .unwrap_or_else(|| "Up".to_string()),
+    }
+}
+
+fn time_string(ht: &HumanTime, tense: Tense) -> String {
+    if *ht <= HumanTime::from(Duration::seconds(20)) {
+        ht.to_text_en(Accuracy::Precise, tense)
+    } else {
+        ht.to_text_en(Accuracy::Rough, tense)
     }
 }

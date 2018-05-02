@@ -50,6 +50,6 @@ mod runtime;
 
 pub use config::DockerConfig;
 pub use error::{Error, ErrorKind};
-pub use module::DockerModule;
+pub use module::{DockerModule, MODULE_TYPE};
 
 pub use runtime::DockerModuleRuntime;

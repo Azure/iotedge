@@ -4,11 +4,14 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 
 [dependencies]
+chrono = "0.4"
+chrono-humanize = "0.0.11"
 clap = "2.31"
 failure = "0.1"
 failure_derive = "0.1"
 futures = "0.1"
 hyper = "0.11"
+tabwriter = "1.0"
 tokio-core = "0.1"
 
 edgelet-core = { path = "../edgelet-core" }

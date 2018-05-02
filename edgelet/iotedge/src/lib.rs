@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+extern crate chrono;
+extern crate chrono_humanize;
 #[macro_use]
 extern crate clap;
 extern crate edgelet_core;
@@ -7,6 +9,7 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 extern crate futures;
+extern crate tabwriter;
 
 use futures::Future;
 
