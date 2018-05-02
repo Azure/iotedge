@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -21,15 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         const string IothubHostName = "test.azure-devices.net";
         const string DeviceId = "edgeDevice1";
         const string GatewayHostName = "edgedevicehost";
+        const string EdgeletUri = "localhost";
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly ModuleConnectionStringBuilder ModuleConnectionStringBuilder = new ModuleConnectionStringBuilder(IothubHostName, DeviceId);
+        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, GatewayHostName);
 
         [Fact]
         public async Task TestGetModulesIdentity_WithEmptyDiff_ShouldReturnEmptyIdentities()
         {
             // Arrange
             var identityManager = Mock.Of<IIdentityManager>(m => m.GetIdentities() == Task.FromResult(Enumerable.Empty<Identity>()));
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleConnectionStringBuilder, GatewayHostName);
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
 
             // Act
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Empty);
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 m.GetIdentities() == Task.FromResult(Enumerable.Empty<Identity>()) &&
                 m.CreateIdentityAsync(Name) == Task.FromResult(identity));
 
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleConnectionStringBuilder, GatewayHostName);
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
 
             // Act
@@ -65,8 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Assert
             Assert.True(modulesIdentities.Count() == 1);
             Assert.True(modulesIdentities.TryGetValue(Name, out IModuleIdentity moduleIdentity));
-            Assert.Equal(moduleIdentity.Name, Name);
-            Assert.Equal(moduleIdentity.ConnectionString, $"HostName={IothubHostName};DeviceId={DeviceId};ModuleId={Name};GatewayHostName={GatewayHostName}");
+            Assert.Equal(moduleIdentity.ModuleId, Name);
+            Assert.IsType<IdentityProviderServiceCredentials>(moduleIdentity.Credentials);
+            Assert.Equal(EdgeletUri, ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).ProviderUri);
+            Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).Version);
             Mock.Get(identityManager).Verify();
         }
 
@@ -104,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 m.CreateIdentityAsync(Module1) == Task.FromResult(identity1) &&
                 m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
 
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleConnectionStringBuilder, GatewayHostName);
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
             var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
             var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
@@ -117,8 +121,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Assert
             Assert.NotNull(moduleIdentities);
             Assert.True(moduleIdentities.TryGetValue(Module1, out IModuleIdentity module1Identity));
-            Assert.Equal(Module1, module1Identity.Name);
-            Assert.Equal($"HostName={IothubHostName};DeviceId={DeviceId};ModuleId={Module1};GatewayHostName={GatewayHostName}", module1Identity.ConnectionString);
+            Assert.Equal(Module1, module1Identity.ModuleId);
+            Assert.IsType<IdentityProviderServiceCredentials>(module1Identity.Credentials);
+            Assert.Equal(EdgeletUri, ((IdentityProviderServiceCredentials)module1Identity.Credentials).ProviderUri);
+            Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).Version);
             Mock.Get(identityManager).Verify();
         }
     }

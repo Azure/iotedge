@@ -13,10 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
         readonly IServiceClient serviceClient;
-        readonly ModuleConnectionStringBuilder moduleConnectionStringBuilder;
+        readonly ModuleConnectionString.ModuleConnectionStringBuilder moduleConnectionStringBuilder;
         readonly string gatewayHostName;
 
-        public ModuleIdentityLifecycleManager(IServiceClient serviceClient, ModuleConnectionStringBuilder moduleConnectionStringBuilder, string gatewayHostName)
+        public ModuleIdentityLifecycleManager(IServiceClient serviceClient, ModuleConnectionString.ModuleConnectionStringBuilder moduleConnectionStringBuilder, string gatewayHostName)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
             this.moduleConnectionStringBuilder = Preconditions.CheckNotNull(moduleConnectionStringBuilder, nameof(moduleConnectionStringBuilder));
@@ -85,23 +85,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             List<Module> updatedModulesIndentity = (await this.UpdateServiceModulesIdentityAsync(removeIdentities, createIdentities, updateIdentities)).ToList();
             ImmutableDictionary<string, Module> updatedDict = updatedModulesIndentity.ToImmutableDictionary(p => p.Id);
 
-            IEnumerable<IModuleIdentity> moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(p => new ModuleIdentity(p.Id, this.GetModuleConnectionString(p)));
-            return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.Name));
+            IEnumerable<IModuleIdentity> moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(p =>
+            {
+                ModuleConnectionString cs = this.GetModuleConnectionString(p);
+                return new ModuleIdentity(cs.IotHubHostName, cs.GatewayHostName, cs.DeviceId, cs.ModuleId, new ConnectionStringCredentials(cs.ToString()));
+            });
+            return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 
-        string GetModuleConnectionString(Module module)
+        ModuleConnectionString GetModuleConnectionString(Module module)
         {
             if (module.Authentication.Type != AuthenticationType.Sas)
             {
                 throw new ArgumentException($"Authentication type {module.Authentication.Type} is not supported.");
             }
 
-            ModuleConnectionStringBuilder.ModuleConnectionString moduleConnectionString = this.moduleConnectionStringBuilder.Create(module.Id)
+            ModuleConnectionString.ModuleConnectionStringBuilder builder = this.moduleConnectionStringBuilder
+                .WithModuleId(module.Id)
                 .WithSharedAccessKey(module.Authentication.SymmetricKey.PrimaryKey);
 
-            return module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
-                ? moduleConnectionString
-                : moduleConnectionString.WithGatewayHostName(this.gatewayHostName);
+            if (!module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
+            {
+                builder.WithGatewayHostName(this.gatewayHostName);
+            }
+
+            return builder.Build();
         }
 
         async Task<Module[]> UpdateServiceModulesIdentityAsync(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)

@@ -894,13 +894,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
         {
-            string credential = "fake";
+            ICredentials credential = new ConnectionStringCredentials("fake");
             IDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>();
             foreach (IModule module in modules)
             {
                 var identity = new Mock<IModuleIdentity>();
-                identity.Setup(id => id.ConnectionString).Returns(credential);
-                identity.Setup(id => id.Name).Returns(module.Name);
+                identity.Setup(id => id.Credentials).Returns(credential);
+                identity.Setup(id => id.ModuleId).Returns(module.Name);
                 identities.Add(module.Name, identity.Object);
             }
 

@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -66,8 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int coolOffTimeUnitInSeconds;
             bool usePersistentStorage;
             string storagePath;
-            string deviceConnectionString;
-            string edgeAgentConnectionString;
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
@@ -85,8 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
-                deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
-                edgeAgentConnectionString = configuration.GetValue<string>("ModuleConnectionString", string.Empty);
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -105,16 +102,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
 
-                switch(mode.ToLower())
+                Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
+                switch (mode.ToLower())
                 {
                     case "docker":
-                        IConfiguration dockerConfig = configuration.GetSection("DockerConfig");
-                        edgeAgentConnectionString = $"{deviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig));
+                        string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol));
                         break;
 
                     case "edgelet":
-                        builder.RegisterModule(new EdgeletModule(edgeAgentConnectionString, edgeDeviceHostName, edgeletUrl, dockerAuthConfig));
+                        string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                        string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, edgeletUrl, dockerAuthConfig, upstreamProtocol));
                         break;
 
                     default:
@@ -124,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 switch (configSourceConfig.ToLower())
                 {
                     case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(edgeAgentConnectionString, backupConfigFilePath, configuration, versionInfo));
+                        builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo));
                         break;
 
                     case "local":

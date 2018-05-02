@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
 
     public class DeviceClientFactory
     {
-        const string EdgeletUriVariableName = "IotEdge_EdgeletUri";
-        const string EdgeletApiVersionVariableName = "IotEdge_EdgeletVersion";
-        const string HostnameVariableName = "IotEdge_IotHubHostname";
-        const string GatewayVariableName = "IotEdge_Gateway";
-        const string DeviceIdVariableName = "IotEdge_DeviceId";
-        const string ModuleIdVariableName = "IotEdge_ModuleId";
-        const string AuthSchemeVariableName = "IotEdge_AuthScheme";
+        const string EdgeletUriVariableName = "IOTEDGE_IOTEDGEDURI";
+        const string EdgeletApiVersionVariableName = "IOTEDGE_IOTEDGEDVERSION";
+        const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
+        const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
+        const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
+        const string ModuleIdVariableName = "IOTEDGE_MODULEID";
+        const string AuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
         const string SasTokenAuthScheme = "SasToken";
         const string EdgehubConnectionstringVariableName = "EdgeHubConnectionString";
         const string IothubConnectionstringVariableName = "IotHubConnectionString";
@@ -57,9 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
                 string edgeletUri = this.GetValueFromEnvironment(envVariables, EdgeletUriVariableName) ?? throw new InvalidOperationException($"Environement variable {EdgeletUriVariableName} is required.");
                 string deviceId = this.GetValueFromEnvironment(envVariables, DeviceIdVariableName) ?? throw new InvalidOperationException($"Environement variable {DeviceIdVariableName} is required.");
                 string moduleId = this.GetValueFromEnvironment(envVariables, ModuleIdVariableName) ?? throw new InvalidOperationException($"Environement variable {ModuleIdVariableName} is required.");
-                string hostname = this.GetValueFromEnvironment(envVariables, HostnameVariableName) ?? throw new InvalidOperationException($"Environement variable {HostnameVariableName} is required.");
+                string hostname = this.GetValueFromEnvironment(envVariables, IotHubHostnameVariableName) ?? throw new InvalidOperationException($"Environement variable {IotHubHostnameVariableName} is required.");
                 string authScheme = this.GetValueFromEnvironment(envVariables, AuthSchemeVariableName) ?? throw new InvalidOperationException($"Environement variable {AuthSchemeVariableName} is required.");
-                string gateway = this.GetValueFromEnvironment(envVariables, GatewayVariableName);
+                string gateway = this.GetValueFromEnvironment(envVariables, GatewayHostnameVariableName);
                 string apiVersion = this.GetValueFromEnvironment(envVariables, EdgeletApiVersionVariableName);
 
                 if (!string.Equals(authScheme, SasTokenAuthScheme, StringComparison.OrdinalIgnoreCase))
@@ -93,18 +93,17 @@ namespace Microsoft.Azure.Devices.Edge.ClientWrapper
 
         DeviceClient CreateDeviceClientFromAuthenticationMethod(string hostname, string gateway, IAuthenticationMethod authMethod)
         {
-            //TODO: modify DeviceSdk to set gateway when using create with IAuthMethod
             if (this.transportSettings != null)
             {
-                return DeviceClient.Create(hostname, authMethod, this.transportSettings);
+                return DeviceClient.Create(hostname, gateway, authMethod, this.transportSettings);
             }
 
             if (this.transportType.HasValue)
             {
-                return DeviceClient.Create(hostname, authMethod, this.transportType.Value);
+                return DeviceClient.Create(hostname, gateway, authMethod, this.transportType.Value);
             }
 
-            return DeviceClient.Create(hostname, authMethod);
+            return DeviceClient.Create(hostname, gateway, authMethod);
         }
 
         string GetValueFromEnvironment(IDictionary envVariables, string variableName)

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
@@ -29,8 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Startup : IStartup
     {
-        readonly Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder;
-        readonly string edgeHubConnectionString;
+        const string IotHubConnectionStringVariableName = "IotHubConnectionString";
+        const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
+        const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
+        const string ModuleIdVariableName = "IOTEDGE_MODULEID";
+        readonly string iotHubHostname;
+        readonly string edgeDeviceId;
+        readonly string edgeModuleId;
+        readonly Option<string> connectionString;
 
         // ReSharper disable once UnusedParameter.Local
         public Startup(IHostingEnvironment env)
@@ -40,8 +47,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .AddEnvironmentVariables()
                 .Build();
 
-            this.edgeHubConnectionString = this.Configuration.GetValue<string>("IotHubConnectionString");
-            this.iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(this.edgeHubConnectionString);
+            string edgeHubConnectionString = this.Configuration.GetValue<string>(IotHubConnectionStringVariableName);
+            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
+            {
+                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
+                this.iotHubHostname = iotHubConnectionStringBuilder.HostName;
+                this.edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
+                this.edgeModuleId = iotHubConnectionStringBuilder.ModuleId;
+                this.connectionString = Option.Some(edgeHubConnectionString);
+            }
+            else
+            {
+                this.iotHubHostname = this.Configuration.GetValue<string>(IotHubHostnameVariableName);
+                this.edgeDeviceId = this.Configuration.GetValue<string>(DeviceIdVariableName);
+                this.edgeModuleId = this.Configuration.GetValue<string>(ModuleIdVariableName);
+                this.connectionString = Option.None<string>();
+            }
+            
             this.VersionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 
@@ -117,13 +139,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(
                 new CommonModule(
                     this.GetProductInfo(),
-                    this.iotHubConnectionStringBuilder.HostName,
-                    this.iotHubConnectionStringBuilder.DeviceId));
+                    this.iotHubHostname,
+                    this.edgeDeviceId));
             builder.RegisterModule(
                 new RoutingModule(
-                    this.iotHubConnectionStringBuilder.HostName,
-                    this.iotHubConnectionStringBuilder.DeviceId,
-                    this.edgeHubConnectionString,
+                    this.iotHubHostname,
+                    this.edgeDeviceId,
+                    this.edgeModuleId,
+                    this.connectionString,
                     routes,
                     storeAndForward.isEnabled,
                     storeAndForward.usePersistentStorage,
@@ -135,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath));
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubConnectionStringBuilder.HostName));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubHostname));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);
 
@@ -149,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseWebSockets();
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
-            app.UseAuthenticationMiddleware(this.iotHubConnectionStringBuilder.HostName);
+            app.UseAuthenticationMiddleware(this.iotHubHostname);
             app.UseMvc();
         }
 

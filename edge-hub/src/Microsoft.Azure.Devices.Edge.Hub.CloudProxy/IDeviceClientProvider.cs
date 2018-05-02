@@ -9,5 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         IDeviceClient Create(string hostName, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings);
 
         IDeviceClient Create(string connectionString, ITransportSettings[] transportSettings);
+
+        IDeviceClient Create(ITransportSettings[] transportSettings);
     }
 }

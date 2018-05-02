@@ -49,6 +49,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo);
         }
 
+        public IClientCredentials GetWithIotEdged(string deviceId, string moduleId)
+        {
+            return new IotEdgedCredentials(this.GetIdentity(deviceId, moduleId), this.callerProductInfo);
+        }
+
         IIdentity GetIdentity(string deviceId, string moduleId)
         {
             IIdentity identity = string.IsNullOrWhiteSpace(moduleId)

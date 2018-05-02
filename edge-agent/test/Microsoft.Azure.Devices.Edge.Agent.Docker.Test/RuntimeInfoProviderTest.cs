@@ -91,9 +91,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    string credential = "fake";
+                    var credential = new ConnectionStringCredentials("fake");
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(credential);
+                    identity.Setup(id => id.Credentials).Returns(credential);
 
                     ICommand create = await CreateCommand.BuildAsync(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
@@ -156,9 +156,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
-                    string credential = "fake";
+                    var credential = new ConnectionStringCredentials("fake");
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(credential);
+                    identity.Setup(id => id.Credentials).Returns(credential);
 
                     ICommand create = await CreateCommand.BuildAsync(Client, module, identity.Object, loggingConfig, configSource.Object, false);
 

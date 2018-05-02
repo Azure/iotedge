@@ -18,20 +18,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class TwinConfigSourceModule : Module
     {
-        readonly string edgeAgentConnectionString;
         readonly string backupConfigFilePath;
         const string DockerType = "docker";
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
 
-        public TwinConfigSourceModule(
-            string edgeAgentConnectionString,
-            string backupConfigFilePath,
+        public TwinConfigSourceModule(string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo
         )
         {
-            this.edgeAgentConnectionString = Preconditions.CheckNonWhiteSpace(edgeAgentConnectionString, nameof(edgeAgentConnectionString));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
@@ -39,11 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IDeviceClientProvider
-            builder.Register(c => new DeviceClientProvider(this.edgeAgentConnectionString, this.configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol()))
-                .As<IDeviceClientProvider>()
-                .SingleInstance();
-
             // IEdgeAgentConnection
             builder.Register(
                 c =>

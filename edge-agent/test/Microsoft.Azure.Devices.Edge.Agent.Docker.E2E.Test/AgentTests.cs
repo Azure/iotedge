@@ -98,10 +98,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
                 var commandFactory = new LoggingCommandFactory(dockerCommandFactory, loggerFactory);
 
-                string credential = "fake";
+                var credential = new ConnectionStringCredentials("fake");
                 var identity = new Mock<IModuleIdentity>();
-                identity.Setup(id => id.ConnectionString).Returns(credential);
-                identity.Setup(id => id.Name).Returns(testConfig.Name);
+                identity.Setup(id => id.Credentials).Returns(credential);
+                identity.Setup(id => id.ModuleId).Returns(testConfig.Name);
                 IImmutableDictionary<string, IModuleIdentity> identities = new Dictionary<string, IModuleIdentity>()
                 {
                     [testConfig.Name] = identity.Object

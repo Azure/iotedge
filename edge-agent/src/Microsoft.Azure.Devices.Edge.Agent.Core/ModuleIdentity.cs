@@ -6,35 +6,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleIdentity : IModuleIdentity
     {
-        public ModuleIdentity(string moduleId, string connectionString)
+        public ModuleIdentity(string iotHubHostname, string gatewayHostname, string deviceId, string moduleId, ICredentials credentials)
         {
-            this.ConnectionString = Preconditions.CheckNotNull(connectionString, nameof(connectionString));
-            this.Name = Preconditions.CheckNotNull(moduleId, nameof(moduleId));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(this.IotHubHostname));
+            this.GatewayHostname = gatewayHostname;
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(this.DeviceId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(this.ModuleId));
+            this.Credentials = Preconditions.CheckNotNull(credentials, nameof(this.Credentials));
         }
 
-        public string Name { get; }
+        public string IotHubHostname { get; }
 
-        public string ConnectionString { get; }
+        public string GatewayHostname { get; }
 
-        public override bool Equals(object obj) => this.Equals(obj as ModuleIdentity);
+        public string DeviceId { get; }
 
-        public bool Equals(IModuleIdentity other)
-        {
-            if (ReferenceEquals(null, other))
-                return false;
-            if (ReferenceEquals(this, other))
-                return true;
+        public string ModuleId { get; }
 
-            return string.Equals(this.Name, other.Name)
-                && string.Equals(this.ConnectionString, other.ConnectionString);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return ((this.Name != null ? this.Name.GetHashCode() : 0) * 397) ^ (this.ConnectionString != null ? this.ConnectionString.GetHashCode() : 0);
-            }
-        }
+        public ICredentials Credentials { get; }
     }
 }

@@ -92,10 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             var envVars = new List<string>();
 
             // Inject the connection string as an environment variable
-            if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
+            if ((identity.Credentials is ConnectionStringCredentials creds) && ((!string.IsNullOrWhiteSpace(creds.ConnectionString))))
             {
                 string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
-                envVars.Add($"{connectionStringKey}={identity.ConnectionString}");
+                envVars.Add($"{connectionStringKey}={creds.ConnectionString}");
             }
 
             if (injectForEdgeHub)

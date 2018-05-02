@@ -20,10 +20,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.16.0-preview-003" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.17.0-preview-004" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.17.0-preview-005" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.ClientWrapper\Microsoft.Azure.Devices.Edge.ClientWrapper.csproj" />
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj" />
   </ItemGroup>

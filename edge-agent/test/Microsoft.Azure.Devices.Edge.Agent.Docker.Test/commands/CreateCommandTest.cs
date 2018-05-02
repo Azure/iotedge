@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
+                    identity.Setup(id => id.Credentials).Returns(new ConnectionStringCredentials(fakeConnectionString));
 
                     ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     string credential = "fake";
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(credential);
+                    identity.Setup(id => id.Credentials).Returns(new ConnectionStringCredentials(credential));
 
                     ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
 
@@ -216,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
+                    identity.Setup(id => id.Credentials).Returns(new ConnectionStringCredentials(fakeConnectionString));
 
                     ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, true);
 
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
+                    identity.Setup(id => id.Credentials).Returns(new ConnectionStringCredentials(fakeConnectionString));
 
                     ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, true);
 
@@ -367,8 +367,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 .Returns(containerOperations.Object);
 
             var moduleIdentity = new Mock<IModuleIdentity>();
-            moduleIdentity.SetupGet(i => i.ConnectionString)
-                .Returns(string.Empty);
+            moduleIdentity.SetupGet(i => i.Credentials)
+                .Returns(new ConnectionStringCredentials(string.Empty));
 
             var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
             runtimeInfo.SetupGet(r => r.Config)
@@ -435,8 +435,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 .Returns(containerOperations.Object);
 
             var moduleIdentity = new Mock<IModuleIdentity>();
-            moduleIdentity.SetupGet(i => i.ConnectionString)
-                .Returns(string.Empty);
+            moduleIdentity.SetupGet(i => i.Credentials)
+                .Returns(new ConnectionStringCredentials(string.Empty));
 
             var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
             runtimeInfo.SetupGet(r => r.Config)
@@ -677,7 +677,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
 
                     var identity = new Mock<IModuleIdentity>();
-                    identity.Setup(id => id.ConnectionString).Returns(fakeConnectionString);
+                    identity.Setup(id => id.Credentials).Returns(new ConnectionStringCredentials(fakeConnectionString));
 
                     ICommand command = await CreateCommand.BuildAsync(DockerHelper.Client, module, identity.Object, loggingConfig, configSource.Object, false);
 

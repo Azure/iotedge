@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ClientWrapper;
 
     public class DeviceClientProvider : IDeviceClientProvider
     {
@@ -15,6 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public IDeviceClient Create(string connectionString, ITransportSettings[] transportSettings)
         {
             DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, transportSettings);
+            return new DeviceClientWrapper(deviceClient);
+        }
+
+        public IDeviceClient Create(ITransportSettings[] transportSettings)
+        {
+            DeviceClient deviceClient = new DeviceClientFactory(transportSettings).Create();
             return new DeviceClientWrapper(deviceClient);
         }
     }

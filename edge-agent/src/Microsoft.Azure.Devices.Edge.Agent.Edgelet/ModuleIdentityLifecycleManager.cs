@@ -14,14 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     public class ModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
     {
         readonly IIdentityManager identityManager;
-        readonly ModuleConnectionStringBuilder connectionStringBuilder;
-        readonly string gatewayHostName;
+        readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
+        readonly string edgeletUri;
 
-        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleConnectionStringBuilder connectionStringBuilder, string gatewayHostName)
+        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, string edgeletUri)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
-            this.connectionStringBuilder = Preconditions.CheckNotNull(connectionStringBuilder, nameof(connectionStringBuilder));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.identityProviderServiceBuilder = Preconditions.CheckNotNull(identityProviderServiceBuilder, nameof(identityProviderServiceBuilder));
+            this.edgeletUri = Preconditions.CheckNonWhiteSpace(edgeletUri, nameof(edgeletUri));
         }
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
@@ -47,12 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Identity[] createdIdentities = await Task.WhenAll(createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i)));
 
             IEnumerable<IModuleIdentity> moduleIdentities = createdIdentities.Concat(identities.Values)
-                .Select(m => new ModuleIdentity(m.ModuleId, this.GetModuleConnectionString(m)));
-            return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.Name));
+                .Select(m => this.GetModuleIdentity(m));
+            return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 
-        string GetModuleConnectionString(Identity identity) => identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
-            ? this.connectionStringBuilder.Create(identity.ModuleId)
-            : this.connectionStringBuilder.Create(identity.ModuleId).WithGatewayHostName(this.gatewayHostName);
+        IModuleIdentity GetModuleIdentity(Identity identity) =>
+            this.identityProviderServiceBuilder.Create(identity.ModuleId, this.edgeletUri);
     }
 }

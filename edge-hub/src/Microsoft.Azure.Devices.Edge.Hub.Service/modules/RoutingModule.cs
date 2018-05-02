@@ -29,20 +29,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly string iotHubName;
         readonly string edgeDeviceId;
+        readonly string edgeModuleId;
+        readonly Option<string> connectionString;
         readonly IDictionary<string, string> routes;
         readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
         readonly int connectionPoolSize;
         readonly bool isStoreAndForwardEnabled;
         readonly bool usePersistentStorage;
         readonly string storagePath;
-        readonly string edgeHubConnectionString;
         readonly bool useTwinConfig;
         readonly VersionInfo versionInfo;
         readonly Option<UpstreamProtocol> upstreamProtocol;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
-            string edgeHubConnectionString,
+            string edgeModuleId,
+            Option<string> connectionString,
             IDictionary<string, string> routes,
             bool isStoreAndForwardEnabled,
             bool usePersistentStorage,
@@ -55,9 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.edgeHubConnectionString = Preconditions.CheckNonWhiteSpace(edgeHubConnectionString, nameof(edgeHubConnectionString));
+            this.connectionString = Preconditions.CheckNotNull(connectionString, nameof(connectionString));
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            this.edgeModuleId = edgeModuleId;
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.usePersistentStorage = usePersistentStorage;
             this.storagePath = storagePath;
@@ -326,7 +329,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     if (this.useTwinConfig)
                     {
                         var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubIdentity = identityFactory.GetWithConnectionString(this.edgeHubConnectionString);
+                        IClientCredentials edgeHubIdentity = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
                         var connectionManager = c.Resolve<IConnectionManager>();
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();

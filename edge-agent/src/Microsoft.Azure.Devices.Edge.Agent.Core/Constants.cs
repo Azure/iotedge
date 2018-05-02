@@ -50,6 +50,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ModuleIdentityEdgeManagedByValue = "IotEdge";
 
+        public const string EdgeletUriVariableName = "IOTEDGE_IOTEDGEDURI";
+
+        public const string EdgeletVersionVariableName = "IOTEDGE_IOTEDGEDVERSION";
+
+        public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
+
+        public const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
+
+        public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
+
+        public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
+
+        public const string EdgeletAuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

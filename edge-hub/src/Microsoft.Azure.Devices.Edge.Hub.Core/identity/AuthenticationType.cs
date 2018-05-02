@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         None,
         SasKey,
         Token,
-        X509Cert
+        X509Cert,
+        IoTEdged
     }
 }

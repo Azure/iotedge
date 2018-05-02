@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.ClientWrapper;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
@@ -34,23 +35,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceClient = deviceClient;
         }
 
-        public static async Task<IDeviceClient> Create(string connectionString,
+        public static Task<IDeviceClient> Create(Option<UpstreamProtocol> upstreamProtocol,
+            ConnectionStatusChangesHandler statusChangedHandler,
+            Func<DeviceClient, Task> initialize)
+        {
+            return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, statusChangedHandler));
+        }
+
+        public static Task<IDeviceClient> Create(string connectionString,
             Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
             Func<DeviceClient, Task> initialize)
+        {
+            return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler));
+        }
+
+        static async Task<IDeviceClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<DeviceClient, Task> initialize, Func<TransportType, Task<Client.DeviceClient>> deviceClientCreator)
         {
             try
             {
                 return await ExecuteWithRetry(
                     async () =>
                     {
-                        Client.DeviceClient dc = await CreateDeviceClientForUpstreamProtocol(upstreamProtocol, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler));
+                        Client.DeviceClient dc = await CreateDeviceClientForUpstreamProtocol(upstreamProtocol, deviceClientCreator);
                         Events.DeviceClientCreated();
                         var deviceClient = new DeviceClient(dc);
                         if (initialize != null)
                         {
                             await initialize(deviceClient);
                         }
+
                         return deviceClient;
                     },
                     Events.RetryingDeviceClientConnection);
@@ -84,17 +98,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return result.Value;
                 });
 
+        static async Task<Client.DeviceClient> CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
+        {
+            Events.AttemptingConnectionWithTransport(transport);
+            Client.DeviceClient deviceClient = new DeviceClientFactory(transport).Create();
+            await OpenAsync(statusChangedHandler, deviceClient);
+            Events.ConnectedWithTransport(transport);
+            return deviceClient;
+        }
+
         static async Task<Client.DeviceClient> CreateAndOpenDeviceClient(TransportType transport, string connectionString, ConnectionStatusChangesHandler statusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transport);
             Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, transport);
+            await OpenAsync(statusChangedHandler, deviceClient);
+            Events.ConnectedWithTransport(transport);
+            return deviceClient;
+        }
+
+        static async Task OpenAsync(ConnectionStatusChangesHandler statusChangedHandler, Client.DeviceClient deviceClient)
+        {
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
             deviceClient.OperationTimeoutInMilliseconds = DeviceClientTimeout;
             deviceClient.SetConnectionStatusChangesHandler(statusChangedHandler);
             await deviceClient.OpenAsync();
-            Events.ConnectedWithTransport(transport);
-            return deviceClient;
         }
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)

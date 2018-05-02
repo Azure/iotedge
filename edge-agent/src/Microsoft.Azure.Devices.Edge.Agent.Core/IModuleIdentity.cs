@@ -2,12 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System;
-
-    public interface IModuleIdentity : IEquatable<IModuleIdentity>
+    public interface IModuleIdentity
     {
-        string Name { get;  }
+        string IotHubHostname { get; }
 
-        string ConnectionString { get; }
+        string GatewayHostname { get; }
+
+        string DeviceId { get; }
+
+        string ModuleId { get; }
+
+        ICredentials Credentials { get; }
     }
 }

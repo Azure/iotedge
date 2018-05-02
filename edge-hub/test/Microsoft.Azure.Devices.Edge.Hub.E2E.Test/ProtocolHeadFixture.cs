@@ -132,7 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 builder.RegisterModule(
                     new RoutingModule(
                         iotHubConnectionStringBuilder.HostName,
-                        iotHubConnectionStringBuilder.DeviceId, edgeHubConnectionString,
+                        iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
+                        Option.Some(edgeHubConnectionString),
                         this.routes, false, false, storeAndForwardConfiguration,
                         string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>()
                     )

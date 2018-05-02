@@ -189,6 +189,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     IAuthenticationMethod authenticationMethod = this.GetAuthenticationMethod(tokenAuthentication.Identity, tokenAuthentication.Token);
                     return this.deviceClientProvider.Create(newCredentials.Identity.IotHubHostName, authenticationMethod, settings);
 
+                case AuthenticationType.IoTEdged:
+                    if (!(newCredentials is IotEdgedCredentials))
+                    {
+                        throw new ArgumentException($"IoTEdged credential should be of type {nameof(IotEdgedCredentials)}");
+                    }
+
+                    return this.deviceClientProvider.Create(settings);
+
                 default:
                     throw new InvalidOperationException($"Unsupported authentication type {newCredentials.AuthenticationType}");
             }

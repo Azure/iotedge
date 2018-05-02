@@ -73,11 +73,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         {
             var envVars = new List<EnvVar>();
 
-            // Inject the connection string as an environment variable
-            if (!string.IsNullOrWhiteSpace(identity.ConnectionString))
+            // Inject the connection details as an environment variable
+            if (identity.Credentials is IdentityProviderServiceCredentials creds)
             {
-                string connectionStringKey = isEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
-                envVars.Add(new EnvVar { Key = connectionStringKey, Value = identity.ConnectionString });
+                if (!string.IsNullOrWhiteSpace(creds.ProviderUri))
+                {
+                    envVars.Add(new EnvVar { Key = Constants.EdgeletUriVariableName, Value = creds.ProviderUri });
+                }
+
+                creds.Version.ForEach(v => envVars.Add(new EnvVar { Key = Constants.EdgeletVersionVariableName, Value = v }));
+
+                if (!string.IsNullOrWhiteSpace(creds.AuthScheme))
+                {
+                    envVars.Add(new EnvVar { Key = Constants.EdgeletAuthSchemeVariableName, Value = creds.AuthScheme });
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(identity.IotHubHostname))
+            {
+                envVars.Add(new EnvVar { Key = Constants.IotHubHostnameVariableName, Value = identity.IotHubHostname });
+            }
+
+            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname) && !isEdgeHub)
+            {
+                envVars.Add(new EnvVar { Key = Constants.GatewayHostnameVariableName, Value = identity.GatewayHostname });
+            }
+
+            if (!string.IsNullOrWhiteSpace(identity.DeviceId))
+            {
+                envVars.Add(new EnvVar { Key = Constants.DeviceIdVariableName, Value = identity.DeviceId });
+            }
+
+            if (!string.IsNullOrWhiteSpace(identity.ModuleId))
+            {
+                envVars.Add(new EnvVar { Key = Constants.ModuleIdVariableName, Value = identity.ModuleId });
             }
 
             envVars.Add(new EnvVar { Key = Logger.RuntimeLogLevelEnvKey, Value = Logger.GetLogLevel().ToString() });

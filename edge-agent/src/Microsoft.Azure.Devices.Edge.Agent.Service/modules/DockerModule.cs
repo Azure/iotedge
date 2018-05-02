@@ -23,8 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string gatewayHostName;
         readonly Uri dockerHostname;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
+        readonly Option<UpstreamProtocol> upstreamProtocol;
 
-        public DockerModule(string edgeDeviceConnectionString, string gatewayHostName, Uri dockerHostname, IEnumerable<AuthConfig> dockerAuthConfig)
+        public DockerModule(string edgeDeviceConnectionString, string gatewayHostName, Uri dockerHostname, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -33,17 +34,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.iotHubHostName = connectionStringParser.HostName;
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
+            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
+            // IDeviceClientProvider
+            string edgeAgentConnectionString = $"{this.edgeDeviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
+            builder.Register(c => new DeviceClientProvider(edgeAgentConnectionString, this.upstreamProtocol))
+                .As<IDeviceClientProvider>()
+                .SingleInstance();
+
             // IServiceClient
             builder.Register(c => new RetryingServiceClient(new ServiceClient(this.edgeDeviceConnectionString, this.deviceId)))
                 .As<IServiceClient>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), new ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId), this.gatewayHostName))
+            var identityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId);
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), identityBuilder, this.gatewayHostName))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
