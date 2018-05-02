@@ -29,7 +29,7 @@ set(source_h_files
 )
 
 
-IF(WIN32)
+if(WIN32)
     #windows needs this define
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
@@ -42,7 +42,7 @@ IF(WIN32)
     )
 
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
-ELSE()
+else()
     set(source_c_files ${source_c_files}
         ./src/edge_cert_key.c
     )
@@ -52,25 +52,38 @@ ELSE()
     # todo add -Wall -Werror ...
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC")
-ENDIF(WIN32)
+endif(WIN32)
 
 # We want this to always be a shared library and let the dynamic linker on the
 # target system find the HSM library.
-IF(BUILD_SHARED)
+if(BUILD_SHARED)
     add_library(iothsm SHARED ${source_c_files} ${source_h_files})
-ELSE()
+else()
     add_library(iothsm STATIC ${source_c_files} ${source_h_files})
-ENDIF(BUILD_SHARED)
+endif(BUILD_SHARED)
+
+if (run_unittests)
+    enable_testing()
+    set(save_ut ${run_unittests})
+    set(run_unittests OFF CACHE BOOL "unittests" FORCE)
+    add_subdirectory(./azure-c-shared-utility/testtools/ctest)
+    add_subdirectory(./azure-c-shared-utility/testtools/testrunner)
+    add_subdirectory(./azure-c-shared-utility/testtools/umock-c)
+endif(run_unittests)
 
 add_subdirectory(./azure-c-shared-utility)
+
+if (save_ut)
+    set(run_unittests ${save_ut} CACHE BOOL "unittests" FORCE)
+endif(save_ut)
 
 if (${run_unittests})
     add_subdirectory(tests)
 endif()
 
-IF(WIN32)
+if(WIN32)
      target_link_libraries(iothsm aziotsharedutil)
-ELSE()
+else()
      target_link_libraries(iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
-ENDIF(WIN32)
+endif(WIN32)
 install(TARGETS iothsm DESTINATION .)

@@ -51,6 +51,7 @@ fn main() {
     let c_shared_repo = "azure-iot-hsm-c/azure-c-shared-utility";
     let version_sha = "ed84cdb8f2cd345c1bebde9e57b896e96cef374c"; // 2018-04-02
 
+    println!("#Start Getting C-Shared Utilities");
     let repo = Repository::open(c_shared_repo)
         .or_else(|_| Repository::clone_recurse(c_shared_url, c_shared_repo))
         .expect("C-Shared repo could not be opened.");
@@ -67,17 +68,23 @@ fn main() {
         .into_iter()
         .for_each(|mut submodule| submodule.update(true, None).unwrap());
 
+    println!("#Done Getting C-Shared Utilities");
+
     // make the C libary at azure-iot-hsm-c (currently a subdirectory in this
     // crate)
     // Always make the Release version because Rust links to the Release CRT.
     // (This is especially important for Windows)
+    println!("#Start building HSM dev-mode library");
     let iothsm = Config::new("azure-iot-hsm-c")
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
+        .define("run_unittests", "ON")
         .set_platform_defines()
         .set_build_shared()
         .profile("Release")
         .build();
+
+    println!("#Done building HSM dev-mode library");
 
     // where to find the library (The "link-lib" should match the library name
     // defined in the CMakefile.txt)
