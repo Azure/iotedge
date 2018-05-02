@@ -16,13 +16,9 @@ use error::Result;
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
-    Created,
-    Paused,
-    Restarting,
-    Removing,
-    Dead,
-    Exited,
     Running,
+    Stopped,
+    Failed,
 }
 
 impl FromStr for ModuleStatus {
@@ -221,13 +217,9 @@ mod tests {
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
         vec![
             ("unknown", ModuleStatus::Unknown),
-            ("created", ModuleStatus::Created),
-            ("paused", ModuleStatus::Paused),
-            ("restarting", ModuleStatus::Restarting),
-            ("removing", ModuleStatus::Removing),
-            ("dead", ModuleStatus::Dead),
-            ("exited", ModuleStatus::Exited),
             ("running", ModuleStatus::Running),
+            ("stopped", ModuleStatus::Stopped),
+            ("failed", ModuleStatus::Failed),
         ]
     }
 

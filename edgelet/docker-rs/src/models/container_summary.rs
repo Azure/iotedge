@@ -27,7 +27,7 @@ pub struct ContainerSummary {
     created: i64,
     #[serde(rename = "Ports")]
     ports: Vec<::models::Port>,
-    #[serde(rename = "SizeRw")]
+    #[serde(rename = "SizeRw", default = "i64::default")]
     size_rw: i64,
     #[serde(rename = "SizeRootFs")]
     size_root_fs: i64,

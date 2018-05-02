@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Option<DateTime> exitTime = (exitStatus == null || !exitStatus.ExitTime.HasValue) ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime.Value);
             Option<DateTime> startTime = !moduleDetails.Status.StartTime.HasValue ? Option.None<DateTime>() : Option.Some(moduleDetails.Status.StartTime.Value);
 
-            if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, out ModuleStatus status))
+            if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, true,  out ModuleStatus status))
             {
                 status = ModuleStatus.Unknown;
             }
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 throw new InvalidOperationException($"Module config is of type {moduleDetails.Config.Settings.GetType()}. Expected type JObject");
             }
-            T config = jobject.ToObject<T>();
+            var config = jobject.ToObject<T>();
 
             var moduleRuntimeInfo = new ModuleRuntimeInfo<T>(moduleDetails.Name, moduleDetails.Type, status,
                 moduleDetails.Status.RuntimeStatus.Description, exitCode, startTime, exitTime, config);

@@ -152,7 +152,7 @@ mod tests {
                     "microsoft/test-image",
                     details.config().settings().get("image").unwrap()
                 );
-                assert_eq!("created", details.status().runtime_status().status());
+                assert_eq!("stopped", details.status().runtime_status().status());
 
                 assert_eq!(160, b.len());
                 Ok(())

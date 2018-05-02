@@ -151,7 +151,7 @@ fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
         config.set_env(e);
     }
 
-    let runtime_status = RuntimeStatus::new(ModuleStatus::Created.to_string());
+    let runtime_status = RuntimeStatus::new(ModuleStatus::Stopped.to_string());
     let status = Status::new(runtime_status);
     ModuleDetails::new(id, name, type_, config, status)
 }

@@ -33,6 +33,16 @@ impl<C: Connect> DockerModule<C> {
     }
 }
 
+fn status_from_exit_code(exit_code: Option<i32>) -> Option<ModuleStatus> {
+    exit_code.map(|code| {
+        if code == 0 {
+            ModuleStatus::Stopped
+        } else {
+            ModuleStatus::Failed
+        }
+    })
+}
+
 impl<C: Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
@@ -60,7 +70,16 @@ impl<C: Connect> Module for DockerModule<C> {
                         .map(|state| {
                             let status = state
                                 .status()
-                                .and_then(|status| ModuleStatus::from_str(status).ok())
+                                .and_then(|status| match status.as_ref() {
+                                    "created" => Some(ModuleStatus::Stopped),
+                                    "paused" => Some(ModuleStatus::Stopped),
+                                    "restarting" => Some(ModuleStatus::Stopped),
+                                    "removing" => status_from_exit_code(state.exit_code().cloned()),
+                                    "dead" => status_from_exit_code(state.exit_code().cloned()),
+                                    "exited" => status_from_exit_code(state.exit_code().cloned()),
+                                    "running" => Some(ModuleStatus::Running),
+                                    _ => Some(ModuleStatus::Unknown),
+                                })
                                 .unwrap_or_else(|| ModuleStatus::Unknown);
                             ModuleRuntimeState::default()
                                 .with_status(status)
@@ -156,37 +175,42 @@ mod tests {
         ).unwrap();
     }
 
-    fn verify_module_status(core: &mut Core, status: &ModuleStatus) {
-        let docker_module = DockerModule::new(
-            create_api_client(
-                &core,
-                InlineResponse200::new()
-                    .with_state(InlineResponse200State::new().with_status(status.to_string())),
-            ),
-            "mod1",
-            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
-        ).unwrap();
-
-        let state = core.run(docker_module.runtime_state()).unwrap();
-        assert_eq!(status, state.status());
+    fn get_inputs() -> Vec<(&'static str, i32, ModuleStatus)> {
+        vec![
+            ("created", 0, ModuleStatus::Stopped),
+            ("paused", 0, ModuleStatus::Stopped),
+            ("restarting", 0, ModuleStatus::Stopped),
+            ("removing", 0, ModuleStatus::Stopped),
+            ("dead", 0, ModuleStatus::Stopped),
+            ("exited", 0, ModuleStatus::Stopped),
+            ("removing", -1, ModuleStatus::Failed),
+            ("dead", -2, ModuleStatus::Failed),
+            ("exited", -42, ModuleStatus::Failed),
+            ("running", 0, ModuleStatus::Running),
+        ]
     }
 
     #[test]
     fn module_status() {
-        let inputs = [
-            ModuleStatus::Unknown,
-            ModuleStatus::Created,
-            ModuleStatus::Paused,
-            ModuleStatus::Restarting,
-            ModuleStatus::Removing,
-            ModuleStatus::Dead,
-            ModuleStatus::Exited,
-            ModuleStatus::Running,
-        ];
+        let inputs = get_inputs();
         let mut core = Core::new().unwrap();
 
-        for status in inputs.iter() {
-            verify_module_status(&mut core, &status);
+        for &(docker_status, exit_code, ref module_status) in inputs.iter() {
+            let docker_module = DockerModule::new(
+                create_api_client(
+                    &core,
+                    InlineResponse200::new().with_state(
+                        InlineResponse200State::new()
+                            .with_status(docker_status.to_string())
+                            .with_exit_code(exit_code),
+                    ),
+                ),
+                "mod1",
+                DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
+            ).unwrap();
+
+            let state = core.run(docker_module.runtime_state()).unwrap();
+            assert_eq!(module_status, state.status());
         }
     }
 
@@ -216,6 +240,39 @@ mod tests {
         assert_eq!(ModuleStatus::Running, *runtime_state.status());
         assert_eq!(10, *runtime_state.exit_code().unwrap());
         assert_eq!(&"running", &runtime_state.status_description().unwrap());
+        assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());
+        assert_eq!(
+            finished_at,
+            runtime_state.finished_at().unwrap().to_rfc3339()
+        );
+    }
+
+    #[test]
+    fn module_runtime_state_failed_from_dead() {
+        let started_at = Utc::now().to_rfc3339();
+        let finished_at = (Utc::now() + Duration::hours(1)).to_rfc3339();
+        let mut core = Core::new().unwrap();
+        let docker_module = DockerModule::new(
+            create_api_client(
+                &core,
+                InlineResponse200::new()
+                    .with_state(
+                        InlineResponse200State::new()
+                            .with_exit_code(10)
+                            .with_status("dead".to_string())
+                            .with_started_at(started_at.clone())
+                            .with_finished_at(finished_at.clone()),
+                    )
+                    .with_id("mod1".to_string()),
+            ),
+            "mod1",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
+        ).unwrap();
+
+        let runtime_state = core.run(docker_module.runtime_state()).unwrap();
+        assert_eq!(ModuleStatus::Failed, *runtime_state.status());
+        assert_eq!(10, *runtime_state.exit_code().unwrap());
+        assert_eq!(&"dead", &runtime_state.status_description().unwrap());
         assert_eq!(started_at, runtime_state.started_at().unwrap().to_rfc3339());
         assert_eq!(
             finished_at,
