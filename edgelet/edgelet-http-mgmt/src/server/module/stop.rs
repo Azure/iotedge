@@ -55,9 +55,10 @@ mod tests {
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::module::*;
     use hyper::{Method, StatusCode, Uri};
     use hyper::server::Request;
-    use server::module::tests::*;
+    use server::module::tests::Error;
 
     use super::*;
 
@@ -72,7 +73,8 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module = TestModule::new("test-module".to_string(), config, Ok(state));
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let handler = StopModule::new(runtime);
         let parameters =
@@ -100,7 +102,8 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module = TestModule::new("test-module".to_string(), config, Ok(state));
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let handler = StopModule::new(runtime);
         let request = Request::new(

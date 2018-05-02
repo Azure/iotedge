@@ -94,16 +94,16 @@ mod tests {
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::module::*;
     use hyper::{Method, Uri};
     use hyper::server::Request;
     use management::models::{Config, ErrorResponse};
     use server::module::tests::Error;
-    use server::module::tests::*;
 
     use super::*;
 
     lazy_static! {
-        static ref RUNTIME: TestRuntime = {
+        static ref RUNTIME: TestRuntime<Error> = {
             let state = ModuleRuntimeState::default()
                 .with_status(ModuleStatus::Running)
                 .with_exit_code(Some(0))
