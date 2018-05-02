@@ -4,6 +4,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::os::raw::c_int;
 use std::str::Utf8Error;
+use std::string::FromUtf8Error;
 
 use failure::{Backtrace, Context, Fail};
 
@@ -88,6 +89,14 @@ impl From<isize> for Error {
 
 impl From<Utf8Error> for Error {
     fn from(error: Utf8Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utf8),
+        }
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(error: FromUtf8Error) -> Error {
         Error {
             inner: error.context(ErrorKind::Utf8),
         }

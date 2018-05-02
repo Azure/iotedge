@@ -11,18 +11,21 @@ include_directories(./azure-c-shared-utility/inc)
 include_directories(. ./inc)
 
 set(source_c_files
-    ./src/cert_props.c
+    ./src/certificate_info.c
     ./src/edge_hsm_client_crypto.c
     ./src/edge_hsm_client_store.c
     ./src/edge_hsm_client_tpm.c
     ./src/edge_hsm_client_x509.c
     ./src/edge_hsm_key_interface.c
     ./src/edge_sas_key.c
+    ./src/hsm_certificate_props.c
     ./src/hsm_log.c
 )
 
 set(source_h_files
+    ./inc/certificate_info.h
     ./inc/hsm_client_data.h
+    ./inc/hsm_certificate_props.h
 )
 
 
@@ -62,7 +65,7 @@ ENDIF(BUILD_SHARED)
 add_subdirectory(./azure-c-shared-utility)
 
 if (${run_unittests})
-    add_subdirectory(test)
+    add_subdirectory(tests)
 endif()
 
 IF(WIN32)

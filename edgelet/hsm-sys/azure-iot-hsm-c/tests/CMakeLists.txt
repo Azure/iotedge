@@ -3,8 +3,9 @@
 
 usePermissiveRulesForSamplesAndTests()
 
-add_subdirectory(cert_props_ut)
+add_subdirectory(hsm_certificate_props_ut)
+#add_subdirectory(certificate_info_ut)
 add_subdirectory(edge_hsm_tpm_ut)
 add_subdirectory(edge_hsm_key_interface_sas_key_ut)
-add_subdirectory(edge_hsm_sas_auth_ft)
+add_subdirectory(edge_hsm_sas_auth_int)
 #add_subdirectory(edge_hsm_enc_dec_ft)

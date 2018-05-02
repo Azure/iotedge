@@ -6,14 +6,11 @@ cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
-set(theseTestsName cert_props_ut)
+set(theseTestsName edge_hsm_sas_auth_int)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
-    ../../src/cert_props.c
-    ${SHARED_UTIL_SRC_FOLDER}/xlogging.c
-    ${SHARED_UTIL_SRC_FOLDER}/consolelogger.c
     ${theseTestsName}.c
 )
 
@@ -22,3 +19,5 @@ set(${theseTestsName}_h_files
 )
 
 build_c_test_artifacts(${theseTestsName} ON "tests/azure_c_shared_utility_tests")
+
+target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil)

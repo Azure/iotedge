@@ -212,7 +212,7 @@ static STRING_HANDLE tpm_construct_sas_token
 // Test helpers
 //#############################################################################
 
-BEGIN_TEST_SUITE(edge_hsm_sas_auth_functional_tests)
+BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
         TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
@@ -413,4 +413,4 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_functional_tests)
         tpm_deprovision(hsm_handle);
     }
 
-END_TEST_SUITE(edge_hsm_sas_auth_functional_tests)
+END_TEST_SUITE(edge_hsm_sas_auth_int_tests)

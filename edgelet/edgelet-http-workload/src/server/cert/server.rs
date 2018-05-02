@@ -52,12 +52,11 @@ where
                                     .with_common_name(
                                         ensure_not_empty!(cert_req.common_name()).as_str(),
                                     )
-                                    .with_validity_in_mins(ensure_range!(
+                                    .with_validity_in_secs(ensure_range!(
                                         expiration,
                                         0,
                                         i64::max_value()
-                                    )
-                                        as usize)
+                                    ))
                                     .with_certificate_type(CertificateType::Server);
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
@@ -111,7 +110,7 @@ fn compute_validity(expiration: &str) -> Result<i64> {
             expiration
                 .with_timezone(&Utc)
                 .signed_duration_since(Utc::now())
-                .num_minutes()
+                .num_seconds()
         })
         .map_err(Error::from)
 }

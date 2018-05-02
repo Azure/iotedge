@@ -1,16 +1,27 @@
 LIBRARY iothsm
 EXPORTS
-    create_certificate_props
-    destroy_certificate_props
+    cert_properties_create
+    cert_properties_destroy
+    certificate_info_create
+    certificate_info_destroy
+    certificate_info_get_certificate
+    certificate_info_get_chain
+    certificate_info_get_common_name
+    certificate_info_get_issuer
+    certificate_info_get_private_key
+    certificate_info_get_valid_from
+    certificate_info_get_valid_to
+    certificate_info_private_key_type
     get_alias
-    get_certificate
-    get_certificate_chain
     get_certificate_type
     get_common_name
+    get_country_name
     get_issuer_alias
-    get_private_key
-    get_public_key
-    get_validity_in_mins
+    get_locality
+    get_organization_name
+    get_organization_unit
+    get_state_name
+    get_validity_seconds
     hsm_client_crypto_deinit
     hsm_client_crypto_init
     hsm_client_crypto_interface
@@ -23,5 +34,10 @@ EXPORTS
     set_alias
     set_certificate_type
     set_common_name
+    set_country_name
     set_issuer_alias
-    set_validity_in_mins
+    set_locality
+    set_organization_name
+    set_organization_unit
+    set_state_name
+    set_validity_seconds

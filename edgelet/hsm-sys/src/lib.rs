@@ -13,6 +13,12 @@
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HSM_CERTIFICATE_TAG {
+    _unused: [u8; 0],
+}
+pub type CERT_INFO_HANDLE = *mut HSM_CERTIFICATE_TAG;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -131,25 +137,11 @@ pub type HSM_CLIENT_GET_COMMON_NAME =
 /// Return
 /// 0  -- On success
 /// Non 0 -- otherwise
-pub type HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS = Option<
-    unsafe extern "C" fn(
-        handle: HSM_CLIENT_HANDLE,
-        min_random_num: *mut isize,
-        max_random_num: *mut isize,
-    ) -> c_int,
+pub type HSM_CLIENT_GET_RANDOM_BYTES = Option<
+    unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, buffer: *mut c_uchar, buffer_size: usize)
+        -> c_int,
 >;
-/// API to return a random number generated from HSM hardware. The number
-/// is expected to be between the random number limits returned by API
-/// HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS.
-///
-/// handle[in] -- A valid HSM client handle
-/// random_num[out] -- Random number will be returned via this parameter
-///
-/// Return
-/// 0  -- On success
-/// Non 0 -- otherwise
-pub type HSM_CLIENT_GET_RANDOM_NUMBER =
-    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, random_num: *mut usize) -> c_int>;
+
 /// API to provision a master symmetric encryption key in the HSM.
 /// This key will be used to derive all the module and edge runtime
 /// specific encryption keys. This is expected to be called once
@@ -228,11 +220,9 @@ pub type HSM_CLIENT_DECRYPT_DATA = Option<
         plaintext: *mut SIZED_BUFFER,
     ) -> c_int,
 >;
-pub const CRYPTO_ENCODING_TAG_ASCII: CRYPTO_ENCODING_TAG = 0;
-pub const CRYPTO_ENCODING_TAG_PEM: CRYPTO_ENCODING_TAG = 1;
-pub const CRYPTO_ENCODING_TAG_DER: CRYPTO_ENCODING_TAG = 2;
+
 pub type CRYPTO_ENCODING_TAG = u32;
-pub use self::CRYPTO_ENCODING_TAG as CRYPTO_ENCODING;
+pub const CRYPTO_ENCODING_TAG_PEM: CRYPTO_ENCODING_TAG = 0;
 
 pub const PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_UNKNOWN: PRIVATE_KEY_TYPE_TAG = 0;
 pub const PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_PAYLOAD: PRIVATE_KEY_TYPE_TAG = 1;
@@ -253,56 +243,74 @@ pub struct HSM_CERTIFICATE_PROPS_TAG {
     _unused: [u8; 0],
 }
 pub type CERT_PROPS_HANDLE = *mut HSM_CERTIFICATE_PROPS_TAG;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct HSM_CERTIFICATE_TAG {
-    _unused: [u8; 0],
-}
-pub type CERT_HANDLE = *mut HSM_CERTIFICATE_TAG;
+
 extern "C" {
-    pub fn create_certificate_props() -> CERT_PROPS_HANDLE;
+    pub fn cert_properties_create() -> CERT_PROPS_HANDLE;
 }
 extern "C" {
-    pub fn destroy_certificate_props(handle: CERT_PROPS_HANDLE);
+    pub fn cert_properties_destroy(handle: CERT_PROPS_HANDLE);
 }
 extern "C" {
-    pub fn set_validity_in_mins(handle: CERT_PROPS_HANDLE, validity_mins: usize) -> c_int;
+    pub fn set_validity_seconds(handle: CERT_PROPS_HANDLE, validity_seconds: i64) -> c_int;
 }
 extern "C" {
-    pub fn get_validity_in_mins(handle: CERT_PROPS_HANDLE, p_validity_mins: *mut usize) -> c_int;
+    pub fn get_validity_seconds(handle: CERT_PROPS_HANDLE) -> i64;
 }
 extern "C" {
     pub fn set_common_name(handle: CERT_PROPS_HANDLE, common_name: *const c_char) -> c_int;
 }
 extern "C" {
-    pub fn get_common_name(
-        handle: CERT_PROPS_HANDLE,
-        common_name: *mut c_char,
-        common_name_size: usize,
-    ) -> c_int;
+    pub fn get_common_name(handle: CERT_PROPS_HANDLE) -> *const c_char;
+}
+extern "C" {
+    pub fn set_country_name(handle: CERT_PROPS_HANDLE, country_name: *const c_char) -> c_int;
+}
+extern "C" {
+    pub fn get_country_name(handle: CERT_PROPS_HANDLE) -> *const c_char;
+}
+extern "C" {
+    pub fn set_state_name(handle: CERT_PROPS_HANDLE, country_name: *const c_char) -> c_int;
+}
+extern "C" {
+    pub fn get_state_name(handle: CERT_PROPS_HANDLE) -> *const c_char;
+}
+extern "C" {
+    pub fn set_locality(handle: CERT_PROPS_HANDLE, country_name: *const c_char) -> c_int;
+}
+extern "C" {
+    pub fn get_locality(handle: CERT_PROPS_HANDLE) -> *const c_char;
+}
+extern "C" {
+    pub fn set_organization_name(handle: CERT_PROPS_HANDLE, country_name: *const c_char) -> c_int;
+}
+extern "C" {
+    pub fn get_organization_name(handle: CERT_PROPS_HANDLE) -> *const c_char;
+}
+extern "C" {
+    pub fn set_organization_unit(handle: CERT_PROPS_HANDLE, country_name: *const c_char) -> c_int;
+}
+extern "C" {
+    pub fn get_organization_unit(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
 extern "C" {
     pub fn set_certificate_type(handle: CERT_PROPS_HANDLE, type_: CERTIFICATE_TYPE) -> c_int;
 }
 extern "C" {
-    pub fn get_certificate_type(handle: CERT_PROPS_HANDLE, p_type: *mut CERTIFICATE_TYPE) -> c_int;
+    pub fn get_certificate_type(handle: CERT_PROPS_HANDLE) -> CERTIFICATE_TYPE;
 }
 extern "C" {
     pub fn set_issuer_alias(handle: CERT_PROPS_HANDLE, issuer_alias: *const c_char) -> c_int;
 }
 extern "C" {
-    pub fn get_issuer_alias(
-        handle: CERT_PROPS_HANDLE,
-        issuer_alias: *mut c_char,
-        alias_size: usize,
-    ) -> c_int;
+    pub fn get_issuer_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
 extern "C" {
     pub fn set_alias(handle: CERT_PROPS_HANDLE, alias: *const c_char) -> c_int;
 }
 extern "C" {
-    pub fn get_alias(handle: CERT_PROPS_HANDLE, alias: *mut c_char, alias_size: usize) -> c_int;
+    pub fn get_alias(handle: CERT_PROPS_HANDLE) -> *const c_char;
 }
+
 /// API generates a X.509 certificate and private key pair using the supplied
 /// certificate properties. Any CA certificates are expected to by issued by
 /// the Device CA. Other certificates may be issued by any intermediate CA
@@ -337,34 +345,46 @@ extern "C" {
 /// Unique alias similar to a file name to associate a reference to HSM resources
 /// set_alias(props_handle, unique_id);
 ///
-/// CERT_HANDLE h = hsm_create_certificate(hsm_handle, props_handle);
+/// CERT_INFO_HANDLE h = hsm_create_certificate(hsm_handle, props_handle);
 /// destroy_certificate_props(props_handle);
 ///
 /// Return
-/// CERT_HANDLE -- Valid non NULL handle on success
+/// CERT_INFO_HANDLE -- Valid non NULL handle on success
 /// NULL -- otherwise
 pub type HSM_CLIENT_CREATE_CERTIFICATE = Option<
     unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, certificate_props: CERT_PROPS_HANDLE)
-        -> CERT_HANDLE,
+        -> CERT_INFO_HANDLE,
 >;
-/// This API deletes any crypto assets associated with the handle
-/// returned by hsm_create_certificate API.
-///
-/// handle[in]   -- Valid handle to certificate resources
-/// cert_handle[in]   -- Valid handle to certificate resources
-pub type HSM_CLIENT_DESTROY_CERTIFICATE =
-    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, cert_handle: CERT_HANDLE)>;
+
 /// This API deletes any crypto assets associated with the id.
 ///
 /// handle[in]   -- Valid handle to certificate resources
-pub type HSM_CLIENT_DESTROY_CERTIFICATE_BY_ID = Option<unsafe extern "C" fn(id: *const c_char)>;
+pub type HSM_CLIENT_DESTROY_CERTIFICATE =
+    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE, alias: *const c_char)>;
+
+pub type HSM_CLIENT_GET_TRUST_BUNDLE =
+    Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE) -> CERT_INFO_HANDLE>;
+
 extern "C" {
-    #[link_name = "\u{1}HSM_CLIENT_CLEAR_CERTIFICATE_HANDLE"]
-    pub static mut HSM_CLIENT_CLEAR_CERTIFICATE_HANDLE:
-        Option<unsafe extern "C" fn(handle: CERT_HANDLE)>;
+    /// Creates the certificate information object and initializes the values
+    ///
+    ///
+    /// @param certificate    The certificate in PEM format
+    /// @param private_key    A value or reference to the certificate private key
+    /// @param pk_len         The length of the private key
+    /// @param pk_type        Indicates the type of the private key either the value or reference
+    ///
+    ///  @return           On success a valid CERT_INFO_HANDLE or NULL on failure
+    pub fn certificate_info_create(
+        certificate: *const c_char,
+        private_key: *const c_void,
+        priv_key_len: usize,
+        pk_type: PRIVATE_KEY_TYPE,
+    ) -> CERT_INFO_HANDLE;
 }
+
 extern "C" {
-    /// Obtain certificate associated with the supplied CERT_HANDLE.
+    /// Obtain certificate associated with the supplied CERT_INFO_HANDLE.
     ///
     /// handle[in]   -- Valid handle to certificate
     /// cert_buffer[out]  -- Return parameter containing the cert buffer and size
@@ -373,14 +393,11 @@ extern "C" {
     /// Return
     /// 0  -- On success
     /// Non 0 -- otherwise
-    pub fn get_certificate(
-        handle: CERT_HANDLE,
-        cert_buffer: *mut SIZED_BUFFER,
-        enc: *mut CRYPTO_ENCODING,
-    ) -> c_int;
+    pub fn certificate_info_get_certificate(handle: CERT_INFO_HANDLE) -> *const c_char;
 }
+
 extern "C" {
-    /// Obtain certificate chain associated with the supplied CERT_HANDLE.
+    /// Obtain certificate chain associated with the supplied CERT_INFO_HANDLE.
     /// Ex. [Owner CA -> (intermediate certs)* -> Device CA]
     ///
     /// handle[in]   -- Valid handle to certificate
@@ -390,30 +407,11 @@ extern "C" {
     /// Return
     /// 0  -- On success
     /// Non 0 -- otherwise
-    pub fn get_certificate_chain(
-        handle: CERT_HANDLE,
-        cert_buffer: *mut SIZED_BUFFER,
-        enc: *mut CRYPTO_ENCODING,
-    ) -> c_int;
+    pub fn certificate_info_get_chain(handle: CERT_INFO_HANDLE) -> *const c_char;
 }
+
 extern "C" {
-    /// Obtain public key associated with the supplied CERT_HANDLE.
-    ///
-    /// handle[in]   -- Valid handle to certificate
-    /// key_buffer[out]  -- Return parameter containing the key buffer and size
-    /// enc[out]     -- Return parameter containing the encoding of the buffer
-    ///
-    /// Return
-    /// 0  -- On success
-    /// Non 0 -- otherwise
-    pub fn get_public_key(
-        handle: CERT_HANDLE,
-        key_buffer: *mut SIZED_BUFFER,
-        enc: *mut CRYPTO_ENCODING,
-    ) -> c_int;
-}
-extern "C" {
-    /// Obtain private key or reference associated with the supplied CERT_HANDLE.
+    /// Obtain private key or reference associated with the supplied CERT_INFO_HANDLE.
     ///
     /// handle[in] -- Valid handle to certificate
     /// key_buffer[out]  -- Return parameter containing the key buffer and size
@@ -427,12 +425,18 @@ extern "C" {
     /// Return
     /// 0  -- On success
     /// Non 0 -- otherwise
-    pub fn get_private_key(
-        handle: CERT_HANDLE,
-        key_buffer: *mut SIZED_BUFFER,
-        type_: *mut PRIVATE_KEY_TYPE,
-        enc: *mut CRYPTO_ENCODING,
-    ) -> c_int;
+    pub fn certificate_info_get_private_key(
+        handle: CERT_INFO_HANDLE,
+        key_size: *mut usize,
+    ) -> *const c_void;
+}
+
+extern "C" {
+    pub fn certificate_info_private_key_type(handle: CERT_INFO_HANDLE) -> PRIVATE_KEY_TYPE;
+}
+
+extern "C" {
+    pub fn certificate_info_destroy(handle: CERT_INFO_HANDLE);
 }
 
 #[repr(C)]
@@ -706,14 +710,14 @@ fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
 pub struct HSM_CLIENT_CRYPTO_INTERFACE_TAG {
     pub hsm_client_crypto_create: HSM_CLIENT_CREATE,
     pub hsm_client_crypto_destroy: HSM_CLIENT_DESTROY,
-    pub hsm_client_get_random_number_limits: HSM_CLIENT_GET_RANDOM_NUMBER_LIMITS,
-    pub hsm_client_get_random_number: HSM_CLIENT_GET_RANDOM_NUMBER,
+    pub hsm_client_get_random_bytes: HSM_CLIENT_GET_RANDOM_BYTES,
     pub hsm_client_create_master_encryption_key: HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY,
     pub hsm_client_destroy_master_encryption_key: HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY,
     pub hsm_client_create_certificate: HSM_CLIENT_CREATE_CERTIFICATE,
     pub hsm_client_destroy_certificate: HSM_CLIENT_DESTROY_CERTIFICATE,
     pub hsm_client_encrypt_data: HSM_CLIENT_ENCRYPT_DATA,
     pub hsm_client_decrypt_data: HSM_CLIENT_DECRYPT_DATA,
+    pub hsm_client_get_trust_bundle: HSM_CLIENT_GET_TRUST_BUNDLE,
     pub hsm_client_free_buffer: HSM_CLIENT_FREE_BUFFER,
 }
 pub type HSM_CLIENT_CRYPTO_INTERFACE = HSM_CLIENT_CRYPTO_INTERFACE_TAG;
@@ -723,14 +727,14 @@ impl Default for HSM_CLIENT_CRYPTO_INTERFACE_TAG {
         HSM_CLIENT_CRYPTO_INTERFACE_TAG {
             hsm_client_crypto_create: None,
             hsm_client_crypto_destroy: None,
-            hsm_client_get_random_number_limits: None,
-            hsm_client_get_random_number: None,
+            hsm_client_get_random_bytes: None,
             hsm_client_create_master_encryption_key: None,
             hsm_client_destroy_master_encryption_key: None,
             hsm_client_create_certificate: None,
             hsm_client_destroy_certificate: None,
             hsm_client_encrypt_data: None,
             hsm_client_decrypt_data: None,
+            hsm_client_get_trust_bundle: None,
             hsm_client_free_buffer: None,
         }
     }
@@ -776,28 +780,15 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
-                .hsm_client_get_random_number_limits as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_get_random_bytes
+                as *const _ as usize
         },
         2_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
             "::",
-            stringify!(hsm_client_get_random_number_limits)
-        )
-    );
-    assert_eq!(
-        unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_get_random_number
-                as *const _ as usize
-        },
-        3_usize * ::std::mem::size_of::<usize>(),
-        concat!(
-            "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
-            "::",
-            stringify!(hsm_client_get_random_number)
+            stringify!(hsm_client_get_random_bytes)
         )
     );
     assert_eq!(
@@ -805,7 +796,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
                 .hsm_client_create_master_encryption_key as *const _ as usize
         },
-        4_usize * ::std::mem::size_of::<usize>(),
+        3_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -818,7 +809,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
                 .hsm_client_destroy_master_encryption_key as *const _ as usize
         },
-        5_usize * ::std::mem::size_of::<usize>(),
+        4_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -831,7 +822,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
                 .hsm_client_create_certificate as *const _ as usize
         },
-        6_usize * ::std::mem::size_of::<usize>(),
+        5_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -844,7 +835,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
                 .hsm_client_destroy_certificate as *const _ as usize
         },
-        7_usize * ::std::mem::size_of::<usize>(),
+        6_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -857,7 +848,7 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_encrypt_data
                 as *const _ as usize
         },
-        8_usize * ::std::mem::size_of::<usize>(),
+        7_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
@@ -870,12 +861,25 @@ fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
             &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_decrypt_data
                 as *const _ as usize
         },
-        9_usize * ::std::mem::size_of::<usize>(),
+        8_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
             stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
             "::",
             stringify!(hsm_client_decrypt_data)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_get_trust_bundle
+                as *const _ as usize
+        },
+        9_usize * ::std::mem::size_of::<usize>(),
+        concat!(
+            "Offset of field: ",
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            "::",
+            stringify!(hsm_client_get_trust_bundle)
         )
     );
     assert_eq!(

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::convert::AsRef;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
 use std::slice;
@@ -81,27 +81,19 @@ impl Default for Crypto {
 }
 
 impl MakeRandom for Crypto {
-    fn get_random_number_limits(&self) -> Result<(isize, isize), Error> {
+    fn get_random_bytes(&self, rand_buffer: &mut [u8]) -> Result<(), Error> {
         let if_fn = self.interface
-            .hsm_client_get_random_number_limits
+            .hsm_client_get_random_bytes
             .ok_or(ErrorKind::NoneFn)?;
-        let mut min = 0_isize;
-        let mut max = 0_isize;
-        let result = unsafe { if_fn(self.handle, &mut min, &mut max) };
+        let result = unsafe {
+            if_fn(
+                self.handle,
+                rand_buffer.as_ptr() as *mut c_uchar,
+                rand_buffer.len(),
+            )
+        };
         match result {
-            0 => Ok((min, max)),
-            r => Err(r)?,
-        }
-    }
-
-    fn get_random_number(&self) -> Result<usize, Error> {
-        let if_fn = self.interface
-            .hsm_client_get_random_number
-            .ok_or(ErrorKind::NoneFn)?;
-        let mut num = 0_usize;
-        let result = unsafe { if_fn(self.handle, &mut num) };
-        match result {
-            0 => Ok(num),
+            0 => Ok(()),
             r => Err(r)?,
         }
     }
@@ -134,12 +126,12 @@ impl DestroyMasterEncryptionKey for Crypto {
 }
 
 fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_HANDLE, Error> {
-    let handle = unsafe { create_certificate_props() };
+    let handle = unsafe { cert_properties_create() };
     if handle.is_null() {
         return Err(ErrorKind::CertProps)?;
     }
-    if unsafe { set_validity_in_mins(handle, props.validity_in_mins) } != 0 {
-        unsafe { destroy_certificate_props(handle) };
+    if unsafe { set_validity_seconds(handle, props.validity_in_secs) } != 0 {
+        unsafe { cert_properties_destroy(handle) };
         return Err(ErrorKind::CertProps)?;
     }
     CString::new(props.common_name.clone())
@@ -152,7 +144,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             }
         })
         .ok_or_else(|| {
-            unsafe { destroy_certificate_props(handle) };
+            unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
 
@@ -168,7 +160,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             0 => Some(()),
             _ => None,
         }.ok_or_else(|| {
-            unsafe { destroy_certificate_props(handle) };
+            unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
     }
@@ -184,7 +176,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 }
             })
             .ok_or_else(|| {
-                unsafe { destroy_certificate_props(handle) };
+                unsafe { cert_properties_destroy(handle) };
                 ErrorKind::CertProps
             })?;
     }
@@ -200,7 +192,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
                 }
             })
             .ok_or_else(|| {
-                unsafe { destroy_certificate_props(handle) };
+                unsafe { cert_properties_destroy(handle) };
                 ErrorKind::CertProps
             })?;
     }
@@ -216,17 +208,13 @@ impl CreateCertificate for Crypto {
         let if_fn = self.interface
             .hsm_client_create_certificate
             .ok_or(ErrorKind::NoneFn)?;
-        let cert_handle = unsafe { if_fn(self.handle, property_handle) };
-        unsafe { destroy_certificate_props(property_handle) };
+        let cert_info_handle = unsafe { if_fn(self.handle, property_handle) };
+        unsafe { cert_properties_destroy(property_handle) };
 
-        if cert_handle.is_null() {
+        if cert_info_handle.is_null() {
             Err(ErrorKind::NullResponse)?
         } else {
-            Ok(HsmCertificate {
-                crypto_handle: self.handle,
-                interface: self.interface,
-                cert_handle,
-            })
+            Ok(HsmCertificate { cert_info_handle })
         }
     }
 }
@@ -359,7 +347,7 @@ impl DecryptData for Crypto {
 
 #[derive(Debug, Clone)]
 pub struct CertificateProperties {
-    validity_in_mins: usize,
+    validity_in_secs: i64,
     common_name: String,
     certificate_type: Option<CertificateType>,
     country: Option<String>,
@@ -372,12 +360,12 @@ pub struct CertificateProperties {
 }
 
 impl CertificateProperties {
-    pub fn validity_in_mins(&self) -> &usize {
-        &self.validity_in_mins
+    pub fn validity_in_secs(&self) -> &i64 {
+        &self.validity_in_secs
     }
 
-    pub fn with_validity_in_mins(mut self, validity_in_mins: usize) -> CertificateProperties {
-        self.validity_in_mins = validity_in_mins;
+    pub fn with_validity_in_secs(mut self, validity_in_secs: i64) -> CertificateProperties {
+        self.validity_in_secs = validity_in_secs;
         self
     }
 
@@ -469,16 +457,16 @@ impl CertificateProperties {
 impl Default for CertificateProperties {
     fn default() -> Self {
         CertificateProperties {
-            validity_in_mins: 60,
+            validity_in_secs: 3600,
             common_name: String::from("CN"),
             certificate_type: Some(CertificateType::Client),
-            country: None,
+            country: Some(String::from("US")),
             state: None,
             locality: None,
             organization: None,
             organization_unit: None,
-            issuer_alias: None,
-            alias: None,
+            issuer_alias: Some(String::from("device_ca_alias")),
+            alias: Some(String::from("module_1")),
         }
     }
 }
@@ -491,72 +479,44 @@ pub enum PrivateKey<T: AsRef<[u8]>> {
 /// A structure representing a Certificate in the HSM.
 #[derive(Debug)]
 pub struct HsmCertificate {
-    crypto_handle: HSM_CLIENT_HANDLE,
-    interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
-    cert_handle: CERT_HANDLE,
+    cert_info_handle: CERT_INFO_HANDLE,
 }
 
 impl HsmCertificate {
-    pub fn get(&self) -> Result<(u32, Buffer), Error> {
-        let mut buffer = SIZED_BUFFER {
-            buffer: std::ptr::null_mut() as *mut c_uchar,
-            size: 0,
+    pub fn get(&self) -> Result<(u32, String), Error> {
+        let cert = unsafe {
+            CStr::from_ptr(certificate_info_get_certificate(self.cert_info_handle))
+                .to_string_lossy()
+                .into_owned()
         };
-        let mut encoding: u32 = 0;
-        let result = unsafe { get_certificate(self.cert_handle, &mut buffer, &mut encoding) };
-
-        match result {
-            0 => Ok((encoding, Buffer::new(self.interface, buffer))),
-            e => Err(e)?,
+        if cert.len() == 0 {
+            Err(ErrorKind::NullResponse)?
         }
+        Ok((CRYPTO_ENCODING_TAG_PEM, cert))
     }
 
-    pub fn get_public_key(&self) -> Result<(u32, Buffer), Error> {
-        let mut buffer = SIZED_BUFFER {
-            buffer: std::ptr::null_mut() as *mut c_uchar,
-            size: 0,
-        };
-        let mut encoding: u32 = 0;
-        let result = unsafe { get_public_key(self.cert_handle, &mut buffer, &mut encoding) };
-
-        match result {
-            0 => Ok((encoding, Buffer::new(self.interface, buffer))),
-            e => Err(e)?,
-        }
-    }
-
-    pub fn get_private_key(&self) -> Result<(u32, PrivateKey<Buffer>), Error> {
-        let mut buffer = SIZED_BUFFER {
-            buffer: std::ptr::null_mut() as *mut c_uchar,
-            size: 0,
-        };
-        let mut encoding: u32 = 0;
-        let mut key_type: u32 = 0;
-        let result =
-            unsafe { get_private_key(self.cert_handle, &mut buffer, &mut key_type, &mut encoding) };
-
-        match result {
-            0 => {
-                let buffer = Buffer::new(self.interface, buffer);
-                let private_key = match key_type {
-                    0 => Ok(PrivateKey::Key(buffer)),
-                    1 => Ok(PrivateKey::Ref(str::from_utf8(&buffer)?.to_string())),
-                    e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
-                }?;
-
-                Ok((encoding, private_key))
-            }
-            e => Err(e)?,
+    pub fn get_private_key(&self) -> Result<(u32, PrivateKey<Vec<u8>>), Error> {
+        let mut pk_size: usize = 0;
+        let pk = unsafe { certificate_info_get_private_key(self.cert_info_handle, &mut pk_size) };
+        if pk_size == 0 || pk.is_null() {
+            Err(ErrorKind::NullResponse)?
+        } else {
+            let private_key =
+                unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
+            let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
+            let private_key = match pk_type {
+                0 => Ok(PrivateKey::Key(private_key)),
+                1 => Ok(PrivateKey::Ref(String::from_utf8(private_key)?)),
+                e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
+            }?;
+            Ok((CRYPTO_ENCODING_TAG_PEM, private_key))
         }
     }
 }
 
 impl Drop for HsmCertificate {
     fn drop(&mut self) {
-        let free_fn = self.interface
-            .hsm_client_destroy_certificate
-            .expect("Unknown Destroy function for HsmCertificate");
-        unsafe { free_fn(self.crypto_handle, self.cert_handle) };
+        unsafe { certificate_info_destroy(self.cert_info_handle) };
     }
 }
 
@@ -600,12 +560,15 @@ pub type DecryptedBuffer = Buffer;
 
 #[cfg(test)]
 mod tests {
-    use std::os::raw::{c_int, c_uchar, c_void};
+    use std::os::raw::{c_char, c_int, c_uchar, c_void};
+    use std::ffi::CString;
 
     use hsm_sys::*;
-    use super::{Buffer, CertificateProperties, Crypto, HsmCertificate};
+    use super::{Buffer, CertificateProperties, Crypto};
     use super::super::{CreateCertificate, CreateMasterEncryptionKey, DecryptData,
                        DestroyMasterEncryptionKey, EncryptData, MakeRandom};
+
+    static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
@@ -661,42 +624,19 @@ mod tests {
         // function will panic on drop.
     }
 
-    #[test]
-    #[should_panic(expected = "Unknown Destroy function for HsmCertificate")]
-    fn hsm_cert_free_fn_none() {
-        let cert = HsmCertificate {
-            crypto_handle: ::std::ptr::null_mut(),
-            interface: HSM_CLIENT_CRYPTO_INTERFACE::default(),
-            cert_handle: ::std::ptr::null_mut(),
-        };
-        println!("cert {:?}", cert);
-        // function will panic on drop.
-    }
-
     unsafe extern "C" fn fake_handle_create_good() -> HSM_CLIENT_HANDLE {
         0_isize as *mut c_void
     }
     unsafe extern "C" fn fake_handle_create_bad() -> HSM_CLIENT_HANDLE {
         1_isize as *mut c_void
     }
-    unsafe extern "C" fn fake_limits(
+    unsafe extern "C" fn fake_random_bytes(
         handle: HSM_CLIENT_HANDLE,
-        min_random_num: *mut isize,
-        max_random_num: *mut isize,
+        _buffer: *mut c_uchar,
+        _buffer_size: usize,
     ) -> c_int {
         let n = handle as isize;
         if n == 0 {
-            *min_random_num = 1;
-            *max_random_num = 2;
-            0
-        } else {
-            1
-        }
-    }
-    unsafe extern "C" fn fake_rand(handle: HSM_CLIENT_HANDLE, random_num: *mut usize) -> c_int {
-        let n = handle as isize;
-        if n == 0 {
-            *random_num = 1;
             0
         } else {
             1
@@ -753,23 +693,43 @@ mod tests {
         }
     }
 
-    unsafe extern "C" fn fake_create_cert(
-        handle: HSM_CLIENT_HANDLE,
-        _certificate_props: CERT_PROPS_HANDLE,
-    ) -> CERT_HANDLE {
+    unsafe extern "C" fn fake_trust_bundle(handle: HSM_CLIENT_HANDLE) -> CERT_INFO_HANDLE {
         let n = handle as isize;
         if n == 0 {
-            malloc(DEFAULT_BUF_LEN) as CERT_HANDLE
+            let cert = CString::new(TEST_RSA_CERT).unwrap();
+            let pk = CString::new("1234").unwrap();
+            certificate_info_create(
+                cert.as_ptr(),
+                pk.as_ptr() as *const c_void,
+                pk.to_bytes().len() as usize,
+                0 as u32,
+            )
         } else {
             ::std::ptr::null_mut()
         }
     }
-    unsafe extern "C" fn fake_destroy_cert(_handle: HSM_CLIENT_HANDLE, cert_handle: CERT_HANDLE) {
-        let ch = cert_handle as *mut c_void;
-        if !ch.is_null() {
-            free(ch);
+
+    unsafe extern "C" fn fake_create_cert(
+        handle: HSM_CLIENT_HANDLE,
+        _certificate_props: CERT_PROPS_HANDLE,
+    ) -> CERT_INFO_HANDLE {
+        let n = handle as isize;
+        if n == 0 {
+            let cert = CString::new(TEST_RSA_CERT).unwrap();
+            let pk = CString::new("1234").unwrap();
+            certificate_info_create(
+                cert.as_ptr(),
+                pk.as_ptr() as *const c_void,
+                pk.to_bytes().len() as usize,
+                0 as u32,
+            )
+        } else {
+            ::std::ptr::null_mut()
         }
     }
+
+    unsafe extern "C" fn fake_destroy_cert(_handle: HSM_CLIENT_HANDLE, _alias: *const c_char) {}
+
     const DEFAULT_BUF_LEN: usize = 10;
 
     unsafe extern "C" fn fake_handle_destroy(_h: HSM_CLIENT_HANDLE) {}
@@ -787,18 +747,11 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "HSM API Not Implemented")]
-    fn no_random_limit_api_fail() {
+    fn no_random_bytes_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let limits = hsm_crypto.get_random_number_limits().unwrap();
+        let mut test_array = [0u8; 4];
+        let limits = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
         println!("You should never see this print {:?}", limits);
-    }
-
-    #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
-    fn no_get_random_api_fail() {
-        let hsm_crypto = fake_no_if_hsm_crypto();
-        let random = hsm_crypto.get_random_number().unwrap();
-        println!("You should never see this print {:?}", random);
     }
 
     #[test]
@@ -869,14 +822,14 @@ mod tests {
             interface: HSM_CLIENT_CRYPTO_INTERFACE {
                 hsm_client_crypto_create: Some(fake_handle_create_bad),
                 hsm_client_crypto_destroy: Some(fake_handle_destroy),
-                hsm_client_get_random_number_limits: Some(fake_limits),
-                hsm_client_get_random_number: Some(fake_rand),
+                hsm_client_get_random_bytes: Some(fake_random_bytes),
                 hsm_client_create_master_encryption_key: Some(fake_create_master),
                 hsm_client_destroy_master_encryption_key: Some(fake_destroy_master),
                 hsm_client_create_certificate: Some(fake_create_cert),
                 hsm_client_destroy_certificate: Some(fake_destroy_cert),
                 hsm_client_encrypt_data: Some(fake_encrypt),
                 hsm_client_decrypt_data: Some(fake_decrypt),
+                hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
             },
         }
@@ -884,17 +837,10 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "HSM API failure occurred")]
-    fn hsm_random_number_limits_errors() {
+    fn hsm_get_random_bytes_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto.get_random_number_limits().unwrap();
-        println!("You should never see this print {:?}", result);
-    }
-
-    #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
-    fn hsm_get_random_number_errors() {
-        let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto.get_random_number().unwrap();
+        let mut test_array = [0u8; 4];
+        let result = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
         println!("You should never see this print {:?}", result);
     }
 
@@ -949,14 +895,14 @@ mod tests {
             interface: HSM_CLIENT_CRYPTO_INTERFACE {
                 hsm_client_crypto_create: Some(fake_handle_create_good),
                 hsm_client_crypto_destroy: Some(fake_handle_destroy),
-                hsm_client_get_random_number_limits: Some(fake_limits),
-                hsm_client_get_random_number: Some(fake_rand),
+                hsm_client_get_random_bytes: Some(fake_random_bytes),
                 hsm_client_create_master_encryption_key: Some(fake_create_master),
                 hsm_client_destroy_master_encryption_key: Some(fake_destroy_master),
                 hsm_client_create_certificate: Some(fake_create_cert),
                 hsm_client_destroy_certificate: Some(fake_destroy_cert),
                 hsm_client_encrypt_data: Some(fake_encrypt),
                 hsm_client_decrypt_data: Some(fake_decrypt),
+                hsm_client_get_trust_bundle: Some(fake_trust_bundle),
                 hsm_client_free_buffer: Some(real_buffer_destroy),
             },
         }
@@ -966,14 +912,10 @@ mod tests {
     fn hsm_success() {
         let hsm_crypto = fake_good_hsm_crypto();
 
-        let limits = hsm_crypto.get_random_number_limits().unwrap();
+        let mut test_array = [0u8, 4];
+        let result_random_bytes = hsm_crypto.get_random_bytes(&mut test_array).unwrap();
 
-        assert_eq!(limits.0, 1);
-        assert_eq!(limits.1, 2);
-
-        let rand = hsm_crypto.get_random_number().unwrap();
-
-        assert_eq!(rand, 1);
+        assert_eq!(result_random_bytes, ());
 
         let master_key = hsm_crypto.create_master_encryption_key().unwrap();
 
@@ -985,7 +927,6 @@ mod tests {
 
         let props = CertificateProperties::default();
         let _new_cert = hsm_crypto.create_certificate(&props).unwrap();
-        // what does this do?
 
         let crypt1 = hsm_crypto
             .encrypt(b"client_id", b"plaintext", None, b"init_vector")

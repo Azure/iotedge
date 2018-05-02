@@ -6,6 +6,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(cert_props_unittests, failedTestCount);
+    RUN_TEST_SUITE(edge_hsm_sas_auth_int_tests, failedTestCount);
     return failedTestCount;
 }

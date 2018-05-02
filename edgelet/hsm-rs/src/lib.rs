@@ -40,8 +40,7 @@ pub trait GetCerts {
 }
 
 pub trait MakeRandom {
-    fn get_random_number_limits(&self) -> Result<(isize, isize), Error>;
-    fn get_random_number(&self) -> Result<usize, Error>;
+    fn get_random_bytes(&self, buffer: &mut [u8]) -> Result<(), Error>;
 }
 
 pub trait CreateMasterEncryptionKey {
