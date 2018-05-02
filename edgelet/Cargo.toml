@@ -16,4 +16,5 @@ members = [
     "hsm-rs",
     "hsm-sys",
     "management",
+    "tokio-named-pipes",
 ]

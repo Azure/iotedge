@@ -1,0 +1,17 @@
+[package]
+name = "tokio-named-pipes"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+publish = false
+
+[target.'cfg(windows)'.dependencies]
+bytes = "0.4"
+futures = "0.1"
+mio-named-pipes = "0.1"
+tokio-core = "0.1"
+tokio-io = "0.1"
+winapi = "0.3"
+
+[dev-dependencies]
+rand = "0.4"
+mio = "0.6"
