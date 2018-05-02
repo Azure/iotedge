@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 exitCode = 0;
             }
 
-            Option<DateTime> exitTime = (exitStatus == null || !exitStatus.ExitTime.HasValue) ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime.Value);
+            Option<DateTime> exitTime = exitStatus == null ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime);
             Option<DateTime> startTime = !moduleDetails.Status.StartTime.HasValue ? Option.None<DateTime>() : Option.Some(moduleDetails.Status.StartTime.Value);
 
             if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, true,  out ModuleStatus status))
