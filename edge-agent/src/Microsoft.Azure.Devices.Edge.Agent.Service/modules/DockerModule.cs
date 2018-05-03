@@ -94,8 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    IEntityStore<string, ModuleState> moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
-                    IRestartPolicyManager restartPolicyManager = c.Resolve<IRestartPolicyManager>();
+                    var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                    var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                     IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
                     IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
                     return dockerEnvironmentProvider;

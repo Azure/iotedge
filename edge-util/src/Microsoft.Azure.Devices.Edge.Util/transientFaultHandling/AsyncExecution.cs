@@ -65,7 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling
             {
                 if (t.IsFaulted)
                 {
-                    tcs.TrySetException(t.Exception.InnerExceptions);
+                    if (t.Exception != null)
+                        tcs.TrySetException(t.Exception.InnerExceptions);
                     return;
                 }
                 if (t.IsCanceled)

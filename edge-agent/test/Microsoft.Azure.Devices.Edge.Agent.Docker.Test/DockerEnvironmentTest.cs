@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>()),
                 new Dictionary<string, IModule>());
 
-            DockerEnvironment environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetRuntimeInfoAsync();
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var moduleStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            DockerEnvironment environment = new DockerEnvironment(runtimeInfoProvider, DeploymentConfig.Empty, moduleStateStore, restartPolicyManager, OperatingSystemType, Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, DeploymentConfig.Empty, moduleStateStore, restartPolicyManager, OperatingSystemType, Architecture);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetRuntimeInfoAsync();
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new SystemModules(edgeAgentModule, edgeHubModule),
                 new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2 });
 
-            DockerEnvironment environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager, OperatingSystemType, Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager, OperatingSystemType, Architecture);
 
             // act
             ModuleSet moduleSet = await environment.GetModulesAsync(CancellationToken.None);

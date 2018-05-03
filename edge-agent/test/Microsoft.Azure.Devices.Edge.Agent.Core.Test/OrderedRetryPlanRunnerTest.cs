@@ -344,7 +344,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var commands = new[]
+            Mock<ICommand>[] commands = new[]
             {
                 this.MakeMockCommandThatWorks("c1"),
                 this.MakeMockCommandThatWorks("c2", () => cts.Cancel()),

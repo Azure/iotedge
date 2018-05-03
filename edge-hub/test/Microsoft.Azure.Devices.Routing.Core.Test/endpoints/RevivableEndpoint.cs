@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(new IMessage[0], result.Succeeded);
             Assert.Equal(new List<IMessage>(), endpoint.Processed);
 
-            var messages =  new[] { Message1, Message2, Message3 };
+            IMessage[] messages =  new[] { Message1, Message2, Message3 };
             ISinkResult<IMessage> result2 = await processor.ProcessAsync(messages, CancellationToken.None);
             Assert.Equal(new[] { Message1, Message2, Message3 }, result2.Succeeded);
             Assert.Equal(new List<IMessage> { Message1, Message2, Message3 }, endpoint.Processed);

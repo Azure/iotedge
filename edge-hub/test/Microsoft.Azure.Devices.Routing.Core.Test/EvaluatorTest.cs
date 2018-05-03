@@ -150,8 +150,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var routes = new HashSet<Route> { route1, route3 };
             var evaluator = new Evaluator(new RouterConfig(allEndpoints, routes));
 
-            var expected = new[] { endpoint1, endpoint3 };
-            var messages = new[] { Message1, InvalidMessage };
+            NullEndpoint[] expected = new[] { endpoint1, endpoint3 };
+            IMessage[] messages = new[] { Message1, InvalidMessage };
             foreach (Tuple<NullEndpoint, IMessage> pair in expected.Zip(messages, Tuple.Create))
             {
                 ISet<Endpoint> result = evaluator.Evaluate(pair.Item2);

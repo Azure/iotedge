@@ -88,9 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 // the real configuration source that talks to IoT Hub above.
                 NullReporter reporter = NullReporter.Instance;
 
-                IEntityStore<string, ModuleState> restartStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
-                IEntityStore<string, string> configStore = Mock.Of<IEntityStore<string, string>>();
-                ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+                var restartStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
+                var configStore = Mock.Of<IEntityStore<string, string>>();
+                var deploymentConfigInfoSerde = Mock.Of<ISerde<DeploymentConfigInfo>>();
                 IRestartPolicyManager restartManager = new Mock<IRestartPolicyManager>().Object;
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
-                var agent = await Agent.Create(configSource.Object, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter,
+                Agent agent = await Agent.Create(configSource.Object, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter,
                     moduleIdentityLifecycleManager.Object, environmentProvider, configStore, deploymentConfigInfoSerde);
                 await agent.ReconcileAsync(CancellationToken.None);
 

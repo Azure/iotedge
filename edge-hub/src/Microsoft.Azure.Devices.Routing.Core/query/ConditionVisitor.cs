@@ -527,7 +527,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         bool CheckOperand(IToken token, Type expected, Expression expr)
         {
             var required = new Args(expected);
-            var given = new[] { expr.Type };
+            Type[] given = new[] { expr.Type };
 
             bool isValid = required.Match(given, true);
             if (!isValid)
@@ -540,7 +540,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         bool CheckOperands(IToken token, Type expected, ref Expression left, ref Expression right)
         {
             var required = new Args(expected, expected);
-            var given = new[] { left.Type, right.Type };
+            Type[] given = new[] { left.Type, right.Type };
 
             bool isValid = required.Match(given, true);
             if (!isValid)
@@ -568,7 +568,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
             if (!isValid)
             {
                 var required = new Args(typeof(Bool), typeof(Bool));
-                var given = new[] { left.Type, right.Type };
+                Type[] given = new[] { left.Type, right.Type };
                 this.errors.OperandError(token, required, given);
             }
 

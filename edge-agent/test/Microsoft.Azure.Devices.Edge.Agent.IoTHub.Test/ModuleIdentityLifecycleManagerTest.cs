@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             createdModuleIdentity.Authentication = new AuthenticationMechanism();
             createdModuleIdentity.Authentication.Type = AuthenticationType.Sas;
             createdModuleIdentity.Authentication.SymmetricKey.PrimaryKey = moduleSharedAccessKey;
-            var updatedServiceIdentities = new[] { createdModuleIdentity};
+            Module[] updatedServiceIdentities = new[] { createdModuleIdentity};
 
             // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
             // ReSharper disable PossibleMultipleEnumeration
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string gatewayHostName = "localhost";
             var moduleIdentityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
-            var serviceIdentities = new[] { serviceModuleIdentity };
+            Module[] serviceIdentities = new[] { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>())).Callback(
                 (IEnumerable<Module> modules) =>
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string gatewayHostName = "localhost";
             var moduleIdentityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
-            var serviceIdentities = new[] { serviceModuleIdentity };
+            Module[] serviceIdentities = new[] { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>())).Callback(
                 (IEnumerable<Module> modules) =>
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string gatewayHostName = "localhost";
             var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
-            var serviceIdentities = new[] { serviceModuleIdentity };
+            Module[] serviceIdentities = new[] { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>())).Callback(
                 (IEnumerable<Module> modules) =>
@@ -219,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string gatewayHostName = "localhost";
             var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
-            var serviceIdentities = new[] { serviceModuleIdentity };
+            Module[] serviceIdentities = new[] { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>())).Callback(
                 (IEnumerable<Module> modules) =>
@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string gatewayHostName = "localhost";
             var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
-            var serviceIdentities = new[] { serviceModuleIdentity };
+            Module[] serviceIdentities = new[] { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));
             serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));

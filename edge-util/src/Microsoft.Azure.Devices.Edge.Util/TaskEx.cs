@@ -139,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                             tcs.TrySetCanceled();
                             break;
                         case TaskStatus.Faulted:
-                            tcs.TrySetException(t.Exception.InnerExceptions);
+                            if (t.Exception != null)
+                                tcs.TrySetException(t.Exception.InnerExceptions);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();

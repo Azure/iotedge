@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.Starting();
 
             // This transport settings object sets up a listener for TLS over TCP right now.
-            var listeners = new[] { this.transportSettings.Settings.CreateListener() };
+            TransportListener[] listeners = new[] { this.transportSettings.Settings.CreateListener() };
 
             using (await this.syncLock.LockAsync())
             {

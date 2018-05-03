@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     // check that the environment variables are being returned
                     RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
                     IEnumerable<ModuleRuntimeInfo> modules = await runtimeInfoProvider.GetModules(cts.Token);
-                    ModuleRuntimeInfo<DockerReportedConfig> returnedModule = modules.First(m => m.Name == Name) as ModuleRuntimeInfo<DockerReportedConfig>;
+                    var returnedModule = modules.First(m => m.Name == Name) as ModuleRuntimeInfo<DockerReportedConfig>;
                     Assert.NotNull(returnedModule);
                 }
             }

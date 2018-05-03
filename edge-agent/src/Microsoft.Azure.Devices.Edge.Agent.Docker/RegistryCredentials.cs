@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public override int GetHashCode()
         {
-            var hashCode = 217634204;
+            int hashCode = 217634204;
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Address);
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Username);
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Password);

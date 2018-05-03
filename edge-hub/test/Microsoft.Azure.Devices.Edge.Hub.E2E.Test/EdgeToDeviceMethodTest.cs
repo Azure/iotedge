@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(receivedRequest.RequestProp2, request.RequestProp2);
 
                 Assert.Equal(200, cloudToDeviceMethodResult.Status);
-                TestMethodResponse receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
+                var receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
                 Assert.NotNull(receivedResponse);
                 Assert.Equal(receivedResponse.ResponseProp1, response.ResponseProp1);
                 Assert.Equal(receivedResponse.ResponseProp2, response.ResponseProp2);
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(receivedRequest.RequestProp2, request.RequestProp2);
 
                 Assert.Equal(200, cloudToDeviceMethodResult.Status);
-                TestMethodResponse receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
+                var receivedResponse = JsonConvert.DeserializeObject<TestMethodResponse>(cloudToDeviceMethodResult.GetPayloadAsJson());
                 Assert.NotNull(receivedResponse);
                 Assert.Equal(receivedResponse.ResponseProp1, response.ResponseProp1);
                 Assert.Equal(receivedResponse.ResponseProp2, response.ResponseProp2);

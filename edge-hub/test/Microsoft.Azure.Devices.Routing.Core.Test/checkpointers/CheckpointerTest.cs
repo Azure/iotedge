@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 
             using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
             {
-                var tocheckpoint = new[] { MessageWithOffset(13), MessageWithOffset(12), MessageWithOffset(11), MessageWithOffset(10), MessageWithOffset(9) };
+                IMessage[] tocheckpoint = new[] { MessageWithOffset(13), MessageWithOffset(12), MessageWithOffset(11), MessageWithOffset(10), MessageWithOffset(9) };
                 await checkpointer1.CommitAsync(tocheckpoint, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
                 Assert.Equal(13, checkpointer1.Offset);
                 await checkpointer1.CloseAsync(CancellationToken.None);

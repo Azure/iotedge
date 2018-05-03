@@ -149,8 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await configUpdater.Init(configSource);
 
                 ILogger logger = this.container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-                var mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
-                var amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
+                MqttProtocolHead mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
+                AmqpProtocolHead amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
             }

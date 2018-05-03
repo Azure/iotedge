@@ -159,8 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
                         // Remove EdgeAgent from current and desired module sets, before handling off to planner.
                         // TODO: EdgeAgent updates need to be handled separately (currently a No-op)
-                        ModuleSet desiredModulesToPlan = new ModuleSet(desiredModuleSet.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
-                        ModuleSet currentModules = new ModuleSet(current.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
+                        var desiredModulesToPlan = new ModuleSet(desiredModuleSet.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
+                        var currentModules = new ModuleSet(current.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModulesToPlan, currentModules, deploymentConfig.Runtime, identities);
                         if (!plan.IsEmpty)

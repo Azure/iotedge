@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
                 Console.SetOut(sw);
                 var console = new ConsoleEndpoint("id1");
-                var messages = new [] { Message1 };
+                IMessage[] messages = new [] { Message1 };
                 IProcessor processor = console.CreateProcessor();
                 await processor.ProcessAsync(new IMessage[0], CancellationToken.None);
                 await processor.ProcessAsync(messages, CancellationToken.None);

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void CreateConnectionStringTest(string expectedConnectionString, string iotHubHostName, string deviceId, string moduleId, string sasKey = null, string gatewayHostName = null)
         {
             // Arrange
-            var builder = new ModuleConnectionString.ModuleConnectionStringBuilder(iotHubHostName, deviceId).WithModuleId(moduleId);
+            ModuleConnectionString.ModuleConnectionStringBuilder builder = new ModuleConnectionString.ModuleConnectionStringBuilder(iotHubHostName, deviceId).WithModuleId(moduleId);
 
             if (!string.IsNullOrEmpty(sasKey))
             {
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void ImplicitOperatorTest()
         {
             // Arrange/Act
-            var builder = new ModuleConnectionString.ModuleConnectionStringBuilder("foo.azure.com", "device1").WithModuleId("module1");
+            ModuleConnectionString.ModuleConnectionStringBuilder builder = new ModuleConnectionString.ModuleConnectionStringBuilder("foo.azure.com", "device1").WithModuleId("module1");
             string connectionString = builder
                 .WithGatewayHostName("localhost")
                 .Build();
