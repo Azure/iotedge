@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Microsoft.Azure.Devices.Edge.Agent.Service": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "IOTEDGE_DEVICEID": "<YourDeviceName>",
+        "IOTEDGE_IOTHUBHOSTNAME": "<YourIoTHub>",
+        "IOTEDGE_IOTEDGEDURI": "http://<edgeAgentMachine>:8081",
+        "IOTEDGE_MODULEID": "$edgeAgent",
+        "IOTEDGE_AUTHSCHEME": "sastoken"
+      }
+    }
+  }
+}
