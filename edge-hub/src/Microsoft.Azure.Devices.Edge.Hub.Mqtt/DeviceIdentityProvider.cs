@@ -69,36 +69,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
         {
-            // Username is of the form:
-            //   username   = edgeHubHostName "/" deviceId "/" [moduleId "/"] properties
+            // Username is of one of the 2 forms:
+            //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "?" properties
+            //    OR
+            //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/" properties
             //   properties = property *("&" property)
             //   property   = name "=" value
             // We recognize two property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
             // We ignore any properties we don't recognize.            
+            Preconditions.CheckNonWhiteSpace(username, nameof(username));
+            if (username.Contains('?'))
+            {
+                string[] parts = username.Split('?');
+                if (parts.Length > 2)
+                {
+                    throw new EdgeHubConnectionException($"Username {username} does not contain valid values");
+                }
 
-            string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
-            if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
-            {
-                return (usernameSegments[1], string.Empty, ParseDeviceClientType(usernameSegments[2]));
-            }
-            else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
-            {
-                return (usernameSegments[1], usernameSegments[2], ParseDeviceClientType(usernameSegments[3]));
-            }
-            // The Azure ML container is using an older client that returns a device client with the following format -
-            // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
-            // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
-            // To allow those clients to work, check for that specific api-version, and version.
-            else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
-            {
-                string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-                return (usernameSegments[1], usernameSegments[2], deviceClientType);
+                string[] usernameSegments = parts[0].Split('/');
+                if (usernameSegments.Length == 2)
+                {
+                    return (usernameSegments[1].Trim(), string.Empty, ParseDeviceClientType(parts[1]));
+                }
+                else if (usernameSegments.Length == 3)
+                {
+                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), ParseDeviceClientType(parts[1]));
+                }
+                else
+                {
+                    throw new EdgeHubConnectionException($"Username {username} does not contain valid values");
+                }
             }
             else
             {
-                throw new EdgeHubConnectionException("Username does not contain valid values");
+                string[] usernameSegments = username.Split('/');
+                if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
+                {
+                    return (usernameSegments[1].Trim(), string.Empty, ParseDeviceClientType(usernameSegments[2]));
+                }
+                else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
+                {
+                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), ParseDeviceClientType(usernameSegments[3]));
+                }
+                // The Azure ML container is using an older client that returns a device client with the following format -
+                // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
+                // Notice how the DeviceClientType parameter is separated by a '/' instead of a '&', giving a usernameSegments.Length of 6 instead of the expected 4
+                // To allow those clients to work, check for that specific api-version, and version.
+                else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
+                {
+                    string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
+                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), deviceClientType);
+                }
+                else
+                {
+                    throw new EdgeHubConnectionException($"Username {username} does not contain valid values");
+                }
             }
         }
 
