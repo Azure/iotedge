@@ -9,8 +9,9 @@ use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 
+use edgelet_core::{Certificate, CertificateProperties, CertificateType, CreateCertificate,
+                   PrivateKey};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
-use hsm::{CertificateProperties, CertificateType, CreateCertificate, HsmCertificate, PrivateKey};
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse,
                        ServerCertificateRequest};
 
@@ -30,6 +31,7 @@ impl<T: CreateCertificate> ServerCertHandler<T> {
 impl<T> Handler<Parameters> for ServerCertHandler<T>
 where
     T: CreateCertificate + 'static + Clone,
+    <T as CreateCertificate>::Certificate: Certificate,
 {
     fn handle(
         &self,
@@ -40,10 +42,11 @@ where
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|_module_id| {
+            .map(|module_id| {
+                let alias = module_id.to_owned();
                 let result = req.into_body()
                     .concat2()
-                    .map(|body| {
+                    .map(move |body| {
                         serde_json::from_slice::<ServerCertificateRequest>(&body)
                             .context(ErrorKind::BadBody)
                             .map_err(Error::from)
@@ -52,16 +55,13 @@ where
                                     .map(|expiration| (cert_req, expiration))
                             })
                             .and_then(move |(cert_req, expiration)| {
-                                let props = CertificateProperties::default()
-                                    .with_common_name(
-                                        ensure_not_empty!(cert_req.common_name()).as_str(),
-                                    )
-                                    .with_validity_in_secs(ensure_range!(
-                                        expiration,
-                                        0,
-                                        i64::max_value()
-                                    ))
-                                    .with_certificate_type(CertificateType::Server);
+                                let props = CertificateProperties::new(
+                                    ensure_range!(expiration, 0, i64::max_value()) as u64,
+                                    ensure_not_empty!(cert_req.common_name().to_string()),
+                                    CertificateType::Server,
+                                    "edgelet-workload-ca".to_string(), //TODO: What should this be?
+                                    alias,
+                                );
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
                                     .and_then(|cert| {
@@ -91,8 +91,8 @@ where
     }
 }
 
-fn cert_to_response(cert: &HsmCertificate, expiration: &str) -> Result<CertificateResponse> {
-    let (_, cert_buffer) = cert.get()?;
+fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<CertificateResponse> {
+    let cert_buffer = cert.pem()?;
     let (_, private_key) = cert.get_private_key()?;
 
     let private_key = match private_key {

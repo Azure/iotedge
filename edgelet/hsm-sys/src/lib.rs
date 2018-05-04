@@ -251,10 +251,10 @@ extern "C" {
     pub fn cert_properties_destroy(handle: CERT_PROPS_HANDLE);
 }
 extern "C" {
-    pub fn set_validity_seconds(handle: CERT_PROPS_HANDLE, validity_seconds: i64) -> c_int;
+    pub fn set_validity_seconds(handle: CERT_PROPS_HANDLE, validity_seconds: u64) -> c_int;
 }
 extern "C" {
-    pub fn get_validity_seconds(handle: CERT_PROPS_HANDLE) -> i64;
+    pub fn get_validity_seconds(handle: CERT_PROPS_HANDLE) -> u64;
 }
 extern "C" {
     pub fn set_common_name(handle: CERT_PROPS_HANDLE, common_name: *const c_char) -> c_int;

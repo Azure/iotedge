@@ -29,6 +29,7 @@ impl Drop for Tpm {
                 f(self.handle);
             }
         }
+        //TODO: unit tests are calling this function, and should avoid doing so.
         unsafe { hsm_client_tpm_deinit() };
     }
 }

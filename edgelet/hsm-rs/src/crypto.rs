@@ -12,7 +12,7 @@ use hsm_sys::*;
 use super::*;
 
 /// Enumerator for CERTIFICATE_TYPE
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CertificateType {
     Unknown,
     Client,
@@ -28,8 +28,8 @@ pub enum CertificateType {
 /// - CreateMasterEncryptionKey
 /// - DestroyMasterEncryptionKey
 /// - CreateCertificate
-/// - EncryptData
-/// - DecryptData
+/// - Encrypt
+/// - Decrypt
 ///
 #[derive(Clone, Debug)]
 pub struct Crypto {
@@ -130,7 +130,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
     if handle.is_null() {
         return Err(ErrorKind::CertProps)?;
     }
-    if unsafe { set_validity_seconds(handle, props.validity_in_secs) } != 0 {
+    if unsafe { set_validity_seconds(handle, *props.validity_in_secs()) } != 0 {
         unsafe { cert_properties_destroy(handle) };
         return Err(ErrorKind::CertProps)?;
     }
@@ -148,54 +148,48 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
             ErrorKind::CertProps
         })?;
 
-    if let Some(cert_type) = props.certificate_type.as_ref() {
-        let c_cert_type = match *cert_type {
-            CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
-            CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
-            CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
-            _ => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN,
-        };
-        let result = unsafe { set_certificate_type(handle, c_cert_type) };
-        match result {
-            0 => Some(()),
-            _ => None,
-        }.ok_or_else(|| {
+    let c_cert_type = match *props.certificate_type() {
+        CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
+        CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
+        CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
+        _ => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN,
+    };
+    let result = unsafe { set_certificate_type(handle, c_cert_type) };
+    match result {
+        0 => Some(()),
+        _ => None,
+    }.ok_or_else(|| {
+        unsafe { cert_properties_destroy(handle) };
+        ErrorKind::CertProps
+    })?;
+
+    CString::new(props.issuer_alias.clone())
+        .ok()
+        .and_then(|c_issuer_alias| {
+            let result = unsafe { set_issuer_alias(handle, c_issuer_alias.as_ptr()) };
+            match result {
+                0 => Some(()),
+                _ => None,
+            }
+        })
+        .ok_or_else(|| {
             unsafe { cert_properties_destroy(handle) };
             ErrorKind::CertProps
         })?;
-    }
 
-    if let Some(issuer_alias) = props.issuer_alias.as_ref() {
-        CString::new(issuer_alias.clone())
-            .ok()
-            .and_then(|c_issuer_alias| {
-                let result = unsafe { set_issuer_alias(handle, c_issuer_alias.as_ptr()) };
-                match result {
-                    0 => Some(()),
-                    _ => None,
-                }
-            })
-            .ok_or_else(|| {
-                unsafe { cert_properties_destroy(handle) };
-                ErrorKind::CertProps
-            })?;
-    }
-
-    if let Some(alias) = props.alias.as_ref() {
-        CString::new(alias.clone())
-            .ok()
-            .and_then(|c_alias| {
-                let result = unsafe { set_alias(handle, c_alias.as_ptr()) };
-                match result {
-                    0 => Some(()),
-                    _ => None,
-                }
-            })
-            .ok_or_else(|| {
-                unsafe { cert_properties_destroy(handle) };
-                ErrorKind::CertProps
-            })?;
-    }
+    CString::new(props.alias.clone())
+        .ok()
+        .and_then(|c_alias| {
+            let result = unsafe { set_alias(handle, c_alias.as_ptr()) };
+            match result {
+                0 => Some(()),
+                _ => None,
+            }
+        })
+        .ok_or_else(|| {
+            unsafe { cert_properties_destroy(handle) };
+            ErrorKind::CertProps
+        })?;
     Ok(handle)
 }
 
@@ -219,14 +213,28 @@ impl CreateCertificate for Crypto {
     }
 }
 
-impl EncryptData for Crypto {
+impl GetTrustBundle for Crypto {
+    fn get_trust_bundle(&self) -> Result<HsmCertificate, Error> {
+        let if_fn = self.interface
+            .hsm_client_get_trust_bundle
+            .ok_or(ErrorKind::NoneFn)?;
+        let cert_info_handle = unsafe { if_fn(self.handle) };
+        if cert_info_handle.is_null() {
+            Err(ErrorKind::NullResponse)?
+        } else {
+            Ok(HsmCertificate { cert_info_handle })
+        }
+    }
+}
+
+impl Encrypt for Crypto {
     fn encrypt(
         &self,
         client_id: &[u8],
         plaintext: &[u8],
         passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
-    ) -> Result<EncryptedBuffer, Error> {
+    ) -> Result<Buffer, Error> {
         let if_fn = self.interface
             .hsm_client_encrypt_data
             .ok_or(ErrorKind::NoneFn)?;
@@ -276,20 +284,20 @@ impl EncryptData for Crypto {
             },
         };
         match result {
-            0 => Ok(EncryptedBuffer::new(self.interface, encrypted)),
+            0 => Ok(Buffer::new(self.interface, encrypted)),
             r => Err(r)?,
         }
     }
 }
 
-impl DecryptData for Crypto {
+impl Decrypt for Crypto {
     fn decrypt(
         &self,
         client_id: &[u8],
         ciphertext: &[u8],
         passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
-    ) -> Result<DecryptedBuffer, Error> {
+    ) -> Result<Buffer, Error> {
         let if_fn = self.interface
             .hsm_client_decrypt_data
             .ok_or(ErrorKind::NoneFn)?;
@@ -339,7 +347,7 @@ impl DecryptData for Crypto {
             },
         };
         match result {
-            0 => Ok(DecryptedBuffer::new(self.interface, decrypted)),
+            0 => Ok(Buffer::new(self.interface, decrypted)),
             r => Err(r)?,
         }
     }
@@ -347,24 +355,45 @@ impl DecryptData for Crypto {
 
 #[derive(Debug, Clone)]
 pub struct CertificateProperties {
-    validity_in_secs: i64,
+    validity_in_secs: u64,
     common_name: String,
-    certificate_type: Option<CertificateType>,
+    certificate_type: CertificateType,
+    issuer_alias: String,
+    alias: String,
     country: Option<String>,
     state: Option<String>,
     locality: Option<String>,
     organization: Option<String>,
     organization_unit: Option<String>,
-    issuer_alias: Option<String>,
-    alias: Option<String>,
 }
 
 impl CertificateProperties {
-    pub fn validity_in_secs(&self) -> &i64 {
+    pub fn new(
+        validity_in_secs: u64,
+        common_name: String,
+        certificate_type: CertificateType,
+        issuer_alias: String,
+        alias: String,
+    ) -> Self {
+        CertificateProperties {
+            validity_in_secs: validity_in_secs,
+            common_name,
+            certificate_type,
+            issuer_alias,
+            alias,
+            country: None,
+            state: None,
+            locality: None,
+            organization: None,
+            organization_unit: None,
+        }
+    }
+
+    pub fn validity_in_secs(&self) -> &u64 {
         &self.validity_in_secs
     }
 
-    pub fn with_validity_in_secs(mut self, validity_in_secs: i64) -> CertificateProperties {
+    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> CertificateProperties {
         self.validity_in_secs = validity_in_secs;
         self
     }
@@ -373,20 +402,20 @@ impl CertificateProperties {
         &self.common_name
     }
 
-    pub fn with_common_name(mut self, common_name: &str) -> CertificateProperties {
-        self.common_name = common_name.to_string();
+    pub fn with_common_name(mut self, common_name: String) -> CertificateProperties {
+        self.common_name = common_name;
         self
     }
 
-    pub fn certificate_type(&self) -> Option<&CertificateType> {
-        self.certificate_type.as_ref()
+    pub fn certificate_type(&self) -> &CertificateType {
+        &self.certificate_type
     }
 
     pub fn with_certificate_type(
         mut self,
         certificate_type: CertificateType,
     ) -> CertificateProperties {
-        self.certificate_type = Some(certificate_type);
+        self.certificate_type = certificate_type;
         self
     }
 
@@ -435,21 +464,21 @@ impl CertificateProperties {
         self
     }
 
-    pub fn issuer_alias(&self) -> Option<&String> {
-        self.issuer_alias.as_ref()
+    pub fn issuer_alias(&self) -> &String {
+        &self.issuer_alias
     }
 
     pub fn with_issuer_alias(mut self, issuer_alias: String) -> CertificateProperties {
-        self.issuer_alias = Some(issuer_alias);
+        self.issuer_alias = issuer_alias;
         self
     }
 
-    pub fn alias(&self) -> Option<&String> {
-        self.alias.as_ref()
+    pub fn alias(&self) -> &String {
+        &self.alias
     }
 
     pub fn with_alias(mut self, alias: String) -> CertificateProperties {
-        self.alias = Some(alias);
+        self.alias = alias;
         self
     }
 }
@@ -459,14 +488,14 @@ impl Default for CertificateProperties {
         CertificateProperties {
             validity_in_secs: 3600,
             common_name: String::from("CN"),
-            certificate_type: Some(CertificateType::Client),
+            certificate_type: CertificateType::Client,
+            issuer_alias: String::from("device_ca_alias"),
+            alias: String::from("module_1"),
             country: Some(String::from("US")),
             state: None,
             locality: None,
             organization: None,
             organization_unit: None,
-            issuer_alias: Some(String::from("device_ca_alias")),
-            alias: Some(String::from("module_1")),
         }
     }
 }
@@ -483,7 +512,7 @@ pub struct HsmCertificate {
 }
 
 impl HsmCertificate {
-    pub fn get(&self) -> Result<(u32, String), Error> {
+    pub fn pem(&self) -> Result<String, Error> {
         let cert = unsafe {
             CStr::from_ptr(certificate_info_get_certificate(self.cert_info_handle))
                 .to_string_lossy()
@@ -492,7 +521,7 @@ impl HsmCertificate {
         if cert.is_empty() {
             Err(ErrorKind::NullResponse)?
         }
-        Ok((CRYPTO_ENCODING_TAG_PEM, cert))
+        Ok(cert)
     }
 
     pub fn get_private_key(&self) -> Result<(u32, PrivateKey<Vec<u8>>), Error> {
@@ -555,8 +584,6 @@ impl AsRef<[u8]> for Buffer {
         unsafe { &slice::from_raw_parts(self.data.buffer as *const c_uchar, self.data.size) }
     }
 }
-pub type EncryptedBuffer = Buffer;
-pub type DecryptedBuffer = Buffer;
 
 #[cfg(test)]
 mod tests {
@@ -565,8 +592,8 @@ mod tests {
 
     use hsm_sys::*;
     use super::{Buffer, CertificateProperties, Crypto};
-    use super::super::{CreateCertificate, CreateMasterEncryptionKey, DecryptData,
-                       DestroyMasterEncryptionKey, EncryptData, MakeRandom};
+    use super::super::{CreateCertificate, CreateMasterEncryptionKey, Decrypt,
+                       DestroyMasterEncryptionKey, Encrypt, GetTrustBundle, MakeRandom};
 
     static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
 
@@ -781,6 +808,14 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "HSM API Not Implemented")]
+    fn no_trust_bundle_api_fail() {
+        let hsm_crypto = fake_no_if_hsm_crypto();
+        let result = hsm_crypto.get_trust_bundle().unwrap();
+        println!("You should never see this print {:?}", result);
+    }
+
+    #[test]
+    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_encrypt_api_fail() {
         let client_id = b"client_id";
         let plaintext = b"plaintext";
@@ -867,6 +902,14 @@ mod tests {
         let props = CertificateProperties::default();
 
         let result = hsm_crypto.create_certificate(&props).unwrap();
+        println!("You should never see this print {:?}", result);
+    }
+
+    #[test]
+    #[should_panic(expected = "HSM API returned an invalid null response")]
+    fn hsm_get_trust_bundle_errors() {
+        let hsm_crypto = fake_bad_hsm_crypto();
+        let result = hsm_crypto.get_trust_bundle().unwrap();
         println!("You should never see this print {:?}", result);
     }
 

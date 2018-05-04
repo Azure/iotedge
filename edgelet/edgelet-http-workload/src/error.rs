@@ -7,7 +7,6 @@ use chrono::format::ParseError;
 use edgelet_core::Error as CoreError;
 use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use hsm::Error as HsmError;
 use http::{Error as HttpError, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Error as HyperError};
@@ -47,8 +46,6 @@ pub enum ErrorKind {
     DateParse,
     #[fail(display = "Utils error")]
     Utils,
-    #[fail(display = "Hsm error")]
-    Hsm,
 }
 
 impl Fail for Error {
@@ -139,14 +136,6 @@ impl From<UtilsError> for Error {
     fn from(error: UtilsError) -> Error {
         Error {
             inner: error.context(ErrorKind::Utils),
-        }
-    }
-}
-
-impl From<HsmError> for Error {
-    fn from(error: HsmError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Hsm),
         }
     }
 }

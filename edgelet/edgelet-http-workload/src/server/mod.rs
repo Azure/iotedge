@@ -2,13 +2,11 @@
 
 use std::io;
 
-use edgelet_core::KeyStore;
+use edgelet_core::{CreateCertificate, KeyStore};
 use edgelet_http::route::*;
 use http::{Request, Response};
 use hyper::{Body, Error as HyperError};
 use hyper::server::{NewService, Service};
-
-use hsm::CreateCertificate;
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::sign::SignHandler;

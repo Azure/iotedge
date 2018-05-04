@@ -17,7 +17,7 @@ serde = "1.0"
 serde_json = "1.0"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
-hsm = { path = "../hsm-rs" }
 workload = { path = "../workload" }

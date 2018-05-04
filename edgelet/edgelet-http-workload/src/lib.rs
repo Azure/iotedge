@@ -3,6 +3,7 @@
 extern crate base64;
 extern crate chrono;
 extern crate edgelet_core;
+extern crate edgelet_hsm;
 #[macro_use]
 extern crate edgelet_http;
 #[macro_use]
@@ -11,7 +12,6 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 extern crate futures;
-extern crate hsm;
 extern crate http;
 extern crate hyper;
 extern crate log;

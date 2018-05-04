@@ -13,8 +13,8 @@ mod crypto;
 pub use error::{Error, ErrorKind};
 pub use tpm::{Tpm, TpmDigest, TpmKey};
 pub use x509::{X509, X509Data};
-pub use crypto::{CertificateProperties, CertificateType, Crypto, DecryptedBuffer, EncryptedBuffer,
-                 HsmCertificate, PrivateKey};
+pub use crypto::{Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate,
+                 PrivateKey};
 
 // Traits
 
@@ -58,22 +58,26 @@ pub trait CreateCertificate {
     ) -> Result<HsmCertificate, Error>;
 }
 
-pub trait EncryptData {
+pub trait Encrypt {
     fn encrypt(
         &self,
         client_id: &[u8],
         plaintext: &[u8],
         passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
-    ) -> Result<EncryptedBuffer, Error>;
+    ) -> Result<Buffer, Error>;
 }
 
-pub trait DecryptData {
+pub trait Decrypt {
     fn decrypt(
         &self,
         client_id: &[u8],
         ciphertext: &[u8],
         passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
-    ) -> Result<DecryptedBuffer, Error>;
+    ) -> Result<Buffer, Error>;
+}
+
+pub trait GetTrustBundle {
+    fn get_trust_bundle(&self) -> Result<HsmCertificate, Error>;
 }

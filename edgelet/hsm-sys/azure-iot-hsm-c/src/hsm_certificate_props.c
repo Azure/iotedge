@@ -11,22 +11,22 @@
 typedef struct HSM_CERT_PROPS_TAG
 {
     CERTIFICATE_TYPE type;
-    char* alias;
-    char* issuer_alias;
-    char* common_name;
-    char* state_name;
-    char* locality;
-    char* org_name;
-    char* org_unit;
+    char *alias;
+    char *issuer_alias;
+    char *common_name;
+    char *state_name;
+    char *locality;
+    char *org_name;
+    char *org_unit;
     char country_name[3];
     uint64_t validity;
 } HSM_CERT_PROPS;
 
 CERT_PROPS_HANDLE cert_properties_create(void)
 {
-    HSM_CERT_PROPS* result;
+    HSM_CERT_PROPS *result;
 
-    if ((result = (HSM_CERT_PROPS*)malloc(sizeof(HSM_CERT_PROPS))) == NULL)
+    if ((result = (HSM_CERT_PROPS *)malloc(sizeof(HSM_CERT_PROPS))) == NULL)
     {
         LogError("Failure allocating HSM_CERT_PROPS");
     }
@@ -83,7 +83,7 @@ uint64_t get_validity_seconds(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_common_name(CERT_PROPS_HANDLE handle, const char* common_name)
+int set_common_name(CERT_PROPS_HANDLE handle, const char *common_name)
 {
     int result;
     if (handle == NULL || common_name == NULL)
@@ -96,28 +96,37 @@ int set_common_name(CERT_PROPS_HANDLE handle, const char* common_name)
         if (handle->common_name != NULL)
         {
             free(handle->common_name);
+            handle->common_name = NULL;
         }
 
         size_t len = strlen(common_name);
-        handle->common_name = (char*)malloc(len + 1);
-        if (handle->common_name == NULL)
+        if (len == 0)
         {
-            LogError("Failure allocating common_name");
+            LogError("common_name is zero length");
             result = __LINE__;
         }
         else
         {
-            memset(handle->common_name, 0, len+1);
-            memcpy(handle->common_name, common_name, len);
-            result = 0;
+            handle->common_name = (char *)malloc(len + 1);
+            if (handle->common_name == NULL)
+            {
+                LogError("Failure allocating common_name");
+                result = __LINE__;
+            }
+            else
+            {
+                memset(handle->common_name, 0, len + 1);
+                memcpy(handle->common_name, common_name, len);
+                result = 0;
+            }
         }
     }
     return result;
 }
 
-const char* get_common_name(CERT_PROPS_HANDLE handle)
+const char *get_common_name(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -130,7 +139,7 @@ const char* get_common_name(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_country_name(CERT_PROPS_HANDLE handle, const char* country_name)
+int set_country_name(CERT_PROPS_HANDLE handle, const char *country_name)
 {
     int result;
     if (handle == NULL || country_name == NULL)
@@ -151,9 +160,9 @@ int set_country_name(CERT_PROPS_HANDLE handle, const char* country_name)
     return result;
 }
 
-const char* get_country_name(CERT_PROPS_HANDLE handle)
+const char *get_country_name(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -173,7 +182,7 @@ const char* get_country_name(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_state_name(CERT_PROPS_HANDLE handle, const char* state_name)
+int set_state_name(CERT_PROPS_HANDLE handle, const char *state_name)
 {
     int result;
     if (handle == NULL || state_name == NULL)
@@ -189,7 +198,7 @@ int set_state_name(CERT_PROPS_HANDLE handle, const char* state_name)
         }
 
         size_t len = strlen(state_name);
-        handle->state_name = (char*)malloc(len + 1);
+        handle->state_name = (char *)malloc(len + 1);
         if (handle->state_name == NULL)
         {
             LogError("Failure allocating state_name");
@@ -205,9 +214,9 @@ int set_state_name(CERT_PROPS_HANDLE handle, const char* state_name)
     return result;
 }
 
-const char* get_state_name(CERT_PROPS_HANDLE handle)
+const char *get_state_name(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -220,7 +229,7 @@ const char* get_state_name(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_locality(CERT_PROPS_HANDLE handle, const char* locality)
+int set_locality(CERT_PROPS_HANDLE handle, const char *locality)
 {
     int result;
     if (handle == NULL || locality == NULL)
@@ -236,7 +245,7 @@ int set_locality(CERT_PROPS_HANDLE handle, const char* locality)
         }
 
         size_t len = strlen(locality);
-        handle->locality = (char*)malloc(len + 1);
+        handle->locality = (char *)malloc(len + 1);
         if (handle->locality == NULL)
         {
             LogError("Failure allocating locality");
@@ -252,9 +261,9 @@ int set_locality(CERT_PROPS_HANDLE handle, const char* locality)
     return result;
 }
 
-const char* get_locality(CERT_PROPS_HANDLE handle)
+const char *get_locality(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -267,7 +276,7 @@ const char* get_locality(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_organization_name(CERT_PROPS_HANDLE handle, const char* org_name)
+int set_organization_name(CERT_PROPS_HANDLE handle, const char *org_name)
 {
     int result;
     if (handle == NULL || org_name == NULL)
@@ -283,7 +292,7 @@ int set_organization_name(CERT_PROPS_HANDLE handle, const char* org_name)
         }
 
         size_t len = strlen(org_name);
-        handle->org_name = (char*)malloc(len + 1);
+        handle->org_name = (char *)malloc(len + 1);
         if (handle->org_name == NULL)
         {
             LogError("Failure allocating common_name");
@@ -299,9 +308,9 @@ int set_organization_name(CERT_PROPS_HANDLE handle, const char* org_name)
     return result;
 }
 
-const char* get_organization_name(CERT_PROPS_HANDLE handle)
+const char *get_organization_name(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -314,7 +323,7 @@ const char* get_organization_name(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_organization_unit(CERT_PROPS_HANDLE handle, const char* ou)
+int set_organization_unit(CERT_PROPS_HANDLE handle, const char *ou)
 {
     int result;
     if (handle == NULL || ou == NULL)
@@ -330,7 +339,7 @@ int set_organization_unit(CERT_PROPS_HANDLE handle, const char* ou)
         }
 
         size_t len = strlen(ou);
-        handle->org_unit = (char*)malloc(len + 1);
+        handle->org_unit = (char *)malloc(len + 1);
         if (handle->org_unit == NULL)
         {
             LogError("Failure allocating ou");
@@ -346,9 +355,9 @@ int set_organization_unit(CERT_PROPS_HANDLE handle, const char* ou)
     return result;
 }
 
-const char* get_organization_unit(CERT_PROPS_HANDLE handle)
+const char *get_organization_unit(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -367,6 +376,13 @@ int set_certificate_type(CERT_PROPS_HANDLE handle, CERTIFICATE_TYPE type)
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
+        result = __LINE__;
+    }
+    else if ((type != CERTIFICATE_TYPE_CLIENT) &&
+             (type != CERTIFICATE_TYPE_SERVER) &&
+             (type != CERTIFICATE_TYPE_CA))
+    {
+        LogError("Error invalid certificate type", type);
         result = __LINE__;
     }
     else
@@ -392,7 +408,7 @@ CERTIFICATE_TYPE get_certificate_type(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_issuer_alias(CERT_PROPS_HANDLE handle, const char* issuer_alias)
+int set_issuer_alias(CERT_PROPS_HANDLE handle, const char *issuer_alias)
 {
     int result;
     if (handle == NULL || issuer_alias == NULL)
@@ -405,28 +421,37 @@ int set_issuer_alias(CERT_PROPS_HANDLE handle, const char* issuer_alias)
         if (handle->issuer_alias != NULL)
         {
             free(handle->issuer_alias);
+            handle->issuer_alias = NULL;
         }
 
         size_t len = strlen(issuer_alias);
-        handle->issuer_alias = (char*)malloc(len + 1);
-        if (handle->issuer_alias == NULL)
+        if (len == 0)
         {
-            LogError("Failure allocating issuer_alias");
+            LogError("Issuer alias is zero length");
             result = __LINE__;
         }
         else
         {
-            memset(handle->issuer_alias, 0, len+1);
-            memcpy(handle->issuer_alias, issuer_alias, len);
-            result = 0;
+            handle->issuer_alias = (char *)malloc(len + 1);
+            if (handle->issuer_alias == NULL)
+            {
+                LogError("Failure allocating issuer_alias");
+                result = __LINE__;
+            }
+            else
+            {
+                memset(handle->issuer_alias, 0, len + 1);
+                memcpy(handle->issuer_alias, issuer_alias, len);
+                result = 0;
+            }
         }
     }
     return result;
 }
 
-const char* get_issuer_alias(CERT_PROPS_HANDLE handle)
+const char *get_issuer_alias(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");
@@ -439,7 +464,7 @@ const char* get_issuer_alias(CERT_PROPS_HANDLE handle)
     return result;
 }
 
-int set_alias(CERT_PROPS_HANDLE handle, const char* alias)
+int set_alias(CERT_PROPS_HANDLE handle, const char *alias)
 {
     int result;
     if (handle == NULL || alias == NULL)
@@ -455,25 +480,33 @@ int set_alias(CERT_PROPS_HANDLE handle, const char* alias)
         }
 
         size_t len = strlen(alias);
-        handle->alias = (char*)malloc(len + 1);
-        if (handle->alias == NULL)
+        if (len == 0)
         {
-            LogError("Failure allocating alias");
+            LogError("Alias is zero length");
             result = __LINE__;
         }
         else
         {
-            memset(handle->alias, 0, len+1);
-            memcpy(handle->alias, alias, len);
-            result = 0;
+            handle->alias = (char *)malloc(len + 1);
+            if (handle->alias == NULL)
+            {
+                LogError("Failure allocating alias");
+                result = __LINE__;
+            }
+            else
+            {
+                memset(handle->alias, 0, len + 1);
+                memcpy(handle->alias, alias, len);
+                result = 0;
+            }
         }
     }
     return result;
 }
 
-const char* get_alias(CERT_PROPS_HANDLE handle)
+const char *get_alias(CERT_PROPS_HANDLE handle)
 {
-    const char* result;
+    const char *result;
     if (handle == NULL)
     {
         LogError("Invalid parameter encounterered");

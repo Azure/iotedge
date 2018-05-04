@@ -11,6 +11,7 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
 use error::{Error, ErrorKind};
+use certificate_properties::CertificateProperties;
 
 pub trait Sign {
     type Signature: Signature;
@@ -43,6 +44,62 @@ where
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
+}
+
+pub enum PrivateKey<T: AsRef<[u8]>> {
+    Ref(String),
+    Key(T),
+}
+
+pub trait CreateCertificate {
+    type Certificate: Certificate;
+
+    fn create_certificate(
+        &self,
+        properties: &CertificateProperties,
+    ) -> Result<Self::Certificate, Error>;
+}
+
+pub trait Certificate {
+    type Buffer: AsRef<[u8]>;
+    type KeyBuffer: AsRef<[u8]>;
+
+    fn pem(&self) -> Result<Self::Buffer, Error>;
+    fn get_private_key(&self) -> Result<(u32, PrivateKey<Self::KeyBuffer>), Error>;
+}
+
+pub trait GetTrustBundle {
+    type Certificate: Certificate;
+
+    fn get_trust_bundle(&self) -> Result<Self::Certificate, Error>;
+}
+
+pub trait MakeRandom {
+    fn get_random_bytes(&self, buffer: &mut [u8]) -> Result<(), Error>;
+}
+
+pub trait Encrypt {
+    type Buffer: AsRef<[u8]>;
+
+    fn encrypt(
+        &self,
+        client_id: &[u8],
+        plaintext: &[u8],
+        passphrase: Option<&[u8]>,
+        initialization_vector: &[u8],
+    ) -> Result<Self::Buffer, Error>;
+}
+
+pub trait Decrypt {
+    type Buffer: AsRef<[u8]>;
+
+    fn decrypt(
+        &self,
+        client_id: &[u8],
+        ciphertext: &[u8],
+        passphrase: Option<&[u8]>,
+        initialization_vector: &[u8],
+    ) -> Result<Self::Buffer, Error>;
 }
 
 #[derive(Debug)]
