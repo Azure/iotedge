@@ -12,6 +12,7 @@ futures = "0.1"
 http = "0.1"
 hyper = { version = "0.11", features = ["compat"] }
 log = "0.4"
+percent-encoding = "1.0"
 regex = "0.2"
 tokio-core = "0.1"
 tokio-io = "0.1"

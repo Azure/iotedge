@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::default::Default;
 
 use http::{Method, StatusCode};
+use percent_encoding::percent_decode;
 use regex::Regex;
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
@@ -106,8 +107,10 @@ fn match_route(re: &Regex, path: &str) -> Option<Parameters> {
 
         for (i, name) in re.capture_names().enumerate() {
             let val = name.map(|n| cap.name(n).expect("missing name"))
-                .unwrap_or_else(|| cap.get(i).expect("missing capture"));
-            captures.push((name.map(|s| s.to_owned()), val.as_str().to_owned()));
+                .and_then(|v| percent_decode(v.as_str().as_bytes()).decode_utf8().ok())
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| cap.get(i).expect("missing capture").as_str().to_owned());
+            captures.push((name.map(|s| s.to_owned()), val));
         }
         Parameters { captures }
     })
@@ -148,5 +151,12 @@ mod tests {
         let pattern = Regex::new("^/test/(?P<name>[^/]+)$").expect("failed to compile regex");
         let params = match_route(&pattern, "/test/mike").expect("failed to get params");
         assert_eq!(None, params.name("wrong-param"));
+    }
+
+    #[test]
+    fn params_urldecode() {
+        let pattern = Regex::new("^/test/(?P<name>[^/]+)$").expect("failed to compile regex");
+        let params = match_route(&pattern, "/test/mi%2fke").expect("failed to get params");
+        assert_eq!("mi/ke", params.name("name").unwrap());
     }
 }

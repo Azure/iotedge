@@ -10,6 +10,7 @@ extern crate chrono;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
+extern crate percent_encoding;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -34,6 +35,7 @@ use futures::Future;
 use futures::future;
 use hyper::{Error as HyperError, Request, Response};
 use hyper::client::Service;
+use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 use url::form_urlencoded;
 
 use edgelet_core::{Identity, IdentityManager, IdentitySpec};
@@ -121,9 +123,8 @@ where
             self.hub_id, self.device_id
         );
 
-        let resource_uri = form_urlencoded::byte_serialize(audience.to_lowercase().as_bytes())
-            .collect::<Vec<&str>>()
-            .concat();
+        let resource_uri =
+            percent_encode(audience.to_lowercase().as_bytes(), PATH_SEGMENT_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let signature = self.key

@@ -10,6 +10,7 @@ extern crate http;
 extern crate hyper;
 #[macro_use]
 extern crate log;
+extern crate percent_encoding;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
