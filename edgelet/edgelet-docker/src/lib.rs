@@ -43,7 +43,7 @@ extern crate edgelet_test_utils;
 
 mod client;
 mod config;
-pub mod docker_connector;
+pub mod connector;
 mod error;
 mod module;
 mod runtime;

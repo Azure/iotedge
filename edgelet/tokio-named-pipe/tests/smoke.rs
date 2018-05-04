@@ -10,7 +10,7 @@ extern crate rand;
 extern crate tokio_core;
 extern crate tokio_io;
 
-extern crate tokio_named_pipes;
+extern crate tokio_named_pipe;
 
 use std::io::{Read, Write};
 use std::str;
@@ -25,7 +25,7 @@ use tokio_core::reactor::Core;
 use tokio_io::io as tio;
 use tokio_io::codec::{FramedRead, FramedWrite, LinesCodec};
 
-use tokio_named_pipes::PipeStream;
+use tokio_named_pipe::PipeStream;
 
 macro_rules! t {
     ($e:expr) => (match $e {

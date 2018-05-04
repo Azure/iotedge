@@ -1,14 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #[cfg(unix)]
-use std::fs;
+mod linux;
+
+#[cfg(windows)]
+mod windows;
+
+#[cfg(unix)]
+pub use self::linux::run_uds_server;
+
+#[cfg(windows)]
+pub use self::windows::run_pipe_server;
+
 use std::sync::mpsc::Sender;
 
 use futures::prelude::*;
 use hyper::Error as HyperError;
 use hyper::server::{Http, Request, Response, Service};
-#[cfg(unix)]
-use hyperlocal::server::Http as UdsHttp;
 
 struct RequestHandler<F, R>
 where
@@ -54,24 +62,6 @@ where
     let addr = &format!("{}:{}", ip, port).parse().unwrap();
     let server = Http::new()
         .bind(addr, move || Ok(RequestHandler::new(handler)))
-        .unwrap();
-
-    // signal that the server is ready to run
-    ready_channel.send(()).unwrap();
-
-    server.run().unwrap();
-}
-
-#[cfg(unix)]
-pub fn run_uds_server<F, R>(path: &str, handler: &'static F, ready_channel: &Sender<()>)
-where
-    R: 'static + Future<Item = Response, Error = HyperError>,
-    F: Fn(Request) -> R + Send + Sync,
-{
-    fs::remove_file(&path).unwrap_or(());
-
-    let server = UdsHttp::new()
-        .bind(path, move || Ok(RequestHandler::new(handler)))
         .unwrap();
 
     // signal that the server is ready to run

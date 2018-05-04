@@ -19,7 +19,7 @@ use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, E
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_utils::serde_clone;
 
-use docker_connector::DockerConnector;
+use connector::DockerConnector;
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use error::{Error, ErrorKind, Result};
 

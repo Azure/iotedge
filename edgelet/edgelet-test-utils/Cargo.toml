@@ -1,7 +1,7 @@
 [package]
 name = "edgelet-test-utils"
 version = "0.1.0"
-authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com"]
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 publish = false
 
 [dependencies]
@@ -17,3 +17,8 @@ edgelet-core = { path = "../edgelet-core" }
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.4"
+
+[target.'cfg(windows)'.dependencies]
+httparse = "1.2"
+mio = "0.6"
+mio-named-pipes = "0.1"

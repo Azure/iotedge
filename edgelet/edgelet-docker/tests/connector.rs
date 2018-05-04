@@ -29,7 +29,7 @@ use hyperlocal::Uri as HyperlocalUri;
 use tokio_core::reactor::Core;
 use url::Url;
 
-use edgelet_docker::docker_connector::DockerConnector;
+use edgelet_docker::connector::DockerConnector;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 #[cfg(unix)]
 use edgelet_test_utils::run_uds_server;

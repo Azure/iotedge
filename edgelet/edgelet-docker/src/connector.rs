@@ -150,7 +150,7 @@ mod tests {
     use tokio_core::reactor::Core;
     use url::Url;
 
-    use docker_connector::DockerConnector;
+    use connector::DockerConnector;
 
     #[test]
     #[should_panic(expected = "Invalid docker URI")]

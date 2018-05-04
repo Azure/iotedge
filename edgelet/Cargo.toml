@@ -15,6 +15,7 @@ members = [
     "iothubservice",
     "hsm-rs",
     "hsm-sys",
+    "hyper-named-pipe",
     "management",
-    "tokio-named-pipes",
+    "tokio-named-pipe",
 ]

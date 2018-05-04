@@ -1,0 +1,19 @@
+[package]
+name = "hyper-named-pipe"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
+publish = false
+
+[target.'cfg(windows)'.dependencies]
+failure = "0.1"
+futures = "0.1"
+hyper = "0.11"
+tokio-core = "0.1"
+tokio-named-pipe = { path = "../tokio-named-pipe" }
+tokio-service = "0.1"
+
+[dev-dependencies]
+httparse = "1.2"
+rand = "0.4"
+
+edgelet-test-utils = { path = "../edgelet-test-utils" }
