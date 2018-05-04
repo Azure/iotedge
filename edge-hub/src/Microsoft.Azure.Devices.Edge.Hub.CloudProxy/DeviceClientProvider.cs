@@ -3,7 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ClientWrapper;
+    using Microsoft.Azure.Devices.Client.Edge;
 
     public class DeviceClientProvider : IDeviceClientProvider
     {

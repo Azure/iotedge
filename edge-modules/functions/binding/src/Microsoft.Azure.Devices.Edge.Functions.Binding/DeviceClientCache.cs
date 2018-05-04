@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     using System;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Azure.Devices.Client.Edge;
 
     class DeviceClientCache
     {
@@ -20,14 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         public static DeviceClientCache Instance { get; } = new DeviceClientCache();
 
-        public DeviceClient GetOrCreate(string connectionString, TransportType transportType)
+        public DeviceClient GetOrCreate(TransportType transportType)
         {
             return this.clients.GetOrAdd(
-                connectionString,
-                client => this.CreateDeviceClient(connectionString, transportType));
+                transportType.ToString(),
+                client => this.CreateDeviceClient(transportType));
         }
 
-        DeviceClient CreateDeviceClient(string connectionString, TransportType transportType)
+        DeviceClient CreateDeviceClient(TransportType transportType)
         {
             var mqttSetting = new MqttTransportSettings(transportType);
 
@@ -48,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             }
 
             ITransportSettings[] settings = { mqttSetting };
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+            DeviceClient deviceClient = new DeviceClientFactory(settings).Create();
 
             deviceClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
             return deviceClient;

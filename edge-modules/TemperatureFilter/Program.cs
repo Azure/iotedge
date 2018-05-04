@@ -13,6 +13,7 @@ namespace TemperatureFilter
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Edge;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -34,14 +35,11 @@ namespace TemperatureFilter
                 .AddEnvironmentVariables()
                 .Build();
 
-            // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
-            string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
-
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             InstallCert();
-            Init(connectionString, transportType).Wait();
+            Init(transportType).Wait();
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();
@@ -61,7 +59,7 @@ namespace TemperatureFilter
         /// Initializes the DeviceClient and sets up the callback to receive
         /// messages containing temperature information
         /// </summary>
-        static async Task Init(string connectionString, TransportType transportType)
+        static async Task Init(TransportType transportType)
         {
             var mqttSetting = new MqttTransportSettings(transportType);
             // Pin root certificate from file at runtime on Windows
@@ -114,7 +112,7 @@ namespace TemperatureFilter
 
             // Open a connection to the Edge runtime
             DeviceClient deviceClient =
-                DeviceClient.CreateFromConnectionString(connectionString, settings);
+                new DeviceClientFactory(settings).Create();
             await deviceClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 

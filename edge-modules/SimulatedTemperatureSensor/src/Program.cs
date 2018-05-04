@@ -13,6 +13,7 @@ namespace SimulatedTemperatureSensor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Edge;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -39,7 +40,6 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            string connectionString = configuration.GetValue<string>("EdgeHubConnectionString");
             TimeSpan messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
             var sim = new SimulatorParameters()
             {
@@ -103,7 +103,7 @@ namespace SimulatedTemperatureSensor
             }
             ITransportSettings[] settings = { mqttSetting };
 
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+            DeviceClient deviceClient = new DeviceClientFactory(settings).Create();
             await deviceClient.OpenAsync();
             await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 

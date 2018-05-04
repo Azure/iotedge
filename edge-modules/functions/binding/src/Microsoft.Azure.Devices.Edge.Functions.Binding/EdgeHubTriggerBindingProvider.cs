@@ -19,13 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
-        readonly string connectionString;
         readonly TransportType transportType;
         DeviceClient deviceClient;
 
-        public EdgeHubTriggerBindingProvider(string connectionString, TransportType transportType)
+        public EdgeHubTriggerBindingProvider(TransportType transportType)
         {
-            this.connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
             this.transportType = transportType;
         }
 
@@ -79,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return Task.CompletedTask;
             }
 
-            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(this.connectionString, this.transportType);
+            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(this.transportType);
             return this.deviceClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
         }
 
