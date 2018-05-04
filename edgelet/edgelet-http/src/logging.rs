@@ -5,9 +5,10 @@ use std::io;
 
 use chrono::prelude::*;
 use futures::prelude::*;
-use hyper::Error as HyperError;
-use hyper::header::{ContentLength, UserAgent};
-use hyper::server::{NewService, Request, Response, Service};
+use http::{Request, Response};
+use http::header::{CONTENT_LENGTH, USER_AGENT};
+use hyper::{Body, Error as HyperError};
+use hyper::server::{NewService, Service};
 
 #[derive(Clone)]
 pub struct LoggingService<T> {
@@ -28,7 +29,7 @@ pub struct ResponseFuture<T> {
 
 impl<T> Future for ResponseFuture<T>
 where
-    T: Future<Item = Response>,
+    T: Future<Item = Response<Body>>,
 {
     type Item = T::Item;
     type Error = T::Error;
@@ -38,8 +39,8 @@ where
 
         let body_length = response
             .headers()
-            .get::<ContentLength>()
-            .map(|l| l.to_string())
+            .get(CONTENT_LENGTH)
+            .and_then(|l| l.to_str().ok().map(|l| l.to_string()))
             .unwrap_or_else(|| "-".to_string());
 
         info!(
@@ -56,7 +57,7 @@ where
 
 impl<T> Service for LoggingService<T>
 where
-    T: Service<Request = Request, Response = Response>,
+    T: Service<Request = Request<Body>, Response = Response<Body>>,
 {
     type Request = T::Request;
     type Response = T::Response;
@@ -64,11 +65,12 @@ where
     type Future = ResponseFuture<T::Future>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        let request = format!("{} {} {}", req.method(), req.uri().path(), req.version());
+        let request = format!("{} {} {:?}", req.method(), req.uri().path(), req.version());
         let user_agent = req.headers()
-            .get::<UserAgent>()
-            .map(|ua| ua.to_string())
-            .unwrap_or_else(|| "-".to_string());
+            .get(USER_AGENT)
+            .and_then(|ua| ua.to_str().ok())
+            .unwrap_or_else(|| "-")
+            .to_string();
 
         let inner = self.inner.call(req);
         ResponseFuture {
@@ -81,11 +83,11 @@ where
 
 impl<T> NewService for LoggingService<T>
 where
-    T: Clone + Service<Request = Request, Response = Response, Error = HyperError>,
+    T: Clone + Service<Request = Request<Body>, Response = Response<Body>, Error = HyperError>,
     T::Future: 'static,
 {
     type Request = T::Request;
-    type Response = Response;
+    type Response = Response<Body>;
     type Error = HyperError;
     type Instance = Self;
 

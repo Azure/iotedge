@@ -4,9 +4,9 @@ use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -41,9 +41,13 @@ where
     M::Error: IntoResponse,
     <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
 {
-    fn handle(&self, req: Request, _params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        req: Request<Body>,
+        _params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let runtime = self.runtime.clone();
-        let response = req.body()
+        let response = req.into_body()
             .concat2()
             .and_then(move |b| {
                 serde_json::from_slice::<ModuleSpec>(&b)
@@ -67,11 +71,15 @@ where
                                         serde_json::to_string(&details)
                                             .context(ErrorKind::Serde)
                                             .map(|b| {
-                                                Response::new()
-                                                    .with_status(StatusCode::Created)
-                                                    .with_header(ContentLength(b.len() as u64))
-                                                    .with_header(ContentType::json())
-                                                    .with_body(b)
+                                                Response::builder()
+                                                    .status(StatusCode::CREATED)
+                                                    .header(CONTENT_TYPE, "application/json")
+                                                    .header(
+                                                        CONTENT_LENGTH,
+                                                        b.len().to_string().as_str(),
+                                                    )
+                                                    .body(b.into())
+                                                    .unwrap_or_else(|e| e.into_response())
                                             })
                                             .unwrap_or_else(|e| e.into_response())
                                     })
@@ -89,14 +97,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::module::*;
     use edgelet_http::route::Parameters;
-    use hyper::{Method, Uri};
-    use hyper::server::Request;
+    use http::Request;
     use management::models::{Config, ErrorResponse};
     use server::module::tests::Error;
 
@@ -122,27 +127,22 @@ mod tests {
         let handler = CreateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
-        request.set_body(serde_json::to_string(&spec).unwrap());
+        let request = Request::post("http://localhost/modules")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::Created, response.status());
+        assert_eq!(StatusCode::CREATED, response.status());
+        assert_eq!("160", *response.headers().get(CONTENT_LENGTH).unwrap());
         assert_eq!(
-            ContentLength(160),
-            *response.headers().get::<ContentLength>().unwrap()
-        );
-        assert_eq!(
-            ContentType::json(),
-            *response.headers().get::<ContentType>().unwrap()
+            "application/json",
+            *response.headers().get(CONTENT_TYPE).unwrap()
         );
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let details: ModuleDetails = serde_json::from_slice(&b).unwrap();
@@ -165,19 +165,17 @@ mod tests {
     fn bad_body() {
         let handler = CreateModule::new(RUNTIME.clone());
         let body = "invalid";
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::BadRequest, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -195,19 +193,17 @@ mod tests {
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
-        request.set_body(serde_json::to_string(&spec).unwrap());
+        let request = Request::post("http://localhost/modules")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::InternalServerError, response.status());
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -224,19 +220,17 @@ mod tests {
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
-        request.set_body(serde_json::to_string(&spec).unwrap());
+        let request = Request::post("http://localhost/modules")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::BadRequest, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();

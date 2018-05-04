@@ -15,6 +15,7 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 extern crate futures;
+extern crate http;
 extern crate hyper;
 #[cfg(test)]
 #[macro_use]
@@ -32,7 +33,8 @@ extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
 
-use hyper::Response;
+use http::Response;
+use hyper::Body;
 
 mod client;
 mod error;
@@ -42,11 +44,11 @@ pub use client::ModuleClient;
 pub use server::ManagementService;
 
 pub trait IntoResponse {
-    fn into_response(self) -> Response;
+    fn into_response(self) -> Response<Body>;
 }
 
-impl IntoResponse for Response {
-    fn into_response(self) -> Response {
+impl IntoResponse for Response<Body> {
+    fn into_response(self) -> Response<Body> {
         self
     }
 }

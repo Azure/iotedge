@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
-use futures::{future, Future};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
-use serde::Serialize;
-use serde_json;
-
 use edgelet_core::{Module, ModuleRuntime};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use failure::ResultExt;
+use futures::{future, Future};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 use management::models::*;
+use serde::Serialize;
+use serde_json;
 
 use error::ErrorKind;
 use IntoResponse;
@@ -39,7 +38,11 @@ where
     M: 'static + ModuleRuntime,
     <M::Module as Module>::Config: Serialize,
 {
-    fn handle(&self, _req: Request, _params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        _req: Request<Body>,
+        _params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         debug!("List modules");
         let response = self.runtime.list().then(|result| {
             match result.context(ErrorKind::ModuleRuntime) {
@@ -51,11 +54,12 @@ where
                             serde_json::to_string(&body)
                                 .context(ErrorKind::Serde)
                                 .map(|b| {
-                                    Response::new()
-                                        .with_status(StatusCode::Ok)
-                                        .with_header(ContentLength(b.len() as u64))
-                                        .with_header(ContentType::json())
-                                        .with_body(b)
+                                    Response::builder()
+                                        .status(StatusCode::OK)
+                                        .header(CONTENT_TYPE, "application/json")
+                                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                        .body(b.into())
+                                        .unwrap_or_else(|e| e.into_response())
                                 })
                                 .unwrap_or_else(|e| e.into_response())
                         })
@@ -71,15 +75,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use futures::Stream;
-    use hyper::{Method, Uri};
-    use hyper::server::Request;
     use management::models::ModuleList;
     use server::module::tests::Error;
 
@@ -100,17 +100,16 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let handler = ListModules::new(runtime);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
+        let request = Request::get("http://localhost/modules")
+            .body(Body::default())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let list: ModuleList = serde_json::from_slice(&b).unwrap();
@@ -149,17 +148,16 @@ mod tests {
         // arrange
         let runtime = TestRuntime::new(Err(Error::General));
         let handler = ListModules::new(runtime);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
+        let request = Request::get("http://localhost/modules")
+            .body(Body::default())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -180,17 +178,16 @@ mod tests {
         let module = TestModule::new("test-module".to_string(), config, Err(Error::General));
         let runtime = TestRuntime::new(Ok(module));
         let handler = ListModules::new(runtime);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
+        let request = Request::get("http://localhost/modules")
+            .body(Body::default())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();

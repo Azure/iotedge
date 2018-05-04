@@ -2,12 +2,11 @@
 
 use std::cell::RefCell;
 
-use futures::{future, Future};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::server::{Request, Response};
-
 use edgelet_core::{IdentityManager, IdentitySpec};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use futures::{future, Future};
+use http::{Request, Response, StatusCode};
+use hyper::{Body, Error as HyperError};
 
 use error::{Error, ErrorKind};
 use IntoResponse;
@@ -37,7 +36,11 @@ where
     I: 'static + IdentityManager,
     <I as IdentityManager>::Error: IntoResponse,
 {
-    fn handle(&self, _req: Request, params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        _req: Request<Body>,
+        params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -45,7 +48,12 @@ where
                 let result = self.id_manager
                     .borrow_mut()
                     .delete(IdentitySpec::new(name))
-                    .map(|_| Response::new().with_status(StatusCode::NoContent))
+                    .map(|_| {
+                        Response::builder()
+                            .status(StatusCode::NO_CONTENT)
+                            .body(Body::default())
+                            .unwrap_or_else(|e| e.into_response())
+                    })
                     .or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
             })
@@ -57,15 +65,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use futures::Stream;
-    use hyper::{Method, Uri};
-    use hyper::server::Request;
-    use serde_json;
-
     use edgelet_core::Identity;
+    use futures::Stream;
     use management::models::ErrorResponse;
+    use serde_json;
 
     use server::identity::tests::*;
 
@@ -79,15 +82,14 @@ mod tests {
             TestIdentity::new("m3", "iotedge", "3"),
         ]);
         let handler = DeleteIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::delete("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "m2".to_string())]);
 
         let response = handler.handle(request, parameters).wait().unwrap();
-        assert_eq!(StatusCode::NoContent, response.status());
+        assert_eq!(StatusCode::NO_CONTENT, response.status());
 
         let list = handler.id_manager.borrow().get().wait().unwrap();
         assert_eq!(2, list.len());
@@ -101,16 +103,15 @@ mod tests {
     fn delete_no_name_param() {
         let manager = TestIdentityManager::new(vec![]);
         let handler = DeleteIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::delete("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let response = handler
             .handle(request, Parameters::default())
             .wait()
             .unwrap();
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
@@ -125,16 +126,15 @@ mod tests {
     fn delete_fails() {
         let manager = TestIdentityManager::new(vec![]).with_fail_create(true);
         let handler = DeleteIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::delete("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "m1".to_string())]);
 
         let response = handler.handle(request, parameters).wait().unwrap();
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();

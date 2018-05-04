@@ -4,8 +4,8 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::default::Default;
 
+use http::{Method, StatusCode};
 use regex::Regex;
-use hyper::{Method, StatusCode};
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
 
@@ -90,13 +90,13 @@ impl Recognizer for RegexRecognizer {
         method: &Method,
         path: &str,
     ) -> Result<HandlerParamsPair<Self::Parameters>, StatusCode> {
-        let routes = self.routes.get(method).ok_or(StatusCode::NotFound)?;
+        let routes = self.routes.get(method).ok_or(StatusCode::NOT_FOUND)?;
         for route in routes {
             if let Some(params) = match_route(&route.pattern, path) {
                 return Ok((&*route.handler, params));
             }
         }
-        Err(StatusCode::NotFound)
+        Err(StatusCode::NOT_FOUND)
     }
 }
 

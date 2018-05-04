@@ -4,9 +4,9 @@ use std::cell::RefCell;
 
 use failure::ResultExt;
 use futures::{future, Future};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 use serde::Serialize;
 use serde_json;
 
@@ -44,7 +44,11 @@ where
     I::Identity: Serialize,
     <I as IdentityManager>::Error: IntoResponse,
 {
-    fn handle(&self, _req: Request, params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        _req: Request<Body>,
+        params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
@@ -56,11 +60,12 @@ where
                         serde_json::to_string(&identity)
                             .context(ErrorKind::Serde)
                             .map(|b| {
-                                Response::new()
-                                    .with_status(StatusCode::Ok)
-                                    .with_header(ContentLength(b.len() as u64))
-                                    .with_header(ContentType::json())
-                                    .with_body(b)
+                                Response::builder()
+                                    .status(StatusCode::OK)
+                                    .header(CONTENT_TYPE, "application/json")
+                                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                    .body(b.into())
+                                    .unwrap_or_else(|e| e.into_response())
                             })
                             .unwrap_or_else(|e| e.into_response())
                     })
@@ -75,13 +80,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use futures::Stream;
-    use hyper::{Method, Uri};
-    use hyper::server::Request;
-
     use edgelet_core::Identity;
+    use futures::Stream;
     use management::models::ErrorResponse;
 
     use server::identity::tests::*;
@@ -92,16 +92,15 @@ mod tests {
     fn create_succeeds() {
         let manager = TestIdentityManager::new(vec![]);
         let handler = CreateIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::put("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "m1".to_string())]);
 
         let response = handler.handle(request, parameters).wait().unwrap();
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
@@ -119,16 +118,15 @@ mod tests {
     fn create_no_name_param() {
         let manager = TestIdentityManager::new(vec![]);
         let handler = CreateIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::put("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let response = handler
             .handle(request, Parameters::default())
             .wait()
             .unwrap();
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
@@ -143,16 +141,15 @@ mod tests {
     fn create_fails() {
         let manager = TestIdentityManager::new(vec![]).with_fail_create(true);
         let handler = CreateIdentity::new(manager);
-        let request = Request::new(
-            Method::Put,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::put("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "m1".to_string())]);
 
         let response = handler.handle(request, parameters).wait().unwrap();
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();

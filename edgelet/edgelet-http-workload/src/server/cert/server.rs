@@ -4,9 +4,9 @@ use base64;
 use chrono::prelude::*;
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 use serde_json;
 
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
@@ -31,13 +31,17 @@ impl<T> Handler<Parameters> for ServerCertHandler<T>
 where
     T: CreateCertificate + 'static + Clone,
 {
-    fn handle(&self, req: Request, params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        req: Request<Body>,
+        params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let hsm = self.hsm.clone();
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|_module_id| {
-                let result = req.body()
+                let result = req.into_body()
                     .concat2()
                     .map(|body| {
                         serde_json::from_slice::<ServerCertificateRequest>(&body)
@@ -66,11 +70,12 @@ where
                                             cert_req.expiration().as_str(),
                                         )?;
                                         let body = serde_json::to_string(&private_key)?;
-                                        Ok(Response::new()
-                                            .with_status(StatusCode::Created)
-                                            .with_header(ContentLength(body.len() as u64))
-                                            .with_header(ContentType::json())
-                                            .with_body(body))
+                                        Response::builder()
+                                            .status(StatusCode::CREATED)
+                                            .header(CONTENT_TYPE, "application/json")
+                                            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                                            .body(body.into())
+                                            .map_err(From::from)
                                     })
                             })
                             .unwrap_or_else(|e| e.into_response())

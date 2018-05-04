@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use base64;
-use failure::ResultExt;
-use futures::{future, Future, Stream};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
-use serde_json;
-
 use edgelet_core::KeyStore;
 use edgelet_core::crypto::{Sign, Signature, SignatureAlgorithm};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use failure::ResultExt;
+use futures::{future, Future, Stream};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
+use serde_json;
 use workload::models::{SignRequest, SignResponse};
 
 use error::{Error, ErrorKind};
@@ -54,14 +53,18 @@ impl<K> Handler<Parameters> for SignHandler<K>
 where
     K: 'static + KeyStore + Clone,
 {
-    fn handle(&self, req: Request, params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        req: Request<Body>,
+        params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
                 let id = name.to_string();
                 let key_store = self.key_store.clone();
-                let ok = req.body().concat2().map(move |b| {
+                let ok = req.into_body().concat2().map(move |b| {
                     serde_json::from_slice::<SignRequest>(&b)
                         .context(ErrorKind::BadBody)
                         .map_err(From::from)
@@ -71,12 +74,13 @@ where
                                 .context(ErrorKind::Serde)
                                 .map_err(From::from)
                         })
-                        .map(|b| {
-                            Response::new()
-                                .with_status(StatusCode::Ok)
-                                .with_header(ContentLength(b.len() as u64))
-                                .with_header(ContentType::json())
-                                .with_body(b)
+                        .and_then(|b| {
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                .body(b.into())
+                                .map_err(From::from)
                         })
                         .unwrap_or_else(|e| e.into_response())
                 });
@@ -89,13 +93,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
     use edgelet_core::crypto::MemoryKey;
     use edgelet_http::route::Parameters;
-    use hyper::{Method, StatusCode, Uri};
-    use hyper::server::Request;
     use workload::models::ErrorResponse;
 
     use super::*;
@@ -152,20 +152,18 @@ mod tests {
 
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules/name/sign").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules/name/sign")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
         let expected = "97yD9DBThCSxMpjmqm+xQ+9NWaFJRhdZl0edvC0aPNg=";
-        assert_eq!(StatusCode::Ok, response.status());
+        assert_eq!(StatusCode::OK, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let sign_response: SignResponse = serde_json::from_slice(&b).unwrap();
@@ -191,19 +189,17 @@ mod tests {
 
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules/name/sign").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules/name/sign")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::NotFound, response.status());
+        assert_eq!(StatusCode::NOT_FOUND, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -231,17 +227,15 @@ mod tests {
         );
         let body = serde_json::to_string(&sign_request).unwrap();
 
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules/unknown/sign").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules/unknown/sign")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::BadRequest, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
     }
 
     #[test]
@@ -260,19 +254,17 @@ mod tests {
 
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules/name/sign").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules/name/sign")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::UnprocessableEntity, response.status());
+        assert_eq!(StatusCode::UNPROCESSABLE_ENTITY, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -296,19 +288,17 @@ mod tests {
 
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
-        let mut request = Request::new(
-            Method::Post,
-            Uri::from_str("http://localhost/modules/name/sign").unwrap(),
-        );
-        request.set_body(body);
+        let request = Request::post("http://localhost/modules/name/sign")
+            .body(body.into())
+            .unwrap();
 
         // act
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::BadRequest, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();

@@ -8,9 +8,9 @@ use edgelet_core::Error as CoreError;
 use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
 use hsm::Error as HsmError;
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::Response;
+use http::{Error as HttpError, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 use workload::models::ErrorResponse;
 use serde_json;
 
@@ -31,6 +31,8 @@ pub enum ErrorKind {
     Serde,
     #[fail(display = "Hyper error")]
     Hyper,
+    #[fail(display = "Http error")]
+    Http,
     #[fail(display = "Bad parameter")]
     BadParam,
     #[fail(display = "Bad body")]
@@ -101,6 +103,14 @@ impl From<HyperError> for Error {
     }
 }
 
+impl From<HttpError> for Error {
+    fn from(error: HttpError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
 impl From<DecodeError> for Error {
     fn from(error: DecodeError) -> Error {
         Error {
@@ -148,7 +158,7 @@ impl From<Error> for HyperError {
 }
 
 impl IntoResponse for Error {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let mut fail: &Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
@@ -157,15 +167,15 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::NotFound => StatusCode::NotFound,
-            ErrorKind::BadParam => StatusCode::BadRequest,
-            ErrorKind::BadBody => StatusCode::BadRequest,
-            ErrorKind::Base64 => StatusCode::UnprocessableEntity,
-            _ => StatusCode::InternalServerError,
+            ErrorKind::NotFound => StatusCode::NOT_FOUND,
+            ErrorKind::BadParam => StatusCode::BAD_REQUEST,
+            ErrorKind::BadBody => StatusCode::BAD_REQUEST,
+            ErrorKind::Base64 => StatusCode::UNPROCESSABLE_ENTITY,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         // Per the RFC, status code NotModified should not have a body
-        let body = if status_code != StatusCode::NotModified {
+        let body = if status_code != StatusCode::NOT_MODIFIED {
             let b = serde_json::to_string(&ErrorResponse::new(message))
                 .expect("serialization of ErrorResponse failed.");
             Some(b)
@@ -174,17 +184,29 @@ impl IntoResponse for Error {
         };
 
         body.map(|b| {
-            Response::new()
-                .with_status(status_code)
-                .with_header(ContentLength(b.len() as u64))
-                .with_header(ContentType::json())
-                .with_body(b)
-        }).unwrap_or_else(|| Response::new().with_status(status_code))
+            Response::builder()
+                .status(status_code)
+                .header(CONTENT_TYPE, "application/json")
+                .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                .body(b.into())
+                .expect("response builder failure")
+        }).unwrap_or_else(|| {
+            Response::builder()
+                .status(status_code)
+                .body(Body::default())
+                .expect("response builder failure")
+        })
+    }
+}
+
+impl IntoResponse for HttpError {
+    fn into_response(self) -> Response<Body> {
+        Error::from(self).into_response()
     }
 }
 
 impl IntoResponse for Context<ErrorKind> {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let error: Error = Error::from(self);
         error.into_response()
     }

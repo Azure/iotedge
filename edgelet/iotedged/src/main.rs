@@ -36,7 +36,7 @@ use url::Url;
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_docker::DockerModuleRuntime;
-use edgelet_http::{ApiVersionService, Run, Runnable};
+use edgelet_http::{ApiVersionService, HyperExt, Run};
 use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -100,7 +100,7 @@ fn main_runner() -> Result<(), Error> {
     let (work_tx, work_rx) = oneshot::channel();
 
     let mgmt = start_management(
-        "0.0.0.0:8080",
+        Url::parse("tcp://0.0.0.0:8080")?,
         key_store.clone(),
         &core.handle(),
         &hub_name,
@@ -108,7 +108,12 @@ fn main_runner() -> Result<(), Error> {
         root_key,
         mgmt_rx,
     )?;
-    let workload = start_workload("0.0.0.0:8081", &key_store, &core.handle(), work_rx)?;
+    let workload = start_workload(
+        Url::parse("tcp://0.0.0.0:8081")?,
+        &key_store,
+        &core.handle(),
+        work_rx,
+    )?;
 
     let shutdown = signal::shutdown(&core.handle()).map(move |_| {
         mgmt_tx.send(()).unwrap_or(());
@@ -139,7 +144,7 @@ fn provision(
 }
 
 fn start_management<K>(
-    addr: &str,
+    addr: Url,
     key_store: K,
     handle: &Handle,
     hub_name: &str,
@@ -150,7 +155,6 @@ fn start_management<K>(
 where
     K: 'static + KeyStore<Key = MemoryKey> + Clone,
 {
-    let uri = addr.parse()?;
     let client_handle = handle.clone();
     let server_handle = handle.clone();
 
@@ -180,13 +184,13 @@ where
     );
 
     let run = Http::new()
-        .serve_addr_handle(&uri, &server_handle, service)?
-        .run_until(handle, shutdown.map_err(|_| ()));
+        .bind_handle(addr, server_handle, service)?
+        .run_until(shutdown.map_err(|_| ()));
     Ok(run)
 }
 
 fn start_workload<K>(
-    addr: &str,
+    addr: Url,
     key_store: &K,
     handle: &Handle,
     shutdown: Receiver<()>,
@@ -194,7 +198,6 @@ fn start_workload<K>(
 where
     K: 'static + KeyStore + Clone,
 {
-    let uri = addr.parse()?;
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
         key_store,
@@ -207,8 +210,8 @@ where
     );
 
     let run = Http::new()
-        .serve_addr_handle(&uri, &server_handle, service)?
-        .run_until(handle, shutdown.map_err(|_| ()));
+        .bind_handle(addr, server_handle, service)?
+        .run_until(shutdown.map_err(|_| ()));
     Ok(run)
 }
 

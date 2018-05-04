@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use edgelet_core::{Identity as CoreIdentity, IdentityManager};
+use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Request, Response};
+use http::{Request, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
+use management::models::{Identity, IdentityList};
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{Identity as CoreIdentity, IdentityManager};
-use edgelet_http::route::{BoxFuture, Handler, Parameters};
-
 use error::ErrorKind;
 use IntoResponse;
-use management::models::{Identity, IdentityList};
 
 pub struct ListIdentities<I>
 where
@@ -38,7 +37,11 @@ where
     I: 'static + IdentityManager,
     I::Identity: Serialize,
 {
-    fn handle(&self, _req: Request, _params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        _req: Request<Body>,
+        _params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let response = self.id_manager.get().then(|result| {
             result
                 .context(ErrorKind::IdentityManager)
@@ -58,11 +61,12 @@ where
                     let result = serde_json::to_string(&body)
                         .context(ErrorKind::Serde)
                         .map(|b| {
-                            Response::new()
-                                .with_status(StatusCode::Ok)
-                                .with_header(ContentLength(b.len() as u64))
-                                .with_header(ContentType::json())
-                                .with_body(b)
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                                .body(b.into())
+                                .unwrap_or_else(|e| e.into_response())
                         })
                         .unwrap_or_else(|e| e.into_response());
 
@@ -77,12 +81,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use futures::Stream;
-    use hyper::{Method, Uri};
-    use hyper::server::Request;
-
     use management::models::ErrorResponse;
 
     use server::identity::tests::*;
@@ -97,17 +96,16 @@ mod tests {
             TestIdentity::new("m3", "iotedge", "3"),
         ]);
         let handler = ListIdentities::new(manager);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/identities").unwrap(),
-        );
+        let request = Request::get("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let response = handler
             .handle(request, Parameters::default())
             .wait()
             .unwrap();
 
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let list: IdentityList = serde_json::from_slice(&body).unwrap();
@@ -127,14 +125,13 @@ mod tests {
     fn list_fails() {
         let manager = TestIdentityManager::new(vec![]).with_fail_get(true);
         let handler = ListIdentities::new(manager);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules").unwrap(),
-        );
+        let request = Request::get("http://localhost/identities")
+            .body(Body::default())
+            .unwrap();
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|body| {
                 let error: ErrorResponse = serde_json::from_slice(&body).unwrap();

@@ -4,8 +4,9 @@ use std::io;
 
 use edgelet_core::KeyStore;
 use edgelet_http::route::*;
-use hyper::Error as HyperError;
-use hyper::server::{NewService, Request, Response, Service};
+use http::{Request, Response};
+use hyper::{Body, Error as HyperError};
+use hyper::server::{NewService, Service};
 
 use hsm::CreateCertificate;
 
@@ -38,19 +39,19 @@ impl WorkloadService {
 }
 
 impl Service for WorkloadService {
-    type Request = Request;
-    type Response = Response;
+    type Request = Request<Body>;
+    type Response = Response<Body>;
     type Error = HyperError;
-    type Future = BoxFuture<Response, HyperError>;
+    type Future = BoxFuture<Self::Response, HyperError>;
 
-    fn call(&self, req: Request) -> Self::Future {
+    fn call(&self, req: Request<Body>) -> Self::Future {
         self.inner.call(req)
     }
 }
 
 impl NewService for WorkloadService {
-    type Request = Request;
-    type Response = Response;
+    type Request = Request<Body>;
+    type Response = Response<Body>;
     type Error = HyperError;
     type Instance = Self;
 

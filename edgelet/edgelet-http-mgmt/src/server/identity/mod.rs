@@ -1,15 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::Fail;
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::Response;
-use hyper::StatusCode;
-use serde_json;
-
-use edgelet_iothub::Error as IothubError;
-use management::models::ErrorResponse;
-use IntoResponse;
-
 mod create;
 mod delete;
 mod list;
@@ -18,31 +8,11 @@ pub use self::create::CreateIdentity;
 pub use self::delete::DeleteIdentity;
 pub use self::list::ListIdentities;
 
-impl IntoResponse for IothubError {
-    fn into_response(self) -> Response {
-        let mut fail: &Fail = &self;
-        let mut message = self.to_string();
-        while let Some(cause) = fail.cause() {
-            message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
-            fail = cause;
-        }
-
-        let body = serde_json::to_string(&ErrorResponse::new(message))
-            .expect("serialization of ErrorResponse failed.");
-
-        Response::new()
-            .with_status(StatusCode::InternalServerError)
-            .with_header(ContentLength(body.len() as u64))
-            .with_header(ContentType::json())
-            .with_body(body)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use futures::future::{self, FutureResult};
-    use hyper::StatusCode;
-    use hyper::server::Response;
+    use http::{Response, StatusCode};
+    use hyper::Body;
     use serde_json;
 
     use edgelet_core::{Identity, IdentityManager, IdentitySpec};
@@ -59,12 +29,13 @@ mod tests {
     }
 
     impl IntoResponse for Error {
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Body> {
             let body = serde_json::to_string(&ErrorResponse::new(self.to_string()))
                 .expect("serialization of ErrorResponse failed.");
-            Response::new()
-                .with_status(StatusCode::InternalServerError)
-                .with_body(body)
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(body.into())
+                .unwrap()
         }
     }
 

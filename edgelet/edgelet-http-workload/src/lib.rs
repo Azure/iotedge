@@ -12,13 +12,15 @@ extern crate failure;
 extern crate failure_derive;
 extern crate futures;
 extern crate hsm;
+extern crate http;
 extern crate hyper;
 extern crate log;
 extern crate serde;
 extern crate serde_json;
 extern crate workload;
 
-use hyper::Response;
+use http::Response;
+use hyper::Body;
 
 mod error;
 mod server;
@@ -26,11 +28,11 @@ mod server;
 pub use server::WorkloadService;
 
 pub trait IntoResponse {
-    fn into_response(self) -> Response;
+    fn into_response(self) -> Response<Body>;
 }
 
-impl IntoResponse for Response {
-    fn into_response(self) -> Response {
+impl IntoResponse for Response<Body> {
+    fn into_response(self) -> Response<Body> {
         self
     }
 }

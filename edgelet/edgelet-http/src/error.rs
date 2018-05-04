@@ -3,9 +3,9 @@
 use std::fmt::{self, Display};
 
 use failure::{Backtrace, Context, Fail};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::Response;
+use http::{Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError};
 
 use IntoResponse;
 
@@ -73,7 +73,7 @@ impl From<Error> for HyperError {
 }
 
 impl IntoResponse for Error {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let mut fail: &Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
@@ -82,24 +82,25 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::InvalidApiVersion => StatusCode::BadRequest,
-            _ => StatusCode::InternalServerError,
+            ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = json!({
             "message": message,
         }).to_string();
 
-        Response::new()
-            .with_status(status_code)
-            .with_header(ContentLength(body.len() as u64))
-            .with_header(ContentType::json())
-            .with_body(body)
+        Response::builder()
+            .status(status_code)
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+            .body(body.into())
+            .expect("response builder failure")
     }
 }
 
 impl IntoResponse for Context<ErrorKind> {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let error: Error = Error::from(self);
         error.into_response()
     }

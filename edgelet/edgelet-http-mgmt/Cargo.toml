@@ -8,7 +8,8 @@ publish = false
 failure = "0.1"
 failure_derive = "0.1"
 futures = "0.1"
-hyper = "0.11"
+http = "0.1"
+hyper = { version = "0.11", features = ["compat"] }
 log = "0.4"
 serde = "1.0"
 serde_derive = "1.0"

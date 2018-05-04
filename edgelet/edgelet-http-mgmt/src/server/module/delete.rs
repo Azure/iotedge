@@ -3,8 +3,8 @@
 use edgelet_core::ModuleRuntime;
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use futures::{future, Future};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::server::{Request, Response};
+use http::{Request, Response, StatusCode};
+use hyper::{Body, Error as HyperError};
 
 use error::{Error, ErrorKind};
 use IntoResponse;
@@ -32,14 +32,23 @@ where
     M: 'static + ModuleRuntime,
     <M as ModuleRuntime>::Error: IntoResponse,
 {
-    fn handle(&self, _req: Request, params: Parameters) -> BoxFuture<Response, HyperError> {
+    fn handle(
+        &self,
+        _req: Request<Body>,
+        params: Parameters,
+    ) -> BoxFuture<Response<Body>, HyperError> {
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
                 let result = self.runtime
                     .remove(name)
-                    .map(|_| Response::new().with_status(StatusCode::NoContent))
+                    .map(|_| {
+                        Response::builder()
+                            .status(StatusCode::NO_CONTENT)
+                            .body(Body::default())
+                            .unwrap_or_else(|e| e.into_response())
+                    })
                     .or_else(|e| future::ok(e.into_response()));
                 future::Either::A(result)
             })
@@ -50,14 +59,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
-    use hyper::{Method, StatusCode, Uri};
-    use hyper::server::Request;
     use server::module::tests::Error;
 
     use super::*;
@@ -79,16 +84,15 @@ mod tests {
         let handler = DeleteModule::new(runtime);
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules/test/stop").unwrap(),
-        );
+        let request = Request::delete("http://localhost/modules/test")
+            .body(Body::default())
+            .unwrap();
 
         // act
         let response = handler.handle(request, parameters).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::NoContent, response.status());
+        assert_eq!(StatusCode::NO_CONTENT, response.status());
     }
 
     #[test]
@@ -106,15 +110,14 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::new(Ok(module));
         let handler = DeleteModule::new(runtime);
-        let request = Request::new(
-            Method::Get,
-            Uri::from_str("http://localhost/modules/test/stop").unwrap(),
-        );
+        let request = Request::delete("http://localhost/modules/test")
+            .body(Body::default())
+            .unwrap();
 
         // act
         let response = handler.handle(request, Parameters::new()).wait().unwrap();
 
         // assert
-        assert_eq!(StatusCode::BadRequest, response.status());
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
     }
 }

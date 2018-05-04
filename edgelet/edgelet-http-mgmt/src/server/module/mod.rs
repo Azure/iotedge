@@ -6,9 +6,9 @@ use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleSt
 use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use failure::{Fail, ResultExt};
 use futures::Future;
-use hyper::StatusCode;
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::Response;
+use http::{Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::Body;
 use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -36,7 +36,7 @@ pub use self::stop::StopModule;
 pub use self::update::UpdateModule;
 
 impl IntoResponse for DockerError {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let mut fail: &Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
@@ -45,14 +45,14 @@ impl IntoResponse for DockerError {
         }
 
         let status_code = match *self.kind() {
-            DockerErrorKind::NotFound => StatusCode::NotFound,
-            DockerErrorKind::Conflict => StatusCode::Conflict,
-            DockerErrorKind::NotModified => StatusCode::NotModified,
-            _ => StatusCode::InternalServerError,
+            DockerErrorKind::NotFound => StatusCode::NOT_FOUND,
+            DockerErrorKind::Conflict => StatusCode::CONFLICT,
+            DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         // Per the RFC, status code NotModified should not have a body
-        let body = if status_code != StatusCode::NotModified {
+        let body = if status_code != StatusCode::NOT_MODIFIED {
             let b = serde_json::to_string(&ErrorResponse::new(message))
                 .expect("serialization of ErrorResponse failed.");
             Some(b)
@@ -61,12 +61,18 @@ impl IntoResponse for DockerError {
         };
 
         body.map(|b| {
-            Response::new()
-                .with_status(status_code)
-                .with_header(ContentLength(b.len() as u64))
-                .with_header(ContentType::json())
-                .with_body(b)
-        }).unwrap_or_else(|| Response::new().with_status(status_code))
+            Response::builder()
+                .status(status_code)
+                .header(CONTENT_TYPE, "application/json")
+                .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                .body(b.into())
+                .expect("response builder failure")
+        }).unwrap_or_else(|| {
+            Response::builder()
+                .status(status_code)
+                .body(Body::default())
+                .expect("response builder failure")
+        })
     }
 }
 
@@ -160,8 +166,8 @@ fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
 mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use futures::{Future, Stream};
-    use hyper::StatusCode;
-    use hyper::server::Response;
+    use http::{Response, StatusCode};
+    use hyper::Body;
     use management::models::ErrorResponse;
     use serde_json;
 
@@ -174,12 +180,13 @@ mod tests {
     }
 
     impl IntoResponse for Error {
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Body> {
             let body = serde_json::to_string(&ErrorResponse::new(self.to_string()))
                 .expect("serialization of ErrorResponse failed.");
-            Response::new()
-                .with_status(StatusCode::InternalServerError)
-                .with_body(body)
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(body.into())
+                .unwrap()
         }
     }
 
@@ -192,9 +199,9 @@ mod tests {
         let response = error.into_response();
 
         // assert
-        assert_eq!(StatusCode::NotFound, response.status());
+        assert_eq!(StatusCode::NOT_FOUND, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -214,9 +221,9 @@ mod tests {
         let response = error.into_response();
 
         // assert
-        assert_eq!(StatusCode::Conflict, response.status());
+        assert_eq!(StatusCode::CONFLICT, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
@@ -236,9 +243,9 @@ mod tests {
         let response = error.into_response();
 
         // assert
-        assert_eq!(StatusCode::InternalServerError, response.status());
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
         response
-            .body()
+            .into_body()
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();

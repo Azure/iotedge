@@ -9,8 +9,9 @@ use std::io;
 use std::sync::Arc;
 
 use futures::{future, Future};
-use hyper::{Error as HyperError, Method, StatusCode};
-use hyper::server::{NewService, Request, Response, Service};
+use http::{Method, Request, Response, StatusCode};
+use hyper::{Body, Error as HyperError};
+use hyper::server::{NewService, Service};
 
 pub mod macros;
 mod regex;
@@ -18,14 +19,14 @@ mod regex;
 pub type BoxFuture<T, E> = Box<Future<Item = T, Error = E>>;
 
 pub trait Handler<P>: 'static {
-    fn handle(&self, req: Request, params: P) -> BoxFuture<Response, HyperError>;
+    fn handle(&self, req: Request<Body>, params: P) -> BoxFuture<Response<Body>, HyperError>;
 }
 
 impl<F, P> Handler<P> for F
 where
-    F: 'static + Fn(Request, P) -> BoxFuture<Response, HyperError>,
+    F: 'static + Fn(Request<Body>, P) -> BoxFuture<Response<Body>, HyperError>,
 {
-    fn handle(&self, req: Request, params: P) -> BoxFuture<Response, HyperError> {
+    fn handle(&self, req: Request<Body>, params: P) -> BoxFuture<Response<Body>, HyperError> {
         (*self)(req, params)
     }
 }
@@ -57,7 +58,7 @@ pub trait Builder: Sized {
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
     {
-        self.route(Method::Get, pattern, handler)
+        self.route(Method::GET, pattern, handler)
     }
 
     fn post<S, H>(self, pattern: S, handler: H) -> Self
@@ -65,7 +66,7 @@ pub trait Builder: Sized {
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
     {
-        self.route(Method::Post, pattern, handler)
+        self.route(Method::POST, pattern, handler)
     }
 
     fn put<S, H>(self, pattern: S, handler: H) -> Self
@@ -73,7 +74,7 @@ pub trait Builder: Sized {
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
     {
-        self.route(Method::Put, pattern, handler)
+        self.route(Method::PUT, pattern, handler)
     }
 
     fn delete<S, H>(self, pattern: S, handler: H) -> Self
@@ -81,7 +82,7 @@ pub trait Builder: Sized {
         S: AsRef<str>,
         H: Handler<<Self::Recognizer as Recognizer>::Parameters>,
     {
-        self.route(Method::Delete, pattern, handler)
+        self.route(Method::DELETE, pattern, handler)
     }
 }
 
@@ -101,8 +102,8 @@ impl<R> NewService for Router<R>
 where
     R: Recognizer,
 {
-    type Request = Request;
-    type Response = Response;
+    type Request = Request<Body>;
+    type Response = Response<Body>;
     type Error = HyperError;
     type Instance = RouterService<R>;
 
@@ -132,18 +133,25 @@ impl<R> Service for RouterService<R>
 where
     R: Recognizer,
 {
-    type Request = Request;
-    type Response = Response;
+    type Request = Request<Body>;
+    type Response = Response<Body>;
     type Error = HyperError;
-    type Future = BoxFuture<Response, HyperError>;
+    type Future = BoxFuture<Self::Response, HyperError>;
 
-    fn call(&self, req: Request) -> Self::Future {
+    fn call(&self, req: Request<Body>) -> Self::Future {
         let method = req.method().clone();
-        let path = req.path().to_owned();
+        let path = req.uri().path().to_owned();
         self.inner
             .recognize(&method, &path)
             .map(|(handler, params)| handler.handle(req, params))
-            .unwrap_or_else(|code| Box::new(future::ok(Response::new().with_status(code))))
+            .unwrap_or_else(|code| {
+                Box::new(future::result(
+                    Response::builder()
+                        .status(code)
+                        .body(Body::default())
+                        .map_err(|_| HyperError::Status),
+                ))
+            })
     }
 }
 

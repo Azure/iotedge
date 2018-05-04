@@ -3,10 +3,11 @@
 use std::fmt::{self, Display};
 
 use edgelet_core::Error as CoreError;
+use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
-use hyper::{Error as HyperError, StatusCode};
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::Response;
+use http::{Error as HttpError, Response, StatusCode};
+use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 use serde_json;
 
 use management::apis::Error as MgmtError;
@@ -31,10 +32,14 @@ pub enum ErrorKind {
     Serde,
     #[fail(display = "Hyper error")]
     Hyper,
+    #[fail(display = "Http error")]
+    Http,
     #[fail(display = "Bad parameter")]
     BadParam,
     #[fail(display = "Bad body")]
     BadBody,
+    #[fail(display = "IoT Hub error")]
+    IoTHub,
     #[fail(display = "Invalid or missing API version")]
     InvalidApiVersion,
     #[fail(display = "Client error")]
@@ -109,12 +114,20 @@ impl From<Error> for HyperError {
     }
 }
 
+impl From<HttpError> for Error {
+    fn from(error: HttpError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
 impl From<MgmtError<serde_json::Value>> for Error {
     fn from(error: MgmtError<serde_json::Value>) -> Error {
         match error {
             MgmtError::Hyper(h) => From::from(h),
             MgmtError::Serde(s) => From::from(s),
-            MgmtError::ApiError(ref e) if e.code == StatusCode::NotModified => {
+            MgmtError::ApiError(ref e) if e.code == HyperStatusCode::NotModified => {
                 From::from(ErrorKind::NotModified)
             }
             MgmtError::ApiError(_) => From::from(ErrorKind::Client(error)),
@@ -122,8 +135,16 @@ impl From<MgmtError<serde_json::Value>> for Error {
     }
 }
 
+impl From<IoTHubError> for Error {
+    fn from(error: IoTHubError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::IoTHub),
+        }
+    }
+}
+
 impl IntoResponse for Error {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let mut fail: &Fail = &self;
         let mut message = self.to_string();
         while let Some(cause) = fail.cause() {
@@ -132,32 +153,45 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::BadParam => StatusCode::BadRequest,
-            ErrorKind::BadBody => StatusCode::BadRequest,
-            ErrorKind::InvalidApiVersion => StatusCode::BadRequest,
-            _ => StatusCode::InternalServerError,
+            ErrorKind::BadParam => StatusCode::BAD_REQUEST,
+            ErrorKind::BadBody => StatusCode::BAD_REQUEST,
+            ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = serde_json::to_string(&ErrorResponse::new(message))
             .expect("serialization of ErrorResponse failed.");
 
-        Response::new()
-            .with_status(status_code)
-            .with_header(ContentLength(body.len() as u64))
-            .with_header(ContentType::json())
-            .with_body(body)
+        Response::builder()
+            .status(status_code)
+            .header(CONTENT_TYPE, "application/json")
+            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+            .body(body.into())
+            .expect("response builder failure")
     }
 }
 
 impl IntoResponse for Context<ErrorKind> {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
         let error: Error = Error::from(self);
         error.into_response()
     }
 }
 
 impl IntoResponse for HyperError {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<Body> {
+        Error::from(self).into_response()
+    }
+}
+
+impl IntoResponse for HttpError {
+    fn into_response(self) -> Response<Body> {
+        Error::from(self).into_response()
+    }
+}
+
+impl IntoResponse for IoTHubError {
+    fn into_response(self) -> Response<Body> {
         Error::from(self).into_response()
     }
 }
