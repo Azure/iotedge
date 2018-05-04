@@ -12,18 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     public class ProtocolGatewayMessageConverter : IMessageConverter<IProtocolGatewayMessage>
     {        
         readonly MessageAddressConverter addressConvertor;
+        readonly IByteBufferConverter byteBufferConverter;
 
-        public ProtocolGatewayMessageConverter(MessageAddressConverter addressConvertor)
+        public ProtocolGatewayMessageConverter(MessageAddressConverter addressConvertor, IByteBufferConverter byteBufferConverter)
         {
             this.addressConvertor = Preconditions.CheckNotNull(addressConvertor, nameof(addressConvertor));
+            this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
         }
 
-        public Core.IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
+        public IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
             // TODO: should reject messages which are not matched ( PassThroughUnmatchedMessages)
             this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage);
 
-            byte[] payloadBytes = sourceMessage.Payload.ToByteArray();
+            byte[] payloadBytes = this.byteBufferConverter.ToByteArray(sourceMessage.Payload);
 
             // TODO - What about the other properties (like sequence number, etc)? Ignoring for now, as they are not used anyways.
 
@@ -94,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new InvalidOperationException("Could not derive destination address using message system properties");
             }
 
-            IByteBuffer payload = message.Body.ToByteBuffer();
+            IByteBuffer payload = this.byteBufferConverter.ToByteBuffer(message.Body);
             ProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(payload, address)
                 .WithId(lockToken)
                 .WithCreatedTimeUtc(createdTimeUtc)

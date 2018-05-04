@@ -1,13 +1,20 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System.IO;
     using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public static class ByteBufferHelper
+    public class ByteBufferConverter : IByteBufferConverter
     {
-        public static byte[] ToByteArray(this IByteBuffer byteBuffer)
+        readonly IByteBufferAllocator allocator;
+
+        public ByteBufferConverter(IByteBufferAllocator allocator)
+        {
+            this.allocator = allocator;
+        }
+
+        public byte[] ToByteArray(IByteBuffer byteBuffer)
         {
             Preconditions.CheckNotNull(byteBuffer, nameof(byteBuffer));
 
@@ -25,12 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
         }
 
-        public static IByteBuffer ToByteBuffer(this byte[] bytes)
+        public IByteBuffer ToByteBuffer(byte[] bytes)
         {
             Preconditions.CheckNotNull(bytes, nameof(bytes));
-            PooledByteBufferAllocator allocator = PooledByteBufferAllocator.Default;
             int length = bytes.Length;
-            IByteBuffer byteBuffer = allocator.Buffer(length, length);
+            IByteBuffer byteBuffer = this.allocator.Buffer(length, length);
             byteBuffer.WriteBytes(bytes);
             return byteBuffer;
         }

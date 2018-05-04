@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System.Collections.Generic;
     using System.Text;
+    using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -15,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     [Unit]
     public class DeviceProxyTest
     {
+        static readonly IByteBufferConverter ByteBufferConverter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+
         class TestDesiredUpdateMessage
         {
             public EdgeMessage CoreMessage { get; }
@@ -31,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     })
                     .Build();
 
-                this.PgMessage = new ProtocolGatewayMessage.Builder(Encoding.UTF8.GetBytes(desiredJson).ToByteBuffer(),
+                this.PgMessage = new ProtocolGatewayMessage.Builder(ByteBufferConverter.ToByteBuffer(Encoding.UTF8.GetBytes(desiredJson)),
                     "$iothub/twin/PATCH/properties/desired/?$version=1").Build();
             }
         }
@@ -49,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
             channel.Setup(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()));
 
-            var deviceProxy = new DeviceProxy(channel.Object, Mock.Of<IIdentity>(), converter.Object);
+            var deviceProxy = new DeviceProxy(channel.Object, Mock.Of<IIdentity>(), converter.Object, ByteBufferConverter);
             deviceProxy.OnDesiredPropertyUpdates(message.CoreMessage);
 
             converter.Verify(x => x.FromMessage(It.Is<Core.IMessage>(actualCore => message.CoreMessage.Equals(actualCore))));

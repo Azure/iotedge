@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Collections.Generic;
     using System.Text;
     using System.Web;
+    using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt;
@@ -16,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     [Unit]
     public class ProtocolGatewayMessageConverterTest
     {
-        static readonly DotNetty.Buffers.IByteBuffer Payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
+        static readonly IByteBufferConverter ByteBufferConverter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+        static readonly IByteBuffer Payload = new ByteBufferConverter(PooledByteBufferAllocator.Default).ToByteBuffer(new byte[] { 1, 2, 3 });
 
         [Fact]
         public void TestToMessage()
@@ -43,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     m.Properties == properties
                 );
 
-            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter);
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
             Assert.NotNull(message);
 
@@ -85,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     m.Properties == properties
                 );
 
-            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter);
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
             Assert.NotNull(message);
 
@@ -154,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     m.Properties == properties
             );
 
-            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter);
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
             Assert.NotNull(message);
 
@@ -229,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                     m.Properties == properties &&
                     m.SystemProperties == systemProperties);
 
-            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter);
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
             Assert.NotNull(pgMessage);
             Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1&%24.cdid=fromDevice1&%24.cmid=fromModule1/", pgMessage.Address);

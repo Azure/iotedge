@@ -47,10 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         const ulong HardPendingCompactionBytes = 1024UL * 1024UL * 1024UL;
 
         readonly ISystemEnvironment env;
+        readonly bool optimizeForPerformance;
 
-        public RocksDbOptionsProvider(ISystemEnvironment env)
+        public RocksDbOptionsProvider(ISystemEnvironment env, bool optimizeForPerformance)
         {
             this.env = Preconditions.CheckNotNull(env);
+            this.optimizeForPerformance = optimizeForPerformance;
         }
 
         public DbOptions GetDbOptions()
@@ -59,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 .SetCreateIfMissing()
                 .SetCreateMissingColumnFamilies();
 
-            if (this.env.Is32BitProcess)
+            if (this.env.Is32BitProcess || !this.optimizeForPerformance)
             {
                 // restrict some sizes if 32 bit OS.
                 options.SetWriteBufferSize(WriteBufferSize);

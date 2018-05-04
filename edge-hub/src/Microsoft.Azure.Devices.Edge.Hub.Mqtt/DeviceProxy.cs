@@ -20,13 +20,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IMessagingChannel<IProtocolGatewayMessage> channel;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
         readonly AtomicBoolean isActive;
+        readonly IByteBufferConverter byteBufferConverter;
 
-        public DeviceProxy(IMessagingChannel<IProtocolGatewayMessage> channel, IIdentity identity, IMessageConverter<IProtocolGatewayMessage> messageConverter)
+        public DeviceProxy(IMessagingChannel<IProtocolGatewayMessage> channel, IIdentity identity,
+            IMessageConverter<IProtocolGatewayMessage> messageConverter, IByteBufferConverter byteBufferConverter)
         {
             this.isActive = new AtomicBoolean(true);
             this.channel = Preconditions.CheckNotNull(channel, nameof(channel));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.Identity = Preconditions.CheckNotNull(identity, nameof(this.Identity));
+            this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
         }
 
         public IIdentity Identity { get; }
@@ -61,8 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Task SendMessageAsync(IMessage message, string input)
         {
             bool result = false;
-            var moduleIdentity = this.Identity as IModuleIdentity;
-            if (moduleIdentity != null)
+            if (this.Identity is IModuleIdentity moduleIdentity)
             {
                 message.SystemProperties[TemplateParameters.DeviceIdTemplateParam] = moduleIdentity.DeviceId;
                 message.SystemProperties[Constants.ModuleIdTemplateParameter] = moduleIdentity.ModuleId;
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
         {
             string address = TwinAddressHelper.FormatDeviceMethodRequestAddress(request.CorrelationId, request.Name);
-            IProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(request.Data.ToByteBuffer(), address)
+            IProtocolGatewayMessage pgMessage = new ProtocolGatewayMessage.Builder(this.byteBufferConverter.ToByteBuffer(request.Data), address)
                 .WithCreatedTimeUtc(DateTime.UtcNow)
                 .Build();
 

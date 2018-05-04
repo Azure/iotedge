@@ -9,14 +9,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
     using RocksDbSharp;
     using Xunit;
 
-
     [Unit]
     public class RocksDbOptionsProviderTest
     {
         [Fact]
         public void RocksDbOptionsProviderCreateTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null));
+            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null, true));
         }
 
         [Fact]
@@ -31,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object);
-            var provider64 = new RocksDbOptionsProvider(env64.Object);
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true);
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true);
 
             //act
             DbOptions newOptions32 = provider32.GetDbOptions();
@@ -54,8 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object);
-            var provider64 = new RocksDbOptionsProvider(env64.Object);
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true);
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true);
 
             //act
             ColumnFamilyOptions newOptions32 = provider32.GetColumnFamilyOptions();

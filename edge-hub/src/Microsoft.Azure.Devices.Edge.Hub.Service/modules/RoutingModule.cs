@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useTwinConfig;
         readonly VersionInfo versionInfo;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly bool optimizeForPerformance;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -53,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int connectionPoolSize,
             bool useTwinConfig,
             VersionInfo versionInfo,
-            Option<UpstreamProtocol> upstreamProtocol)
+            Option<UpstreamProtocol> upstreamProtocol,
+            bool optimizeForPerformance)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -68,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useTwinConfig = useTwinConfig;
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.upstreamProtocol = upstreamProtocol;
+            this.optimizeForPerformance = optimizeForPerformance;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -235,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                 // DataBase options
 
-                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>()))
+                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
                     .As<Storage.RocksDb.IRocksDbOptionsProvider>()
                     .SingleInstance();
 

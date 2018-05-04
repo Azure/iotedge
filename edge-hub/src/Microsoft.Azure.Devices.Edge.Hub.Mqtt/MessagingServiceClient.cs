@@ -21,11 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         readonly IDeviceListener deviceListener;
         readonly IMessageConverter<IProtocolGatewayMessage> messageConverter;
+        readonly IByteBufferConverter byteBufferConverter;
 
-        public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter)
+        public MessagingServiceClient(IDeviceListener deviceListener, IMessageConverter<IProtocolGatewayMessage> messageConverter, IByteBufferConverter byteBufferConverter)
         {
             this.deviceListener = Preconditions.CheckNotNull(deviceListener, nameof(deviceListener));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
+            this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
         }
 
         public IProtocolGatewayMessage CreateMessage(string address, IByteBuffer payload)
@@ -37,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IProtocolGatewayMessage> channel)
         {
-            IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter);
+            IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter, this.byteBufferConverter);
             this.deviceListener.BindDeviceProxy(deviceProxy);
             Events.BindMessageChannel(this.deviceListener.Identity);
         }
@@ -113,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
                         EnsureNoSubresource(subresource);
 
-                        Core.IMessage forwardMessage = new EdgeMessage.Builder(protocolGatewayMessage.Payload.ToByteArray())
+                        Core.IMessage forwardMessage = new EdgeMessage.Builder(this.byteBufferConverter.ToByteArray(protocolGatewayMessage.Payload))
                             .Build();
                         await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage, hasCorrelationId ? correlationId.ToString() : string.Empty);
                         Events.UpdateReportedProperties(this.deviceListener.Identity);

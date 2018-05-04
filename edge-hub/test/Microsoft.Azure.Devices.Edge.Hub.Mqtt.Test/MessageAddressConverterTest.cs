@@ -1,7 +1,8 @@
-﻿namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
     using System;
     using System.Collections.Generic;
+    using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -9,14 +10,14 @@
 
     [Unit]
     public class MessageAddressConverterTest
-    {
-        static readonly string[] DontCareInput = new[] { "" };
+    {        
+        static readonly string[] DontCareInput = { "" };
         static readonly IDictionary<string, string> EmptyProperties = new Dictionary<string, string>();
         static readonly IDictionary<string, string> DontCareOutput = new Dictionary<string, string>
         {
             ["DontCare"] = ""
         };
-        static readonly DotNetty.Buffers.IByteBuffer Payload = new byte[] { 1, 2, 3 }.ToByteBuffer();
+        static readonly IByteBuffer Payload = new ByteBufferConverter(PooledByteBufferAllocator.Default).ToByteBuffer(new byte[] { 1, 2, 3 });
 
         [Fact]
         public void TestMessageAddressConverterWithEmptyConversionConfig()

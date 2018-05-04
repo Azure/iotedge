@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
     [Unit]
     public class DbStoreProviderTest
     {
-        string rocksDbFolder;
+        readonly string rocksDbFolder;
 
         public DbStoreProviderTest()
         {
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateTestAsync()
         {
-            var options = new RocksDbOptionsProvider(new SystemEnvironment());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
 
             var partitionsList1 = new[]
             {

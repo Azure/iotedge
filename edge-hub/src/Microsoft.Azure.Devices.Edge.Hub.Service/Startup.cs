@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         IContainer BuildContainer(IServiceCollection services)
         {
             int connectionPoolSize = this.Configuration.GetValue<int>("IotHubConnectionPoolSize");
-
+            bool optimizeForPerformance = this.Configuration.GetValue("OptimizeForPerformance", true);
             var topics = new MessageAddressConversionConfiguration(
                 this.Configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
                 this.Configuration.GetSection(Constants.TopicNameConversionSectionName + ":OutboundTemplates").Get<Dictionary<string, string>>());
@@ -155,9 +155,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     connectionPoolSize,
                     useTwinConfig,
                     this.VersionInfo,
-                    upstreamProtocolOption));
+                    upstreamProtocolOption,
+                    optimizeForPerformance));
 
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubHostname));
             builder.RegisterModule(new HttpModule());
             builder.RegisterInstance<IStartup>(this);

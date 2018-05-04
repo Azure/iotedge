@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IMqttConnectionProvider mqttConnectionProvider;
         readonly IDeviceIdentityProvider identityProvider;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
-        readonly IByteBufferAllocator byteBufferAllocator = PooledByteBufferAllocator.Default;
+        readonly IByteBufferAllocator byteBufferAllocator;
         readonly Option<IList<X509Certificate2>> caCertChain;
         readonly bool clientCertAuthAllowed;
 
@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IDeviceIdentityProvider identityProvider,
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
+            IByteBufferAllocator byteBufferAllocator,
             bool clientCertAuthAllowed,
             string caChainPath)
         {
@@ -61,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
+            this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator);
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.caCertChain = clientCertAuthAllowed
                 ? this.GetCaChainCerts(Preconditions.CheckNonWhiteSpace(caChainPath, nameof(this.caCertChain)))

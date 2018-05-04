@@ -135,11 +135,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
                         Option.Some(edgeHubConnectionString),
                         this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>()
+                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>(), true
                     )
                 );
                 builder.RegisterModule(new HttpModule());
-                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty));
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
                 builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
                 setupMocks?.Invoke(builder);
                 this.container = builder.Build();

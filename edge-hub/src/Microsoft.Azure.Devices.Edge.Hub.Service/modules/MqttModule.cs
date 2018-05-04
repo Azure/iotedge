@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
+    using DotNetty.Buffers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
         readonly string caChainPath;
+        readonly bool optimizeForPerformance;
 
         public MqttModule(
             IConfiguration mqttSettingsConfiguration,
@@ -34,7 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             bool isStoreAndForwardEnabled,
             bool clientCertAuthAllowed,
-            string caChainPath)
+            string caChainPath,
+            bool optimizeForPerformance)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
@@ -42,17 +45,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.caChainPath = caChainPath;
+            this.optimizeForPerformance = optimizeForPerformance;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
+            // IByteBufferAllocator
+            builder.Register(c =>
+                {
+                    // TODO - We should probably also use some heuristics to make this determination, like how much memory does the system have. 
+                    return this.optimizeForPerformance ? PooledByteBufferAllocator.Default : UnpooledByteBufferAllocator.Default as IByteBufferAllocator;
+                })
+                .As<IByteBufferAllocator>()
+                .SingleInstance();
+
+            builder.Register(c => new ByteBufferConverter(c.Resolve<IByteBufferAllocator>()))
+                .As<IByteBufferConverter>()
+                .SingleInstance();
+
             // MessageAddressConverter
             builder.Register(c => new MessageAddressConverter(this.conversionConfiguration))
                 .As<MessageAddressConverter>()
                 .SingleInstance();
 
             // IMessageConverter<IProtocolGatewayMessage>
-            builder.Register(c => new ProtocolGatewayMessageConverter(c.Resolve<MessageAddressConverter>()))
+            builder.Register(c => new ProtocolGatewayMessageConverter(c.Resolve<MessageAddressConverter>(), c.Resolve<IByteBufferConverter>()))
                 .As<IMessageConverter<IProtocolGatewayMessage>>()
                 .SingleInstance();
 
@@ -66,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 async c =>
                 {
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
-                    IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>());
+                    IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, c.Resolve<IMessageConverter<IProtocolGatewayMessage>>(), c.Resolve<IByteBufferConverter>());
                     return mqtt;
                 })
                 .As<Task<IMqttConnectionProvider>>()
@@ -103,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         c.Resolve<IDeviceIdentityProvider>(),
                         c.Resolve<ISessionStatePersistenceProvider>(),
                         c.Resolve<IWebSocketListenerRegistry>(),
+                        c.Resolve<IByteBufferAllocator>(),
                         this.clientCertAuthAllowed,
                         this.caChainPath))
                 .As<Task<MqttProtocolHead>>()
