@@ -22,7 +22,7 @@ pub struct Config {
 impl Config {
     pub fn new(settings: Value) -> Config {
         Config {
-            settings: settings,
+            settings,
             env: None,
         }
     }

@@ -19,9 +19,7 @@ pub struct IdentityList {
 
 impl IdentityList {
     pub fn new(identities: Vec<::models::Identity>) -> IdentityList {
-        IdentityList {
-            identities: identities,
-        }
+        IdentityList { identities }
     }
 
     pub fn set_identities(&mut self, identities: Vec<::models::Identity>) {

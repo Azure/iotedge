@@ -22,8 +22,8 @@ pub struct ExitStatus {
 impl ExitStatus {
     pub fn new(exit_time: String, status_code: String) -> ExitStatus {
         ExitStatus {
-            exit_time: exit_time,
-            status_code: status_code,
+            exit_time,
+            status_code,
         }
     }
 

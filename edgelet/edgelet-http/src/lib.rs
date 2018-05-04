@@ -97,7 +97,7 @@ where
             .select(server)
             .then(move |result| match result {
                 Ok(((), _incoming)) => future::ok(()),
-                Err((e, _other)) => future::err(e.into()),
+                Err((e, _other)) => future::err(e),
             });
 
         Run(Box::new(main_execution))

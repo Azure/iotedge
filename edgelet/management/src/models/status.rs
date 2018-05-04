@@ -26,7 +26,7 @@ impl Status {
         Status {
             start_time: None,
             exit_status: None,
-            runtime_status: runtime_status,
+            runtime_status,
         }
     }
 

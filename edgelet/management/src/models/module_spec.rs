@@ -25,9 +25,9 @@ pub struct ModuleSpec {
 impl ModuleSpec {
     pub fn new(name: String, type_: String, config: ::models::Config) -> ModuleSpec {
         ModuleSpec {
-            name: name,
-            type_: type_,
-            config: config,
+            name,
+            type_,
+            config,
         }
     }
 

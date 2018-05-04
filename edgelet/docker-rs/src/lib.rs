@@ -1,4 +1,5 @@
-#![allow(unused_imports, non_snake_case, unused_mut, dead_code)]
+#![allow(unused_imports, non_snake_case, unused_mut, dead_code, unknown_lints)]
+#![allow(clippy, clippy_pedantic)]
 
 #[macro_use]
 extern crate serde_derive;

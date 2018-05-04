@@ -37,11 +37,11 @@ impl ModuleDetails {
         status: ::models::Status,
     ) -> ModuleDetails {
         ModuleDetails {
-            id: id,
-            name: name,
-            type_: type_,
-            config: config,
-            status: status,
+            id,
+            name,
+            type_,
+            config,
+            status,
         }
     }
 

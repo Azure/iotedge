@@ -19,7 +19,7 @@ pub struct ModuleList {
 
 impl ModuleList {
     pub fn new(modules: Vec<::models::ModuleDetails>) -> ModuleList {
-        ModuleList { modules: modules }
+        ModuleList { modules }
     }
 
     pub fn set_modules(&mut self, modules: Vec<::models::ModuleDetails>) {

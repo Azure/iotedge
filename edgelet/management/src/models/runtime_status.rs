@@ -22,7 +22,7 @@ pub struct RuntimeStatus {
 impl RuntimeStatus {
     pub fn new(status: String) -> RuntimeStatus {
         RuntimeStatus {
-            status: status,
+            status,
             description: None,
         }
     }

@@ -59,7 +59,7 @@ impl CoreKeyStore for TpmKeyStore {
 
     /// Get a TPM Key which will derive and sign data.
     fn get(&self, identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
-        if identity.len() == 0 {
+        if identity.is_empty() {
             Err(Error::from(ErrorKind::EmptyStrings))?;
         }
         Ok(TpmKey {

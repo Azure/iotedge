@@ -29,7 +29,7 @@ impl WorkloadService {
         let router = router!(
             post   "/modules/(?P<name>[^/]+)/sign" => SignHandler::new(key_store.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,
-            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
+            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm),
         );
         let inner = router.new_service()?;
         let service = WorkloadService { inner };

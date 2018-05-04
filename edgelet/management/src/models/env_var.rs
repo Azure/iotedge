@@ -21,10 +21,7 @@ pub struct EnvVar {
 
 impl EnvVar {
     pub fn new(key: String, value: String) -> EnvVar {
-        EnvVar {
-            key: key,
-            value: value,
-        }
+        EnvVar { key, value }
     }
 
     pub fn set_key(&mut self, key: String) {

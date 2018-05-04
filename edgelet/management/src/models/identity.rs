@@ -24,9 +24,9 @@ pub struct Identity {
 impl Identity {
     pub fn new(module_id: String, managed_by: String, generation_id: String) -> Identity {
         Identity {
-            module_id: module_id,
-            managed_by: managed_by,
-            generation_id: generation_id,
+            module_id,
+            managed_by,
+            generation_id,
         }
     }
 

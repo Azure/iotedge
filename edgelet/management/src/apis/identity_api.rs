@@ -27,9 +27,7 @@ pub struct IdentityApiClient<C: hyper::client::Connect> {
 
 impl<C: hyper::client::Connect> IdentityApiClient<C> {
     pub fn new(configuration: Rc<configuration::Configuration<C>>) -> IdentityApiClient<C> {
-        IdentityApiClient {
-            configuration: configuration,
-        }
+        IdentityApiClient { configuration }
     }
 }
 
@@ -90,13 +88,13 @@ impl<C: hyper::client::Connect> IdentityApi for IdentityApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -107,7 +105,7 @@ impl<C: hyper::client::Connect> IdentityApi for IdentityApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::Identity, _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -143,13 +141,13 @@ impl<C: hyper::client::Connect> IdentityApi for IdentityApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -192,13 +190,13 @@ impl<C: hyper::client::Connect> IdentityApi for IdentityApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -209,7 +207,7 @@ impl<C: hyper::client::Connect> IdentityApi for IdentityApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::IdentityList, _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }

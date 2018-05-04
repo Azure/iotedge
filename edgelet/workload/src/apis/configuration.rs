@@ -25,7 +25,7 @@ impl<C: Connect> Configuration<C> {
         Configuration {
             base_path: "http://localhost".to_owned(),
             user_agent: Some(format!("edgelet/{}", env!("CARGO_PKG_VERSION"))),
-            client: client,
+            client,
             uri_composer: Box::new(|base_path, path| {
                 format!("{}{}", base_path, path)
                     .parse()

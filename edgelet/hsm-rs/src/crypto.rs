@@ -489,7 +489,7 @@ impl HsmCertificate {
                 .to_string_lossy()
                 .into_owned()
         };
-        if cert.len() == 0 {
+        if cert.is_empty() {
             Err(ErrorKind::NullResponse)?
         }
         Ok((CRYPTO_ENCODING_TAG_PEM, cert))

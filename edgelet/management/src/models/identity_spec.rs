@@ -19,9 +19,7 @@ pub struct IdentitySpec {
 
 impl IdentitySpec {
     pub fn new(module_id: String) -> IdentitySpec {
-        IdentitySpec {
-            module_id: module_id,
-        }
+        IdentitySpec { module_id }
     }
 
     pub fn set_module_id(&mut self, module_id: String) {

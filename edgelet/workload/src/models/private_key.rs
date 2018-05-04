@@ -27,7 +27,7 @@ pub struct PrivateKey {
 impl PrivateKey {
     pub fn new(type_: String) -> PrivateKey {
         PrivateKey {
-            type_: type_,
+            type_,
             ref_: None,
             bytes: None,
         }
