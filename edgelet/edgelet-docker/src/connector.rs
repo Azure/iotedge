@@ -18,11 +18,15 @@ use std::path::Path;
 
 use futures::{Future, Poll};
 use hyper::{Uri, client::{HttpConnector, Service}};
+#[cfg(windows)]
+use hyper_named_pipe::PipeConnector;
 #[cfg(unix)]
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
 use tokio_io::{AsyncRead, AsyncWrite};
+#[cfg(windows)]
+use tokio_named_pipe::PipeStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 use url::{ParseError, Url};
@@ -31,10 +35,14 @@ use error::{Error, ErrorKind, Result};
 
 #[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
+#[cfg(windows)]
+const PIPE_SCHEME: &str = "npipe";
 const HTTP_SCHEME: &str = "http";
 
 pub enum DockerConnector {
     Http(HttpConnector),
+    #[cfg(windows)]
+    Pipe(PipeConnector),
     #[cfg(unix)]
     Unix(UnixConnector),
 }
@@ -42,6 +50,9 @@ pub enum DockerConnector {
 impl DockerConnector {
     pub fn new(url: &Url, handle: &Handle) -> Result<DockerConnector> {
         match url.scheme() {
+            #[cfg(windows)]
+            PIPE_SCHEME => Ok(DockerConnector::Pipe(PipeConnector::new(handle.clone()))),
+
             #[cfg(unix)]
             UNIX_SCHEME => {
                 if !Path::new(url.path()).exists() {
@@ -50,6 +61,7 @@ impl DockerConnector {
                     Ok(DockerConnector::Unix(UnixConnector::new(handle.clone())))
                 }
             }
+
             HTTP_SCHEME => {
                 // NOTE: We are defaulting to using 4 threads here. Is this a good
                 //       default? This is what the "hyper" crate uses by default at
@@ -75,6 +87,8 @@ impl DockerConnector {
 
 pub enum StreamSelector {
     Tcp(TcpStream),
+    #[cfg(windows)]
+    Pipe(PipeStream),
     #[cfg(unix)]
     Unix(UnixStream),
 }
@@ -83,6 +97,8 @@ impl Read for StreamSelector {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         match *self {
             StreamSelector::Tcp(ref mut stream) => stream.read(buf),
+            #[cfg(windows)]
+            StreamSelector::Pipe(ref mut stream) => stream.read(buf),
             #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.read(buf),
         }
@@ -93,6 +109,8 @@ impl Write for StreamSelector {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         match *self {
             StreamSelector::Tcp(ref mut stream) => stream.write(buf),
+            #[cfg(windows)]
+            StreamSelector::Pipe(ref mut stream) => stream.write(buf),
             #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.write(buf),
         }
@@ -101,6 +119,8 @@ impl Write for StreamSelector {
     fn flush(&mut self) -> IoResult<()> {
         match *self {
             StreamSelector::Tcp(ref mut stream) => stream.flush(),
+            #[cfg(windows)]
+            StreamSelector::Pipe(ref mut stream) => stream.flush(),
             #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => stream.flush(),
         }
@@ -113,6 +133,8 @@ impl AsyncWrite for StreamSelector {
     fn shutdown(&mut self) -> Poll<(), IoError> {
         match *self {
             StreamSelector::Tcp(ref mut stream) => <&TcpStream>::shutdown(&mut &*stream),
+            #[cfg(windows)]
+            StreamSelector::Pipe(ref mut stream) => PipeStream::shutdown(stream),
             #[cfg(unix)]
             StreamSelector::Unix(ref mut stream) => <&UnixStream>::shutdown(&mut &*stream),
         }
@@ -131,6 +153,13 @@ impl Service for DockerConnector {
                 connector
                     .call(uri)
                     .and_then(|tcp_stream| Ok(StreamSelector::Tcp(tcp_stream))),
+            ) as Self::Future,
+
+            #[cfg(windows)]
+            DockerConnector::Pipe(ref connector) => Box::new(
+                connector
+                    .call(uri)
+                    .and_then(|pipe_stream| Ok(StreamSelector::Pipe(pipe_stream))),
             ) as Self::Future,
 
             #[cfg(unix)]
@@ -192,5 +221,14 @@ mod tests {
             &Url::parse("http://localhost:2375").unwrap(),
             &core.handle(),
         ).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn create_pipe_succeeds() {
+        let core = Core::new().unwrap();
+        let _connector =
+            DockerConnector::new(&Url::parse("npipe://./pipe/boo").unwrap(), &core.handle())
+                .unwrap();
     }
 }

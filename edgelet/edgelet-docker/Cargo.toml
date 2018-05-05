@@ -25,7 +25,13 @@ edgelet-utils = { path = "../edgelet-utils" }
 hyperlocal = "0.4"
 tokio-uds = "0.1.7"
 
+[target.'cfg(windows)'.dependencies]
+hyper-named-pipe = { path = "../hyper-named-pipe" }
+tokio-named-pipe = { path = "../tokio-named-pipe" }
+
 [dev_dependencies]
+httparse = "1.2"
+rand = "0.4"
 scopeguard = "0.3.3"
 tempfile = "2"
 time = "0.1"

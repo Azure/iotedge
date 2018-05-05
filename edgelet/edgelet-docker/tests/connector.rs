@@ -3,9 +3,13 @@
 #![deny(warnings)]
 
 extern crate futures;
+#[cfg(windows)]
+extern crate httparse;
 extern crate hyper;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(windows)]
+extern crate rand;
 #[cfg(unix)]
 #[macro_use(defer)]
 extern crate scopeguard;
@@ -20,17 +24,25 @@ use std::thread;
 
 use futures::future;
 use futures::prelude::*;
+#[cfg(windows)]
+use httparse::Request as HtRequest;
 use hyper::{Client, Method, Request as ClientRequest, StatusCode};
+#[cfg(windows)]
+use hyper::Uri;
 use hyper::Error as HyperError;
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
 #[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
+#[cfg(windows)]
+use rand::Rng;
 use tokio_core::reactor::Core;
 use url::Url;
 
 use edgelet_docker::connector::DockerConnector;
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
+#[cfg(windows)]
+use edgelet_test_utils::run_pipe_server;
 #[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
 
@@ -45,7 +57,7 @@ fn hello_handler(_: Request) -> Box<Future<Item = Response, Error = HyperError>>
 }
 
 #[test]
-fn http_tcp_read_succeeds() {
+fn tcp_get() {
     let (sender, receiver) = channel();
 
     let port = get_unused_tcp_port();
@@ -78,7 +90,7 @@ fn http_tcp_read_succeeds() {
 
 #[cfg(unix)]
 #[test]
-fn http_uds_read_succeeds() {
+fn uds_get() {
     let (sender, receiver) = channel();
     let file_path = "/tmp/edgelet_test_uds_get.sock";
 
@@ -117,6 +129,65 @@ fn http_uds_read_succeeds() {
     core.run(task).unwrap();
 }
 
+#[cfg(windows)]
+fn make_path() -> String {
+    format!(r"\\.\pipe\my-pipe-{}", rand::thread_rng().gen::<u64>())
+}
+
+#[cfg(windows)]
+fn make_url(path: &str) -> String {
+    format!("npipe:{}", path.replace("\\", "/"))
+}
+
+#[cfg(windows)]
+fn pipe_get_handler(_req: &HtRequest, _body: Option<Vec<u8>>) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\n\
+         Content-Type: text/plain; charset=utf-8\r\n\
+         Content-Length: {}\r\n\
+         \r\n\
+         {}",
+        GET_RESPONSE.len(),
+        GET_RESPONSE
+    )
+}
+
+#[cfg(windows)]
+#[test]
+fn pipe_get() {
+    let (sender, receiver) = channel();
+    let path = make_path();
+    let url = make_url(&path);
+
+    thread::spawn(move || {
+        run_pipe_server(&path, &pipe_get_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+
+    let hyper_client = Client::configure()
+        .connector(connector)
+        .build(&core.handle());
+    let uri: Uri = url.parse().unwrap();
+
+    // make a get request
+    let task = hyper_client
+        .get(uri)
+        .and_then(|res| {
+            assert_eq!(StatusCode::Ok, res.status());
+            res.body().concat2()
+        })
+        .map(|body| {
+            assert_eq!(GET_RESPONSE, &String::from_utf8_lossy(body.as_ref()));
+        });
+
+    core.run(task).unwrap();
+}
+
 const POST_BODY: &str = r#"{"donuts":"yes"}"#;
 
 fn post_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
@@ -133,7 +204,7 @@ fn post_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>
 }
 
 #[test]
-fn http_tcp_post_succeeds() {
+fn tcp_post() {
     let (sender, receiver) = channel();
 
     let port = get_unused_tcp_port();
@@ -167,7 +238,7 @@ fn http_tcp_post_succeeds() {
 
 #[cfg(unix)]
 #[test]
-fn http_uds_post_succeeds() {
+fn uds_post() {
     let (sender, receiver) = channel();
     let file_path = "/tmp/edgelet_test_uds_post.sock";
 
@@ -201,6 +272,50 @@ fn http_uds_post_succeeds() {
     req.set_body(POST_BODY);
 
     let task = client.request(req).map(|res| {
+        assert_eq!(StatusCode::Ok, res.status());
+    });
+
+    core.run(task).unwrap();
+}
+
+#[cfg(windows)]
+fn pipe_post_handler(_req: &HtRequest, body: Option<Vec<u8>>) -> String {
+    let body = body.unwrap();
+    let body = String::from_utf8_lossy(&body);
+    assert_eq!(&body, POST_BODY);
+
+    "HTTP/1.1 200 OK\r\n\r\n".to_string()
+}
+
+#[cfg(windows)]
+#[test]
+fn pipe_post() {
+    let (sender, receiver) = channel();
+    let path = make_path();
+    let url = make_url(&path);
+
+    thread::spawn(move || {
+        run_pipe_server(&path, &pipe_post_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+
+    let hyper_client = Client::configure()
+        .connector(connector)
+        .build(&core.handle());
+    let uri: Uri = url.parse().unwrap();
+
+    // make a post request
+    let mut req = Request::new(Method::Post, uri);
+    req.headers_mut().set(ContentType::json());
+    req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
+    req.set_body(POST_BODY);
+
+    let task = hyper_client.request(req).map(|res| {
         assert_eq!(StatusCode::Ok, res.status());
     });
 

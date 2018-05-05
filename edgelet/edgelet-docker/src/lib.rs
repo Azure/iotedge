@@ -7,6 +7,8 @@ extern crate chrono;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
+#[cfg(windows)]
+extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
 #[macro_use]
@@ -30,6 +32,8 @@ extern crate time;
 
 extern crate tokio_core;
 extern crate tokio_io;
+#[cfg(windows)]
+extern crate tokio_named_pipe;
 #[cfg(unix)]
 extern crate tokio_uds;
 
