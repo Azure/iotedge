@@ -30,6 +30,8 @@ pub enum ErrorKind {
     Utils,
     #[fail(display = "Provisioning error")]
     Provision(String),
+    #[fail(display = "Identity error")]
+    Identity,
 }
 
 impl Fail for Error {

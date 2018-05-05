@@ -6,6 +6,7 @@ use std::str::FromStr;
 
 use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
+use edgelet_http::API_VERSION;
 use futures::Future;
 use futures::future::{self, FutureResult};
 use hyper::client::Connect;
@@ -14,8 +15,6 @@ use management::models::{Config, ModuleDetails as HttpModuleDetails};
 use serde_json;
 
 use error::{Error, ErrorKind};
-
-pub const API_VERSION: &str = "2018-06-28";
 
 pub struct ModuleClient<C: Connect> {
     client: Rc<APIClient<C>>,

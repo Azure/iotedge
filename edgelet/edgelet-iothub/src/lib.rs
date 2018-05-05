@@ -202,6 +202,7 @@ where
     type Identity = HubIdentity;
     type Error = Error;
     type CreateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
+    type UpdateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
     type GetFuture = Box<Future<Item = Vec<Self::Identity>, Error = Self::Error>>;
     type DeleteFuture = Box<Future<Item = (), Error = Self::Error>>;
 
@@ -219,6 +220,30 @@ where
                 Ok(self.state
                     .client
                     .create_module(id.module_id(), Some(auth))
+                    .map_err(Error::from)
+                    .map(HubIdentity::new))
+            });
+
+        match result {
+            Ok(f) => Box::new(f),
+            Err(err) => Box::new(future::err(err)),
+        }
+    }
+
+    fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
+        let result = self.get_key_pair(&id)
+            .and_then(|(primary_key, secondary_key)| {
+                let auth = AuthMechanism::default()
+                    .with_type(AuthType::Sas)
+                    .with_symmetric_key(
+                        SymmetricKey::default()
+                            .with_primary_key(base64::encode(primary_key.as_ref()))
+                            .with_secondary_key(base64::encode(secondary_key.as_ref())),
+                    );
+
+                Ok(self.state
+                    .client
+                    .update_module(id.module_id(), Some(auth))
                     .map_err(Error::from)
                     .map(HubIdentity::new))
             });

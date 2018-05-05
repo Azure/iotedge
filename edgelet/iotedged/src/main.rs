@@ -20,6 +20,7 @@ extern crate iotedged;
 extern crate iothubservice;
 #[macro_use]
 extern crate log;
+extern crate serde;
 extern crate tokio_core;
 extern crate url;
 
@@ -28,16 +29,20 @@ use failure::Fail;
 use futures::Future;
 use futures::sync::oneshot::{self, Receiver};
 use hyper::Client as HyperClient;
+use hyper::client::HttpConnector;
 use hyper::server::Http;
 use hyper_tls::HttpsConnector;
+use std::collections::HashMap;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
-use edgelet_docker::DockerModuleRuntime;
+use edgelet_core::watchdog::Watchdog;
+use edgelet_core::ModuleSpec;
+use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::Crypto;
-use edgelet_http::{ApiVersionService, HyperExt, Run};
+use edgelet_http::{ApiVersionService, HyperExt, Run, API_VERSION};
 use edgelet_http::logging::LoggingService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -45,6 +50,19 @@ use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use iotedged::{logging, signal, Error};
 use iotedged::settings::{Provisioning, Settings};
 use iothubservice::{Client as HttpClient, DeviceClient};
+
+const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
+const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
+const AUTH_SCHEME: &str = "sasToken";
+const HOSTNAME_KEY: &str = "IOTEDGE_IOTHUBHOSTNAME";
+const GATEWAY_HOSTNAME_KEY: &str = "IOTEDGE_GATEWAYHOSTNAME";
+const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
+const MODULEID_KEY: &str = "IOTEDGE_MODULEID";
+const URI_KEY: &str = "IOTEDGE_IOTEDGEDURI";
+const VERSION_KEY: &str = "IOTEDGE_IOTEDGEDVERSION";
+const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
+const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
+const DNS_WORKER_THREADS: usize = 4;
 
 fn main() {
     logging::init();
@@ -85,7 +103,7 @@ fn main_runner() -> Result<(), Error> {
             None
         });
 
-    let settings = Settings::new(config_file)?;
+    let settings = Settings::<DockerConfig>::new(config_file)?;
     let provisioning_settings = settings.provisioning();
     let (key_store, hub_name, device_id, root_key) = provision(provisioning_settings)?;
 
@@ -95,21 +113,45 @@ fn main_runner() -> Result<(), Error> {
     );
 
     let mut core = Core::new()?;
+    let handle: Handle = core.handle().clone();
+
+    let docker = Url::parse(settings.docker_uri())?;
+    let runtime = DockerModuleRuntime::new(&docker, &handle)?;
+    let hostname = format!("https://{}", hub_name);
+
+    let hyper_client = HyperClient::configure()
+        .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
+        .build(&handle);
+    let http_client = HttpClient::new(
+        hyper_client,
+        SasTokenSource::new(hub_name, device_id.clone(), root_key),
+        IOTHUB_API_VERSION,
+        Url::parse(&hostname)?,
+    )?;
+    let device_client = DeviceClient::new(http_client, &device_id)?;
+    let id_man = HubIdentityManager::new(key_store.clone(), device_client);
+
+    start_runtime(
+        &runtime,
+        &id_man,
+        &mut core,
+        &hostname,
+        &device_id,
+        &settings,
+    )?;
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
 
     let mgmt = start_management(
-        Url::parse("tcp://0.0.0.0:8080")?,
-        key_store.clone(),
+        Url::parse(&format!("tcp://0.0.0.0:{}", settings.management_port()))?,
         &core.handle(),
-        &hub_name,
-        &device_id,
-        root_key,
+        &runtime,
+        &id_man,
         mgmt_rx,
     )?;
     let workload = start_workload(
-        Url::parse("tcp://0.0.0.0:8081")?,
+        Url::parse(&format!("tcp://0.0.0.0:{}", settings.workload_port()))?,
         &key_store,
         &core.handle(),
         work_rx,
@@ -143,39 +185,79 @@ fn provision(
     }
 }
 
-fn start_management<K>(
-    addr: Url,
-    key_store: K,
-    handle: &Handle,
-    hub_name: &str,
+fn start_runtime(
+    runtime: &DockerModuleRuntime,
+    id_man: &HubIdentityManager<
+        DerivedKeyStore<MemoryKey>,
+        HyperClient<HttpsConnector<HttpConnector>>,
+    >,
+    core: &mut Core,
+    hostname: &str,
     device_id: &str,
-    root_key: MemoryKey,
-    shutdown: Receiver<()>,
-) -> Result<Run, Error>
-where
-    K: 'static + KeyStore<Key = MemoryKey> + Clone,
-{
-    let client_handle = handle.clone();
-    let server_handle = handle.clone();
+    settings: &Settings<DockerConfig>,
+) -> Result<(), Error> {
+    let workload_uri = format!(
+        "http://{}:{}",
+        settings.hostname(),
+        settings.workload_port()
+    );
 
-    let docker = Url::parse("unix:///var/run/docker.sock")?;
-    let mgmt = DockerModuleRuntime::new(&docker, &client_handle)?;
-
-    let hyper_client = HyperClient::configure()
-        .connector(HttpsConnector::new(4, &client_handle)?)
-        .build(&client_handle);
-    let http_client = HttpClient::new(
-        hyper_client,
-        SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key),
-        "2017-11-08-preview",
-        Url::parse(&format!("https://{}", hub_name))?,
+    let spec = settings.runtime().clone();
+    let env = build_env(spec.env(), hostname, device_id, workload_uri, settings);
+    let spec = ModuleSpec::<DockerConfig>::new(
+        EDGE_RUNTIME_MODULE_NAME,
+        spec.type_(),
+        spec.config().clone(),
+        env,
     )?;
-    let device_client = DeviceClient::new(http_client, device_id)?;
-    let id_man = HubIdentityManager::new(key_store, device_client);
+    let mut watchdog = Watchdog::new(runtime.clone(), id_man.clone());
+    let runtime_future = watchdog.start(spec, EDGE_RUNTIME_MODULEID);
+    // TODO: When this is converted to a watchdog that keeps running, convert this to use a handle
+    // that allows it to shutdown gracefully.
+    core.run(runtime_future)?;
+    Ok(())
+}
 
+// Add the environment variables needed by the EdgeAgent.
+fn build_env(
+    spec_env: &HashMap<String, String>,
+    hostname: &str,
+    device_id: &str,
+    workload_uri: String,
+    settings: &Settings<DockerConfig>,
+) -> HashMap<String, String> {
+    let mut env = HashMap::new();
+    env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
+    env.insert(
+        GATEWAY_HOSTNAME_KEY.to_string(),
+        settings.hostname().to_string(),
+    );
+    env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
+    env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
+    env.insert(URI_KEY.to_string(), workload_uri);
+    env.insert(VERSION_KEY.to_string(), API_VERSION.to_string());
+    env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
+
+    for (key, val) in spec_env.iter() {
+        env.insert(key.clone(), val.clone());
+    }
+    env
+}
+
+fn start_management(
+    addr: Url,
+    handle: &Handle,
+    mgmt: &DockerModuleRuntime,
+    id_man: &HubIdentityManager<
+        DerivedKeyStore<MemoryKey>,
+        HyperClient<HttpsConnector<HttpConnector>>,
+    >,
+    shutdown: Receiver<()>,
+) -> Result<Run, Error> {
+    let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(ManagementService::new(
-        &mgmt,
-        &id_man,
+        mgmt,
+        id_man,
     )?));
 
     info!(

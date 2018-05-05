@@ -123,11 +123,28 @@ impl ModuleRuntimeState {
     }
 }
 
+#[derive(Deserialize, Debug, Serialize)]
 pub struct ModuleSpec<T> {
     name: String,
+    #[serde(rename = "type")]
     type_: String,
     config: T,
+    #[serde(default = "HashMap::new")]
     env: HashMap<String, String>,
+}
+
+impl<T> Clone for ModuleSpec<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            type_: self.type_.clone(),
+            config: self.config.clone(),
+            env: self.env.clone(),
+        }
+    }
 }
 
 impl<T> ModuleSpec<T> {
@@ -187,7 +204,7 @@ pub trait ModuleRuntime {
     type Error: Fail;
     type Config;
     type Module: Module<Config = Self::Config>;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config>;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type CreateFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;

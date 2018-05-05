@@ -376,7 +376,7 @@ impl CertificateProperties {
         alias: String,
     ) -> Self {
         CertificateProperties {
-            validity_in_secs: validity_in_secs,
+            validity_in_secs,
             common_name,
             certificate_type,
             issuer_alias,

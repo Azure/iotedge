@@ -103,10 +103,27 @@ mod tests {
         type Identity = TestIdentity;
         type Error = Error;
         type CreateFuture = FutureResult<Self::Identity, Self::Error>;
+        type UpdateFuture = FutureResult<Self::Identity, Self::Error>;
         type GetFuture = FutureResult<Vec<Self::Identity>, Self::Error>;
         type DeleteFuture = FutureResult<(), Self::Error>;
 
         fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
+            if self.fail_create {
+                future::err(Error::General)
+            } else {
+                self.gen_id_sentinel = self.gen_id_sentinel + 1;
+                let id = TestIdentity::new(
+                    id.module_id(),
+                    "iotedge",
+                    &format!("{}", self.gen_id_sentinel),
+                );
+                self.identities.push(id.clone());
+
+                future::ok(id)
+            }
+        }
+
+        fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
             if self.fail_create {
                 future::err(Error::General)
             } else {

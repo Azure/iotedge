@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HostConfigLogConfig {
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
     _type: Option<String>,

@@ -29,10 +29,12 @@ pub trait IdentityManager {
     type Identity: Identity;
     type Error: Fail;
     type CreateFuture: Future<Item = Self::Identity, Error = Self::Error>;
+    type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error>;
     type GetFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error>;
     type DeleteFuture: Future<Item = (), Error = Self::Error>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture;
+    fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture;
     fn get(&self) -> Self::GetFuture;
     fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture;
 }

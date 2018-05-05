@@ -9,6 +9,7 @@ use serde_json;
 use url::ParseError;
 
 use docker::apis::Error as DockerError;
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use edgelet_utils::Error as UtilsError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -40,6 +41,8 @@ pub enum ErrorKind {
     NotModified,
     #[fail(display = "Docker runtime error - {:?}", _0)]
     Docker(DockerError<serde_json::Value>),
+    #[fail(display = "Core error")]
+    Core,
 }
 
 impl Fail for Error {
@@ -118,5 +121,11 @@ impl From<DockerError<serde_json::Value>> for Error {
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Error {
         Error::from(ErrorKind::UrlParse)
+    }
+}
+
+impl From<Error> for CoreError {
+    fn from(err: Error) -> CoreError {
+        CoreError::from(err.context(CoreErrorKind::ModuleRuntime))
     }
 }

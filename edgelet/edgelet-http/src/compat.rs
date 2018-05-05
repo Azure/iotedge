@@ -35,7 +35,7 @@ pub(crate) struct CompatService<S> {
 }
 
 pub(crate) fn service<S>(service: S) -> CompatService<S> {
-    CompatService { service: service }
+    CompatService { service }
 }
 
 impl<S, Bd> Service for CompatService<S>
