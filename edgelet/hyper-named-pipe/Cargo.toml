@@ -7,10 +7,14 @@ publish = false
 [target.'cfg(windows)'.dependencies]
 failure = "0.1"
 futures = "0.1"
+hex = "0.3"
 hyper = "0.11"
 tokio-core = "0.1"
 tokio-named-pipe = { path = "../tokio-named-pipe" }
 tokio-service = "0.1"
+url = "1.7"
+
+edgelet-utils = { path = "../edgelet-utils" }
 
 [dev-dependencies]
 httparse = "1.2"

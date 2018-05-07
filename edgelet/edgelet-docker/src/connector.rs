@@ -19,7 +19,7 @@ use std::path::Path;
 use futures::{Future, Poll};
 use hyper::{Uri, client::{HttpConnector, Service}};
 #[cfg(windows)]
-use hyper_named_pipe::PipeConnector;
+use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
 #[cfg(unix)]
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use tokio_core::net::TcpStream;
@@ -31,7 +31,7 @@ use tokio_named_pipe::PipeStream;
 use tokio_uds::UnixStream;
 use url::{ParseError, Url};
 
-use error::{Error, ErrorKind, Result};
+use error::{ErrorKind, Result};
 
 #[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
@@ -74,12 +74,13 @@ impl DockerConnector {
 
     pub fn build_hyper_uri(scheme: &str, base_path: &str, path: &str) -> Result<Uri> {
         match scheme {
+            #[cfg(windows)]
+            PIPE_SCHEME => Ok(PipeUri::new(base_path, path)?.into()),
             #[cfg(unix)]
             UNIX_SCHEME => Ok(HyperlocalUri::new(base_path, path).into()),
             HTTP_SCHEME => Ok(Url::parse(base_path)
                 .and_then(|base| base.join(path))
-                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))
-                .map_err(Error::from)?),
+                .and_then(|url| url.as_str().parse().map_err(|_| ParseError::IdnaError))?),
             _ => Err(ErrorKind::UrlParse)?,
         }
     }

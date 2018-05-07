@@ -18,20 +18,20 @@ use std::thread;
 use futures::future::Future;
 use futures::Stream;
 use httparse::Request;
-use hyper::{Client as HyperClient, Method, Request as HyperRequest, StatusCode, Uri};
+use hyper::{Client as HyperClient, Method, Request as HyperRequest, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use rand::Rng;
 use tokio_core::reactor::Core;
 
 use edgelet_test_utils::run_pipe_server;
-use hyper_named_pipe::PipeConnector;
+use hyper_named_pipe::{PipeConnector, Uri};
 
 fn make_path() -> String {
     format!(r"\\.\pipe\my-pipe-{}", rand::thread_rng().gen::<u64>())
 }
 
-fn make_url(path: &str) -> String {
-    format!("npipe:{}", path.replace("\\", "/"))
+fn make_url(path: &str) -> Uri {
+    Uri::new(&format!("npipe:{}", path.replace("\\", "/")), "/").unwrap()
 }
 
 fn get_handler(_req: &Request, _body: Option<Vec<u8>>) -> String {
@@ -55,10 +55,9 @@ fn get() {
     let hyper_client = HyperClient::configure()
         .connector(PipeConnector::new(core.handle()))
         .build(&core.handle());
-    let uri: Uri = url.parse().unwrap();
 
     // make a get request
-    let task = hyper_client.get(uri);
+    let task = hyper_client.get(url.into());
     let response = core.run(task).unwrap();
     assert_eq!(response.status(), StatusCode::Ok);
 }
@@ -94,11 +93,10 @@ fn get_with_body() {
     let hyper_client = HyperClient::configure()
         .connector(PipeConnector::new(core.handle()))
         .build(&core.handle());
-    let uri: Uri = url.parse().unwrap();
 
     // make a get request
     let task = hyper_client
-        .get(uri)
+        .get(url.into())
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
@@ -137,10 +135,9 @@ fn post() {
     let hyper_client = HyperClient::configure()
         .connector(PipeConnector::new(core.handle()))
         .build(&core.handle());
-    let uri: Uri = url.parse().unwrap();
 
     // make a post request
-    let mut req = HyperRequest::new(Method::Post, uri);
+    let mut req = HyperRequest::new(Method::Post, url.into());
     req.headers_mut().set(ContentType::json());
     req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
     req.set_body(POST_BODY);

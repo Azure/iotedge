@@ -5,16 +5,22 @@
 
 #[macro_use]
 extern crate failure;
+// NOTE: For some reason if the extern crate statement for edgelet_utils is moved
+// above the one for "failure" above then things stop compiling.
+#[macro_use]
+extern crate edgelet_utils;
 extern crate futures;
+extern crate hex;
 extern crate hyper;
 extern crate tokio_core;
 extern crate tokio_named_pipe;
 extern crate tokio_service;
+extern crate url;
 
 pub mod error;
+pub mod uri;
 
 use std::io;
-use std::path::{Path, PathBuf};
 
 use futures::IntoFuture;
 use futures::future::FutureResult;
@@ -24,9 +30,10 @@ use tokio_service::Service;
 
 use tokio_named_pipe::PipeStream;
 
-use error::{ErrorKind, Result};
+pub use error::{Error, ErrorKind};
+pub use uri::Uri;
 
-const NAMED_PIPE_SCHEME: &str = "npipe";
+pub const NAMED_PIPE_SCHEME: &str = "npipe";
 
 pub struct PipeConnector(Handle);
 
@@ -43,56 +50,11 @@ impl Service for PipeConnector {
     type Future = FutureResult<PipeStream, io::Error>;
 
     fn call(&self, uri: HyperUri) -> Self::Future {
-        parse_path(&uri)
+        Uri::get_pipe_path(&uri)
             .map_err(|_err| {
                 io::Error::new(io::ErrorKind::InvalidInput, format!("Invalid uri {}", uri))
             })
             .and_then(|path| PipeStream::connect(path, &self.0))
             .into_future()
-    }
-}
-
-fn parse_path(url: &HyperUri) -> Result<PathBuf> {
-    if url.scheme().unwrap_or("invalid") != NAMED_PIPE_SCHEME {
-        Err(ErrorKind::InvalidUrlScheme)?
-    } else if url.host().map(|h| h.trim()).unwrap_or("") == "" {
-        Err(ErrorKind::MissingUrlHost)?
-    } else {
-        Ok(Path::new(&format!(
-            r"\\{}{}",
-            url.host().unwrap(),
-            url.path().replace("/", "\\")
-        )).to_path_buf())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use tokio_core::reactor::Core;
-
-    #[test]
-    fn no_scheme_in_path_fails() {
-        let mut core = Core::new().unwrap();
-        let connector = PipeConnector::new(core.handle());
-        let task = connector.call("boo".parse::<HyperUri>().unwrap());
-        assert!(core.run(task).is_err())
-    }
-
-    #[test]
-    fn invalid_scheme_in_path_fails() {
-        let mut core = Core::new().unwrap();
-        let connector = PipeConnector::new(core.handle());
-        let task = connector.call("bad.scheme://boo".parse::<HyperUri>().unwrap());
-        assert!(core.run(task).is_err())
-    }
-
-    #[test]
-    fn missing_host_in_path_fails() {
-        let mut core = Core::new().unwrap();
-        let connector = PipeConnector::new(core.handle());
-        let task = connector.call("npipe://   /boo".parse::<HyperUri>().unwrap());
-        assert!(core.run(task).is_err())
     }
 }

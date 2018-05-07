@@ -5,6 +5,8 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
+#[cfg(windows)]
+use hyper_named_pipe::Error as PipeError;
 use serde_json;
 use url::ParseError;
 
@@ -43,6 +45,9 @@ pub enum ErrorKind {
     Docker(DockerError<serde_json::Value>),
     #[fail(display = "Core error")]
     Core,
+    #[cfg(windows)]
+    #[fail(display = "Hyper named pipe error")]
+    HyperPipe,
 }
 
 impl Fail for Error {
@@ -127,5 +132,14 @@ impl From<ParseError> for Error {
 impl From<Error> for CoreError {
     fn from(err: Error) -> CoreError {
         CoreError::from(err.context(CoreErrorKind::ModuleRuntime))
+    }
+}
+
+#[cfg(windows)]
+impl From<PipeError> for Error {
+    fn from(err: PipeError) -> Error {
+        Error {
+            inner: err.context(ErrorKind::HyperPipe),
+        }
     }
 }

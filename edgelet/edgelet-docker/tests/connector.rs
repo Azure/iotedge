@@ -6,6 +6,8 @@ extern crate futures;
 #[cfg(windows)]
 extern crate httparse;
 extern crate hyper;
+#[cfg(windows)]
+extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
 #[cfg(windows)]
@@ -27,11 +29,11 @@ use futures::prelude::*;
 #[cfg(windows)]
 use httparse::Request as HtRequest;
 use hyper::{Client, Method, Request as ClientRequest, StatusCode};
-#[cfg(windows)]
-use hyper::Uri;
 use hyper::Error as HyperError;
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
+#[cfg(windows)]
+use hyper_named_pipe::Uri as PipeUri;
 #[cfg(unix)]
 use hyperlocal::Uri as HyperlocalUri;
 #[cfg(windows)]
@@ -172,11 +174,10 @@ fn pipe_get() {
     let hyper_client = Client::configure()
         .connector(connector)
         .build(&core.handle());
-    let uri: Uri = url.parse().unwrap();
 
     // make a get request
     let task = hyper_client
-        .get(uri)
+        .get(PipeUri::new(&url, "/").unwrap().into())
         .and_then(|res| {
             assert_eq!(StatusCode::Ok, res.status());
             res.body().concat2()
@@ -307,10 +308,9 @@ fn pipe_post() {
     let hyper_client = Client::configure()
         .connector(connector)
         .build(&core.handle());
-    let uri: Uri = url.parse().unwrap();
 
     // make a post request
-    let mut req = Request::new(Method::Post, uri);
+    let mut req = Request::new(Method::Post, PipeUri::new(&url, "/").unwrap().into());
     req.headers_mut().set(ContentType::json());
     req.headers_mut().set(ContentLength(POST_BODY.len() as u64));
     req.set_body(POST_BODY);

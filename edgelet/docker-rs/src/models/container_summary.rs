@@ -29,7 +29,7 @@ pub struct ContainerSummary {
     ports: Vec<::models::Port>,
     #[serde(rename = "SizeRw", default = "i64::default")]
     size_rw: i64,
-    #[serde(rename = "SizeRootFs")]
+    #[serde(rename = "SizeRootFs", default = "i64::default")]
     size_root_fs: i64,
     #[serde(rename = "Labels")]
     labels: ::std::collections::HashMap<String, String>,
