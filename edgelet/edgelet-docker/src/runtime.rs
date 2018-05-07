@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::ops::Deref;
 
+use base64;
 use futures::future;
 use futures::prelude::*;
 use hyper::Client;
@@ -109,7 +110,7 @@ impl ModuleRegistry for DockerModuleRuntime {
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
         let response = config
             .auth()
-            .map(|a| serde_json::to_string(a))
+            .map(|a| serde_json::to_string(a).map(|json| base64::encode(&json)))
             .unwrap_or_else(|| Ok("".to_string()))
             .map(|creds: String| {
                 let ok = self.client

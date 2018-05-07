@@ -2,6 +2,7 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 extern crate futures;
 extern crate hyper;
 #[cfg(unix)]
@@ -119,8 +120,9 @@ fn image_pull_with_creds_handler(req: Request) -> Box<Future<Item = Response, Er
         .get_raw("X-Registry-Auth")
         .unwrap()
         .iter()
-        .map(|raw| str::from_utf8(raw).unwrap())
-        .collect::<Vec<&str>>()
+        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
+        .collect::<Vec<String>>()
         .join("");
     let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
     assert_eq!(auth_config.username(), Some(&"u1".to_string()));

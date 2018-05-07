@@ -2,6 +2,7 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 extern crate chrono;
 #[macro_use]
 extern crate failure;

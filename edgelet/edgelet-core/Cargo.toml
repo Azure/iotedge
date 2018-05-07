@@ -21,4 +21,4 @@ log = "0.4"
 edgelet-utils = { path = "../edgelet-utils" }
 
 [dev-dependencies]
-base64 = "0.9.0"
+base64 = "0.9"

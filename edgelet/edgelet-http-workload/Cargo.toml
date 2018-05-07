@@ -5,7 +5,7 @@ authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 publish = false
 
 [dependencies]
-base64 = "0.9.0"
+base64 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
 failure_derive = "0.1"

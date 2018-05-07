@@ -68,15 +68,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "byteorder 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "safemem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "base64"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -328,6 +319,7 @@ dependencies = [
 name = "edgelet-docker"
 version = "0.1.0"
 dependencies = [
+ "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "docker 0.1.0",
  "edgelet-core 0.1.0",
@@ -907,7 +899,7 @@ dependencies = [
 name = "management"
 version = "0.1.0"
 dependencies = [
- "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1865,7 +1857,7 @@ dependencies = [
 name = "workload"
 version = "0.1.0"
 dependencies = [
- "base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1903,7 +1895,6 @@ dependencies = [
 "checksum atty 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)" = "2fc4a1aa4c24c0718a250f0681885c1af91419d242f29eb8f2ab28502d80dbd1"
 "checksum backtrace 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ebbe525f66f42d207968308ee86bc2dd60aa5fab535b22e616323a173d097d8e"
 "checksum backtrace-sys 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "44585761d6161b0f57afc49482ab6bd067e4edef48c12a152c237eb0203f7661"
-"checksum base64 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5032d51da2741729bfdaeb2664d9b8c6d9fd1e2b90715c660b6def36628499c2"
 "checksum base64 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9263aa6a38da271eec5c91a83ce1e800f093c8535788d403d626d8d5c3f8f007"
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d0c54bb8f454c567f21197eefcdbf5679d0bd99f2ddbe52e84c77061952e6789"
