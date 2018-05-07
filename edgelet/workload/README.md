@@ -23,12 +23,18 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *WorkloadApi* | [**create_identity_certificate**](docs/WorkloadApi.md#create_identity_certificate) | **Post** /modules/{name}/certificate/identity | 
 *WorkloadApi* | [**create_server_certificate**](docs/WorkloadApi.md#create_server_certificate) | **Post** /modules/{name}/certificate/server | 
+*WorkloadApi* | [**decrypt**](docs/WorkloadApi.md#decrypt) | **Post** /modules/{name}/decrypt | 
+*WorkloadApi* | [**encrypt**](docs/WorkloadApi.md#encrypt) | **Post** /modules/{name}/encrypt | 
 *WorkloadApi* | [**sign**](docs/WorkloadApi.md#sign) | **Post** /modules/{name}/sign | 
 
 
 ## Documentation For Models
 
  - [CertificateResponse](docs/CertificateResponse.md)
+ - [DecryptRequest](docs/DecryptRequest.md)
+ - [DecryptResponse](docs/DecryptResponse.md)
+ - [EncryptRequest](docs/EncryptRequest.md)
+ - [EncryptResponse](docs/EncryptResponse.md)
  - [ErrorResponse](docs/ErrorResponse.md)
  - [PrivateKey](docs/PrivateKey.md)
  - [ServerCertificateRequest](docs/ServerCertificateRequest.md)

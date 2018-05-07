@@ -20,12 +20,12 @@ paths:
         - $ref: '#/parameters/api-version'
         - in: path
           name: name
-          description: The name of the module to sign on behalf of. (urlencoded)
+          description: The name of the module on whose behalf the payload will be signed. (urlencoded)
           required: true
           type: string
         - in: body
           name: payload
-          description: Data to be signed.
+          description: The data to be signed.
           required: true
           schema:
             $ref: '#/definitions/SignRequest'
@@ -34,6 +34,70 @@ paths:
           description: Ok
           schema:
             $ref: '#/definitions/SignResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/encrypt':
+    post:
+      tags:
+        - Workload
+      summary: ''
+      operationId: Encrypt
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module on whose behalf the plaintext will be encrypted. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: payload
+          description: The data to be encrypted.
+          required: true
+          schema:
+            $ref: '#/definitions/EncryptRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/EncryptResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/decrypt':
+    post:
+      tags:
+        - Workload
+      summary: ''
+      operationId: Decrypt
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module on whose behalf the ciphertext will be decrypted. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: payload
+          description: The data to be decrypted.
+          required: true
+          schema:
+            $ref: '#/definitions/DecryptRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/DecryptResponse'
         '404':
           description: Not Found
           schema:
@@ -131,6 +195,58 @@ definitions:
         description: Signature of the data.
     required:
       - digest
+  EncryptRequest:
+    type: object
+    properties:
+      plaintext:
+        type: string
+        format: byte
+        description: The data to be encrypted.
+      passphrase:
+        type: string
+        format: byte
+        description: An optional passphrase used to encrypt the data.
+      initializationVector:
+        type: string
+        format: byte
+        description: An initialization vector used to encrypt the data.
+    required:
+      - plaintext
+  EncryptResponse:
+    type: object
+    properties:
+      ciphertext:
+        type: string
+        format: byte
+        description: The encrypted form of the data.
+    required:
+      - ciphertext
+  DecryptRequest:
+    type: object
+    properties:
+      ciphertext:
+        type: string
+        format: byte
+        description: The data to be decrypted.
+      passphrase:
+        type: string
+        format: byte
+        description: An optional passphrase used to decrypt the data.
+      initializationVector:
+        type: string
+        format: byte
+        description: An initialization vector used to decrypt the data.
+    required:
+      - ciphertext
+  DecryptResponse:
+    type: object
+    properties:
+      plaintext:
+        type: string
+        format: byte
+        description: The decrypted form of the data.
+    required:
+      - plaintext
   ServerCertificateRequest:
     type: object
     properties:

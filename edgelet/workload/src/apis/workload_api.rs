@@ -43,6 +43,18 @@ pub trait WorkloadApi {
         name: &str,
         request: ::models::ServerCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
+    fn decrypt(
+        &self,
+        api_version: &str,
+        name: &str,
+        payload: ::models::DecryptRequest,
+    ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>>;
+    fn encrypt(
+        &self,
+        api_version: &str,
+        name: &str,
+        payload: ::models::EncryptRequest,
+    ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>>;
     fn sign(
         &self,
         api_version: &str,
@@ -165,6 +177,128 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
+                        serde_json::from_slice(&body);
+                    parsed.map_err(Error::from)
+                }),
+        )
+    }
+
+    fn decrypt(
+        &self,
+        api_version: &str,
+        name: &str,
+        payload: ::models::DecryptRequest,
+    ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::Post;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("/modules/{name}/decrypt?{}", query, name = name);
+
+        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut req = hyper::Request::new(method, uri.unwrap());
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.headers_mut()
+                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        let serialized = serde_json::to_string(&payload).unwrap();
+        req.headers_mut().set(hyper::header::ContentType::json());
+        req.headers_mut()
+            .set(hyper::header::ContentLength(serialized.len() as u64));
+        req.set_body(serialized);
+
+        // send request
+        Box::new(
+            configuration
+                .client
+                .request(req)
+                .map_err(Error::from)
+                .and_then(|resp| {
+                    let status = resp.status();
+                    resp.body()
+                        .concat2()
+                        .and_then(move |body| Ok((status, body)))
+                        .map_err(Error::from)
+                })
+                .and_then(|(status, body)| {
+                    if status.is_success() {
+                        Ok(body)
+                    } else {
+                        Err(Error::from((status, &*body)))
+                    }
+                })
+                .and_then(|body| {
+                    let parsed: Result<::models::DecryptResponse, _> =
+                        serde_json::from_slice(&body);
+                    parsed.map_err(Error::from)
+                }),
+        )
+    }
+
+    fn encrypt(
+        &self,
+        api_version: &str,
+        name: &str,
+        payload: ::models::EncryptRequest,
+    ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::Post;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("/modules/{name}/encrypt?{}", query, name = name);
+
+        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut req = hyper::Request::new(method, uri.unwrap());
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.headers_mut()
+                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        let serialized = serde_json::to_string(&payload).unwrap();
+        req.headers_mut().set(hyper::header::ContentType::json());
+        req.headers_mut()
+            .set(hyper::header::ContentLength(serialized.len() as u64));
+        req.set_body(serialized);
+
+        // send request
+        Box::new(
+            configuration
+                .client
+                .request(req)
+                .map_err(Error::from)
+                .and_then(|resp| {
+                    let status = resp.status();
+                    resp.body()
+                        .concat2()
+                        .and_then(move |body| Ok((status, body)))
+                        .map_err(Error::from)
+                })
+                .and_then(|(status, body)| {
+                    if status.is_success() {
+                        Ok(body)
+                    } else {
+                        Err(Error::from((status, &*body)))
+                    }
+                })
+                .and_then(|body| {
+                    let parsed: Result<::models::EncryptResponse, _> =
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),

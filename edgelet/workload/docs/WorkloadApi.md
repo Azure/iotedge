@@ -6,6 +6,8 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**create_identity_certificate**](WorkloadApi.md#create_identity_certificate) | **Post** /modules/{name}/certificate/identity | 
 [**create_server_certificate**](WorkloadApi.md#create_server_certificate) | **Post** /modules/{name}/certificate/server | 
+[**decrypt**](WorkloadApi.md#decrypt) | **Post** /modules/{name}/decrypt | 
+[**encrypt**](WorkloadApi.md#encrypt) | **Post** /modules/{name}/encrypt | 
 [**sign**](WorkloadApi.md#sign) | **Post** /modules/{name}/sign | 
 
 
@@ -62,6 +64,60 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **decrypt**
+> ::models::DecryptResponse decrypt(api_version, name, payload)
+
+
+### Required Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+  **api_version** | **String**| The version of the API. | [default to 2018-06-28]
+  **name** | **String**| The name of the module on whose behalf the ciphertext will be decrypted. (urlencoded) | 
+  **payload** | [**DecryptRequest**](DecryptRequest.md)| The data to be decrypted. | 
+
+### Return type
+
+[**::models::DecryptResponse**](DecryptResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **encrypt**
+> ::models::EncryptResponse encrypt(api_version, name, payload)
+
+
+### Required Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+  **api_version** | **String**| The version of the API. | [default to 2018-06-28]
+  **name** | **String**| The name of the module on whose behalf the plaintext will be encrypted. (urlencoded) | 
+  **payload** | [**EncryptRequest**](EncryptRequest.md)| The data to be encrypted. | 
+
+### Return type
+
+[**::models::EncryptResponse**](EncryptResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **sign**
 > ::models::SignResponse sign(api_version, name, payload)
 
@@ -71,8 +127,8 @@ No authorization required
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
   **api_version** | **String**| The version of the API. | [default to 2018-06-28]
-  **name** | **String**| The name of the module to sign on behalf of. (urlencoded) | 
-  **payload** | [**SignRequest**](SignRequest.md)| Data to be signed. | 
+  **name** | **String**| The name of the module on whose behalf the payload will be signed. (urlencoded) | 
+  **payload** | [**SignRequest**](SignRequest.md)| The data to be signed. | 
 
 ### Return type
 

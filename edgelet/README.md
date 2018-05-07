@@ -71,6 +71,30 @@ cargo +nightly clippy --all
 
 Clippy is also run as a checkin gate.
 
+### Swagger
+
+#### Definitions
+
+We use YAML for our swagger definitions. You can edit the definitions in VS code, but https://editor.swagger.io is also an invaluable tool for validation, converting YAML -> JSON for code-gen, etc.
+
+#### Code generation
+
+We use a modified version of `swagger-codegen` to generate code from our swagger definitions. To build the tool:
+
+```
+git clone -b support-rust-uds  https://github.com/avranju/swagger-codegen.git
+cd swagger-codegen
+mvn clean package
+```
+
+To run the tool, for example to update our workload API:
+
+```
+java -jar swagger-codegen-cli.jar generate -i workload-swagger.json -l rust -o {root}/edgelet/workload
+```
+
+> Note that `cargo fmt` and `cargo clippy` will complain about the code produced by this tool. We like to keep **all** code in our repo clean, so you'll want to run clippy and fmt over the generated code, make the recommended changes, and carefully inspect the diffs of modified files before checking in.
+
 ## IDE
 VS Code has good support for rust. Consider installing the following extensions:
 
