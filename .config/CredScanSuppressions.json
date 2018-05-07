@@ -3,13 +3,15 @@
   "suppressions": [
     {
       "placeholder": "WoMr0G2wDlnPOwUevA6j5m6TJpBwE3FgkRJVtfzZeb8=",
-      "_justification":
-        "This is a test string used to test the Hash type and not a credential."
+      "_justification": "This is a test string used to test the Hash type and not a credential."
+    },
+    {
+      "placeholder": "wBXO109hMjTfjUtQGtTmeqiqoqboLl8F5b7tR0of5yE=",
+      "_justification": "This is a test string used to test the sign function and is not a credential."
     },
     {
       "hash": "uG0/Q6Fbxsdsr+4y8KxokL47oYyQAdBBEYCWKNNIMGQ=",
-      "_justification":
-        "This is a username and not a credential (edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test/IdentityTest.cs)"
+      "_justification": "This is a username and not a credential (edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test/IdentityTest.cs)"
     }
   ]
 }
