@@ -6,54 +6,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
 
     [E2E]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class EdgeToDeviceMethodTest : IClassFixture<ProtocolHeadFixture>
     {
-        static readonly ITransportSettings[] MqttTransportSettings =
-        {
-            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
-        static readonly ITransportSettings[] AmqpTransportSettings =
-        {
-            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
-        const string DeviceNamePrefix = "E2E_DirectMethods_";
-        const string MethodName = "WriteToConsole";
-
-        static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(60);
-        static readonly string GatewayDeviceId = ConfigHelper.TestConfig["GatewayDeviceId"];
-        static readonly string ModuleId = $"{GatewayDeviceId}/module1";
-
-        [Fact, TestPriority(301)]
-        public Task InvokeMethodModuleTest_Amqp() => this.InvokeMethodOnModuleTest(AmqpTransportSettings);
-
-        [Fact, TestPriority(302)]
-        public Task InvokeMethodModuleTest_Mqtt() => this.InvokeMethodOnModuleTest(MqttTransportSettings);
-
-        async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-            ServiceClient sender = null;
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);            
             DeviceClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
@@ -69,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             try
             {
                 string receiverModuleName = "receiver1";
-                sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
                 string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, receiverModuleName);
                 receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
@@ -109,18 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
-        [Fact, TestPriority(303)]
-        public Task InvokeMethodDeviceTest_Amqp() => this.InvokeMethodOnDeviceTest(AmqpTransportSettings);
-
-        [Fact, TestPriority(304)]
-        public Task InvokeMethodDeviceTest_Mqtt() => this.InvokeMethodOnDeviceTest(MqttTransportSettings);
-
-        async Task InvokeMethodOnDeviceTest(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task InvokeMethodOnDeviceTest(ITransportSettings[] transportSettings)
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            ServiceClient sender = null;
             DeviceClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
@@ -135,9 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             try
             {
-                sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
-                (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice("methodTest", iotHubConnectionString, rm, false, true);
+                (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice("methodTest", iotHubConnectionString, rm);
                 receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
@@ -172,31 +136,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
-        }
-        
-        async Task<DeviceClient> ConnectToEdge(string connectionString)
-        {
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            };
-
-            var settings = new ITransportSettings[1];
-            settings[0] = mqttSetting;
-
-            DeviceClient client = DeviceClient.CreateFromConnectionString(connectionString, settings);
-            await client.OpenAsync();
-
-            return client;
-        }
+        }        
 
         class TestMethodRequest
         {
             [JsonConstructor]
             public TestMethodRequest(string requestProp1, int requestProp2)
             {
-                RequestProp1 = requestProp1;
-                RequestProp2 = requestProp2;
+                this.RequestProp1 = requestProp1;
+                this.RequestProp2 = requestProp2;
             }
 
             [JsonProperty("requestProp1")]
@@ -211,8 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             [JsonConstructor]
             public TestMethodResponse(string responseProp1, int responseProp2)
             {
-                ResponseProp1 = responseProp1;
-                ResponseProp2 = responseProp2;
+                this.ResponseProp1 = responseProp1;
+                this.ResponseProp2 = responseProp2;
             }
 
             [JsonProperty("responseProp1")]

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
                 if (shouldStartEdge)
                 {
-                    this.StartProtocolHead(this.routes, null).Wait();
+                    this.StartProtocolHead().Wait();
                 }
             }
 
@@ -98,13 +99,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             }
             
-            async Task StartProtocolHead(IDictionary<string, string> routesInput, Action<ContainerBuilder> setupMocks)
+            async Task StartProtocolHead()
             {
                 const int ConnectionPoolSize = 10;
                 string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
                 byte[] cert = Convert.FromBase64String(certificateValue);
                 var certificate = new X509Certificate2(cert);
+
                 string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+
+                // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
+                await ConnectToIotHub(edgeDeviceConnectionString);
+
                 string edgeHubConnectionString = $"{edgeDeviceConnectionString};ModuleId=$edgeHub";
                 Client.IotHubConnectionStringBuilder iotHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
                 var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
@@ -135,13 +141,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
                         Option.Some(edgeHubConnectionString),
                         this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.None<UpstreamProtocol>(), true
+                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp), true
                     )
                 );
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));
                 builder.RegisterModule(new AmqpModule("amqps", 5671, certificate, iotHubConnectionStringBuilder.HostName));
-                setupMocks?.Invoke(builder);
                 this.container = builder.Build();
 
                 IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
@@ -153,6 +158,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 AmqpProtocolHead amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
+            }
+
+            // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
+            // all the settings used thereafter from that process. So set up a dummy connection using the test
+            // AmqpTransportSettings, so that Device SDK caches it and uses it thereafter
+            static async Task ConnectToIotHub(string connectionString)
+            {
+                DeviceClient dc = DeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpTransportSettings);
+                await dc.OpenAsync();
+                await dc.CloseAsync();
             }
         }
     }

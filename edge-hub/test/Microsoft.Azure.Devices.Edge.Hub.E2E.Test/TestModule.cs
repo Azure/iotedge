@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
             await moduleClient.OpenAsync();
-            var module = new TestModule(moduleClient);            
             return new TestModule(moduleClient);
         }
 

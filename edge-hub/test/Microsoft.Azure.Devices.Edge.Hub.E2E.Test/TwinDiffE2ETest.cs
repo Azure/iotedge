@@ -5,48 +5,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Util.Test;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Xunit;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Xunit;
 
     [E2E]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class TwinDiffE2ETest : IClassFixture<ProtocolHeadFixture>
     {
-        static readonly ITransportSettings[] MqttTransportSettings =
-        {
-            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
-        static readonly ITransportSettings[] AmqpTransportSettings =
-        {
-            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
         const string DeviceNamePrefix = "E2E_twin_";
         string deviceName;
         RegistryManager rm;
         DeviceClient deviceClient;
         string deviceConnectionString;
 
-        [Fact, TestPriority(101)]
-        public Task AddPropertySuccess_Amqp() => AddPropertySuccess(AmqpTransportSettings);
-
-        [Fact, TestPriority(102)]
-        public Task AddPropertySuccess_Mqtt() => AddPropertySuccess(MqttTransportSettings); 
-
-        async Task AddPropertySuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task AddPropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -60,10 +37,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item1.ToJson()),
                     JToken.Parse(results.Item2.ToJson())));
 
-            twinPatch.Properties.Desired = new TwinCollection()
+            twinPatch.Properties.Desired = new TwinCollection
             {
                 ["101"] = "value",
-                ["101-new"] = new TwinCollection()
+                ["101-new"] = new TwinCollection
                 {
                     ["object"] = "value"
                 }
@@ -76,13 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(103)]
-        public Task OverwritePropertySuccess_Amqp() => this.OverwritePropertySuccess(AmqpTransportSettings);
-
-        [Fact, TestPriority(104)]
-        public Task OverwritePropertySuccess_Mqtt() => this.OverwritePropertySuccess(MqttTransportSettings); 
-
-        async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -108,13 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(105)]
-        public Task UnchangedPropertySuccess_Amqp() => this.UnchangedPropertySuccess(AmqpTransportSettings); 
-
-        [Fact, TestPriority(106)]
-        public Task UnchangedPropertySuccess_Mqtt() => this.UnchangedPropertySuccess(MqttTransportSettings);
-
-        async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -158,12 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(107)]
-        public Task RemovePropertySuccess_Amqp() => this.RemovePropertySuccess(AmqpTransportSettings);
-
-        [Fact, TestPriority(108)]
-        public Task RemovePropertySuccess_Mqtt() => this.RemovePropertySuccess(MqttTransportSettings); 
-
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task RemovePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
@@ -208,13 +173,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(109)]
-        public Task NonexistantRemovePropertySuccess_Amqp() => this.NonexistantRemovePropertySuccess(AmqpTransportSettings);
-
-        [Fact, TestPriority(110)]
-        public Task NonexistantRemovePropertySuccess_Mqtt() => this.NonexistantRemovePropertySuccess(MqttTransportSettings); 
-
-        async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -259,13 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(111)]
-        public Task OverwriteValueWithObjectSuccess_Mqtt() => this.OverwriteValueWithObjectSuccess(MqttTransportSettings);
-
-        [Fact, TestPriority(112)]
-        public Task OverwriteValueWithObjectSuccess_Amqp() => this.OverwriteValueWithObjectSuccess(AmqpTransportSettings);
-
-        async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -300,13 +257,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     JToken.Parse(results.Item2.ToJson())));
         }
 
-        [Fact, TestPriority(113)]
-        public Task OverwriteObjectWithValueSuccess_Mqtt() => this.OverwriteObjectWithValueSuccess(MqttTransportSettings);
-
-        [Fact, TestPriority(114)]
-        public Task OverwriteObjectWithValueSuccess_Amqp() => this.OverwriteObjectWithValueSuccess(AmqpTransportSettings);
-
-        async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
         {
             var twinPatch = new Twin();
             twinPatch.Properties.Desired = new TwinCollection()
@@ -334,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ["107"] = "value"
             };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, MqttTransportSettings, true);
+            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
 
             Assert.True(JToken.DeepEquals(
                     JToken.Parse(results.Item1.ToJson()),

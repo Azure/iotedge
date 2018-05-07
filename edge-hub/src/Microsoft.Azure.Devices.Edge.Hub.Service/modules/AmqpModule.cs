@@ -75,7 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
                         this.iotHubHostName,
-                        this.tlsCertificate,
                         authenticator,
                         identityFactory,
                         linkHandlerProvider,

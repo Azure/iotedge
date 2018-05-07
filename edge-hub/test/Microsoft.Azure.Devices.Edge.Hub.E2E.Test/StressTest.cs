@@ -14,30 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class StressTest : IClassFixture<ProtocolHeadFixture>
-    {
-        static readonly ITransportSettings[] MqttTransportSettings =
-        {
-            new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
-        static readonly ITransportSettings[] AmqpTransportSettings =
-        {
-            new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-            {
-                RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-            }
-        };
-
-        [Fact, TestPriority(301)]
-        public Task SingleSenderSingleReceiverTest_Amqp() => this.SingleSenderSingleReceiverTest(AmqpTransportSettings);
-
-        [Fact, TestPriority(302)]
-        public Task SingleSenderSingleReceiverTest_Mqtt() => this.SingleSenderSingleReceiverTest(MqttTransportSettings);
-
-        async Task SingleSenderSingleReceiverTest(ITransportSettings[] transportSettings)
+    {        
+        [TestPriority(301)]
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task SingleSenderSingleReceiverTest(ITransportSettings[] transportSettings)
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_SingleSender"], out int messagesCount);
             TestModule sender = null;
@@ -81,13 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(303)]
-        public Task MultipleSendersSingleReceiverTest_Amqp() => this.MultipleSendersSingleReceiverTest(AmqpTransportSettings);
-
-        [Fact, TestPriority(304)]
-        public Task MultipleSendersSingleReceiverTest_Mqtt() => this.MultipleSendersSingleReceiverTest(MqttTransportSettings);
-
-        async Task MultipleSendersSingleReceiverTest(ITransportSettings[] transportSettings)
+        [TestPriority(302)]
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task MultipleSendersSingleReceiverTest(ITransportSettings[] transportSettings)
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSenders"], out int messagesCount);
             TestModule sender1 = null;
@@ -139,13 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(305)]
-        public Task MultipleSendersMultipleReceivers_Count_Test_Amqp() => this.MultipleSendersMultipleReceivers_Count_Test(AmqpTransportSettings);
-
-        [Fact, TestPriority(306)]
-        public Task MultipleSendersMultipleReceivers_Count_Test_Mqtt() => this.MultipleSendersMultipleReceivers_Count_Test(MqttTransportSettings);
-
-        async Task MultipleSendersMultipleReceivers_Count_Test(ITransportSettings[] transportSettings)
+        [TestPriority(303)]
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task MultipleSendersMultipleReceivers_Count_Test(ITransportSettings[] transportSettings)
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
             // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice
@@ -196,13 +171,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [Fact, TestPriority(307)]
-        public Task MultipleSendersMultipleReceivers_Duration_Test_Amqp() => this.MultipleSendersMultipleReceivers_Duration_Test(AmqpTransportSettings);
-
-        [Fact, TestPriority(308)]
-        public Task MultipleSendersMultipleReceivers_Duration_Test_Mqtt() => this.MultipleSendersMultipleReceivers_Duration_Test(MqttTransportSettings);
-
-        async Task MultipleSendersMultipleReceivers_Duration_Test(ITransportSettings[] transportSettings)
+        [TestPriority(304)]
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        public async Task MultipleSendersMultipleReceivers_Duration_Test(ITransportSettings[] transportSettings)
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
             // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice

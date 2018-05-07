@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 {
-    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Sasl;
     using Microsoft.Azure.Amqp.Transport;
@@ -16,13 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
     {
         public static AmqpSettings GetDefaultAmqpSettings(
             string iotHubHostName,
-            X509Certificate2 tlsCertificate,
             IAuthenticator authenticator,
             IClientCredentialsFactory identityFactory,
             ILinkHandlerProvider linkHandlerProvider,
             IConnectionProvider connectionProvider)
         {
-            Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             Preconditions.CheckNotNull(linkHandlerProvider, nameof(linkHandlerProvider));
