@@ -13,6 +13,8 @@ set(${theseTestsName}_test_files
 set(${theseTestsName}_c_files
     ${SHARED_UTIL_REAL_TEST_FOLDER}/real_base64.c
     ${SHARED_UTIL_REAL_TEST_FOLDER}/real_buffer.c
+    ${SHARED_UTIL_SRC_FOLDER}/xlogging.c
+    ${SHARED_UTIL_SRC_FOLDER}/consolelogger.c
     ../../src/certificate_info.c
 )
 

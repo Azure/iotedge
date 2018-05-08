@@ -8,11 +8,7 @@
 #include "hsm_client_data.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
-
-#define DIGEST_SIZE 32
-#define ENV_EDGE_HOME_DIR "EDGEHOMEDIR"
-#define EDGE_STORE_NAME   "edgelet"
-#define EDGE_SAS_KEY_NAME "identity"
+#include "hsm_constants.h"
 
 struct EDGE_TPM_TAG
 {
@@ -20,44 +16,33 @@ struct EDGE_TPM_TAG
 };
 typedef struct EDGE_TPM_TAG EDGE_TPM;
 
-const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
-const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
+static const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
+static const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
 static bool g_is_tpm_initialized = false;
 
 int hsm_client_tpm_init(void)
 {
     int result;
     int status;
-    HSM_CLIENT_STORE_HANDLE store_handle;
 
     if (!g_is_tpm_initialized)
     {
-        const HSM_CLIENT_STORE_INTERFACE* store_if = hsm_client_store_interface();
-        const HSM_CLIENT_KEY_INTERFACE* key_if = hsm_client_key_interface();
-        if ((store_if == NULL) ||
-            (store_if->hsm_client_store_create == NULL) ||
-            (store_if->hsm_client_store_destroy == NULL) ||
-            (store_if->hsm_client_store_open == NULL) ||
-            (store_if->hsm_client_store_close == NULL) ||
-            (store_if->hsm_client_store_open_key == NULL) ||
-            (store_if->hsm_client_store_close_key == NULL) ||
-            (store_if->hsm_client_store_remove_key == NULL) ||
-            (store_if->hsm_client_store_insert_sas_key == NULL))
+        const HSM_CLIENT_STORE_INTERFACE* store_if;
+        const HSM_CLIENT_KEY_INTERFACE* key_if;
+        if ((store_if = hsm_client_store_interface()) == NULL)
         {
             LOG_ERROR("HSM store interface not available");
-            result = 1;
+            result = __FAILURE__;
         }
-        else if ((key_if == NULL) ||
-                 (key_if->hsm_client_key_sign == NULL) ||
-                 (key_if->hsm_client_key_derive_and_sign == NULL))
+        else if ((key_if = hsm_client_key_interface()) == NULL)
         {
             LOG_ERROR("HSM key interface not available");
-            result = 1;
+            result = __FAILURE__;
         }
         else if ((status = store_if->hsm_client_store_create(EDGE_STORE_NAME)) != 0)
         {
             LOG_ERROR("Could not create store. Error code %d", status);
-            result = 1;
+            result = __FAILURE__;
         }
         else
         {
@@ -70,7 +55,7 @@ int hsm_client_tpm_init(void)
     else
     {
         LOG_ERROR("Re-initializing TPM without de-initializing");
-        result = 1;
+        result = __FAILURE__;
     }
     return result;
 }
@@ -148,22 +133,22 @@ static int edge_hsm_client_activate_identity_key
     if (!g_is_tpm_initialized)
     {
         LOG_ERROR("hsm_client_tpm_init not called");
-        result = 1;
+        result = __FAILURE__;
     }
     else if (handle == NULL)
     {
         LOG_ERROR("Invalid handle value specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else if (key == NULL)
     {
         LOG_ERROR("Invalid key specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else if (key_len == 0)
     {
         LOG_ERROR("Key len length cannot be 0");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -171,11 +156,11 @@ static int edge_hsm_client_activate_identity_key
         const HSM_CLIENT_STORE_INTERFACE *store_if = g_hsm_store_if;
         EDGE_TPM *edge_tpm = (EDGE_TPM*)handle;
         if ((status = store_if->hsm_client_store_insert_sas_key(edge_tpm->hsm_store_handle,
-                                                                EDGE_SAS_KEY_NAME,
+                                                                EDGELET_IDENTITY_SAS_KEY_NAME,
                                                                 key, key_len)) != 0)
         {
             LOG_ERROR("Could not insert SAS key. Error code %d", status);
-            result = 1;
+            result = __FAILURE__;
         }
         else
         {
@@ -198,7 +183,7 @@ static int ek_srk_unsupported
     if (key == NULL)
     {
         LOG_ERROR("Invalid key specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -207,7 +192,7 @@ static int ek_srk_unsupported
     if (key_len == NULL)
     {
         LOG_ERROR("Invalid key len specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -218,17 +203,17 @@ static int ek_srk_unsupported
         if (!g_is_tpm_initialized)
         {
             LOG_ERROR("hsm_client_tpm_init not called");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (handle == NULL)
         {
             LOG_ERROR("Invalid handle value specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else
         {
             LOG_ERROR("API unsupported");
-            result = 1;
+            result = __FAILURE__;
         }
     }
     return result;
@@ -270,7 +255,7 @@ static int perform_sign
     if (digest == NULL)
     {
         LOG_ERROR("Invalid digest specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -279,7 +264,7 @@ static int perform_sign
     if (digest_size == NULL)
     {
         LOG_ERROR("Invalid digest size specified");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -290,32 +275,32 @@ static int perform_sign
         if (!g_is_tpm_initialized)
         {
             LOG_ERROR("hsm_client_tpm_init not called");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (handle == NULL)
         {
             LOG_ERROR("Invalid handle value specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed == NULL)
         {
             LOG_ERROR("Invalid data to be signed specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed_size == 0)
         {
             LOG_ERROR("Invalid data to be signed length specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else if ((identity == NULL) && do_derive)
         {
             LOG_ERROR("Invalid identity specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else if ((identity_size == 0) && do_derive)
         {
             LOG_ERROR("Invalid identity length specified");
-            result = 1;
+            result = __FAILURE__;
         }
         else
         {
@@ -324,11 +309,11 @@ static int perform_sign
             const HSM_CLIENT_KEY_INTERFACE *key_if = g_hsm_key_if;
             EDGE_TPM* edge_tpm = (EDGE_TPM*)handle;
             key_handle = store_if->hsm_client_store_open_key(edge_tpm->hsm_store_handle,
-                                                            EDGE_SAS_KEY_NAME);
+                                                             EDGELET_IDENTITY_SAS_KEY_NAME);
             if (key_handle == NULL)
             {
-                LOG_ERROR("Could not get SAS key by name '%s'", EDGE_SAS_KEY_NAME);
-                result = 1;
+                LOG_ERROR("Could not get SAS key by name '%s'", EDGELET_IDENTITY_SAS_KEY_NAME);
+                result = __FAILURE__;
             }
             else
             {
@@ -355,7 +340,7 @@ static int perform_sign
                 if (status != 0)
                 {
                     LOG_ERROR("Error computing signature using identity key. Error code %d", status);
-                    result = 1;
+                    result = __FAILURE__;
                 }
                 else
                 {
@@ -366,7 +351,7 @@ static int perform_sign
                 if (status != 0)
                 {
                     LOG_ERROR("Error closing key handle. Error code %d", status);
-                    result = 1;
+                    result = __FAILURE__;
                 }
             }
         }
@@ -402,8 +387,7 @@ static int edge_hsm_client_derive_and_sign_with_identity
                         identity, identity_size, digest, digest_size, 1);
 }
 
-static void edge_hsm_free_buffer(
-    void *buffer)
+static void edge_hsm_free_buffer(void *buffer)
 {
     if (buffer != NULL)
     {

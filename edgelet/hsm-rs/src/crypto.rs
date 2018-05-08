@@ -534,8 +534,8 @@ impl HsmCertificate {
                 unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
             let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
             let private_key = match pk_type {
-                0 => Ok(PrivateKey::Key(private_key)),
-                1 => Ok(PrivateKey::Ref(String::from_utf8(private_key)?)),
+                1 => Ok(PrivateKey::Key(private_key)),
+                2 => Ok(PrivateKey::Ref(String::from_utf8(private_key)?)),
                 e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
             }?;
             Ok((CRYPTO_ENCODING_TAG_PEM, private_key))
@@ -748,7 +748,7 @@ mod tests {
                 cert.as_ptr(),
                 pk.as_ptr() as *const c_void,
                 pk.to_bytes().len() as usize,
-                0 as u32,
+                1 as u32,
             )
         } else {
             ::std::ptr::null_mut()

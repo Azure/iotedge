@@ -8,12 +8,15 @@ compileAsC11()
 
 set(theseTestsName edge_hsm_key_interface_sas_key_ut)
 
+include_directories(../../src)
+
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
     ../../src/edge_hsm_key_interface.c
     ../../src/edge_sas_key.c
     ../../src/hsm_log.c
+    ../../src/constants.c
     ${theseTestsName}.c
 )
 

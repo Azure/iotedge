@@ -8,11 +8,14 @@ compileAsC11()
 
 set(theseTestsName edge_hsm_tpm_ut)
 
+include_directories(../../src)
+
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
     ../../src/edge_hsm_client_tpm.c
     ../../src/hsm_log.c
+    ../../src/constants.c
     ${theseTestsName}.c
 )
 

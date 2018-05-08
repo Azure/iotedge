@@ -8,6 +8,8 @@ compileAsC11()
 
 set(theseTestsName edge_hsm_sas_auth_int)
 
+include_directories(../../src)
+
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files

@@ -12,6 +12,7 @@ include_directories(. ./inc)
 
 set(source_c_files
     ./src/certificate_info.c
+    ./src/constants.c
     ./src/edge_hsm_client_crypto.c
     ./src/edge_hsm_client_store.c
     ./src/edge_hsm_client_tpm.c
@@ -19,6 +20,7 @@ set(source_c_files
     ./src/edge_hsm_key_interface.c
     ./src/edge_sas_key.c
     ./src/hsm_certificate_props.c
+    ./src/hsm_client_data.c
     ./src/hsm_log.c
 )
 
@@ -48,10 +50,21 @@ else()
     )
     find_package(OpenSSL REQUIRED)
     include_directories(${OPENSSL_INCLUDE_DIR})
-    # Make warning as error
-    # todo add -Wall -Werror ...
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC")
+    if (run_unittests)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC")
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -std=c99 ")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror ")
+        # todo enable extra warnings when azure shared util warnings are fixed
+        # extra warnings
+        #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wextra -Wformat=2 -Wformat-security -std=c99 ")
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wextra -Wformat=2 -Wformat-security ")
+        #if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        #    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4 ")
+        #    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wtrampolines -fstack-protector-all -Wstack-protector --param ssp-buffer-size=4" )
+        #endif()
+    endif(run_unittests)
 endif(WIN32)
 
 # We want this to always be a shared library and let the dynamic linker on the

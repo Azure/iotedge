@@ -49,7 +49,7 @@ fn main() {
     // Clone Azure C -shared library
     let c_shared_url = "https://github.com/Azure/azure-c-shared-utility";
     let c_shared_repo = "azure-iot-hsm-c/azure-c-shared-utility";
-    let version_sha = "ed84cdb8f2cd345c1bebde9e57b896e96cef374c"; // 2018-04-02
+    let version_sha = "8290634e5c2d005643d5a7dd5f8e65ad7a4353c2"; // 2018-05-03
 
     println!("#Start Getting C-Shared Utilities");
     let repo = Repository::open(c_shared_repo)

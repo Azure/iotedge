@@ -3,8 +3,10 @@
 
 usePermissiveRulesForSamplesAndTests()
 
+set(SHARED_UTIL_REAL_TEST_FOLDER ${SHARED_UTIL_SRC_FOLDER}/../tests/real_test_files CACHE INTERNAL "this is what needs to be included when doing test sources" FORCE)
+
 add_subdirectory(hsm_certificate_props_ut)
-#add_subdirectory(certificate_info_ut)
+add_subdirectory(certificate_info_ut)
 add_subdirectory(edge_hsm_tpm_ut)
 add_subdirectory(edge_hsm_key_interface_sas_key_ut)
 add_subdirectory(edge_hsm_sas_auth_int)

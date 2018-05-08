@@ -23,6 +23,9 @@ typedef struct CERT_DATA_INFO_TAG
     char* subject;
     char* issuer;
     const char* cert_chain;
+    const char* first_cert_start;
+    const char* first_cert_end;
+    char* first_certificate;
 } CERT_DATA_INFO;
 
 typedef enum X509_ASN1_STATE_TAG
@@ -110,6 +113,7 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
         bool begin_hdr_end = false;
         int begin_hdr_len = 0;
         memset(cert_base64, 0, len);
+        cert_info->first_cert_start = cert_info->certificate_pem;
         // If the cert does not begin with a '-' then
         // the certificate doesn't have a header
         if (*iterator != '-')
@@ -120,13 +124,16 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
         {
             if (begin_hdr_end)
             {
-                // Once we are in the header then, copy the cert excluding \r\n
+                // Once we are in the header then, copy the cert excluding \r\n on all lines
                 if (*iterator != '\r' && *iterator != '\n')
                 {
                     cert_base64[cert_idx++] = *iterator;
                 }
                 if (*iterator == '\n' && *(iterator + 1) == '-')
                 {
+                    // mark the end of the first certificate including \r\n characters
+                    cert_info->first_cert_end = iterator + END_HEADER_LENGTH + 2;
+
                     // Check to see if we have a chain embedded in the certificate
                     // if we've have more data after the END HEADER then we have a chain
                     if ((((iterator - cert_info->certificate_pem) + END_HEADER_LENGTH) + begin_hdr_len) < (int)len)
@@ -468,9 +475,38 @@ static int parse_certificate(CERT_DATA_INFO* cert_info)
 CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* private_key, size_t priv_key_len, PRIVATE_KEY_TYPE pk_type)
 {
     CERT_DATA_INFO* result;
-    if (certificate == NULL || private_key == NULL)
+    size_t cert_len;
+
+    if (certificate == NULL)
     {
-        LogError("Invalid parameter specified");
+        LogError("Invalid certificate parameter specified");
+        result = NULL;
+    }
+    else if ((cert_len = strlen(certificate)) == 0)
+    {
+        LogError("Empty certificate string provided");
+        result = NULL;
+    }
+    else if ((private_key != NULL) && (priv_key_len == 0))
+    {
+        LogError("Invalid private key buffer parameters specified");
+        result = NULL;
+    }
+    else if ((private_key != NULL) &&
+             (pk_type != PRIVATE_KEY_PAYLOAD) &&
+             (pk_type != PRIVATE_KEY_REFERENCE))
+    {
+        LogError("Invalid private key type specified");
+        result = NULL;
+    }
+    else if ((private_key == NULL) && (pk_type != PRIVATE_KEY_UNKNOWN))
+    {
+        LogError("Invalid private key type specified");
+        result = NULL;
+    }
+    else if ((private_key == NULL) && (priv_key_len != 0))
+    {
+        LogError("Invalid private key length specified");
         result = NULL;
     }
     else if ((result = (CERT_DATA_INFO*)malloc(sizeof(CERT_DATA_INFO))) == NULL)
@@ -481,7 +517,6 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
     {
         memset(result, 0, sizeof(CERT_DATA_INFO));
 
-        size_t cert_len = strlen(certificate);
         if (cert_len == 0 || (result->certificate_pem = malloc(cert_len + 1)) == NULL)
         {
             LogError("Failure allocating certificate");
@@ -500,18 +535,39 @@ CERT_INFO_HANDLE certificate_info_create(const char* certificate, const void* pr
                 free(result);
                 result = NULL;
             }
-            else if ((result->private_key = malloc(priv_key_len)) == NULL)
-            {
-                LogError("Failure allocating private key");
-                free(result->certificate_pem);
-                free(result);
-                result = NULL;
-            }
             else
             {
-                memcpy(result->private_key, private_key, priv_key_len);
-                result->private_key_len = priv_key_len;
-                result->private_key_type = pk_type;
+                size_t num_bytes_first_cert = result->first_cert_end - result->first_cert_start + 1;
+                if ((result->first_certificate = malloc(num_bytes_first_cert + 1)) == NULL)
+                {
+                    LogError("Failure allocating memory to hold the main certificate");
+                    free(result->certificate_pem);
+                    free(result);
+                    result = NULL;
+                }
+                else
+                {
+                    memcpy(result->first_certificate, result->first_cert_start, num_bytes_first_cert);
+                    result->first_certificate[num_bytes_first_cert] = 0;
+                    result->private_key_type = PRIVATE_KEY_UNKNOWN;
+                    if (private_key != NULL)
+                    {
+                        if ((result->private_key = malloc(priv_key_len)) == NULL)
+                        {
+                            LogError("Failure allocating private key");
+                            free(result->first_certificate);
+                            free(result->certificate_pem);
+                            free(result);
+                            result = NULL;
+                        }
+                        else
+                        {
+                            memcpy(result->private_key, private_key, priv_key_len);
+                            result->private_key_len = priv_key_len;
+                            result->private_key_type = pk_type;
+                        }
+                    }
+                }
             }
         }
     }
@@ -523,8 +579,12 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     CERT_DATA_INFO* cert_info = (CERT_DATA_INFO*)handle;
     if (cert_info != NULL)
     {
+        free(cert_info->first_certificate);
         free(cert_info->certificate_pem);
-        free(cert_info->private_key);
+        if (cert_info->private_key != NULL)
+        {
+            free(cert_info->private_key);
+        }
         free(cert_info);
     }
 }
@@ -539,7 +599,7 @@ const char* certificate_info_get_certificate(CERT_INFO_HANDLE handle)
     }
     else
     {
-        result = handle->certificate_pem;
+        result = handle->first_certificate;
     }
     return result;
 }
@@ -596,7 +656,7 @@ PRIVATE_KEY_TYPE certificate_info_private_key_type(CERT_INFO_HANDLE handle)
     if (handle == NULL)
     {
         LogError("Invalid parameter specified");
-        result = PRIVATE_KEY_PAYLOAD;
+        result = PRIVATE_KEY_UNKNOWN;
     }
     else
     {

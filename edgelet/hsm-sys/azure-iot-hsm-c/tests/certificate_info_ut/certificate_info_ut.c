@@ -90,7 +90,7 @@ static const char* TEST_CERT_CHAIN =
 "MIIFuzCCA6OgAwIBAgICA+gwDQYJKoZIhvcNAQELBQAwgZUxCzAJBgNVBAYTAlVTMRcwFQYDVQQDDA5FZGdlIERldmljZSBDQTEQMA4GA1UEBwwHUmVkbW9uZDEiMCAGA1UECgwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjETMBEGA1UECAwKV2FzaGluZ3RvbjEiMCAGA1UECwwZRGVmYXVsdCBFZGdlIE9yZ2FuaXphdGlvbjAeFw0xODA0MjQwMzU1NTdaFw0xOTA0MjQwMzU1NTdaMIGVMQswCQYDVQQGEwJVUzEXMBUGA1UEAwwORWRnZSBEZXZpY2UgQ0ExEDAOBgNVBAcMB1JlZG1vbmQxIjAgBgNVBAoMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24xEzARBgNVBAgMCldhc2hpbmd0b24xIjAgBgNVBAsMGURlZmF1bHQgRWRnZSBPcmdhbml6YXRpb24wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCxqFOTRC1in4Kjhgba62GYYTZnDLsFk/Y9YqyhHr0+VMLEyZrwLRMyKS5V2nmt7lFMZsMDuoU+uISo+i+Wvx8aNjyalF8vQfVwQtRfFbSAVEzmEZMfff80SMdo31uN9KcmjTqrn1ULLHBEhmiOgW+V+gizAkcmCpCHWEv1MexlQ2t5RSM0BF2AIwA4I3DyT0OuVyAtC3UUxPDQb5KqUChBGexej/Y1JxcLDo7evxEH5eZtepXeVIO/yzn2a7PaplxEh2vStLsZVUuso1e8bghjREVp4OzHmce2Fss46XFTlah7gCTlCe7f03OVQOBS7IOxrPnm1xizmI4aNECa+HqkPoM83/fLUzjAYi3DFzwY+Y8kzt5tIq1jt5oXSAu+W/K3t1w9EMDn0BcKjvEMoJKiX2ZAD/PhLT+0GgGzyYenqwXLv9a0oh245rv/dD3Q+uL5sSuS9U+UF4j8NYVqXxRmU340/WQdfDyrL/IiRDrp+oelm3ddKX6qQ9ZqrlK31H1FAJrJH/6mf0auOdkumAHoGwL+vIzaezW52CuQDtNmRi3IoDoObdzSfW0aTeKoljr9/fq3jri7BI5GwWAhDBM+tiYPaMCaSxBI547SAFlla1xScI22a04L5ec3KHZleb6Rsfvd1ybWlSOjXOGqHcnGz9uUCwM/cYHcLQpnsroHxQIDAQABoxMwETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBkNRKg/xeJ2/n/KckHxCXv9QsPnnEFQu0Z2w2nw5GPi0Y9cSQHgwL1EwPvAsjQ7WBbe2e44DkwssbGnLO4kE0CkLgbTVbBPybrWeOcl3Ei173CBSwPOQxJZ14voquSFxglaYoVABaLpmsME4ZYn9W1occhoLKaZ7jGZAbLo/ZsigO1u/mSf6ZgaBSd1GdBeTfzLxu1IdnorYlKWudi9pQ/6TW/yT+mNq3iuMWNeqUJps2sgWkaaaqzvHx4dAOb6rzBC/4vuxIc2X2z6NgSjdddr1V3yCyjpX54TgM/q/00BhSaRluqQAn/QHqIrDbeExUbGSFfb9Ma1aiUMNuxgYGiF/v72P7Nq+WhOLa9mucoO293abq0SOAup4RdqOj9QnyJ91s1Lwe07bn3huF1ScYkOAQxmzA3rS8JZ2z6snJigI/Kb70Ba2rVdFjVDRuNEC5xhK6hFkLsk+quPKubNpHOQLSkXHf7sVGFT714j0JSoBa8OKMY3HErWGP1qBdp8HtfV1rtrYzesWvfPj4sAqLpvgq9cd2GXhoDlxKjZam9RkbdkdIVi59125y/qhqMpQF5uRKyDFx6GWkY+MgOMk0BbvUSVjH9bSdZZzupUvYpRodI92fYZWnlKNavPxi0bbJ/WcFDb/rbn83UtaFt3xnejuutm6RjKPSbQGLceR7O4A==""\n"
 "-----END CERTIFICATE-----";
 
-static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 0x36 };
+static const unsigned char TEST_PRIVATE_KEY[] = { 0x32, 0x03, 0x33, 0x34, 0x35, 0x36, 0x0 };
 static size_t TEST_PRIVATE_KEY_LEN = sizeof(TEST_PRIVATE_KEY)/sizeof(TEST_PRIVATE_KEY[0]);
 
 static TEST_MUTEX_HANDLE g_testByTest;
@@ -185,7 +185,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         return result;
     }
 
-    static void setup_parse_cert(size_t cert_len)
+    static void setup_parse_cert_common(size_t cert_len, bool private_key_set)
     {
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
         STRICT_EXPECTED_CALL(gballoc_malloc(cert_len));
@@ -200,7 +200,18 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         STRICT_EXPECTED_CALL(BUFFER_u_char(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(BUFFER_length(IGNORED_PTR_ARG));
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG));
-        STRICT_EXPECTED_CALL(gballoc_malloc(TEST_PRIVATE_KEY_LEN));
+        // allocator for the first certificate add +2 to account for the /r/n chars
+        STRICT_EXPECTED_CALL(gballoc_malloc(cert_len + 2));
+        // allocator for the private key
+        if (private_key_set)
+        {
+            STRICT_EXPECTED_CALL(gballoc_malloc(TEST_PRIVATE_KEY_LEN));
+        }
+    }
+
+    static void setup_parse_cert(size_t cert_len)
+    {
+        setup_parse_cert_common(cert_len, true);
     }
 
     TEST_FUNCTION(certificate_info_create_cert_NULL_fail)
@@ -217,15 +228,159 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         certificate_info_destroy(cert_handle);
     }
 
-    TEST_FUNCTION(certificate_info_create_pk_NULL_fail)
+    TEST_FUNCTION(certificate_info_create_cert_empty_string_fail)
     {
         //arrange
 
         //act
-        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        CERT_INFO_HANDLE cert_handle = certificate_info_create("", TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
 
         //assert
         ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_type_unknown_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_type_invalid_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, 500);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_null_and_type_payload_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_null_and_type_reference_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_REFERENCE);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_null_and_size_non_zero_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_UNKNOWN);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_non_null_zero_length_fails)
+    {
+        //arrange
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, 0, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NULL(cert_handle);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_NULL_pass)
+    {
+        //arrange
+
+        //act
+        size_t pk_size = 100;
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
+        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_IS_NULL(pk);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_UNKNOWN, pk_type, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_payload_pass)
+    {
+        //arrange
+
+        //act
+        size_t pk_size = 100;
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
+        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_ARE_EQUAL(char_ptr, pk, TEST_PRIVATE_KEY);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_PAYLOAD, pk_type, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_create_pk_payload_reference_pass)
+    {
+        //arrange
+
+        //act
+        size_t pk_size = 100;
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_REFERENCE);
+        const void* pk = certificate_info_get_private_key(cert_handle, &pk_size);
+        PRIVATE_KEY_TYPE pk_type = certificate_info_private_key_type(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_ARE_EQUAL(char_ptr, pk, TEST_PRIVATE_KEY);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PRIVATE_KEY_LEN, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, PRIVATE_KEY_REFERENCE, pk_type, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -254,6 +409,22 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //act
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+
+        //assert
+        ASSERT_IS_NOT_NULL(cert_handle);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_no_private_key_succeed)
+    {
+        //arrange
+        setup_parse_cert_common(strlen(TEST_ECC_CERT) + 1, false);
+
+        //act
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_ECC_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
 
         //assert
         ASSERT_IS_NOT_NULL(cert_handle);
@@ -314,16 +485,39 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         umock_c_negative_tests_deinit();
     }
 
-    TEST_FUNCTION(certificate_info_destroy_succeed)
+    TEST_FUNCTION(certificate_info_destroy_with_private_key_succeed)
     {
         //arrange
         CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
         umock_c_reset_all_calls();
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
 
         //act
         certificate_info_destroy(cert_handle);
 
         //assert
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        //cleanup
+    }
+
+    TEST_FUNCTION(certificate_info_destroy_without_private_key_succeed)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, NULL, 0, PRIVATE_KEY_UNKNOWN);
+        umock_c_reset_all_calls();
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+
+        //act
+        certificate_info_destroy(cert_handle);
+
+        //assert
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
         //cleanup
     }

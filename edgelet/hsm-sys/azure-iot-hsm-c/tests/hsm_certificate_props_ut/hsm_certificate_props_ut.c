@@ -57,6 +57,8 @@ static const char* TEST_ALIAS_VALUE = "test_alias";
 
 #define TEST_STRING_64 "0123456789012345678901234567890123456789012345678901234567890123"
 #define TEST_STRING_65  TEST_STRING_64 "1"
+#define TEST_STRING_128 TEST_STRING_64 TEST_STRING_64
+#define TEST_STRING_129 TEST_STRING_128 "1"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
@@ -381,6 +383,21 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         cert_properties_destroy(cert_handle);
     }
 
+    TEST_FUNCTION(get_country_name_default_succeed)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        const char* result = get_country_name(cert_handle);
+
+        //assert
+        ASSERT_IS_NULL(result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
     TEST_FUNCTION(set_certificate_type_handle_NULL_fail)
     {
         //arrange
@@ -394,13 +411,73 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         //cleanup
     }
 
-    TEST_FUNCTION(set_certificate_type_succeed)
+    TEST_FUNCTION(set_certificate_type_unknown_fail)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_certificate_type(cert_handle, CERTIFICATE_TYPE_UNKNOWN);
+
+        //assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_certificate_type_invalid_fail)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_certificate_type(cert_handle, 500);
+
+        //assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_certificate_type_ca_succeed)
     {
         //arrange
         CERT_PROPS_HANDLE cert_handle = cert_properties_create();
 
         //act
         int result = set_certificate_type(cert_handle, CERTIFICATE_TYPE_CA);
+
+        //assert
+        ASSERT_ARE_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_certificate_type_server_succeed)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_certificate_type(cert_handle, CERTIFICATE_TYPE_SERVER);
+
+        //assert
+        ASSERT_ARE_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_certificate_type_client_succeed)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_certificate_type(cert_handle, CERTIFICATE_TYPE_CLIENT);
 
         //assert
         ASSERT_ARE_EQUAL(int, 0, result);
@@ -458,6 +535,21 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         //act
         int result = set_issuer_alias(cert_handle, NULL);
+
+        //assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_issuer_alias_alias_empty_fail)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_issuer_alias(cert_handle, "");
 
         //assert
         ASSERT_ARE_NOT_EQUAL(int, 0, result);
@@ -546,6 +638,21 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         //act
         int result = set_alias(cert_handle, NULL);
+
+        //assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+        //cleanup
+        cert_properties_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(set_alias_alias_empty_fail)
+    {
+        //arrange
+        CERT_PROPS_HANDLE cert_handle = cert_properties_create();
+
+        //act
+        int result = set_alias(cert_handle, "");
 
         //assert
         ASSERT_ARE_NOT_EQUAL(int, 0, result);
@@ -664,6 +771,10 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
 
+        // default value
+        test_output_string = get_state_name(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
         // invalid handle
         status = set_common_name(NULL, test_input_string);
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -674,11 +785,11 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         status = set_common_name(props_handle, NULL);
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         status = set_common_name(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = set_common_name(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_common_name(props_handle, "");
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         test_output_string = get_common_name(props_handle);
-        ASSERT_IS_NOT_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
         status = set_common_name(props_handle, test_input_string);
@@ -696,52 +807,46 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
         cert_properties_destroy(props_handle);
     }
 
-#if 0
     /**
     * Test function for APIs
-    *   set_issuer_alias
-    *   get_issuer_alias
+    *   set_state_name
+    *   get_state_name
     */
-    TEST_FUNCTION(certificate_props_issuer_alias)
+    TEST_FUNCTION(certificate_props_state_name)
     {
         //arrange
         int status;
-        // alias name max length is 64 + 1 for null term
-        char test_input_string[65] = TEST_STRING_64;
-        char test_output_string[65];
+        // state name max length is 128
+        const char* test_input_string = TEST_STRING_128;
+        const char* test_output_string;
 
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
 
+        // default value
+        test_output_string = get_state_name(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
         // invalid handle
-        status = set_issuer_alias(NULL, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_issuer_alias(NULL, test_output_string, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+        status = set_state_name(NULL, test_input_string);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_state_name(NULL);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
-        status = set_issuer_alias(props_handle, NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = set_issuer_alias(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = set_issuer_alias(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_issuer_alias(props_handle, NULL, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+        status = set_state_name(props_handle, NULL);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_state_name(props_handle, TEST_STRING_129);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_state_name(props_handle, "");
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_state_name(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
-        status = set_issuer_alias(props_handle, test_input_string);
+        status = set_state_name(props_handle, test_input_string);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_issuer_alias(props_handle, test_output_string, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_state_name(props_handle);
         ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
-
-        // invalid input for get_issuer_alias
-        status = set_issuer_alias(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_issuer_alias(props_handle, test_output_string, 0);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_issuer_alias(props_handle, test_output_string, 30);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
@@ -749,103 +854,137 @@ BEGIN_TEST_SUITE(hsm_certificate_props_ut)
 
     /**
     * Test function for APIs
-    *   set_alias
-    *   get_alias
+    *   set_locality
+    *   get_locality
     */
-    TEST_FUNCTION(certificate_props_alias)
+    TEST_FUNCTION(certificate_props_locality_name)
     {
         //arrange
         int status;
-        // alias name max length is 64 + 1 for null term
-        char test_input_string[65] = TEST_STRING_64;
-        char test_output_string[65];
+        // locality name max length is 128
+        const char* test_input_string = TEST_STRING_128;
+        const char* test_output_string;
 
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
 
+        // default value
+        test_output_string = get_locality(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
         // invalid handle
-        status = set_alias(NULL, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_alias(NULL, test_output_string, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+        status = set_locality(NULL, test_input_string);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_locality(NULL);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // invalid paramters and data
-        status = set_alias(props_handle, NULL);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = set_alias(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = set_alias(props_handle, TEST_STRING_65);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_alias(props_handle, NULL, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+        status = set_locality(props_handle, NULL);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_locality(props_handle, TEST_STRING_129);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_locality(props_handle, "");
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_locality(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
-        status = set_alias(props_handle, test_input_string);
+        status = set_locality(props_handle, test_input_string);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_alias(props_handle, test_output_string, sizeof(test_output_string));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_locality(props_handle);
         ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
-        // invalid input for get_alias
-        status = set_alias(props_handle, test_input_string);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_alias(props_handle, test_output_string, 0);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_alias(props_handle, test_output_string, 30);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-
-        // cleanup
+        //cleanup
         cert_properties_destroy(props_handle);
     }
 
     /**
     * Test function for APIs
-    *   set_certificate_type
-    *   get_certificate_type
+    *   set_organization_name
+    *   get_organization_name
     */
-    TEST_FUNCTION(certificate_props_certificate_type)
+    TEST_FUNCTION(certificate_props_organization_name)
     {
         //arrange
         int status;
-        CERTIFICATE_TYPE test_output;
+        // org name max length is 64
+        const char* test_input_string = TEST_STRING_64;
+        const char* test_output_string;
+
         CERT_PROPS_HANDLE props_handle = cert_properties_create();
 
-        // test default value
-        status = get_certificate_type(props_handle, &test_output);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, CERTIFICATE_TYPE_UNKNOWN, test_output, "Line:" TOSTRING(__LINE__));
+        // default value
+        test_output_string = get_organization_name(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
-        // invalid parameters and data
-        status = set_certificate_type(NULL, CERTIFICATE_TYPE_UNKNOWN);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = set_certificate_type(props_handle, CERTIFICATE_TYPE_UNKNOWN);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_certificate_type(NULL, &test_output);
-        ASSERT_ARE_EQUAL(int, 1, status, "Line:" TOSTRING(__LINE__));
-        status = get_certificate_type(props_handle, NULL);
-        ASSERT_ARE_EQUAL(int, 1, status, "Line:" TOSTRING(__LINE__));
+        // invalid handle
+        status = set_organization_name(NULL, test_input_string);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_name(NULL);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
+        // invalid paramters and data
+        status = set_organization_name(props_handle, NULL);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_organization_name(props_handle, TEST_STRING_65);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_organization_name(props_handle, "");
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_name(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
 
         // valid input data
-        status = set_certificate_type(props_handle, CERTIFICATE_TYPE_CLIENT);
+        status = set_organization_name(props_handle, test_input_string);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_certificate_type(props_handle, &test_output);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, CERTIFICATE_TYPE_CLIENT, test_output, "Line:" TOSTRING(__LINE__));
-
-        status = set_certificate_type(props_handle, CERTIFICATE_TYPE_SERVER);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_certificate_type(props_handle, &test_output);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, CERTIFICATE_TYPE_SERVER, test_output, "Line:" TOSTRING(__LINE__));
-
-        status = set_certificate_type(props_handle, CERTIFICATE_TYPE_CA);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        status = get_certificate_type(props_handle, &test_output);
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, CERTIFICATE_TYPE_CA, test_output, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_name(props_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
 
         //cleanup
         cert_properties_destroy(props_handle);
     }
-#endif
+
+    /**
+    * Test function for APIs
+    *   set_organization_unit
+    *   get_organization_unit
+    */
+    TEST_FUNCTION(certificate_props_organization_unit_name)
+    {
+        //arrange
+        int status;
+        // org unit name max length is 64
+        const char* test_input_string = TEST_STRING_64;
+        const char* test_output_string;
+
+        CERT_PROPS_HANDLE props_handle = cert_properties_create();
+
+        // default value
+        test_output_string = get_organization_unit(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
+        // invalid handle
+        status = set_organization_unit(NULL, test_input_string);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_unit(NULL);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
+        // invalid paramters and data
+        status = set_organization_unit(props_handle, NULL);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_organization_unit(props_handle, TEST_STRING_65);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        status = set_organization_unit(props_handle, "");
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_unit(props_handle);
+        ASSERT_IS_NULL_WITH_MSG(test_output_string, "Line:" TOSTRING(__LINE__));
+
+        // valid input data
+        status = set_organization_unit(props_handle, test_input_string);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        test_output_string = get_organization_unit(props_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, test_input_string, test_output_string, "Line:" TOSTRING(__LINE__));
+
+        //cleanup
+        cert_properties_destroy(props_handle);
+    }
 
     END_TEST_SUITE(hsm_certificate_props_ut)

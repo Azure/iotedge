@@ -209,7 +209,7 @@ static STRING_HANDLE tpm_construct_sas_token
 }
 
 //#############################################################################
-// Test helpers
+// Test functions
 //#############################################################################
 
 BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
