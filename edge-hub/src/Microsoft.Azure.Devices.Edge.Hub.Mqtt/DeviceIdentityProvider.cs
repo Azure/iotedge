@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
     {
+        const string ApiVersionKey = "api-version";
+        const string DeviceClientTypeKey = "DeviceClientType";
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
@@ -70,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
         {
             // Username is of one of the 2 forms:
-            //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "?" properties
+            //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/?" properties
+            // Note, the ? should be the first character of the last segment (as it is a valid character for a deviceId/moduleId)
             //    OR
             //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/" properties
             //   properties = property *("&" property)
@@ -78,24 +81,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // We recognize two property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
-            // We ignore any properties we don't recognize.            
-            Preconditions.CheckNonWhiteSpace(username, nameof(username));
-            if (username.Contains('?'))
-            {
-                string[] parts = username.Split('?');
-                if (parts.Length > 2)
-                {
-                    throw new EdgeHubConnectionException($"Username {username} does not contain valid values");
-                }
+            // We ignore any properties we don't recognize.
+            // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
+            // and not used as a separator, unless it is the first character of the last segment
+            // (since the property bag is not url encoded). So the following are valid username inputs -
+            // "iotHub1/device1/module1/foo?bar=b1&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
+            // "iotHub1/device1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
+            // "iotHub1/device1/module1?&api-version=2010-01-01&DeviceClientType=customDeviceClient1"
 
-                string[] usernameSegments = parts[0].Split('/');
-                if (usernameSegments.Length == 2)
+            string deviceId;
+            string moduleId = string.Empty;
+            IDictionary<string, string> queryParameters;
+
+            string[] usernameSegments = Preconditions.CheckNonWhiteSpace(username, nameof(username)).Split('/');
+            if (usernameSegments[usernameSegments.Length - 1].StartsWith("?", StringComparison.OrdinalIgnoreCase))
+            {
+                // edgeHubHostName/device1/?apiVersion=10-2-3&DeviceClientType=foo
+                if (usernameSegments.Length == 3)
                 {
-                    return (usernameSegments[1].Trim(), string.Empty, ParseDeviceClientType(parts[1]));
+                    deviceId = usernameSegments[1].Trim();
+                    queryParameters = ParseDeviceClientType(usernameSegments[2].Substring(1).Trim());
                 }
-                else if (usernameSegments.Length == 3)
+                // edgeHubHostName/device1/module1/?apiVersion=10-2-3&DeviceClientType=foo
+                else if (usernameSegments.Length == 4)
                 {
-                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), ParseDeviceClientType(parts[1]));
+                    deviceId = usernameSegments[1].Trim();
+                    moduleId = usernameSegments[2].Trim();
+                    queryParameters = ParseDeviceClientType(usernameSegments[3].Substring(1).Trim());
                 }
                 else
                 {
@@ -104,14 +116,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
             else
             {
-                string[] usernameSegments = username.Split('/');
+                // edgeHubHostName/device1/apiVersion=10-2-3&DeviceClientType=foo
                 if (usernameSegments.Length == 3 && usernameSegments[2].Contains("api-version="))
                 {
-                    return (usernameSegments[1].Trim(), string.Empty, ParseDeviceClientType(usernameSegments[2]));
+                    deviceId = usernameSegments[1].Trim();
+                    queryParameters = ParseDeviceClientType(usernameSegments[2].Trim());
                 }
+                // edgeHubHostName/device1/module1/apiVersion=10-2-3&DeviceClientType=foo
                 else if (usernameSegments.Length == 4 && usernameSegments[3].Contains("api-version="))
                 {
-                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), ParseDeviceClientType(usernameSegments[3]));
+                    deviceId = usernameSegments[1].Trim();
+                    moduleId = usernameSegments[2].Trim();
+                    queryParameters = ParseDeviceClientType(usernameSegments[3].Trim());
                 }
                 // The Azure ML container is using an older client that returns a device client with the following format -
                 // username = edgeHubHostName/deviceId/moduleId/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003
@@ -119,32 +135,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 // To allow those clients to work, check for that specific api-version, and version.
                 else if (usernameSegments.Length == 6 && username.EndsWith("/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", StringComparison.OrdinalIgnoreCase))
                 {
-                    string deviceClientType = "Microsoft.Azure.Devices.Client/1.5.1-preview-003";
-                    return (usernameSegments[1].Trim(), usernameSegments[2].Trim(), deviceClientType);
+                    deviceId = usernameSegments[1].Trim();
+                    moduleId = usernameSegments[2].Trim();
+                    queryParameters = new Dictionary<string, string>
+                    {
+                        [ApiVersionKey] = "2017-06-30",
+                        [DeviceClientTypeKey] = "Microsoft.Azure.Devices.Client/1.5.1-preview-003"
+                    };
                 }
                 else
                 {
                     throw new EdgeHubConnectionException($"Username {username} does not contain valid values");
                 }
             }
+
+            // Check if the api-version parameter exists, but don't check its value.
+            if (!queryParameters.TryGetValue(ApiVersionKey, out string apiVersionKey) || string.IsNullOrWhiteSpace(apiVersionKey))
+            {
+                throw new EdgeHubConnectionException($"Username {username} does not contain a valid Api-version property");
+            }
+
+            if (string.IsNullOrWhiteSpace(deviceId))
+            {
+                throw new EdgeHubConnectionException($"Username {username} does not contain a valid device ID");
+            }
+
+            if (!queryParameters.TryGetValue(DeviceClientTypeKey, out string deviceClientType))
+            {
+                deviceClientType = string.Empty;
+            }
+            return (deviceId, moduleId, deviceClientType);
+
         }
 
-        static string ParseDeviceClientType(string queryParams)
+        static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
         {
             // example input: "api-version=version&DeviceClientType=url-escaped-string&other-prop=value&some-other-prop"
 
             var kvsep = new[] { '=' };
 
-            Dictionary<string, string> parms = queryParams
+            Dictionary<string, string> queryParameters = queryParameterString
                 .Split('&')                             // split input string into params
                 .Select(s => s.Split(kvsep, 2))         // split each param into a key/value pair
                 .GroupBy(s => s[0])                     // group duplicates (by key) together...
                 .Select(s => s.First())                 // ...and keep only the first one
                 .ToDictionary(                          // convert to Dictionary<string, string>
                     s => s[0],
-                    s => s.ElementAtOrEmpty(1));
-
-            return parms.ContainsKey("DeviceClientType") ? Uri.UnescapeDataString(parms["DeviceClientType"]) : string.Empty;
+                    s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1)));
+            return queryParameters;
         }
 
         static class Events

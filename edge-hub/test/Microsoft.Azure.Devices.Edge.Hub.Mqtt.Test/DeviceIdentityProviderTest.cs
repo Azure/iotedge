@@ -74,9 +74,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003" };
 
-            yield return new object[] { "iotHub1/device1?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "", "customDeviceClient1" };
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "", "customDeviceClient1" };
 
-            yield return new object[] { "iotHub1/device1/module1?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1" };
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1" };
+
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", "", "" };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", "" };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", "", "" };
+
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", "" };
+
         }
 
         [Theory]
@@ -99,8 +108,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client")]
         [InlineData("iotHub1/device1/module1")]
         [InlineData("iotHub1/device1/module1?api-version=2010-01-01?DeviceClientType=customDeviceClient1")]
-        [InlineData("iotHub1/device1/module1/foo?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
         [InlineData("iotHub1?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
+        [InlineData("iotHub1/device1/module1/?version=2010-01-01&DeviceClientType=customDeviceClient1")]
+        [InlineData("iotHub1//?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
         public void ParseUserNameErrorTest(string username)
         {
             Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
