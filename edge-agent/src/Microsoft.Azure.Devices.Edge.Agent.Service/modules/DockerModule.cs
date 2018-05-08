@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             // IDeviceClientProvider
             string edgeAgentConnectionString = $"{this.edgeDeviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
-            builder.Register(c => new DeviceClientProvider(edgeAgentConnectionString, this.upstreamProtocol))
-                .As<IDeviceClientProvider>()
+            builder.Register(c => new ModuleClientProvider(edgeAgentConnectionString, this.upstreamProtocol))
+                .As<IModuleClientProvider>()
                 .SingleInstance();
 
             // IServiceClient

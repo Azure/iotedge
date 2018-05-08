@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var messageConverter = new Mock<IMessageConverterProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
 
-            var deviceClient = Mock.Of<IDeviceClient>();
+            var deviceClient = Mock.Of<IClient>();
             var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Id, (id, s) => { });
 
             var cloudReceiver = new CloudProxy.CloudReceiver(cloudProxy, cloudListener.Object);
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             //Arrange
             var messageConverter = new Mock<IMessageConverterProvider>();
-            var deviceClient = Mock.Of<IDeviceClient>();
+            var deviceClient = Mock.Of<IClient>();
             var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, "device1", (id, s) => { });
 
             //Act
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             //Arrange
             var messageConverter = new Mock<IMessageConverterProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
-            var deviceClient = Mock.Of<IDeviceClient>();
+            var deviceClient = Mock.Of<IClient>();
             var cloudProxy = new CloudProxy(deviceClient, messageConverter.Object, identity.Id, (id, s) => { });
             var cloudListener = new Mock<ICloudListener>();
 
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
 
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
-            var deviceClient = new Mock<IDeviceClient>();
+            var deviceClient = new Mock<IClient>();
 
             var cloudProxy = new CloudProxy(deviceClient.Object, messageConverterProvider.Object, identity.Id, (id, s) => { });
             var cloudListener = new Mock<ICloudListener>();
@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
 
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
-            var deviceClient = new Mock<IDeviceClient>();
+            var deviceClient = new Mock<IClient>();
             deviceClient.Setup(dc => dc.SetDesiredPropertyUpdateCallbackAsync(null, null)).Throws(new Exception("Update this test!")); //This is to catch onde the TODO on the code get's in.
   
 

@@ -140,12 +140,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IDeviceClientProvider
-            builder.Register(c => new DeviceClientProvider())
-                .As<IDeviceClientProvider>()
+            builder.Register(c => new ClientProvider())
+                .As<IClientProvider>()
                 .SingleInstance();
 
             // ICloudConnectionProvider
-            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IDeviceClientProvider>(), this.upstreamProtocol))
+            builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol))
                 .As<ICloudConnectionProvider>()
                 .SingleInstance();
 

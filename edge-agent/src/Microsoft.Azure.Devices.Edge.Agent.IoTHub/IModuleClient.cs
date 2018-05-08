@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Shared;
 
-    public interface IDeviceClient : IDisposable
+    public interface IModuleClient : IDisposable
     {
         Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
 

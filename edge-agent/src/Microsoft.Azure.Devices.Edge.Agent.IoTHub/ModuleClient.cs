@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    public class DeviceClient : IDeviceClient
+    public class ModuleClient : IModuleClient
     {
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
@@ -28,38 +28,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             [UpstreamProtocol.MqttWs] = TransportType.Mqtt_WebSocket_Only
         };
 
-        readonly Client.DeviceClient deviceClient;
+        readonly Client.ModuleClient deviceClient;
 
-        DeviceClient(Client.DeviceClient deviceClient)
+        ModuleClient(Client.ModuleClient deviceClient)
         {
             this.deviceClient = deviceClient;
         }
 
-        public static Task<IDeviceClient> Create(Option<UpstreamProtocol> upstreamProtocol,
+        public static Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
-            Func<DeviceClient, Task> initialize)
+            Func<ModuleClient, Task> initialize)
         {
             return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, statusChangedHandler));
         }
 
-        public static Task<IDeviceClient> Create(string connectionString,
+        public static Task<IModuleClient> Create(string connectionString,
             Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
-            Func<DeviceClient, Task> initialize)
+            Func<ModuleClient, Task> initialize)
         {
             return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler));
         }
 
-        static async Task<IDeviceClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<DeviceClient, Task> initialize, Func<TransportType, Task<Client.DeviceClient>> deviceClientCreator)
+        static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
         {
             try
             {
                 return await ExecuteWithRetry(
                     async () =>
                     {
-                        Client.DeviceClient dc = await CreateDeviceClientForUpstreamProtocol(upstreamProtocol, deviceClientCreator);
+                        Client.ModuleClient dc = await CreateDeviceClientForUpstreamProtocol(upstreamProtocol, deviceClientCreator);
                         Events.DeviceClientCreated();
-                        var deviceClient = new DeviceClient(dc);
+                        var deviceClient = new ModuleClient(dc);
                         if (initialize != null)
                         {
                             await initialize(deviceClient);
@@ -77,9 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        internal static Task<Client.DeviceClient> CreateDeviceClientForUpstreamProtocol(
+        internal static Task<Client.ModuleClient> CreateDeviceClientForUpstreamProtocol(
             Option<UpstreamProtocol> upstreamProtocol,
-            Func<TransportType, Task<Client.DeviceClient>> deviceClientCreator)
+            Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
             => upstreamProtocol
             .Map(u => deviceClientCreator(UpstreamProtocolTransportTypeMap[u]))
             .GetOrElse(
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 {
                     // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                     // so we'll do it explicitly until we can get the SDK sorted out.                        
-                    Try<Client.DeviceClient> result = await Fallback.ExecuteAsync(
+                    Try<Client.ModuleClient> result = await Fallback.ExecuteAsync(
                         () => deviceClientCreator(TransportType.Amqp_Tcp_Only),
                         () => deviceClientCreator(TransportType.Amqp_WebSocket_Only));
                     if (!result.Success)
@@ -98,25 +98,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return result.Value;
                 });
 
-        static async Task<Client.DeviceClient> CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
+        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transport);
-            Client.DeviceClient deviceClient = new DeviceClientFactory(transport).Create();
+            Client.ModuleClient deviceClient = Client.ModuleClient.CreateFromEnvironment(transport);
             await OpenAsync(statusChangedHandler, deviceClient);
             Events.ConnectedWithTransport(transport);
             return deviceClient;
         }
 
-        static async Task<Client.DeviceClient> CreateAndOpenDeviceClient(TransportType transport, string connectionString, ConnectionStatusChangesHandler statusChangedHandler)
+        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport, string connectionString, ConnectionStatusChangesHandler statusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transport);
-            Client.DeviceClient deviceClient = Client.DeviceClient.CreateFromConnectionString(connectionString, transport);
+            Client.ModuleClient deviceClient = Client.ModuleClient.CreateFromConnectionString(connectionString, transport);
             await OpenAsync(statusChangedHandler, deviceClient);
             Events.ConnectedWithTransport(transport);
             return deviceClient;
         }
 
-        static async Task OpenAsync(ConnectionStatusChangesHandler statusChangedHandler, Client.DeviceClient deviceClient)
+        static async Task OpenAsync(ConnectionStatusChangesHandler statusChangedHandler, Client.ModuleClient deviceClient)
         {
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub
@@ -157,8 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClient>();
-            const int IdStart = AgentEventIds.DeviceClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleClient>();
+            const int IdStart = AgentEventIds.ModuleClient;
 
             enum EventIds
             {

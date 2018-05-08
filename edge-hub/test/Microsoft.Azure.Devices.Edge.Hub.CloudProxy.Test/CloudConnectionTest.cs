@@ -31,24 +31,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public Task GetCloudConnectionForIdentityWithTokenTest()
         {
-            IDeviceClientProvider deviceClientProvider = GetMockDeviceClientProviderWithToken();
-            return GetCloudConnectionTest(() => GetMockClientCredentialsWithToken(), deviceClientProvider);
+            IClientProvider clientProvider = GetMockDeviceClientProviderWithToken();
+            return GetCloudConnectionTest(() => GetMockClientCredentialsWithToken(), clientProvider);
         }
 
         [Unit]
         [Fact]
         public Task GetCloudConnectionForIdentityWithKeyTest()
         {
-            IDeviceClientProvider deviceClientProvider = GetMockDeviceClientProviderWithKey();
-            return GetCloudConnectionTest(() => GetMockClientCredentialsWithKey(), deviceClientProvider);
+            IClientProvider clientProvider = GetMockDeviceClientProviderWithKey();
+            return GetCloudConnectionTest(() => GetMockClientCredentialsWithKey(), clientProvider);
         }
 
         [Unit]
         [Fact]
         public async Task UpdateInvalidIdentityWithTokenTest()
         {
-            var deviceClientProvider = new Mock<IDeviceClientProvider>();
-            deviceClientProvider.SetupSequence(dc => dc.Create(It.IsAny<string>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.SetupSequence(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(GetMockDeviceClient())
                 .Throws(new UnauthorizedException("Unauthorized"));
 
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             IAuthenticationMethod authenticationMethod = null;
-            IDeviceClientProvider deviceClientProvider = GetMockDeviceClientProviderWithToken((s, a, t) => authenticationMethod = a);
+            IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t) => authenticationMethod = a);
 
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatus = status;
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
 
-            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, deviceClientProvider);
+            var cloudConnection = new CloudConnection(ConnectionStatusHandler, transportSettings, messageConverterProvider, clientProvider);
 
             IClientCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentialsWithExpiringToken1);
@@ -132,9 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int receivedConnectedStatusCount = 0;
             ConnectionStatusChangesHandler connectionStatusChangesHandler = (_, __) => { };
 
-            IDeviceClient GetMockedDeviceClient()
+            IClient GetMockedDeviceClient()
             {
-                var deviceClient = new Mock<IDeviceClient>();
+                var deviceClient = new Mock<IClient>();
                 deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
                 deviceClient.Setup(dc => dc.CloseAsync())
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
@@ -155,8 +155,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 return deviceClient.Object;
             }
 
-            var deviceClientProvider = new Mock<IDeviceClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<string>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(() => GetMockedDeviceClient());
 
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
@@ -220,9 +220,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 return deviceProxyMock1.Object;
             }
 
-            IDeviceClient GetMockedDeviceClient()
+            IClient GetMockedDeviceClient()
             {
-                var deviceClient = new Mock<IDeviceClient>();
+                var deviceClient = new Mock<IClient>();
                 deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
                 deviceClient.Setup(dc => dc.CloseAsync())
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
@@ -244,8 +244,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             IAuthenticationMethod authenticationMethod = null;
-            var deviceClientProvider = new Mock<IDeviceClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<string>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
                 .Callback<string, IAuthenticationMethod, ITransportSettings[]>((s, a, t) => authenticationMethod = a)
                 .Returns(() => GetMockedDeviceClient());
 
@@ -300,12 +300,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Mock.VerifyAll(Mock.Get(deviceProxy1), Mock.Get(deviceProxy2));
         }
 
-        static async Task GetCloudConnectionTest(Func<IClientCredentials> credentialsGenerator, IDeviceClientProvider deviceClientProvider)
+        static async Task GetCloudConnectionTest(Func<IClientCredentials> credentialsGenerator, IClientProvider clientProvider)
         {
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter>());
 
-            var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, deviceClientProvider);
+            var cloudConnection = new CloudConnection((_, __) => { }, transportSettings, messageConverterProvider, clientProvider);
 
             IClientCredentials clientCredentials1 = credentialsGenerator();
             ICloudProxy cloudProxy1 = await cloudConnection.CreateOrUpdateAsync(clientCredentials1);
@@ -320,26 +320,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.NotEqual(cloudProxy1, cloudProxy2);
         }
 
-        static IDeviceClientProvider GetMockDeviceClientProviderWithKey()
+        static IClientProvider GetMockDeviceClientProviderWithKey()
         {
-            var deviceClientProvider = new Mock<IDeviceClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<string>(), It.IsAny<ITransportSettings[]>()))
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }
 
-        static IDeviceClientProvider GetMockDeviceClientProviderWithToken(Action<string, IAuthenticationMethod, ITransportSettings[]> callback = null)
+        static IClientProvider GetMockDeviceClientProviderWithToken(Action<string, IAuthenticationMethod, ITransportSettings[]> callback = null)
         {
-            var deviceClientProvider = new Mock<IDeviceClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<string>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
                 .Callback<string, IAuthenticationMethod, ITransportSettings[]>((c, a, t) => callback?.Invoke(c, a, t))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }
 
-        static IDeviceClient GetMockDeviceClient()
+        static IClient GetMockDeviceClient()
         {
-            var deviceClient = new Mock<IDeviceClient>();
+            var deviceClient = new Mock<IClient>();
             deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
             deviceClient.Setup(dc => dc.CloseAsync())
                 .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))

@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
-                    var deviceClientprovider = c.Resolve<IDeviceClientProvider>();
+                    var deviceClientprovider = c.Resolve<IModuleClientProvider>();
                     IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde);
                     return edgeAgentConnection;
                 })

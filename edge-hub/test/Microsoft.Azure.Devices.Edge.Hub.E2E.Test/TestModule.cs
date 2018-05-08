@@ -12,18 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public class TestModule
     {
-        readonly DeviceClient deviceClient;
+        readonly ModuleClient moduleClient;
         ISet<int> received;
         IList<MethodRequest> receivedMethodRequests;
 
-        TestModule(DeviceClient deviceClient)
+        TestModule(ModuleClient moduleClient)
         {
-            this.deviceClient = deviceClient;
+            this.moduleClient = moduleClient;
         }
 
         public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
         {
-            DeviceClient moduleClient = DeviceClient.CreateFromConnectionString(connectionString, settings);
+            ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
             await moduleClient.OpenAsync();
             return new TestModule(moduleClient);
         }
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public Task SetupReceiveMessageHandler()
         {
             this.received = new HashSet<int>();
-            return this.deviceClient.SetMessageHandlerAsync(this.MessageHandler, null);
+            return this.moduleClient.SetMessageHandlerAsync(this.MessageHandler, null);
         }
 
         Task<MessageResponse> MessageHandler(Message message, object userContext)
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             int i = startIndex;
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
-                await this.deviceClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+                await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
             }
 
             s.Stop();
@@ -81,11 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             MethodCallback methodCallback = callback ?? this.DefaultMethodCallback;
             if (string.IsNullOrWhiteSpace(methodName))
             {
-                this.deviceClient.SetMethodDefaultHandlerAsync(methodCallback, null);
+                this.moduleClient.SetMethodDefaultHandlerAsync(methodCallback, null);
             }
             else
             {
-                this.deviceClient.SetMethodHandlerAsync(methodName, methodCallback, null);
+                this.moduleClient.SetMethodHandlerAsync(methodName, methodCallback, null);
             }
         }
 
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return message;
         }
 
-        public Task Disconnect() => this.deviceClient.CloseAsync();
+        public Task Disconnect() => this.moduleClient.CloseAsync();
 
         class Temperature
         {

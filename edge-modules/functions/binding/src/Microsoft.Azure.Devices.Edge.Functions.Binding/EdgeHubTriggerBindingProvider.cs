@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
         readonly TransportType transportType;
-        DeviceClient deviceClient;
+        ModuleClient moduleClient;
 
         public EdgeHubTriggerBindingProvider(TransportType transportType)
         {
@@ -72,13 +72,13 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         Task TrySetEventDefaultHandlerAsync()
         {
-            if (this.deviceClient != null)
+            if (this.moduleClient != null)
             {
                 return Task.CompletedTask;
             }
 
-            this.deviceClient = DeviceClientCache.Instance.GetOrCreate(this.transportType);
-            return this.deviceClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
+            this.moduleClient = ModuleClientCache.Instance.GetOrCreate(this.transportType);
+            return this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
         }
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)

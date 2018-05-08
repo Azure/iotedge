@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    public class DeviceClientTest
+    public class ModuleClientTest
     {
         [Theory]
         [InlineData(UpstreamProtocol.AmqpWs, Client.TransportType.Amqp_WebSocket_Only)]
@@ -21,14 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             var receivedTransportType = Client.TransportType.Http1;
-            Task<Client.DeviceClient> DeviceClientCreator(Client.TransportType transportType)
+            Task<Client.ModuleClient> ModuleClientCreator(Client.TransportType transportType)
             {
                 receivedTransportType = transportType;
-                return Task.FromResult((Client.DeviceClient)null);
+                return Task.FromResult((Client.ModuleClient)null);
             }
 
             // Act
-            await DeviceClient.CreateDeviceClientForUpstreamProtocol(Option.Some(upstreamProtocol), DeviceClientCreator);
+            await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.Some(upstreamProtocol), ModuleClientCreator);
 
             // Assert
             Assert.Equal(expectedTransportType, receivedTransportType);
@@ -40,18 +40,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             // Arrange
             var receivedTransportTypes = new List<Client.TransportType>();
-            Task<Client.DeviceClient> DeviceClientCreator(Client.TransportType transportType)
+            Task<Client.ModuleClient> DeviceClientCreator(Client.TransportType transportType)
             {
                 receivedTransportTypes.Add(transportType);
                 if (receivedTransportTypes.Count == 1)
                 {
                     throw new InvalidOperationException();
                 }
-                return Task.FromResult((Client.DeviceClient)null);
+                return Task.FromResult((Client.ModuleClient)null);
             }
 
             // Act
-            await DeviceClient.CreateDeviceClientForUpstreamProtocol(Option.None<UpstreamProtocol>(), DeviceClientCreator);
+            await ModuleClient.CreateDeviceClientForUpstreamProtocol(Option.None<UpstreamProtocol>(), DeviceClientCreator);
 
             // Assert
             Assert.Equal(2, receivedTransportTypes.Count);

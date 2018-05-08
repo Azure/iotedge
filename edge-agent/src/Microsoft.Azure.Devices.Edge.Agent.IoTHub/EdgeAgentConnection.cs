@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Task initTask;
         readonly RetryStrategy retryStrategy;
 
-        Option<IDeviceClient> deviceClient;
+        Option<IModuleClient> deviceClient;
         TwinCollection desiredProperties;
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
@@ -34,28 +34,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new Util.TransientFaultHandling.ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        public EdgeAgentConnection(IDeviceClientProvider deviceClientProvider,
+        public EdgeAgentConnection(IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe)
-            : this(deviceClientProvider, desiredPropertiesSerDe, TransientRetryStrategy)
+            : this(moduleClientProvider, desiredPropertiesSerDe, TransientRetryStrategy)
         { }
 
-        internal EdgeAgentConnection(IDeviceClientProvider deviceClientProvider,
+        internal EdgeAgentConnection(IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             RetryStrategy retryStrategy)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
-            this.deviceClient = Option.None<IDeviceClient>();
+            this.deviceClient = Option.None<IModuleClient>();
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
-            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(deviceClientProvider, nameof(deviceClientProvider)));
+            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
         }
 
-        async Task CreateAndInitDeviceClient(IDeviceClientProvider deviceClientProvider)
+        async Task CreateAndInitDeviceClient(IModuleClientProvider moduleClientProvider)
         {
             using (await this.twinLock.LockAsync())
             {
-                IDeviceClient dc = await deviceClientProvider.Create(
+                IModuleClient dc = await moduleClientProvider.Create(
                     this.OnConnectionStatusChanged,
                     async d =>
                     {
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // recover from this situation
                 var retryPolicy = new RetryPolicy(AllButFatalErrorDetectionStrategy, this.retryStrategy);
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
-                IDeviceClient dc = this.deviceClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
+                IModuleClient dc = this.deviceClient.Expect(() => new InvalidOperationException("DeviceClient not yet initialized"));
                 Twin twin = await retryPolicy.ExecuteAsync(() => dc.GetTwinAsync());
 
                 this.desiredProperties = twin.Properties.Desired;

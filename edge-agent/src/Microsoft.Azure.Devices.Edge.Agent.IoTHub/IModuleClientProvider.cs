@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
 
-    public interface IDeviceClientProvider
+    public interface IModuleClientProvider
     {
-        Task<IDeviceClient> Create(ConnectionStatusChangesHandler statusChangedHandler, Func<IDeviceClient, Task> initialize);
+        Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler, Func<IModuleClient, Task> initialize);
     }
 }

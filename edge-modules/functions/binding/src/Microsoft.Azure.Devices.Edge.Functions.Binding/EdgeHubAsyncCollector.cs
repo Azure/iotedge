@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     /// </summary>
     public class EdgeHubAsyncCollector : IAsyncCollector<Message>
     {
-        readonly DeviceClient client;
+        readonly ModuleClient client;
         readonly EdgeHubAttribute attribute;
         readonly int batchSize;
 
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         /// </summary>
         /// <param name="client">Device Client instance. </param>
         /// <param name="attribute">Attributes used by EdgeHub when receiving a message from function.</param>
-        public EdgeHubAsyncCollector(DeviceClient client, EdgeHubAttribute attribute)
+        public EdgeHubAsyncCollector(ModuleClient client, EdgeHubAttribute attribute)
         {
             this.client = client;
             this.attribute = attribute;

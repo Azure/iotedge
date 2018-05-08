@@ -3,8 +3,8 @@
 namespace TemperatureFilter
 {
     using System;
-    using System.IO;
     using System.Collections.Generic;
+    using System.IO;
     using System.Net.Security;
     using System.Runtime.InteropServices;
     using System.Runtime.Loader;
@@ -13,7 +13,6 @@ namespace TemperatureFilter
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Edge;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -56,7 +55,7 @@ namespace TemperatureFilter
         }
 
         /// <summary>
-        /// Initializes the DeviceClient and sets up the callback to receive
+        /// Initializes the ModuleClient and sets up the callback to receive
         /// messages containing temperature information
         /// </summary>
         static async Task Init(TransportType transportType)
@@ -111,18 +110,17 @@ namespace TemperatureFilter
             ITransportSettings[] settings = { mqttSetting };
 
             // Open a connection to the Edge runtime
-            DeviceClient deviceClient =
-                new DeviceClientFactory(settings).Create();
-            await deviceClient.OpenAsync();
+            ModuleClient moduleClient = ModuleClient.CreateFromEnvironment(settings);
+            await moduleClient.OpenAsync();
             Console.WriteLine("TemperatureFilter - Opened module client connection");
 
-            ModuleConfig moduleConfig = await GetConfiguration(deviceClient);
+            ModuleConfig moduleConfig = await GetConfiguration(moduleClient);
             Console.WriteLine($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
-            var userContext = new Tuple<DeviceClient, ModuleConfig>(deviceClient, moduleConfig);
+            var userContext = new Tuple<ModuleClient, ModuleConfig>(moduleClient, moduleConfig);
 
             // Register callback to be called when a message is sent to "input1"
-            await deviceClient.SetInputMessageHandlerAsync(
+            await moduleClient.SetInputMessageHandlerAsync(
                 "input1",
                 PrintAndFilterMessages,
                 userContext);
@@ -169,13 +167,13 @@ namespace TemperatureFilter
         {
             int counterValue = Interlocked.Increment(ref counter);
 
-            var userContextValues = userContext as Tuple<DeviceClient, ModuleConfig>;
+            var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
             if (userContextValues == null)
             {
                 throw new InvalidOperationException("UserContext doesn't contain " +
                     "expected values");
             }
-            DeviceClient deviceClient = userContextValues.Item1;
+            ModuleClient moduleClient = userContextValues.Item1;
             ModuleConfig moduleModuleConfig = userContextValues.Item2;
 
             byte[] messageBytes = message.GetBytes();
@@ -197,7 +195,7 @@ namespace TemperatureFilter
                 }
 
                 filteredMessage.Properties.Add("MessageType", "Alert");
-                await deviceClient.SendEventAsync("alertOutput", filteredMessage);
+                await moduleClient.SendEventAsync("alertOutput", filteredMessage);
             }
 
             return MessageResponse.Completed;
@@ -206,10 +204,10 @@ namespace TemperatureFilter
         /// <summary>
         /// Get the configuration for the module (in this case the threshold temperature)s.
         /// </summary>
-        static async Task<ModuleConfig> GetConfiguration(DeviceClient deviceClient)
+        static async Task<ModuleConfig> GetConfiguration(ModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
-            Twin twin = await deviceClient.GetTwinAsync();
+            Twin twin = await moduleClient.GetTwinAsync();
             if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
             {
                 int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];

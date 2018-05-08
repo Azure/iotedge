@@ -25,13 +25,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
-        readonly IDeviceClientProvider deviceClientProvider;
+        readonly IClientProvider clientProvider;
 
-        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider, int connectionPoolSize, IDeviceClientProvider deviceClientProvider, Option<UpstreamProtocol> upstreamProtocol)
+        public CloudConnectionProvider(IMessageConverterProvider messageConverterProvider, int connectionPoolSize, IClientProvider clientProvider, Option<UpstreamProtocol> upstreamProtocol)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
-            this.deviceClientProvider = Preconditions.CheckNotNull(deviceClientProvider, nameof(deviceClientProvider));
+            this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize);
         }
 
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             try
             {
-                var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.deviceClientProvider);
+                var cloudConnection = new CloudConnection(connectionStatusChangedHandler, this.transportSettings, this.messageConverterProvider, this.clientProvider);
                 await cloudConnection.CreateOrUpdateAsync(identity);
                 Events.SuccessCreatingCloudConnection(identity.Identity);
                 return Try.Success<ICloudConnection>(cloudConnection);

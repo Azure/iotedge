@@ -19,15 +19,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     class CloudProxy : ICloudProxy
     {
-        readonly IDeviceClient deviceClient;
+        readonly IClient client;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
         readonly string clientId;
         CloudReceiver cloudReceiver;
 
-        public CloudProxy(IDeviceClient deviceClient, IMessageConverterProvider messageConverterProvider, string clientId, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public CloudProxy(IClient client, IMessageConverterProvider messageConverterProvider, string clientId, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            this.deviceClient = Preconditions.CheckNotNull(deviceClient, nameof(deviceClient));
+            this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientId = Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
             if (connectionStatusChangedHandler != null)
@@ -35,14 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.connectionStatusChangedHandler = connectionStatusChangedHandler;
             }
         }
-        public bool IsActive => this.deviceClient.IsActive;
+        public bool IsActive => this.client.IsActive;
 
         public async Task<bool> CloseAsync()
         {
             try
             {
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
-                await this.deviceClient.CloseAsync();
+                await this.client.CloseAsync();
                 Events.Closed(this);
                 return true;
             }
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<IMessage> GetTwinAsync()
         {
-            Twin twin = await this.deviceClient.GetTwinAsync();
+            Twin twin = await this.client.GetTwinAsync();
             Events.GetTwin(this);
             IMessageConverter<Twin> converter = this.messageConverterProvider.Get<Twin>();
             return converter.ToMessage(twin);
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             try
             {
-                await this.deviceClient.SendEventAsync(message);
+                await this.client.SendEventAsync(message);
                 Events.SendMessage(this);
             }
             catch (Exception ex)
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .Select(inputMessage => converter.FromMessage(inputMessage));
             try
             {
-                await this.deviceClient.SendEventBatchAsync(messages);
+                await this.client.SendEventBatchAsync(messages);
                 Events.SendMessage(this);
             }
             catch (Exception ex)
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             string reportedPropertiesString = Encoding.UTF8.GetString(reportedPropertiesMessage.Body);
             var reported = JsonConvert.DeserializeObject<TwinCollection>(reportedPropertiesString);
-            await this.deviceClient.UpdateReportedPropertiesAsync(reported);
+            await this.client.UpdateReportedPropertiesAsync(reported);
             Events.UpdateReportedProperties(this);
         }
 
@@ -119,11 +119,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             switch (feedbackStatus)
             {
                 case FeedbackStatus.Complete:
-                    return this.deviceClient.CompleteAsync(messageId);
+                    return this.client.CompleteAsync(messageId);
                 case FeedbackStatus.Abandon:
-                    return this.deviceClient.AbandonAsync(messageId);
+                    return this.client.AbandonAsync(messageId);
                 case FeedbackStatus.Reject:
-                    return this.deviceClient.RejectAsync(messageId);
+                    {
+                        if (this.client is IDeviceClient deviceClient)
+                        {
+                            return deviceClient.RejectAsync(messageId);
+                        }
+                        throw new InvalidOperationException("Feedback status type is not supported");
+                    }
                 default:
                     throw new InvalidOperationException("Feedback status type is not supported");
             }
@@ -199,6 +205,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public void StartListening()
             {
+                if (!(this.cloudProxy.client is IDeviceClient deviceClient))
+                {
+                    throw new InvalidOperationException($"C2D messages not supported for {this.cloudProxy.client.GetType()}");
+                }
+
                 if (!this.receiveMessageTask.HasValue)
                 {
                     lock (this.receiveMessageLoopLock)
@@ -206,13 +217,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         if (!this.receiveMessageTask.HasValue)
                         {
                             Events.StartListening(this.cloudProxy.clientId);
-                            this.receiveMessageTask = Option.Some(this.SetupMessageListening());
+                            this.receiveMessageTask = Option.Some(this.SetupMessageListening(deviceClient));
                         }
                     }
                 }
+
             }
 
-            async Task SetupMessageListening()
+            async Task SetupMessageListening(IDeviceClient deviceClient)
             {
                 Message clientMessage = null;
                 try
@@ -221,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         try
                         {
-                            clientMessage = await this.cloudProxy.deviceClient.ReceiveAsync(ReceiveMessageTimeout);
+                            clientMessage = await deviceClient.ReceiveAsync(ReceiveMessageTimeout);
                             if (clientMessage != null)
                             {
                                 Events.MessageReceived(this.cloudProxy.clientId);
@@ -263,9 +275,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return this.receiveMessageTask.GetOrElse(Task.CompletedTask);
             }
 
-            public Task SetupCallMethodAsync() => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
+            public Task SetupCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(this.MethodCallHandler, null);
 
-            public Task RemoveCallMethodAsync() => this.cloudProxy.deviceClient.SetMethodDefaultHandlerAsync(null, null);
+            public Task RemoveCallMethodAsync() => this.cloudProxy.client.SetMethodDefaultHandlerAsync(null, null);
 
             internal async Task<MethodResponse> MethodCallHandler(MethodRequest methodrequest, object usercontext)
             {
@@ -279,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 return methodResponse;
             }
 
-            public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
+            public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxy.client.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdates, this.desiredUpdateHandler);
 
             public Task RemoveDesiredPropertyUpdatesAsync()
             {

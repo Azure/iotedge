@@ -103,19 +103,19 @@ namespace SimulatedTemperatureSensor
             }
             ITransportSettings[] settings = { mqttSetting };
 
-            DeviceClient deviceClient = new DeviceClientFactory(settings).Create();
-            await deviceClient.OpenAsync();
-            await deviceClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+            ModuleClient moduleClient = ModuleClient.CreateFromEnvironment(settings);
+            await moduleClient.OpenAsync();
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
-            DeviceClient userContext = deviceClient;
-            await deviceClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
+            ModuleClient userContext = moduleClient;
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
 
             var cts = new CancellationTokenSource();
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts); };
 
-            await SendEvent(deviceClient, messageDelay, sim, cts);
+            await SendEvent(moduleClient, messageDelay, sim, cts);
             return 0;
         }
 
@@ -203,13 +203,13 @@ namespace SimulatedTemperatureSensor
         ///-	Humidity is stable with tiny jitter around 25%
         ///                Method for resetting the data stream
         /// </summary>
-        /// <param name="deviceClient"></param>
+        /// <param name="moduleClient"></param>
         /// <param name="messageDelay"></param>
         /// <param name="sim"></param>
         /// <param name="cts"></param>
         /// <returns></returns>
         static async Task SendEvent(
-            DeviceClient deviceClient,
+            ModuleClient moduleClient,
             TimeSpan messageDelay,
             SimulatorParameters sim,
             CancellationTokenSource cts)
@@ -253,7 +253,7 @@ namespace SimulatedTemperatureSensor
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await deviceClient.SendEventAsync("temperatureOutput", eventMessage);
+                await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                 await Task.Delay(messageDelay, cts.Token);
                 count++;
             }

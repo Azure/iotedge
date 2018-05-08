@@ -42,8 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IDeviceClientProvider
-            builder.Register(c => new EnvironmentDeviceClientProvider(this.upstreamProtocol))
-                .As<IDeviceClientProvider>()
+            builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol))
+                .As<IModuleClientProvider>()
                 .SingleInstance();
 
             // IModuleManager

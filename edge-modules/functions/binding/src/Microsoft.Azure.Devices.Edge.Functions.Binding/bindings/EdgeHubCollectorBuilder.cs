@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 {
-    using System;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.WebJobs;
 
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 
         public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
         {
-            DeviceClient client = DeviceClientCache.Instance.GetOrCreate(this.transportType);
+            ModuleClient client = ModuleClientCache.Instance.GetOrCreate(this.transportType);
             return new EdgeHubAsyncCollector(client, attribute);
         }
     }

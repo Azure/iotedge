@@ -2,33 +2,32 @@
 
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
-    using System.Collections.Concurrent;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using System;
+    using System.Collections.Concurrent;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
-    using Microsoft.Azure.Devices.Client.Edge;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
-    class DeviceClientCache
+    class ModuleClientCache
     {
-        readonly ConcurrentDictionary<string, DeviceClient> clients = new ConcurrentDictionary<string, DeviceClient>();
+        readonly ConcurrentDictionary<string, ModuleClient> clients = new ConcurrentDictionary<string, ModuleClient>();
 
         // Private constructor to ensure single instance
-        DeviceClientCache()
+        ModuleClientCache()
         {
         }
 
-        public static DeviceClientCache Instance { get; } = new DeviceClientCache();
+        public static ModuleClientCache Instance { get; } = new ModuleClientCache();
 
-        public DeviceClient GetOrCreate(TransportType transportType)
+        public ModuleClient GetOrCreate(TransportType transportType)
         {
             return this.clients.GetOrAdd(
                 transportType.ToString(),
-                client => this.CreateDeviceClient(transportType));
+                client => this.CreateModuleClient(transportType));
         }
 
-        DeviceClient CreateDeviceClient(TransportType transportType)
+        ModuleClient CreateModuleClient(TransportType transportType)
         {
             var mqttSetting = new MqttTransportSettings(transportType);
 
@@ -49,10 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             }
 
             ITransportSettings[] settings = { mqttSetting };
-            DeviceClient deviceClient = new DeviceClientFactory(settings).Create();
+            ModuleClient moduleClient = ModuleClient.CreateFromEnvironment(settings);
 
-            deviceClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
-            return deviceClient;
+            moduleClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
+            return moduleClient;
         }
     }
 }
