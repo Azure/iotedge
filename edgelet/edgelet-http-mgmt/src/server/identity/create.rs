@@ -10,8 +10,9 @@ use hyper::{Body, Error as HyperError};
 use serde::Serialize;
 use serde_json;
 
-use edgelet_core::{IdentityManager, IdentitySpec};
+use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentitySpec};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
+use management::models::Identity;
 
 use error::{Error, ErrorKind};
 use IntoResponse;
@@ -41,7 +42,7 @@ where
 impl<I> Handler<Parameters> for CreateIdentity<I>
 where
     I: 'static + IdentityManager,
-    I::Identity: Serialize,
+    I::Identity: CoreIdentity + Serialize,
     <I as IdentityManager>::Error: IntoResponse,
 {
     fn handle(
@@ -57,6 +58,12 @@ where
                     .borrow_mut()
                     .create(IdentitySpec::new(name))
                     .map(|identity| {
+                        let identity = Identity::new(
+                            identity.module_id().to_string(),
+                            identity.managed_by().to_string(),
+                            identity.generation_id().to_string(),
+                        );
+
                         serde_json::to_string(&identity)
                             .context(ErrorKind::Serde)
                             .map(|b| {
@@ -80,9 +87,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::Identity;
     use futures::Stream;
     use management::models::ErrorResponse;
+    use serde_json::Value;
 
     use server::identity::tests::*;
 
@@ -103,6 +110,15 @@ mod tests {
             .into_body()
             .concat2()
             .and_then(|body| {
+                // make sure the JSON matches what we expect
+                let json: Value = serde_json::from_slice(&body).unwrap();
+                let expected_json = json!({
+                    "moduleId": "m1",
+                    "managedBy": "iotedge",
+                    "generationId": "1"
+                });
+                assert_eq!(expected_json, json);
+
                 let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
                 assert_eq!("m1", identity.module_id());
                 assert_eq!("iotedge", identity.managed_by());

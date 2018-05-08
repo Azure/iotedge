@@ -41,8 +41,11 @@ mod tests {
 
     #[derive(Clone, Deserialize, Serialize)]
     pub struct TestIdentity {
+        #[serde(rename = "moduleId")]
         module_id: String,
+        #[serde(rename = "managedBy")]
         managed_by: String,
+        #[serde(rename = "generationId")]
         generation_id: String,
     }
 
