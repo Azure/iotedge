@@ -22,6 +22,7 @@ set(source_c_files
     ./src/hsm_certificate_props.c
     ./src/hsm_client_data.c
     ./src/hsm_log.c
+    ./src/hsm_utils.c
 )
 
 set(source_h_files
@@ -29,7 +30,6 @@ set(source_h_files
     ./inc/hsm_client_data.h
     ./inc/hsm_certificate_props.h
 )
-
 
 if(WIN32)
     #windows needs this define
