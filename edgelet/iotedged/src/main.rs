@@ -55,12 +55,13 @@ const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
 const AUTH_SCHEME: &str = "sasToken";
 const HOSTNAME_KEY: &str = "IOTEDGE_IOTHUBHOSTNAME";
-const GATEWAY_HOSTNAME_KEY: &str = "IOTEDGE_GATEWAYHOSTNAME";
+const GATEWAY_HOSTNAME_KEY: &str = "EDGEDEVICEHOSTNAME";
 const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
 const MODULEID_KEY: &str = "IOTEDGE_MODULEID";
-const URI_KEY: &str = "IOTEDGE_IOTEDGEDURI";
+const WORKLOAD_URI_KEY: &str = "IOTEDGE_IOTEDGEDURI";
 const VERSION_KEY: &str = "IOTEDGE_IOTEDGEDVERSION";
 const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
+const MANAGEMENT_URI_KEY: &str = "MANAGEMENTURI";
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
 
@@ -196,14 +197,8 @@ fn start_runtime(
     device_id: &str,
     settings: &Settings<DockerConfig>,
 ) -> Result<(), Error> {
-    let workload_uri = format!(
-        "http://{}:{}",
-        settings.hostname(),
-        settings.workload_port()
-    );
-
     let spec = settings.runtime().clone();
-    let env = build_env(spec.env(), hostname, device_id, workload_uri, settings);
+    let env = build_env(spec.env(), hostname, device_id, settings);
     let spec = ModuleSpec::<DockerConfig>::new(
         EDGE_RUNTIME_MODULE_NAME,
         spec.type_(),
@@ -223,9 +218,20 @@ fn build_env(
     spec_env: &HashMap<String, String>,
     hostname: &str,
     device_id: &str,
-    workload_uri: String,
     settings: &Settings<DockerConfig>,
 ) -> HashMap<String, String> {
+    let workload_uri = format!(
+        "http://{}:{}",
+        settings.hostname(),
+        settings.workload_port()
+    );
+
+    let management_uri = format!(
+        "http://{}:{}",
+        settings.hostname(),
+        settings.management_port()
+    );
+
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
@@ -234,9 +240,10 @@ fn build_env(
     );
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
-    env.insert(URI_KEY.to_string(), workload_uri);
+    env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
     env.insert(VERSION_KEY.to_string(), API_VERSION.to_string());
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
+    env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
 
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());

@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -74,9 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue<string>("Mode", "docker");
+                mode = configuration.GetValue("Mode", "docker");
                 dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
-                edgeletUrl = configuration.GetValue<string>("EdgeletUrl");
+                edgeletUrl = configuration.GetValue<string>("ManagementUri");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -103,14 +102,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
 
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
-                switch (mode.ToLower())
+                switch (mode.ToLowerInvariant())
                 {
                     case "docker":
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol));
                         break;
 
-                    case "edgelet":
+                    case "iotedged":
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, edgeletUrl, dockerAuthConfig, upstreamProtocol));
@@ -120,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         throw new InvalidOperationException($"Mode '{mode}' not supported.");
                 }                
 
-                switch (configSourceConfig.ToLower())
+                switch (configSourceConfig.ToLowerInvariant())
                 {
                     case "twin":
                         builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo));
