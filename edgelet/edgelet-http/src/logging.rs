@@ -4,6 +4,7 @@
 use std::io;
 
 use chrono::prelude::*;
+use edgelet_core::pid::Pid;
 use futures::prelude::*;
 use http::{Request, Response};
 use http::header::{CONTENT_LENGTH, USER_AGENT};
@@ -25,6 +26,7 @@ pub struct ResponseFuture<T> {
     inner: T,
     request: String,
     user_agent: String,
+    pid: Option<Pid>,
 }
 
 impl<T> Future for ResponseFuture<T>
@@ -42,14 +44,19 @@ where
             .get(CONTENT_LENGTH)
             .and_then(|l| l.to_str().ok().map(|l| l.to_string()))
             .unwrap_or_else(|| "-".to_string());
+        let pid = self.pid
+            .as_ref()
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| "-".to_string());
 
         info!(
-            "- - - [{}] \"{}\" {} {} \"-\" \"{}\"",
+            "- - - [{}] \"{}\" {} {} \"-\" \"{}\" pid({})",
             Utc::now(),
             self.request,
             response.status(),
             body_length,
             self.user_agent,
+            pid,
         );
         Ok(Async::Ready(response))
     }
@@ -71,12 +78,14 @@ where
             .and_then(|ua| ua.to_str().ok())
             .unwrap_or_else(|| "-")
             .to_string();
+        let pid = req.extensions().get::<Pid>().map(|p| p.clone());
 
         let inner = self.inner.call(req);
         ResponseFuture {
             inner,
             request,
             user_agent,
+            pid,
         }
     }
 }

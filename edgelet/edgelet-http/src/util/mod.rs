@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
 
 use bytes::{Buf, BufMut};
+use edgelet_core::pid::Pid;
 use futures::Poll;
 use tokio_core::net::TcpStream;
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -14,6 +15,9 @@ use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_named_pipe::PipeStream;
 #[cfg(unix)]
 use tokio_uds::UnixStream;
+
+#[cfg(unix)]
+use pid::UnixStreamExt;
 
 pub mod connector;
 pub mod incoming;
@@ -27,6 +31,18 @@ pub enum StreamSelector {
     Pipe(PipeStream),
     #[cfg(unix)]
     Unix(UnixStream),
+}
+
+impl StreamSelector {
+    pub fn pid(&self) -> io::Result<Pid> {
+        match *self {
+            StreamSelector::Tcp(_) => Ok(Pid::None),
+            #[cfg(windows)]
+            StreamSelector::Pipe(_) => Ok(Pid::None),
+            #[cfg(unix)]
+            StreamSelector::Unix(ref stream) => stream.pid(),
+        }
+    }
 }
 
 impl Read for StreamSelector {
@@ -128,6 +144,27 @@ impl fmt::Display for IncomingSocketAddr {
                     write!(f, "unknown")
                 }
             }
+        }
+    }
+}
+
+#[cfg(unix)]
+#[cfg(test)]
+mod tests {
+    use tokio_core::reactor::Core;
+
+    use super::*;
+
+    #[test]
+    fn test_pid() {
+        let core = Core::new().unwrap();
+        let (a, b) = UnixStream::pair(&core.handle()).unwrap();
+        assert_eq!(a.pid().unwrap(), b.pid().unwrap());
+        if let Pid::None = a.pid().unwrap() {
+            panic!("no pid");
+        }
+        if let Pid::None = b.pid().unwrap() {
+            panic!("no pid");
         }
     }
 }

@@ -2,6 +2,7 @@
 
 extern crate bytes;
 extern crate chrono;
+extern crate edgelet_core;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
@@ -13,6 +14,8 @@ extern crate hyper;
 extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(unix)]
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate percent_encoding;
@@ -50,6 +53,7 @@ use url::Url;
 mod compat;
 mod error;
 pub mod logging;
+mod pid;
 pub mod route;
 mod util;
 mod version;
@@ -58,6 +62,7 @@ pub use self::error::{Error, ErrorKind};
 pub use self::util::UrlConnector;
 pub use self::version::{ApiVersionService, API_VERSION};
 
+use self::pid::PidService;
 use self::util::incoming::Incoming;
 
 const HTTP_SCHEME: &str = "http";
@@ -120,7 +125,9 @@ where
 
         let srv = incoming.for_each(move |(socket, addr)| {
             debug!("accepted new connection ({})", addr);
-            let service = new_service.new_service()?;
+            let pid = socket.pid()?;
+            let srv = new_service.new_service()?;
+            let service = PidService::new(pid, srv);
             let fut = protocol
                 .serve_connection(socket, self::compat::service(service))
                 .map(|_| ())
