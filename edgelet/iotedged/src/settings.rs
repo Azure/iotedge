@@ -3,6 +3,8 @@
 use config::{Config, File};
 use serde_json;
 use serde::de::DeserializeOwned;
+use url::Url;
+use url_serde;
 
 use edgelet_core::ModuleSpec;
 use error::Error;
@@ -25,16 +27,20 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     runtime: ModuleSpec<T>,
     hostname: String,
-    workload_port: u16,
-    management_port: u16,
-    docker_uri: String,
+    #[serde(with = "url_serde")]
+    workload_uri: Url,
+    #[serde(with = "url_serde")]
+    management_uri: Url,
+    #[serde(with = "url_serde")]
+    docker_uri: Url,
 }
 
+#[cfg(unix)]
 static DEFAULTS: &str = r#"{
     "provisioning": {
       "source": "manual",
       "device_connection_string": "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
-    },    
+    },
     "runtime": {
       "name": "edgeAgent",
       "type": "docker",
@@ -46,8 +52,30 @@ static DEFAULTS: &str = r#"{
       }
     },
     "hostname": "localhost",
-    "workload_port": 8081,
-    "management_port": 8080,
+    "workload_uri": "unix:///var/run/iotedge.workload.sock",
+    "management_uri": "unix:///var/run/iotedge.mgmt.sock",
+    "docker_uri": "unix:///var/run/docker.sock"
+}"#;
+
+#[cfg(windows)]
+static DEFAULTS: &str = r#"{
+    "provisioning": {
+      "source": "manual",
+      "device_connection_string": "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
+    },
+    "runtime": {
+      "name": "edgeAgent",
+      "type": "docker",
+      "env": {},
+      "config": {
+        "image": "microsoft/azureiotedge-agent:1.0-preview",
+        "create_options": "",
+        "auth": {}
+      }
+    },
+    "hostname": "localhost",
+    "workload_uri": "http://0.0.0.0:8081",
+    "management_uri": "http://0.0.0.0:8080",
     "docker_uri": "http://localhost:2375"
 }"#;
 
@@ -80,15 +108,15 @@ where
         &self.hostname
     }
 
-    pub fn workload_port(&self) -> &u16 {
-        &self.workload_port
+    pub fn workload_uri(&self) -> &Url {
+        &self.workload_uri
     }
 
-    pub fn management_port(&self) -> &u16 {
-        &self.management_port
+    pub fn management_uri(&self) -> &Url {
+        &self.management_uri
     }
 
-    pub fn docker_uri(&self) -> &str {
+    pub fn docker_uri(&self) -> &Url {
         &self.docker_uri
     }
 }

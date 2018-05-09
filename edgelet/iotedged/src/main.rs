@@ -116,8 +116,7 @@ fn main_runner() -> Result<(), Error> {
     let mut core = Core::new()?;
     let handle: Handle = core.handle().clone();
 
-    let docker = Url::parse(settings.docker_uri())?;
-    let runtime = DockerModuleRuntime::new(&docker, &handle)?;
+    let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?;
     let hostname = format!("https://{}", hub_name);
 
     let hyper_client = HyperClient::configure()
@@ -145,14 +144,14 @@ fn main_runner() -> Result<(), Error> {
     let (work_tx, work_rx) = oneshot::channel();
 
     let mgmt = start_management(
-        Url::parse(&format!("tcp://0.0.0.0:{}", settings.management_port()))?,
+        settings.management_uri().clone(),
         &core.handle(),
         &runtime,
         &id_man,
         mgmt_rx,
     )?;
     let workload = start_workload(
-        Url::parse(&format!("tcp://0.0.0.0:{}", settings.workload_port()))?,
+        settings.workload_uri().clone(),
         &key_store,
         &core.handle(),
         work_rx,
@@ -223,13 +222,19 @@ fn build_env(
     let workload_uri = format!(
         "http://{}:{}",
         settings.hostname(),
-        settings.workload_port()
+        settings
+            .workload_uri()
+            .port_or_known_default()
+            .unwrap_or(80),
     );
 
     let management_uri = format!(
         "http://{}:{}",
         settings.hostname(),
-        settings.management_port()
+        settings
+            .management_uri()
+            .port_or_known_default()
+            .unwrap_or(80),
     );
 
     let mut env = HashMap::new();
@@ -267,10 +272,7 @@ fn start_management(
         id_man,
     )?));
 
-    info!(
-        "Listening on http://{} with 1 thread for management API.",
-        addr
-    );
+    info!("Listening on {} with 1 thread for management API.", addr);
 
     let run = Http::new()
         .bind_handle(addr, server_handle, service)?
@@ -293,10 +295,7 @@ where
         Crypto::default(),
     )?));
 
-    info!(
-        "Listening on http://{} with 1 thread for workload API.",
-        addr
-    );
+    info!("Listening on {} with 1 thread for workload API.", addr);
 
     let run = Http::new()
         .bind_handle(addr, server_handle, service)?

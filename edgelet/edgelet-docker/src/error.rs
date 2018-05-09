@@ -5,13 +5,12 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 use hyper::{Error as HyperError, StatusCode};
-#[cfg(windows)]
-use hyper_named_pipe::Error as PipeError;
 use serde_json;
 use url::ParseError;
 
 use docker::apis::Error as DockerError;
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+use edgelet_http::Error as HttpError;
 use edgelet_utils::Error as UtilsError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -45,9 +44,8 @@ pub enum ErrorKind {
     Docker(DockerError<serde_json::Value>),
     #[fail(display = "Core error")]
     Core,
-    #[cfg(windows)]
-    #[fail(display = "Hyper named pipe error")]
-    HyperPipe,
+    #[fail(display = "Http error")]
+    Http,
 }
 
 impl Fail for Error {
@@ -110,6 +108,14 @@ impl From<HyperError> for Error {
     }
 }
 
+impl From<HttpError> for Error {
+    fn from(error: HttpError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
         match err {
@@ -138,14 +144,5 @@ impl From<ParseError> for Error {
 impl From<Error> for CoreError {
     fn from(err: Error) -> CoreError {
         CoreError::from(err.context(CoreErrorKind::ModuleRuntime))
-    }
-}
-
-#[cfg(windows)]
-impl From<PipeError> for Error {
-    fn from(err: PipeError) -> Error {
-        Error {
-            inner: err.context(ErrorKind::HyperPipe),
-        }
     }
 }

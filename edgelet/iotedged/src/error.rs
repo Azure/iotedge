@@ -9,6 +9,7 @@ use base64::DecodeError;
 use config::ConfigError as SettingsError;
 use edgelet_core::Error as CoreError;
 use edgelet_docker::Error as DockerError;
+use edgelet_http::Error as HttpError;
 use failure::{Backtrace, Context, Fail};
 use hyper::Error as HyperError;
 use hyper_tls::Error as HyperTlsError;
@@ -43,6 +44,8 @@ pub enum ErrorKind {
     IotHub,
     #[fail(display = "A parse error occurred.")]
     Parse,
+    #[fail(display = "An http error occurred.")]
+    Http,
 }
 
 impl Fail for Error {
@@ -159,6 +162,14 @@ impl From<ParseError> for Error {
     fn from(error: ParseError) -> Error {
         Error {
             inner: error.context(ErrorKind::Parse),
+        }
+    }
+}
+
+impl From<HttpError> for Error {
+    fn from(error: HttpError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
         }
     }
 }

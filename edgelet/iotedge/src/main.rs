@@ -3,11 +3,13 @@
 #[macro_use]
 extern crate clap;
 extern crate edgelet_http_mgmt;
+extern crate failure;
 extern crate futures;
 extern crate hyper;
 extern crate iotedge;
 extern crate management;
 extern crate tokio_core;
+extern crate url;
 
 use std::io;
 use std::io::Write;
@@ -15,28 +17,35 @@ use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use edgelet_http_mgmt::ModuleClient;
-use hyper::Client;
+use failure::Fail;
 use iotedge::*;
-use management::apis::client::APIClient;
-use management::apis::configuration::Configuration;
 use tokio_core::reactor::Core;
+use url::Url;
+
+#[cfg(unix)]
+const MGMT_URI: &str = "unix:///var/run/iotedge.mgmt.sock";
+#[cfg(windows)]
+const MGMT_URI: &str = "http://localhost:8080";
 
 fn main() {
-    if let Err(ref e) = run() {
+    if let Err(ref error) = run() {
         let stderr = &mut io::stderr();
         let errmsg = "Error writing to stderr";
 
-        writeln!(stderr, "{}", e).expect(errmsg);
+        let mut fail: &Fail = error;
+        writeln!(stderr, "{}", error.to_string()).expect(errmsg);
+        while let Some(cause) = fail.cause() {
+            writeln!(stderr, "\tcaused by: {}", cause.to_string()).expect(errmsg);
+            fail = cause;
+        }
         process::exit(1);
     }
 }
 
 fn run() -> Result<(), Error> {
     let mut core = Core::new()?;
-    let client = Client::new(&core.handle());
-    let mut config = Configuration::new(client);
-    config.base_path = "http://localhost:8080".to_string();
-    let runtime = ModuleClient::new(APIClient::new(config));
+    let url = Url::parse(MGMT_URI)?;
+    let runtime = ModuleClient::new(&url, &core.handle())?;
 
     let matches = App::new(crate_name!())
         .version(crate_version!())

@@ -2,7 +2,7 @@
     "provisioning": {
       "source": "manual",
       "device_connection_string": "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
-    },    
+    },
     "runtime": {
       "name": "edgeAgent",
       "type": "docker",
@@ -14,7 +14,7 @@
       }
     },
     "hostname": "localhost",
-    "workload_port": 8081,
-    "management_port": 8080,
+    "workload_uri": "tcp://0.0.0.0:8081",
+    "management_uri": "tcp://0.0.0.0:8080",
     "docker_uri": "http://localhost:2375"
 }

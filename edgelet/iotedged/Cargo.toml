@@ -20,6 +20,7 @@ serde_json = "1.0"
 tokio-core = "0.1"
 tokio-signal = "0.1"
 url = "1.7"
+url_serde = "0.2"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }

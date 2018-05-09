@@ -12,7 +12,7 @@ use futures::{future, Future};
 use tabwriter::TabWriter;
 
 use Command;
-use error::{Error, ErrorKind};
+use error::Error;
 
 pub struct List<M, W> {
     runtime: M,
@@ -37,6 +37,8 @@ where
     M: 'static + ModuleRuntime + Clone,
     M::Module: Clone,
     M::Config: Display,
+    M::Error: Into<Error>,
+    <M::Module as Module>::Error: Into<Error>,
     W: 'static + Write,
 {
     type Future = Box<Future<Item = (), Error = Error>>;
@@ -45,12 +47,12 @@ where
         let write = self.output.clone();
         let result = self.runtime
             .list()
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+            .map_err(|e| e.into())
             .and_then(move |list| {
                 let modules = list.clone();
                 let futures = list.into_iter().map(|m| m.runtime_state());
                 future::join_all(futures)
-                    .map_err(|_e| Error::from(ErrorKind::ModuleRuntime))
+                    .map_err(|e| e.into())
                     .and_then(move |states| {
                         let mut w = write.borrow_mut();
                         writeln!(w, "NAME\tTYPE\tSTATUS\tDESCRIPTION\tCONFIG")?;

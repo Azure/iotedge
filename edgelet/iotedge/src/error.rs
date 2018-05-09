@@ -4,7 +4,9 @@ use std::fmt;
 use std::io;
 use std::fmt::Display;
 
+use edgelet_http_mgmt::Error as HttpMgmtError;
 use failure::{Backtrace, Context, Fail};
+use url::ParseError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -17,6 +19,10 @@ pub enum ErrorKind {
     ModuleRuntime,
     #[fail(display = "An IO error occurred.")]
     Io,
+    #[fail(display = "Cannot parse uri")]
+    UrlParse,
+    #[fail(display = "An error in the management http client occurred.")]
+    HttpMgmt,
 }
 
 impl Fail for Error {
@@ -63,6 +69,22 @@ impl From<io::Error> for Error {
     fn from(error: io::Error) -> Error {
         Error {
             inner: error.context(ErrorKind::Io),
+        }
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::UrlParse),
+        }
+    }
+}
+
+impl From<HttpMgmtError> for Error {
+    fn from(error: HttpMgmtError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HttpMgmt),
         }
     }
 }

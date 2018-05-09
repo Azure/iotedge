@@ -5,8 +5,6 @@
 extern crate base64;
 extern crate futures;
 extern crate hyper;
-#[cfg(unix)]
-extern crate hyperlocal;
 #[macro_use]
 extern crate serde_json;
 extern crate tokio_core;

@@ -18,9 +18,9 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings};
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
+use edgelet_http::UrlConnector;
 use edgelet_utils::serde_clone;
 
-use connector::DockerConnector;
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use error::{Error, ErrorKind, Result};
 
@@ -39,7 +39,7 @@ lazy_static! {
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
-    client: DockerClient<DockerConnector>,
+    client: DockerClient<UrlConnector>,
     network_id: Option<String>,
 }
 
@@ -47,7 +47,7 @@ impl DockerModuleRuntime {
     pub fn new(docker_url: &Url, handle: &Handle) -> Result<DockerModuleRuntime> {
         // build the hyper client
         let client = Client::configure()
-            .connector(DockerConnector::new(docker_url, handle)?)
+            .connector(UrlConnector::new(docker_url, handle)?)
             .build(handle);
 
         // extract base path - the bit that comes after the scheme
@@ -57,7 +57,7 @@ impl DockerModuleRuntime {
 
         let scheme = docker_url.scheme().to_string();
         configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(DockerConnector::build_hyper_uri(&scheme, base_path, path)?)
+            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
         });
 
         Ok(DockerModuleRuntime {
@@ -137,7 +137,7 @@ impl ModuleRegistry for DockerModuleRuntime {
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
-    type Module = DockerModule<DockerConnector>;
+    type Module = DockerModule<UrlConnector>;
     type ModuleRegistry = Self;
     type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
@@ -307,7 +307,7 @@ mod tests {
     use error::{Error, ErrorKind};
 
     #[test]
-    #[should_panic(expected = "Invalid docker URI")]
+    #[should_panic(expected = "Invalid uri")]
     fn invalid_uri_prefix_fails() {
         let core = Core::new().unwrap();
         let _mri = DockerModuleRuntime::new(
@@ -318,7 +318,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    #[should_panic(expected = "Invalid unix domain socket URI")]
+    #[should_panic(expected = "Invalid uri")]
     fn invalid_uds_path_fails() {
         let core = Core::new().unwrap();
         let _mri = DockerModuleRuntime::new(

@@ -2,6 +2,8 @@
 
 #![deny(warnings)]
 
+extern crate edgelet_http;
+extern crate edgelet_test_utils;
 extern crate futures;
 #[cfg(windows)]
 extern crate httparse;
@@ -18,12 +20,15 @@ extern crate scopeguard;
 extern crate tokio_core;
 extern crate url;
 
-extern crate edgelet_docker;
-extern crate edgelet_test_utils;
-
 use std::sync::mpsc::channel;
 use std::thread;
 
+use edgelet_http::UrlConnector;
+use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
+#[cfg(windows)]
+use edgelet_test_utils::run_pipe_server;
+#[cfg(unix)]
+use edgelet_test_utils::run_uds_server;
 use futures::future;
 use futures::prelude::*;
 #[cfg(windows)]
@@ -40,13 +45,6 @@ use hyperlocal::Uri as HyperlocalUri;
 use rand::Rng;
 use tokio_core::reactor::Core;
 use url::Url;
-
-use edgelet_docker::connector::DockerConnector;
-use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
-#[cfg(windows)]
-use edgelet_test_utils::run_pipe_server;
-#[cfg(unix)]
-use edgelet_test_utils::run_uds_server;
 
 const GET_RESPONSE: &str = "Yo";
 
@@ -72,7 +70,7 @@ fn tcp_get() {
 
     let mut core = Core::new().unwrap();
     let url = format!("http://localhost:{}", port);
-    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
 
     let client = Client::configure()
         .connector(connector)
@@ -110,7 +108,7 @@ fn uds_get() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let connector = DockerConnector::new(
+    let connector = UrlConnector::new(
         &Url::parse(&format!("unix://{}", file_path)).unwrap(),
         &core.handle(),
     ).unwrap();
@@ -169,7 +167,7 @@ fn pipe_get() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
 
     let hyper_client = Client::configure()
         .connector(connector)
@@ -218,7 +216,7 @@ fn tcp_post() {
 
     let mut core = Core::new().unwrap();
     let url = format!("http://localhost:{}", port);
-    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
 
     let client = Client::configure()
         .connector(connector)
@@ -257,7 +255,7 @@ fn uds_post() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let connector = DockerConnector::new(
+    let connector = UrlConnector::new(
         &Url::parse(&format!("unix://{}", file_path)).unwrap(),
         &core.handle(),
     ).unwrap();
@@ -304,7 +302,7 @@ fn pipe_post() {
     receiver.recv().unwrap();
 
     let mut core = Core::new().unwrap();
-    let connector = DockerConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
+    let connector = UrlConnector::new(&Url::parse(&url).unwrap(), &core.handle()).unwrap();
 
     let hyper_client = Client::configure()
         .connector(connector)

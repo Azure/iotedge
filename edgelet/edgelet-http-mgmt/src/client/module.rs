@@ -6,29 +6,53 @@ use std::str::FromStr;
 
 use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
-use edgelet_http::API_VERSION;
+use edgelet_http::{UrlConnector, API_VERSION};
 use futures::Future;
 use futures::future::{self, FutureResult};
-use hyper::client::Connect;
+use hyper::client::Client;
 use management::apis::client::APIClient;
+use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
 use serde_json;
+use tokio_core::reactor::Handle;
+use url::Url;
 
 use error::{Error, ErrorKind};
 
-pub struct ModuleClient<C: Connect> {
-    client: Rc<APIClient<C>>,
+pub struct ModuleClient {
+    client: Rc<APIClient<UrlConnector>>,
 }
 
-impl<C: Connect> ModuleClient<C> {
-    pub fn new(client: APIClient<C>) -> ModuleClient<C> {
-        ModuleClient {
-            client: Rc::new(client),
-        }
+impl ModuleClient {
+    pub fn new(url: &Url, handle: &Handle) -> Result<ModuleClient, Error> {
+        let client = Client::configure()
+            .connector(UrlConnector::new(url, handle)?)
+            .build(handle);
+
+        let base_path = get_base_path(url);
+        let mut configuration = Configuration::new(client);
+        configuration.base_path = base_path.to_string();
+
+        let scheme = url.scheme().to_string();
+        configuration.uri_composer = Box::new(move |base_path, path| {
+            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
+        });
+
+        let module_client = ModuleClient {
+            client: Rc::new(APIClient::new(configuration)),
+        };
+        Ok(module_client)
     }
 }
 
-impl<C: Connect> Clone for ModuleClient<C> {
+fn get_base_path(url: &Url) -> &str {
+    match url.scheme() {
+        "unix" => url.path(),
+        _ => url.as_str(),
+    }
+}
+
+impl Clone for ModuleClient {
     fn clone(&self) -> Self {
         ModuleClient {
             client: self.client.clone(),
@@ -97,7 +121,7 @@ fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Err
     Ok(state)
 }
 
-impl<C: Connect> ModuleRegistry for ModuleClient<C> {
+impl ModuleRegistry for ModuleClient {
     type Error = Error;
     type PullFuture = FutureResult<(), Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
@@ -112,7 +136,7 @@ impl<C: Connect> ModuleRegistry for ModuleClient<C> {
     }
 }
 
-impl<C: Connect> ModuleRuntime for ModuleClient<C> {
+impl ModuleRuntime for ModuleClient {
     type Error = Error;
     type Config = ModuleConfig;
     type Module = ModuleDetails;

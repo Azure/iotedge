@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+extern crate bytes;
 extern crate chrono;
 extern crate failure;
 #[macro_use]
@@ -8,18 +9,33 @@ extern crate failure_derive;
 extern crate futures;
 extern crate http;
 extern crate hyper;
+#[cfg(windows)]
+extern crate hyper_named_pipe;
+#[cfg(unix)]
+extern crate hyperlocal;
 #[macro_use]
 extern crate log;
 extern crate percent_encoding;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
+#[cfg(test)]
+extern crate tempfile;
+#[macro_use]
 extern crate tokio_core;
 extern crate tokio_io;
+#[cfg(windows)]
+extern crate tokio_named_pipe;
+#[cfg(unix)]
+extern crate tokio_uds;
 extern crate url;
 
+#[cfg(unix)]
+use std::fs;
 use std::io;
 use std::net::ToSocketAddrs;
+#[cfg(unix)]
+use std::path::Path;
 
 use futures::{future, Future, Poll, Stream};
 use http::{Request, Response};
@@ -27,16 +43,27 @@ use hyper::{Body, Error as HyperError};
 use hyper::server::{Http, NewService};
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::Handle;
+#[cfg(unix)]
+use tokio_uds::UnixListener;
 use url::Url;
 
 mod compat;
 mod error;
 pub mod logging;
 pub mod route;
+mod util;
 mod version;
 
-pub use error::{Error, ErrorKind};
-pub use version::{ApiVersionService, API_VERSION};
+pub use self::error::{Error, ErrorKind};
+pub use self::util::UrlConnector;
+pub use self::version::{ApiVersionService, API_VERSION};
+
+use self::util::incoming::Incoming;
+
+const HTTP_SCHEME: &str = "http";
+const TCP_SCHEME: &str = "tcp";
+#[cfg(unix)]
+const UNIX_SCHEME: &str = "unix";
 
 pub trait IntoResponse {
     fn into_response(self) -> Response<Body>;
@@ -67,7 +94,7 @@ where
     protocol: Http<B::Item>,
     new_service: S,
     handle: Handle,
-    listener: TcpListener,
+    incoming: Incoming,
 }
 
 impl<S, B> Server<S, B>
@@ -88,10 +115,10 @@ where
             protocol,
             new_service,
             handle,
-            listener,
+            incoming,
         } = self;
 
-        let srv = listener.incoming().for_each(move |(socket, addr)| {
+        let srv = incoming.for_each(move |(socket, addr)| {
             debug!("accepted new connection ({})", addr);
             let service = new_service.new_service()?;
             let fut = protocol
@@ -125,7 +152,7 @@ pub trait HyperExt<B: AsRef<[u8]> + 'static> {
         url: Url,
         handle: Handle,
         new_service: S,
-    ) -> Result<Server<S, Bd>, HyperError>
+    ) -> Result<Server<S, Bd>, Error>
     where
         S: NewService<Request = Request<Body>, Response = Response<Bd>, Error = HyperError>
             + 'static,
@@ -138,23 +165,38 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
         url: Url,
         handle: Handle,
         new_service: S,
-    ) -> Result<Server<S, Bd>, HyperError>
+    ) -> Result<Server<S, Bd>, Error>
     where
         S: NewService<Request = Request<Body>, Response = Response<Bd>, Error = HyperError>
             + 'static,
         Bd: Stream<Item = B, Error = HyperError>,
     {
-        let addr = url.to_socket_addrs()?
-            .next()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, format!("Invalid url: {}", url)))?;
+        let incoming = match url.scheme() {
+            HTTP_SCHEME | TCP_SCHEME => {
+                let addr = url.to_socket_addrs()?.next().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::Other, format!("Invalid url: {}", url))
+                })?;
 
-        let listener = TcpListener::bind(&addr, &handle)?;
+                let listener = TcpListener::bind(&addr, &handle)?;
+                Incoming::Tcp(listener)
+            }
+            #[cfg(unix)]
+            UNIX_SCHEME => {
+                let path = url.path();
+                if Path::new(path).exists() {
+                    fs::remove_file(path)?;
+                }
+                let listener = UnixListener::bind(path, &handle)?;
+                Incoming::Unix(listener)
+            }
+            _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+        };
 
         Ok(Server {
             protocol: self.clone(),
             new_service,
             handle,
-            listener,
+            incoming,
         })
     }
 }

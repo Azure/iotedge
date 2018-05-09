@@ -6,6 +6,7 @@ extern crate base64;
 extern crate config;
 extern crate edgelet_core;
 extern crate edgelet_docker;
+extern crate edgelet_http;
 extern crate env_logger;
 #[macro_use]
 extern crate failure;
@@ -22,6 +23,7 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate tokio_signal;
 extern crate url;
+extern crate url_serde;
 
 mod error;
 pub mod logging;

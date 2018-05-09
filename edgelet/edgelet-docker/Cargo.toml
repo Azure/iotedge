@@ -15,25 +15,14 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 tokio-core = "0.1"
-tokio-io = "0.1"
 url = "1.7"
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 
-[target.'cfg(unix)'.dependencies]
-hyperlocal = "0.4"
-tokio-uds = "0.1.7"
-
-[target.'cfg(windows)'.dependencies]
-hyper-named-pipe = { path = "../hyper-named-pipe" }
-tokio-named-pipe = { path = "../tokio-named-pipe" }
-
 [dev_dependencies]
-httparse = "1.2"
-rand = "0.4"
-scopeguard = "0.3.3"
 tempfile = "2"
 time = "0.1"
 

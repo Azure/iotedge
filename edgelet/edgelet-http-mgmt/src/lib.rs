@@ -32,6 +32,8 @@ extern crate serde_derive;
 extern crate serde_json;
 #[cfg(not(test))]
 extern crate serde_json;
+extern crate tokio_core;
+extern crate url;
 
 use http::Response;
 use hyper::Body;
@@ -41,6 +43,7 @@ mod error;
 mod server;
 
 pub use client::ModuleClient;
+pub use error::{Error, ErrorKind};
 pub use server::ManagementService;
 
 pub trait IntoResponse {

@@ -1,11 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
+use std::io;
 
 use failure::{Backtrace, Context, Fail};
 use http::{Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Error as HyperError};
+#[cfg(windows)]
+use hyper_named_pipe::Error as PipeError;
+use url::ParseError;
 
 use IntoResponse;
 
@@ -16,10 +20,19 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
+    #[fail(display = "IO error")]
+    Io,
     #[fail(display = "Hyper error")]
     Hyper,
     #[fail(display = "Invalid or missing API version")]
     InvalidApiVersion,
+    #[fail(display = "Invalid uri {}", _0)]
+    InvalidUri(String),
+    #[fail(display = "Cannot parse uri")]
+    UrlParse,
+    #[cfg(windows)]
+    #[fail(display = "Named pipe error")]
+    HyperPipe,
 }
 
 impl Fail for Error {
@@ -69,6 +82,31 @@ impl From<HyperError> for Error {
 impl From<Error> for HyperError {
     fn from(_error: Error) -> HyperError {
         HyperError::Method
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Io),
+        }
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::UrlParse),
+        }
+    }
+}
+
+#[cfg(windows)]
+impl From<PipeError> for Error {
+    fn from(err: PipeError) -> Error {
+        Error {
+            inner: err.context(ErrorKind::HyperPipe),
+        }
     }
 }
 

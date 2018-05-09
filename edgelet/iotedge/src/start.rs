@@ -8,7 +8,7 @@ use edgelet_core::ModuleRuntime;
 use futures::Future;
 
 use Command;
-use error::{Error, ErrorKind};
+use error::Error;
 
 pub struct Start<M, W> {
     id: String,
@@ -29,6 +29,7 @@ impl<M, W> Start<M, W> {
 impl<M, W> Command for Start<M, W>
 where
     M: 'static + ModuleRuntime + Clone,
+    M::Error: Into<Error>,
     W: 'static + Write,
 {
     type Future = Box<Future<Item = (), Error = Error>>;
@@ -38,7 +39,7 @@ where
         let write = self.output.clone();
         let result = self.runtime
             .start(&id)
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+            .map_err(|e| e.into())
             .and_then(move |_| {
                 let mut w = write.borrow_mut();
                 writeln!(w, "{}", id)?;

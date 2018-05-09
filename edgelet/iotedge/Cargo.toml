@@ -13,6 +13,7 @@ futures = "0.1"
 hyper = "0.11"
 tabwriter = "1.0"
 tokio-core = "0.1"
+url = "1.7"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
