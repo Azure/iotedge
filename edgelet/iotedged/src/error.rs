@@ -24,9 +24,9 @@ pub struct Error {
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Invalid configuration file")]
-    Settings(SettingsError),
+    Settings,
     #[fail(display = "Invalid configuration json")]
-    Json(JsonError),
+    Json,
     #[fail(display = "Edgelet core error")]
     Core,
     #[fail(display = "Base64 decode error")]
@@ -76,14 +76,18 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<SettingsError> for Error {
-    fn from(err: SettingsError) -> Error {
-        Error::from(ErrorKind::Settings(err))
+    fn from(error: SettingsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Settings),
+        }
     }
 }
 
 impl From<JsonError> for Error {
-    fn from(err: JsonError) -> Error {
-        Error::from(ErrorKind::Json(err))
+    fn from(error: JsonError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Json),
+        }
     }
 }
 

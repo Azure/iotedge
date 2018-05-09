@@ -27,12 +27,12 @@ pub enum ErrorKind {
     InvalidDockerUri(String),
     #[fail(display = "Invalid unix domain socket URI - {}", _0)]
     InvalidUdsUri(String),
-    #[fail(display = "Edgelet utils error")]
-    Utils(UtilsError),
-    #[fail(display = "Serde error - {}", _0)]
-    Serde(serde_json::Error),
-    #[fail(display = "Transport error - {}", _0)]
-    Transport(HyperError),
+    #[fail(display = "Utils error")]
+    Utils,
+    #[fail(display = "Serde error")]
+    Serde,
+    #[fail(display = "Transport error")]
+    Transport,
     #[fail(display = "Invalid URL")]
     UrlParse,
     #[fail(display = "Container not found")]
@@ -87,28 +87,34 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
-        Error::from(ErrorKind::Utils(err))
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::from(ErrorKind::Serde(err))
+    fn from(error: serde_json::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Serde),
+        }
     }
 }
 
 impl From<HyperError> for Error {
-    fn from(err: HyperError) -> Error {
-        Error::from(ErrorKind::Transport(err))
+    fn from(error: HyperError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Transport),
+        }
     }
 }
 
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
         match err {
-            DockerError::Hyper(error) => Error::from(ErrorKind::Transport(error)),
-            DockerError::Serde(error) => Error::from(ErrorKind::Serde(error)),
+            DockerError::Hyper(error) => Error::from(error),
+            DockerError::Serde(error) => Error::from(error),
             DockerError::ApiError(ref error) if error.code == StatusCode::NotFound => {
                 Error::from(ErrorKind::NotFound)
             }

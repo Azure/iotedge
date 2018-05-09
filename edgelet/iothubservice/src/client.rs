@@ -218,9 +218,7 @@ mod tests {
     use tokio_core::reactor::Core;
     use url::form_urlencoded::parse as parse_query;
 
-    use edgelet_utils::{Error as UtilsError, ErrorKind as UtilsErrorKind};
     use error::ErrorKind;
-
     use model::SymmetricKey;
 
     struct NullTokenSource;
@@ -259,10 +257,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
-                if mem::discriminant(err.kind())
-                    != mem::discriminant(&ErrorKind::Utils(utils_error))
-                {
+                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
                     panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                 }
             }
@@ -281,10 +276,7 @@ mod tests {
         ) {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
-                if mem::discriminant(err.kind())
-                    != mem::discriminant(&ErrorKind::Utils(utils_error))
-                {
+                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
                     panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                 }
             }
@@ -304,10 +296,7 @@ mod tests {
         match client.create_device_client("") {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
-                if mem::discriminant(err.kind())
-                    != mem::discriminant(&ErrorKind::Utils(utils_error))
-                {
+                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
                     panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                 }
             }
@@ -327,10 +316,7 @@ mod tests {
         match client.create_device_client("      ") {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
-                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
-                if mem::discriminant(err.kind())
-                    != mem::discriminant(&ErrorKind::Utils(utils_error))
-                {
+                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
                     panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
                 }
             }

@@ -18,8 +18,8 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "An IO error occurred.")]
     Io,
-    #[fail(display = "Edgelet utils error")]
-    Utils(UtilsError),
+    #[fail(display = "Utils error")]
+    Utils,
     #[fail(display = "IoT Hub service error")]
     HubService,
     #[fail(display = "KeyStore could not fetch keys for module {}", _0)]
@@ -71,8 +71,10 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
-        Error::from(ErrorKind::Utils(err))
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
     }
 }
 

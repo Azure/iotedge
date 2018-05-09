@@ -303,7 +303,6 @@ mod tests {
 
     use docker::models::ContainerCreateBody;
     use edgelet_core::ModuleRegistry;
-    use edgelet_utils::{Error as UtilsError, ErrorKind as UtilsErrorKind};
 
     use error::{Error, ErrorKind};
 
@@ -353,10 +352,7 @@ mod tests {
         let task = tester(&mut mri).then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
             Err(err) => {
-                let utils_error = UtilsError::from(UtilsErrorKind::ArgumentEmpty("".to_string()));
-                if mem::discriminant(err.kind())
-                    == mem::discriminant(&ErrorKind::Utils(utils_error))
-                {
+                if mem::discriminant(err.kind()) == mem::discriminant(&ErrorKind::Utils) {
                     Ok(())
                 } else {
                     Err(format!(
@@ -437,7 +433,7 @@ mod tests {
         let task = mri.create(module_config).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -455,7 +451,7 @@ mod tests {
         let task = mri.start("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -473,7 +469,7 @@ mod tests {
         let task = mri.start("      ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -491,7 +487,7 @@ mod tests {
         let task = mri.stop("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -509,7 +505,7 @@ mod tests {
         let task = mri.stop("     ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -527,7 +523,7 @@ mod tests {
         let task = mri.restart("").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -545,7 +541,7 @@ mod tests {
         let task = mri.restart("     ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -563,7 +559,7 @@ mod tests {
         let task = ModuleRuntime::remove(&mri, "").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });
@@ -581,7 +577,7 @@ mod tests {
         let task = ModuleRuntime::remove(&mri, "    ").then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
-                &ErrorKind::Utils(_) => Ok(()) as Result<()>,
+                &ErrorKind::Utils => Ok(()) as Result<()>,
                 _ => panic!("Expected utils error. Got some other error."),
             },
         });

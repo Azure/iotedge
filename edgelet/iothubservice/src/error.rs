@@ -19,13 +19,13 @@ pub struct Error {
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "Edgelet utils error")]
-    Utils(UtilsError),
+    Utils,
     #[fail(display = "Serde error")]
-    Serde(serde_json::Error),
+    Serde,
     #[fail(display = "Url parse error")]
-    Url(ParseError),
+    Url,
     #[fail(display = "Hyper HTTP error")]
-    Hyper(HyperError),
+    Hyper,
     #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
     HubServiceError(StatusCode, String),
     #[fail(display = "IoT Hub returned an empty response when a value was expected")]
@@ -83,25 +83,33 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<UtilsError> for Error {
-    fn from(err: UtilsError) -> Error {
-        Error::from(ErrorKind::Utils(err))
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::from(ErrorKind::Serde(err))
+    fn from(error: serde_json::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Serde),
+        }
     }
 }
 
 impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Error {
-        Error::from(ErrorKind::Url(err))
+    fn from(error: ParseError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Url),
+        }
     }
 }
 
 impl From<HyperError> for Error {
-    fn from(err: HyperError) -> Error {
-        Error::from(ErrorKind::Hyper(err))
+    fn from(error: HyperError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Hyper),
+        }
     }
 }
