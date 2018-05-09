@@ -40,8 +40,10 @@ pub enum ErrorKind {
     Conflict,
     #[fail(display = "Container already in this state")]
     NotModified,
-    #[fail(display = "Docker runtime error - {:?}", _0)]
-    Docker(DockerError<serde_json::Value>),
+    #[fail(display = "Container runtime error")]
+    Docker,
+    #[fail(display = "Container runtime error - {:?}", _0)]
+    DockerRuntime(DockerError<serde_json::Value>),
     #[fail(display = "Core error")]
     Core,
     #[fail(display = "Http error")]
@@ -119,8 +121,12 @@ impl From<HttpError> for Error {
 impl From<DockerError<serde_json::Value>> for Error {
     fn from(err: DockerError<serde_json::Value>) -> Error {
         match err {
-            DockerError::Hyper(error) => Error::from(error),
-            DockerError::Serde(error) => Error::from(error),
+            DockerError::Hyper(error) => Error {
+                inner: Error::from(error).context(ErrorKind::Docker),
+            },
+            DockerError::Serde(error) => Error {
+                inner: Error::from(error).context(ErrorKind::Docker),
+            },
             DockerError::ApiError(ref error) if error.code == StatusCode::NotFound => {
                 Error::from(ErrorKind::NotFound)
             }
@@ -130,7 +136,7 @@ impl From<DockerError<serde_json::Value>> for Error {
             DockerError::ApiError(ref error) if error.code == StatusCode::NotModified => {
                 Error::from(ErrorKind::NotModified)
             }
-            _ => Error::from(ErrorKind::Docker(err)),
+            _ => Error::from(ErrorKind::DockerRuntime(err)),
         }
     }
 }

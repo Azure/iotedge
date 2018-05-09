@@ -9,7 +9,7 @@ use hyper::client::Connect;
 use client::DockerClient;
 use config::DockerConfig;
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
-use error::{Error, ErrorKind, Result};
+use error::{Error, Result};
 
 pub const MODULE_TYPE: &str = "docker";
 
@@ -99,7 +99,7 @@ impl<C: Connect> Module for DockerModule<C> {
                         })
                         .unwrap_or_else(ModuleRuntimeState::default)
                 })
-                .map_err(|err| Error::from(ErrorKind::Docker(err))),
+                .map_err(Error::from),
         )
     }
 }

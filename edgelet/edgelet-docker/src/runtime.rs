@@ -22,7 +22,7 @@ use edgelet_http::UrlConnector;
 use edgelet_utils::serde_clone;
 
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
-use error::{Error, ErrorKind, Result};
+use error::{Error, Result};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 
@@ -116,7 +116,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let ok = self.client
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
-                    .map_err(|e| Error::from(ErrorKind::Docker(e)));
+                    .map_err(Error::from);
                 future::Either::A(ok)
             })
             .unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
@@ -129,7 +129,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 .image_api()
                 .image_delete(fensure_not_empty!(name), false, false)
                 .map(|_| ())
-                .map_err(|err| Error::from(ErrorKind::Docker(err))),
+                .map_err(Error::from),
         )
     }
 }
