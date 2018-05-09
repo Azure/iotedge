@@ -58,6 +58,24 @@ fn main() {
 
     let oid = Oid::from_str(version_sha).expect("Could not create a treeish oid");
     let treeish = repo.find_commit(oid)
+        .or_else(|_| {
+            //  Attempt a fetch if finding the commit failed.
+            repo.remotes()
+                .map(|remotes| {
+                    for remote in remotes.iter() {
+                        if let Some(remote_name) = remote {
+                            println!("# Attempt fetch on remote {}", remote_name);
+                            repo.find_remote(remote_name)
+                                .unwrap()
+                                .fetch(&["master"], None, None)
+                                .expect("Could not find commit and git fetch failed");
+                        }
+                    }
+                })
+                .expect("Could not find commit, and no remotes are set.");
+            // Try again after fetch
+            repo.find_commit(oid)
+        })
         .expect("SHA not found in C-Shared repo");
 
     repo.checkout_tree(treeish.as_object(), None)
