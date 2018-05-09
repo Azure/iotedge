@@ -18,6 +18,8 @@ mod sign_request;
 pub use self::sign_request::SignRequest;
 mod sign_response;
 pub use self::sign_response::SignResponse;
+mod trust_bundle_response;
+pub use self::trust_bundle_response::TrustBundleResponse;
 
 // TODO(farcaller): sort out files
 pub struct File;

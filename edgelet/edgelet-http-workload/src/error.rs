@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
+use std::str::Utf8Error;
 
 use base64::DecodeError;
 use chrono::format::ParseError;
@@ -46,6 +47,8 @@ pub enum ErrorKind {
     DateParse,
     #[fail(display = "Utils error")]
     Utils,
+    #[fail(display = "UTF-8 encode/decode")]
+    Utf8,
 }
 
 impl Fail for Error {
@@ -143,6 +146,14 @@ impl From<UtilsError> for Error {
 impl From<Error> for HyperError {
     fn from(_error: Error) -> HyperError {
         HyperError::Method
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(error: Utf8Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utf8),
+        }
     }
 }
 

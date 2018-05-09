@@ -1,8 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod cert;
+mod sign;
+mod trust_bundle;
+
 use std::io;
 
-use edgelet_core::{CreateCertificate, KeyStore};
+use edgelet_core::{CreateCertificate, GetTrustBundle, KeyStore};
 use edgelet_http::route::*;
 use http::{Request, Response};
 use hyper::{Body, Error as HyperError};
@@ -10,9 +14,7 @@ use hyper::server::{NewService, Service};
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::sign::SignHandler;
-
-mod cert;
-mod sign;
+use self::trust_bundle::TrustBundleHandler;
 
 #[derive(Clone)]
 pub struct WorkloadService {
@@ -23,12 +25,14 @@ impl WorkloadService {
     pub fn new<K, H>(key_store: &K, hsm: H) -> Result<Self, HyperError>
     where
         K: 'static + KeyStore + Clone,
-        H: 'static + CreateCertificate + Clone,
+        H: 'static + CreateCertificate + GetTrustBundle + Clone,
     {
         let router = router!(
             post   "/modules/(?P<name>[^/]+)/sign" => SignHandler::new(key_store.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,
-            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm),
+            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
+
+            get    "/trust-bundle" => TrustBundleHandler::new(hsm),
         );
         let inner = router.new_service()?;
         let service = WorkloadService { inner };

@@ -164,6 +164,23 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+  '/trust-bundle':
+    get:
+      tags:
+        - Workload
+      summary: ''
+      operationId: TrustBundle
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/TrustBundleResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
 definitions:
   SignRequest:
@@ -277,6 +294,15 @@ definitions:
       - privateKey
       - certificate
       - expiration
+  TrustBundleResponse:
+    type: object
+    properties:
+      certificate:
+        type: string
+        format: bytes
+        description: Base64 encoded PEM formatted byte array containing the certificate.
+    required:
+      - certificate
 
   PrivateKey:
     type: object

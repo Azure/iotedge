@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(warnings)]
+
 extern crate base64;
 extern crate chrono;
 extern crate edgelet_core;
