@@ -21,3 +21,6 @@ edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 workload = { path = "../workload" }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }

@@ -46,13 +46,38 @@ where
     }
 }
 
+#[derive(Debug)]
 pub enum KeyBytes<T: AsRef<[u8]>> {
     Pem(T),
 }
 
+impl<T> Clone for KeyBytes<T>
+where
+    T: AsRef<[u8]> + Clone,
+{
+    fn clone(&self) -> Self {
+        match *self {
+            KeyBytes::Pem(ref val) => KeyBytes::Pem(val.clone()),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum PrivateKey<T: AsRef<[u8]>> {
     Ref(String),
     Key(KeyBytes<T>),
+}
+
+impl<T> Clone for PrivateKey<T>
+where
+    T: AsRef<[u8]> + Clone,
+{
+    fn clone(&self) -> Self {
+        match *self {
+            PrivateKey::Ref(ref sref) => PrivateKey::Ref(sref.clone()),
+            PrivateKey::Key(ref val) => PrivateKey::Key(val.clone()),
+        }
+    }
 }
 
 pub trait CreateCertificate {

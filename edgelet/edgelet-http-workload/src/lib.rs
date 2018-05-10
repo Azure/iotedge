@@ -8,6 +8,8 @@ extern crate edgelet_core;
 extern crate edgelet_hsm;
 #[macro_use]
 extern crate edgelet_http;
+#[cfg(test)]
+extern crate edgelet_test_utils;
 #[macro_use]
 extern crate edgelet_utils;
 extern crate failure;

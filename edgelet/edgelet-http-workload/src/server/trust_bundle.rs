@@ -73,12 +73,12 @@ mod tests {
     use futures::Future;
     use futures::Stream;
 
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyBytes as CoreKeyBytes,
-                       PrivateKey as CorePrivateKey};
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+    use edgelet_test_utils::cert::TestCert;
 
     use super::*;
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Default, Debug)]
     struct TestHsm {
         fail_call: bool,
         cert: TestCert,
@@ -96,15 +96,6 @@ mod tests {
         }
     }
 
-    impl Default for TestHsm {
-        fn default() -> TestHsm {
-            TestHsm {
-                fail_call: false,
-                cert: TestCert::default(),
-            }
-        }
-    }
-
     impl GetTrustBundle for TestHsm {
         type Certificate = TestCert;
 
@@ -114,52 +105,6 @@ mod tests {
             } else {
                 Ok(self.cert.clone())
             }
-        }
-    }
-
-    #[derive(Clone, Debug)]
-    struct TestCert {
-        cert: Vec<u8>,
-        fail_pem: bool,
-    }
-
-    impl Default for TestCert {
-        fn default() -> TestCert {
-            TestCert {
-                cert: Vec::new(),
-                fail_pem: false,
-            }
-        }
-    }
-
-    impl TestCert {
-        fn with_cert(mut self, cert: Vec<u8>) -> TestCert {
-            self.cert = cert;
-            self
-        }
-
-        fn with_fail_pem(mut self, fail_pem: bool) -> TestCert {
-            self.fail_pem = fail_pem;
-            self
-        }
-    }
-
-    impl Certificate for TestCert {
-        type Buffer = Vec<u8>;
-        type KeyBuffer = String;
-
-        fn pem(&self) -> Result<Vec<u8>, CoreError> {
-            if self.fail_pem {
-                Err(CoreError::from(CoreErrorKind::Io))
-            } else {
-                Ok(self.cert.clone())
-            }
-        }
-
-        fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
-            Ok(Some(CorePrivateKey::Key(CoreKeyBytes::Pem(
-                "Bah".to_string(),
-            ))))
         }
     }
 

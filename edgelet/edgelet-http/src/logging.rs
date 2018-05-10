@@ -78,7 +78,7 @@ where
             .and_then(|ua| ua.to_str().ok())
             .unwrap_or_else(|| "-")
             .to_string();
-        let pid = req.extensions().get::<Pid>().map(|p| p.clone());
+        let pid = req.extensions().get::<Pid>().cloned();
 
         let inner = self.inner.call(req);
         ResponseFuture {

@@ -64,11 +64,11 @@ where
                                 hsm.create_certificate(&props)
                                     .map_err(Error::from)
                                     .and_then(|cert| {
-                                        let private_key = cert_to_response(
+                                        let cert = cert_to_response(
                                             &cert,
                                             cert_req.expiration().as_str(),
                                         )?;
-                                        let body = serde_json::to_string(&private_key)?;
+                                        let body = serde_json::to_string(&cert)?;
                                         Response::builder()
                                             .status(StatusCode::CREATED)
                                             .header(CONTENT_TYPE, "application/json")
@@ -116,4 +116,400 @@ fn compute_validity(expiration: &str) -> Result<i64> {
                 .num_seconds()
         })
         .map_err(Error::from)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+    use std::result::Result as StdResult;
+
+    use chrono::Duration;
+    use chrono::offset::Utc;
+
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+    use edgelet_test_utils::cert::TestCert;
+    use workload::models::ErrorResponse;
+
+    use super::*;
+
+    #[derive(Clone, Default)]
+    struct TestHsm {
+        on_create: Option<Rc<Box<Fn(&CertificateProperties) -> StdResult<TestCert, CoreError>>>>,
+    }
+
+    impl TestHsm {
+        fn with_on_create<F>(mut self, on_create: F) -> TestHsm
+        where
+            F: Fn(&CertificateProperties) -> StdResult<TestCert, CoreError> + 'static,
+        {
+            self.on_create = Some(Rc::new(Box::new(on_create)));
+            self
+        }
+    }
+
+    impl CreateCertificate for TestHsm {
+        type Certificate = TestCert;
+
+        fn create_certificate(
+            &self,
+            properties: &CertificateProperties,
+        ) -> StdResult<TestCert, CoreError> {
+            let callback = self.on_create.as_ref().unwrap();
+            callback(properties)
+        }
+    }
+
+    fn parse_error_response(response: Response<Body>) -> ErrorResponse {
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| Ok(serde_json::from_slice::<ErrorResponse>(&b).unwrap()))
+            .wait()
+            .unwrap()
+    }
+
+    #[test]
+    fn missing_name() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+        let request = Request::get("http://localhost/modules//certificate/server")
+            .body("".into())
+            .unwrap();
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_eq!("Bad parameter", parse_error_response(response).message());
+    }
+
+    #[test]
+    fn empty_body() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body("".into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_ne!(
+            parse_error_response(response).message().find("Bad body"),
+            None
+        );
+    }
+
+    #[test]
+    fn bad_body() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body("The answer is 42.".into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_ne!(
+            parse_error_response(response).message().find("Bad body"),
+            None
+        );
+    }
+
+    #[test]
+    fn empty_expiration() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req = ServerCertificateRequest::new("".to_string(), "".to_string());
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("Argument is empty or only has whitespace"),
+            None
+        );
+    }
+
+    #[test]
+    fn whitespace_expiration() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req = ServerCertificateRequest::new("".to_string(), "       ".to_string());
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("Argument is empty or only has whitespace"),
+            None
+        );
+    }
+
+    #[test]
+    fn invalid_expiration() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req =
+            ServerCertificateRequest::new("".to_string(), "Umm.. No.. Just no..".to_string());
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("Invalid ISO 8601 date"),
+            None
+        );
+    }
+
+    #[test]
+    fn past_expiration() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req =
+            ServerCertificateRequest::new("".to_string(), "1999-06-28T16:39:57-08:00".to_string());
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("out of range [0, 9223372036854775807)"),
+            None
+        );
+    }
+
+    #[test]
+    fn empty_common_name() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req = ServerCertificateRequest::new(
+            "".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("Argument is empty or only has whitespace"),
+            None
+        );
+    }
+
+    #[test]
+    fn white_space_common_name() {
+        let handler = ServerCertHandler::new(TestHsm::default());
+
+        let cert_req = ServerCertificateRequest::new(
+            "      ".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("Argument is empty or only has whitespace"),
+            None
+        );
+    }
+
+    #[test]
+    fn create_cert_fails() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Err(CoreError::from(CoreErrorKind::Io))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("An IO error occurred"),
+            None
+        );
+    }
+
+    #[test]
+    fn pem_fails() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default().with_fail_pem(true))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("An IO error occurred"),
+            None
+        );
+    }
+
+    #[test]
+    fn private_key_fails() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default().with_fail_private_key(true))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
+        assert_ne!(
+            parse_error_response(response)
+                .message()
+                .find("An IO error occurred"),
+            None
+        );
+    }
+
+    #[test]
+    fn succeeds_key() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default()
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("Betelgeuse".to_string()))))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::CREATED, response.status());
+
+        let cert_resp = response
+            .into_body()
+            .concat2()
+            .and_then(|b| Ok(serde_json::from_slice::<CertificateResponse>(&b).unwrap()))
+            .wait()
+            .unwrap();
+        assert_eq!("key", cert_resp.private_key().type_());
+        assert_eq!(
+            Some(&"Betelgeuse".to_string()),
+            cert_resp.private_key().bytes()
+        );
+    }
+
+    #[test]
+    fn succeeds_ref() {
+        let handler = ServerCertHandler::new(TestHsm::default().with_on_create(|props| {
+            assert_eq!("marvin", props.common_name());
+            Ok(TestCert::default().with_private_key(PrivateKey::Ref("Betelgeuse".to_string())))
+        }));
+
+        let cert_req = ServerCertificateRequest::new(
+            "marvin".to_string(),
+            (Utc::now() + Duration::hours(1)).to_rfc3339(),
+        );
+
+        let request = Request::get("http://localhost/modules/beeblebrox/certificate/server")
+            .body(serde_json::to_string(&cert_req).unwrap().into())
+            .unwrap();
+
+        let params =
+            Parameters::with_captures(vec![(Some("name".to_string()), "beeblebrox".to_string())]);
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::CREATED, response.status());
+
+        let cert_resp = response
+            .into_body()
+            .concat2()
+            .and_then(|b| Ok(serde_json::from_slice::<CertificateResponse>(&b).unwrap()))
+            .wait()
+            .unwrap();
+        assert_eq!("ref", cert_resp.private_key().type_());
+        assert_eq!(
+            Some(&"Betelgeuse".to_string()),
+            cert_resp.private_key().ref_()
+        );
+    }
 }

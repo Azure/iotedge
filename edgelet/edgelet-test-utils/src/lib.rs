@@ -22,6 +22,7 @@ extern crate tokio_io;
 
 use std::net::TcpListener;
 
+pub mod cert;
 mod json_connector;
 pub mod module;
 pub mod web;

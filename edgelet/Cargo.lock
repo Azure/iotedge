@@ -416,6 +416,7 @@ dependencies = [
  "edgelet-core 0.1.0",
  "edgelet-hsm 0.1.0",
  "edgelet-http 0.1.0",
+ "edgelet-test-utils 0.1.0",
  "edgelet-utils 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
