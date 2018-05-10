@@ -5,9 +5,9 @@ extern crate edgelet_hsm;
 use edgelet_core::crypto::{Decrypt, Encrypt};
 use edgelet_hsm::Crypto;
 
-/// Encrypt/Decrypt not working yet, expect this to fail.
+/// Encrypt/Decrypt tests
 #[test]
-fn crypto_encrypt_decypt_fail() {
+fn crypto_encrypt_decypt_success() {
     // arrange
     let crypto = Crypto::default();
 
@@ -19,14 +19,14 @@ fn crypto_encrypt_decypt_fail() {
     //act
     match crypto.encrypt(client_id, plaintext, None, iv) {
         //assert
-        Ok(_) => panic!("Encrypt function is not yet implemented, but got a good result"),
-        Err(_) => (),
+        Ok(result) => assert_ne!(result.as_ref().len(), 0),
+        Err(_) => panic!("Encrypt function returned error"),
     };
 
     //act
     match crypto.decrypt(client_id, ciphertext, None, iv) {
         //assert
-        Ok(_) => panic!("Decrypt function is not yet implemented, but got a good result"),
-        Err(_) => (),
+        Ok(result) => assert_ne!(result.as_ref().len(), 0),
+        Err(_) => panic!("Decrypt function returned error"),
     };
 }

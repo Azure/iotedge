@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_client_data.h"
@@ -303,6 +304,16 @@ static void edge_hsm_client_destroy_certificate(HSM_CLIENT_HANDLE handle, const 
     }
 }
 
+static bool validate_sized_buffer(const SIZED_BUFFER *sized_buffer)
+{
+    bool result = false;
+    if ((sized_buffer != NULL) && (sized_buffer->buffer != NULL) && (sized_buffer->size != 0))
+    {
+        result = true;
+    }
+    return result;
+}
+
 static int edge_hsm_client_encrypt_data(HSM_CLIENT_HANDLE handle,
                                         const SIZED_BUFFER *identity,
                                         const SIZED_BUFFER *plaintext,
@@ -310,19 +321,91 @@ static int edge_hsm_client_encrypt_data(HSM_CLIENT_HANDLE handle,
                                         const SIZED_BUFFER *initialization_vector,
                                         SIZED_BUFFER *ciphertext)
 {
-    LOG_ERROR("API unsupported");
-    return __FAILURE__;
+    int result;
+    if (!validate_sized_buffer(identity))
+    {
+        LOG_ERROR("Invalid identity buffer provided");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(plaintext))
+    {
+        LOG_ERROR("Invalid plain text buffer provided");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(initialization_vector))
+    {
+        LOG_ERROR("Invalid initialization vector buffer provided");
+        result = __FAILURE__;
+    }
+    else if ((passphrase != NULL) && !validate_sized_buffer(passphrase))
+    {
+        LOG_ERROR("Invalid passphrase buffer provided");
+        result = __FAILURE__;
+    }
+    else if (ciphertext == NULL)
+    {
+        LOG_ERROR("Invalid output cipher text buffer provided");
+        result = __FAILURE__;
+    }
+    else if ((ciphertext->buffer = (unsigned char*)malloc(plaintext->size)) == NULL)
+    {
+        LOG_ERROR("Could not allocate memory for the output cipher text");
+        result = __FAILURE__;
+    }
+    else
+    {
+        memcpy(ciphertext->buffer, plaintext->buffer, plaintext->size);
+        ciphertext->size = plaintext->size;
+        result = 0;
+    }
+    return result;
 }
 
 static int edge_hsm_client_decrypt_data(HSM_CLIENT_HANDLE handle,
                                         const SIZED_BUFFER *identity,
-                                        const SIZED_BUFFER *plaintext,
+                                        const SIZED_BUFFER *ciphertext,
                                         const SIZED_BUFFER *passphrase,
                                         const SIZED_BUFFER *initialization_vector,
-                                        SIZED_BUFFER *ciphertext)
+                                        SIZED_BUFFER *plaintext)
 {
-    LOG_ERROR("API unsupported");
-    return __FAILURE__;
+    int result;
+    if (!validate_sized_buffer(identity))
+    {
+        LOG_ERROR("Invalid identity buffer provided");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(ciphertext))
+    {
+        LOG_ERROR("Invalid cipher text buffer provided");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(initialization_vector))
+    {
+        LOG_ERROR("Invalid initialization vector buffer provided");
+        result = __FAILURE__;
+    }
+    else if ((passphrase != NULL) && !validate_sized_buffer(passphrase))
+    {
+        LOG_ERROR("Invalid passphrase buffer provided");
+        result = __FAILURE__;
+    }
+    else if (plaintext == NULL)
+    {
+        LOG_ERROR("Invalid output plain text buffer provided");
+        result = __FAILURE__;
+    }
+    else if ((plaintext->buffer = (unsigned char*)malloc(ciphertext->size)) == NULL)
+    {
+        LOG_ERROR("Could not allocate memory for the output plain text");
+        result = __FAILURE__;
+    }
+    else
+    {
+        memcpy(plaintext->buffer, ciphertext->buffer, ciphertext->size);
+        plaintext->size = ciphertext->size;
+        result = 0;
+    }
+    return result;
 }
 
 static const HSM_CLIENT_CRYPTO_INTERFACE edge_hsm_crypto_interface =
