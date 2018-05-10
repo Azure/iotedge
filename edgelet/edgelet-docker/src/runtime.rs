@@ -234,7 +234,12 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(
             self.client
                 .container_api()
-                .container_delete(fensure_not_empty!(id), false, true, true)
+                .container_delete(
+                    fensure_not_empty!(id),
+                    /* remove volumes */ false,
+                    /* force */ true,
+                    /* remove link */ false,
+                )
                 .map_err(Error::from)
                 .map(|_| ()),
         )

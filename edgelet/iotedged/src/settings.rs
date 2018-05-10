@@ -52,8 +52,8 @@ static DEFAULTS: &str = r#"{
       }
     },
     "hostname": "localhost",
-    "workload_uri": "unix:///var/run/iotedge.workload.sock",
-    "management_uri": "unix:///var/run/iotedge.mgmt.sock",
+    "workload_uri": "http://0.0.0.0:8081",
+    "management_uri": "http://0.0.0.0:8080",
     "docker_uri": "unix:///var/run/docker.sock"
 }"#;
 

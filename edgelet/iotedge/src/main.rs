@@ -23,7 +23,7 @@ use tokio_core::reactor::Core;
 use url::Url;
 
 #[cfg(unix)]
-const MGMT_URI: &str = "unix:///var/run/iotedge.mgmt.sock";
+const MGMT_URI: &str = "http://localhost:8080";
 #[cfg(windows)]
 const MGMT_URI: &str = "http://localhost:8080";
 

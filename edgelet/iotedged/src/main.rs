@@ -124,21 +124,12 @@ fn main_runner() -> Result<(), Error> {
         .build(&handle);
     let http_client = HttpClient::new(
         hyper_client,
-        SasTokenSource::new(hub_name, device_id.clone(), root_key),
+        SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key),
         IOTHUB_API_VERSION,
         Url::parse(&hostname)?,
     )?;
     let device_client = DeviceClient::new(http_client, &device_id)?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
-
-    start_runtime(
-        &runtime,
-        &id_man,
-        &mut core,
-        &hostname,
-        &device_id,
-        &settings,
-    )?;
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (work_tx, work_rx) = oneshot::channel();
@@ -150,6 +141,7 @@ fn main_runner() -> Result<(), Error> {
         &id_man,
         mgmt_rx,
     )?;
+
     let workload = start_workload(
         settings.workload_uri().clone(),
         &key_store,
@@ -161,6 +153,15 @@ fn main_runner() -> Result<(), Error> {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
     });
+
+    start_runtime(
+        &runtime,
+        &id_man,
+        &mut core,
+        &hub_name,
+        &device_id,
+        &settings,
+    )?;
 
     core.handle().spawn(shutdown);
     core.run(mgmt.join(workload)).map_err(Error::from)?;

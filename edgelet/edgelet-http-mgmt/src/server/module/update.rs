@@ -61,29 +61,36 @@ where
                     })
                     .map(move |(core_spec, spec)| {
                         let created = runtime
-                            .registry()
-                            .pull(core_spec.config())
+                            .remove(core_spec.name())
                             .and_then(move |_| {
                                 runtime
-                                    .create(core_spec)
-                                    .map(move |_| {
-                                        let details = spec_to_details(&spec);
-                                        serde_json::to_string(&details)
-                                            .context(ErrorKind::Serde)
-                                            .map(|b| {
-                                                Response::builder()
-                                                    .status(StatusCode::OK)
-                                                    .header(CONTENT_TYPE, "application/json")
-                                                    .header(
-                                                        CONTENT_LENGTH,
-                                                        b.len().to_string().as_str(),
-                                                    )
-                                                    .body(b.into())
+                                    .registry()
+                                    .pull(core_spec.config())
+                                    .and_then(move |_| {
+                                        runtime
+                                            .create(core_spec)
+                                            .map(move |_| {
+                                                let details = spec_to_details(&spec);
+                                                serde_json::to_string(&details)
+                                                    .context(ErrorKind::Serde)
+                                                    .map(|b| {
+                                                        Response::builder()
+                                                            .status(StatusCode::OK)
+                                                            .header(
+                                                                CONTENT_TYPE,
+                                                                "application/json",
+                                                            )
+                                                            .header(
+                                                                CONTENT_LENGTH,
+                                                                b.len().to_string().as_str(),
+                                                            )
+                                                            .body(b.into())
+                                                            .unwrap_or_else(|e| e.into_response())
+                                                    })
                                                     .unwrap_or_else(|e| e.into_response())
                                             })
-                                            .unwrap_or_else(|e| e.into_response())
+                                            .or_else(|e| future::ok(e.into_response()))
                                     })
-                                    .or_else(|e| future::ok(e.into_response()))
                             })
                             .or_else(|e| future::ok(e.into_response()));
                         future::Either::A(created)
