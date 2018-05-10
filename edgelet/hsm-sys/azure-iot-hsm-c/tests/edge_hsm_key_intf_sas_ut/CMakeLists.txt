@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
-set(theseTestsName edge_hsm_key_interface_sas_key_ut)
+set(theseTestsName edge_hsm_key_intf_sas_ut)
 
 include_directories(../../src)
 
