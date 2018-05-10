@@ -6,8 +6,8 @@ use futures::{future, Future};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub struct RestartModule<M>
 where

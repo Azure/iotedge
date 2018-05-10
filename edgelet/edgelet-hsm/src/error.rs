@@ -3,9 +3,9 @@
 use std::fmt;
 use std::fmt::Display;
 
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use hsm::Error as HsmError;
-use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 
 #[derive(Debug)]
 pub struct Error {

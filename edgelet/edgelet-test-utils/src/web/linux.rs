@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #[cfg(unix)]
-
 use super::*;
 
 use std::fs;

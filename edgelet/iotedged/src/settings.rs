@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use config::{Config, File};
-use serde_json;
 use serde::de::DeserializeOwned;
+use serde_json;
 use url::Url;
 use url_serde;
 

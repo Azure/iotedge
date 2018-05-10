@@ -3,8 +3,8 @@
 use std::io::{self, Cursor, Read, Write};
 
 use futures::{future, task, Future, Poll};
-use hyper::client::Service;
 use hyper::Uri;
+use hyper::client::Service;
 use serde::Serialize;
 use serde_json;
 use tokio_io::{AsyncRead, AsyncWrite};

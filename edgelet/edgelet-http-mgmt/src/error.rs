@@ -6,8 +6,8 @@ use edgelet_core::Error as CoreError;
 use edgelet_http::Error as EdgeletHttpError;
 use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
-use http::{Error as HttpError, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Error as HttpError, Response, StatusCode};
 use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 use serde_json;
 

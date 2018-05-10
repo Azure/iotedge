@@ -10,10 +10,10 @@ extern crate tokio_core;
 use edgelet_http::HyperExt;
 use edgelet_http::route::{BoxFuture, Builder, Parameters, Router};
 use futures::future;
-use http::{Request, Response, StatusCode};
 use http::header::CONTENT_TYPE;
-use hyper::{Body, Error as HyperError};
+use http::{Request, Response, StatusCode};
 use hyper::server::Http;
+use hyper::{Body, Error as HyperError};
 use tokio_core::reactor::Core;
 
 fn index(_req: Request<Body>, _params: Parameters) -> BoxFuture<Response<Body>, HyperError> {

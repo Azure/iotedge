@@ -6,8 +6,8 @@ use std::result::Result as StdResult;
 use std::str::FromStr;
 
 use chrono::prelude::*;
-use futures::Future;
 use failure::Fail;
+use futures::Future;
 use serde_json;
 
 use error::Result;

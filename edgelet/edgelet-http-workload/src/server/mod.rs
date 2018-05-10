@@ -9,8 +9,8 @@ use std::io;
 use edgelet_core::{CreateCertificate, GetTrustBundle, KeyStore};
 use edgelet_http::route::*;
 use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Error as HyperError};
 
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::sign::SignHandler;

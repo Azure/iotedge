@@ -6,9 +6,9 @@ use std::ops::{Deref, Drop};
 use std::os::raw::{c_char, c_void};
 use std::string::String;
 
-use error::{Error, ErrorKind};
-use super::*;
 use super::GetCerts;
+use super::*;
+use error::{Error, ErrorKind};
 
 /// Hsm for x509
 /// create an instance of this to use the x509 interface of an HSM
@@ -142,9 +142,9 @@ mod tests {
     use std::ptr;
     use std::slice;
 
-    use hsm_sys::*;
-    use super::{X509, X509Data};
     use super::super::GetCerts;
+    use super::{X509, X509Data};
+    use hsm_sys::*;
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;

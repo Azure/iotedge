@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #[cfg(windows)]
-
 use std::io::{self, Read, Write};
 use std::str;
 use std::sync::mpsc::Sender;

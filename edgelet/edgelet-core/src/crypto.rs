@@ -10,8 +10,8 @@ use failure::ResultExt;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use error::{Error, ErrorKind};
 use certificate_properties::CertificateProperties;
+use error::{Error, ErrorKind};
 
 pub trait Sign {
     type Signature: Signature;

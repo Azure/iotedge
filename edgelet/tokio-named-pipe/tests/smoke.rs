@@ -22,16 +22,18 @@ use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_named_pipes::NamedPipe;
 use rand::Rng;
 use tokio_core::reactor::Core;
-use tokio_io::io as tio;
 use tokio_io::codec::{FramedRead, FramedWrite, LinesCodec};
+use tokio_io::io as tio;
 
 use tokio_named_pipe::PipeStream;
 
 macro_rules! t {
-    ($e:expr) => (match $e {
-        Ok(e) => e,
-        Err(e) => panic!("{} failed with {}", stringify!($e), e),
-    })
+    ($e:expr) => {
+        match $e {
+            Ok(e) => e,
+            Err(e) => panic!("{} failed with {}", stringify!($e), e),
+        }
+    };
 }
 
 fn server() -> (NamedPipe, String) {

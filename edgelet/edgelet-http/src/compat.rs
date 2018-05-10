@@ -4,8 +4,8 @@
 
 use futures::{Future, Poll};
 use http;
-use hyper::{Body, Error, Request, Response};
 use hyper::server::Service;
+use hyper::{Body, Error, Request, Response};
 
 /// Wraps a `Future` returning an `http::Response` into
 /// a `Future` returning a `hyper::server::Response`.

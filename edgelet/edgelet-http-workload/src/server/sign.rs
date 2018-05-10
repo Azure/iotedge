@@ -6,14 +6,14 @@ use edgelet_core::crypto::{Sign, Signature, SignatureAlgorithm};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 use workload::models::{SignRequest, SignResponse};
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub struct SignHandler<K>
 where
@@ -93,8 +93,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
     use edgelet_core::crypto::MemoryKey;
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
     use edgelet_http::route::Parameters;
     use workload::models::ErrorResponse;
 

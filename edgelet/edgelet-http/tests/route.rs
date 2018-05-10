@@ -9,8 +9,8 @@ extern crate regex;
 use edgelet_http::route::{BoxFuture, Builder, Parameters, RegexRoutesBuilder, Router};
 use futures::{future, Future, Stream};
 use http::{Request, Response, StatusCode};
-use hyper::{Body, Chunk, Error as HyperError};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Chunk, Error as HyperError};
 
 fn route1(_req: Request<Body>, params: Parameters) -> BoxFuture<Response<Body>, HyperError> {
     let response = params

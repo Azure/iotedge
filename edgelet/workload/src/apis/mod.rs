@@ -53,5 +53,5 @@ use super::models::*;
 mod workload_api;
 pub use self::workload_api::{WorkloadApi, WorkloadApiClient};
 
-pub mod configuration;
 pub mod client;
+pub mod configuration;

@@ -2,8 +2,8 @@
 
 use std::rc::Rc;
 
-use hyper;
 use super::configuration::Configuration;
+use hyper;
 
 pub struct APIClient<C: hyper::client::Connect> {
     configuration: Rc<Configuration<C>>,

@@ -11,8 +11,8 @@ use std::str;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::Sign;
+use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_hsm::TpmKeyStore;
 

@@ -21,8 +21,8 @@ use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_http::UrlConnector;
 use edgelet_utils::serde_clone;
 
-use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 use error::{Error, Result};
+use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
 
 const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
 

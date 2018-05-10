@@ -10,6 +10,6 @@ mod crypto;
 mod error;
 mod tpm;
 
+pub use crypto::{Certificate, Crypto};
 pub use error::{Error, ErrorKind};
 pub use tpm::{TpmKey, TpmKeyStore};
-pub use crypto::{Certificate, Crypto};

@@ -7,9 +7,9 @@ use std::os::raw::{c_uchar, c_void};
 use std::slice;
 use std::str;
 
+use super::*;
 use error::{Error, ErrorKind};
 use hsm_sys::*;
-use super::*;
 
 /// Enumerator for CERTIFICATE_TYPE
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -591,13 +591,13 @@ impl AsRef<[u8]> for Buffer {
 
 #[cfg(test)]
 mod tests {
-    use std::os::raw::{c_char, c_int, c_uchar, c_void};
     use std::ffi::CString;
+    use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
-    use hsm_sys::*;
-    use super::{Buffer, CertificateProperties, Crypto};
     use super::super::{CreateCertificate, CreateMasterEncryptionKey, Decrypt,
                        DestroyMasterEncryptionKey, Encrypt, GetTrustBundle, MakeRandom};
+    use super::{Buffer, CertificateProperties, Crypto};
+    use hsm_sys::*;
 
     static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
 

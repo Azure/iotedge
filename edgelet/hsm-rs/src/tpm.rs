@@ -7,9 +7,9 @@ use std::os::raw::{c_uchar, c_void};
 use std::ptr;
 use std::slice;
 
-use error::{Error, ErrorKind};
 use super::*;
 use super::{ManageTpmKeys, SignWithTpm};
+use error::{Error, ErrorKind};
 
 /// Hsm for TPM
 /// create an instance of this to use the TPM interface of an HSM
@@ -208,9 +208,9 @@ impl AsRef<[u8]> for TpmBuffer {
 mod tests {
     use std::os::raw::{c_int, c_uchar, c_void};
 
-    use hsm_sys::*;
-    use super::{Tpm, TpmKey};
     use super::super::{ManageTpmKeys, SignWithTpm};
+    use super::{Tpm, TpmKey};
+    use hsm_sys::*;
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;

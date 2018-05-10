@@ -8,11 +8,11 @@ use chrono::format::ParseError;
 use edgelet_core::Error as CoreError;
 use edgelet_utils::Error as UtilsError;
 use failure::{Backtrace, Context, Fail};
-use http::{Error as HttpError, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Error as HttpError, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
-use workload::models::ErrorResponse;
 use serde_json;
+use workload::models::ErrorResponse;
 
 use IntoResponse;
 

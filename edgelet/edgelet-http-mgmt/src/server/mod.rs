@@ -8,14 +8,14 @@ use std::io;
 use edgelet_core::{IdentityManager, Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::*;
 use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Error as HyperError};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use IntoResponse;
-use self::module::*;
 use self::identity::*;
+use self::module::*;
+use IntoResponse;
 
 #[derive(Clone)]
 pub struct ManagementService {

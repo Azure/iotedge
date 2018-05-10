@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use futures::Future;
-use hyper::{Error as HyperError, Method, Request, Response};
 use hyper::client::Service;
+use hyper::{Error as HyperError, Method, Request, Response};
 
 use client::{Client, TokenSource};
 use error::{Error, ErrorKind};
@@ -129,9 +129,9 @@ mod tests {
 
     use chrono::{DateTime, Utc};
     use futures::Stream;
-    use hyper::{Client as HyperClient, Method, StatusCode};
     use hyper::header::{ContentType, IfMatch};
     use hyper::server::service_fn;
+    use hyper::{Client as HyperClient, Method, StatusCode};
     use serde_json;
     use tokio_core::reactor::Core;
     use url::Url;

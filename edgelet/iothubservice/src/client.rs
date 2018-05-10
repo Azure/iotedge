@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use chrono::{DateTime, Duration, Utc};
-use futures::{Future, Stream};
 use futures::future;
-use hyper::{Error as HyperError, Method, Request, Response, Uri};
+use futures::{Future, Stream};
 use hyper::client::Service;
 use hyper::header::{Authorization, ContentLength, ContentType, IfMatch, UserAgent};
+use hyper::{Error as HyperError, Method, Request, Response, Uri};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json;
 use url::{Url, form_urlencoded::Serializer as UrlSerializer};
@@ -211,10 +211,10 @@ mod tests {
     use std::str;
 
     use futures::future;
-    use hyper::{Request, Response, StatusCode};
     use hyper::client::Client as HyperClient;
     use hyper::header::{Authorization, ContentType, UserAgent};
     use hyper::server::service_fn;
+    use hyper::{Request, Response, StatusCode};
     use tokio_core::reactor::Core;
     use url::form_urlencoded::parse as parse_query;
 

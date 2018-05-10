@@ -4,8 +4,8 @@ use std::str;
 
 use failure::ResultExt;
 use futures::future;
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 
@@ -13,8 +13,8 @@ use edgelet_core::{Certificate, GetTrustBundle};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::TrustBundleResponse;
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub struct TrustBundleHandler<T: GetTrustBundle> {
     hsm: T,

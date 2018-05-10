@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::marker::PhantomData;
 use edgelet_core::*;
 use failure::Fail;
 use futures::IntoFuture;
 use futures::future::{self, FutureResult};
+use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
 pub struct NullRegistry<E: Fail> {

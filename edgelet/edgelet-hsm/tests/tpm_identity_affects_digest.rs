@@ -7,8 +7,8 @@ extern crate edgelet_hsm;
 use std::str;
 
 use edgelet_core::KeyStore;
-use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::Sign;
+use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
 use edgelet_hsm::TpmKeyStore;
 

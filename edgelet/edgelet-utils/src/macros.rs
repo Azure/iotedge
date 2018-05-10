@@ -124,12 +124,8 @@
 #[macro_export]
 macro_rules! bail {
     ($err:expr) => {
-        return Err(
-            ::std::convert::From::from(
-                $crate::Error::from($err)
-            )
-        );
-    }
+        return Err(::std::convert::From::from($crate::Error::from($err)));
+    };
 }
 
 /// Exits a function early with an `Error`.
@@ -140,10 +136,10 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! fbail {
     ($err:expr) => {
-        return Box::new(::futures::future::err(
-            ::std::convert::From::from($crate::Error::from($err))
-        ));
-    }
+        return Box::new(::futures::future::err(::std::convert::From::from(
+            $crate::Error::from($err),
+        )));
+    };
 }
 
 /// Internal macro used for implementing other validation macros.
@@ -243,18 +239,16 @@ macro_rules! fensure {
 #[macro_export]
 macro_rules! ensure_range_impl {
     ($val:expr, $low:expr, $high:expr, $ensure:tt) => {
-        match(&$val, &$low, &$high) {
-            (val_val, low_val, high_val) => {
-                $ensure!(
-                    *val_val,
-                    *val_val > *low_val && *val_val <= *high_val,
-                    $crate::ErrorKind::ArgumentOutOfRange(
-                        format!("{}", val_val),
-                        format!("{}", low_val),
-                        format!("{}", high_val),
-                    )
+        match (&$val, &$low, &$high) {
+            (val_val, low_val, high_val) => $ensure!(
+                *val_val,
+                *val_val > *low_val && *val_val <= *high_val,
+                $crate::ErrorKind::ArgumentOutOfRange(
+                    format!("{}", val_val),
+                    format!("{}", low_val),
+                    format!("{}", high_val),
                 )
-            }
+            ),
         }
     };
 }
@@ -304,17 +298,15 @@ macro_rules! fensure_range {
 #[macro_export]
 macro_rules! ensure_greater_impl {
     ($val:expr, $low:expr, $ensure:tt) => {
-        match(&$val, &$low) {
-            (val_val, low_val) => {
-                $ensure!(
-                    *val_val,
-                    *val_val > *low_val,
-                    $crate::ErrorKind::ArgumentTooLow(
-                        format!("{}", val_val),
-                        format!("{}", low_val),
-                    )
+        match (&$val, &$low) {
+            (val_val, low_val) => $ensure!(
+                *val_val,
+                *val_val > *low_val,
+                $crate::ErrorKind::ArgumentTooLow(
+                    format!("{}", val_val),
+                    format!("{}", low_val),
                 )
-            }
+            ),
         }
     };
 }

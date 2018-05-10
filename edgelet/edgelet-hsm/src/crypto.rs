@@ -2,18 +2,18 @@
 
 use std::sync::{Arc, RwLock};
 
+use certificate_properties::convert_properties;
 use edgelet_core::{Certificate as CoreCertificate,
                    CertificateProperties as CoreCertificateProperties,
                    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt,
                    Encrypt as CoreEncrypt, Error as CoreError,
                    GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
                    PrivateKey as CorePrivateKey};
-use certificate_properties::convert_properties;
 
-use hsm::{CreateCertificate as HsmCreateCertificate, Crypto as HsmCrypto};
+pub use error::{Error, ErrorKind};
 pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
               PrivateKey as HsmPrivateKey};
-pub use error::{Error, ErrorKind};
+use hsm::{CreateCertificate as HsmCreateCertificate, Crypto as HsmCrypto};
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.

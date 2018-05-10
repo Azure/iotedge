@@ -24,19 +24,19 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 use edgelet_http::UrlConnector;
-use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 #[cfg(windows)]
 use edgelet_test_utils::run_pipe_server;
 #[cfg(unix)]
 use edgelet_test_utils::run_uds_server;
+use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 use futures::future;
 use futures::prelude::*;
 #[cfg(windows)]
 use httparse::Request as HtRequest;
-use hyper::{Client, Method, Request as ClientRequest, StatusCode};
 use hyper::Error as HyperError;
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
+use hyper::{Client, Method, Request as ClientRequest, StatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Uri as PipeUri;
 #[cfg(unix)]

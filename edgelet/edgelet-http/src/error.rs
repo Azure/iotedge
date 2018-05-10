@@ -4,8 +4,8 @@ use std::fmt::{self, Display};
 use std::io;
 
 use failure::{Backtrace, Context, Fail};
-use http::{Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;

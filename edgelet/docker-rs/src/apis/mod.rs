@@ -59,5 +59,5 @@ pub use self::system_api::{SystemApi, SystemApiClient};
 mod volume_api;
 pub use self::volume_api::{VolumeApi, VolumeApiClient};
 
-pub mod configuration;
 pub mod client;
+pub mod configuration;

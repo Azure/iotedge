@@ -4,15 +4,15 @@ use edgelet_core::{Identity as CoreIdentity, IdentityManager};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future};
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use management::models::{Identity, IdentityList};
 use serde::Serialize;
 use serde_json;
 
-use error::ErrorKind;
 use IntoResponse;
+use error::ErrorKind;
 
 pub struct ListIdentities<I>
 where

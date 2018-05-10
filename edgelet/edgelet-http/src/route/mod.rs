@@ -3,15 +3,14 @@
 /// This is inspired by ubnu-intrepid's hyper router (https://github.com/ubnt-intrepid/hyper-router)
 /// with some changes to improve usability of the captured parameters
 /// when using regex based routes.
-
 use std::clone::Clone;
 use std::io;
 use std::sync::Arc;
 
 use futures::{future, Future};
 use http::{Method, Request, Response, StatusCode};
-use hyper::{Body, Error as HyperError};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Error as HyperError};
 
 pub mod macros;
 mod regex;

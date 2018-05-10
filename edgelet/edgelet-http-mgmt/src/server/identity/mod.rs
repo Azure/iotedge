@@ -15,8 +15,8 @@ mod tests {
     use hyper::Body;
     use serde_json;
 
-    use edgelet_core::{Identity, IdentityManager, IdentitySpec};
     use IntoResponse;
+    use edgelet_core::{Identity, IdentityManager, IdentitySpec};
     use management::models::ErrorResponse;
 
     #[derive(Clone, Debug, Fail)]

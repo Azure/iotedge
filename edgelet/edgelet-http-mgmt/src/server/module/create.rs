@@ -4,17 +4,17 @@ use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json;
 
-use error::{Error, ErrorKind};
-use IntoResponse;
 use super::{spec_to_core, spec_to_details};
+use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub struct CreateModule<M>
 where
@@ -99,8 +99,8 @@ where
 mod tests {
     use chrono::prelude::*;
     use edgelet_core::{ModuleRuntimeState, ModuleStatus};
-    use edgelet_test_utils::module::*;
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::module::*;
     use http::Request;
     use management::models::{Config, ErrorResponse};
     use server::module::tests::Error;

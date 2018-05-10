@@ -12,14 +12,14 @@ extern crate iothubservice;
 
 use chrono::{DateTime, Utc};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
 use hyper::client::Service;
+use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use url::Url;
 
-use iothubservice::{Client, DeviceClient, TokenSource};
 use iothubservice::error::Error;
+use iothubservice::{Client, DeviceClient, TokenSource};
 
 struct StaticTokenSource {
     token: String,

@@ -3,8 +3,8 @@
 use chrono::prelude::*;
 use failure::ResultExt;
 use futures::{future, Future, Stream};
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 
@@ -14,8 +14,8 @@ use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse,
                        ServerCertificateRequest};
 
-use error::{Error, ErrorKind, Result};
 use IntoResponse;
+use error::{Error, ErrorKind, Result};
 
 pub struct ServerCertHandler<T: CreateCertificate> {
     hsm: T,

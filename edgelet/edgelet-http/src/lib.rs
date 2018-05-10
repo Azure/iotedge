@@ -42,8 +42,8 @@ use std::path::Path;
 
 use futures::{future, Future, Poll, Stream};
 use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
 use hyper::server::{Http, NewService};
+use hyper::{Body, Error as HyperError};
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::Handle;
 #[cfg(unix)]

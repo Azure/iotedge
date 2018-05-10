@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::str::FromStr;
 use serde::Deserialize;
 use serde_json;
+use std::str::FromStr;
 
 use models::ContainerCreateBody;
 

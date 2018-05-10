@@ -33,15 +33,15 @@ use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::Future;
 use futures::future;
-use hyper::{Error as HyperError, Request, Response};
 use hyper::client::Service;
+use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 use url::form_urlencoded;
 
-use edgelet_core::{Identity, IdentityManager, IdentitySpec};
 use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
-use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey, TokenSource};
+use edgelet_core::{Identity, IdentityManager, IdentitySpec};
 use iothubservice::error::Error as IotError;
+use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey, TokenSource};
 
 pub use error::{Error, ErrorKind};
 
@@ -281,9 +281,9 @@ mod tests {
     use bytes::Bytes;
     use chrono::TimeZone;
     use futures::Stream;
-    use hyper::{Method, Request, Response, StatusCode};
     use hyper::header::ContentType;
     use hyper::server::service_fn;
+    use hyper::{Method, Request, Response, StatusCode};
     use tokio_core::reactor::Core;
     use url::Url;
 

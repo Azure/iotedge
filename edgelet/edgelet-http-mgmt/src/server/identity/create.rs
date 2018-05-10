@@ -4,8 +4,8 @@ use std::cell::RefCell;
 
 use failure::ResultExt;
 use futures::{future, Future};
-use http::{Request, Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde::Serialize;
 use serde_json;
@@ -14,8 +14,8 @@ use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentitySpec};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use management::models::Identity;
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub struct CreateIdentity<I>
 where

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt;
-use std::io;
 use std::fmt::Display;
+use std::io;
 
 use edgelet_http_mgmt::Error as HttpMgmtError;
 use failure::{Backtrace, Context, Fail};

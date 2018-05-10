@@ -13,8 +13,8 @@ extern crate winapi;
 use std::convert::AsRef;
 use std::fs::OpenOptions;
 use std::io::{self, Read, Write};
-use std::path::Path;
 use std::os::windows::prelude::*;
+use std::path::Path;
 
 use bytes::{Buf, BufMut};
 use futures::{Async, Poll};

@@ -6,16 +6,16 @@ use edgelet_core::{Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleSt
 use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
 use failure::{Fail, ResultExt};
 use futures::Future;
-use http::{Response, StatusCode};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use http::{Response, StatusCode};
 use hyper::Body;
 use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json;
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 mod create;
 mod delete;

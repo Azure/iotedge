@@ -4,12 +4,12 @@ use std::io;
 
 use futures::{future, Future};
 use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Error as HyperError};
 use url::form_urlencoded::parse as parse_query;
 
-use error::{Error, ErrorKind};
 use IntoResponse;
+use error::{Error, ErrorKind};
 
 pub const API_VERSION: &str = "2018-06-28";
 
@@ -82,8 +82,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use http::StatusCode;
     use super::*;
+    use http::StatusCode;
 
     #[derive(Clone)]
     struct TestService {

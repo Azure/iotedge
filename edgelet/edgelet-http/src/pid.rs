@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 use edgelet_core::pid::Pid;
 use futures::prelude::*;
 use http::{Request, Response};
-use hyper::{Body, Error as HyperError};
 use hyper::server::Service;
+use hyper::{Body, Error as HyperError};
 
 #[derive(Clone)]
 pub struct PidService<T, B> {
@@ -49,8 +49,8 @@ pub use self::impl_unix::UnixStreamExt;
 #[cfg(unix)]
 mod impl_unix {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
-    use std::{io, mem};
     use std::os::unix::io::AsRawFd;
+    use std::{io, mem};
     use tokio_uds::UnixStream;
 
     use super::*;

@@ -22,19 +22,19 @@ use std::thread;
 
 use futures::future;
 use futures::prelude::*;
-use hyper::{Error as HyperError, Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
+use hyper::{Error as HyperError, Method, StatusCode};
 use tokio_core::reactor::Core;
-use url::form_urlencoded::parse as parse_query;
 use url::Url;
+use url::form_urlencoded::parse as parse_query;
 
-use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
-                     ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
 #[cfg(unix)]
 use docker::models::AuthConfig;
-use edgelet_docker::{DockerConfig, DockerModuleRuntime};
+use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
+                     ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
 use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
+use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
 const IMAGE_NAME: &str = "nginx:latest";

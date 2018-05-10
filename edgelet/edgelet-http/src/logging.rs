@@ -6,10 +6,10 @@ use std::io;
 use chrono::prelude::*;
 use edgelet_core::pid::Pid;
 use futures::prelude::*;
-use http::{Request, Response};
 use http::header::{CONTENT_LENGTH, USER_AGENT};
-use hyper::{Body, Error as HyperError};
+use http::{Request, Response};
 use hyper::server::{NewService, Service};
+use hyper::{Body, Error as HyperError};
 
 #[derive(Clone)]
 pub struct LoggingService<T> {
