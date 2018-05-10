@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     class DeviceMessageHandler : IDeviceListener, IDeviceProxy
     {
+        static readonly TimeSpan MessageResponseTimeout = TimeSpan.FromSeconds(30);
+
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
 
@@ -180,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             Events.SendingMessage(this.Identity, lockToken);
             await this.underlyingProxy.SendMessageAsync(message, input);
 
-            Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromSeconds(60)));
+            Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
             if (completedTask != taskCompletionSource.Task)
             {
                 Events.MessageFeedbackTimedout(this.Identity, lockToken);

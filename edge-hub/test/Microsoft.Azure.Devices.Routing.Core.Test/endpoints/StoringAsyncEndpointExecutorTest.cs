@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint = new TestEndpoint(EndpointId);
             ICheckpointer checkpointer = await Checkpointer.CreateAsync(EndpointId, new CheckpointStore());
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
-            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(1);
+            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(4, TimeSpan.FromSeconds(2));
             var messageStore = new TestMessageStore();
             var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
@@ -137,6 +137,29 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
         }
 
+        [Fact]
+        public async Task TestSetEndpoint()
+        {
+            var endpoint1 = new TestEndpoint("id");
+            var endpoint2 = new NullEndpoint("id");
+            var endpoint3 = new TestEndpoint("id1");
+            ICheckpointer checkpointer = await Checkpointer.CreateAsync("cid", new CheckpointStore());
+            var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
+            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(1, TimeSpan.FromSeconds(1));
+            var messageStore = new TestMessageStore();
+            var executor = new StoringAsyncEndpointExecutor(endpoint1, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+
+            Assert.Equal(endpoint1, executor.Endpoint);
+            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));
+            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
+
+            await executor.SetEndpoint(endpoint2);
+            Assert.Equal(endpoint2, executor.Endpoint);
+
+            await executor.CloseAsync();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
+        }
+
         static IEnumerable<IMessage> GetNewMessages(int count, int indexStart)
         {
             for (int i = 0; i < count; i++)
@@ -172,9 +195,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             public IMessageIterator GetMessageIterator(string endpointId) => this.GetQueue(endpointId);
 
-            public Task AddEndpoint(string endpointId) => throw new NotImplementedException();
+            public Task AddEndpoint(string endpointId)
+            {
+                this.endpointQueues[endpointId] = new TestMessageQueue();
+                return Task.CompletedTask;
+            }
 
-            public Task RemoveEndpoint(string endpointId) => throw new NotImplementedException();
+            public Task RemoveEndpoint(string endpointId)
+            {
+                this.endpointQueues.Remove(endpointId, out TestMessageQueue _);
+                return Task.CompletedTask;
+            }
 
             public void SetTimeToLive(TimeSpan timeToLive) => throw new NotImplementedException();
 

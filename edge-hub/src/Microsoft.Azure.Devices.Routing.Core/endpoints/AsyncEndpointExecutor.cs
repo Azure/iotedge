@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly EndpointExecutorFsm machine;
         readonly AsyncEndpointExecutorOptions options;
         readonly IDataflowBlock tail;
+        readonly ICheckpointer checkpointer;
 
         public Endpoint Endpoint => this.machine.Endpoint;
 
@@ -49,7 +50,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             Preconditions.CheckNotNull(endpoint);
             Preconditions.CheckNotNull(config);
-            this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
+            this.checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.cts = new CancellationTokenSource();
             this.options = Preconditions.CheckNotNull(options);
             this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
@@ -79,20 +80,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.head = batchBlock;
             this.tail = process;
         }
-
-        protected ICheckpointer Checkpointer { get; }
-
-        protected CancellationTokenSource CancellationTokenSource => this.cts;
-
+        
         public virtual Task Invoke(IMessage message) => this.SendToTplHead(message);
 
-        protected async Task SendToTplHead(IMessage message)
+        async Task SendToTplHead(IMessage message)
         {
             try
             {
                 Preconditions.CheckNotNull(message);
 
-                this.Checkpointer.Propose(message);
+                this.checkpointer.Propose(message);
 
                 if (this.closed)
                 {

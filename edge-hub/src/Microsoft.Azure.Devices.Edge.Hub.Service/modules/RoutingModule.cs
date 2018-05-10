@@ -212,20 +212,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c =>
                     {
                         // Endpoint executor config values -
-                        // ExponentialBackoff - minBackoff = 10s, maxBackoff = 600s, delta (used to add randomness to backoff) - 10s (default)
-                        // Num of retries = 75 for total retry period of about 12 hours.
+                        // ExponentialBackoff - minBackoff = 1s, maxBackoff = 60s, delta (used to add randomness to backoff) - 1s (default)
+                        // Num of retries = int.MaxValue(we want to keep retrying till the message is sent)
                         // Revive period - period for which the endpoint should be considered dead if it doesn't respond - 1 min (we want to try continuously till the message expires)
-                        // Timeout - time for which we want for the ack from the endpoint = 60s
-                        // TODO - Num of retries should be set to (Store and forward timeout secs / minBackoff) + 1 (this gives us an upper limit on the number of times we need to retry)
-                        // Need to make the number of retries dynamically configurable for that.
+                        // Timeout - time for which we want for the ack from the endpoint = 30s
+                        // TODO - Should the number of retries be tied to the Store and Forward ttl? Not
+                        // doing that right now as that value can be changed at runtime, but these settings
+                        // cannot. Need to make the number of retries dynamically configurable for that.
 
-                        TimeSpan minWait = TimeSpan.FromSeconds(10);
-                        TimeSpan maxWait = TimeSpan.FromSeconds(600);
-                        TimeSpan delta = TimeSpan.FromSeconds(10);
-                        int retries = 75;
+                        TimeSpan minWait = TimeSpan.FromSeconds(1);
+                        TimeSpan maxWait = TimeSpan.FromSeconds(60);
+                        TimeSpan delta = TimeSpan.FromSeconds(1);
+                        int retries = int.MaxValue;
                         RetryStrategy retryStrategy = new ExponentialBackoff(retries, minWait, maxWait, delta);
-                        TimeSpan revivePeriod = TimeSpan.FromMinutes(1);
-                        TimeSpan timeout = TimeSpan.FromSeconds(60);
+                        TimeSpan timeout = TimeSpan.FromSeconds(30);
+                        TimeSpan revivePeriod = TimeSpan.FromSeconds(30);
                         return new EndpointExecutorConfig(timeout, retryStrategy, revivePeriod);
                     })
                     .As<EndpointExecutorConfig>()
