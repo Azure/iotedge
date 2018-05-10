@@ -15,11 +15,13 @@ hyper = { version = "0.11", features = ["compat"] }
 log = "0.4"
 percent-encoding = "1.0"
 regex = "0.2"
+serde = "1.0"
+serde_json = "1.0"
 tokio-core = "0.1"
 tokio-io = "0.1"
-serde_json = "1.0"
 url = "1.7"
 
+edgelet-utils = { path = "../edgelet-utils" }
 edgelet-core = { path = "../edgelet-core" }
 
 [target.'cfg(unix)'.dependencies]
@@ -35,6 +37,7 @@ tokio-named-pipe = { path = "../tokio-named-pipe" }
 httparse = "1.2"
 rand = "0.4"
 scopeguard = "0.3.3"
+tokio-core = "0.1"
 tempfile = "2"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

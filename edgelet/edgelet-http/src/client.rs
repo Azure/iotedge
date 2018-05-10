@@ -13,53 +13,49 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json;
 use url::{Url, form_urlencoded::Serializer as UrlSerializer};
 
-use device::DeviceClient;
 use error::Error;
 
-/// Provides sas tokens for authentication
-/// `get` returns a base64 encoded signature with the
-/// token data
 pub trait TokenSource {
-    fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Error>;
+    type Error;
+    fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Self::Error>;
 }
 
 pub struct Client<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
 {
     service: Rc<S>,
-    token_source: Rc<T>,
+    token_source: Option<T>,
     api_version: String,
     host_name: Url,
     user_agent: Option<String>,
-    token_duration: Duration,
 }
 
 impl<S, T> Client<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
+    T::Error: Into<Error>,
 {
     pub fn new(
         service: S,
-        token_source: T,
+        token_source: Option<T>,
         api_version: &str,
         host_name: Url,
     ) -> Result<Client<S, T>, Error> {
         let client = Client {
             service: Rc::new(service),
-            token_source: Rc::new(token_source),
+            token_source,
             api_version: ensure_not_empty!(api_version).to_string(),
             host_name,
             user_agent: None,
-            token_duration: Duration::hours(1),
         };
         Ok(client)
     }
 
-    pub fn with_token_duration(mut self, token_duration: Duration) -> Client<S, T> {
-        self.token_duration = token_duration;
+    pub fn with_token_source(mut self, source: T) -> Client<S, T> {
+        self.token_source = Some(source);
         self
     }
 
@@ -82,14 +78,6 @@ where
 
     pub fn host_name(&self) -> &Url {
         &self.host_name
-    }
-
-    pub fn token_duration(&self) -> &Duration {
-        &self.token_duration
-    }
-
-    pub fn create_device_client(&self, device_id: &str) -> Result<DeviceClient<S, T>, Error> {
-        DeviceClient::new(self.clone(), ensure_not_empty!(device_id))
     }
 
     pub fn request<BodyT, ResponseT>(
@@ -123,7 +111,7 @@ where
                 // conversion from url::Url to hyper::Uri and not really a URL
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
-                let mut req = Request::new(method,
+                let mut req = Request::new(method.clone(),
                     url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure")
                 );
 
@@ -133,9 +121,18 @@ where
                 }
 
                 // add sas token
-                let expiry = Utc::now() + self.token_duration;
-                let token = self.token_source.get(&expiry)?;
-                req.headers_mut().set(Authorization(format!("SharedAccessSignature {}", token)));
+                if let Some(ref source) = self.token_source {
+                        let token_duration = Duration::hours(1);
+                        let expiry = Utc::now() + token_duration;
+                        let token = source.get(&expiry)
+                            .map_err(|err| err.into())?;
+                        debug!("Success generating token for request {:?} {}", method, path);
+                        req.headers_mut()
+                            .set(Authorization(format!("SharedAccessSignature {}", token)));
+                } else {
+                    debug!("Empty token source for request {:?} {}", method, path);
+
+                }
 
                 // add an `If-Match: "*"` header if we've been asked to
                 if add_if_match {
@@ -189,16 +186,15 @@ where
 impl<S, T> Clone for Client<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
 {
     fn clone(&self) -> Self {
         Client {
             service: self.service.clone(),
-            token_source: self.token_source.clone(),
+            token_source: self.token_source.as_ref().cloned(),
             api_version: self.api_version.clone(),
             host_name: self.host_name.clone(),
             user_agent: self.user_agent.as_ref().cloned(),
-            token_duration: self.token_duration,
         }
     }
 }
@@ -210,6 +206,7 @@ mod tests {
     use std::mem;
     use std::str;
 
+    use chrono::{DateTime, Utc};
     use futures::future;
     use hyper::client::Client as HyperClient;
     use hyper::header::{Authorization, ContentType, UserAgent};
@@ -219,15 +216,6 @@ mod tests {
     use url::form_urlencoded::parse as parse_query;
 
     use error::ErrorKind;
-    use model::SymmetricKey;
-
-    struct NullTokenSource;
-
-    impl TokenSource for NullTokenSource {
-        fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
-            Ok("token".to_string())
-        }
-    }
 
     struct StaticTokenSource {
         token: String,
@@ -240,8 +228,17 @@ mod tests {
     }
 
     impl TokenSource for StaticTokenSource {
+        type Error = Error;
         fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
             Ok(self.token.clone())
+        }
+    }
+
+    impl Clone for StaticTokenSource {
+        fn clone(&self) -> Self {
+            StaticTokenSource {
+                token: self.token.clone(),
+            }
         }
     }
 
@@ -249,9 +246,10 @@ mod tests {
     fn empty_api_version_fails() {
         let core = Core::new().unwrap();
         let hyper_client = HyperClient::new(&core.handle());
+        let token_source: Option<StaticTokenSource> = None;
         match Client::new(
             hyper_client,
-            NullTokenSource,
+            token_source,
             "",
             Url::parse("http://localhost").unwrap(),
         ) {
@@ -268,52 +266,13 @@ mod tests {
     fn white_space_api_version_fails() {
         let core = Core::new().unwrap();
         let hyper_client = HyperClient::new(&core.handle());
+        let token_source: Option<StaticTokenSource> = None;
         match Client::new(
             hyper_client,
-            NullTokenSource,
+            token_source,
             "      ",
             Url::parse("http://localhost").unwrap(),
         ) {
-            Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
-            }
-        };
-    }
-
-    #[test]
-    fn create_device_client_empty_id_fails() {
-        let core = Core::new().unwrap();
-        let hyper_client = HyperClient::new(&core.handle());
-        let client = Client::new(
-            hyper_client,
-            NullTokenSource,
-            "2018-04-11",
-            Url::parse("http://localhost").unwrap(),
-        ).unwrap();
-        match client.create_device_client("") {
-            Ok(_) => panic!("Expected error but got a result."),
-            Err(err) => {
-                if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
-                    panic!("Wrong error kind. Expected `ArgumentEmpty` found {:?}", err);
-                }
-            }
-        };
-    }
-
-    #[test]
-    fn create_device_client_white_space_id_fails() {
-        let core = Core::new().unwrap();
-        let hyper_client = HyperClient::new(&core.handle());
-        let client = Client::new(
-            hyper_client,
-            NullTokenSource,
-            "2018-04-11",
-            Url::parse("http://localhost").unwrap(),
-        ).unwrap();
-        match client.create_device_client("      ") {
             Ok(_) => panic!("Expected error but got a result."),
             Err(err) => {
                 if mem::discriminant(err.kind()) != mem::discriminant(&ErrorKind::Utils) {
@@ -328,9 +287,8 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(req.path(), "/boo");
@@ -345,15 +303,14 @@ mod tests {
             Box::new(future::ok(
                 Response::new()
                     .with_status(StatusCode::Ok)
-                    .with_header(ContentType::json())
-                    .with_body(serde_json::to_string(&response).unwrap().into_bytes()),
+                    .with_body(response.clone().into_bytes()),
             ))
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
+        let _result: Option<String> = core.run(task).unwrap();
     }
 
     #[test]
@@ -361,9 +318,8 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(req.path(), "/boo");
@@ -382,18 +338,17 @@ mod tests {
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                .with_body(response.clone().into_bytes()))
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
         let mut query = HashMap::new();
         query.insert("k1", "v1");
         query.insert("k2", "this value has spaces and 🐮🐮🐮");
 
-        let task = client.request::<String, _>(Method::Get, "/boo", Some(query), None, false);
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let task = client.request::<String, String>(Method::Get, "/boo", Some(query), None, false);
+        let _result: String = core.run(task).unwrap().unwrap();
     }
 
     #[test]
@@ -402,9 +357,8 @@ mod tests {
         let api_version = "2018-04-10";
         let user_agent = "edgelet/request/test";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(
@@ -415,15 +369,14 @@ mod tests {
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                .with_body(response.clone().into_bytes()))
         };
-        let client = Client::new(service_fn(handler), NullTokenSource, api_version, host_name)
+        let client = Client::new(service_fn(handler), token_source, api_version, host_name)
             .unwrap()
             .with_user_agent(user_agent);
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
+        let _result: String = core.run(task).unwrap().unwrap();
     }
 
     #[test]
@@ -432,9 +385,7 @@ mod tests {
         let api_version = "2018-04-10";
         let sas_token = "super_secret_password_y'all";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
 
         let handler = move |req: Request| {
             let sas_header = &req.headers()
@@ -447,15 +398,15 @@ mod tests {
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                .with_body(response.clone().into_bytes()))
         };
-        let token_source = StaticTokenSource::new(sas_token.to_string());
+        let token_source: Option<StaticTokenSource> =
+            Some(StaticTokenSource::new(sas_token.to_string()));
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
+        let _result: String = core.run(task).unwrap().unwrap();
     }
 
     #[test]
@@ -463,9 +414,8 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(Some(&IfMatch::Any), req.headers().get::<IfMatch>());
@@ -473,13 +423,13 @@ mod tests {
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
                 .with_header(ContentType::json())
-                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                .with_body(response.clone().into_bytes()))
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
         let task = client.request::<String, _>(Method::Get, "/boo", None, None, true);
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let _result: String = core.run(task).unwrap().unwrap();
     }
 
     #[test]
@@ -487,6 +437,7 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(None, req.headers().get::<IfMatch>());
@@ -501,26 +452,23 @@ mod tests {
                         .map_err(|e| panic!("Error: {:?}", e))
                 })
                 .and_then(|_| {
-                    let response = SymmetricKey::default()
-                        .with_primary_key("pkey".to_string())
-                        .with_secondary_key("skey".to_string());
+                    let response = r#""response""#.to_string();
                     Ok(Response::new()
                         .with_status(StatusCode::Ok)
-                        .with_header(ContentType::json())
-                        .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                        .with_body(response.clone().into_bytes()))
                 })
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(
+        let task = client.request::<String, String>(
             Method::Post,
             "/boo",
             None,
             Some("Here be dragons".to_string()),
             false,
         );
-        let _result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let _result: String = core.run(task).unwrap().unwrap();
     }
 
     #[test]
@@ -528,6 +476,7 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(None, req.headers().get::<IfMatch>());
@@ -544,7 +493,7 @@ mod tests {
                 .and_then(|_| Ok(Response::new().with_status(StatusCode::Ok)))
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
         let task = client.request::<String, _>(
             Method::Post,
@@ -553,7 +502,7 @@ mod tests {
             Some("Here be dragons".to_string()),
             false,
         );
-        let result: Option<SymmetricKey> = core.run(task).unwrap();
+        let result: Option<String> = core.run(task).unwrap();
         assert_eq!(result, None);
     }
 
@@ -562,25 +511,22 @@ mod tests {
         let mut core = Core::new().unwrap();
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let response = SymmetricKey::default()
-            .with_primary_key("pkey".to_string())
-            .with_secondary_key("skey".to_string());
+        let response = r#""response""#.to_string();
+        let token_source: Option<StaticTokenSource> = None;
 
         let handler = move |req: Request| {
             assert_eq!(None, req.headers().get::<IfMatch>());
 
             Ok(Response::new()
                 .with_status(StatusCode::Ok)
-                .with_header(ContentType::json())
-                .with_body(serde_json::to_string(&response).unwrap().into_bytes()))
+                .with_body(response.clone().into_bytes()))
         };
         let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(Method::Get, "/boo", None, None, false);
-        let result: SymmetricKey = core.run(task).unwrap().unwrap();
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
+        let result: String = core.run(task).unwrap().unwrap();
 
-        assert_eq!(result.primary_key(), Some(&"pkey".to_string()));
-        assert_eq!(result.secondary_key(), Some(&"skey".to_string()));
+        assert_eq!(result, "response");
     }
 }

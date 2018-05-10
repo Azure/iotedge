@@ -21,6 +21,7 @@ extern crate tokio_core;
 extern crate url;
 
 extern crate edgelet_core;
+extern crate edgelet_http;
 extern crate edgelet_utils;
 extern crate iothubservice;
 
@@ -36,12 +37,12 @@ use futures::future;
 use hyper::client::Service;
 use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
-use url::form_urlencoded;
+use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_core::{Identity, IdentityManager, IdentitySpec};
-use iothubservice::error::Error as IotError;
-use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey, TokenSource};
+use edgelet_http::client::TokenSource;
+use iothubservice::{AuthMechanism, AuthType, DeviceClient, Module, SymmetricKey};
 
 pub use error::{Error, ErrorKind};
 
@@ -89,20 +90,26 @@ impl Identity for HubIdentity {
 struct State<K, S>
 where
     K: KeyStore,
-    K::Key: AsRef<[u8]>,
+    K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     key_store: K,
     client: DeviceClient<S, SasTokenSource<K::Key>>,
 }
 
-pub struct SasTokenSource<K> {
+pub struct SasTokenSource<K>
+where
+    K: Sign + Clone,
+{
     hub_id: String,
     device_id: String,
     key: K,
 }
 
-impl<K> SasTokenSource<K> {
+impl<K> SasTokenSource<K>
+where
+    K: Sign + Clone,
+{
     pub fn new(hub_id: String, device_id: String, key: K) -> Self {
         SasTokenSource {
             hub_id,
@@ -114,9 +121,11 @@ impl<K> SasTokenSource<K> {
 
 impl<K> TokenSource for SasTokenSource<K>
 where
-    K: Sign,
+    K: Sign + Clone,
 {
-    fn get(&self, expiry: &DateTime<Utc>) -> Result<String, IotError> {
+    type Error = Error;
+
+    fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Error> {
         let expiry = expiry.timestamp().to_string();
         let audience = format!(
             "{}.azure-devices.net/devices/{}",
@@ -130,10 +139,10 @@ where
         let signature = self.key
             .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
             .map(|s| base64::encode(s.as_bytes()))
-            .context(ErrorKind::TokenSource)
+            //.context(ErrorKind::Token)
             .map_err(Error::from)?;
 
-        let token = form_urlencoded::Serializer::new(format!("sr={}", resource_uri))
+        let token = UrlSerializer::new(format!("sr={}", resource_uri))
             .append_pair("sig", &signature)
             .append_pair("se", &expiry)
             .finish();
@@ -141,10 +150,23 @@ where
     }
 }
 
+impl<K> Clone for SasTokenSource<K>
+where
+    K: Sign + Clone,
+{
+    fn clone(&self) -> Self {
+        SasTokenSource {
+            hub_id: self.hub_id.clone(),
+            device_id: self.device_id.clone(),
+            key: self.key.clone(),
+        }
+    }
+}
+
 pub struct HubIdentityManager<K, S>
 where
     K: KeyStore,
-    K::Key: AsRef<[u8]>,
+    K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     state: Rc<State<K, S>>,
@@ -153,7 +175,7 @@ where
 impl<K, S> HubIdentityManager<K, S>
 where
     K: KeyStore,
-    K::Key: AsRef<[u8]>,
+    K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     pub fn new(
@@ -183,7 +205,7 @@ where
 impl<K, S> Clone for HubIdentityManager<K, S>
 where
     K: KeyStore,
-    K::Key: AsRef<[u8]>,
+    K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     fn clone(&self) -> Self {
@@ -196,7 +218,7 @@ where
 impl<K, S> IdentityManager for HubIdentityManager<K, S>
 where
     K: KeyStore,
-    K::Key: AsRef<[u8]>,
+    K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     type Identity = HubIdentity;
@@ -288,7 +310,7 @@ mod tests {
     use url::Url;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
-    use iothubservice::Client;
+    use edgelet_http::client::Client;
 
     #[test]
     fn hub_identity_empty_prop() {
@@ -312,8 +334,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -337,8 +363,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -361,8 +391,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -385,8 +419,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -448,8 +486,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -542,8 +584,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
@@ -579,8 +625,12 @@ mod tests {
             "device".to_string(),
             MemoryKey::new("device"),
         );
-        let client =
-            Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let mut identity_manager = HubIdentityManager::new(key_store, device_client);

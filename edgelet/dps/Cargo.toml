@@ -1,15 +1,16 @@
 [package]
-name = "iothubservice"
+name = "dps"
 version = "0.1.0"
-authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
-publish = false
+authors = ["Janice D'Sa <jadsa@microsoft.com>"]
 
 [dependencies]
-chrono = "0.4"
+base64 = "0.9"
+chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
 futures = "0.1"
 hyper = "0.11"
 log = "0.4"
+percent-encoding = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -20,6 +21,4 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 
 [dev_dependencies]
-clap = "2.31"
-hyper-tls = "0.1"
 tokio-core = "0.1"

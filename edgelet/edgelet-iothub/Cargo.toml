@@ -16,6 +16,7 @@ serde_derive = "1.0"
 url = "1.7"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 

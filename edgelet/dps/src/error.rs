@@ -2,15 +2,12 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::str;
 
 use failure::{Backtrace, Context, Fail};
-use hyper::{Error as HyperError, StatusCode};
-use serde_json;
-use url::ParseError;
+use serde_json::Error as SerdeError;
 
+use edgelet_core::Error as CoreError;
 use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
-use edgelet_utils::Error as UtilsError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -19,34 +16,16 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Utils error")]
-    Utils,
     #[fail(display = "Core error")]
+    Core,
+    #[fail(display = "Http error")]
     Http,
     #[fail(display = "Serde error")]
     Serde,
-    #[fail(display = "Url parse error")]
-    Url,
-    #[fail(display = "Hyper HTTP error")]
-    Hyper,
-    #[fail(display = "IoT Hub service error: [{}] {}", _0, _1)]
-    HubServiceError(StatusCode, String),
-    #[fail(display = "IoT Hub returned an empty response when a value was expected")]
+    #[fail(display = "DPS returned an empty response when a value was expected")]
     EmptyResponse,
-    #[fail(display = "Failed to get sas token")]
-    Token,
-}
-
-impl<'a> From<(StatusCode, &'a [u8])> for Error {
-    fn from(err: (StatusCode, &'a [u8])) -> Self {
-        let (status_code, msg) = err;
-        Error::from(ErrorKind::HubServiceError(
-            status_code,
-            str::from_utf8(msg)
-                .unwrap_or_else(|_| "Could not decode error message")
-                .to_string(),
-        ))
-    }
+    #[fail(display = "Invalid Tpm token")]
+    InvalidTpmToken,
 }
 
 impl Fail for Error {
@@ -85,10 +64,10 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<UtilsError> for Error {
-    fn from(error: UtilsError) -> Error {
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Error {
         Error {
-            inner: error.context(ErrorKind::Utils),
+            inner: error.context(ErrorKind::Core),
         }
     }
 }
@@ -101,26 +80,10 @@ impl From<HttpError> for Error {
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(error: serde_json::Error) -> Error {
+impl From<SerdeError> for Error {
+    fn from(error: SerdeError) -> Error {
         Error {
             inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Url),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
         }
     }
 }

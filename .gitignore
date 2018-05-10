@@ -313,4 +313,5 @@ backup.json
 
 # linux dev files
 *.swp
+*.swo
 *.vi

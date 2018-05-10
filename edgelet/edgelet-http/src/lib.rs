@@ -20,6 +20,7 @@ extern crate libc;
 extern crate log;
 extern crate percent_encoding;
 extern crate regex;
+extern crate serde;
 #[macro_use]
 extern crate serde_json;
 #[cfg(test)]
@@ -32,6 +33,9 @@ extern crate tokio_named_pipe;
 #[cfg(unix)]
 extern crate tokio_uds;
 extern crate url;
+
+#[macro_use]
+extern crate edgelet_utils;
 
 #[cfg(unix)]
 use std::fs;
@@ -50,8 +54,9 @@ use tokio_core::reactor::Handle;
 use tokio_uds::UnixListener;
 use url::Url;
 
+pub mod client;
 mod compat;
-mod error;
+pub mod error;
 pub mod logging;
 mod pid;
 pub mod route;

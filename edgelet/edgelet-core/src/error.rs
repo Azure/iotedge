@@ -26,7 +26,7 @@ pub enum ErrorKind {
     KeyStore,
     #[fail(display = "Item not found.")]
     NotFound,
-    #[fail(display = "Edgelet utils error")]
+    #[fail(display = "Utils error")]
     Utils,
     #[fail(display = "Provisioning error")]
     Provision(String),

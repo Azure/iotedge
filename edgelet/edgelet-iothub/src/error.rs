@@ -6,6 +6,7 @@ use std::fmt::Display;
 use failure::{Backtrace, Context, Fail};
 
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
 use edgelet_utils::Error as UtilsError;
 use iothubservice::error::{Error as HubServiceError, ErrorKind as HubServiceErrorKind};
 
@@ -103,5 +104,11 @@ impl From<CoreError> for Error {
 impl From<Error> for CoreError {
     fn from(err: Error) -> CoreError {
         CoreError::from(err.context(CoreErrorKind::Identity))
+    }
+}
+
+impl From<Error> for HttpError {
+    fn from(err: Error) -> HttpError {
+        HttpError::from(err.context(HttpErrorKind::TokenSource))
     }
 }

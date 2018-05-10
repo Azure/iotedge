@@ -2,12 +2,14 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hyper;
 extern crate log;
+extern crate percent_encoding;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -18,12 +20,10 @@ extern crate url;
 
 extern crate edgelet_core;
 extern crate edgelet_http;
-#[macro_use]
 extern crate edgelet_utils;
 
-mod device;
 pub mod error;
 mod model;
+pub mod registration;
 
-pub use device::DeviceClient;
-pub use model::{AuthMechanism, AuthType, Module, Properties, SymmetricKey, Twin, X509Thumbprint};
+pub use model::{DeviceRegistration, TpmRegistrationResult};

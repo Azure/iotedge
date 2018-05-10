@@ -8,6 +8,7 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
 
+extern crate edgelet_http;
 extern crate iothubservice;
 
 use chrono::{DateTime, Utc};
@@ -18,8 +19,10 @@ use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use url::Url;
 
+use edgelet_http::client::{Client, TokenSource};
+use edgelet_http::error::Error as HttpError;
+use iothubservice::DeviceClient;
 use iothubservice::error::Error;
-use iothubservice::{Client, DeviceClient, TokenSource};
 
 struct StaticTokenSource {
     token: String,
@@ -32,8 +35,17 @@ impl StaticTokenSource {
 }
 
 impl TokenSource for StaticTokenSource {
+    type Error = Error;
     fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
         Ok(self.token.clone())
+    }
+}
+
+impl Clone for StaticTokenSource {
+    fn clone(&self) -> Self {
+        StaticTokenSource {
+            token: self.token.clone(),
+        }
     }
 }
 
@@ -53,12 +65,12 @@ fn main() {
 
     let client = Client::new(
         hyper_client,
-        token_source,
+        Some(token_source),
         "2018-03-01-preview",
         Url::parse(&format!("https://{}.azure-devices.net", hub_name)).unwrap(),
     ).unwrap();
 
-    let device_client = client.create_device_client(device_id).unwrap();
+    let device_client = DeviceClient::new(client, device_id).unwrap();
 
     if let Some(_) = matches.subcommand_matches("list") {
         list_modules(&mut core, device_client);
@@ -74,7 +86,8 @@ fn main() {
 fn list_modules<S, T>(core: &mut Core, device_client: DeviceClient<S, T>)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
+    T::Error: Into<HttpError>,
 {
     let response = core.run(device_client.list_modules()).unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
@@ -83,7 +96,8 @@ where
 fn create_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
+    T::Error: Into<HttpError>,
 {
     let response = core.run(device_client.create_module(module_id, None))
         .unwrap();
@@ -93,7 +107,8 @@ where
 fn delete_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
+    T::Error: Into<HttpError>,
 {
     core.run(device_client.delete_module(module_id)).unwrap();
     println!("Module {} deleted", module_id);

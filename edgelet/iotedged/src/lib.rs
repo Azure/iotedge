@@ -43,6 +43,7 @@ use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::watchdog::Watchdog;
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::Crypto;
+use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{ApiVersionService, HyperExt, Run, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
@@ -54,7 +55,7 @@ use hyper::Client as HyperClient;
 use hyper::client::HttpConnector;
 use hyper::server::Http;
 use hyper_tls::HttpsConnector;
-use iothubservice::{Client as HttpClient, DeviceClient};
+use iothubservice::DeviceClient;
 use std::collections::HashMap;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
@@ -120,7 +121,11 @@ impl Main {
             .build(&handle);
         let http_client = HttpClient::new(
             hyper_client,
-            SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key),
+            Some(SasTokenSource::new(
+                hub_name.clone(),
+                device_id.clone(),
+                root_key,
+            )),
             IOTHUB_API_VERSION,
             Url::parse(&hostname)?,
         )?;

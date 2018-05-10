@@ -4,14 +4,15 @@ use futures::Future;
 use hyper::client::Service;
 use hyper::{Error as HyperError, Method, Request, Response};
 
-use client::{Client, TokenSource};
+use edgelet_http::client::{Client, TokenSource};
+use edgelet_http::error::Error as HttpError;
 use error::{Error, ErrorKind};
 use model::{AuthMechanism, Module};
 
 pub struct DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
 {
     client: Client<S, T>,
     device_id: String,
@@ -20,7 +21,8 @@ where
 impl<S, T> DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
+    T::Error: Into<HttpError>,
 {
     pub fn new(client: Client<S, T>, device_id: &str) -> Result<DeviceClient<S, T>, Error> {
         Ok(DeviceClient {
@@ -51,6 +53,7 @@ where
                     None,
                     false,
                 )
+                .map_err(Error::from)
                 .and_then(|modules| modules.ok_or_else(|| Error::from(ErrorKind::EmptyResponse))),
         )
     }
@@ -86,6 +89,7 @@ where
                     Some(module),
                     add_if_match,
                 )
+                .map_err(Error::from)
                 .and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::EmptyResponse))),
         )
     }
@@ -104,6 +108,7 @@ where
                     None,
                     true,
                 )
+                .map_err(Error::from)
                 .and_then(|_| Ok(())),
         )
     }
@@ -112,7 +117,7 @@ where
 impl<S, T> Clone for DeviceClient<S, T>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource,
+    T: TokenSource + Clone,
 {
     fn clone(&self) -> Self {
         DeviceClient {
@@ -142,8 +147,15 @@ mod tests {
     struct NullTokenSource;
 
     impl TokenSource for NullTokenSource {
+        type Error = Error;
         fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
             Ok("token".to_string())
+        }
+    }
+
+    impl Clone for NullTokenSource {
+        fn clone(&self) -> Self {
+            NullTokenSource {}
         }
     }
 
@@ -153,7 +165,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -173,7 +185,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -193,7 +205,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -221,7 +233,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -288,8 +300,12 @@ mod tests {
                         ))
                 })
         };
-        let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(NullTokenSource),
+            api_version,
+            host_name,
+        ).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
@@ -344,8 +360,12 @@ mod tests {
                         ))
                 })
         };
-        let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(NullTokenSource),
+            api_version,
+            host_name,
+        ).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
@@ -361,7 +381,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -387,7 +407,7 @@ mod tests {
         let hyper_client = HyperClient::new(&core.handle());
         let client = Client::new(
             hyper_client,
-            NullTokenSource,
+            Some(NullTokenSource),
             "2018-04-11",
             Url::parse("http://localhost").unwrap(),
         ).unwrap();
@@ -422,8 +442,12 @@ mod tests {
 
             Ok(Response::new().with_status(StatusCode::Ok))
         };
-        let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(NullTokenSource),
+            api_version,
+            host_name,
+        ).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
@@ -471,8 +495,12 @@ mod tests {
                 .with_header(ContentType::json())
                 .with_body(serde_json::to_string(&modules).unwrap().into_bytes()))
         };
-        let client =
-            Client::new(service_fn(handler), NullTokenSource, api_version, host_name).unwrap();
+        let client = Client::new(
+            service_fn(handler),
+            Some(NullTokenSource),
+            api_version,
+            host_name,
+        ).unwrap();
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client.list_modules().then(|modules| {

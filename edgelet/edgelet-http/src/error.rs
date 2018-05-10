@@ -2,14 +2,18 @@
 
 use std::fmt::{self, Display};
 use std::io;
+use std::str;
 
 use failure::{Backtrace, Context, Fail};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
-use hyper::{Body, Error as HyperError};
+use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
+use serde_json::Error as SerdeError;
 use url::ParseError;
+
+use edgelet_utils::Error as UtilsError;
 
 use IntoResponse;
 
@@ -22,14 +26,26 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "IO error")]
     Io,
+    #[fail(display = "Service error: [{}] {}", _0, _1)]
+    ServiceError(HyperStatusCode, String),
     #[fail(display = "Hyper error")]
     Hyper,
+    #[fail(display = "Utils error")]
+    Utils,
+    #[fail(display = "Url parse error")]
+    Parse,
+    #[fail(display = "Serde error")]
+    Serde,
     #[fail(display = "Invalid or missing API version")]
     InvalidApiVersion,
+    #[fail(display = "Empty token source")]
+    EmptyTokenSource,
     #[fail(display = "Invalid uri {}", _0)]
     InvalidUri(String),
     #[fail(display = "Cannot parse uri")]
     UrlParse,
+    #[fail(display = "Token source error")]
+    TokenSource,
     #[cfg(windows)]
     #[fail(display = "Named pipe error")]
     HyperPipe,
@@ -93,14 +109,6 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<ParseError> for Error {
-    fn from(error: ParseError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::UrlParse),
-        }
-    }
-}
-
 #[cfg(windows)]
 impl From<PipeError> for Error {
     fn from(err: PipeError) -> Error {
@@ -137,9 +145,45 @@ impl IntoResponse for Error {
     }
 }
 
+impl<'a> From<(HyperStatusCode, &'a [u8])> for Error {
+    fn from(err: (HyperStatusCode, &'a [u8])) -> Self {
+        let (status_code, msg) = err;
+        Error::from(ErrorKind::ServiceError(
+            status_code,
+            str::from_utf8(msg)
+                .unwrap_or_else(|_| "Could not decode error message")
+                .to_string(),
+        ))
+    }
+}
+
 impl IntoResponse for Context<ErrorKind> {
     fn into_response(self) -> Response<Body> {
         let error: Error = Error::from(self);
         error.into_response()
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Parse),
+        }
+    }
+}
+
+impl From<SerdeError> for Error {
+    fn from(error: SerdeError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Serde),
+        }
+    }
+}
+
+impl From<UtilsError> for Error {
+    fn from(error: UtilsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Utils),
+        }
     }
 }
