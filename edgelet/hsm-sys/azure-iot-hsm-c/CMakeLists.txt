@@ -46,7 +46,7 @@ if(WIN32)
     add_definitions(-DGB_MEASURE_MEMORY_FOR_THIS -DGB_DEBUG_ALLOC)
 else()
     set(source_c_files ${source_c_files}
-        ./src/edge_cert_key.c
+        ./src/edge_pki_openssl.c
     )
     find_package(OpenSSL REQUIRED)
     include_directories(${OPENSSL_INCLUDE_DIR})

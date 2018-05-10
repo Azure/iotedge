@@ -37,8 +37,8 @@ use std::rc::Rc;
 use futures::{future, future::FutureResult};
 
 pub use certificate_properties::{CertificateProperties, CertificateType};
-pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore,
-                 PrivateKey, Signature};
+pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes,
+                 KeyStore, PrivateKey, Signature};
 pub use error::{Error, ErrorKind};
 pub use identity::{Identity, IdentityManager, IdentitySpec};
 pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,

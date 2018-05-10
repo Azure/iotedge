@@ -13,7 +13,7 @@ mod crypto;
 pub use error::{Error, ErrorKind};
 pub use tpm::{Tpm, TpmDigest, TpmKey};
 pub use x509::{X509, X509Data};
-pub use crypto::{Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate,
+pub use crypto::{Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate, KeyBytes,
                  PrivateKey};
 
 // Traits

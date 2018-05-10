@@ -21,6 +21,15 @@ The tooling also requires the nightly compiler:
 rustup update nightly
 ```
 
+### Additional Dependencies
+
+#### Linux
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git cmake build-essential curl libcurl4-openssl-dev libssl-dev uuid-dev pkg-config
+```
+
 ### Cargo
 Cargo is the build tool for rust. You will use cargo frequently. It manages the build of the project, downloading dependencies,
 testing, etc. You can read more about cargo and it's capabilities in the [cargo book](https://doc.rust-lang.org/cargo/).

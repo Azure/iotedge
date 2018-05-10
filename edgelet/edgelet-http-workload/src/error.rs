@@ -37,6 +37,8 @@ pub enum ErrorKind {
     BadParam,
     #[fail(display = "Bad body")]
     BadBody,
+    #[fail(display = "Invalid private key error")]
+    BadPrivateKey,
     #[fail(display = "Module not found")]
     NotFound,
     #[fail(display = "Sign failed")]

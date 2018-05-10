@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use base64;
 use chrono::prelude::*;
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -10,7 +9,7 @@ use hyper::{Body, Error as HyperError};
 use serde_json;
 
 use edgelet_core::{Certificate, CertificateProperties, CertificateType, CreateCertificate,
-                   PrivateKey};
+                   KeyBytes, PrivateKey};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse,
                        ServerCertificateRequest};
@@ -93,18 +92,17 @@ where
 
 fn cert_to_response<T: Certificate>(cert: &T, expiration: &str) -> Result<CertificateResponse> {
     let cert_buffer = cert.pem()?;
-    let (_, private_key) = cert.get_private_key()?;
 
-    let private_key = match private_key {
-        PrivateKey::Ref(ref_) => PrivateKeyResponse::new("ref".to_string()).with_ref(ref_),
-        PrivateKey::Key(buffer) => {
-            PrivateKeyResponse::new("key".to_string()).with_bytes(base64::encode(&buffer))
-        }
+    let private_key = match cert.get_private_key()? {
+        Some(PrivateKey::Ref(ref_)) => PrivateKeyResponse::new("ref".to_string()).with_ref(ref_),
+        Some(PrivateKey::Key(KeyBytes::Pem(buffer))) => PrivateKeyResponse::new("key".to_string())
+            .with_bytes(String::from_utf8_lossy(buffer.as_ref()).to_string()),
+        None => Err(ErrorKind::BadPrivateKey)?,
     };
 
     Ok(CertificateResponse::new(
         private_key,
-        base64::encode(&cert_buffer),
+        String::from_utf8_lossy(cert_buffer.as_ref()).to_string(),
         expiration.to_string(),
     ))
 }

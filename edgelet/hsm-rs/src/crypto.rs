@@ -500,9 +500,13 @@ impl Default for CertificateProperties {
     }
 }
 
+pub enum KeyBytes<T: AsRef<[u8]>> {
+    Pem(T),
+}
+
 pub enum PrivateKey<T: AsRef<[u8]>> {
     Ref(String),
-    Key(T),
+    Key(KeyBytes<T>),
 }
 
 /// A structure representing a Certificate in the HSM.
@@ -524,22 +528,22 @@ impl HsmCertificate {
         Ok(cert)
     }
 
-    pub fn get_private_key(&self) -> Result<(u32, PrivateKey<Vec<u8>>), Error> {
+    pub fn get_private_key(&self) -> Result<Option<PrivateKey<Vec<u8>>>, Error> {
         let mut pk_size: usize = 0;
         let pk = unsafe { certificate_info_get_private_key(self.cert_info_handle, &mut pk_size) };
-        if pk_size == 0 || pk.is_null() {
-            Err(ErrorKind::NullResponse)?
-        } else {
-            let private_key =
-                unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
-            let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
-            let private_key = match pk_type {
-                1 => Ok(PrivateKey::Key(private_key)),
-                2 => Ok(PrivateKey::Ref(String::from_utf8(private_key)?)),
-                e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
-            }?;
-            Ok((CRYPTO_ENCODING_TAG_PEM, private_key))
-        }
+        let private_key = unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
+        let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
+        let private_key = match pk_type {
+            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_UNKNOWN => Ok(None),
+            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_PAYLOAD => {
+                Ok(Some(PrivateKey::Key(KeyBytes::Pem(private_key))))
+            }
+            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_REFERENCE => {
+                Ok(Some(PrivateKey::Ref(String::from_utf8(private_key)?)))
+            }
+            e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
+        }?;
+        Ok(private_key)
     }
 }
 
@@ -724,13 +728,7 @@ mod tests {
         let n = handle as isize;
         if n == 0 {
             let cert = CString::new(TEST_RSA_CERT).unwrap();
-            let pk = CString::new("1234").unwrap();
-            certificate_info_create(
-                cert.as_ptr(),
-                pk.as_ptr() as *const c_void,
-                pk.to_bytes().len() as usize,
-                0 as u32,
-            )
+            certificate_info_create(cert.as_ptr(), ::std::ptr::null_mut(), 0 as usize, 0 as u32)
         } else {
             ::std::ptr::null_mut()
         }

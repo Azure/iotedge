@@ -46,9 +46,13 @@ where
     }
 }
 
+pub enum KeyBytes<T: AsRef<[u8]>> {
+    Pem(T),
+}
+
 pub enum PrivateKey<T: AsRef<[u8]>> {
     Ref(String),
-    Key(T),
+    Key(KeyBytes<T>),
 }
 
 pub trait CreateCertificate {
@@ -65,7 +69,7 @@ pub trait Certificate {
     type KeyBuffer: AsRef<[u8]>;
 
     fn pem(&self) -> Result<Self::Buffer, Error>;
-    fn get_private_key(&self) -> Result<(u32, PrivateKey<Self::KeyBuffer>), Error>;
+    fn get_private_key(&self) -> Result<Option<PrivateKey<Self::KeyBuffer>>, Error>;
 }
 
 pub trait GetTrustBundle {

@@ -73,7 +73,8 @@ mod tests {
     use futures::Future;
     use futures::Stream;
 
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, PrivateKey};
+    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyBytes as CoreKeyBytes,
+                       PrivateKey as CorePrivateKey};
 
     use super::*;
 
@@ -155,8 +156,10 @@ mod tests {
             }
         }
 
-        fn get_private_key(&self) -> Result<(u32, PrivateKey<String>), CoreError> {
-            Ok((0, PrivateKey::Key("Bah".to_string())))
+        fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
+            Ok(Some(CorePrivateKey::Key(CoreKeyBytes::Pem(
+                "Bah".to_string(),
+            ))))
         }
     }
 

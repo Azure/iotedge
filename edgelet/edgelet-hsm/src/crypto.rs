@@ -6,11 +6,13 @@ use edgelet_core::{Certificate as CoreCertificate,
                    CertificateProperties as CoreCertificateProperties,
                    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt,
                    Encrypt as CoreEncrypt, Error as CoreError,
-                   GetTrustBundle as CoreGetTrustBundle, PrivateKey as CorePrivateKey};
+                   GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
+                   PrivateKey as CorePrivateKey};
 use certificate_properties::convert_properties;
 
 use hsm::{CreateCertificate as HsmCreateCertificate, Crypto as HsmCrypto};
-pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, PrivateKey};
+pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
+              PrivateKey as HsmPrivateKey};
 pub use error::{Error, ErrorKind};
 
 /// The TPM Key Store.
@@ -107,12 +109,15 @@ impl CoreCertificate for Certificate {
         self.0.pem().map_err(Error::from).map_err(CoreError::from)
     }
 
-    fn get_private_key(&self) -> Result<(u32, CorePrivateKey<Self::KeyBuffer>), CoreError> {
+    fn get_private_key(&self) -> Result<Option<CorePrivateKey<Self::KeyBuffer>>, CoreError> {
         self.0
             .get_private_key()
-            .map(|(enc, pk)| match pk {
-                PrivateKey::Key(key_buffer) => (enc, CorePrivateKey::Key(key_buffer)),
-                PrivateKey::Ref(key_string) => (enc, CorePrivateKey::Ref(key_string)),
+            .map(|pk| match pk {
+                Some(HsmPrivateKey::Key(HsmKeyBytes::Pem(key_buffer))) => {
+                    Some(CorePrivateKey::Key(CoreKeyBytes::Pem(key_buffer)))
+                }
+                Some(HsmPrivateKey::Ref(key_string)) => Some(CorePrivateKey::Ref(key_string)),
+                None => None,
             })
             .map_err(Error::from)
             .map_err(CoreError::from)
