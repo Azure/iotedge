@@ -92,6 +92,7 @@ static int tpm_sign
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
     status = BUFFER_build(hash, digest, digest_size);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    free(digest);
     return status;
 }
 

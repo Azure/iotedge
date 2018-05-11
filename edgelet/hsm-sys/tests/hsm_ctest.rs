@@ -13,6 +13,7 @@ fn run_ctest() {
     let test_output = Command::new("ctest")
         .arg("-C")
         .arg("Release")
+        .arg("-VV")
         .current_dir(build_dir)
         .output()
         .expect("failed to execute ctest");

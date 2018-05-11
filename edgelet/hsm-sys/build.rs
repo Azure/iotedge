@@ -2,6 +2,8 @@
 extern crate cmake;
 extern crate git2;
 
+use std::env;
+
 use cmake::Config;
 use git2::{Oid, Repository};
 
@@ -29,7 +31,15 @@ impl SetPlatformDefines for Config {
 
     #[cfg(unix)]
     fn set_platform_defines(&mut self) -> &mut Self {
-        self
+        let rv = if (env::var("PROFILE").unwrap() == "Release"
+            && env::var("TARGET").unwrap().starts_with("x86_64"))
+            || env::var("NO_VALGRIND").is_ok()
+        {
+            "OFF"
+        } else {
+            "ON"
+        };
+        self.define("run_valgrind", rv)
     }
 
     // The "debug_assertions" configuration flag seems to be the way to detect
@@ -107,6 +117,7 @@ fn main() {
     // where to find the library (The "link-lib" should match the library name
     // defined in the CMakefile.txt)
 
+    println!("cargo:rerun-if-env-changed=NO_VALGRIND");
     // For libraries which will just install in target directory
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib

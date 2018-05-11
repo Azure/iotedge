@@ -28,10 +28,19 @@ This crate is dependent on CMake being installed. On Debian based linux systems,
 this can be installed with 
 
 ```
-sudo apt-get install build-essential cmake libcurl4-openssl-dev uuid-dev
+sudo apt-get install build-essential cmake libcurl4-openssl-dev uuid-dev valgrind
 ```
 
 On Windows, install CMake from [cmake.org](https://cmake.org/).
+
+### Valgrind
+
+Valgrind was added to the linux build dependencies. We are using Valgrind for detecting 
+memory leaks, unassigned variables, and overruns in the dev mode iothsm library.
+
+The iothsm library in hsm-sys runs tests with valgrind turned on by default in Debug 
+builds. Valgrind slows down the tests considerably, so if you don't wish to run valgrind, 
+set the environment variable "NO_VALGRIND".
 
 ## Linking
 

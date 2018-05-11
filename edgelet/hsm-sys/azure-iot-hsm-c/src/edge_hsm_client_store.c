@@ -65,6 +65,7 @@ bool remove_entry_cb(const void* item, const void* match_context, bool* continue
         BUFFER_delete(p_entry->key);
         STRING_delete(p_entry->cert_buffer);
         BUFFER_delete(p_entry->private_key_buffer);
+	free(p_entry);
         *continue_processing = false;
         result = true;
     }
