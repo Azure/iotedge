@@ -362,7 +362,7 @@ static int edge_hsm_client_store_create_pki_cert
             if (files[index]) free(files[index]);
         }
     }
-    return 0;
+    return result;
 }
 
 static void insert_trusted_cert(HSM_CLIENT_STORE_HANDLE handle, const char* cert_file_name)
