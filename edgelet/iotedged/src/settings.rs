@@ -22,19 +22,6 @@ pub enum Provisioning {
     },
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Settings<T> {
-    provisioning: Provisioning,
-    runtime: ModuleSpec<T>,
-    hostname: String,
-    #[serde(with = "url_serde")]
-    workload_uri: Url,
-    #[serde(with = "url_serde")]
-    management_uri: Url,
-    #[serde(with = "url_serde")]
-    docker_uri: Url,
-}
-
 #[cfg(unix)]
 static DEFAULTS: &str = r#"{
     "provisioning": {
@@ -79,6 +66,19 @@ static DEFAULTS: &str = r#"{
     "docker_uri": "http://localhost:2375"
 }"#;
 
+#[derive(Debug, Deserialize)]
+pub struct Settings<T> {
+    provisioning: Provisioning,
+    runtime: ModuleSpec<T>,
+    hostname: String,
+    #[serde(with = "url_serde")]
+    workload_uri: Url,
+    #[serde(with = "url_serde")]
+    management_uri: Url,
+    #[serde(with = "url_serde")]
+    docker_uri: Url,
+}
+
 impl<T> Settings<T>
 where
     T: DeserializeOwned,
@@ -102,6 +102,10 @@ where
 
     pub fn runtime(&self) -> &ModuleSpec<T> {
         &self.runtime
+    }
+
+    pub fn runtime_mut(&mut self) -> &mut ModuleSpec<T> {
+        &mut self.runtime
     }
 
     pub fn hostname(&self) -> &str {

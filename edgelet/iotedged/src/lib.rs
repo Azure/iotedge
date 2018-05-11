@@ -6,6 +6,7 @@ extern crate base64;
 #[macro_use]
 extern crate clap;
 extern crate config;
+extern crate docker;
 extern crate edgelet_core;
 extern crate edgelet_docker;
 extern crate edgelet_hsm;
@@ -37,6 +38,7 @@ pub mod logging;
 pub mod settings;
 pub mod signal;
 
+use docker::models::HostConfig;
 use edgelet_core::ModuleSpec;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
@@ -77,6 +79,7 @@ const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 const MANAGEMENT_URI_KEY: &str = "MANAGEMENTURI";
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
+const UNIX_SCHEME: &str = "unix";
 
 pub struct Main {
     settings: Settings<DockerConfig>,
@@ -204,17 +207,49 @@ fn start_runtime(
 ) -> Result<(), Error> {
     let spec = settings.runtime().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
-    let spec = ModuleSpec::<DockerConfig>::new(
+    let mut spec = ModuleSpec::<DockerConfig>::new(
         EDGE_RUNTIME_MODULE_NAME,
         spec.type_(),
         spec.config().clone(),
         env,
     )?;
+
+    // volume mount management and workload URIs
+    vol_mount_uri(
+        spec.config_mut(),
+        &[settings.management_uri(), settings.workload_uri()],
+    )?;
+
     let mut watchdog = Watchdog::new(runtime.clone(), id_man.clone());
     let runtime_future = watchdog.start(spec, EDGE_RUNTIME_MODULEID);
     // TODO: When this is converted to a watchdog that keeps running, convert this to use a handle
     // that allows it to shutdown gracefully.
     core.run(runtime_future)?;
+    Ok(())
+}
+
+fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
+    let create_options = config.clone_create_options()?;
+    let host_config = create_options
+        .host_config()
+        .cloned()
+        .unwrap_or_else(HostConfig::new);
+    let mut binds = host_config.binds().cloned().unwrap_or_else(Vec::new);
+
+    // if the url is a domain socket URL then vol mount it into the container
+    for uri in uris {
+        if uri.scheme() == UNIX_SCHEME {
+            binds.push(format!("{}:{}", uri.path(), uri.path()));
+        }
+    }
+
+    if !binds.is_empty() {
+        let host_config = host_config.with_binds(binds);
+        let create_options = create_options.with_host_config(host_config);
+
+        config.set_create_options(create_options);
+    }
+
     Ok(())
 }
 
@@ -225,24 +260,6 @@ fn build_env(
     device_id: &str,
     settings: &Settings<DockerConfig>,
 ) -> HashMap<String, String> {
-    let workload_uri = format!(
-        "http://{}:{}",
-        settings.hostname(),
-        settings
-            .workload_uri()
-            .port_or_known_default()
-            .unwrap_or(80),
-    );
-
-    let management_uri = format!(
-        "http://{}:{}",
-        settings.hostname(),
-        settings
-            .management_uri()
-            .port_or_known_default()
-            .unwrap_or(80),
-    );
-
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
@@ -251,10 +268,16 @@ fn build_env(
     );
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
-    env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
+    env.insert(
+        WORKLOAD_URI_KEY.to_string(),
+        settings.workload_uri().to_string(),
+    );
     env.insert(VERSION_KEY.to_string(), API_VERSION.to_string());
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
-    env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
+    env.insert(
+        MANAGEMENT_URI_KEY.to_string(),
+        settings.management_uri().to_string(),
+    );
 
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());

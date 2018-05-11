@@ -82,7 +82,7 @@ where
 
     pub fn request<BodyT, ResponseT>(
         &self,
-        method: &Method,
+        method: Method,
         path: &str,
         query: Option<HashMap<&str, &str>>,
         body: Option<BodyT>,
@@ -107,11 +107,13 @@ where
             .join(&format!("{}?{}", path, query))
             .map_err(Error::from)
             .and_then(|url| {
+                let method_name = method.to_string();
+
                 // NOTE: Unwrap here should be OK, because this is a type
                 // conversion from url::Url to hyper::Uri and not really a URL
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
-                let mut req = Request::new(method.clone(),
+                let mut req = Request::new(method,
                     url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure")
                 );
 
@@ -126,11 +128,11 @@ where
                         let expiry = Utc::now() + token_duration;
                         let token = source.get(&expiry)
                             .map_err(|err| err.into())?;
-                        debug!("Success generating token for request {:?} {}", method, path);
+                        debug!("Success generating token for request {} {}", &method_name, path);
                         req.headers_mut()
                             .set(Authorization(format!("SharedAccessSignature {}", token)));
                 } else {
-                    debug!("Empty token source for request {:?} {}", method, path);
+                    debug!("Empty token source for request {} {}", &method_name, path);
 
                 }
 
@@ -309,7 +311,7 @@ mod tests {
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, String>(&Method::Get, "/boo", None, None, false);
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
         let _result: Option<String> = core.run(task).unwrap();
     }
 
@@ -347,7 +349,7 @@ mod tests {
         query.insert("k1", "v1");
         query.insert("k2", "this value has spaces and 🐮🐮🐮");
 
-        let task = client.request::<String, String>(&Method::Get, "/boo", Some(query), None, false);
+        let task = client.request::<String, String>(Method::Get, "/boo", Some(query), None, false);
         let _result: String = core.run(task).unwrap().unwrap();
     }
 
@@ -375,7 +377,7 @@ mod tests {
             .unwrap()
             .with_user_agent(user_agent);
 
-        let task = client.request::<String, String>(&Method::Get, "/boo", None, None, false);
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
         let _result: String = core.run(task).unwrap().unwrap();
     }
 
@@ -405,7 +407,7 @@ mod tests {
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, String>(&Method::Get, "/boo", None, None, false);
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
         let _result: String = core.run(task).unwrap().unwrap();
     }
 
@@ -428,7 +430,7 @@ mod tests {
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, _>(&Method::Get, "/boo", None, None, true);
+        let task = client.request::<String, _>(Method::Get, "/boo", None, None, true);
         let _result: String = core.run(task).unwrap().unwrap();
     }
 
@@ -462,7 +464,7 @@ mod tests {
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
         let task = client.request::<String, String>(
-            &Method::Post,
+            Method::Post,
             "/boo",
             None,
             Some("Here be dragons".to_string()),
@@ -496,7 +498,7 @@ mod tests {
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
         let task = client.request::<String, _>(
-            &Method::Post,
+            Method::Post,
             "/boo",
             None,
             Some("Here be dragons".to_string()),
@@ -524,7 +526,7 @@ mod tests {
         let client =
             Client::new(service_fn(handler), token_source, api_version, host_name).unwrap();
 
-        let task = client.request::<String, String>(&Method::Get, "/boo", None, None, false);
+        let task = client.request::<String, String>(Method::Get, "/boo", None, None, false);
         let result: String = core.run(task).unwrap().unwrap();
 
         assert_eq!(result, "response");

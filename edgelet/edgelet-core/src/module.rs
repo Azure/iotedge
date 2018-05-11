@@ -166,16 +166,44 @@ impl<T> ModuleSpec<T> {
         &self.name
     }
 
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = name;
+        self
+    }
+
     pub fn type_(&self) -> &str {
         &self.type_
+    }
+
+    pub fn with_type_(mut self, type_: String) -> Self {
+        self.type_ = type_;
+        self
     }
 
     pub fn config(&self) -> &T {
         &self.config
     }
 
+    pub fn config_mut(&mut self) -> &mut T {
+        &mut self.config
+    }
+
+    pub fn with_config(mut self, config: T) -> Self {
+        self.config = config;
+        self
+    }
+
+    pub fn set_config(&mut self, config: T) {
+        self.config = config;
+    }
+
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
+    }
+
+    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
+        self.env = env;
+        self
     }
 }
 

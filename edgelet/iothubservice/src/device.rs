@@ -47,7 +47,7 @@ where
         Box::new(
             self.client
                 .request::<(), Vec<Module>>(
-                    &Method::Get,
+                    Method::Get,
                     &format!("/devices/{}/modules", &self.device_id),
                     None,
                     None,
@@ -83,7 +83,7 @@ where
         Box::new(
             self.client
                 .request(
-                    &Method::Put,
+                    Method::Put,
                     &format!("/devices/{}/modules/{}", &self.device_id, module_id),
                     None,
                     Some(module),
@@ -98,7 +98,7 @@ where
         Box::new(
             self.client
                 .request::<(), ()>(
-                    &Method::Delete,
+                    Method::Delete,
                     &format!(
                         "/devices/{}/modules/{}",
                         self.device_id,

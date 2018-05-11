@@ -37,12 +37,31 @@ impl DockerConfig {
         &self.image
     }
 
+    pub fn with_image(mut self, image: String) -> Self {
+        self.image = image;
+        self
+    }
+
     pub fn create_options(&self) -> &ContainerCreateBody {
         &self.create_options
     }
 
+    pub fn with_create_options(mut self, create_options: ContainerCreateBody) -> Self {
+        self.create_options = create_options;
+        self
+    }
+
+    pub fn set_create_options(&mut self, create_options: ContainerCreateBody) {
+        self.create_options = create_options;
+    }
+
     pub fn auth(&self) -> Option<&AuthConfig> {
         self.auth.as_ref()
+    }
+
+    pub fn with_auth(mut self, auth: AuthConfig) -> Self {
+        self.auth = Some(auth);
+        self
     }
 }
 
