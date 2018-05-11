@@ -20,16 +20,16 @@ pub struct EncryptRequest {
     #[serde(rename = "passphrase", skip_serializing_if = "Option::is_none")]
     passphrase: Option<String>,
     /// An initialization vector used to encrypt the data.
-    #[serde(rename = "initializationVector", skip_serializing_if = "Option::is_none")]
-    initialization_vector: Option<String>,
+    #[serde(rename = "initializationVector")]
+    initialization_vector: String,
 }
 
 impl EncryptRequest {
-    pub fn new(plaintext: String) -> EncryptRequest {
+    pub fn new(plaintext: String, initialization_vector: String) -> EncryptRequest {
         EncryptRequest {
             plaintext,
             passphrase: None,
-            initialization_vector: None,
+            initialization_vector,
         }
     }
 
@@ -64,19 +64,15 @@ impl EncryptRequest {
     }
 
     pub fn set_initialization_vector(&mut self, initialization_vector: String) {
-        self.initialization_vector = Some(initialization_vector);
+        self.initialization_vector = initialization_vector;
     }
 
     pub fn with_initialization_vector(mut self, initialization_vector: String) -> EncryptRequest {
-        self.initialization_vector = Some(initialization_vector);
+        self.initialization_vector = initialization_vector;
         self
     }
 
-    pub fn initialization_vector(&self) -> Option<&String> {
-        self.initialization_vector.as_ref()
-    }
-
-    pub fn reset_initialization_vector(&mut self) {
-        self.initialization_vector = None;
+    pub fn initialization_vector(&self) -> &String {
+        &self.initialization_vector
     }
 }

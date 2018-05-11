@@ -229,6 +229,7 @@ definitions:
         description: An initialization vector used to encrypt the data.
     required:
       - plaintext
+      - initializationVector
   EncryptResponse:
     type: object
     properties:
@@ -255,6 +256,7 @@ definitions:
         description: An initialization vector used to decrypt the data.
     required:
       - ciphertext
+      - initializationVector
   DecryptResponse:
     type: object
     properties:

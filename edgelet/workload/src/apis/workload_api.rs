@@ -61,6 +61,10 @@ pub trait WorkloadApi {
         name: &str,
         payload: ::models::SignRequest,
     ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>>;
+    fn trust_bundle(
+        &self,
+        api_version: &str,
+    ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>>;
 }
 
 impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
@@ -360,6 +364,59 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::SignResponse, _> = serde_json::from_slice(&body);
+                    parsed.map_err(Error::from)
+                }),
+        )
+    }
+
+    fn trust_bundle(
+        &self,
+        api_version: &str,
+    ) -> Box<Future<Item = ::models::TrustBundleResponse, Error = Error<serde_json::Value>>> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::Get;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("/trust-bundle?{}", query);
+
+        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut req = hyper::Request::new(method, uri.unwrap());
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.headers_mut()
+                .set(UserAgent::new(Cow::Owned(user_agent.clone())));
+        }
+
+        // send request
+        Box::new(
+            configuration
+                .client
+                .request(req)
+                .map_err(Error::from)
+                .and_then(|resp| {
+                    let status = resp.status();
+                    resp.body()
+                        .concat2()
+                        .and_then(move |body| Ok((status, body)))
+                        .map_err(Error::from)
+                })
+                .and_then(|(status, body)| {
+                    if status.is_success() {
+                        Ok(body)
+                    } else {
+                        Err(Error::from((status, &*body)))
+                    }
+                })
+                .and_then(|body| {
+                    let parsed: Result<::models::TrustBundleResponse, _> =
+                        serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
         )

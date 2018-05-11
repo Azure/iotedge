@@ -9,7 +9,6 @@ use std::str;
 
 use super::*;
 use error::{Error, ErrorKind};
-use hsm_sys::*;
 
 /// Enumerator for CERTIFICATE_TYPE
 #[derive(Clone, Copy, Debug, PartialEq)]

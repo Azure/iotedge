@@ -26,6 +26,7 @@ Class | Method | HTTP request | Description
 *WorkloadApi* | [**decrypt**](docs/WorkloadApi.md#decrypt) | **Post** /modules/{name}/decrypt | 
 *WorkloadApi* | [**encrypt**](docs/WorkloadApi.md#encrypt) | **Post** /modules/{name}/encrypt | 
 *WorkloadApi* | [**sign**](docs/WorkloadApi.md#sign) | **Post** /modules/{name}/sign | 
+*WorkloadApi* | [**trust_bundle**](docs/WorkloadApi.md#trust_bundle) | **Get** /trust-bundle | 
 
 
 ## Documentation For Models
@@ -40,6 +41,7 @@ Class | Method | HTTP request | Description
  - [ServerCertificateRequest](docs/ServerCertificateRequest.md)
  - [SignRequest](docs/SignRequest.md)
  - [SignResponse](docs/SignResponse.md)
+ - [TrustBundleResponse](docs/TrustBundleResponse.md)
 
 
 ## Documentation For Authorization

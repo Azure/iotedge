@@ -9,6 +9,7 @@ Method | HTTP request | Description
 [**decrypt**](WorkloadApi.md#decrypt) | **Post** /modules/{name}/decrypt | 
 [**encrypt**](WorkloadApi.md#encrypt) | **Post** /modules/{name}/encrypt | 
 [**sign**](WorkloadApi.md#sign) | **Post** /modules/{name}/sign | 
+[**trust_bundle**](WorkloadApi.md#trust_bundle) | **Get** /trust-bundle | 
 
 
 # **create_identity_certificate**
@@ -133,6 +134,31 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**::models::SignResponse**](SignResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **trust_bundle**
+> ::models::TrustBundleResponse trust_bundle(api_version)
+
+
+### Required Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+  **api_version** | **String**| The version of the API. | [default to 2018-06-28]
+
+### Return type
+
+[**::models::TrustBundleResponse**](TrustBundleResponse.md)
 
 ### Authorization
 

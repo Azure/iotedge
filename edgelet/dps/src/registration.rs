@@ -125,7 +125,7 @@ where
                     let f = client
                         .with_token_source(token_source)
                         .request::<DeviceRegistration, i32>(
-                            Method::Put,
+                            &Method::Put,
                             &format!("{}/registrations/{}/register", scope_id, registration_id),
                             None,
                             Some(registration.clone()),
@@ -148,7 +148,7 @@ where
         let registration_id = self.registration_id.clone();
         let r = self.client
             .request::<DeviceRegistration, TpmRegistrationResult>(
-                Method::Put,
+                &Method::Put,
                 &format!(
                     "{}/registrations/{}/register",
                     self.scope_id, self.registration_id
