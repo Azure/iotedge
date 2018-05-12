@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Globalization;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Runtime.Loader;
@@ -11,7 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -24,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         public static int Main()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Edge Hub Main()");
+            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .AddEnvironmentVariables()
                 .Build();
@@ -73,6 +76,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     StoreLocation.CurrentUser,
                     CertificateHelper.ExtractCertsFromPem(chainPath));
             }
+
+            // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
+            // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.
+            var deviceConnectivityManager = container.Resolve<IDeviceConnectivityManager>();
+            ICloudProxy cloudProxy = await container.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
+            (deviceConnectivityManager as DeviceConnectivityManager)?.SetTestCloudProxy(cloudProxy);
 
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();

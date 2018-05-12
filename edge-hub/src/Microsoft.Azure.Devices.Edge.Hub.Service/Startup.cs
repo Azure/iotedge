@@ -108,6 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
+            int connectivityCheckFrequencySecs = this.Configuration.GetValue<int>("ConnectivityCheckFrequencySecs", 300);
+            TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
 
             // Get hub's server cert
             string certPath = Path.Combine(
@@ -156,7 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     useTwinConfig,
                     this.VersionInfo,
                     upstreamProtocolOption,
-                    optimizeForPerformance));
+                    optimizeForPerformance,
+                    connectivityCheckFrequency));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, tlsCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), tlsCertificate, this.iotHubHostname));

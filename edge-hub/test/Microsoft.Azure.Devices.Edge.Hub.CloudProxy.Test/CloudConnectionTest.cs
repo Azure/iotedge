@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                     .Returns(Task.FromResult(true));
 
-                deviceClient.Setup(dc => dc.SetConnectionStatusChangesHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
                     .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
 
                 deviceClient.Setup(dc => dc.OpenAsync())
@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                     .Returns(Task.FromResult(true));
 
-                deviceClient.Setup(dc => dc.SetConnectionStatusChangesHandler(It.IsAny<ConnectionStatusChangesHandler>()))
+                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
                     .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
 
                 deviceClient.Setup(dc => dc.OpenAsync())

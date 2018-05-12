@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType(), newCredentials.Identity);
             IClient client = this.CreateDeviceClient(newCredentials, new[] { transportSettings });
             client.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
-            client.SetConnectionStatusChangesHandler(this.InternalConnectionStatusChangesHandler);
+            client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
             {
                 client.SetProductInfo(newCredentials.ProductInfo);

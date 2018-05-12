@@ -48,38 +48,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public static async Task<EdgeHubConnection> Create(
-            IClientCredentials edgeHubCredentials,
+            IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
+            ICloudProxy cloudProxy,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             IMessageConverter<Twin> twinMessageConverter,
             VersionInfo versionInfo
         )
         {
-            Preconditions.CheckNotNull(edgeHubCredentials, nameof(edgeHubCredentials));
+            Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
             Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
 
-            Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
-            if (!cloudProxyTry.Success)
-            {
-                throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
-            }
-
-            ICloudProxy cloudProxy = cloudProxyTry.Value;
             var edgeHubConnection = new EdgeHubConnection(
-                edgeHubCredentials.Identity, twinManager, routeFactory,
+                edgeHubIdentity, twinManager, routeFactory,
                 twinCollectionMessageConverter, twinMessageConverter,
                 versionInfo ?? VersionInfo.Empty
             );
             cloudProxy.BindCloudListener(new CloudListener(edgeHubConnection));
 
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
-            await connectionManager.AddDeviceConnection(edgeHubCredentials.Identity, deviceProxy);
+            await connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
 
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
 
@@ -88,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
             connectionManager.DeviceDisconnected += edgeHubConnection.DeviceDisconnected;
-            Events.Initialized(edgeHubCredentials.Identity);
+            Events.Initialized(edgeHubIdentity);
             return edgeHubConnection;
         }
 

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -71,10 +72,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // Create Edge Hub connection
+                Try<ICloudProxy> edgeHubCloudProxy = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
+                Assert.True(edgeHubCloudProxy.Success);
                 EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(
-                    edgeHubCredentials,
+                    edgeHubCredentials.Identity,
                     twinManager,
                     connectionManager,
+                    edgeHubCloudProxy.Value,
                     routeFactory,
                     twinCollectionMessageConverter,
                     twinMessageConverter,
@@ -236,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials, twinManager, connectionManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await EdgeHubConnection.Create(edgeHubCredentials.Identity, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);

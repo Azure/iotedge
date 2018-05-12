@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly VersionInfo versionInfo;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly bool optimizeForPerformance;
+        readonly TimeSpan connectivityCheckFrequency;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -55,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useTwinConfig,
             VersionInfo versionInfo,
             Option<UpstreamProtocol> upstreamProtocol,
-            bool optimizeForPerformance)
+            bool optimizeForPerformance,
+            TimeSpan connectivityCheckFrequency)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -71,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.upstreamProtocol = upstreamProtocol;
             this.optimizeForPerformance = optimizeForPerformance;
+            this.connectivityCheckFrequency = connectivityCheckFrequency;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -139,11 +142,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Core.IMessageConverterProvider>()
                 .SingleInstance();
 
-            // IDeviceClientProvider
-            builder.Register(c => new ClientProvider())
-                .As<IClientProvider>()
+            // IDeviceConnectivityManager
+            builder.Register(
+                c =>
+                {
+                    IDeviceConnectivityManager deviceConnectivityManager = new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2));
+                    return deviceConnectivityManager;
+                })
+                .As<IDeviceConnectivityManager>()
                 .SingleInstance();
 
+            // IDeviceClientProvider
+            builder.Register(c =>
+                {
+                    IClientProvider underlyingClientProvider = new ClientProvider();
+                    IClientProvider connectivityAwareClientProvider = new ConnectivityAwareClientProvider(underlyingClientProvider, c.Resolve<IDeviceConnectivityManager>());
+                    return connectivityAwareClientProvider;
+                })
+                .As<IClientProvider>()
+                .SingleInstance();
+            
             // ICloudConnectionProvider
             builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol))
                 .As<ICloudConnectionProvider>()
@@ -238,7 +256,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
 
                 // DataBase options
-
                 builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
                     .As<Storage.RocksDb.IRocksDbOptionsProvider>()
                     .SingleInstance();
@@ -324,6 +341,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
             }
 
+            // IClientCredentials "EdgeHubCredentials"
+            builder.Register(
+                c =>
+                {
+                    var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                    IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                        () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
+                    return edgeHubCredentials;
+                })
+                .Named<IClientCredentials>("EdgeHubCredentials")
+                .SingleInstance();
+
+            // Task<ICloudProxy> "EdgeHubCloudProxy"
+            builder.Register(
+                async c =>
+                {
+                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                    var connectionManager = c.Resolve<IConnectionManager>();
+                    Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
+                    if (!cloudProxyTry.Success)
+                    {
+                        throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
+                    }
+
+                    ICloudProxy cloudProxy = cloudProxyTry.Value;
+                    return cloudProxy;
+                })
+                .Named<Task<ICloudProxy>>("EdgeHubCloudProxy")
+                .SingleInstance();
+
             // IConfigSource
             builder.Register(
                 async c =>
@@ -332,15 +379,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
                     if (this.useTwinConfig)
                     {
-                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubIdentity = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
                         var connectionManager = c.Resolve<IConnectionManager>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");                        
                         var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                         var twinManager = c.Resolve<ITwinManager>();
+                        ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
                         IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubIdentity, twinManager, connectionManager,
+                            edgeHubCredentials.Identity, twinManager, connectionManager, cloudProxy,
                             routeFactory, twinCollectionMessageConverter,
                             twinMessageConverter, this.versionInfo
                         );

@@ -8,5 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public const int CloudReceiver = EventIdStart + 100;
         public const int CloudConnectionProvider = EventIdStart + 200;
         public const int CloudConnection = EventIdStart + 300;
+        public const int DeviceConnectivityManager = EventIdStart + 400;
     }
 }

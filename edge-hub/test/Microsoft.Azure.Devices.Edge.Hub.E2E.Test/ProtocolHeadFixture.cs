@@ -141,7 +141,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId,
                         Option.Some(edgeHubConnectionString),
                         this.routes, false, false, storeAndForwardConfiguration,
-                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp), true
+                        string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp),
+                        true, TimeSpan.FromSeconds(5)
                     )
                 );
                 builder.RegisterModule(new HttpModule());

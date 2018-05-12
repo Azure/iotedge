@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds);
 
-        void SetConnectionStatusChangesHandler(ConnectionStatusChangesHandler handler);
+        void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler);
 
         void SetProductInfo(string productInfo);
 
