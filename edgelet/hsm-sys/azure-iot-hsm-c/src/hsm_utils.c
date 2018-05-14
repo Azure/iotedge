@@ -7,6 +7,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_log.h"
+#include "hsm_utils.h"
 
 #define HSM_UTIL_SUCCESS 0
 #define HSM_UTIL_ERROR 1
@@ -90,13 +91,57 @@ static int read_file_into_buffer_impl
     return result;
 }
 
+static int write_ascii_buffer_into_file
+(
+    const char *file_name,
+    const void *input_buffer,
+    size_t input_buffer_size
+)
+{
+    FILE *file_handle;
+    int result;
+
+    if ((file_handle = fopen(file_name, "w")) == NULL)
+    {
+        LOG_ERROR("Could not open file for writing %s", file_name);
+        result = HSM_UTIL_ERROR;
+    }
+    else
+    {
+        size_t num_bytes_written;
+        result = HSM_UTIL_SUCCESS;
+        num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
+        if (num_bytes_written != input_buffer_size)
+        {
+            LOG_ERROR("File write failed for file %s", file_name);
+            result = HSM_UTIL_ERROR;
+        }
+        (void)fclose(file_handle);
+        if (result != HSM_UTIL_SUCCESS)
+        {
+            (void)delete_file(file_name);
+        }
+    }
+
+    return result;
+}
+
 void* read_file_into_buffer(const char* file_name, size_t *output_buffer_size)
 {
     void* result;
     size_t file_size_in_bytes = 0;
 
-    *output_buffer_size = 0;
-    if (read_file_into_buffer_impl(file_name, NULL, 0, &file_size_in_bytes) != HSM_UTIL_SUCCESS)
+    if (output_buffer_size != NULL)
+    {
+        *output_buffer_size = 0;
+    }
+
+    if ((file_name == NULL) || (strlen(file_name) == 0))
+    {
+        LOG_ERROR("Invalid file name");
+        result = NULL;
+    }
+    else if (read_file_into_buffer_impl(file_name, NULL, 0, &file_size_in_bytes) != HSM_UTIL_SUCCESS)
     {
         result = NULL;
     }
@@ -112,8 +157,12 @@ void* read_file_into_buffer(const char* file_name, size_t *output_buffer_size)
     }
     else
     {
-        *output_buffer_size = file_size_in_bytes;
+        if (output_buffer_size)
+        {
+            *output_buffer_size = file_size_in_bytes;
+        }
     }
+
     return result;
 }
 
@@ -121,11 +170,18 @@ char* read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
 {
     char* result;
     size_t file_size_in_bytes = 0;
+
     if (output_buffer_size != NULL)
     {
         *output_buffer_size = 0;
     }
-    if (read_file_into_buffer_impl(file_name, NULL, 0, &file_size_in_bytes) != HSM_UTIL_SUCCESS)
+
+    if ((file_name == NULL) || (strlen(file_name) == 0))
+    {
+        LOG_ERROR("Invalid file name");
+        result = NULL;
+    }
+    else if (read_file_into_buffer_impl(file_name, NULL, 0, &file_size_in_bytes) != HSM_UTIL_SUCCESS)
     {
         result = NULL;
     }
@@ -159,7 +215,7 @@ char* read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
     return result;
 }
 
-char* concat_files_to_cstring(char *const *file_names, int num_files)
+char* concat_files_to_cstring(const char **file_names, int num_files)
 {
     char *result;
     if ((file_names == NULL) || (num_files <= 0))
@@ -261,5 +317,44 @@ bool is_directory_valid(const char* dir_path)
             }
         }
     }
+    return result;
+}
+
+int write_cstring_to_file(const char* file_name, const char* data)
+{
+    int result;
+
+    if ((file_name == NULL) || (strlen(file_name) == 0))
+    {
+        LOG_ERROR("Invalid file name parameter");
+        result = __FAILURE__;
+    }
+    else if (data == NULL)
+    {
+        LOG_ERROR("Invalid data parameter");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = write_ascii_buffer_into_file(file_name, data, strlen(data));
+    }
+
+    return result;
+}
+
+int delete_file(const char* file_name)
+{
+    int result;
+
+    if ((file_name == NULL) || (strlen(file_name) == 0))
+    {
+        LOG_ERROR("Invalid file name");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = remove(file_name);
+    }
+
     return result;
 }

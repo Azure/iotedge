@@ -47,6 +47,7 @@ static void test_hook_gballoc_free(void* ptr)
 #define TEST_FILE_NUMERIC "test_numeric.txt"
 #define TEST_FILE_BAD "test_bad.txt"
 #define TEST_FILE_EMPTY "test_empty.txt"
+#define TEST_WRITE_FILE "test_write_data.txt"
 
 //#############################################################################
 // Interface(s) under test
@@ -224,6 +225,27 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // cleanup
         }
 
+        TEST_FUNCTION(read_file_into_cstring_invalid_params_returns_null)
+        {
+            // arrange
+            size_t output_size;
+            unsigned char *output_string;
+
+            // act, assert
+            output_size = 100;
+            output_string = read_file_into_cstring(NULL, &output_size);
+            ASSERT_IS_NULL(output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+
+            // act, assert
+            output_size = 100;
+            output_string = read_file_into_cstring("", &output_size);
+            ASSERT_IS_NULL(output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
         TEST_FUNCTION(read_file_into_cbuffer_smoke)
         {
             // arrange
@@ -242,6 +264,27 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // cleanup
             free(output_buffer);
+        }
+
+        TEST_FUNCTION(read_file_into_cbuffer_invalid_params_returns_null)
+        {
+            // arrange
+            size_t output_size;
+            unsigned char *output_buffer;
+
+            // act, assert
+            output_size = 100;
+            output_buffer = read_file_into_buffer(NULL, &output_size);
+            ASSERT_IS_NULL(output_buffer);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+
+            // act, assert
+            output_size = 100;
+            output_buffer = read_file_into_buffer("", &output_size);
+            ASSERT_IS_NULL(output_buffer);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
         }
 
         TEST_FUNCTION(read_file_into_cbuffer_non_existant_file_returns_null)
@@ -274,12 +317,31 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // cleanup
         }
 
+        TEST_FUNCTION(concat_files_to_cstring_invalid_params)
+        {
+            // arrange
+            char *output_string;
+            const char *files[] = {
+                TEST_FILE_ALPHA,
+                TEST_FILE_NUMERIC
+            };
+
+            // act, assert
+            output_string = concat_files_to_cstring(NULL, 10);
+            ASSERT_IS_NULL(output_string);
+
+            output_string = concat_files_to_cstring(files, 0);
+            ASSERT_IS_NULL(output_string);
+
+            // cleanup
+        }
+
         TEST_FUNCTION(concat_files_to_cstring_smoke)
         {
             // arrange
             char *expected_string = "ABCD1234";
             size_t expected_string_size = 9;
-            char *files[] = {
+            const char *files[] = {
                 TEST_FILE_ALPHA,
                 TEST_FILE_NUMERIC
             };
@@ -291,7 +353,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            LOG_ERROR("output_string:[%s]", output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
 
@@ -304,7 +365,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // arrange
             char *expected_string = "ABCD1234";
             size_t expected_string_size = 9;
-            char *files[] = {
+            const char *files[] = {
                 TEST_FILE_ALPHA,
                 TEST_FILE_EMPTY,
                 TEST_FILE_NUMERIC
@@ -317,7 +378,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            LOG_ERROR("output_string:[%s]", output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
 
@@ -330,7 +390,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // arrange
             char *expected_string = "";
             size_t expected_string_size = 1;
-            char *files[] = {
+            const char *files[] = {
                 TEST_FILE_EMPTY,
                 TEST_FILE_EMPTY,
                 TEST_FILE_EMPTY,
@@ -343,7 +403,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            LOG_ERROR("output_string:[%s]", output_string);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
 
@@ -354,7 +413,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         TEST_FUNCTION(concat_files_to_cstring_with_bad_file_returns_null)
         {
             // arrange
-            char *files[] = {
+            const char *files[] = {
                 TEST_FILE_ALPHA,
                 TEST_FILE_BAD,
                 TEST_FILE_NUMERIC
@@ -376,6 +435,9 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             result = is_directory_valid(NULL);
+            ASSERT_IS_FALSE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+
+            result = is_directory_valid("");
             ASSERT_IS_FALSE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
 
             result = is_directory_valid("some_bad_dir");
@@ -407,6 +469,9 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             result = is_file_valid(NULL);
             ASSERT_IS_FALSE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
 
+            result = is_file_valid("");
+            ASSERT_IS_FALSE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+
             result = is_file_valid(TEST_FILE_BAD);
             ASSERT_IS_FALSE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
 
@@ -424,6 +489,105 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             result = is_file_valid(TEST_FILE_NUMERIC);
             ASSERT_IS_TRUE_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_write_cstring_to_file_smoke)
+        {
+            // arrange
+            const char *expected_string = "ZZXXYYZZ";
+            size_t expected_string_size = 9;
+            const char *input_string = "ZZXXYYZZ";
+            (void)delete_file(TEST_WRITE_FILE);
+
+            // act
+            int output = write_cstring_to_file(TEST_WRITE_FILE, input_string);
+            size_t output_size = 0;
+            char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL(output_string);
+            int cmp_result = strcmp(expected_string, output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output_string);
+        }
+
+        TEST_FUNCTION(test_write_cstring_to_file_invalid_params)
+        {
+            // arrange
+            int output;
+
+            // act, assert
+            output = write_cstring_to_file(NULL, "abcd");
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+
+            output = write_cstring_to_file("", "abcd");
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+
+            output = write_cstring_to_file(TEST_WRITE_FILE, NULL);
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_write_cstring_to_file_empty_file_returns_null_when_read)
+        {
+            // arrange
+            const char *expected_string = NULL;
+            size_t expected_string_size = 0;
+            const char *input_string = "";
+            (void)delete_file(TEST_WRITE_FILE);
+
+            // act
+            int output = write_cstring_to_file(TEST_WRITE_FILE, input_string);
+            size_t output_size = 10;
+            char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_delete_file_smoke)
+        {
+            // arrange
+            size_t expected_string_size = 0;
+            const char *input_string = "abcd";
+            int status = write_cstring_to_file(TEST_WRITE_FILE, input_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+            // act
+            int output = delete_file(TEST_WRITE_FILE);
+            size_t output_size = 10;
+            char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_delete_file_invalid_params)
+        {
+            // arrange
+            int output;
+
+            // act, assert
+            output = delete_file(NULL);
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+
+            output = delete_file("");
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
 
             // cleanup
         }
