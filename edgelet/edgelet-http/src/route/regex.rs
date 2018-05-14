@@ -10,6 +10,10 @@ use regex::Regex;
 
 use super::{Builder, Handler, HandlerParamsPair, Recognizer};
 
+pub trait IntoCaptures {
+    fn into_captures(self) -> Vec<(Option<String>, String)>;
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Parameters {
     captures: Vec<(Option<String>, String)>,
@@ -22,8 +26,13 @@ impl Parameters {
         }
     }
 
-    pub fn with_captures(captures: Vec<(Option<String>, String)>) -> Parameters {
-        Parameters { captures }
+    pub fn with_captures<I>(captures: I) -> Parameters
+    where
+        I: IntoCaptures,
+    {
+        Parameters {
+            captures: captures.into_captures(),
+        }
     }
 
     pub fn name(&self, k: &str) -> Option<&str> {
@@ -35,6 +44,18 @@ impl Parameters {
             }
         }
         None
+    }
+}
+
+impl IntoCaptures for Vec<(Option<String>, String)> {
+    fn into_captures(self) -> Self {
+        self
+    }
+}
+
+impl<'a> IntoCaptures for (&'a str, &'a str) {
+    fn into_captures(self) -> Vec<(Option<String>, String)> {
+        vec![(Some(self.0.to_string()), self.1.to_string())]
     }
 }
 
