@@ -89,7 +89,7 @@ static const int month_day[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 30
 #define TEMP_DATE_LENGTH    32
 #define NOT_AFTER_OFFSET    15
 #define TIME_FIELD_LENGTH   0x0D
-#define END_HEADER_LENGTH   25
+#define END_HEADER_LENGTH   25 // length of end header string -----END CERTIFICATE-----
 #define INVALID_TIME        -1
 
 static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
@@ -132,7 +132,11 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
                 if (*iterator == '\n' && *(iterator + 1) == '-')
                 {
                     // mark the end of the first certificate including \r\n characters
-                    cert_info->first_cert_end = iterator + END_HEADER_LENGTH + 2;
+                    cert_info->first_cert_end = iterator + END_HEADER_LENGTH + 1;
+                    if (*(cert_info->first_cert_end) == '\r')
+                    {
+                        cert_info->first_cert_end++;
+                    }
 
                     // Check to see if we have a chain embedded in the certificate
                     // if we've have more data after the END HEADER then we have a chain
