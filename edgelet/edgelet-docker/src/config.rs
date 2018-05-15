@@ -9,6 +9,8 @@ use error::Result;
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_id: Option<String>,
     #[serde(default = "ContainerCreateBody::new")]
     create_options: ContainerCreateBody,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -23,6 +25,7 @@ impl DockerConfig {
     ) -> Result<DockerConfig> {
         let config = DockerConfig {
             image: ensure_not_empty!(image.to_string()),
+            image_id: None,
             create_options,
             auth,
         };
@@ -39,6 +42,15 @@ impl DockerConfig {
 
     pub fn with_image(mut self, image: String) -> Self {
         self.image = image;
+        self
+    }
+
+    pub fn image_id(&self) -> Option<&String> {
+        self.image_id.as_ref()
+    }
+
+    pub fn with_image_id(mut self, image_id: String) -> Self {
+        self.image_id = Some(image_id);
         self
     }
 
@@ -75,13 +87,13 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn empty_image_fails1() {
+    fn empty_image_fails() {
         DockerConfig::new("", ContainerCreateBody::new(), None).unwrap();
     }
 
     #[test]
     #[should_panic]
-    fn empty_image_fails2() {
+    fn white_space_image_fails() {
         DockerConfig::new("    ", ContainerCreateBody::new(), None).unwrap();
     }
 
@@ -103,10 +115,13 @@ mod tests {
             .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
             .with_labels(labels);
 
-        let config = DockerConfig::new("ubuntu", create_options, None).unwrap();
+        let config = DockerConfig::new("ubuntu", create_options, None)
+            .unwrap()
+            .with_image_id("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
             "image": "ubuntu",
+            "imageId": "42",
             "createOptions": {
                 "Labels": {
                     "k1": "v1",

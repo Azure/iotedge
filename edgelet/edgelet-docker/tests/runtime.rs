@@ -542,6 +542,10 @@ fn container_list_succeeds() {
     assert_eq!("m2", modules[1].name());
     assert_eq!("m3", modules[2].name());
 
+    assert_eq!("img1", modules[0].config().image_id().unwrap().as_str());
+    assert_eq!("img2", modules[1].config().image_id().unwrap().as_str());
+    assert_eq!("img3", modules[2].config().image_id().unwrap().as_str());
+
     assert_eq!("nginx:latest", modules[0].config().image());
     assert_eq!("ubuntu:latest", modules[1].config().image());
     assert_eq!("mongo:latest", modules[2].config().image());

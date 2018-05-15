@@ -296,7 +296,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     ContainerCreateBody::new()
                                         .with_labels(container.labels().clone()),
                                     None,
-                                ).map(|config| (container, config))
+                                ).map(|config| {
+                                    (
+                                        container,
+                                        config.with_image_id(container.image_id().clone()),
+                                    )
+                                })
                             })
                             .flat_map(|(container, config)| {
                                 DockerModule::new(
