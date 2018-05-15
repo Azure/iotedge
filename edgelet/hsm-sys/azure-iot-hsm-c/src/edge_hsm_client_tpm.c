@@ -309,6 +309,7 @@ static int perform_sign
             const HSM_CLIENT_KEY_INTERFACE *key_if = g_hsm_key_if;
             EDGE_TPM* edge_tpm = (EDGE_TPM*)handle;
             key_handle = store_if->hsm_client_store_open_key(edge_tpm->hsm_store_handle,
+                                                             HSM_KEY_SAS,
                                                              EDGELET_IDENTITY_SAS_KEY_NAME);
             if (key_handle == NULL)
             {

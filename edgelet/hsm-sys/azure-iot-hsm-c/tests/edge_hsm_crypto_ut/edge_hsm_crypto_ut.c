@@ -49,9 +49,9 @@ MOCKABLE_FUNCTION(, HSM_CLIENT_STORE_HANDLE, mocked_hsm_client_store_open, const
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close, HSM_CLIENT_STORE_HANDLE, handle);
 
 // store key mocks
-MOCKABLE_FUNCTION(, KEY_HANDLE, mocked_hsm_client_store_open_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
+MOCKABLE_FUNCTION(, KEY_HANDLE, mocked_hsm_client_store_open_key, HSM_CLIENT_STORE_HANDLE, handle, HSM_KEY_T, key_type, const char*, key_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close_key, HSM_CLIENT_STORE_HANDLE, handle, KEY_HANDLE, key_handle);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_remove_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_remove_key, HSM_CLIENT_STORE_HANDLE, handle, HSM_KEY_T, key_type, const char*, key_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_insert_sas_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name, const unsigned char*, key, size_t, key_len);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_insert_encryption_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
 
@@ -181,6 +181,7 @@ static int test_hook_hsm_client_store_close(HSM_CLIENT_STORE_HANDLE handle)
 }
 
 static KEY_HANDLE test_hook_hsm_client_store_open_key(HSM_CLIENT_STORE_HANDLE handle,
+                                                      HSM_KEY_T key_type,
                                                       const char* key_name)
 {
     ASSERT_FAIL("API not expected to be called");
@@ -195,6 +196,7 @@ static int test_hook_hsm_client_store_close_key(HSM_CLIENT_STORE_HANDLE handle,
 }
 
 static int test_hook_hsm_client_store_remove_key(HSM_CLIENT_STORE_HANDLE handle,
+                                                 HSM_KEY_T key_type,
                                                  const char* key_name)
 {
     ASSERT_FAIL("API not expected to be called");
@@ -372,7 +374,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             REGISTER_UMOCK_ALIAS_TYPE(TEST_CERT_INFO_HANDLE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(CERT_PROPS_HANDLE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(PRIVATE_KEY_TYPE, int);
-
+            REGISTER_UMOCK_ALIAS_TYPE(HSM_KEY_T, int);
 
             ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
 

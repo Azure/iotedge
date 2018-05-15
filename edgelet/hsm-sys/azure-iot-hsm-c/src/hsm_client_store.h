@@ -15,6 +15,14 @@ extern "C" {
 #include "hsm_client_data.h"
 typedef void* KEY_HANDLE;
 
+enum HSM_KEY_TAG_T
+{
+    HSM_KEY_UNKNOWN = 0,
+    HSM_KEY_SAS,
+    HSM_KEY_ENCRYPTION
+};
+typedef enum HSM_KEY_TAG_T HSM_KEY_T;
+
 typedef int (*HSM_KEY_SIGN)(KEY_HANDLE key_handle,
                             const unsigned char* data_to_be_signed,
                             size_t data_to_be_signed_size,
@@ -72,12 +80,13 @@ typedef struct HSM_CLIENT_KEY_INTERFACE_TAG HSM_CLIENT_KEY_INTERFACE;
 const HSM_CLIENT_KEY_INTERFACE* hsm_client_key_interface(void);
 
 typedef void* HSM_CLIENT_STORE_HANDLE;
+
 typedef int (*HSM_CLIENT_STORE_CREATE)(const char* store_name);
 typedef int (*HSM_CLIENT_STORE_DESTROY)(const char* store_name);
 typedef HSM_CLIENT_STORE_HANDLE (*HSM_CLIENT_STORE_OPEN)(const char* store_name);
 typedef int (*HSM_CLIENT_STORE_CLOSE)(HSM_CLIENT_STORE_HANDLE handle);
-typedef int (*HSM_CLIENT_STORE_REMOVE_KEY)(HSM_CLIENT_STORE_HANDLE handle, const char* key_name);
-typedef KEY_HANDLE (*HSM_CLIENT_STORE_OPEN_KEY)(HSM_CLIENT_STORE_HANDLE handle, const char* key_name);
+typedef int (*HSM_CLIENT_STORE_REMOVE_KEY)(HSM_CLIENT_STORE_HANDLE handle, HSM_KEY_T key_type, const char* key_name);
+typedef KEY_HANDLE (*HSM_CLIENT_STORE_OPEN_KEY)(HSM_CLIENT_STORE_HANDLE handle, HSM_KEY_T key_type, const char* key_name);
 typedef int (*HSM_CLIENT_STORE_CLOSE_KEY)(HSM_CLIENT_STORE_HANDLE handle, KEY_HANDLE key_handle);
 typedef int (*HSM_CLIENT_STORE_INSERT_SAS_KEY)(HSM_CLIENT_STORE_HANDLE handle,
                                                const char* key_name,

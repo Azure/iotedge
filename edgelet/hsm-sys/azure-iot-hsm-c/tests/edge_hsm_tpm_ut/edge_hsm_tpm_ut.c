@@ -49,9 +49,9 @@ MOCKABLE_FUNCTION(, HSM_CLIENT_STORE_HANDLE, mocked_hsm_client_store_open, const
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close, HSM_CLIENT_STORE_HANDLE, handle);
 
 // store key mocks
-MOCKABLE_FUNCTION(, KEY_HANDLE, mocked_hsm_client_store_open_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
+MOCKABLE_FUNCTION(, KEY_HANDLE, mocked_hsm_client_store_open_key, HSM_CLIENT_STORE_HANDLE, handle, HSM_KEY_T, key_type, const char*, key_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close_key, HSM_CLIENT_STORE_HANDLE, handle, KEY_HANDLE, key_handle);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_remove_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_remove_key, HSM_CLIENT_STORE_HANDLE, handle, HSM_KEY_T, key_type, const char*, key_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_insert_sas_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name, const unsigned char*, key, size_t, key_len);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_insert_encryption_key, HSM_CLIENT_STORE_HANDLE, handle, const char*, key_name);
 
@@ -173,6 +173,7 @@ static int test_hook_hsm_client_store_close(HSM_CLIENT_STORE_HANDLE handle)
 }
 
 static KEY_HANDLE test_hook_hsm_client_store_open_key(HSM_CLIENT_STORE_HANDLE handle,
+                                                      HSM_KEY_T key_type,
                                                       const char* key_name)
 {
     return TEST_KEY_HANDLE;
@@ -185,6 +186,7 @@ static int test_hook_hsm_client_store_close_key(HSM_CLIENT_STORE_HANDLE handle,
 }
 
 static int test_hook_hsm_client_store_remove_key(HSM_CLIENT_STORE_HANDLE handle,
+                                                 HSM_KEY_T key_type,
                                                  const char* key_name)
 {
     return 0;
@@ -338,6 +340,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_KEY_INTERFACE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_HANDLE, void*);
             REGISTER_UMOCK_ALIAS_TYPE(KEY_HANDLE, void*);
+            REGISTER_UMOCK_ALIAS_TYPE(HSM_KEY_T, int);
 
             ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
 
@@ -1146,7 +1149,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             size_t test_output_len = 0;
             umock_c_reset_all_calls();
 
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, TEST_SAS_KEY_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, HSM_KEY_SAS, TEST_SAS_KEY_NAME));
             STRICT_EXPECTED_CALL(mocked_hsm_client_key_sign(TEST_KEY_HANDLE, test_input, sizeof(test_input), &test_output_buffer, &test_output_len));
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_close_key(TEST_HSM_STORE_HANDLE, TEST_KEY_HANDLE));
 
@@ -1183,7 +1186,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             size_t test_output_len = 0;
             umock_c_reset_all_calls();
 
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, TEST_SAS_KEY_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, HSM_KEY_SAS, TEST_SAS_KEY_NAME));
             STRICT_EXPECTED_CALL(mocked_hsm_client_key_sign(TEST_KEY_HANDLE, test_input, sizeof(test_input), &test_output_buffer, &test_output_len));
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_close_key(TEST_HSM_STORE_HANDLE, TEST_KEY_HANDLE));
 
@@ -1326,7 +1329,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             umock_c_reset_all_calls();
 
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, TEST_SAS_KEY_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, HSM_KEY_SAS, TEST_SAS_KEY_NAME));
             STRICT_EXPECTED_CALL(mocked_hsm_client_key_derive_and_sign(TEST_KEY_HANDLE, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len));
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_close_key(TEST_HSM_STORE_HANDLE, TEST_KEY_HANDLE));
 
@@ -1365,7 +1368,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             umock_c_reset_all_calls();
 
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, TEST_SAS_KEY_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_open_key(TEST_HSM_STORE_HANDLE, HSM_KEY_SAS, TEST_SAS_KEY_NAME));
             STRICT_EXPECTED_CALL(mocked_hsm_client_key_derive_and_sign(TEST_KEY_HANDLE, test_input, sizeof(test_input), TEST_EDGE_MODULE_IDENTITY, identity_size, &test_output_buffer, &test_output_len));
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_close_key(TEST_HSM_STORE_HANDLE, TEST_KEY_HANDLE));
 

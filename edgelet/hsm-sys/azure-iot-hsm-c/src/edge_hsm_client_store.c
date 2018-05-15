@@ -123,17 +123,25 @@ static int edge_hsm_client_store_insert_sas_key
 static int edge_hsm_client_store_remove_key
 (
     HSM_CLIENT_STORE_HANDLE handle,
+    HSM_KEY_T key_type,
     const char* key_name
 )
 {
+    (void)key_type;
     assert((HSM_CLIENT_STORE_HANDLE)g_key_store == handle);
     int status = singlylinkedlist_remove_if(g_key_store, remove_entry_cb, key_name);
     assert(status == 0);
     return 0;
 }
 
-static KEY_HANDLE edge_hsm_client_open_key(HSM_CLIENT_STORE_HANDLE handle, const char* key_name)
+static KEY_HANDLE edge_hsm_client_open_key
+(
+    HSM_CLIENT_STORE_HANDLE handle,
+    HSM_KEY_T key_type,
+    const char* key_name
+)
 {
+	(void)key_type;
     size_t key_size = 0;
     assert((HSM_CLIENT_STORE_HANDLE)g_key_store == handle);
     LIST_ITEM_HANDLE list_entry = singlylinkedlist_find(g_key_store, find_entry_cb, key_name);
