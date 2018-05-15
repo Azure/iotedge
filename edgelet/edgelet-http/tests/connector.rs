@@ -62,7 +62,7 @@ fn tcp_get() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &hello_handler, &sender);
+        run_tcp_server("127.0.0.1", port, hello_handler, &sender);
     });
 
     // wait for server to get ready
@@ -101,7 +101,7 @@ fn uds_get() {
 
     let path_copy = file_path.to_string();
     thread::spawn(move || {
-        run_uds_server(&path_copy, &hello_handler, &sender);
+        run_uds_server(&path_copy, hello_handler, &sender);
     });
 
     // wait for server to get ready
@@ -160,7 +160,7 @@ fn pipe_get() {
     let url = make_url(&path);
 
     thread::spawn(move || {
-        run_pipe_server(&path, &pipe_get_handler, &sender);
+        run_pipe_server(&path, pipe_get_handler, &sender);
     });
 
     // wait for server to get ready
@@ -208,7 +208,7 @@ fn tcp_post() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &post_handler, &sender);
+        run_tcp_server("127.0.0.1", port, post_handler, &sender);
     });
 
     // wait for server to get ready
@@ -248,7 +248,7 @@ fn uds_post() {
 
     let path_copy = file_path.to_string();
     thread::spawn(move || {
-        run_uds_server(&path_copy, &hello_handler, &sender);
+        run_uds_server(&path_copy, hello_handler, &sender);
     });
 
     // wait for server to get ready
@@ -295,7 +295,7 @@ fn pipe_post() {
     let url = make_url(&path);
 
     thread::spawn(move || {
-        run_pipe_server(&path, &pipe_post_handler, &sender);
+        run_pipe_server(&path, pipe_post_handler, &sender);
     });
 
     // wait for server to get ready

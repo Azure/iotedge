@@ -9,9 +9,9 @@ use httparse::{self, Request as HtRequest, Status};
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_named_pipes::NamedPipe;
 
-pub fn run_pipe_server<F>(path: &str, handler: &'static F, ready_channel: &Sender<()>)
+pub fn run_pipe_server<F>(path: &str, handler: F, ready_channel: &Sender<()>)
 where
-    F: Fn(&HtRequest, Option<Vec<u8>>) -> String + Send + Sync,
+    F: 'static + Fn(&HtRequest, Option<Vec<u8>>) -> String + Send + Sync,
 {
     let mut server = NamedPipe::new(path).unwrap();
 

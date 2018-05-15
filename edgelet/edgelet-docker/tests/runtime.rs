@@ -77,7 +77,7 @@ fn image_pull_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &image_pull_handler, &sender);
+        run_tcp_server("127.0.0.1", port, image_pull_handler, &sender);
     });
 
     // wait for server to get ready
@@ -153,7 +153,7 @@ fn image_pull_with_creds_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &image_pull_with_creds_handler, &sender);
+        run_tcp_server("127.0.0.1", port, image_pull_with_creds_handler, &sender);
     });
 
     // wait for server to get ready
@@ -200,7 +200,7 @@ fn image_remove_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &image_remove_handler, &sender);
+        run_tcp_server("127.0.0.1", port, image_remove_handler, &sender);
     });
 
     // wait for server to get ready
@@ -293,7 +293,7 @@ fn container_create_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &container_create_handler, &sender);
+        run_tcp_server("127.0.0.1", port, container_create_handler, &sender);
     });
 
     // wait for server to get ready
@@ -354,7 +354,7 @@ fn container_start_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &container_start_handler, &sender);
+        run_tcp_server("127.0.0.1", port, container_start_handler, &sender);
     });
 
     // wait for server to get ready
@@ -383,7 +383,7 @@ fn container_stop_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &container_stop_handler, &sender);
+        run_tcp_server("127.0.0.1", port, container_stop_handler, &sender);
     });
 
     // wait for server to get ready
@@ -412,7 +412,7 @@ fn container_remove_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &container_remove_handler, &sender);
+        run_tcp_server("127.0.0.1", port, container_remove_handler, &sender);
     });
 
     // wait for server to get ready
@@ -521,7 +521,7 @@ fn container_list_succeeds() {
 
     let port = get_unused_tcp_port();
     thread::spawn(move || {
-        run_tcp_server("127.0.0.1", port, &container_list_handler, &sender);
+        run_tcp_server("127.0.0.1", port, container_list_handler, &sender);
     });
 
     // wait for server to get ready

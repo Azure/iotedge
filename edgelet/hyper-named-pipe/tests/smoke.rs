@@ -45,7 +45,7 @@ fn get() {
     let url = make_url(&path);
 
     thread::spawn(move || {
-        run_pipe_server(&path, &get_handler, &sender);
+        run_pipe_server(&path, get_handler, &sender);
     });
 
     // wait for server to get ready
@@ -83,7 +83,7 @@ fn get_with_body() {
     let url = make_url(&path);
 
     thread::spawn(move || {
-        run_pipe_server(&path, &get_with_body_handler, &sender);
+        run_pipe_server(&path, get_with_body_handler, &sender);
     });
 
     // wait for server to get ready
@@ -125,7 +125,7 @@ fn post() {
     let url = make_url(&path);
 
     thread::spawn(move || {
-        run_pipe_server(&path, &post_handler, &sender);
+        run_pipe_server(&path, post_handler, &sender);
     });
 
     // wait for server to get ready
