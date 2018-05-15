@@ -148,6 +148,7 @@ impl ModuleRuntime for ModuleClient {
     type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
+    type InitFuture = FutureResult<(), Self::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -223,5 +224,9 @@ impl ModuleRuntime for ModuleClient {
 
     fn registry(&self) -> &Self::ModuleRegistry {
         self
+    }
+
+    fn init(&self) -> Self::InitFuture {
+        future::ok(())
     }
 }

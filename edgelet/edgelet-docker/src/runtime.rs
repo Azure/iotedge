@@ -16,7 +16,8 @@ use client::DockerClient;
 use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings};
+use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings,
+                     NetworkConfig};
 use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_http::UrlConnector;
 use edgelet_utils::serde_clone;
@@ -145,6 +146,36 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
+    type InitFuture = Box<Future<Item = (), Error = Self::Error>>;
+
+    fn init(&self) -> Self::InitFuture {
+        let created = self.network_id
+            .as_ref()
+            .map(|id| {
+                let id = id.clone();
+                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, id);
+                let client_copy = self.client.clone();
+                let fut = self.client
+                    .network_api()
+                    .network_list(&filter)
+                    .and_then(move |existing_networks| {
+                        if existing_networks.is_empty() {
+                            let fut = client_copy
+                                .network_api()
+                                .network_create(NetworkConfig::new(id))
+                                .map(|_| ());
+                            future::Either::A(fut)
+                        } else {
+                            future::Either::B(future::ok(()))
+                        }
+                    })
+                    .map_err(Error::from);
+                future::Either::A(fut)
+            })
+            .unwrap_or_else(|| future::Either::B(future::ok(())));
+
+        Box::new(created)
+    }
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         // we only want "docker" modules

@@ -231,15 +231,17 @@ pub trait ModuleRegistry {
 pub trait ModuleRuntime {
     type Error: Fail;
     type Config;
+    type CreateFuture: Future<Item = (), Error = Self::Error>;
+    type InitFuture: Future<Item = (), Error = Self::Error>;
+    type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
     type Module: Module<Config = Self::Config>;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
-    type CreateFuture: Future<Item = (), Error = Self::Error>;
+    type RemoveFuture: Future<Item = (), Error = Self::Error>;
+    type RestartFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;
-    type RestartFuture: Future<Item = (), Error = Self::Error>;
-    type RemoveFuture: Future<Item = (), Error = Self::Error>;
-    type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
 
+    fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn start(&self, id: &str) -> Self::StartFuture;
     fn stop(&self, id: &str) -> Self::StopFuture;

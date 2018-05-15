@@ -120,6 +120,14 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type RestartFuture = FutureResult<(), Self::Error>;
     type RemoveFuture = FutureResult<(), Self::Error>;
     type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+    type InitFuture = FutureResult<(), Self::Error>;
+
+    fn init(&self) -> Self::InitFuture {
+        match self.module {
+            Ok(_) => future::ok(()),
+            Err(ref e) => future::err(e.clone()),
+        }
+    }
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         match self.module {

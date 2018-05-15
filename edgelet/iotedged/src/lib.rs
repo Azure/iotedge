@@ -39,10 +39,10 @@ pub mod settings;
 pub mod signal;
 
 use docker::models::HostConfig;
-use edgelet_core::ModuleSpec;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey};
 use edgelet_core::provisioning::{ManualProvisioning, Provision};
 use edgelet_core::watchdog::Watchdog;
+use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
@@ -116,7 +116,12 @@ impl Main {
 
         let handle: Handle = core.handle().clone();
 
-        let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?;
+        //TODO: Read network id from configuration file.
+        let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?
+            .with_network_id("azure-iot-edge".to_string());
+
+        init_docker_runtime(&runtime, &mut core)?;
+
         let hostname = format!("https://{}", hub_name);
 
         let hyper_client = HyperClient::configure()
@@ -174,6 +179,11 @@ impl Main {
         info!("Shutdown complete");
         Ok(())
     }
+}
+
+fn init_docker_runtime(runtime: &DockerModuleRuntime, core: &mut Core) -> Result<(), Error> {
+    core.run(runtime.init())?;
+    Ok(())
 }
 
 fn provision(
