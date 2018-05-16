@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script installs the rust toolchain
+# This script builds the project
 ###############################################################################
 
 set -e
@@ -9,9 +9,16 @@ set -e
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
+# Get directory of running script
+DIR=$(cd "$(dirname "$0")" && pwd)
+
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
+PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-RUSTUP="$HOME/.cargo/bin/rustup"
-TOOLCHAIN="stable"
+TOOLCHAIN="armv7-unknown-linux-gnueabihf"
+RELEASE=
+source $HOME/.cargo/env
+export CARGO_HOME="$HOME/.cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -22,7 +29,8 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -t, --toolchain     Toolchain (default: stable)"
+    echo " -t, --toolchain     Toolchain (default: stable-x86_64-unknown-linux-gnu)"
+    echo " -r, --release       Release build? (flag, default: false)"
     exit 1;
 }
 
@@ -37,10 +45,14 @@ process_args()
         if [ $save_next_arg -eq 1 ]; then
             TOOLCHAIN="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            RELEASE="true"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-t" | "--toolchain" ) save_next_arg=1;;
+                "-r" | "--release" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
@@ -49,12 +61,8 @@ process_args()
 
 process_args "$@"
 
-if command -v "$RUSTUP" >/dev/null; then
-    $RUSTUP install "$TOOLCHAIN"
+if [[ -z ${RELEASE} ]]; then
+    cd "$PROJECT_ROOT" && cross test --all --target "$TOOLCHAIN" 
 else
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
+    cd "$PROJECT_ROOT" && cross test --all --release --target "$TOOLCHAIN" 
 fi
-
-# Install OpenSSL, curl and uuid
-sudo apt-get update && \
-    sudo apt-get install -y pkg-config libssl-dev uuid-dev curl libcurl4-openssl-dev

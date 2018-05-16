@@ -4,6 +4,8 @@ use std::env;
 use std::path::Path;
 use std::process::Command;
 
+//Skip ARM(cross-compile) until I figure out how to run ctest on this.
+#[cfg(not(target_arch = "arm"))]
 #[test]
 fn run_ctest() {
     // Run iot-hsm-c tests

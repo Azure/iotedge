@@ -193,7 +193,7 @@ mod tests {
 
         let slice1 = unsafe { slice::from_raw_parts(*key2, len) };
 
-        assert_eq!(slice1[0], '0' as i8);
+        assert_eq!(slice1[0], '0' as c_char);
         // function will panic on drop.
     }
 

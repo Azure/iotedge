@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 extern crate cmake;
-extern crate git2;
 
 use std::env;
+use std::path::Path;
+use std::process::Command;
 
 use cmake::Config;
-use git2::{Oid, Repository};
 
 #[cfg(windows)]
 const SSL_OPTION: &str = "use_schannel";
@@ -31,15 +31,21 @@ impl SetPlatformDefines for Config {
 
     #[cfg(unix)]
     fn set_platform_defines(&mut self) -> &mut Self {
-        let rv = if (env::var("PROFILE").unwrap() == "Release"
-            && env::var("TARGET").unwrap().starts_with("x86_64"))
+        let rv = if env::var("PROFILE").unwrap().to_lowercase() == "release"
+            || !env::var("TARGET").unwrap().starts_with("x86_64")
             || env::var("NO_VALGRIND").is_ok()
         {
             "OFF"
         } else {
             "ON"
         };
-        self.define("run_valgrind", rv)
+        //CMAKE_SYSROOT
+        if let Ok(sysroot) = env::var("SYSROOT") {
+            self.define("run_valgrind", rv)
+                .define("CMAKE_SYSROOT", sysroot)
+        } else {
+            self.define("run_valgrind", rv)
+        }
     }
 
     // The "debug_assertions" configuration flag seems to be the way to detect
@@ -57,46 +63,20 @@ impl SetPlatformDefines for Config {
 
 fn main() {
     // Clone Azure C -shared library
-    let c_shared_url = "https://github.com/Azure/azure-c-shared-utility";
     let c_shared_repo = "azure-iot-hsm-c/azure-c-shared-utility";
-    let version_sha = "8290634e5c2d005643d5a7dd5f8e65ad7a4353c2"; // 2018-05-03
 
-    println!("#Start Getting C-Shared Utilities");
-    let repo = Repository::open(c_shared_repo)
-        .or_else(|_| Repository::clone_recurse(c_shared_url, c_shared_repo))
-        .expect("C-Shared repo could not be opened.");
+    println!("#Start Update C-Shared Utilities");
+    if !Path::new(&format!("{}/.git", c_shared_repo)).exists() {
+        let _ = Command::new("git")
+            .arg("submodule")
+            .arg("update")
+            .arg("--init")
+            .arg("--recursive")
+            .status()
+            .expect("submodule update failed");
+    }
 
-    let oid = Oid::from_str(version_sha).expect("Could not create a treeish oid");
-    let treeish = repo.find_commit(oid)
-        .or_else(|_| {
-            //  Attempt a fetch if finding the commit failed.
-            repo.remotes()
-                .map(|remotes| {
-                    for remote in remotes.iter() {
-                        if let Some(remote_name) = remote {
-                            println!("# Attempt fetch on remote {}", remote_name);
-                            repo.find_remote(remote_name)
-                                .unwrap()
-                                .fetch(&["master"], None, None)
-                                .expect("Could not find commit and git fetch failed");
-                        }
-                    }
-                })
-                .expect("Could not find commit, and no remotes are set.");
-            // Try again after fetch
-            repo.find_commit(oid)
-        })
-        .expect("SHA not found in C-Shared repo");
-
-    repo.checkout_tree(treeish.as_object(), None)
-        .expect("Unable to checkout SHA in C-Shared repo");
-
-    repo.submodules()
-        .unwrap()
-        .into_iter()
-        .for_each(|mut submodule| submodule.update(true, None).unwrap());
-
-    println!("#Done Getting C-Shared Utilities");
+    println!("#Done Updating C-Shared Utilities");
 
     // make the C libary at azure-iot-hsm-c (currently a subdirectory in this
     // crate)
@@ -107,6 +87,7 @@ fn main() {
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", "ON")
+        .define("use_default_uuid", "ON")
         .set_platform_defines()
         .set_build_shared()
         .profile("Release")

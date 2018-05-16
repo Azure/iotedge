@@ -1,0 +1,3 @@
+[submodule "edgelet/hsm-sys/azure-iot-hsm-c/azure-c-shared-utility"]
+	path = edgelet/hsm-sys/azure-iot-hsm-c/azure-c-shared-utility
+	url = https://github.com/Azure/azure-c-shared-utility
