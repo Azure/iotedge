@@ -29,6 +29,10 @@ pub enum ErrorKind {
     Core,
     #[fail(display = "Failed to get sas token.")]
     TokenSource,
+    #[fail(display = "Invalid IoT Hub response")]
+    InvalidHubResponse,
+    #[fail(display = "Generation Id was not provided")]
+    MissingGenerationId,
 }
 
 impl Fail for Error {

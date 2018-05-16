@@ -33,7 +33,7 @@ use std::rc::Rc;
 use chrono::{DateTime, Utc};
 use failure::ResultExt;
 use futures::Future;
-use futures::future;
+use futures::future::{self, Either};
 use hyper::client::Service;
 use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
@@ -139,7 +139,7 @@ where
         let signature = self.key
             .sign(SignatureAlgorithm::HMACSHA256, sig_data.as_bytes())
             .map(|s| base64::encode(s.as_bytes()))
-            //.context(ErrorKind::Token)
+            .context(ErrorKind::TokenSource)
             .map_err(Error::from)?;
 
         let token = UrlSerializer::new(format!("sr={}", resource_uri))
@@ -187,19 +187,23 @@ where
         }
     }
 
-    fn get_key_pair(&self, id: &IdentitySpec) -> Result<(K::Key, K::Key), Error> {
+    fn get_key_pair(&self, id: &str, generation_id: &str) -> Result<(K::Key, K::Key), Error> {
         self.state
             .key_store
-            .get(id.module_id(), KEY_PRIMARY)
+            .get(id, &build_key_name(KEY_PRIMARY, generation_id))
             .and_then(|primary_key| {
                 self.state
                     .key_store
-                    .get(id.module_id(), KEY_SECONDARY)
+                    .get(id, &build_key_name(KEY_SECONDARY, generation_id))
                     .map(|secondary_key| (primary_key, secondary_key))
             })
-            .context(ErrorKind::CannotGetKey(id.module_id().to_string()))
+            .context(ErrorKind::CannotGetKey(id.to_string()))
             .map_err(Error::from)
     }
+}
+
+fn build_key_name(key_name: &str, generation_id: &str) -> String {
+    format!("{}{}", key_name, generation_id)
 }
 
 impl<K, S> Clone for HubIdentityManager<K, S>
@@ -217,7 +221,7 @@ where
 
 impl<K, S> IdentityManager for HubIdentityManager<K, S>
 where
-    K: KeyStore,
+    K: 'static + KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
@@ -229,51 +233,74 @@ where
     type DeleteFuture = Box<Future<Item = (), Error = Self::Error>>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
-        let result = self.get_key_pair(&id)
-            .and_then(|(primary_key, secondary_key)| {
-                let auth = AuthMechanism::default()
-                    .with_type(AuthType::Sas)
-                    .with_symmetric_key(
-                        SymmetricKey::default()
-                            .with_primary_key(base64::encode(primary_key.as_ref()))
-                            .with_secondary_key(base64::encode(secondary_key.as_ref())),
-                    );
+        // This code first creates a module in the hub with the auth type
+        // set as "None" in order to have a generation identifier generated for
+        // the module by the hub. Once we have a generation ID we use it to
+        // derive the keys for the module which we then proceed to update in
+        // the hub.
+        let (idman_copy1, idman_copy2) = (self.clone(), self.clone());
+        Box::new(
+            self.state
+                .client
+                .create_module(
+                    id.module_id(),
+                    Some(AuthMechanism::default().with_type(AuthType::None)),
+                )
+                .map_err(Error::from)
+                .and_then(move |module| {
+                    if let (Some(module_id), Some(generation_id)) =
+                        (module.module_id(), module.generation_id())
+                    {
+                        idman_copy1.get_key_pair(module_id, generation_id)
+                    } else {
+                        Err(Error::from(ErrorKind::InvalidHubResponse))
+                    }
+                })
+                .and_then(move |(primary_key, secondary_key)| {
+                    let auth = AuthMechanism::default()
+                        .with_type(AuthType::Sas)
+                        .with_symmetric_key(
+                            SymmetricKey::default()
+                                .with_primary_key(base64::encode(primary_key.as_ref()))
+                                .with_secondary_key(base64::encode(secondary_key.as_ref())),
+                        );
 
-                Ok(self.state
-                    .client
-                    .create_module(id.module_id(), Some(auth))
-                    .map_err(Error::from)
-                    .map(HubIdentity::new))
-            });
-
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
-        }
+                    idman_copy2
+                        .state
+                        .client
+                        .update_module(id.module_id(), Some(auth))
+                        .map_err(Error::from)
+                        .map(HubIdentity::new)
+                }),
+        )
     }
 
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
-        let result = self.get_key_pair(&id)
-            .and_then(|(primary_key, secondary_key)| {
-                let auth = AuthMechanism::default()
-                    .with_type(AuthType::Sas)
-                    .with_symmetric_key(
-                        SymmetricKey::default()
-                            .with_primary_key(base64::encode(primary_key.as_ref()))
-                            .with_secondary_key(base64::encode(secondary_key.as_ref())),
-                    );
+        let result = if let Some(generation_id) = id.generation_id() {
+            self.get_key_pair(id.module_id(), generation_id.as_str())
+                .map(|(primary_key, secondary_key)| {
+                    let auth = AuthMechanism::default()
+                        .with_type(AuthType::Sas)
+                        .with_symmetric_key(
+                            SymmetricKey::default()
+                                .with_primary_key(base64::encode(primary_key.as_ref()))
+                                .with_secondary_key(base64::encode(secondary_key.as_ref())),
+                        );
 
-                Ok(self.state
-                    .client
-                    .update_module(id.module_id(), Some(auth))
-                    .map_err(Error::from)
-                    .map(HubIdentity::new))
-            });
+                    Either::A(
+                        self.state
+                            .client
+                            .update_module(id.module_id(), Some(auth))
+                            .map_err(Error::from)
+                            .map(HubIdentity::new),
+                    )
+                })
+                .unwrap_or_else(|err| Either::B(future::err(err)))
+        } else {
+            Either::B(future::err(Error::from(ErrorKind::MissingGenerationId)))
+        };
 
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
-        }
+        Box::new(result)
     }
 
     fn get(&self) -> Self::GetFuture {
@@ -303,7 +330,7 @@ mod tests {
     use bytes::Bytes;
     use chrono::TimeZone;
     use futures::Stream;
-    use hyper::header::ContentType;
+    use hyper::header::{ContentType, IfMatch};
     use hyper::server::service_fn;
     use hyper::{Method, Request, Response, StatusCode};
     use tokio_core::reactor::Core;
@@ -323,8 +350,16 @@ mod tests {
     #[test]
     fn get_key_pair_succeeds() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
-        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_PRIMARY, "g1"),
+            MemoryKey::new("pkey"),
+        );
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_SECONDARY, "g1"),
+            MemoryKey::new("skey"),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -343,9 +378,7 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        let (pkey, skey) = identity_manager
-            .get_key_pair(&IdentitySpec::new("m1"))
-            .unwrap();
+        let (pkey, skey) = identity_manager.get_key_pair("m1", "g1").unwrap();
 
         assert_eq!(pkey.as_ref(), &Bytes::from("pkey"));
         assert_eq!(skey.as_ref(), &Bytes::from("skey"));
@@ -372,16 +405,18 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager
-            .get_key_pair(&IdentitySpec::new("m1"))
-            .unwrap();
+        identity_manager.get_key_pair("m1", "g1").unwrap();
     }
 
     #[test]
     #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_pkey() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_SECONDARY, "g1"),
+            MemoryKey::new("skey"),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -400,16 +435,18 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager
-            .get_key_pair(&IdentitySpec::new("m1"))
-            .unwrap();
+        identity_manager.get_key_pair("m1", "g1").unwrap();
     }
 
     #[test]
     #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_skey() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_PRIMARY, "g1"),
+            MemoryKey::new("pkey"),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -428,32 +465,39 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager
-            .get_key_pair(&IdentitySpec::new("m1"))
-            .unwrap();
+        identity_manager.get_key_pair("m1", "g1").unwrap();
     }
 
     #[test]
     fn create_succeeds() {
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new("pkey"));
-        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new("skey"));
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_PRIMARY, "g1"),
+            MemoryKey::new("pkey"),
+        );
+        key_store.insert(
+            "m1",
+            &format!("{}{}", KEY_SECONDARY, "g1"),
+            MemoryKey::new("skey"),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
-        let expected_module = Module::default()
+        let expected_module1 = Module::default()
             .with_device_id("d1".to_string())
             .with_module_id("m1".to_string())
-            .with_authentication(
-                AuthMechanism::default()
-                    .with_type(AuthType::Sas)
-                    .with_symmetric_key(
-                        SymmetricKey::default()
-                            .with_primary_key(base64::encode(MemoryKey::new("pkey").as_ref()))
-                            .with_secondary_key(base64::encode(MemoryKey::new("skey").as_ref())),
-                    ),
-            );
-        let expected_module_result = expected_module
+            .with_authentication(AuthMechanism::default().with_type(AuthType::None));
+        let expected_module2 = expected_module1.clone().with_authentication(
+            AuthMechanism::default()
+                .with_type(AuthType::Sas)
+                .with_symmetric_key(
+                    SymmetricKey::default()
+                        .with_primary_key(base64::encode(MemoryKey::new("pkey").as_ref()))
+                        .with_secondary_key(base64::encode(MemoryKey::new("skey").as_ref())),
+                ),
+        );
+        let expected_module_result = expected_module2
             .clone()
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string());
@@ -462,7 +506,20 @@ mod tests {
             assert_eq!(req.method(), &Method::Put);
             assert_eq!(req.path(), "/devices/d1/modules/m1");
 
-            let expected_module_copy = expected_module.clone();
+            // if the request has an If-Match header then this is an update
+            // module request
+            let mut is_update = false;
+            if let Some(header) = req.headers().get::<IfMatch>() {
+                assert_eq!(header, &IfMatch::Any);
+                is_update = true;
+            }
+
+            let expected_module_copy = if is_update {
+                expected_module2.clone()
+            } else {
+                expected_module1.clone()
+            };
+
             req.body()
                 .concat2()
                 .and_then(|req_body| Ok(serde_json::from_slice::<Module>(&req_body).unwrap()))

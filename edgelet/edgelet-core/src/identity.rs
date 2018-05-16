@@ -11,17 +11,28 @@ pub trait Identity {
 
 pub struct IdentitySpec {
     module_id: String,
+    generation_id: Option<String>,
 }
 
 impl IdentitySpec {
     pub fn new(module_id: &str) -> IdentitySpec {
         IdentitySpec {
             module_id: module_id.to_string(),
+            generation_id: None,
         }
     }
 
     pub fn module_id(&self) -> &str {
         &self.module_id
+    }
+
+    pub fn generation_id(&self) -> Option<&String> {
+        self.generation_id.as_ref()
+    }
+
+    pub fn with_generation_id(mut self, generation_id: String) -> Self {
+        self.generation_id = Some(generation_id);
+        self
     }
 }
 
