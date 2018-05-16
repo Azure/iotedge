@@ -11,6 +11,10 @@
 #![allow(non_snake_case)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
+//extern const char* const DEVICE_CA_ALIAS;
+extern "C" {
+    pub static DEVICE_CA_ALIAS: *const c_char;
+}
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
 #[repr(C)]

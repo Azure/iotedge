@@ -14,35 +14,24 @@ fn crypto_create_cert_input_fail() {
         0,
         "Common Name".to_string(),
         CertificateType::Ca,
-        "Issuer Alias".to_string(),
         "Alias".to_string(),
     );
     let props_cn = CertificateProperties::new(
         3600,
         "".to_string(),
         CertificateType::Ca,
-        "Issuer Alias".to_string(),
         "Alias".to_string(),
     );
     let props_type = CertificateProperties::new(
         3600,
         "Common Name".to_string(),
         CertificateType::Unknown,
-        "Issuer Alias".to_string(),
-        "Alias".to_string(),
-    );
-    let props_ia = CertificateProperties::new(
-        3600,
-        "Common Name".to_string(),
-        CertificateType::Ca,
-        "".to_string(),
         "Alias".to_string(),
     );
     let props_a = CertificateProperties::new(
         3600,
         "Common Name".to_string(),
         CertificateType::Ca,
-        "Issuer Alias".to_string(),
         "".to_string(),
     );
 
@@ -57,10 +46,6 @@ fn crypto_create_cert_input_fail() {
     }
     match crypto.create_certificate(&props_type) {
         Ok(_) => panic!("Expected an error from bad cert type"),
-        Err(_) => (),
-    }
-    match crypto.create_certificate(&props_ia) {
-        Ok(_) => panic!("Expected an error from bad issuer alias"),
         Err(_) => (),
     }
     match crypto.create_certificate(&props_a) {

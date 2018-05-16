@@ -58,7 +58,6 @@ where
                                     ensure_range!(expiration, 0, i64::max_value()) as u64,
                                     ensure_not_empty!(cert_req.common_name().to_string()),
                                     CertificateType::Server,
-                                    "edgelet-workload-ca".to_string(), //TODO: What should this be?
                                     alias,
                                 );
                                 hsm.create_certificate(&props)

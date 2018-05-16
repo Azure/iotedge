@@ -10,10 +10,13 @@ use edgelet_core::{Certificate as CoreCertificate,
                    GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
                    PrivateKey as CorePrivateKey};
 
+use super::{IOTEDGED_CA, IOTEDGED_COMMONNAME, IOTEDGED_VALIDITY};
 pub use error::{Error, ErrorKind};
 pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
               PrivateKey as HsmPrivateKey};
-use hsm::{CreateCertificate as HsmCreateCertificate, Crypto as HsmCrypto};
+use hsm::{CertificateProperties as HsmCertificateProperties,
+          CertificateType as HsmCertificateType, CreateCertificate as HsmCreateCertificate,
+          Crypto as HsmCrypto};
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
@@ -24,6 +27,16 @@ pub struct Crypto {
 
 impl Crypto {
     pub fn new(crypto: HsmCrypto) -> Result<Crypto, Error> {
+        let edgelet_ca_props = HsmCertificateProperties::new(
+            IOTEDGED_VALIDITY,
+            IOTEDGED_COMMONNAME.to_string(),
+            HsmCertificateType::Ca,
+            crypto.get_device_ca_alias(),
+            IOTEDGED_CA.to_string(),
+        );
+        let _root_cert = crypto
+            .create_certificate(&edgelet_ca_props)
+            .map_err(Error::from)?;
         Ok(Crypto {
             crypto: Arc::new(RwLock::new(crypto)),
         })

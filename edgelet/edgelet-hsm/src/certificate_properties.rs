@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use super::IOTEDGED_CA;
 use edgelet_core::{CertificateProperties as CoreCertificateProperties,
                    CertificateType as CoreCertificateType};
 use hsm::{CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType};
@@ -19,13 +20,14 @@ pub fn convert_properties(core: &CoreCertificateProperties) -> HsmCertificatePro
         *core.validity_in_secs(),
         core.common_name().to_string(),
         convert_certificate_type(core.certificate_type()),
-        core.issuer_alias().to_string(),
+        IOTEDGED_CA.to_string(),
         core.alias().to_string(),
     )
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::IOTEDGED_CA;
     use edgelet_core::{CertificateProperties as CoreCertificateProperties,
                        CertificateType as CoreCertificateType};
     use hsm::{CertificateProperties as HsmCertificateProperties,
@@ -46,7 +48,7 @@ mod tests {
                 assert_eq!(HsmCertificateType::Unknown, *hsm.certificate_type())
             }
         }
-        assert_eq!(core.issuer_alias(), hsm.issuer_alias());
+        assert_eq!(IOTEDGED_CA, hsm.issuer_alias());
         assert_eq!(core.alias(), hsm.alias());
 
         assert_eq!(None, hsm.country());
@@ -66,14 +68,12 @@ mod tests {
             CoreCertificateType::Client,
             CoreCertificateType::Unknown,
         ];
-        let issuer_alias = "issuer_alias".to_string();
         let alias = "alias".to_string();
         for ct in types {
             let core_props = CoreCertificateProperties::new(
                 validity_in_secs,
                 common_name.clone(),
                 ct,
-                issuer_alias.clone(),
                 alias.clone(),
             );
 

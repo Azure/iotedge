@@ -20,7 +20,6 @@ fn crypto_create_cert_success() {
             3600,
             "Common Name".to_string(),
             CertificateType::Ca,
-            "Issuer Alias".to_string(),
             "Alias".to_string(),
         );
 

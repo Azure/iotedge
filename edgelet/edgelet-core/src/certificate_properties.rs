@@ -15,7 +15,6 @@ pub struct CertificateProperties {
     validity_in_secs: u64,
     common_name: String,
     certificate_type: CertificateType,
-    issuer_alias: String,
     alias: String,
 }
 
@@ -24,14 +23,12 @@ impl CertificateProperties {
         validity_in_secs: u64,
         common_name: String,
         certificate_type: CertificateType,
-        issuer_alias: String,
         alias: String,
     ) -> Self {
         CertificateProperties {
             validity_in_secs,
             common_name,
             certificate_type,
-            issuer_alias,
             alias,
         }
     }
@@ -66,15 +63,6 @@ impl CertificateProperties {
         self
     }
 
-    pub fn issuer_alias(&self) -> &str {
-        &self.issuer_alias
-    }
-
-    pub fn with_issuer_alias(mut self, issuer_alias: String) -> CertificateProperties {
-        self.issuer_alias = issuer_alias;
-        self
-    }
-
     pub fn alias(&self) -> &str {
         &self.alias
     }
@@ -95,14 +83,12 @@ mod tests {
             3600,
             "common_name".to_string(),
             CertificateType::Client,
-            "issuer_alias".to_string(),
             "alias".to_string(),
         );
 
         assert_eq!(&3600, c.validity_in_secs());
         assert_eq!("common_name", c.common_name());
         assert_eq!(&CertificateType::Client, c.certificate_type());
-        assert_eq!("issuer_alias", c.issuer_alias());
         assert_eq!("alias", c.alias());
     }
 
@@ -112,18 +98,15 @@ mod tests {
             3600,
             "common_name".to_string(),
             CertificateType::Client,
-            "issuer_alias".to_string(),
             "alias".to_string(),
         ).with_certificate_type(CertificateType::Ca)
             .with_common_name("bafflegab".to_string())
             .with_validity_in_secs(240)
-            .with_issuer_alias("Abraham Lincoln".to_string())
-            .with_alias("Andrew Johson".to_string());
+            .with_alias("Andrew Johnson".to_string());
 
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
-        assert_eq!("Abraham Lincoln", c.issuer_alias());
-        assert_eq!("Andrew Johson", c.alias());
+        assert_eq!("Andrew Johnson", c.alias());
     }
 }

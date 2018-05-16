@@ -71,6 +71,14 @@ impl Crypto {
             Err(ErrorKind::NullResponse)?
         }
     }
+
+    pub fn get_device_ca_alias(&self) -> String {
+        unsafe {
+            CStr::from_ptr(DEVICE_CA_ALIAS)
+                .to_string_lossy()
+                .into_owned()
+        }
+    }
 }
 
 impl Default for Crypto {
