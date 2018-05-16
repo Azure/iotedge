@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
@@ -9,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -25,16 +27,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceId;
         readonly string iotHubHostName;
         readonly string gatewayHostName;
-        readonly string edgeletUrl;
+        readonly Uri managementUri;
+        readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
 
-        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, string edgeletUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
+        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri, Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.edgeletUrl = Preconditions.CheckNonWhiteSpace(edgeletUri, nameof(edgeletUri));
+            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
         }
@@ -47,19 +51,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.edgeletUrl))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
             var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.gatewayHostName);
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.edgeletUrl))
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
             // ICombinedConfigProvider<CombinedDockerConfig>
-            builder.Register(c => new CombinedDockerConfigProvider(this.dockerAuthConfig))
+            builder.Register(c => new CombinedEdgeletConfigProvider(this.dockerAuthConfig, this.workloadUri))
                 .As<ICombinedConfigProvider<CombinedDockerConfig>>()
                 .SingleInstance();
 

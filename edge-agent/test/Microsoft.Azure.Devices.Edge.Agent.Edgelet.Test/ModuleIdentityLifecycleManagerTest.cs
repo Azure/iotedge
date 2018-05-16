@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         const string IothubHostName = "test.azure-devices.net";
         const string DeviceId = "edgeDevice1";
         const string GatewayHostName = "edgedevicehost";
-        const string EdgeletUri = "localhost";
+        readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, GatewayHostName);
 
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.True(modulesIdentities.TryGetValue(Name, out IModuleIdentity moduleIdentity));
             Assert.Equal(moduleIdentity.ModuleId, Name);
             Assert.IsType<IdentityProviderServiceCredentials>(moduleIdentity.Credentials);
-            Assert.Equal(EdgeletUri, ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).ProviderUri);
+            Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).ProviderUri);
             Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).Version);
             Mock.Get(identityManager).Verify();
         }
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.True(moduleIdentities.TryGetValue(Module1, out IModuleIdentity module1Identity));
             Assert.Equal(Module1, module1Identity.ModuleId);
             Assert.IsType<IdentityProviderServiceCredentials>(module1Identity.Credentials);
-            Assert.Equal(EdgeletUri, ((IdentityProviderServiceCredentials)module1Identity.Credentials).ProviderUri);
+            Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).ProviderUri);
             Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).Version);
             Mock.Get(identityManager).Verify();
         }

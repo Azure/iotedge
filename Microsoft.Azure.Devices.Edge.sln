@@ -183,6 +183,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.csproj", "{77CF0F04-0DE0-4D81-93DE-56006D7BE213}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.csproj", "{F8253E40-6EE0-4FFA-BF39-D133A504175E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test.csproj", "{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeCoverage|Any CPU = CodeCoverage|Any CPU
@@ -400,6 +404,18 @@ Global
 		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{77CF0F04-0DE0-4D81-93DE-56006D7BE213}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -460,6 +476,8 @@ Global
 		{3C72C32D-A54D-46E8-AEA5-89BE7FA82F81} = {871A0862-7480-49C3-ACEB-9A60E9CE5B61}
 		{2B10082F-01D6-4708-AA67-0D1C00414A12} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{77CF0F04-0DE0-4D81-93DE-56006D7BE213} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{F8253E40-6EE0-4FFA-BF39-D133A504175E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

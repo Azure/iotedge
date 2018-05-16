@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string IotHubHostName = "iothub.test";
         const string DeviceId = "device1";
         const string ModuleId = "module1";
-        const string IotEdgedUriVariableName = "IOTEDGE_IOTEDGEDURI";
+        const string IotEdgedUriVariableName = "IOTEDGE_WORKLOADURI";
         const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
         const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
         const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             string connectionString = $"HostName={IotHubHostName};DeviceId=device1;SharedAccessKey={this.authKey}";
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
-            
+
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
             IClient client = new ClientProvider().Create(identity, connectionString, transportSettings);
 

@@ -8,11 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         const string DefaultAuthScheme = "sasToken";
 
-        public IdentityProviderServiceCredentials(string providerUri) : this(providerUri, DefaultAuthScheme)
-        {
-        }
-
-        public IdentityProviderServiceCredentials(string providerUri, string authScheme) : this(providerUri, authScheme, Option.None<string>())
+        public IdentityProviderServiceCredentials(string providerUri, string authScheme = DefaultAuthScheme) : this(providerUri, authScheme, Option.None<string>())
         {
         }
 

@@ -47,7 +47,7 @@ use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, Run, API_VERSION};
+use edgelet_http::{ApiVersionService, HyperExt, Run};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -69,14 +69,41 @@ pub use self::error::{Error, ErrorKind};
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
 const AUTH_SCHEME: &str = "sasToken";
+
+/// The following constants are all environment variables names injected into
+/// the Edge Agent container.
+///
+/// This variable holds the host name of the IoT Hub instance that edge agent
+/// is expected to work with.
 const HOSTNAME_KEY: &str = "IOTEDGE_IOTHUBHOSTNAME";
+
+/// This variable holds the host name for the edge device. This name is used
+/// by the edge agent to provide the edge hub container an alias name in the
+/// network so that TLS cert validation works.
 const GATEWAY_HOSTNAME_KEY: &str = "EDGEDEVICEHOSTNAME";
+
+/// This variable holds the IoT Hub device identifier.
 const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
+
+/// This variable holds the IoT Hub module identifier.
 const MODULEID_KEY: &str = "IOTEDGE_MODULEID";
-const WORKLOAD_URI_KEY: &str = "IOTEDGE_IOTEDGEDURI";
-const VERSION_KEY: &str = "IOTEDGE_IOTEDGEDVERSION";
+
+/// This variable holds the URI to use for connecting to the workload endpoint
+/// in iotedged. This is used by the edge agent to connect to the workload API
+/// for its own needs and is also used for volume mounting into module
+/// containers when the URI refers to a Unix domain socket.
+const WORKLOAD_URI_KEY: &str = "IOTEDGE_WORKLOADURI";
+
+/// This variable holds the URI to use for connecting to the management
+/// endpoint in iotedged. This is used by the edge agent for managing module
+/// lifetimes and module identities.
+const MANAGEMENT_URI_KEY: &str = "IOTEDGE_MANAGEMENTURI";
+
+/// This variable holds the authentication scheme that modules are to use when
+/// connecting to other server modules (like Edge Hub). The authentication
+/// scheme can mean either that we are to use SAS tokens or a TLS client cert.
 const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
-const MANAGEMENT_URI_KEY: &str = "MANAGEMENTURI";
+
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
 const UNIX_SCHEME: &str = "unix";
@@ -282,12 +309,11 @@ fn build_env(
         WORKLOAD_URI_KEY.to_string(),
         settings.workload_uri().to_string(),
     );
-    env.insert(VERSION_KEY.to_string(), API_VERSION.to_string());
-    env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
         MANAGEMENT_URI_KEY.to_string(),
         settings.management_uri().to_string(),
     );
+    env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
 
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());

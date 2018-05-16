@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     /// <summary>
     /// This implementation combines docker image and docker create
     /// options from the module, and the registry credentials from the runtime info or environment
-    /// and returns them. 
+    /// and returns them.
     /// </summary>
     public class CombinedDockerConfigProvider : ICombinedConfigProvider<CombinedDockerConfig>
     {
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.authConfigs = Preconditions.CheckNotNull(authConfigs, nameof(authConfigs));
         }
 
-        public CombinedDockerConfig GetCombinedConfig(IModule module, IRuntimeInfo runtimeInfo)
+        public virtual CombinedDockerConfig GetCombinedConfig(IModule module, IRuntimeInfo runtimeInfo)
         {
             if (!(module is IModule<DockerConfig> moduleWithDockerConfig))
             {
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // First try to get matching auth config from the runtime info. If no match is found,
             // then try the auth configs from the environment
             Option<AuthConfig> authConfig = deploymentAuthConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image)
-                .Else(() => authConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image));
+                .Else(() => this.authConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image));
 
             return new CombinedDockerConfig(moduleWithDockerConfig.Config.Image, moduleWithDockerConfig.Config.CreateOptions, authConfig);
         }

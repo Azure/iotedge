@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         readonly EdgeletHttpClient edgeletHttpClient;
-        readonly string edgeletUrl;
+        readonly Uri managementUri;
 
-        public ModuleManagementHttpClient(string edgeletUrl)
+        public ModuleManagementHttpClient(Uri managementUri)
         {
-            this.edgeletUrl = Preconditions.CheckNotNull(edgeletUrl, nameof(edgeletUrl));
-            this.edgeletHttpClient = new EdgeletHttpClient { BaseUrl = this.edgeletUrl.ToString() };
+            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.edgeletHttpClient = new EdgeletHttpClient { BaseUrl = this.managementUri.ToString() };
         }
 
         public Task<Identity> CreateIdentityAsync(string name) => this.Execute(
@@ -87,9 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             try
             {
-                Events.ExecutingOperation(operation, this.edgeletUrl);
-                T result = await ExecuteWithRetry(func, (r) => Events.RetryingOperation(operation, this.edgeletUrl, r));
-                Events.SuccessfullyExecutedOperation(operation, this.edgeletUrl);
+                Events.ExecutingOperation(operation, this.managementUri.ToString());
+                T result = await ExecuteWithRetry(func, (r) => Events.RetryingOperation(operation, this.managementUri.ToString(), r));
+                Events.SuccessfullyExecutedOperation(operation, this.managementUri.ToString());
                 return result;
             }
             catch (Exception ex)

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         readonly Lazy<string> id;
         readonly bool isUpdate;
 
-        public CreateOrUpdateCommand(IModuleManager moduleManager, ModuleSpec moduleSpec, bool isUpdate)
+        CreateOrUpdateCommand(IModuleManager moduleManager, ModuleSpec moduleSpec, bool isUpdate)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.moduleSpec = Preconditions.CheckNotNull(moduleSpec, nameof(moduleSpec));
@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         public string Id => this.id.Value;
 
         public Task ExecuteAsync(CancellationToken token) => !this.isUpdate
-            ? this.moduleManager.CreateModuleAsync(moduleSpec)
-            : this.moduleManager.UpdateModuleAsync(moduleSpec);
+            ? this.moduleManager.CreateModuleAsync(this.moduleSpec)
+            : this.moduleManager.UpdateModuleAsync(this.moduleSpec);
 
         public string Show() => !this.isUpdate
             ? $"Create module {this.moduleSpec.Name}"
@@ -78,10 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             {
                 if (!string.IsNullOrWhiteSpace(creds.ProviderUri))
                 {
-                    envVars.Add(new EnvVar { Key = Constants.EdgeletUriVariableName, Value = creds.ProviderUri });
+                    envVars.Add(new EnvVar { Key = Constants.EdgeletWorkloadUriVariableName, Value = creds.ProviderUri });
                 }
-
-                creds.Version.ForEach(v => envVars.Add(new EnvVar { Key = Constants.EdgeletVersionVariableName, Value = v }));
 
                 if (!string.IsNullOrWhiteSpace(creds.AuthScheme))
                 {

@@ -15,13 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
-        readonly string edgeletUri;
+        readonly Uri workloadUri;
 
-        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, string edgeletUri)
+        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
             this.identityProviderServiceBuilder = Preconditions.CheckNotNull(identityProviderServiceBuilder, nameof(identityProviderServiceBuilder));
-            this.edgeletUri = Preconditions.CheckNonWhiteSpace(edgeletUri, nameof(edgeletUri));
+            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
         }
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
@@ -52,6 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         }
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>
-            this.identityProviderServiceBuilder.Create(identity.ModuleId, this.edgeletUri);
+            this.identityProviderServiceBuilder.Create(identity.ModuleId, this.workloadUri.ToString());
     }
 }

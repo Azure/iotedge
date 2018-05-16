@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
 
         /// <summary>Create module.</summary>
         /// <param name="api_version">The version of the API.</param>
+        /// <param name="module"></param>
         /// <returns>Created</returns>
         System.Threading.Tasks.Task<ModuleSpec> CreateModuleAsync(string api_version, ModuleSpec module);
 
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <summary>Update a module.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <param name="module"></param>
         /// <returns>Ok</returns>
         System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, ModuleSpec module);
 
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <summary>Create or update an identity.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the identity to create/update. (urlencoded)</param>
+        /// <param name="identity"></param>
         /// <returns>Updated</returns>
         System.Threading.Tasks.Task<Identity> CreateIdentityAsync(string api_version, string name, IdentitySpec identity);
 
@@ -97,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
 
         /// <summary>Create module.</summary>
         /// <param name="api_version">The version of the API.</param>
+        /// <param name="module"></param>
         /// <returns>Created</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("modules")]
         public async System.Threading.Tasks.Task<AspNetCore.Mvc.IActionResult> CreateModule(string api_version, [Microsoft.AspNetCore.Mvc.FromBody] ModuleSpec module)
@@ -118,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <summary>Update a module.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <param name="module"></param>
         /// <returns>Ok</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("modules/{name}")]
         public System.Threading.Tasks.Task<ModuleDetails> UpdateModule(string api_version, string name, [Microsoft.AspNetCore.Mvc.FromBody] ModuleSpec module)
@@ -180,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <summary>Create or update an identity.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the identity to create/update. (urlencoded)</param>
+        /// <param name="identity"></param>
         /// <returns>Updated</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("identities/{name}")]
         public System.Threading.Tasks.Task<Identity> CreateIdentity(string api_version, string name, [Microsoft.AspNetCore.Mvc.FromBody] IdentitySpec identity)

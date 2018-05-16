@@ -50,9 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ModuleIdentityEdgeManagedByValue = "IotEdge";
 
-        public const string EdgeletUriVariableName = "IOTEDGE_IOTEDGEDURI";
+        public const string EdgeletManagementUriVariableName = "IOTEDGE_MANAGEMENTURI";
 
-        public const string EdgeletVersionVariableName = "IOTEDGE_IOTEDGEDVERSION";
+        public const string EdgeletWorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
 
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
 

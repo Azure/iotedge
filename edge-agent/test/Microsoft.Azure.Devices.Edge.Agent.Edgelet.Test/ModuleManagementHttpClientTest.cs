@@ -14,11 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     [Unit]
     public class ModuleManagementHttpClientTest : IClassFixture<EdleletFixture>
     {
-        string serverUrl;
+        Uri serverUrl;
 
         public ModuleManagementHttpClientTest(EdleletFixture edleletFixture)
         {
-            this.serverUrl = edleletFixture.ServiceUrl;
+            this.serverUrl = new Uri(edleletFixture.ServiceUrl);
         }
 
         [Fact]
