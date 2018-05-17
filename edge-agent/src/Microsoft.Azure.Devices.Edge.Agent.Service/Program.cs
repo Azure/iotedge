@@ -58,8 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             string mode;
             Uri dockerUri;
-            Uri managementUri;
-            Uri workloadUri;
+            string managementUri;
+            string workloadUri;
             string configSourceConfig;
             string backupConfigFilePath;
             int maxRestartCount;
@@ -76,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 mode = configuration.GetValue("Mode", "docker");
                 dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
-                managementUri = new Uri(configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName));
-                workloadUri = new Uri(configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
+                managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
+                workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case "iotedged":
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, managementUri, workloadUri, dockerAuthConfig, upstreamProtocol));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol));
                         break;
 
                     default:
