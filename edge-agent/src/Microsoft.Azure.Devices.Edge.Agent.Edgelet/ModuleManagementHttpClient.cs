@@ -4,12 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Edge.Util.Uds;
     using Microsoft.Extensions.Logging;
 
     public class ModuleManagementHttpClient : IModuleManager, IIdentityManager
@@ -18,63 +20,109 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
-
-        readonly EdgeletHttpClient edgeletHttpClient;
         readonly Uri managementUri;
 
         public ModuleManagementHttpClient(Uri managementUri)
         {
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
-            this.edgeletHttpClient = new EdgeletHttpClient { BaseUrl = this.managementUri.ToString() };
         }
 
-        public Task<Identity> CreateIdentityAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.CreateIdentityAsync(ApiVersion, name, new IdentitySpec { ModuleId = name }),
-                $"Create identity for {name}");
+        public async Task<Identity> CreateIdentityAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, name, new IdentitySpec { ModuleId = name }), $"Create identity for {name}");
+                return identity;
+            }
+        }
 
-        public Task DeleteIdentityAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.DeleteIdentityAsync(ApiVersion, name),
-                $"Delete identity for {name}");
+        public async Task DeleteIdentityAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.DeleteIdentityAsync(ApiVersion, name), $"Delete identity for {name}");
+            }
+        }
 
         public async Task<IEnumerable<Identity>> GetIdentities()
         {
-            IdentityList identityList = await this.Execute(
-                () => this.edgeletHttpClient.ListIdentitiesAsync(ApiVersion),
-                $"List identities");
-            return identityList.Identities;
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                IdentityList identityList = await this.Execute(() => edgeletHttpClient.ListIdentitiesAsync(ApiVersion), $"List identities");
+                return identityList.Identities;
+            }
         }
 
-        public Task CreateModuleAsync(ModuleSpec moduleSpec) => this.Execute(
-                () => this.edgeletHttpClient.CreateModuleAsync(ApiVersion, moduleSpec),
-                $"Create module {moduleSpec.Name}");
+        public async Task CreateModuleAsync(ModuleSpec moduleSpec)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.CreateModuleAsync(ApiVersion, moduleSpec), $"Create module {moduleSpec.Name}");
+            }
+        }
 
-        public Task DeleteModuleAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.DeleteModuleAsync(ApiVersion, name),
-                $"Create module {name}");
+        public async Task DeleteModuleAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.DeleteModuleAsync(ApiVersion, name), $"Create module {name}");
+            }
+        }
 
-        public Task RestartModuleAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.RestartModuleAsync(ApiVersion, name),
-                $"Create module {name}");
+        public async Task RestartModuleAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(
+                    () => edgeletHttpClient.RestartModuleAsync(ApiVersion, name),
+                    $"Create module {name}");
+            }
+        }
 
         public async Task<IEnumerable<ModuleDetails>> GetModules(CancellationToken cancellationToken)
         {
-            ModuleList moduleList = await this.Execute(
-                () => this.edgeletHttpClient.ListModulesAsync(ApiVersion, cancellationToken),
-                $"List modules");
-            return moduleList.Modules;
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                ModuleList moduleList = await this.Execute(
+                    () => edgeletHttpClient.ListModulesAsync(ApiVersion, cancellationToken),
+                    $"List modules");
+                return moduleList.Modules;
+            }
         }
 
-        public Task StartModuleAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.StartModuleAsync(ApiVersion, name),
-                $"start module {name}");
+        public async Task StartModuleAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.StartModuleAsync(ApiVersion, name), $"start module {name}");
+            }
+        }
 
-        public Task StopModuleAsync(string name) => this.Execute(
-                () => this.edgeletHttpClient.StopModuleAsync(ApiVersion, name),
-                $"stop module {name}");
+        public async Task StopModuleAsync(string name)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.StopModuleAsync(ApiVersion, name), $"stop module {name}");
+            }
+        }
 
-        public Task UpdateModuleAsync(ModuleSpec moduleSpec) => this.Execute(
-                () => this.edgeletHttpClient.UpdateModuleAsync(ApiVersion, moduleSpec.Name, moduleSpec),
-                $"update module {moduleSpec.Name}");
+        public async Task UpdateModuleAsync(ModuleSpec moduleSpec)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(ApiVersion, moduleSpec.Name, moduleSpec), $"update module {moduleSpec.Name}");
+            }
+        }
 
         Task Execute(Func<Task> func, string operation) =>
             this.Execute<int>(async () =>

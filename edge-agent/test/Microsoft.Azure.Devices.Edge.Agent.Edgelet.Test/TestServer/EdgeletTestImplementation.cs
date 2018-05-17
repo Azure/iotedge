@@ -16,10 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
         public Task<Identity> CreateIdentityAsync(string api_version, string name, IdentitySpec identity) =>
             Task.FromResult(this.identities.GetOrAdd(name, (n) => new Identity { ModuleId = n, ManagedBy = "IotEdge", GenerationId = Guid.NewGuid().ToString() }));
 
-        public Task<ModuleSpec> CreateModuleAsync(string api_version, ModuleSpec module)
+        public Task<ModuleDetails> CreateModuleAsync(string api_version, ModuleSpec module)
         {
-            this.modules.GetOrAdd(module.Name, (n) => GetModuleDetails(module));
-            return Task.FromResult(module);
+            ModuleDetails createdModule = this.modules.GetOrAdd(module.Name, (n) => GetModuleDetails(module));
+            return Task.FromResult(createdModule);
         }
 
         static ModuleDetails GetModuleDetails(ModuleSpec moduleSpec)

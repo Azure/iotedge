@@ -17,16 +17,16 @@ use serde_json::Value;
 pub struct GraphDriverData {
     #[serde(rename = "Name")]
     name: String,
-    #[serde(rename = "Data")]
-    data: ::std::collections::HashMap<String, String>,
+    #[serde(rename = "Data", skip_serializing_if = "Option::is_none")]
+    data: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl GraphDriverData {
     /// Information about a container's graph driver.
-    pub fn new(name: String, data: ::std::collections::HashMap<String, String>) -> GraphDriverData {
+    pub fn new(name: String) -> GraphDriverData {
         GraphDriverData {
             name: name,
-            data: data,
+            data: None,
         }
     }
 
@@ -44,18 +44,18 @@ impl GraphDriverData {
     }
 
     pub fn set_data(&mut self, data: ::std::collections::HashMap<String, String>) {
-        self.data = data;
+        self.data = Some(data);
     }
 
     pub fn with_data(
         mut self,
         data: ::std::collections::HashMap<String, String>,
     ) -> GraphDriverData {
-        self.data = data;
+        self.data = Some(data);
         self
     }
 
-    pub fn data(&self) -> &::std::collections::HashMap<String, String> {
-        &self.data
+    pub fn data(&self) -> Option<&::std::collections::HashMap<String, String>> {
+        self.data.as_ref()
     }
 }
