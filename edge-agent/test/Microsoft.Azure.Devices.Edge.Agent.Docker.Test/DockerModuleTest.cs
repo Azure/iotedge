@@ -255,17 +255,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Configuration"": {
             ""id"": ""1""
          }
-      },
-      {
-         ""Version"":""<semantic_version_number>"",
-         ""Type"":""docker"",
-         ""Status"":""running"",
-         ""Settings"":{
-
-         },
-         ""Configuration"": {
-            ""id"": ""1""
-         }
       }
    ],
    ""statusJson"":[
@@ -383,6 +372,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [MemberData(nameof(GetExceptionJsonInputs))]
         public void TestDeserializeExceptionJson(string inputJson)
         {
+            /*
+             * Removed from json inputs because "settings" is no longer required to have "image" and "createOptions":
+             * {
+             *   ""Version"":""<semantic_version_number>"",
+             *   ""Type"":""docker"",
+             *   ""Status"":""running"",
+             *   ""Settings"":{},
+             *   ""Configuration"": {
+             *   ""id"": ""1""
+             *   }
+             * }
+             */
             Assert.Throws<JsonSerializationException>(() => ModuleSerde.Instance.Deserialize<DockerModule>(inputJson));
         }
 

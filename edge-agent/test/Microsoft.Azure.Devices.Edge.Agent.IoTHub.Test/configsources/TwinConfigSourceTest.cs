@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             // Arrange
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "$edgeHub");
-            var edgeAgentModule = Mock.Of<IEdgeAgentModule>();
+            var edgeAgentModule = Mock.Of<IEdgeAgentModule>(m => m.Name == "$edgeAgent");
             var systemModules = new SystemModules(edgeAgentModule, edgeHubModule);
             string customModule1Name = null;
             string customModule2Name = null;
@@ -71,10 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
             Assert.Equal(Option.Some(edgeAgentModule), returnedDeploymentConfig.SystemModules.EdgeAgent);
             Assert.Equal(Option.Some(edgeHubModule), returnedDeploymentConfig.SystemModules.EdgeHub);
             ModuleSet moduleSet = returnedDeploymentConfig.GetModuleSet();
-            Assert.Equal(3, returnedDeploymentConfig.GetModuleSet().Modules.Count);
+            Assert.Equal(4, returnedDeploymentConfig.GetModuleSet().Modules.Count);
             Assert.Equal(customModule1.Name, moduleSet.Modules["module1"].Name);
             Assert.Equal(customModule2.Name, moduleSet.Modules["module2"].Name);
             Assert.Equal(edgeHubModule.Name, moduleSet.Modules["$edgeHub"].Name);
+            Assert.Equal(edgeAgentModule.Name, moduleSet.Modules["$edgeAgent"].Name);
             Assert.Equal("module1", customModule1Name);
             Assert.Equal("module2", customModule2Name);
         }

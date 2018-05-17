@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<Client.ITransportSettings[]>()))
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(client);
 
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<Client.ITransportSettings[]>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -355,8 +355,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string receivedConnStr = null;
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<Client.ITransportSettings[]>()))
-                .Callback<string, Client.ITransportSettings[]>((s, t) => receivedConnStr = s)
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
+                .Callback<IIdentity, string, Client.ITransportSettings[]>((i, s, t) => receivedConnStr = s)
                 .Returns(() => GetDeviceClient());
 
             var cloudConnectionProvider = new CloudConnectionProvider(messageConverterProvider, 1, deviceClientProvider.Object, Option.None<UpstreamProtocol>());
@@ -392,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<Client.ITransportSettings[]>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<Client.ITransportSettings[]>()))
                 .Returns(GetDeviceClient())
                 .Throws(new UnauthorizedException("connstr2 is invalid!"))
                 .Throws(new UnauthorizedException("connstr2 is invalid!"));
