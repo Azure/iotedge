@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IAuthenticationMethod authenticationMethod = null;
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
-                .Callback<string, IAuthenticationMethod, ITransportSettings[]>((s, a, t) => authenticationMethod = a)
+                .Callback<IIdentity, IAuthenticationMethod, ITransportSettings[]>((s, a, t) => authenticationMethod = a)
                 .Returns(() => GetMockedDeviceClient());
 
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
@@ -323,16 +323,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static IClientProvider GetMockDeviceClientProviderWithKey()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<string>(), It.IsAny<ITransportSettings[]>()))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }
 
-        static IClientProvider GetMockDeviceClientProviderWithToken(Action<string, IAuthenticationMethod, ITransportSettings[]> callback = null)
+        static IClientProvider GetMockDeviceClientProviderWithToken(Action<IIdentity, IAuthenticationMethod, ITransportSettings[]> callback = null)
         {
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<IAuthenticationMethod>(), It.IsAny<ITransportSettings[]>()))
-                .Callback<string, IAuthenticationMethod, ITransportSettings[]>((c, a, t) => callback?.Invoke(c, a, t))
+                .Callback<IIdentity, IAuthenticationMethod, ITransportSettings[]>((c, a, t) => callback?.Invoke(c, a, t))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }

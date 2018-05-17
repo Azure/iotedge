@@ -33,8 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             ModuleSet moduleSet = deploymentConfig.GetModuleSet();
             Assert.NotNull(moduleSet);
-            Assert.Equal(3, moduleSet.Modules.Count);
+            Assert.Equal(4, moduleSet.Modules.Count);
             Assert.Equal(edgeHubModule.Name, moduleSet.Modules["edgeHub"].Name);
+            Assert.Equal(edgeAgentModule.Name, moduleSet.Modules["edgeAgent"].Name);
             Assert.Equal(modules["mod1"].Name, moduleSet.Modules["mod1"].Name);
             Assert.Equal(modules["mod2"].Name, moduleSet.Modules["mod2"].Name);
         }

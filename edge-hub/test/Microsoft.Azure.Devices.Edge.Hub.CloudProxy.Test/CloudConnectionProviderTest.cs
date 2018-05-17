@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -26,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(MessageConverterProvider, ConnectionPoolSize, new ClientProvider(), Option.None<UpstreamProtocol>());
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("device1ConnStrKey");
-            var deviceIdentity = Mock.Of<IIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == ConnectionStringHelper.GetDeviceId(deviceConnectionString));
             var clientCredentials = new SharedKeyCredentials(deviceIdentity, deviceConnectionString, null);
             Try<ICloudConnection> cloudProxy = cloudConnectionProvider.Connect(clientCredentials, null).Result;
             Assert.True(cloudProxy.Success);

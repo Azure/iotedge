@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string IotHubHostName = "iothub.test";
         const string DeviceId = "device1";
         const string ModuleId = "module1";
-        const string IotEdgedUriVariableName = "IOTEDGE_WORKLOADURI";
+        const string IotEdgedUriVariableName = "IOTEDGE_IOTEDGEDURI";
         const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
         const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
         const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
