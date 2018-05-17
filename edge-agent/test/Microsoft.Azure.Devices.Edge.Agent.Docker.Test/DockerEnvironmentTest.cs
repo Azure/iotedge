@@ -7,27 +7,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Configuration;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
+    using RestartPolicy = Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy;
 
     [Collection("Docker")]
     public class DockerEnvironmentTest
     {
-        static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
-        static readonly IDockerClient Client = DockerHelper.Client;
-        static readonly IEntityStore<string, ModuleState> RestartStateStore = new Mock<IEntityStore<string, ModuleState>>().Object;
-        static readonly IRestartPolicyManager RestartManager = new Mock<IRestartPolicyManager>().Object;
         const string OperatingSystemType = "linux";
         const string Architecture = "x86_x64";
-
 
         [Fact]
         [Unit]
@@ -95,8 +89,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public async Task GetModulesTest()
         {
             // Arrange            
-            var store = Mock.Of<IEntityStore<string, ModuleState>>();
-            var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
+            var restartPolicyManager = new Mock<IRestartPolicyManager>();
+            restartPolicyManager.Setup(
+                    r => r.ComputeModuleStatusFromRestartPolicy(
+                        It.IsAny<ModuleStatus>(),
+                        It.IsAny<RestartPolicy>(),
+                        It.IsAny<int>(),
+                        It.IsAny<DateTime>()))
+                .Returns<ModuleStatus, RestartPolicy, int, DateTime>((m, r, c, d) => m);
 
             string module1Hash = Guid.NewGuid().ToString();
             string module2Hash = Guid.NewGuid().ToString();
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new SystemModules(edgeAgentModule, edgeHubModule),
                 new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2 });
 
-            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager, OperatingSystemType, Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture);
 
             // act
             ModuleSet moduleSet = await environment.GetModulesAsync(CancellationToken.None);
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(new DateTime(2017, 10, 10), receivedDockerModule1.LastStartTimeUtc);
             Assert.Equal(DateTime.MinValue, receivedDockerModule1.LastExitTimeUtc);
             Assert.Equal(new DateTime(2017, 10, 13), receivedDockerModule1.LastRestartTimeUtc);
-            Assert.Equal(module1Hash, (receivedDockerModule1.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal(module1Hash, (receivedDockerModule1.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(1, receivedDockerModule1.RestartCount);
 
             var receivedDockerModule2 = receivedModule2 as DockerRuntimeModule;
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(new DateTime(2017, 10, 12), receivedDockerModule2.LastStartTimeUtc);
             Assert.Equal(new DateTime(2017, 10, 14), receivedDockerModule2.LastExitTimeUtc);
             Assert.Equal(new DateTime(2017, 10, 13), receivedDockerModule2.LastRestartTimeUtc);
-            Assert.Equal(module2Hash, (receivedDockerModule2.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal(module2Hash, (receivedDockerModule2.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(2, receivedDockerModule2.RestartCount);
 
             var receivedDockerEdgeHub = receivedEdgeHub as EdgeHubDockerRuntimeModule;
@@ -219,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(new DateTime(2017, 10, 10), receivedDockerEdgeHub.LastStartTimeUtc);
             Assert.Equal(DateTime.MinValue, receivedDockerEdgeHub.LastExitTimeUtc);
             Assert.Equal(new DateTime(2017, 10, 13), receivedDockerEdgeHub.LastRestartTimeUtc);
-            Assert.Equal(edgeHubHash, (receivedDockerEdgeHub.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal(edgeHubHash, (receivedDockerEdgeHub.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(3, receivedDockerEdgeHub.RestartCount);
 
             var receivedDockerEdgeAgent = receivedEdgeAgent as EdgeAgentDockerRuntimeModule;
@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal("edgeAgent:v1", receivedDockerEdgeAgent.Config.Image);
             Assert.Equal("{}", JsonConvert.SerializeObject(receivedDockerEdgeAgent.Config.CreateOptions));
             Assert.Equal(new DateTime(2017, 10, 10), receivedDockerEdgeAgent.LastStartTimeUtc);
-            Assert.Equal(edgeAgentHash, (receivedDockerEdgeAgent.Config as DockerReportedConfig).ImageHash);
+            Assert.Equal(edgeAgentHash, (receivedDockerEdgeAgent.Config as DockerReportedConfig)?.ImageHash);
         }
     }
 }
