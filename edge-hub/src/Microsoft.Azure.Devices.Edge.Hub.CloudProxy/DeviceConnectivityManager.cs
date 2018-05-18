@@ -80,6 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .OnEntry(this.OnDisconnected)
                 .OnExit(this.OnDisconnectedExit);
 
+            this.state = State.Trying;
+
             Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
         }
 

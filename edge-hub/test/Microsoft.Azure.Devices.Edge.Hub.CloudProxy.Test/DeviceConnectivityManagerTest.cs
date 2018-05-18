@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task NoEventsTest()
         {
             // Arrange / act
-            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
 
             var client = new Mock<IClient>();
             client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
@@ -35,13 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceConnectivityManager.DeviceDisconnected += (_, __) => connected = false;
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.True(connected);
 
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(connected);
 
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.True(connected);
         }
 
