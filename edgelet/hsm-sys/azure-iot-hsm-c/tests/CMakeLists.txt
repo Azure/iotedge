@@ -14,3 +14,7 @@ add_subdirectory(edge_hsm_sas_auth_int)
 add_subdirectory(edge_hsm_util_int)
 add_subdirectory(edge_hsm_crypto_ut)
 #add_subdirectory(edge_hsm_crypto_int)
+# todo modify condition to check for openssl feature
+if(UNIX)
+    add_subdirectory(edge_openssl_int)
+endif(UNIX)

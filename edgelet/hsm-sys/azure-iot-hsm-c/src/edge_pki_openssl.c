@@ -1,5 +1,8 @@
 #include <stdbool.h>
 #include <openssl/asn1.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/ec.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
@@ -24,6 +27,8 @@
 #define MAX_SUBJECT_FIELD_SIZE 3
 // per RFC3280 state and locality have lengths of 128, +1 for null term
 #define MAX_SUBJECT_VALUE_SIZE 129
+
+#define DEFAULT_EC_CURVE_NAME "secp256k1"
 
 struct SUBJECT_FIELD_OFFSET_TAG
 {
@@ -79,8 +84,6 @@ int cert_key_derive_and_sign
     LOG_ERROR("Derive and sign for cert keys is not supported");
     return 1;
 }
-
-
 
 static int cert_key_verify
 (
@@ -207,7 +210,7 @@ static EVP_PKEY* generate_rsa_key(CERTIFICATE_TYPE cert_type)
     return pkey;
 }
 
-static EVP_PKEY* generate_ecc_key(const char* ecc_type)
+static EVP_PKEY* generate_ecc_key(const char *ecc_type)
 {
     EC_KEY* ecc_key;
     EVP_PKEY *evp_key;
@@ -245,18 +248,32 @@ static EVP_PKEY* generate_ecc_key(const char* ecc_type)
     return evp_key;
 }
 
-static EVP_PKEY* generate_evp_key(CERTIFICATE_TYPE cert_type, X509* issuer_cert)
+static EVP_PKEY* generate_evp_key
+(
+    CERTIFICATE_TYPE cert_type,
+    X509* issuer_cert,
+    const PKI_KEY_PROPS *key_props
+)
 {
     EVP_PKEY *evp_key;
-    EVP_PKEY *evp_pub_key = NULL;
 
     if (issuer_cert == NULL)
     {
-        // by default use RSA keys if no issuer cert was provided
-        evp_key = generate_rsa_key(cert_type);
+        if ((key_props != NULL) && (key_props->key_type == HSM_PKI_KEY_EC))
+        {
+            const char *curve = (key_props->ec_curve_name != NULL) ? key_props->ec_curve_name :
+                                                                     DEFAULT_EC_CURVE_NAME;
+            evp_key = generate_ecc_key(curve);
+        }
+        else
+        {
+            // by default use RSA keys if no issuer cert or key properties was provided
+            evp_key = generate_rsa_key(cert_type);
+        }
     }
     else
     {
+        EVP_PKEY *evp_pub_key = NULL;
         // read the public key from the issuer certificate and determine the type
         // of key used and then generate the appropriate type of key
         if ((evp_pub_key = X509_get_pubkey(issuer_cert)) == NULL)
@@ -283,6 +300,7 @@ static EVP_PKEY* generate_evp_key(CERTIFICATE_TYPE cert_type, X509* issuer_cert)
                     LOG_INFO("Generating ECC Key size: %d bits. ECC Key type: %s",
                              EVP_PKEY_bits(evp_pub_key), curve_name);
                     evp_key = generate_ecc_key(curve_name);
+                    EC_KEY_free(ecc_key);
                 }
                 break;
 
@@ -290,6 +308,7 @@ static EVP_PKEY* generate_evp_key(CERTIFICATE_TYPE cert_type, X509* issuer_cert)
                     LOG_ERROR("Unsupported key type %d", key_type);
                     evp_key = NULL;
             };
+            EVP_PKEY_free(evp_pub_key);
         }
     }
 
@@ -670,8 +689,9 @@ static int generate_cert_key
 (
     CERTIFICATE_TYPE type,
     X509* issuer_certificate,
-    const char* key_file_name,
-    EVP_PKEY** result_evp_key
+    const char *key_file_name,
+    EVP_PKEY **result_evp_key,
+    const PKI_KEY_PROPS *key_props
 )
 {
     int result;
@@ -684,7 +704,7 @@ static int generate_cert_key
         LOG_ERROR("Error invalid certificate type", type);
         result = __FAILURE__;
     }
-    else if ((evp_key = generate_evp_key(type, issuer_certificate)) == NULL)
+    else if ((evp_key = generate_evp_key(type, issuer_certificate, key_props)) == NULL)
     {
         LOG_ERROR("Error opening \"%s\" for writing.", key_file_name);
         result = __FAILURE__;
@@ -771,14 +791,15 @@ static int generate_evp_certificate
     return result;
 }
 
-int generate_pki_cert_and_key
+static int generate_pki_cert_and_key_helper
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_number,
     const char* key_file_name,
     const char* cert_file_name,
     const char* issuer_key_file,
-    const char* issuer_certificate_file
+    const char* issuer_certificate_file,
+    const PKI_KEY_PROPS *key_props
 )
 {
     int result;
@@ -786,7 +807,15 @@ int generate_pki_cert_and_key
     const char* prop_value;
     X509* issuer_certificate = NULL;
     EVP_PKEY* issuer_evp_key = NULL;
+    static bool is_openssl_initialized = false;
 
+    if (!is_openssl_initialized)
+    {
+        OpenSSL_add_all_algorithms();
+        ERR_load_BIO_strings();
+        ERR_load_crypto_strings();
+        is_openssl_initialized = true;
+    }
     if (cert_props_handle == NULL)
     {
         LOG_ERROR("Failure saving x509 certificate");
@@ -835,7 +864,7 @@ int generate_pki_cert_and_key
             EVP_PKEY* evp_key = NULL;
             CERTIFICATE_TYPE type = get_certificate_type(cert_props_handle);
 
-            if (generate_cert_key(type, issuer_certificate, key_file_name, &evp_key) != 0)
+            if (generate_cert_key(type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
             {
                 LOG_ERROR("Could not generate private key for certificate create request");
                 result = __FAILURE__;
@@ -859,7 +888,67 @@ int generate_pki_cert_and_key
         }
     }
 
+    if (issuer_certificate != NULL)
+    {
+        X509_free(issuer_certificate);
+    }
+    if (issuer_evp_key != NULL)
+    {
+        destroy_evp_key(issuer_evp_key);
+    }
+
     return result;
+}
+
+int generate_pki_cert_and_key_with_props
+(
+    CERT_PROPS_HANDLE cert_props_handle,
+    int serial_number,
+    const char* key_file_name,
+    const char* cert_file_name,
+    const PKI_KEY_PROPS *key_props
+)
+{
+    int result;
+
+    if ((key_props != NULL) &&
+        (key_props->key_type != HSM_PKI_KEY_EC) &&
+        (key_props->key_type != HSM_PKI_KEY_RSA))
+    {
+        LOG_ERROR("Invalid PKI key properties");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = generate_pki_cert_and_key_helper(cert_props_handle,
+                                                  serial_number,
+                                                  key_file_name,
+                                                  cert_file_name,
+                                                  NULL,
+                                                  NULL,
+                                                  key_props);
+    }
+
+    return result;
+}
+
+int generate_pki_cert_and_key
+(
+    CERT_PROPS_HANDLE cert_props_handle,
+    int serial_number,
+    const char* key_file_name,
+    const char* cert_file_name,
+    const char* issuer_key_file,
+    const char* issuer_certificate_file
+)
+{
+    return generate_pki_cert_and_key_helper(cert_props_handle,
+                                            serial_number,
+                                            key_file_name,
+                                            cert_file_name,
+                                            issuer_key_file,
+                                            issuer_certificate_file,
+                                            NULL);
 }
 
 KEY_HANDLE create_cert_key(const char* key_file_name)

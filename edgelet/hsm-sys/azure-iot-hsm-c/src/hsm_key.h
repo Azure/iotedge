@@ -13,6 +13,20 @@ extern "C" {
 #include "azure_c_shared_utility/umock_c_prod.h"
 #include "hsm_client_store.h"
 
+enum HSM_PKI_KEY_T_TAG
+{
+    HSM_PKI_KEY_RSA,
+    HSM_PKI_KEY_EC
+};
+typedef enum HSM_PKI_KEY_T_TAG HSM_PKI_KEY_T;
+
+struct PKI_KEY_PROPS_TAG
+{
+    HSM_PKI_KEY_T key_type;
+    const char *ec_curve_name;
+};
+typedef struct PKI_KEY_PROPS_TAG PKI_KEY_PROPS;
+
 static inline int key_sign
 (
     KEY_HANDLE key_handle,
@@ -125,6 +139,10 @@ MOCKABLE_FUNCTION(, void, destroy_sas_key, KEY_HANDLE, key_handle);
 MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key, CERT_PROPS_HANDLE, cert_props_handle,
                     int, serial_number, const char*, key_file_name, const char*, cert_file_name,
                     const char*, issuer_key_file, const char*, issuer_certificate_file);
+MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key_with_props, CERT_PROPS_HANDLE, cert_props_handle,
+                    int, serial_number, const char*, key_file_name, const char*, cert_file_name,
+                    const PKI_KEY_PROPS*, key_props);
+
 MOCKABLE_FUNCTION(, KEY_HANDLE, create_cert_key, const char*, key_file_name);
 MOCKABLE_FUNCTION(, void, destroy_cert_key, KEY_HANDLE, key_handle);
 

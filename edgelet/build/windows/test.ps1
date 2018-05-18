@@ -15,6 +15,9 @@ Assert-Rust
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
 
+$env:OPENSSL_ROOT_DIR = "C:\\vcpkg\\packages\\openssl_x86-windows"
+ Write-Host "OpenSSL Root Dir $env:OPENSSL_ROOT_DIR"
+
 Write-Host "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 if ($LastExitCode)
