@@ -85,6 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 {
                     envVars.Add(new EnvVar { Key = Constants.EdgeletAuthSchemeVariableName, Value = creds.AuthScheme });
                 }
+
+                if (!string.IsNullOrWhiteSpace(creds.ModuleGenerationId))
+                {
+                    envVars.Add(new EnvVar { Key = Constants.EdgeletModuleGenerationIdVariableName, Value = creds.ModuleGenerationId });
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(identity.IotHubHostname))

@@ -64,6 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletAuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
 
+        public const string EdgeletModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

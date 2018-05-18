@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
         const string ModuleIdVariableName = "IOTEDGE_MODULEID";
         const string AuthSchemeVariableName = "IOTEDGE_AUTHSCHEME";
+        const string ModuleGeneratioIdVariableName = "IOTEDGE_MODULEGENERATIONID";
 
         readonly string authKey = Convert.ToBase64String("key".ToBytes());
 
@@ -99,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Environment.SetEnvironmentVariable(GatewayHostnameVariableName, "localhost");
             Environment.SetEnvironmentVariable(DeviceIdVariableName, "device1");
             Environment.SetEnvironmentVariable(ModuleIdVariableName, "module1");
+            Environment.SetEnvironmentVariable(ModuleGeneratioIdVariableName, "1");
             Environment.SetEnvironmentVariable(AuthSchemeVariableName, "sasToken");
 
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);

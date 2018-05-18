@@ -52,6 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         }
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>
-            this.identityProviderServiceBuilder.Create(identity.ModuleId, this.workloadUri.ToString());
+            this.identityProviderServiceBuilder.Create(identity.ModuleId, identity.GenerationId, this.workloadUri.ToString());
     }
 }

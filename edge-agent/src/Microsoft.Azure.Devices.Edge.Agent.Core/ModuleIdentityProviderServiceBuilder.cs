@@ -17,22 +17,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.gatewayHostname = gatewayHostname;
         }
 
-        public IModuleIdentity Create(string moduleId, string providerUri)
+        public IModuleIdentity Create(string moduleId, string generationId, string providerUri)
         {
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
             Preconditions.CheckNonWhiteSpace(providerUri, nameof(providerUri));
 
-            ICredentials credentials = new IdentityProviderServiceCredentials(providerUri);
+            ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId);
             return new ModuleIdentity(this.iotHubHostName, this.gatewayHostname, this.deviceId, moduleId, credentials);
         }
 
-        public IModuleIdentity Create(string moduleId, string providerUri, string authScheme)
+        public IModuleIdentity Create(string moduleId, string generationId, string providerUri, string authScheme)
         {
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
             Preconditions.CheckNonWhiteSpace(providerUri, nameof(providerUri));
             Preconditions.CheckNonWhiteSpace(authScheme, nameof(authScheme));
 
-            ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, authScheme);
+            ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId, authScheme);
             return new ModuleIdentity(this.iotHubHostName, this.gatewayHostname, this.deviceId, moduleId, credentials);
         }
     }
