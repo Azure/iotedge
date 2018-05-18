@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use chrono::{DateTime, Duration, Utc};
-use futures::future;
+use futures::future::{self, Either};
 use futures::{Future, Stream};
 use hyper::client::Service;
 use hyper::header::{Authorization, ContentLength, ContentType, IfMatch, UserAgent};
@@ -80,6 +80,25 @@ where
         &self.host_name
     }
 
+    fn add_sas_token(&self, req: &mut Request, path: &str) -> Result<(), Error> {
+        if let Some(ref source) = self.token_source {
+            let token_duration = Duration::hours(1);
+            let expiry = Utc::now() + token_duration;
+            let token = source.get(&expiry).map_err(|err| err.into())?;
+            debug!(
+                "Success generating token for request {} {}",
+                req.method(),
+                path
+            );
+            req.headers_mut()
+                .set(Authorization(format!("SharedAccessSignature {}", token)));
+        } else {
+            debug!("Empty token source for request {} {}", req.method(), path);
+        }
+
+        Ok(())
+    }
+
     pub fn request<BodyT, ResponseT>(
         &self,
         method: Method,
@@ -87,7 +106,7 @@ where
         query: Option<HashMap<&str, &str>>,
         body: Option<BodyT>,
         add_if_match: bool,
-    ) -> Box<Future<Item = Option<ResponseT>, Error = Error>>
+    ) -> impl Future<Item = Option<ResponseT>, Error = Error>
     where
         BodyT: Serialize,
         ResponseT: 'static + DeserializeOwned,
@@ -102,18 +121,16 @@ where
             )
             .finish();
 
-        let result = self.host_name
+        self.host_name
             // build the full url
             .join(&format!("{}?{}", path, query))
             .map_err(Error::from)
             .and_then(|url| {
-                let method_name = method.to_string();
-
-                // NOTE: Unwrap here should be OK, because this is a type
+                // NOTE: 'expect' here should be OK, because this is a type
                 // conversion from url::Url to hyper::Uri and not really a URL
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
-                let mut req = Request::new(method.clone(),
+                let mut req = Request::new(method,
                     url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure")
                 );
 
@@ -123,17 +140,7 @@ where
                 }
 
                 // add sas token
-                if let Some(ref source) = self.token_source {
-                        let token_duration = Duration::hours(1);
-                        let expiry = Utc::now() + token_duration;
-                        let token = source.get(&expiry)
-                            .map_err(|err| err.into())?;
-                        debug!("Success generating token for request {} {}", &method_name, path);
-                        req.headers_mut()
-                            .set(Authorization(format!("SharedAccessSignature {}", token)));
-                } else {
-                    debug!("Empty token source for request {} {}", &method_name, path);
-                }
+                self.add_sas_token(&mut req, path)?;
 
                 // add an `If-Match: "*"` header if we've been asked to
                 if add_if_match {
@@ -149,7 +156,10 @@ where
                     req.set_body(serialized);
                 }
 
-                Ok(self.service
+                Ok(req)
+            })
+            .map(|req| {
+                let res = self.service
                     .call(req)
                     .map_err(|e| { error!("{:?}", e); Error::from(e) })
                     .and_then(|resp| {
@@ -174,13 +184,11 @@ where
                                 .map_err(Error::from)
                                 .map(Option::Some)
                         }
-                    }))
-            });
+                    });
 
-        match result {
-            Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
-        }
+                Either::A(res)
+            })
+            .unwrap_or_else(|e| Either::B(future::err(e)))
     }
 }
 

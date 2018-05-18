@@ -40,7 +40,7 @@ pub use certificate_properties::{CertificateProperties, CertificateType};
 pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes,
                  KeyStore, PrivateKey, Signature};
 pub use error::{Error, ErrorKind};
-pub use identity::{Identity, IdentityManager, IdentitySpec};
+pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
 pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
                  ModuleStatus};
 

@@ -62,6 +62,7 @@ where
                             identity.module_id().to_string(),
                             identity.managed_by().to_string(),
                             identity.generation_id().to_string(),
+                            identity.auth_type().to_string(),
                         );
 
                         serde_json::to_string(&identity)
@@ -87,6 +88,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use edgelet_core::AuthType;
     use futures::Stream;
     use management::models::ErrorResponse;
     use serde_json::Value;
@@ -115,7 +117,8 @@ mod tests {
                 let expected_json = json!({
                     "moduleId": "m1",
                     "managedBy": "iotedge",
-                    "generationId": "1"
+                    "generationId": "1",
+                    "authType": "Sas",
                 });
                 assert_eq!(expected_json, json);
 
@@ -123,6 +126,7 @@ mod tests {
                 assert_eq!("m1", identity.module_id());
                 assert_eq!("iotedge", identity.managed_by());
                 assert_eq!("1", identity.generation_id());
+                assert_eq!(AuthType::Sas, identity.auth_type());
 
                 Ok(())
             })

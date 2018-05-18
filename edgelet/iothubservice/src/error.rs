@@ -33,6 +33,10 @@ pub enum ErrorKind {
     HubServiceError(StatusCode, String),
     #[fail(display = "IoT Hub returned an empty response when a value was expected")]
     EmptyResponse,
+    #[fail(display = "Module not found")]
+    ModuleNotFound,
+    #[fail(display = "Module ID is empty")]
+    EmptyModuleId,
     #[fail(display = "Failed to get sas token")]
     Token,
 }

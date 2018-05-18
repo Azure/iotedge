@@ -460,10 +460,18 @@ definitions:
       generationId:
         type: string
         example: "731f88d3-cf72-4a23-aca1-cd91fd4f52ff"
+      authType:
+        type: string
+        enum:
+          - None
+          - Sas
+          - X509
+        example: "Sas"
     required:
       - moduleId
       - managedBy
       - generationId
+      - authType
 
   ErrorResponse:
     type: object

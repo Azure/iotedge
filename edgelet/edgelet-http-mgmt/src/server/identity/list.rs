@@ -42,7 +42,7 @@ where
         _req: Request<Body>,
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
-        let response = self.id_manager.get().then(|result| {
+        let response = self.id_manager.list().then(|result| {
             result
                 .context(ErrorKind::IdentityManager)
                 .map(|identities| {
@@ -54,6 +54,7 @@ where
                                     identity.module_id().to_string(),
                                     identity.managed_by().to_string(),
                                     identity.generation_id().to_string(),
+                                    identity.auth_type().to_string(),
                                 )
                             })
                             .collect(),
@@ -81,6 +82,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use edgelet_core::AuthType;
     use futures::Stream;
     use management::models::ErrorResponse;
 
@@ -91,9 +93,9 @@ mod tests {
     #[test]
     fn list_succeeds() {
         let manager = TestIdentityManager::new(vec![
-            TestIdentity::new("m1", "iotedge", "1"),
-            TestIdentity::new("m2", "iotedge", "2"),
-            TestIdentity::new("m3", "iotedge", "3"),
+            TestIdentity::new("m1", "iotedge", "1", AuthType::Sas),
+            TestIdentity::new("m2", "iotedge", "2", AuthType::Sas),
+            TestIdentity::new("m3", "iotedge", "3", AuthType::Sas),
         ]);
         let handler = ListIdentities::new(manager);
         let request = Request::get("http://localhost/identities")

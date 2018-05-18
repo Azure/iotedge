@@ -65,7 +65,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::Identity;
+    use edgelet_core::{AuthType, Identity};
     use futures::Stream;
     use management::models::ErrorResponse;
     use serde_json;
@@ -77,9 +77,9 @@ mod tests {
     #[test]
     fn delete_succeeds() {
         let manager = TestIdentityManager::new(vec![
-            TestIdentity::new("m1", "iotedge", "1"),
-            TestIdentity::new("m2", "iotedge", "2"),
-            TestIdentity::new("m3", "iotedge", "3"),
+            TestIdentity::new("m1", "iotedge", "1", AuthType::Sas),
+            TestIdentity::new("m2", "iotedge", "2", AuthType::Sas),
+            TestIdentity::new("m3", "iotedge", "3", AuthType::Sas),
         ]);
         let handler = DeleteIdentity::new(manager);
         let request = Request::delete("http://localhost/identities")
@@ -91,7 +91,7 @@ mod tests {
         let response = handler.handle(request, parameters).wait().unwrap();
         assert_eq!(StatusCode::NO_CONTENT, response.status());
 
-        let list = handler.id_manager.borrow().get().wait().unwrap();
+        let list = handler.id_manager.borrow().list().wait().unwrap();
         assert_eq!(2, list.len());
         assert_eq!(
             None,

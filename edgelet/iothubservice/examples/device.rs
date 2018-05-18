@@ -1,5 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+//! Sample CLI app showing how one can use this crate to access the IoT Hub
+//! service API. You can run the commands supported by this CLI like so:
+//!
+//! ```ignore
+//! $ sas_token=`iothub-explorer sas-token edgy1 | grep SharedAccessSignature | cut -d ' ' -f 2`
+//! $ cargo run --example device -- -h HUB_NAME -d DEVICE_ID -s "$sas_token" get -m MODULE_ID
+//! ```
+
 extern crate chrono;
 extern crate clap;
 extern crate hyper;
@@ -24,6 +32,7 @@ use edgelet_http::error::Error as HttpError;
 use iothubservice::DeviceClient;
 use iothubservice::error::Error;
 
+#[derive(Clone)]
 struct StaticTokenSource {
     token: String,
 }
@@ -38,14 +47,6 @@ impl TokenSource for StaticTokenSource {
     type Error = Error;
     fn get(&self, _expiry: &DateTime<Utc>) -> Result<String, Error> {
         Ok(self.token.clone())
-    }
-}
-
-impl Clone for StaticTokenSource {
-    fn clone(&self) -> Self {
-        StaticTokenSource {
-            token: self.token.clone(),
-        }
     }
 }
 
@@ -66,7 +67,7 @@ fn main() {
     let client = Client::new(
         hyper_client,
         Some(token_source),
-        "2018-03-01-preview",
+        "2017-11-08-preview",
         Url::parse(&format!("https://{}.azure-devices.net", hub_name)).unwrap(),
     ).unwrap();
 
@@ -80,23 +81,36 @@ fn main() {
     } else if let Some(delete) = matches.subcommand_matches("delete") {
         let module_id = delete.value_of("module-id").unwrap();
         delete_module(&mut core, device_client, module_id);
+    } else if let Some(get) = matches.subcommand_matches("get") {
+        let module_id = get.value_of("module-id").unwrap();
+        get_module(&mut core, device_client, module_id);
     }
 }
 
 fn list_modules<S, T>(core: &mut Core, device_client: DeviceClient<S, T>)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource + Clone,
+    T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
     let response = core.run(device_client.list_modules()).unwrap();
     println!("{}", serde_json::to_string_pretty(&response).unwrap());
 }
 
+fn get_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
+where
+    S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    T: 'static + TokenSource + Clone,
+    T::Error: Into<HttpError>,
+{
+    let response = core.run(device_client.get_module_by_id(module_id)).unwrap();
+    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+}
+
 fn create_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource + Clone,
+    T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
     let response = core.run(device_client.create_module(module_id, None))
@@ -107,7 +121,7 @@ where
 fn delete_module<S, T>(core: &mut Core, device_client: DeviceClient<S, T>, module_id: &str)
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
-    T: TokenSource + Clone,
+    T: 'static + TokenSource + Clone,
     T::Error: Into<HttpError>,
 {
     core.run(device_client.delete_module(module_id)).unwrap();
@@ -123,7 +137,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .required(true)
         .takes_value(true);
 
-    App::new("List/create/delete module example")
+    App::new("List/get/create/delete module example")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about("Example showing how to list/create/delete modules")
@@ -165,5 +179,10 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .arg(module_id.clone()),
         )
         .subcommand(SubCommand::with_name("list").about("List modules"))
+        .subcommand(
+            SubCommand::with_name("get")
+                .about("Get an existing module")
+                .arg(module_id.clone()),
+        )
         .get_matches()
 }

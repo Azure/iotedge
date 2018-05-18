@@ -16,7 +16,7 @@ mod tests {
     use serde_json;
 
     use IntoResponse;
-    use edgelet_core::{Identity, IdentityManager, IdentitySpec};
+    use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
     use management::models::ErrorResponse;
 
     #[derive(Clone, Debug, Fail)]
@@ -47,14 +47,22 @@ mod tests {
         managed_by: String,
         #[serde(rename = "generationId")]
         generation_id: String,
+        #[serde(rename = "authType")]
+        auth_type: AuthType,
     }
 
     impl TestIdentity {
-        pub fn new(module_id: &str, managed_by: &str, generation_id: &str) -> TestIdentity {
+        pub fn new(
+            module_id: &str,
+            managed_by: &str,
+            generation_id: &str,
+            auth_type: AuthType,
+        ) -> TestIdentity {
             TestIdentity {
                 module_id: module_id.to_string(),
                 managed_by: managed_by.to_string(),
                 generation_id: generation_id.to_string(),
+                auth_type,
             }
         }
     }
@@ -70,6 +78,10 @@ mod tests {
 
         fn generation_id(&self) -> &str {
             &self.generation_id
+        }
+
+        fn auth_type(&self) -> AuthType {
+            self.auth_type.clone()
         }
     }
 
@@ -107,7 +119,8 @@ mod tests {
         type Error = Error;
         type CreateFuture = FutureResult<Self::Identity, Self::Error>;
         type UpdateFuture = FutureResult<Self::Identity, Self::Error>;
-        type GetFuture = FutureResult<Vec<Self::Identity>, Self::Error>;
+        type ListFuture = FutureResult<Vec<Self::Identity>, Self::Error>;
+        type GetFuture = FutureResult<Self::Identity, Self::Error>;
         type DeleteFuture = FutureResult<(), Self::Error>;
 
         fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
@@ -119,6 +132,7 @@ mod tests {
                     id.module_id(),
                     "iotedge",
                     &format!("{}", self.gen_id_sentinel),
+                    AuthType::Sas,
                 );
                 self.identities.push(id.clone());
 
@@ -135,6 +149,7 @@ mod tests {
                     id.module_id(),
                     "iotedge",
                     &format!("{}", self.gen_id_sentinel),
+                    AuthType::Sas,
                 );
                 self.identities.push(id.clone());
 
@@ -142,11 +157,21 @@ mod tests {
             }
         }
 
-        fn get(&self) -> Self::GetFuture {
+        fn list(&self) -> Self::ListFuture {
             if self.fail_get {
                 future::err(Error::General)
             } else {
                 future::ok(self.identities.clone())
+            }
+        }
+
+        fn get(&self, id: IdentitySpec) -> Self::GetFuture {
+            match self.identities
+                .iter()
+                .find(|m| m.module_id() == id.module_id())
+            {
+                Some(module) => future::ok(module.clone()),
+                None => future::err(Error::ModuleNotFound),
             }
         }
 

@@ -19,14 +19,22 @@ pub struct Identity {
     managed_by: String,
     #[serde(rename = "generationId")]
     generation_id: String,
+    #[serde(rename = "authType")]
+    auth_type: String,
 }
 
 impl Identity {
-    pub fn new(module_id: String, managed_by: String, generation_id: String) -> Identity {
+    pub fn new(
+        module_id: String,
+        managed_by: String,
+        generation_id: String,
+        auth_type: String,
+    ) -> Identity {
         Identity {
             module_id,
             managed_by,
             generation_id,
+            auth_type,
         }
     }
 
@@ -67,5 +75,18 @@ impl Identity {
 
     pub fn generation_id(&self) -> &String {
         &self.generation_id
+    }
+
+    pub fn set_auth_type(&mut self, auth_type: String) {
+        self.auth_type = auth_type;
+    }
+
+    pub fn with_auth_type(mut self, auth_type: String) -> Identity {
+        self.auth_type = auth_type;
+        self
+    }
+
+    pub fn auth_type(&self) -> &String {
+        &self.auth_type
     }
 }
