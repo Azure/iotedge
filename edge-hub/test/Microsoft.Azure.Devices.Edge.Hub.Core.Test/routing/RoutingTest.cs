@@ -382,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test, bug #2494150")]
         public async Task TestRoutingTwinChangeNotificationFromModule()
         {
             var routes = new List<string>

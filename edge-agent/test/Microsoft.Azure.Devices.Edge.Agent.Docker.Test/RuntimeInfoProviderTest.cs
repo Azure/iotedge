@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         }
 
         [Integration]
-        [Fact]
+        [Fact(Skip = "Flaky test, bug #2494148")]
         public async Task TestFilters()
         {
             const string Image = "hello-world:latest";
