@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 use serde_json::Error as SerdeError;
+use tokio_timer::TimerError as TokioError;
 
 use edgelet_core::Error as CoreError;
 use edgelet_http::{Error as HttpError, ErrorKind as HttpErrorKind};
@@ -23,9 +24,17 @@ pub enum ErrorKind {
     #[fail(display = "Serde error")]
     Serde,
     #[fail(display = "DPS returned an empty response when a value was expected")]
-    EmptyResponse,
+    Unexpected,
     #[fail(display = "Invalid Tpm token")]
     InvalidTpmToken,
+    #[fail(display = "Assignment failed")]
+    AssignmentFailed,
+    #[fail(display = "Timer error")]
+    TimerError,
+    #[fail(display = "DPS operation not assigned")]
+    NotAssigned,
+    #[fail(display = "Client reference error")]
+    ClientReference,
 }
 
 impl Fail for Error {
@@ -91,5 +100,13 @@ impl From<SerdeError> for Error {
 impl From<Error> for HttpError {
     fn from(err: Error) -> HttpError {
         HttpError::from(err.context(HttpErrorKind::TokenSource))
+    }
+}
+
+impl From<TokioError> for Error {
+    fn from(error: TokioError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::TimerError),
+        }
     }
 }

@@ -14,8 +14,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate tokio;
 #[cfg(test)]
 extern crate tokio_core;
+extern crate tokio_timer;
 extern crate url;
 
 extern crate edgelet_core;
@@ -26,4 +28,4 @@ pub mod error;
 mod model;
 pub mod registration;
 
-pub use model::{DeviceRegistration, TpmRegistrationResult};
+pub use model::{DeviceRegistration, DeviceRegistrationResult, TpmRegistrationResult};
