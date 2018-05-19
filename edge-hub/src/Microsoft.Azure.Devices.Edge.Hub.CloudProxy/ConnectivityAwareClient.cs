@@ -40,6 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ? this.underlyingClient.CloseAsync()
             : Task.CompletedTask;
 
+        // This method could throw and is not a reliable candidate to check connectivity status
+        public Task RejectAsync(string messageId) => this.underlyingClient.RejectAsync(messageId);
+
+        // This method could throw and is not a reliable candidate to check connectivity status
+        public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingClient.ReceiveAsync(receiveMessageTimeout);
+
         public Task CompleteAsync(string messageId) => this.InvokeFunc(() => this.underlyingClient.CompleteAsync(messageId));
 
         public Task AbandonAsync(string messageId) => this.InvokeFunc(() => this.underlyingClient.AbandonAsync(messageId));

@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -26,6 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task CloseAsync() => this.isActive.GetAndSet(false)
             ? this.underlyingModuleClient.CloseAsync()
             : Task.CompletedTask;
+
+        public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");
+
+        public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new InvalidOperationException("C2D messages are not supported for modules.");
 
         public Task CompleteAsync(string messageId) => this.underlyingModuleClient.CompleteAsync(messageId);
 

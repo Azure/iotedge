@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
 
-    class DeviceClientWrapper : IDeviceClient
+    class DeviceClientWrapper : IClient
     {
         readonly DeviceClient underlyingDeviceClient;
         readonly AtomicBoolean isActive;

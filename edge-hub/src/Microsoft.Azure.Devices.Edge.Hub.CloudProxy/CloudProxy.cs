@@ -123,13 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 case FeedbackStatus.Abandon:
                     return this.client.AbandonAsync(messageId);
                 case FeedbackStatus.Reject:
-                    {
-                        if (this.client is IDeviceClient deviceClient)
-                        {
-                            return deviceClient.RejectAsync(messageId);
-                        }
-                        throw new InvalidOperationException("Feedback status type is not supported");
-                    }
+                    return this.client.RejectAsync(messageId);
                 default:
                     throw new InvalidOperationException("Feedback status type is not supported");
             }
@@ -205,11 +199,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public void StartListening()
             {
-                if (!(this.cloudProxy.client is IDeviceClient deviceClient))
-                {
-                    throw new InvalidOperationException($"C2D messages not supported for {this.cloudProxy.client.GetType()}");
-                }
-
                 if (!this.receiveMessageTask.HasValue)
                 {
                     lock (this.receiveMessageLoopLock)
@@ -217,14 +206,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         if (!this.receiveMessageTask.HasValue)
                         {
                             Events.StartListening(this.cloudProxy.clientId);
-                            this.receiveMessageTask = Option.Some(this.SetupMessageListening(deviceClient));
+                            this.receiveMessageTask = Option.Some(this.SetupMessageListening(this.cloudProxy.client));
                         }
                     }
                 }
 
             }
 
-            async Task SetupMessageListening(IDeviceClient deviceClient)
+            async Task SetupMessageListening(IClient deviceClient)
             {
                 Message clientMessage = null;
                 try

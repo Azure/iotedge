@@ -36,6 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         Task OpenAsync();
 
-        Task CloseAsync();        
+        Task CloseAsync();
+
+        Task RejectAsync(string messageId);
+
+        Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout);
     }
 }
