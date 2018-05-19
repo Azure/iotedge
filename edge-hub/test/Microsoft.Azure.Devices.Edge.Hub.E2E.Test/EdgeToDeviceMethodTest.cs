@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);            
-            DeviceClient receiver = null;
+            ModuleClient receiver = null;
 
             var request = new TestMethodRequest("Prop1", 10);
             var response = new TestMethodResponse("RespProp1", 20);
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
                 string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, receiverModuleName);
-                receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
+                receiver = ModuleClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
 
