@@ -32,6 +32,8 @@ pub enum ErrorKind {
     Provision(String),
     #[fail(display = "Identity error")]
     Identity,
+    #[fail(display = "Edge runtime module has not been created in IoT Hub")]
+    EdgeRuntimeNotFound,
 }
 
 impl Fail for Error {

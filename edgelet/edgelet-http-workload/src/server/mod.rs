@@ -32,7 +32,7 @@ impl WorkloadService {
         H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone,
     {
         let router = router!(
-            post   "/modules/(?P<name>[^/]+)/sign" => SignHandler::new(key_store.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => SignHandler::new(key_store.clone()),
             post   "/modules/(?P<name>[^/]+)/decrypt" => DecryptHandler::new(hsm.clone()),
             post   "/modules/(?P<name>[^/]+)/encrypt" => EncryptHandler::new(hsm.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,

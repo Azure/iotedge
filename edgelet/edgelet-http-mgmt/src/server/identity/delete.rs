@@ -66,11 +66,10 @@ where
 #[cfg(test)]
 mod tests {
     use edgelet_core::{AuthType, Identity};
+    use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use futures::Stream;
     use management::models::ErrorResponse;
     use serde_json;
-
-    use server::identity::tests::*;
 
     use super::*;
 

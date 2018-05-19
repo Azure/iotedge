@@ -61,14 +61,24 @@ where
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|name| {
+            .and_then(|name| {
+                params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::BadParam))
+                    .map(|genid| (name, genid))
+            })
+            .map(|(name, genid)| {
                 let id = name.to_string();
+                let genid = genid.to_string();
                 let key_store = self.key_store.clone();
                 let ok = req.into_body().concat2().map(move |b| {
                     serde_json::from_slice::<SignRequest>(&b)
                         .context(ErrorKind::BadBody)
                         .map_err(From::from)
-                        .and_then(|request| sign(key_store, id, request))
+                        .and_then(|request| {
+                            let key_id = format!("{}{}", request.key_id(), genid);
+                            sign(key_store, id, request.with_key_id(key_id))
+                        })
                         .and_then(|r| {
                             serde_json::to_string(&r)
                                 .context(ErrorKind::Serde)
@@ -93,6 +103,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
     use edgelet_core::crypto::MemoryKey;
     use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind, KeyStore};
     use edgelet_http::route::Parameters;
@@ -100,21 +113,42 @@ mod tests {
 
     use super::*;
 
+    #[derive(Debug)]
+    struct State {
+        last_id: String,
+        last_key_name: String,
+    }
+
+    impl State {
+        fn new() -> State {
+            State {
+                last_id: "".to_string(),
+                last_key_name: "".to_string(),
+            }
+        }
+    }
+
     #[derive(Clone, Debug)]
     struct TestKeyStore {
         key: MemoryKey,
+        state: Rc<RefCell<State>>,
     }
 
     impl TestKeyStore {
         pub fn new(key: MemoryKey) -> Self {
-            TestKeyStore { key }
+            TestKeyStore {
+                key,
+                state: Rc::new(RefCell::new(State::new())),
+            }
         }
     }
 
     impl KeyStore for TestKeyStore {
         type Key = MemoryKey;
 
-        fn get(&self, _identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
+        fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, CoreError> {
+            self.state.borrow_mut().last_id = identity.to_string();
+            self.state.borrow_mut().last_key_name = key_name.to_string();
             Ok(self.key.clone())
         }
     }
@@ -141,7 +175,7 @@ mod tests {
         // arrange
         let key = MemoryKey::new("key");
         let store = TestKeyStore::new(key);
-        let handler = SignHandler::new(store);
+        let handler = SignHandler::new(store.clone());
 
         let sign_request = SignRequest::new(
             "primary".to_string(),
@@ -150,8 +184,10 @@ mod tests {
         );
         let body = serde_json::to_string(&sign_request).unwrap();
 
-        let parameters =
-            Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
+        let parameters = Parameters::with_captures(vec![
+            (Some("name".to_string()), "test".to_string()),
+            (Some("genid".to_string()), "g1".to_string()),
+        ]);
         let request = Request::post("http://localhost/modules/name/sign")
             .body(body.into())
             .unwrap();
@@ -172,6 +208,8 @@ mod tests {
             })
             .wait()
             .unwrap();
+        assert_eq!(&store.state.borrow().last_id, "test");
+        assert_eq!(&store.state.borrow().last_key_name, "primaryg1");
     }
 
     #[test]
@@ -187,8 +225,10 @@ mod tests {
         );
         let body = serde_json::to_string(&sign_request).unwrap();
 
-        let parameters =
-            Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
+        let parameters = Parameters::with_captures(vec![
+            (Some("name".to_string()), "test".to_string()),
+            (Some("genid".to_string()), "g1".to_string()),
+        ]);
         let request = Request::post("http://localhost/modules/name/sign")
             .body(body.into())
             .unwrap();
@@ -214,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn sign_bad_params() {
+    fn sign_bad_params_name() {
         // arrange
         let key = MemoryKey::new("key");
         let store = TestKeyStore::new(key);
@@ -239,6 +279,33 @@ mod tests {
     }
 
     #[test]
+    fn sign_bad_params_genid() {
+        // arrange
+        let key = MemoryKey::new("key");
+        let store = TestKeyStore::new(key);
+        let handler = SignHandler::new(store);
+
+        let sign_request = SignRequest::new(
+            "primary".to_string(),
+            "hmac".to_string(),
+            base64::encode("The quick brown fox jumps over the lazy dog"),
+        );
+        let body = serde_json::to_string(&sign_request).unwrap();
+
+        let parameters =
+            Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
+        let request = Request::post("http://localhost/modules/unknown/sign")
+            .body(body.into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, parameters).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+    }
+
+    #[test]
     fn bad_data_base64() {
         // arrange
         let key = MemoryKey::new("key");
@@ -252,8 +319,10 @@ mod tests {
         );
         let body = serde_json::to_string(&sign_request).unwrap();
 
-        let parameters =
-            Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
+        let parameters = Parameters::with_captures(vec![
+            (Some("name".to_string()), "test".to_string()),
+            (Some("genid".to_string()), "g1".to_string()),
+        ]);
         let request = Request::post("http://localhost/modules/name/sign")
             .body(body.into())
             .unwrap();
@@ -286,8 +355,10 @@ mod tests {
 
         let body = "invalid";
 
-        let parameters =
-            Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
+        let parameters = Parameters::with_captures(vec![
+            (Some("name".to_string()), "test".to_string()),
+            (Some("genid".to_string()), "g1".to_string()),
+        ]);
         let request = Request::post("http://localhost/modules/name/sign")
             .body(body.into())
             .unwrap();

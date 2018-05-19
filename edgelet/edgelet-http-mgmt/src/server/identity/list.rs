@@ -83,10 +83,9 @@ where
 #[cfg(test)]
 mod tests {
     use edgelet_core::AuthType;
+    use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use futures::Stream;
     use management::models::ErrorResponse;
-
-    use server::identity::tests::*;
 
     use super::*;
 
@@ -125,7 +124,7 @@ mod tests {
 
     #[test]
     fn list_fails() {
-        let manager = TestIdentityManager::new(vec![]).with_fail_get(true);
+        let manager = TestIdentityManager::new(vec![]).with_fail_list(true);
         let handler = ListIdentities::new(manager);
         let request = Request::get("http://localhost/identities")
             .body(Body::default())

@@ -63,7 +63,7 @@ pub trait IdentityManager {
     type CreateFuture: Future<Item = Self::Identity, Error = Self::Error>;
     type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error>;
-    type GetFuture: Future<Item = Self::Identity, Error = Self::Error>;
+    type GetFuture: Future<Item = Option<Self::Identity>, Error = Self::Error>;
     type DeleteFuture: Future<Item = (), Error = Self::Error>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture;

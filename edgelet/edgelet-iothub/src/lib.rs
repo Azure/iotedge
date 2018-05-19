@@ -42,14 +42,15 @@ use url::form_urlencoded::Serializer as UrlSerializer;
 use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 use edgelet_http::client::TokenSource;
-use iothubservice::{AuthMechanism, AuthType as HubAuthType, DeviceClient, Module, SymmetricKey};
+use iothubservice::{AuthMechanism, AuthType as HubAuthType, DeviceClient,
+                    ErrorKind as HubErrorKind, Module, SymmetricKey};
 
 pub use error::{Error, ErrorKind};
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
 
-#[derive(Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct HubIdentity {
     hub_module: Module,
 }
@@ -246,7 +247,7 @@ where
     type CreateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
     type UpdateFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
     type ListFuture = Box<Future<Item = Vec<Self::Identity>, Error = Self::Error>>;
-    type GetFuture = Box<Future<Item = Self::Identity, Error = Self::Error>>;
+    type GetFuture = Box<Future<Item = Option<Self::Identity>, Error = Self::Error>>;
     type DeleteFuture = Box<Future<Item = (), Error = Self::Error>>;
 
     fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture {
@@ -335,8 +336,18 @@ where
             self.state
                 .client
                 .get_module_by_id(id.module_id())
+                .map(Some)
+                .then(|result| {
+                    result.or_else(|err| {
+                        if *err.kind() == HubErrorKind::ModuleNotFound {
+                            Ok(None)
+                        } else {
+                            Err(err)
+                        }
+                    })
+                })
                 .map_err(Error::from)
-                .map(HubIdentity::new),
+                .map(|module| module.map(HubIdentity::new)),
         )
     }
 
@@ -752,8 +763,41 @@ mod tests {
         let identity_manager = HubIdentityManager::new(key_store, device_client);
         let task = identity_manager.get(IdentitySpec::new("m1"));
 
-        let hub_identity = Core::new().unwrap().run(task).unwrap();
+        let hub_identity = Core::new().unwrap().run(task).unwrap().unwrap();
         assert_eq!(hub_identity.hub_module(), &expected_module_result);
+    }
+
+    #[test]
+    fn get_module_not_found() {
+        let key_store = MemoryKeyStore::new();
+
+        let api_version = "2018-04-10";
+        let host_name = Url::parse("http://localhost").unwrap();
+
+        let handler = move |req: Request| {
+            assert_eq!(req.method(), &Method::Get);
+            assert_eq!(req.path(), "/devices/d1/modules/m1");
+
+            Ok(Response::new().with_status(StatusCode::NotFound))
+        };
+        let token_source = SasTokenSource::new(
+            "hub".to_string(),
+            "device".to_string(),
+            MemoryKey::new("device"),
+        );
+        let client = Client::new(
+            service_fn(handler),
+            Some(token_source),
+            api_version,
+            host_name,
+        ).unwrap();
+        let device_client = DeviceClient::new(client, "d1").unwrap();
+
+        let identity_manager = HubIdentityManager::new(key_store, device_client);
+        let task = identity_manager.get(IdentitySpec::new("m1"));
+
+        let hub_identity = Core::new().unwrap().run(task).unwrap();
+        assert_eq!(None, hub_identity);
     }
 
     #[test]

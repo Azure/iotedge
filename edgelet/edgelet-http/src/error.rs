@@ -22,7 +22,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "IO error")]
     Io,

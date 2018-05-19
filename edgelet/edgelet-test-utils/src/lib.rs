@@ -3,6 +3,7 @@
 #![deny(warnings)]
 
 extern crate edgelet_core;
+#[macro_use]
 extern crate failure;
 extern crate futures;
 #[cfg(windows)]
@@ -23,6 +24,7 @@ extern crate tokio_io;
 use std::net::TcpListener;
 
 pub mod cert;
+pub mod identity;
 mod json_connector;
 pub mod module;
 pub mod web;

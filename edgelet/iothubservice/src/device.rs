@@ -3,10 +3,10 @@
 use futures::Future;
 use futures::future::{self, Either};
 use hyper::client::Service;
-use hyper::{Error as HyperError, Method, Request, Response};
+use hyper::{Error as HyperError, Method, Request, Response, StatusCode};
 
 use edgelet_http::client::{Client, TokenSource};
-use edgelet_http::error::Error as HttpError;
+use edgelet_http::error::{Error as HttpError, ErrorKind as HttpErrorKind};
 use error::{Error, ErrorKind};
 use model::{AuthMechanism, Module};
 
@@ -96,7 +96,15 @@ where
                     None,
                     false,
                 )
-                .map_err(Error::from)
+                .map_err(|err| {
+                    if let HttpErrorKind::ServiceError(code, _) = err.kind() {
+                        if *code == StatusCode::NotFound {
+                            return Error::from(ErrorKind::ModuleNotFound);
+                        }
+                    }
+
+                    Error::from(err)
+                })
                 .and_then(|module| module.ok_or_else(|| Error::from(ErrorKind::ModuleNotFound)));
 
             Either::A(res)
@@ -158,7 +166,7 @@ mod tests {
     use futures::Stream;
     use hyper::header::{ContentType, IfMatch};
     use hyper::server::service_fn;
-    use hyper::{Client as HyperClient, Method, StatusCode};
+    use hyper::{Client as HyperClient, Method};
     use serde_json;
     use tokio_core::reactor::Core;
     use url::Url;
@@ -581,6 +589,37 @@ mod tests {
         let task = device_client.get_module_by_id("m1").then(|module| {
             let module = module.unwrap();
             assert_eq!(expected_module, module);
+            Ok(()) as Result<(), Error>
+        });
+
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn modules_get_not_found() {
+        let mut core = Core::new().unwrap();
+        let api_version = "2018-04-10";
+        let host_name = Url::parse("http://localhost").unwrap();
+
+        let handler = move |req: Request| {
+            assert_eq!(req.method(), &Method::Get);
+            assert_eq!(req.path(), "/devices/d1/modules/m1");
+            assert_eq!(None, req.headers().get::<IfMatch>());
+
+            Ok(Response::new().with_status(StatusCode::NotFound))
+        };
+        let client = Client::new(
+            service_fn(handler),
+            Some(NullTokenSource),
+            api_version,
+            host_name,
+        ).unwrap();
+
+        let device_client = DeviceClient::new(client, "d1").unwrap();
+        let task = device_client.get_module_by_id("m1").then(|module| {
+            assert!(module.is_err());
+            assert_eq!(ErrorKind::ModuleNotFound, *module.unwrap_err().kind());
+
             Ok(()) as Result<(), Error>
         });
 
