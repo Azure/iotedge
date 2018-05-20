@@ -34,6 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
     public class LoggingCommandFactoryTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
+        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
+
 
         [Fact]
         [Unit]
@@ -66,10 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.commands
             Assert.Equal(create.Show(), nullCmd.Result.Show());
 
         }
-
-        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-        static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         static IEnumerable<object[]> CreateTestData()
         {

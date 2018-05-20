@@ -12,8 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
         [Fact]
         public void TestCreateValidation()
         {
-            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new [] { new AuthConfig(), }, null));
-            Assert.NotNull(new CombinedEdgeletConfigProvider(new [] { new AuthConfig(), }, new Uri("unix:///var/run/iotedgeworkload.sock")));
+            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, null, new Uri("http://localhost:5000")));
+            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, new Uri("http://localhost:5000"), null));
+            Assert.NotNull(new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, new Uri("unix:///var/run/iotedgeworkload.sock"), new Uri("unix:///var/run/iotedgemgmt.sock")));
         }
 
         [Fact]
@@ -25,18 +26,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             var module = new Mock<IModule<DockerConfig>>();
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-             var provider = new CombinedEdgeletConfigProvider(new []{ new AuthConfig(), }, new Uri("unix:///var/run/iotedgedworkload.sock"));
+            var provider = new CombinedEdgeletConfigProvider(
+                new[] { new AuthConfig(), },
+                new Uri("unix:///var/run/iotedgedworkload.sock"),
+                new Uri("unix:///var/run/iotedgedmgmt.sock"));
 
-             // Act
-             CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
-             // Assert
-             Assert.NotNull(config.CreateOptions);
-             Assert.NotNull(config.CreateOptions.HostConfig);
-             Assert.NotNull(config.CreateOptions.HostConfig.Binds);
-             Assert.Equal(1, config.CreateOptions.HostConfig.Binds.Count);
-             Assert.Equal("/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock", config.CreateOptions.HostConfig.Binds[0]);
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+            Assert.NotNull(config.CreateOptions.HostConfig.Binds);
+            Assert.Equal(2, config.CreateOptions.HostConfig.Binds.Count);
+            Assert.Equal("/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock", config.CreateOptions.HostConfig.Binds[0]);
+            Assert.Equal("/var/run/iotedgedmgmt.sock:/var/run/iotedgedmgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
         }
 
         [Fact]
@@ -48,8 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             var module = new Mock<IModule<DockerConfig>>();
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-            var provider = new CombinedEdgeletConfigProvider(new []{ new AuthConfig(), }, new Uri("http://localhost:2375/"));
+            var provider = new CombinedEdgeletConfigProvider(
+                new[] { new AuthConfig(), },
+                new Uri("http://localhost:2375/"),
+                new Uri("http://localhost:2376/"));
 
             // Act
             CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);

@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
     public class RestartPlannerTest
     {
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
 
@@ -68,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
             ModuleSet addStopped = ModuleSet.Create(stoppedModule);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
@@ -92,8 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             var planner = new RestartPlanner(factory);
@@ -122,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             var planner = new RestartPlanner(factory);
             var token = new CancellationToken();
 
-            IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
             ModuleSet removeRunning = ModuleSet.Create(removeModule);
             var removeExecutionList = new List<TestRecordType>
             {
@@ -154,10 +155,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             var desiredModules = new List<IModule>
             {
-                new TestModule("NewMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo),
-                new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                new TestModule("NewMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars),
+                new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars),
+                new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars),
+                new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
             };
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(desiredModules);

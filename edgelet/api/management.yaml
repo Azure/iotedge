@@ -108,6 +108,13 @@ paths:
           description: The name of the module to update. (urlencoded)
           required: true
           type: string
+        - name: start
+          in: query
+          description: Flag indicating whether module should be started after updating.
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: true
         - in: body
           name: module
           required: true

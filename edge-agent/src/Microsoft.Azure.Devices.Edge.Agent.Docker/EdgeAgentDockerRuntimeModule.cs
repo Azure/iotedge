@@ -3,39 +3,39 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
 
-    public class EdgeAgentDockerRuntimeModule : EdgeAgentDockerModule, IRuntimeStatusModule
+    public class EdgeAgentDockerRuntimeModule : DockerRuntimeModule, IEdgeAgentModule
     {
         [JsonConstructor]
         public EdgeAgentDockerRuntimeModule(
-            DockerReportedConfig settings,
+            DockerConfig config,
             ModuleStatus runtimeStatus,
+            int exitCode,
+            string statusDescription,
             DateTime lastStartTimeUtc,
-            ConfigurationInfo configuration)
-            : base("docker", settings, configuration)
+            DateTime lastExitTime,            
+            ConfigurationInfo configuration,
+            IDictionary<string, EnvVal> env,
+            string version = "")
+            : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, config,
+                exitCode, statusDescription, lastStartTimeUtc, lastExitTime,
+                0, DateTime.MinValue, runtimeStatus, configuration, env)
         {
-            this.RuntimeStatus = runtimeStatus;
-            this.LastStartTimeUtc = lastStartTimeUtc;
-            this.Version = string.Empty;
-            this.DesiredStatus = ModuleStatus.Unknown;
-            this.RestartPolicy = RestartPolicy.Never;
-
             // You maybe wondering why we are setting this here again even though
             // the base class does this assignment. This is due to a behavior
             // in C# where if you have an assignment to a read-only virtual property
             // from a base constructor when it has been overriden in a sub-class, the
             // assignment becomes a no-op.  In order to fix this we need to assign
             // this here again so that the correct property assignment happens for real!
-            this.ConfigurationInfo = configuration ?? new ConfigurationInfo(string.Empty);
+            this.RestartPolicy = RestartPolicy.Always;
+            this.DesiredStatus = ModuleStatus.Running;
+            this.RestartCount = 0;
+            this.LastRestartTimeUtc = DateTime.MinValue;
+            this.Version = version ?? string.Empty;
         }
-
-        [JsonProperty(PropertyName = "runtimeStatus")]
-        public ModuleStatus RuntimeStatus { get; }
-
-        [JsonProperty(PropertyName = "lastStartTimeUtc")]
-        public DateTime LastStartTimeUtc { get; }
 
         [JsonIgnore]
         public override string Version { get; }
@@ -46,10 +46,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonIgnore]
         public override RestartPolicy RestartPolicy { get; }
 
-        [JsonProperty(Required = Required.Default, PropertyName = "configuration")]
-        public override ConfigurationInfo ConfigurationInfo { get; }
+        [JsonIgnore]
+        public override int RestartCount { get; }
 
-        public IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeAgentDockerRuntimeModule(
-            (DockerReportedConfig)this.Config, newStatus, this.LastStartTimeUtc, this.ConfigurationInfo);
+        [JsonIgnore]
+        public override DateTime LastRestartTimeUtc { get; }
+
+        public override IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeAgentDockerRuntimeModule(
+            (DockerReportedConfig)this.Config, newStatus, this.ExitCode, this.StatusDescription, this.LastStartTimeUtc,
+            this.LastExitTimeUtc, this.ConfigurationInfo, this.Env, this.Version);
     }
 }

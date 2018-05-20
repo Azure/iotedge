@@ -2,12 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class DockerModule : IModule<DockerConfig>
     {
+        static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
+
         [JsonIgnore]
         public string Name { get; set; }
 
@@ -29,14 +33,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "configuration")]
         public virtual ConfigurationInfo ConfigurationInfo { get; }
 
-        public DockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy, DockerConfig config, ConfigurationInfo configurationInfo)
+        [JsonProperty(PropertyName = "env")]
+        public IDictionary<string, EnvVal> Env { get; }
+
+        public DockerModule(string name, string version, ModuleStatus desiredStatus, RestartPolicy restartPolicy,
+            DockerConfig config, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env)
         {
             this.Name = name;
-            this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.Version = version ?? string.Empty;
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
         }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);
@@ -55,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.DesiredStatus == other.DesiredStatus &&
                 this.Config.Equals(other.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
-                this.ConfigurationInfo.Equals(other.ConfigurationInfo);
+                this.ConfigurationInfo.Equals(other.ConfigurationInfo) &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public override int GetHashCode()
@@ -72,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ EnvDictionaryComparer.GetHashCode(this.Env);
                 return hashCode;
             }
         }

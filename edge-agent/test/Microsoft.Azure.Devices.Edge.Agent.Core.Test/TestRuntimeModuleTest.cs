@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly TestConfig Config3 = new TestConfig("image1");
 
-        public static TestModule TestModule1 = new TestModule("name", "version", "type", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
+        public static TestModule TestModule1 = new TestModule("name", "version", "type", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
 
         static DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
         static DateTime lastExitTime = lastStartTime.AddDays(1);

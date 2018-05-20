@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ModuleStatus.Running,
                     Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
+                    null,
                     null
                 );
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };

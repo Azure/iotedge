@@ -13,16 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public class ModuleSetTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
 
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-        static readonly IModule Module2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-        static readonly IModule Module3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
-        static readonly IModule Module4 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module4 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-        static readonly TestModule Module5 = new TestModule("mod5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+        static readonly TestModule Module5 = new TestModule("mod5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
         static readonly ModuleSet ModuleSet1 = ModuleSet.Create(Module1);
         static readonly ModuleSet ModuleSet2 = ModuleSet.Create(Module5, Module3);

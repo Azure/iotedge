@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Collections.Generic;
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -21,8 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public override RestartPolicy RestartPolicy { get; }
 
         [JsonConstructor]
-        public EdgeHubDockerModule(string type, ModuleStatus status, RestartPolicy restartPolicy, DockerConfig settings, ConfigurationInfo configuration)
-            : base(Core.Constants.EdgeHubModuleName, string.Empty, status, restartPolicy, settings, configuration)
+        public EdgeHubDockerModule(string type, ModuleStatus status, RestartPolicy restartPolicy,
+            DockerConfig settings, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, string version = "")
+            : base(Core.Constants.EdgeHubModuleName, version, status, restartPolicy, settings, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
             this.DesiredStatus = Preconditions.CheckIsDefined(status);

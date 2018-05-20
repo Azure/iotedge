@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IDeviceClientProvider
+            // IModuleClientProvider
             builder.Register(c => new EnvironmentModuleClientProvider(this.upstreamProtocol))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // ICombinedConfigProvider<CombinedDockerConfig>
-            builder.Register(c => new CombinedEdgeletConfigProvider(this.dockerAuthConfig, this.workloadUri))
+            builder.Register(c => new CombinedEdgeletConfigProvider(this.dockerAuthConfig, this.workloadUri, this.managementUri))
                 .As<ICombinedConfigProvider<CombinedDockerConfig>>()
                 .SingleInstance();
 

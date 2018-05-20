@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public class OrderedPlanRunnerTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
 
         [Fact]
         [Unit]
@@ -24,11 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
             var moduleExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module2", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image2"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
 
             };
             var commandList = new List<ICommand>
@@ -69,11 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var moduleExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
             };
             var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
@@ -107,11 +108,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var failureFactory = new TestCommandFailureFactory();
             var moduleExecutionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
-                new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)),
+                new TestRecordType(TestCommandType.TestCreate, new TestModule("module1", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image1"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestUpdate, new TestModule("module3", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image3"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestRemove, new TestModule("module4", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image4"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestStart, new TestModule("module5", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image5"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
+                new TestRecordType(TestCommandType.TestStop, new TestModule("module6", "version1", "type1", ModuleStatus.Stopped, new TestConfig("image6"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)),
             };
             var identity = new Mock<IModuleIdentity>();
             var commandList = new List<ICommand>
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            Mock<ICommand>[] commands = new[]
+            Mock<ICommand>[] commands =
             {
                 this.MakeMockCommand("c1"),
                 this.MakeMockCommand("c2", () => cts.Cancel()),

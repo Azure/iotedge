@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
 
@@ -32,8 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public TestRuntimeModule(
             string name, string version, RestartPolicy restartPolicy, string type, ModuleStatus desiredStatus,
             TestConfig config, int exitCode, string statusDescription, DateTime lastStartTimeUtc,
-            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus, ConfigurationInfo deploymentInfo = null)
-            : base(name, version, type, desiredStatus, config, restartPolicy, deploymentInfo)
+            DateTime lastExitTimeUtc, int restartCount, DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus,
+            ConfigurationInfo deploymentInfo = null, IDictionary<string, EnvVal> env = null)
+            : base(name, version, type, desiredStatus, config, restartPolicy, deploymentInfo, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;

@@ -57,9 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             LogLogo(logger);
 
             string mode;
-            Uri dockerUri;
-            string managementUri;
-            string workloadUri;
+
             string configSourceConfig;
             string backupConfigFilePath;
             int maxRestartCount;
@@ -74,10 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue("Mode", "docker");
-                dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
-                managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
+                mode = configuration.GetValue("Mode", "docker");                
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -107,11 +102,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 switch (mode.ToLowerInvariant())
                 {
                     case "docker":
+                        var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol));
                         break;
 
                     case "iotedged":
+                        string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
+                        string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol));

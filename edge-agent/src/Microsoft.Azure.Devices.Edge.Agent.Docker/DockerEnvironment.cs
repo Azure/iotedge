@@ -49,15 +49,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             foreach (ModuleRuntimeInfo moduleRuntimeInfo in moduleStatuses)
             {
-                if (moduleRuntimeInfo.Type != "docker" || !(moduleRuntimeInfo is ModuleRuntimeInfo<DockerReportedConfig> moduleStatusInfo))
+                if (moduleRuntimeInfo.Type != "docker" || !(moduleRuntimeInfo is ModuleRuntimeInfo<DockerReportedConfig> dockerRuntimeInfo))
                 {
                     Events.InvalidModuleType(moduleRuntimeInfo);
                     continue;
                 }
 
-                if (!moduleSet.Modules.TryGetValue(moduleStatusInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
+                if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(moduleStatusInfo.Name, string.Empty, ModuleStatus.Unknown, RestartPolicy.Unknown, new DockerConfig(string.Empty), new ConfigurationInfo());
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, RestartPolicy.Unknown, new DockerConfig(string.Empty), new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
@@ -65,22 +65,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 // compute module state based on restart policy
                 DateTime lastExitTime = moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue);
                 ModuleStatus moduleRuntimeStatus = this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime);
-
-                var dockerReportedConfig = new DockerReportedConfig(dockerModule.Config.Image, dockerModule.Config.CreateOptions, moduleStatusInfo.Config.ImageHash);
+                string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
+                var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash);
                 IModule module;
                 switch (moduleRuntimeInfo.Name)
                 {
                     case Core.Constants.EdgeHubModuleName:
                         module = new EdgeHubDockerRuntimeModule(
                             dockerModule.DesiredStatus, dockerModule.RestartPolicy, dockerReportedConfig,
-                            (int)moduleStatusInfo.ExitCode, moduleStatusInfo.Description, moduleStatusInfo.StartTime.GetOrElse(DateTime.MinValue), lastExitTime,
-                            moduleState.RestartCount, moduleState.LastRestartTimeUtc,
-                            moduleRuntimeStatus, dockerModule.ConfigurationInfo);
+                            (int)dockerRuntimeInfo.ExitCode, dockerRuntimeInfo.Description, dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
+                            lastExitTime, moduleState.RestartCount, moduleState.LastRestartTimeUtc,
+                            moduleRuntimeStatus, dockerModule.ConfigurationInfo, dockerModule.Env);
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
                         module = new EdgeAgentDockerRuntimeModule(dockerReportedConfig, moduleRuntimeStatus,
-                            moduleStatusInfo.StartTime.GetOrElse(DateTime.MinValue), dockerModule.ConfigurationInfo);
+                            (int)dockerRuntimeInfo.ExitCode, dockerRuntimeInfo.Description, dockerRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue),
+                            lastExitTime, dockerModule.ConfigurationInfo, dockerModule.Env);
                         break;
 
                     default:
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             moduleRuntimeInfo.Name, dockerModule.Version, dockerModule.DesiredStatus, dockerModule.RestartPolicy, dockerReportedConfig,
                             (int)moduleRuntimeInfo.ExitCode, moduleRuntimeInfo.Description, moduleRuntimeInfo.StartTime.GetOrElse(DateTime.MinValue), lastExitTime,
                             moduleState.RestartCount, moduleState.LastRestartTimeUtc,
-                            moduleRuntimeStatus, dockerModule.ConfigurationInfo);
+                            moduleRuntimeStatus, dockerModule.ConfigurationInfo, dockerModule.Env);
                         break;
                 }
 

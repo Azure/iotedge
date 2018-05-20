@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         string Type { get; }
     }
 
-    public interface IRuntimeInfo<TConfig> : IRuntimeInfo
+    public interface IRuntimeInfo<out TConfig> : IRuntimeInfo
     {
         TConfig Config { get; }
     }

@@ -94,6 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(1, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
+                ValidateRuntimeConfig(deploymentConfig.Runtime);
+                ValidateModules(deploymentConfig);
 
                 await UpdateAgentDesiredProperties(registryManager, edgeDeviceId);
                 await Task.Delay(TimeSpan.FromSeconds(10));
@@ -112,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["mlModule"]);
-
+                ValidateRuntimeConfig(deploymentConfig.Runtime);
             }
             finally
             {
@@ -127,9 +129,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
+        static void ValidateModules(DeploymentConfig deploymentConfig)
+        {
+            Assert.True(deploymentConfig.SystemModules.EdgeAgent.HasValue);
+            Assert.True(deploymentConfig.SystemModules.EdgeHub.HasValue);
+
+            var edgeAgent = deploymentConfig.SystemModules.EdgeAgent.OrDefault() as EdgeAgentDockerModule;
+            Assert.NotNull(edgeAgent);
+            Assert.Equal(edgeAgent.Env["e1"].Value, "e1val");
+            Assert.Equal(edgeAgent.Env["e2"].Value, "e2val");
+
+            var edgeHub = deploymentConfig.SystemModules.EdgeHub.OrDefault() as EdgeHubDockerModule;
+            Assert.NotNull(edgeHub);
+            Assert.Equal(edgeHub.Env["e3"].Value, "e3val");
+            Assert.Equal(edgeHub.Env["e4"].Value, "e4val");
+
+            var module1 = deploymentConfig.Modules["mongoserver"] as DockerDesiredModule;
+            Assert.NotNull(module1);
+            Assert.Equal(module1.Env["e5"].Value, "e5val");
+            Assert.Equal(module1.Env["e6"].Value, "e6val");
+        }
+
+        static void ValidateRuntimeConfig(IRuntimeInfo deploymentConfigRuntime)
+        {
+            var dockerRuntimeConfig = deploymentConfigRuntime as IRuntimeInfo<DockerRuntimeConfig>;
+            Assert.NotNull(dockerRuntimeConfig);
+
+            Assert.Equal("1.5", dockerRuntimeConfig.Config.MinDockerVersion);
+            Assert.Null(dockerRuntimeConfig.Config.LoggingOptions);
+            Assert.Equal(2, dockerRuntimeConfig.Config.RegistryCredentials.Count);
+            RegistryCredentials r1 = dockerRuntimeConfig.Config.RegistryCredentials["r1"];
+            Assert.Equal("acr1.azure.net", r1.Address);
+            Assert.Equal("u1", r1.Username);
+            Assert.Equal("p1", r1.Password);
+
+            RegistryCredentials r2 = dockerRuntimeConfig.Config.RegistryCredentials["r2"];
+            Assert.Equal("acr2.azure.net", r2.Address);
+            Assert.Equal("u2", r2.Username);
+            Assert.Equal("p2", r2.Password);
+        }
+
         public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
-            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
+            var cc = new ConfigurationContent { ModuleContent = new Dictionary<string, TwinContent>() };
             var twinContent = new TwinContent();
             cc.ModuleContent["$edgeAgent"] = twinContent;
             var dp = new
@@ -141,7 +183,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     settings = new
                     {
                         minDockerVersion = "1.5",
-                        loggingOptions = ""
+                        registryCredentials = new
+                        {
+                            r1 = new
+                            {
+                                address = "acr1.azure.net",
+                                username = "u1",
+                                password  = "p1"
+                            },
+                            r2 = new
+                            {
+                                address = "acr2.azure.net",
+                                username = "u2",
+                                password = "p2"
+                            }
+                        }
                     }
                 },
                 systemModules = new
@@ -153,6 +209,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                             id = "1235"
                         },
                         type = "docker",
+                        env = new
+                        {
+                            e1 = new
+                            {
+                                value = "e1val"
+                            },
+                            e2 = new
+                            {
+                                value = "e2val"
+                            }
+                        },
                         settings = new
                         {
                             image = "edgeAgent",
@@ -164,6 +231,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         type = "docker",
                         status = "running",
                         restartPolicy = "always",
+                        env = new
+                        {
+                            e3 = new
+                            {
+                                value = "e3val"
+                            },
+                            e4= new
+                            {
+                                value = "e4val"
+                            }                            
+                        },
                         settings = new
                         {
                             image = "edgeHub",
@@ -179,6 +257,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         type = "docker",
                         status = "running",
                         restartPolicy = "on-failure",
+                        env = new
+                        {
+                            e5 = new
+                            {
+                                value = "e5val"
+                            },
+                            e6 = new
+                            {
+                                value = "e6val"
+                            }                        
+                        },
                         settings = new
                         {
                             image = "mongo",
@@ -531,7 +620,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     settings = new
                     {
                         minDockerVersion = "1.5",
-                        loggingOptions = ""
+                        registryCredentials = new
+                        {
+                            r1 = new
+                            {
+                                address = "acr1.azure.net",
+                                username = "u1",
+                                password = "p1"
+                            },
+                            r2 = new
+                            {
+                                address = "acr2.azure.net",
+                                username = "u2",
+                                password = "p2"
+                            }
+                        }
                     }
                 },
                 systemModules = new
@@ -569,6 +672,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                         type = "docker",
                         status = "running",
                         restartPolicy = "on-failure",
+                        env = new
+                        {
+                            e5 = new
+                            {
+                                value = "e5val"
+                            },
+                            e7 = new
+                            {
+                                value = "e7val"
+                            }
+                        },
                         settings = new
                         {
                             image = "mongo",

@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task UpdateModuleAsync(ModuleSpec moduleSpec);
 
+        Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec);
+
         Task<IEnumerable<ModuleDetails>> GetModules(CancellationToken token);
     }
 }

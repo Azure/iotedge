@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     public class Agent
     {
@@ -142,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
             DeploymentStatus status = DeploymentStatus.Success;
             ModuleSet moduleSetToReport = null;
-            using (await this.reconcileLock.LockAsync())
+            using (await this.reconcileLock.LockAsync(token))
             {
                 try
                 {
@@ -157,12 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     if (deploymentConfig != DeploymentConfig.Empty)
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        // Remove EdgeAgent from current and desired module sets, before handling off to planner.
-                        // TODO: EdgeAgent updates need to be handled separately (currently a No-op)
-                        var desiredModulesToPlan = new ModuleSet(desiredModuleSet.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
-                        var currentModules = new ModuleSet(current.Modules.Where(k => !k.Key.Equals(Constants.EdgeAgentModuleName)).ToImmutableDictionary() as IImmutableDictionary<string, IModule>);
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
-                        Plan plan = await this.planner.PlanAsync(desiredModulesToPlan, currentModules, deploymentConfig.Runtime, identities);
+                        Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
                         if (!plan.IsEmpty)
                         {
                             try

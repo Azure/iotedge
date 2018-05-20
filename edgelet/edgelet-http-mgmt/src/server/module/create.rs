@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -67,7 +67,8 @@ where
                                 runtime
                                     .create(core_spec)
                                     .map(move |_| {
-                                        let details = spec_to_details(&spec);
+                                        let details =
+                                            spec_to_details(&spec, &ModuleStatus::Stopped);
                                         serde_json::to_string(&details)
                                             .context(ErrorKind::Serde)
                                             .map(|b| {

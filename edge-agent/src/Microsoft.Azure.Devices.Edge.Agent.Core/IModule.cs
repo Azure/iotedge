@@ -3,6 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
+    using System.Collections;
+    using System.Collections.Generic;
     using System.Runtime.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -102,6 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "configuration")]
         ConfigurationInfo ConfigurationInfo { get; }
 
+        [JsonProperty(PropertyName = "env")]
+        IDictionary<string, EnvVal> Env { get; }
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
@@ -116,5 +120,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IEdgeAgentModule : IModule
     {
-    }
+    }    
 }

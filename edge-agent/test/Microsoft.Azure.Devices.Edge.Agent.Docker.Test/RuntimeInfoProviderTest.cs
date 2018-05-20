@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
                     var config = new DockerConfig(Image, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, Core.RestartPolicy.OnUnhealthy, config, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
                     {

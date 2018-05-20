@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var systemModules = new SystemModules(edgeAgentModule, edgeHubModule);
 
-            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, new ConfigurationInfo());
-            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, new ConfigurationInfo());
+            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, new ConfigurationInfo(), null);
+            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, new ConfigurationInfo(), null);
 
             var modules = new Dictionary<string, IModule>
             {

@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
 
+        public Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) => Task.FromResult(NullCommand.Instance as ICommand);
+
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             if (module.Module is DockerModule dockerModule)
@@ -38,10 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            if (current is DockerModule currentDockerModule && next.Module is DockerModule nextDockerModule)
+            if (current is DockerModule currentDockerModule && next.Module is DockerModule)
             {
                 return new GroupCommand(
-                    new RemoveCommand(client, currentDockerModule),
+                    new RemoveCommand(this.client, currentDockerModule),
                     await this.CreateAsync(next, runtimeInfo));
             }
             return NullCommand.Instance;

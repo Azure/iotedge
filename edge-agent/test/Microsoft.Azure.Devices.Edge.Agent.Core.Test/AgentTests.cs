@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
             {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
+                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
             });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
@@ -99,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var token = new CancellationToken();
             ModuleSet currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
@@ -155,7 +154,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var token = new CancellationToken();
             ModuleSet currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
@@ -230,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
+                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
             });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
@@ -257,8 +255,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void ReconcileAsyncOnSetPlan()
         {
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"));
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
             Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
             var moduleExecutionList = new List<TestRecordType>
             {
@@ -413,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
-                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1")) }
+                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
             });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             var token = new CancellationToken();

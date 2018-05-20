@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using EnvVar = Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode.EnvVar;
 
     [Unit]
     public class RuntimeInfoProviderTest
@@ -94,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal("running", runtimeInfo1.Description);
             Assert.Equal(0, runtimeInfo1.ExitCode);
             Assert.False(runtimeInfo1.ExitTime.HasValue);
-            Assert.Equal((runtimeInfo1 as ModuleRuntimeInfo<TestConfig>).Config.ImageHash, module1Hash);
+            Assert.Equal((runtimeInfo1 as ModuleRuntimeInfo<TestConfig>)?.Config.ImageHash, module1Hash);
 
             ModuleRuntimeInfo runtimeInfo2 = runtimeInfos[1];
             Assert.Equal("module2", runtimeInfo2.Name);
@@ -103,14 +104,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal("stopped", runtimeInfo2.Description);
             Assert.Equal(5, runtimeInfo2.ExitCode);
             Assert.Equal(new DateTime(2011, 02, 03, 05, 06, 07), runtimeInfo2.ExitTime.OrDefault());
-            Assert.Equal((runtimeInfo2 as ModuleRuntimeInfo<TestConfig>).Config.ImageHash, module2Hash);
+            Assert.Equal((runtimeInfo2 as ModuleRuntimeInfo<TestConfig>)?.Config.ImageHash, module2Hash);
         }
 
         class TestConfig
         {
             public TestConfig(string imageHash)
             {
-                ImageHash = imageHash;
+                this.ImageHash = imageHash;
             }
 
             public string ImageHash { get; }

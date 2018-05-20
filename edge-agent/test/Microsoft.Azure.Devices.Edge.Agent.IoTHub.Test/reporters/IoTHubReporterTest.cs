@@ -64,14 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
         IEdgeAgentModule CreateMockEdgeAgentModule() => new TestAgentModule(
             Constants.EdgeAgentModuleName, "docker",
-            new TestConfig("EdgeAgentImage"), new Core.ConfigurationInfo()
+            new TestConfig("EdgeAgentImage"), new Core.ConfigurationInfo(), new Dictionary<string, EnvVal>()
         );
 
         [Fact]
         [Unit]
         public async void ClearAndGenerateNewReportedInfoIfDeserializeFails()
         {
-
             // Arrange
             using (var cts = new CancellationTokenSource(Timeout))
             {
@@ -680,7 +679,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     deploymentConfig
                 );
 
-                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
@@ -749,11 +747,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // prepare AgentConfig
                 var edgeHubDesiredModule = new EdgeHubDockerModule(
                     "docker", ModuleStatus.Running, RestartPolicy.Always,
-                    new DockerConfig("edge.azurecr.io/edgeHub:1.0"), new Core.ConfigurationInfo("1")
+                    new DockerConfig("edge.azurecr.io/edgeHub:1.0"),
+                    new Core.ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
                 );
                 var edgeAgentDesiredModule = new EdgeAgentDockerModule(
                     "docker", new DockerConfig("edge.azurecr.io/edgeAgent:1.0"),
-                    new Core.ConfigurationInfo("1")
+                    new Core.ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
                 );
                 var deploymentConfig = new DeploymentConfig(
                     "1.0",
@@ -772,14 +771,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                                         (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
                                         new DockerPlatformInfo(OperatingSystemType, Architecture));
 
-                ModuleSet moduleSet = ModuleSet.Create(edgeAgentModule);
-
                 // build current module set
+                DateTime lastStartTimeUtc = DateTime.Parse(
+                    "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
+                );
                 var edgeHubRuntimeModule = new EdgeHubDockerRuntimeModule(
                      ModuleStatus.Running, RestartPolicy.Always,
                     new DockerConfig("edge.azurecr.io/edgeHub:1.0"), 0, string.Empty,
-                    DateTime.UtcNow - TimeSpan.FromHours(1), DateTime.MinValue,
-                    0, DateTime.MinValue, ModuleStatus.Running, new Core.ConfigurationInfo("1")
+                    lastStartTimeUtc, DateTime.MinValue,
+                    0, DateTime.MinValue, ModuleStatus.Running,
+                    new Core.ConfigurationInfo("1"), new Dictionary<string, EnvVal> { ["foo"] = new EnvVal("Bar") }
                 );
                 ModuleSet currentModuleSet = ModuleSet.Create(
                     edgeAgentModule,
@@ -955,12 +956,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
-                DateTime lastStartTimeUtc = DateTime.Parse(
-                  "2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind
-                  );
+                DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
 
-                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, lastStartTimeUtc, new Core.ConfigurationInfo("id"));
-                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash"), 0, "", DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, new Core.ConfigurationInfo("hub"));
+                IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash"), ModuleStatus.Running, 0, string.Empty, lastStartTimeUtc, DateTime.MinValue, new Core.ConfigurationInfo("id"), new Dictionary<string, EnvVal>());
+                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash"), 0, string.Empty, DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, new Core.ConfigurationInfo("hub"), new Dictionary<string, EnvVal>());
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -1063,5 +1062,173 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             }
         }
 
+        [Fact]
+        [Unit]
+        public async void ReportedPatchWithEnvVarsTest()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const string SchemaVersion = "1.0";
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState
+                (
+                    0, DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Running
+                        ),
+                        new TestRuntimeModule(
+                            "extra_mod", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                            new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                            0, DateTime.MinValue, ModuleStatus.Backoff
+                        )
+                    ).Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo
+                );
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // prepare AgentConfig
+                var registryCreds = new Dictionary<string, RegistryCredentials>
+                {
+                    ["r1"] = new RegistryCredentials("a1", "u1", "p1"),
+                    ["r2"] = new RegistryCredentials("a2", "u2", "p2")
+                };
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, registryCreds)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig
+                );
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    edgeAgentModule,
+                    new TestRuntimeModule(
+                        "mod1", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Backoff, null, new Dictionary<string, EnvVal> { ["e1"] = new EnvVal("e1Val") }
+                    ),
+                    new TestRuntimeModule(
+                        "mod2", "1.0", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running,
+                        new TestConfig("image1"), 0, string.Empty, DateTime.MinValue, DateTime.MinValue,
+                        0, DateTime.MinValue, ModuleStatus.Running, null, new Dictionary<string, EnvVal> { ["e2"] = new EnvVal("e2Val") }
+                    )
+                );
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
+
+                // Assert
+                Assert.NotNull(patch);
+
+                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject expectedPatchJson = JObject.FromObject(new
+                {
+                    schemaVersion = SchemaVersion,
+                    lastDesiredVersion = DesiredVersion,
+                    lastDesiredStatus = new
+                    {
+                        code = (int)DeploymentStatusCode.Successful
+                    },
+                    runtime = new
+                    {
+                        type = RuntimeType,
+                        settings = new
+                        {
+                            minDockerVersion = MinDockerVersion,
+                            loggingOptions = LoggingOptions,
+                            registryCredentials = new
+                            {
+                                r1 = new
+                                {
+                                    address = "a1",
+                                    username = "u1",
+                                    password = "p1"
+                                },
+                                r2 = new
+                                {
+                                    address = "a2",
+                                    username = "u2",
+                                    password = "p2"
+                                }
+                            }
+                        },
+                        platform = new
+                        {
+                            os = OperatingSystemType,
+                            architecture = Architecture
+                        }
+                    },
+                    systemModules = new
+                    {
+                        edgeAgent = new
+                        {
+                            type = "docker",
+                            settings = new
+                            {
+                                image = "EdgeAgentImage"
+                            }
+                        }
+                    },
+                    modules = new Dictionary<string, object>
+                    {
+                        {
+                            currentModuleSet.Modules["mod1"].Name,
+                            new
+                            {
+                                runtimeStatus = "backoff",
+                                env = new
+                                {
+                                    e1 = new
+                                    {
+                                        value = "e1Val"
+                                    }
+                                }
+                            }
+                        },
+                        { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
+                        { "extra_mod", null }
+                    }
+                });
+
+                Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
     }
 }

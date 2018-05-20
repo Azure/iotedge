@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
                 DateTime.MinValue, ModuleStatus.Running,
-                new ConfigurationInfo("1")
+                new ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
             );
 
             // Act
@@ -46,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   },
   ""configuration"": {
     ""id"": ""1""
-  }
+  },
+  ""env"": {}
 }
             ");
 
@@ -88,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
                 DateTime.MinValue, ModuleStatus.Running,
-                new ConfigurationInfo("1")
+                new ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
             );
 
             Assert.Equal(expected, actual);
@@ -101,14 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Arrange
             string image = "repo/microsoft/azureiotedge-hub:002";
             var edgeHubDockerModule = new EdgeHubDockerModule(
-                "docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig(image), new ConfigurationInfo("1"));
+                "docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig(image), new ConfigurationInfo("1"), new Dictionary<string, EnvVal>());
 
             var edgeHubDockerRuntimeModule = new EdgeHubDockerRuntimeModule(
                 ModuleStatus.Running, RestartPolicy.Always,
                 new DockerConfig(image), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
                 DateTime.MinValue, ModuleStatus.Running,
-                new ConfigurationInfo("1")
+                new ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
             );
 
             // Act
@@ -127,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
                 DateTime.MinValue, ModuleStatus.Running,
-                new ConfigurationInfo("1")
+                new ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
             );
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
             var updatedModule2 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Unknown);

@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -14,9 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             RestartPolicy restartPolicy, DockerConfig config, int exitCode,
             string statusDescription, DateTime lastStartTime,
             DateTime lastExitTime, int restartCount, DateTime lastRestartTime,
-            ModuleStatus runtimeStatus, ConfigurationInfo configuration
+            ModuleStatus runtimeStatus, ConfigurationInfo configuration, IDictionary<string, EnvVal> env
         )
-            : base(name, version, desiredStatus, restartPolicy, config, configuration)
+            : base(name, version, desiredStatus, restartPolicy, config, configuration, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -34,11 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             string statusDescription, DateTime lastStartTimeUtc,
             DateTime lastExitTimeUtc, int restartCount,
             DateTime lastRestartTimeUtc, ModuleStatus runtimeStatus,
-            ConfigurationInfo configurationInfo
+            ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env
         )
             : this(name, version, status, restartPolicy, config, exitCode ?? 0,
                   statusDescription, lastStartTimeUtc, lastExitTimeUtc,
-                  restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo)
+                  restartCount, lastRestartTimeUtc, runtimeStatus, configurationInfo, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
@@ -56,10 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public DateTime LastExitTimeUtc { get; }
 
         [JsonProperty(PropertyName = "restartCount")]
-        public int RestartCount { get; }
+        public virtual int RestartCount { get; }
 
         [JsonProperty(PropertyName = "lastRestartTimeUtc")]
-        public DateTime LastRestartTimeUtc { get; }
+        public virtual DateTime LastRestartTimeUtc { get; }
 
         [JsonProperty(PropertyName = "runtimeStatus")]
         public ModuleStatus RuntimeStatus { get; }
@@ -115,6 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.Name, this.Version, this.DesiredStatus, this.RestartPolicy,
                 this.Config, this.ExitCode, this.StatusDescription,
                 this.LastStartTimeUtc, this.LastExitTimeUtc, this.RestartCount,
-                this.LastRestartTimeUtc, newStatus, this.ConfigurationInfo);
+                this.LastRestartTimeUtc, newStatus, this.ConfigurationInfo, this.Env);
     }
 }

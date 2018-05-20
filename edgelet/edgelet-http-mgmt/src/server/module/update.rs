@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -11,6 +11,7 @@ use management::models::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json;
+use url::form_urlencoded::parse as parse_query;
 
 use super::{spec_to_core, spec_to_details};
 use IntoResponse;
@@ -47,6 +48,16 @@ where
         _params: Parameters,
     ) -> BoxFuture<Response<Body>, HyperError> {
         let runtime = self.runtime.clone();
+        let start: bool = req.uri()
+            .query()
+            .and_then(|query| {
+                parse_query(query.as_bytes())
+                    .find(|&(ref key, _)| key == "start")
+                    .and_then(|(_, v)| if v != "false" { Some(()) } else { None })
+                    .map(|_| true)
+            })
+            .unwrap_or_else(|| false);
+
         let response = req.into_body()
             .concat2()
             .and_then(move |b| {
@@ -60,36 +71,59 @@ where
                             .map(|core_spec| (core_spec, spec))
                     })
                     .map(move |(core_spec, spec)| {
+                        let name = core_spec.name().to_string();
+
+                        if start {
+                            info!("Updating and starting module {}", name);
+                        } else {
+                            info!("Updating module {}", name);
+                        }
+
                         let created = runtime
-                            .remove(core_spec.name())
+                            .remove(&name)
                             .and_then(move |_| {
+                                debug!("Removed existing module {}", name);
                                 runtime
                                     .registry()
                                     .pull(core_spec.config())
                                     .and_then(move |_| {
-                                        runtime
-                                            .create(core_spec)
-                                            .map(move |_| {
-                                                let details = spec_to_details(&spec);
-                                                serde_json::to_string(&details)
-                                                    .context(ErrorKind::Serde)
-                                                    .map(|b| {
-                                                        Response::builder()
-                                                            .status(StatusCode::OK)
-                                                            .header(
-                                                                CONTENT_TYPE,
-                                                                "application/json",
-                                                            )
-                                                            .header(
-                                                                CONTENT_LENGTH,
-                                                                b.len().to_string().as_str(),
-                                                            )
-                                                            .body(b.into())
-                                                            .unwrap_or_else(|e| e.into_response())
-                                                    })
-                                                    .unwrap_or_else(|e| e.into_response())
-                                            })
-                                            .or_else(|e| future::ok(e.into_response()))
+                                        debug!("Successfully pulled new image for module {}", name);
+                                        runtime.create(core_spec).and_then(move |_| {
+                                            debug!("Created module {}", name);
+                                            if start {
+                                                info!("Starting module {}", name);
+                                                future::Either::A(
+                                                    runtime
+                                                        .start(&name)
+                                                        .map(|_| ModuleStatus::Running),
+                                                )
+                                            } else {
+                                                future::Either::B(future::ok(ModuleStatus::Stopped))
+                                            }.map(
+                                                move |status| {
+                                                    let details = spec_to_details(&spec, &status);
+                                                    serde_json::to_string(&details)
+                                                        .context(ErrorKind::Serde)
+                                                        .map(|b| {
+                                                            Response::builder()
+                                                                .status(StatusCode::OK)
+                                                                .header(
+                                                                    CONTENT_TYPE,
+                                                                    "application/json",
+                                                                )
+                                                                .header(
+                                                                    CONTENT_LENGTH,
+                                                                    b.len().to_string().as_str(),
+                                                                )
+                                                                .body(b.into())
+                                                                .unwrap_or_else(|e| {
+                                                                    e.into_response()
+                                                                })
+                                                        })
+                                                        .unwrap_or_else(|e| e.into_response())
+                                                },
+                                            )
+                                        })
                                     })
                             })
                             .or_else(|e| future::ok(e.into_response()));
@@ -159,6 +193,45 @@ mod tests {
                     details.config().settings().get("image").unwrap()
                 );
                 assert_eq!("stopped", details.status().runtime_status().status());
+
+                assert_eq!(160, b.len());
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn success_start() {
+        let handler = UpdateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let request = Request::put("http://localhost/modules/test-module?start")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::OK, response.status());
+        assert_eq!("160", *response.headers().get(CONTENT_LENGTH).unwrap());
+        assert_eq!(
+            "application/json",
+            *response.headers().get(CONTENT_TYPE).unwrap()
+        );
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let details: ModuleDetails = serde_json::from_slice(&b).unwrap();
+                assert_eq!("test-module", details.name());
+                assert_eq!("docker", details.type_());
+                assert_eq!(
+                    "microsoft/test-image",
+                    details.config().settings().get("image").unwrap()
+                );
+                assert_eq!("running", details.status().runtime_status().status());
 
                 assert_eq!(160, b.len());
                 Ok(())

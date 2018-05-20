@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         static readonly TimeSpan IntensiveCareTime = TimeSpan.FromMinutes(10);
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
-
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly TestConfig Config1 = new TestConfig("image1");
         static readonly TestConfig Config2 = new TestConfig("image2");
 
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var (factory, _, _, planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var (factory, _, _, planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IRuntimeModule currentModule = new TestRuntimeModule(
                 "mod1", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
                 0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -262,128 +262,128 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 (
                     new TestRuntimeModule(
                         "updateDeployModule1", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
-                    new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, null, EnvVars),
+                    new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule2", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
-                    new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff, null, EnvVars),
+                    new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule3", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
-                    new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy, null, EnvVars),
+                    new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule4", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
-                    new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, null, EnvVars),
+                    new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule5", "version1", RestartPolicy.Always, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
-                    new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed, null, EnvVars),
+                    new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
                 ),
 
                 // OnUnhealthy
                 (
                     new TestRuntimeModule(
                         "updateDeployModule6", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
-                    new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, null, EnvVars),
+                    new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule7", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
-                    new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff, null, EnvVars),
+                    new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule8", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
-                    new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy, null, EnvVars),
+                    new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule9", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
-                    new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, null, EnvVars),
+                    new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule10", "version1", RestartPolicy.OnUnhealthy, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
-                    new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed, null, EnvVars),
+                    new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
                 ),
 
                 // OnFailure
                 (
                     new TestRuntimeModule(
                         "updateDeployModule11", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
-                    new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, null, EnvVars),
+                    new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule12", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
-                    new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff, null, EnvVars),
+                    new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule13", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
-                    new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy, null, EnvVars),
+                    new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule14", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
-                    new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, null, EnvVars),
+                    new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule15", "version1", RestartPolicy.OnFailure, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
-                    new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed, null, EnvVars),
+                    new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
                 ),
 
                 // Never
                 (
                     new TestRuntimeModule(
                         "updateDeployModule16", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running),
-                    new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, null, EnvVars),
+                    new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule17", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff),
-                    new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Backoff, null, EnvVars),
+                    new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule18", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy),
-                    new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Unhealthy, null, EnvVars),
+                    new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule19", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped),
-                    new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, null, EnvVars),
+                    new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
                 ),
                 (
                     new TestRuntimeModule(
                         "updateDeployModule20", "version1", RestartPolicy.Never, "test", ModuleStatus.Running, Config1,
-                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed),
-                    new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo)
+                        0, string.Empty, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Failed, null, EnvVars),
+                    new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
                 ),
             };
 

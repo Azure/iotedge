@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 {
     using System;
     using System.Collections.Generic;
-    // ReSharper disable once RedundantUsingDirective
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-
 
     public class CreateCommand : ICommand
     {
@@ -72,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             InjectConfig(createContainerParameters, identity, buildForEdgeHub, configSource);
             InjectPortBindings(createContainerParameters, buildForEdgeHub);
             InjectLoggerConfig(createContainerParameters, defaultDockerLoggerConfig, dockerRuntimeInfo.Map(r => r.Config.LoggingOptions));
-
+            InjectModuleEnvVars(createContainerParameters, module.Env);
             // Inject required Edge parameters
             InjectLabels(createContainerParameters, module, createOptionsString);
 
@@ -92,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             var envVars = new List<string>();
 
             // Inject the connection string as an environment variable
-            if ((identity.Credentials is ConnectionStringCredentials creds) && ((!string.IsNullOrWhiteSpace(creds.ConnectionString))))
+            if (identity.Credentials is ConnectionStringCredentials creds && !string.IsNullOrWhiteSpace(creds.ConnectionString))
             {
                 string connectionStringKey = injectForEdgeHub ? Constants.IotHubConnectionStringKey : Constants.EdgeHubConnectionStringKey;
                 envVars.Add($"{connectionStringKey}={creds.ConnectionString}");
@@ -259,6 +257,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             }
 
             InjectEnvVars(createContainerParameters, varsList);
+        }
+
+        static void InjectModuleEnvVars(
+            CreateContainerParameters createContainerParameters,
+            IDictionary<string, EnvVal> moduleEnvVars)
+        {
+            var envVars = new List<string>();
+            foreach (KeyValuePair<string, EnvVal> envVar in moduleEnvVars)
+            {
+                envVars.Add($"{envVar.Key}={envVar.Value.Value}");
+            }
+            InjectEnvVars(createContainerParameters, envVars);
         }
 
         static void InjectEnvVars(

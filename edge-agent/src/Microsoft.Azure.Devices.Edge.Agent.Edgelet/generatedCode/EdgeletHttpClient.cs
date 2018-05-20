@@ -361,20 +361,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
         /// <summary>Update a module.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <param name="start">Flag indicating whether module should be started after updating.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, ModuleSpec module)
+        public System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, bool? start, ModuleSpec module)
         {
-            return UpdateModuleAsync(api_version, name, module, System.Threading.CancellationToken.None);
+            return UpdateModuleAsync(api_version, name, start, module, System.Threading.CancellationToken.None);
         }
 
         /// <summary>Update a module.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <param name="name">The name of the module to update. (urlencoded)</param>
+        /// <param name="start">Flag indicating whether module should be started after updating.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, ModuleSpec module, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, bool? start, ModuleSpec module, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -386,6 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/modules/{name}?");
             urlBuilder_.Replace("{name}", System.Net.WebUtility.UrlEncode(ConvertToString(name, System.Globalization.CultureInfo.InvariantCulture)));
             urlBuilder_.Append("api-version=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            if (start != null) urlBuilder_.Append("start=").Append(System.Uri.EscapeDataString(ConvertToString(start, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;

@@ -2,6 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Newtonsoft.Json;
 
     public class UnknownModule : IModule
@@ -17,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public virtual RestartPolicy RestartPolicy => RestartPolicy.Never;
 
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
+
+        public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;
 
         public bool Equals(IModule other) => other != null && object.ReferenceEquals(this, other);
     }

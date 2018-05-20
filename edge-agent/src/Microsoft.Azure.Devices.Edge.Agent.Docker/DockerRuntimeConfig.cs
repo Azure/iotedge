@@ -4,23 +4,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class DockerRuntimeConfig : IEquatable<DockerRuntimeConfig>
     {
         public DockerRuntimeConfig(string minDockerVersion, string loggingOptions)
-            : this(minDockerVersion, loggingOptions, null)
+            : this(minDockerVersion, null, loggingOptions)
         {
         }
 
         [JsonConstructor]
-        public DockerRuntimeConfig(string minDockerVersion, string loggingOptions, IDictionary<string, RegistryCredentials> registryCredentials)
+        public DockerRuntimeConfig(string minDockerVersion, IDictionary<string, RegistryCredentials> registryCredentials, string loggingOptions = "")
         {
             this.MinDockerVersion = Preconditions.CheckNotNull(minDockerVersion, nameof(minDockerVersion));
-            this.LoggingOptions = Preconditions.CheckNotNull(loggingOptions, nameof(loggingOptions));
-            this.RegistryCredentials = registryCredentials ?? new Dictionary<string, RegistryCredentials>();
+            this.LoggingOptions = loggingOptions;
+            this.RegistryCredentials = registryCredentials?.ToImmutableDictionary() ?? ImmutableDictionary<string, RegistryCredentials>.Empty;
         }
 
         [JsonProperty("minDockerVersion")]

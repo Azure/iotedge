@@ -180,6 +180,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // extract list of modules that need attention
             var (added, updateDeployed, updateStateChanged, removed, runningGreat) = this.ProcessDiff(desired, current);
 
+            var updateRuntimeCommands = new List<ICommand>();
+            IModule edgeAgentModule = updateDeployed.FirstOrDefault(m => m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase));
+            if (edgeAgentModule != null)
+            {
+                updateDeployed.Remove(edgeAgentModule);
+                ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(new ModuleWithIdentity(edgeAgentModule, moduleIdentities.GetValueOrDefault(edgeAgentModule.Name)), runtimeInfo);
+                updateRuntimeCommands.Add(updateEdgeAgentCommand);
+            }
+
             // create "stop" commands for modules that have been updated/removed
             IEnumerable<Task<ICommand>> stopTasks = updateDeployed
                 .Concat(removed)
@@ -216,14 +225,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             );
 
             // apply restart policy for modules that are not in the deployment list and aren't running
-            IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged);
+            IEnumerable<Task<ICommand>> restartTasks = this.ApplyRestartPolicy(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)));
             IEnumerable<ICommand> restart = await Task.WhenAll(restartTasks);
 
             // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
             // for more than "IntensiveCareTime" & still have an entry for them in the store
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
-            IList<ICommand> commands = stop
+            IList<ICommand> commands = updateRuntimeCommands
+                .Concat(stop)
                 .Concat(remove)
                 .Concat(removeState)
                 .Concat(addedCommands)

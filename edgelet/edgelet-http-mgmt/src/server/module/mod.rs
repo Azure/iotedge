@@ -142,7 +142,7 @@ where
     Ok(module_spec)
 }
 
-fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
+fn spec_to_details(spec: &ModuleSpec, module_status: &ModuleStatus) -> ModuleDetails {
     let id = spec.name().clone();
     let name = spec.name().clone();
     let type_ = spec.type_().clone();
@@ -157,7 +157,7 @@ fn spec_to_details(spec: &ModuleSpec) -> ModuleDetails {
         config.set_env(e);
     }
 
-    let runtime_status = RuntimeStatus::new(ModuleStatus::Stopped.to_string());
+    let runtime_status = RuntimeStatus::new(module_status.to_string());
     let status = Status::new(runtime_status);
     ModuleDetails::new(id, name, type_, config, status)
 }

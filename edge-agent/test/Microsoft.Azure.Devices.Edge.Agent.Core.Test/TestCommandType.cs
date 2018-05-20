@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         TestStart,
         TestStop,
         TestRestart,
-        TestWrap
+        TestWrap,
+        TestUpdateEdgeAgent
     }
 }
