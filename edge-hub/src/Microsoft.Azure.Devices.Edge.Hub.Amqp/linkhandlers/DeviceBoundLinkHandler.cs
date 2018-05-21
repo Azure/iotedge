@@ -26,7 +26,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             // TODO: Check if we need to worry about credit available on the link
             await base.OnOpenAsync(timeout);
-            this.DeviceListener.StartListeningToC2DMessages();
+
+            // TODO: Temporary fix since SDK subscribes to C2D messages for modules. 
+            if (string.IsNullOrWhiteSpace(this.ModuleId))
+            {
+                this.DeviceListener.StartListeningToC2DMessages();
+            }
         }
     }
 }
