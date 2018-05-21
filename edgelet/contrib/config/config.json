@@ -1,0 +1,20 @@
+{
+    "provisioning": {
+      "source": "manual",
+      "device_connection_string": ""
+    },
+    "runtime": {
+      "name": "edgeAgent",
+      "type": "docker",
+      "env": {},
+      "config": {
+        "image": "microsoft/azureiotedge-agent:1.0-preview",
+        "create_options": "",
+        "auth": {}
+      }
+    },
+    "hostname": "localhost",
+    "workload_uri": "unix:///var/run/iotedge/workload.sock",
+    "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+    "docker_uri": "unix:///var/run/docker.sock"
+}

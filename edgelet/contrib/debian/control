@@ -1,0 +1,14 @@
+Source: iotedge
+Section: unknown
+Priority: extra
+Maintainer: Azure IoT Edge Devs <edgedevs@microsoft.com>
+Build-Depends: debhelper (>=9),
+               dh-systemd
+Standards-Version: 3.9.6
+Homepage: https://github.com/azure/iot-edge
+
+Package: iotedge
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Azure IoT Edge daemon

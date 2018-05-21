@@ -1,0 +1,17 @@
+[Unit]
+Description=Azure IoT Edge daemon
+After=network-online.target iotedge.socket iotedge.mgmt.socket
+Requires=network-online.target iotedge.socket iotedge.mgmt.socket
+Documentation=man:iotedged(8)
+
+[Service]
+ExecStart=/usr/bin/iotedged -c /etc/iotedge/config.json
+KillMode=process
+TimeoutStartSec=600
+TimeoutStopSec=40
+User=iotedge
+Group=iotedge
+
+[Install]
+WantedBy=multi-user.target
+Also=iotedge.socket iotedge.mgmt.socket

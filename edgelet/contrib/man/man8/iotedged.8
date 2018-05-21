@@ -1,0 +1,60 @@
+.\" (C) Copyright 2018 Microsoft. All rights reserved.
+.\"
+.\" See http://www.debian.org/doc/manuals/maint-guide/dother.en.html#manpage1
+.\"
+.\" 1. Use this as the template for the manpage for <commandname> after
+.\"    renaming this file to <commandname>.1 (if it is for section 1).
+.\"
+.\" 2. List the path to this file in debian/<packagename>.manpages to
+.\"    install this manpage to the target binary package.
+.\"
+.\" First parameter, IOTEDGE, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH IOTEDGED 8 "Azure IoT Edge User Manuals" "June 2018"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+iotedged \- Azure IoT Edge Security Daemon
+.SH SYNOPSIS
+.PP
+\fBiotedged\fP
+[\fB\-h\fP|\fB\-\-help\fP]
+[\fB\-v\fP|\fB\-\-version\fP]
+[\fB\-c\fP \fIFILE\fP|\fB\-\-config\-file\fP=\fIFILE\fP]
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B iotedged.
+.PP
+\fBiotedged\fP is a program that...
+.SH OPTIONS
+These programs follow the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of options is included below.
+.TP
+.B \-h, \-\-help
+Show summary of options.
+.TP
+.B \-v, \-\-version
+Show version of program.
+.TP
+\fB\-c \fP\fIFILE\fP, \fB\-\-config\-file\fP=\fIFILE\fP
+Sets the daemon configuration file.
+.RE
+.SH SEE ALSO
+.BR iotedge (1),
+.br
+.SH HISTORY
+.PP
+June 2018, Initial release

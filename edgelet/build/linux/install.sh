@@ -51,10 +51,19 @@ process_args "$@"
 
 if command -v "$RUSTUP" >/dev/null; then
     $RUSTUP install "$TOOLCHAIN"
+
+    # This incantation is how the PATH is updated in a VSTS build
+    echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
 else
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi
 
 # Install OpenSSL, curl and uuid
 sudo apt-get update && \
-    sudo apt-get install -y pkg-config libssl-dev uuid-dev curl libcurl4-openssl-dev
+sudo apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    uuid-dev curl \
+    libcurl4-openssl-dev \
+    debhelper \
+    dh-systemd

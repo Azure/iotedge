@@ -1,0 +1,15 @@
+[Unit]
+Description=Azure IoT Edge daemon workload socket
+Documentation=man:iotedged(8)
+
+[Socket]
+ListenStream=/var/run/iotedge/workload.sock
+SocketMode=0666
+DirectoryMode=0755
+SocketUser=iotedge
+SocketGroup=iotedge
+Service=iotedge.service
+FileDescriptorName=iotedge.workload
+
+[Install]
+WantedBy=sockets.target

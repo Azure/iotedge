@@ -1,0 +1,5 @@
+iotedge (@version@-@revision@) unstable; urgency=low
+
+  * Initial release
+
+ -- "Azure IoT Edge Devs" <edgedevs@microsoft.com>  Fri, 18 May 2018 15:48:59 +0000

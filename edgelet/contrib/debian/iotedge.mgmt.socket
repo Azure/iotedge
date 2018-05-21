@@ -1,0 +1,15 @@
+[Unit]
+Description=Azure IoT Edge daemon management socket
+Documentation=man:iotedged(8)
+
+[Socket]
+ListenStream=/var/run/iotedge/mgmt.sock
+SocketMode=0660
+DirectoryMode=0755
+SocketUser=iotedge
+SocketGroup=iotedge
+Service=iotedge.service
+FileDescriptorName=iotedge.mgmt
+
+[Install]
+WantedBy=sockets.target

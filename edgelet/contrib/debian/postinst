@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+USER=iotedge
+GROUP=iotedge
+
+case "$1" in
+    configure)
+        if id -u $USER > /dev/null 2>&1; then
+            chown ${USER}:${GROUP} /var/lib/iotedge
+            chown ${USER}:${GROUP} /var/log/iotedge
+            chown ${USER}:${GROUP} /etc/iotedge/config.json
+
+            chmod 744 /var/lib/iotedge
+            chmod 755 /var/log/iotedge
+            chmod 400 /etc/iotedge/config.json
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+
+#DEBHELPER#
+
+exit 0

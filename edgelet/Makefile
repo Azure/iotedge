@@ -1,24 +1,34 @@
 SHELL=/bin/sh
 TARGET=target/release
-HSM=hsm-sys/azure-iot-hsm-c
+VERSION?=`cat version.txt`
+REVISION?=1
+PACKAGE_NAME=iotedge
+PACKAGE="$(PACKAGE_NAME)-$(VERSION)"
 
-CARGOFLAGS=--release
+prefix?=/usr
+exec_prefix?=$(prefix)
+bindir?=$(exec_prefix)/bin
+libdir?=$(exec_prefix)/lib
+sysconfdir?=/etc
+datarootdir?=$(prefix)/share
+datadir?=$(datarootdir)
+mandir?=$(datarootdir)/man
+man1=$(mandir)/man1
+man8=$(mandir)/man8
+srcdir?=.
+
+CARGOFLAGS=--release --manifest-path=$(srcdir)/Cargo.toml
+DPKGFLAGS=-b -rfakeroot -us -uc -i
 
 INSTALL=install
 INSTALL_DATA=$(INSTALL) -m 644
 INSTALL_PROGRAM=$(INSTALL)
 MAKE=make
 MKDIR_P=mkdir -p
+GZIP=gzip
+SED=sed
 
-prefix?=/usr
-exec_prefix?=$(prefix)
-bindir?=$(exec_prefix)/bin
-libdir?=$(exec_prefix)/lib
-datarootdir?=$(prefix)/share
-datadir?=$(datarootdir)
-mandir?=$(datarootdir)/man
-
-all: $(TARGET)/iotedged $(TARGET)/iotedge $(TARGET)/libiothsm.so
+all: $(TARGET)/iotedged $(TARGET)/iotedge
 
 $(TARGET)/iotedged:
 	cargo build $(CARGOFLAGS)
@@ -26,36 +36,32 @@ $(TARGET)/iotedged:
 $(TARGET)/iotedge:
 	cargo build $(CARGOFLAGS)
 
-$(HSM)/build:
-	$(MKDIR_P) $(HSM)/build
+package: all
+	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
+	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.json $(TARGET)/$(PACKAGE)/etc/iotedge/config.json
 
-$(HSM)/build/Makefile: | $(HSM)/build
-	(cd $(HSM)/build; cmake -DBUILD_SHARED=ON -DCMAKE_BUILD_TYPE=Release ..)
-
-$(TARGET)/libiothsm.so: $(HSM)/build/Makefile
-	$(MAKE) -C $(HSM)/build
-	cp $(HSM)/build/libiothsm.so $(TARGET)
-
-install: all installdirs
-	$(INSTALL_PROGRAM) -s $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
-	$(INSTALL_PROGRAM) -s $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
-	$(INSTALL_DATA) $(TARGET)/libiothsm.so $(DESTDIR)$(libdir)/libiothsm.so
-
-installdirs: $(DESTDIR)$(bindir) $(DESTDIR)$(libdir)
+deb: package
+	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
+	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
+	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
+install: all
+	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
+	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.json $(DESTDIR)$(sysconfdir)/iotedge/config.json
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedged
 	rm -f $(DESTDIR)$(bindir)/iotedge
-	rm -f $(DESTDIR)$(libdir)/libiothsm.so
-
-$(DESTDIR)$(bindir):
-	$(MKDIR_P) $(DESTDIR)$(bindir)
-
-$(DESTDIR)$(libdir):
-	$(MKDIR_P) $(DESTDIR)$(libdir)
+	-rm -f $(DESTDIR)$(man1)/iotedge.1
+	-rm -f $(DESTDIR)$(man8)/iotedged.8
+	-rm $(DESTDIR)$(systconfdir)/iotedge/config.json
 
 clean:
 	rm -rf $(TARGET)
-	rm -rf $(HSM)/build
 
-.PHONY: all clean install installdirs uninstall
+.PHONY: all clean deb install package uninstall
