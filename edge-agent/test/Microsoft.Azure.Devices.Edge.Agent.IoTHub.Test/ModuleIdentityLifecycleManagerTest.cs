@@ -28,12 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string hostname = "hostname";
             string deviceId = "deviceId";
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
-
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
+            
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Empty);
 
-            Assert.True(modulesIdentities.Count() == 0);
+            Assert.False(modulesIdentities.Any());
         }
 
         [Fact]
@@ -47,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string deviceId = "deviceId";
             string moduleSharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryModuleAccessKey"));
             string gatewayHostName = "localhost";
-            var moduleIdentityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
 
@@ -64,14 +62,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleIdentityBuilder, gatewayHostName)
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
             // ReSharper disable PossibleMultipleEnumeration
             serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name)), Times.Once());
             // ReSharper restore PossibleMultipleEnumeration
-            Assert.True(modulesIdentities.Count() == 1);
+            Assert.True(modulesIdentities.Count == 1);
         }
 
         [Fact]
@@ -89,7 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
             string gatewayHostName = "localhost";
-            var moduleIdentityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             Module[] serviceIdentities = { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
@@ -105,11 +102,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleIdentityBuilder, gatewayHostName)
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
-            Assert.True(modulesIdentities.Count() == 1);
+            Assert.True(modulesIdentities.Count == 1);
         }
 
         [Fact]
@@ -126,7 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
             string gatewayHostName = "localhost";
-            var moduleIdentityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             Module[] serviceIdentities = { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
@@ -142,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleIdentityBuilder, gatewayHostName)
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
@@ -174,7 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string hostname = "hostname.fake.com";
             string deviceId = "deviceId";
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             Module[] serviceIdentities = { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
@@ -190,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
@@ -217,8 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string deviceId = "deviceId";
             string sharedAccessKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primaryAccessKey"));
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
-
+            
             Module[] serviceIdentities = { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>())).Callback(
@@ -233,11 +227,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             serviceClient.Verify(sc => sc.UpdateModules(It.IsAny<IEnumerable<Module>>()), Times.Once());
-            Assert.True(modulesIdentities.Count() == 1);
+            Assert.True(modulesIdentities.Count == 1);
             var creds = modulesIdentities.First().Value.Credentials as ConnectionStringCredentials;
             Assert.NotNull(creds);
             IotHubConnectionStringBuilder connectionString = IotHubConnectionStringBuilder.Create(creds.ConnectionString);
@@ -262,21 +256,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string hostname = "hostname";
             string deviceId = "deviceId";
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             Module[] serviceIdentities = { serviceModuleIdentity };
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
-            serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));
-            serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => m.Count() == 0))).Returns(Task.FromResult(new Module[0]));
+            serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
+            serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
 
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
 
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
-                .GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
+                .GetModuleIdentitiesAsync(ModuleSet.Create(module), ModuleSet.Empty);
 
-            serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => m.Count() == 0)), Times.Once);
-            serviceClient.Verify(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => m.Count() == 0)), Times.Once);
-            Assert.True(modulesIdentities.Count() == 1);
+            serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any())), Times.Once);
+            serviceClient.Verify(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any())), Times.Once);
+            Assert.True(modulesIdentities.Count == 1);
         }
 
         [Fact]
@@ -293,7 +286,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string hostname = "hostname";
             string deviceId = "deviceId";
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             var serviceIdentities = new List<Microsoft.Azure.Devices.Module>();
             serviceIdentities.Add(serviceModuleIdentity);
@@ -303,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             serviceClient.Setup(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 1 && m.First() == Name))).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
             // ReSharper restore PossibleMultipleEnumeration
 
-            await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
+            await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
 
             // If we change to IList Mock doesn't recognize and making it a non Lambda would add a lot of complexity on this code.
@@ -326,17 +318,74 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string hostname = "hostname";
             string deviceId = "deviceId";
             string gatewayHostName = "localhost";
-            var moduleConnectionStringBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(hostname, deviceId);
 
             var serviceIdentities = new List<Microsoft.Azure.Devices.Module>();
             serviceIdentities.Add(serviceModuleIdentity);
             serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
             serviceClient.Setup(sc => sc.RemoveModules(It.IsAny<IEnumerable<string>>())).Returns(Task.FromResult(ImmutableList<Module>.Empty.AsEnumerable()));
 
-            await new ModuleIdentityLifecycleManager(serviceClient.Object, moduleConnectionStringBuilder, gatewayHostName)
+            await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
                 .GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Create(new IModule[] { currentModule }));
 
             serviceClient.Verify(sc => sc.RemoveModules(It.Is<IEnumerable<string>>(m => m.Count() == 0)), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestGetModulesIdentity_EdgeHubTest()
+        {
+            const string Name = "filter";
+
+            var symmetricKey = new SymmetricKey();
+            symmetricKey.PrimaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("primarySymmetricKey"));
+            symmetricKey.SecondaryKey = Convert.ToBase64String(Encoding.UTF8.GetBytes("secondarySymmetricKey"));
+
+            var serviceModuleFilterIdentity = new Module("device1", Name)
+            {
+                Authentication = new AuthenticationMechanism
+                {
+                    SymmetricKey = symmetricKey
+                }
+            };
+
+            var serviceModuleEdgeHubIdentity = new Module("device1", Constants.EdgeHubModuleIdentityName)
+            {
+                Authentication = new AuthenticationMechanism
+                {
+                    SymmetricKey = symmetricKey
+                }
+            };
+
+            var serviceClient = new Mock<IServiceClient>();
+            string hostname = "hostname";
+            string deviceId = "deviceId";
+            string gatewayHostName = "localhost";
+
+            Module[] serviceIdentities = { serviceModuleFilterIdentity, serviceModuleEdgeHubIdentity };
+            serviceClient.Setup(sc => sc.GetModules()).Returns(Task.FromResult(serviceIdentities.AsEnumerable()));
+            serviceClient.Setup(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
+            serviceClient.Setup(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any()))).Returns(Task.FromResult(new Module[0]));
+
+            var testMod = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var edgeHubMod = new TestModule(Constants.EdgeHubModuleName, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.Always, DefaultConfigurationInfo, EnvVars);
+
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await new ModuleIdentityLifecycleManager(serviceClient.Object, hostname, deviceId, gatewayHostName)
+                .GetModuleIdentitiesAsync(ModuleSet.Create(testMod, edgeHubMod), ModuleSet.Empty);
+
+            serviceClient.Verify(sc => sc.CreateModules(It.Is<IEnumerable<string>>(m => !m.Any())), Times.Once);
+            serviceClient.Verify(sc => sc.UpdateModules(It.Is<IEnumerable<Module>>(m => !m.Any())), Times.Once);
+            Assert.True(modulesIdentities.Count == 2);
+            IModuleIdentity edgeHubModuleIdentity = modulesIdentities[Constants.EdgeHubModuleName];
+            Assert.NotNull(edgeHubModuleIdentity);
+            var edgeHubCreds = edgeHubModuleIdentity.Credentials as ConnectionStringCredentials;
+            Assert.NotNull(edgeHubCreds);
+            Assert.Equal("HostName=hostname;DeviceId=deviceId;ModuleId=$edgeHub;SharedAccessKey=cHJpbWFyeVN5bW1ldHJpY0tleQ==", edgeHubCreds.ConnectionString);
+
+            IModuleIdentity testModuleIdentity = modulesIdentities[Name];
+            Assert.NotNull(testModuleIdentity);
+            var testModCreds = testModuleIdentity.Credentials as ConnectionStringCredentials;
+            Assert.NotNull(testModCreds);
+            Assert.Equal("HostName=hostname;DeviceId=deviceId;ModuleId=filter;SharedAccessKey=cHJpbWFyeVN5bW1ldHJpY0tleQ==;GatewayHostName=localhost", testModCreds.ConnectionString);
         }
     }
 }

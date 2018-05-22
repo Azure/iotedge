@@ -50,9 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IServiceClient>()
                 .SingleInstance();
 
-            // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleConnectionString.ModuleConnectionStringBuilder(this.iotHubHostName, this.deviceId);
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), identityBuilder, this.gatewayHostName))
+            // IModuleIdentityLifecycleManager            
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.iotHubHostName, this.deviceId, this.gatewayHostName))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 

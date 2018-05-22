@@ -18,22 +18,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void CreateConnectionStringTest(string expectedConnectionString, string iotHubHostName, string deviceId, string moduleId, string sasKey = null, string gatewayHostName = null)
         {
             // Arrange
-            ModuleConnectionString.ModuleConnectionStringBuilder builder = new ModuleConnectionString.ModuleConnectionStringBuilder(iotHubHostName, deviceId).WithModuleId(moduleId);
+            var builder = new ModuleConnectionStringBuilder(iotHubHostName, deviceId);
+            ModuleConnectionStringBuilder.ModuleConnectionString moduleConnectionString = builder.Create(moduleId);
 
             if (!string.IsNullOrEmpty(sasKey))
             {
-                builder.WithSharedAccessKey(sasKey);
+                moduleConnectionString.WithSharedAccessKey(sasKey);
             }
 
             if (!string.IsNullOrEmpty(gatewayHostName))
             {
-                builder.WithGatewayHostName(gatewayHostName);
+                moduleConnectionString.WithGatewayHostName(gatewayHostName);
             }
 
-            ModuleConnectionString moduleConnectionString = builder.Build();
-
             // Act
-            string connectionString = moduleConnectionString.ToString();
+            string connectionString = moduleConnectionString.Build();
 
             // Assert
             Assert.Equal(expectedConnectionString, connectionString);
@@ -43,10 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void ImplicitOperatorTest()
         {
             // Arrange/Act
-            ModuleConnectionString.ModuleConnectionStringBuilder builder = new ModuleConnectionString.ModuleConnectionStringBuilder("foo.azure.com", "device1").WithModuleId("module1");
-            string connectionString = builder
-                .WithGatewayHostName("localhost")
-                .Build();
+            var builder = new ModuleConnectionStringBuilder("foo.azure.com", "device1");
+            string connectionString = builder.Create("module1")
+                .WithGatewayHostName("localhost");
 
             Assert.Equal("HostName=foo.azure.com;DeviceId=device1;ModuleId=module1;GatewayHostName=localhost", connectionString);
         }
@@ -54,16 +52,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public void InvalidInputsTest()
         {
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionString.ModuleConnectionStringBuilder(null, "1"));
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionString.ModuleConnectionStringBuilder("", "1"));
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionString.ModuleConnectionStringBuilder("iothub", null));
-            Assert.Throws<ArgumentException>(() => new ModuleConnectionString.ModuleConnectionStringBuilder("iothub", ""));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder(null, "1"));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("", "1"));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("iothub", null));
+            Assert.Throws<ArgumentException>(() => new ModuleConnectionStringBuilder("iothub", ""));
 
-            var builder = new ModuleConnectionString.ModuleConnectionStringBuilder("foo.azure.com", "device1");
-            Assert.Throws<ArgumentException>(() => builder.Build());
-            Assert.Throws<ArgumentException>(() => builder.WithModuleId(null).Build());
-            Assert.Throws<ArgumentException>(() => builder.WithGatewayHostName(null).Build());
-            Assert.Throws<ArgumentException>(() => builder.WithSharedAccessKey(null).Build());
+            var builder = new ModuleConnectionStringBuilder("foo.azure.com", "device1");
+            Assert.Throws<ArgumentException>(() => builder.Create(null));
+            Assert.Throws<ArgumentException>(() => builder.Create("m1").WithGatewayHostName(null));
+            Assert.Throws<ArgumentException>(() => builder.Create("m1").WithSharedAccessKey(null));
         }
     }
 }
