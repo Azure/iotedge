@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string IotHubHostName = "iothub.test";
         const string DeviceId = "device1";
         const string ModuleId = "module1";
-        const string IotEdgedUriVariableName = "IOTEDGE_IOTEDGEDURI";
+        const string IotEdgedUriVariableName = "IOTEDGE_WORKLOADURI";
         const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
         const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
         const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public void Test_Create_ModuleIdentity_WithEnv_ShouldCreateModuleClient()
         {
-            Environment.SetEnvironmentVariable(IotEdgedUriVariableName, "localhost");
+            Environment.SetEnvironmentVariable(IotEdgedUriVariableName, "http://localhost:8081");
             Environment.SetEnvironmentVariable(IotHubHostnameVariableName, "iothub.test");
             Environment.SetEnvironmentVariable(GatewayHostnameVariableName, "localhost");
             Environment.SetEnvironmentVariable(DeviceIdVariableName, "device1");
