@@ -18,6 +18,7 @@ extern crate edgelet_test_utils;
 use std::collections::HashMap;
 use std::str;
 use std::sync::mpsc::channel;
+use std::sync::{Arc, RwLock};
 use std::thread;
 
 use futures::future;
@@ -563,4 +564,192 @@ fn container_list_succeeds() {
             );
         }
     }
+}
+
+#[test]
+fn runtime_init_network_does_not_exist_create() {
+    //arrange
+    let (sender, receiver) = channel();
+
+    let list_got_called_lock = Arc::new(RwLock::new(false));
+    let list_got_called_lock_cloned = list_got_called_lock.clone();
+
+    let create_got_called_lock = Arc::new(RwLock::new(false));
+    let create_got_called_lock_cloned = create_got_called_lock.clone();
+
+    let port = get_unused_tcp_port();
+
+    //let mut got_called = false;
+
+    thread::spawn(move || {
+        run_tcp_server(
+            "127.0.0.1",
+            port,
+            move |req: Request| {
+                let method = req.method();
+                match method {
+                    &Method::Get => {
+                        let mut list_got_called_w = list_got_called_lock.write().unwrap();
+                        *list_got_called_w = true;
+
+                        assert_eq!(req.path(), "/networks");
+
+                        let response = json!([]).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    &Method::Post => {
+                        //Netowk create.
+                        let mut create_got_called_w = create_got_called_lock.write().unwrap();
+                        *create_got_called_w = true;
+
+                        assert_eq!(req.path(), "/networks/create");
+
+                        let response = json!({
+                        "Id": "12345",
+                        "Warnings": ""
+                    }).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    _ => panic!("Method is not a get neither a post."),
+                }
+            },
+            &sender,
+        );
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap()
+        .with_network_id("azure-iot-edge".to_string());
+
+    //act
+    let task = mri.init();
+    core.run(task).unwrap();
+
+    //assert
+    assert_eq!(true, *list_got_called_lock_cloned.read().unwrap());
+    assert_eq!(true, *create_got_called_lock_cloned.read().unwrap());
+}
+
+#[test]
+fn runtime_init_network_exist_do_not_create() {
+    //arrange
+    let (sender, receiver) = channel();
+
+    let list_got_called_lock = Arc::new(RwLock::new(false));
+    let list_got_called_lock_cloned = list_got_called_lock.clone();
+
+    let create_got_called_lock = Arc::new(RwLock::new(false));
+    let create_got_called_lock_cloned = create_got_called_lock.clone();
+
+    let port = get_unused_tcp_port();
+
+    //let mut got_called = false;
+
+    thread::spawn(move || {
+        run_tcp_server(
+            "127.0.0.1",
+            port,
+            move |req: Request| {
+                let method = req.method();
+                match method {
+                    &Method::Get => {
+                        let mut list_got_called_w = list_got_called_lock.write().unwrap();
+                        *list_got_called_w = true;
+
+                        assert_eq!(req.path(), "/networks");
+
+                        let response = json!(
+                        [
+                            {
+                                "Name": "azure-iot-edge",
+                                "Id": "8e3209d08ed5e73d1c9c8e7580ddad232b6dceb5bf0c6d74cadbed75422eef0e",
+                                "Created": "0001-01-01T00:00:00Z",
+                                "Scope": "local",
+                                "Driver": "bridge",
+                                "EnableIPv6": false,
+                                "Internal": false,
+                                "Attachable": false,
+                                "Ingress": false,
+                                "IPAM": {
+                                "Driver": "bridge",
+                                "Config": []
+                                },
+                                "Containers": {},
+                                "Options": {}
+                            }
+                        ]
+                    ).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    &Method::Post => {
+                        //Netowk create.
+                        let mut create_got_called_w = create_got_called_lock.write().unwrap();
+                        *create_got_called_w = true;
+
+                        assert_eq!(req.path(), "/networks/create");
+
+                        let response = json!({
+                        "Id": "12345",
+                        "Warnings": ""
+                    }).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    _ => panic!("Method is not a get neither a post."),
+                }
+            },
+            &sender,
+        );
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap()
+        .with_network_id("azure-iot-edge".to_string());
+
+    //act
+    let task = mri.init();
+    core.run(task).unwrap();
+
+    //assert
+    assert_eq!(true, *list_got_called_lock_cloned.read().unwrap());
+    assert_eq!(false, *create_got_called_lock_cloned.read().unwrap());
 }
