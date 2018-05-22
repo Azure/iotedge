@@ -17,6 +17,9 @@
     #if !defined S_ISDIR
         #define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
     #endif
+    #define HSM_MKDIR(dir_path) mkdir(dir_path)
+#else
+    #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
 #endif
 
 static int read_file_into_buffer_impl
@@ -356,5 +359,31 @@ int delete_file(const char* file_name)
         result = remove(file_name);
     }
 
+    return result;
+}
+
+int make_dir(const char* dir_path)
+{
+    int result = __FAILURE__;
+    if (dir_path != NULL)
+    {
+        if (HSM_MKDIR(dir_path) != 0)
+        {
+            if (errno == EEXIST)
+            {
+                LOG_DEBUG("Directory '%s' already exists.", dir_path);
+                result = 0;
+            }
+            else
+            {
+                LOG_ERROR("Directory create failed for '%s'. Errno: %s.", dir_path, strerror(errno));
+                result = __FAILURE__;
+            }
+        }
+        else
+        {
+            result = 0;
+        }
+    }
     return result;
 }

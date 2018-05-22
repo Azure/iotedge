@@ -58,7 +58,7 @@ else
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi
 
-# Install OpenSSL, curl and uuid
+# Install OpenSSL, curl and uuid and valgrind
 sudo apt-get update && \
 sudo apt-get install -y \
     pkg-config \
@@ -66,4 +66,5 @@ sudo apt-get install -y \
     uuid-dev curl \
     libcurl4-openssl-dev \
     debhelper \
-    dh-systemd
+    dh-systemd \
+    valgrind

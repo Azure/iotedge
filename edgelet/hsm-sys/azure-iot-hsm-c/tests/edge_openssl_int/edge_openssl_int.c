@@ -7,45 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#############################################################################
-// Memory allocator test hooks
-//#############################################################################
-
-static void* test_hook_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void* test_hook_gballoc_calloc(size_t num, size_t size)
-{
-    return calloc(num, size);
-}
-
-static void* test_hook_gballoc_realloc(void* ptr, size_t size)
-{
-    return realloc(ptr, size);
-}
-
-static void test_hook_gballoc_free(void* ptr)
-{
-    free(ptr);
-}
-
+#include "azure_c_shared_utility/gballoc.h"
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
-#include "umocktypes_charptr.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
-
-// //#############################################################################
-// // Declare and enable MOCK definitions
-// //#############################################################################
-
-#define ENABLE_MOCKS
-#include "azure_c_shared_utility/gballoc.h"
-#undef ENABLE_MOCKS
 
 //#############################################################################
 // Interface(s) under test
@@ -55,8 +22,6 @@ static void test_hook_gballoc_free(void* ptr)
 //#############################################################################
 // Test defines and data
 //#############################################################################
-
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
@@ -226,18 +191,6 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
 }
 
 //#############################################################################
-// Mocked functions test hooks
-//#############################################################################
-
-static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
-{
-    char temp_str[256];
-    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
-                   ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
-    ASSERT_FAIL(temp_str);
-}
-
-//#############################################################################
 // Test cases
 //#############################################################################
 
@@ -248,20 +201,10 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
-
-        umock_c_init(test_hook_on_umock_c_error);
-
-        ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
-
-        REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, test_hook_gballoc_malloc);
-        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
-
-        REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, test_hook_gballoc_free);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
-        umock_c_deinit();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
@@ -272,8 +215,6 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         {
             ASSERT_FAIL("Mutex is ABANDONED. Failure in test framework.");
         }
-
-        umock_c_reset_all_calls();
     }
 
     TEST_FUNCTION_CLEANUP(TestMethodCleanup)
@@ -359,6 +300,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         cert_properties_destroy(cert_props_handle);
     }
 
+#if USE_ECC_KEYS
     TEST_FUNCTION(test_self_signed_ecc_server)
     {
         // arrange
@@ -436,6 +378,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         delete_file(TEST_CA_CERT_ECC_FILE_1);
         cert_properties_destroy(cert_props_handle);
     }
+#endif //USE_ECC_KEYS
 
     TEST_FUNCTION(test_self_signed_rsa_server_chain)
     {
@@ -448,6 +391,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // cleanup
     }
 
+#if USE_ECC_KEYS
     TEST_FUNCTION(test_self_signed_ecc_default_server_chain)
     {
         // arrange
@@ -469,5 +413,6 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
 
         // cleanup
     }
+#endif //USE_ECC_KEYS
 
 END_TEST_SUITE(edge_openssl_int_tests)

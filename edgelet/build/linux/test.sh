@@ -60,6 +60,9 @@ process_args()
 
 process_args "$@"
 
+mkdir -p /etc/azure-iot-edge
+mkdir -p /var/lib/azure-iot-edge
+
 if [[ -z ${RELEASE} ]]; then
     cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" test --all
 else

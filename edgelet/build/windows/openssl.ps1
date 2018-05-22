@@ -18,10 +18,10 @@ function Get-OpenSSL
     {
         Throw "Failed to install vcpkg with exit code $LastExitCode"
     }
-    C:\vcpkg\vcpkg install openssl
+    C:\vcpkg\vcpkg install openssl:x64-windows
     if ($LastExitCode)
     {
         Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
     }
-    $env:OPENSSL_ROOT_DIR = "C:\\vcpkg\\packages\\openssl_x86-windows"
+    $env:OPENSSL_ROOT_DIR = "C:\\vcpkg\\packages\\openssl_x64-windows"
 }

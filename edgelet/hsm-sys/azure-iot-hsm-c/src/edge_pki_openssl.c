@@ -228,21 +228,19 @@ static EVP_PKEY* generate_ecc_key(const char *ecc_type)
         if (!EC_KEY_generate_key(ecc_key))
         {
             LOG_ERROR("Error generating ECC key");
-            EC_KEY_free(ecc_key);
             evp_key = NULL;
         }
         else if ((evp_key = EVP_PKEY_new()) == NULL)
         {
             LOG_ERROR("Unable to create EVP_PKEY structure");
-            EC_KEY_free(ecc_key);
         }
-        else if (!EVP_PKEY_assign_EC_KEY(evp_key, ecc_key))
+        else if (!EVP_PKEY_set1_EC_KEY(evp_key, ecc_key))
         {
             LOG_ERROR("Error assigning ECC key to EVP_PKEY structure");
-            EC_KEY_free(ecc_key);
             EVP_PKEY_free(evp_key);
             evp_key = NULL;
         }
+        EC_KEY_free(ecc_key);
     }
 
     return evp_key;

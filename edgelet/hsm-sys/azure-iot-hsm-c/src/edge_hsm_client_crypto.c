@@ -314,12 +314,15 @@ static bool validate_sized_buffer(const SIZED_BUFFER *sized_buffer)
     return result;
 }
 
-static int edge_hsm_client_encrypt_data(HSM_CLIENT_HANDLE handle,
-                                        const SIZED_BUFFER *identity,
-                                        const SIZED_BUFFER *plaintext,
-                                        const SIZED_BUFFER *passphrase,
-                                        const SIZED_BUFFER *initialization_vector,
-                                        SIZED_BUFFER *ciphertext)
+static int edge_hsm_client_encrypt_data
+(
+    HSM_CLIENT_HANDLE handle,
+    const SIZED_BUFFER *identity,
+    const SIZED_BUFFER *plaintext,
+    const SIZED_BUFFER *passphrase,
+    const SIZED_BUFFER *initialization_vector,
+    SIZED_BUFFER *ciphertext
+)
 {
     int result;
     if (!validate_sized_buffer(identity))
@@ -361,12 +364,15 @@ static int edge_hsm_client_encrypt_data(HSM_CLIENT_HANDLE handle,
     return result;
 }
 
-static int edge_hsm_client_decrypt_data(HSM_CLIENT_HANDLE handle,
-                                        const SIZED_BUFFER *identity,
-                                        const SIZED_BUFFER *ciphertext,
-                                        const SIZED_BUFFER *passphrase,
-                                        const SIZED_BUFFER *initialization_vector,
-                                        SIZED_BUFFER *plaintext)
+static int edge_hsm_client_decrypt_data
+(
+    HSM_CLIENT_HANDLE handle,
+    const SIZED_BUFFER *identity,
+    const SIZED_BUFFER *ciphertext,
+    const SIZED_BUFFER *passphrase,
+    const SIZED_BUFFER *initialization_vector,
+    SIZED_BUFFER *plaintext
+)
 {
     int result;
     if (!validate_sized_buffer(identity))

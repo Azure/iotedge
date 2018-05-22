@@ -31,7 +31,15 @@ this can be installed with
 sudo apt-get install build-essential cmake libcurl4-openssl-dev uuid-dev valgrind
 ```
 
-On Windows, install CMake from [cmake.org](https://cmake.org/).
+On Windows:
+1) Install CMake from [cmake.org](https://cmake.org/).
+2) Install OpenSSL
+    Open an admin level PS
+    PS> cd edgelet\build\windows
+    PS> . .\openssl.ps1
+    PS> Get-OpenSSL
+    Close PS
+
 
 ### Valgrind
 

@@ -7,10 +7,6 @@ use std::process::Command;
 
 use cmake::Config;
 
-#[cfg(windows)]
-const SSL_OPTION: &str = "use_schannel";
-
-#[cfg(unix)]
 const SSL_OPTION: &str = "use_openssl";
 
 trait SetPlatformDefines {
@@ -88,6 +84,7 @@ fn main() {
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", "ON")
         .define("use_default_uuid", "ON")
+        .define("skip_samples", "ON")
         .set_platform_defines()
         .set_build_shared()
         .profile("Release")
@@ -109,4 +106,17 @@ fn main() {
     // library as a static lib which we do only in rust debug builds
     #[cfg(debug_assertions)]
     println!("cargo:rustc-link-lib=aziotsharedutil");
+
+    #[cfg(windows)]
+    {
+        println!(
+            "cargo:rustc-link-search=native={}/lib",
+            env::var("OPENSSL_ROOT_DIR").unwrap()
+        );
+        println!("cargo:rustc-link-lib=libeay32");
+        println!("cargo:rustc-link-lib=ssleay32");
+    }
+
+    #[cfg(unix)]
+    println!("cargo:rustc-link-lib=crypto");
 }

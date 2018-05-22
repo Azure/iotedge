@@ -11,6 +11,8 @@ extern const char* const ENV_DEVICE_PK_PATH;
 extern const char* const ENV_OWNER_CA_PATH;
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
+extern const char* const DEFAULT_EDGE_HOME_DIR_UNIX;
+extern const char* const DEFAULT_EDGE_HOME_DIR_WIN;
 extern const char* const HSM_CRYPTO_DIR;
 extern const char* const HSM_CRYPTO_CERTS_DIR;
 extern const char* const HSM_CRYPTO_PK_DIR;

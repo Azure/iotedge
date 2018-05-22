@@ -1,19 +1,19 @@
 #Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#this is CMakeLists.txt for edge_openssl_int
+#this is CMakeLists.txt for edge_hsm_store_int
 cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
 include_directories(../../src)
 
-set(theseTestsName edge_openssl_inut)
+set(theseTestsName edge_hsm_store_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
-    edge_openssl_int.c
+    edge_hsm_store_int.c
 )
 
 set(${theseTestsName}_h_files
@@ -27,3 +27,4 @@ if(WIN32)
 else()
      target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
 endif(WIN32)
+

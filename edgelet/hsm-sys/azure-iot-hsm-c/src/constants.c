@@ -8,6 +8,8 @@ const char* const ENV_DEVICE_PK_PATH = "IOTEDGE_DEVICE_PK_PATH";
 const char* const ENV_OWNER_CA_PATH = "IOTEDGE_OWNER_CA_PATH";
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
+const char* const DEFAULT_EDGE_HOME_DIR_UNIX = "/var/lib/azure-iot-edge"; // note MacOS is included
+const char* const DEFAULT_EDGE_HOME_DIR_WIN = "C:\\ProgramData\\azure-iot-edge\\data";
 const char* const HSM_CRYPTO_DIR = "hsm";
 const char* const HSM_CRYPTO_CERTS_DIR = "certs";
 const char* const HSM_CRYPTO_PK_DIR = "private";

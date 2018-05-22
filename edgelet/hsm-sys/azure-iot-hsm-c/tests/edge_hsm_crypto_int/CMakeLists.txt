@@ -6,12 +6,15 @@ cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
 
-set(theseTestsName edge_hsm_crypto_int)
+include_directories(../../src)
+
+# todo change to _int after making integration tests work with c-utility tests
+set(theseTestsName edge_hsm_crypto_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
-    ${theseTestsName}.c
+    edge_hsm_crypto_int.c
 )
 
 set(${theseTestsName}_h_files
@@ -20,4 +23,9 @@ set(${theseTestsName}_h_files
 
 build_c_test_artifacts(${theseTestsName} ON "tests/azure_c_shared_utility_tests")
 
-target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil)
+if(WIN32)
+    target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil $ENV{OPENSSL_ROOT_DIR}/lib/ssleay32.lib $ENV{OPENSSL_ROOT_DIR}/lib/libeay32.lib)
+else()
+     target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
+endif(WIN32)
+

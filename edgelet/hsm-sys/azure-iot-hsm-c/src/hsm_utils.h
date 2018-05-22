@@ -11,5 +11,6 @@ MOCKABLE_FUNCTION(, bool, is_file_valid, const char*, file_name);
 MOCKABLE_FUNCTION(, bool, is_directory_valid, const char*, dir_path);
 MOCKABLE_FUNCTION(, int, write_cstring_to_file, const char*, file_name, const char*, data);
 MOCKABLE_FUNCTION(, int, delete_file, const char*, file_name);
+MOCKABLE_FUNCTION(, int, make_dir, const char*, dir_path);
 
 #endif  //HSM_UTILS_H

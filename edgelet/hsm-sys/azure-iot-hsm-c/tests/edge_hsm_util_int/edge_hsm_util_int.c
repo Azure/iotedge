@@ -6,42 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#############################################################################
-// Memory allocator test hooks
-//#############################################################################
-
-static void* test_hook_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void* test_hook_gballoc_calloc(size_t num, size_t size)
-{
-    return calloc(num, size);
-}
-
-static void* test_hook_gballoc_realloc(void* ptr, size_t size)
-{
-    return realloc(ptr, size);
-}
-
-static void test_hook_gballoc_free(void* ptr)
-{
-    free(ptr);
-}
-
 #include "testrunnerswitcher.h"
-#include "umock_c.h"
-#include "umocktypes_charptr.h"
+#include "azure_c_shared_utility/gballoc.h"
 #include "hsm_log.h"
 
 // //#############################################################################
 // // Declare and enable MOCK definitions
 // //#############################################################################
-
-#define ENABLE_MOCKS
-#include "azure_c_shared_utility/gballoc.h"
-#undef ENABLE_MOCKS
 
 #define TEST_FILE_ALPHA "test_alpha.txt"
 #define TEST_FILE_NUMERIC "test_numeric.txt"
@@ -58,8 +29,6 @@ static void test_hook_gballoc_free(void* ptr)
 //#############################################################################
 // Test defines and data
 //#############################################################################
-
-DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
@@ -109,18 +78,6 @@ void delete_file_if_exists(const char* file_name)
 }
 
 //#############################################################################
-// Mocked functions test hooks
-//#############################################################################
-
-static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
-{
-    char temp_str[256];
-    (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
-                   ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
-    ASSERT_FAIL(temp_str);
-}
-
-//#############################################################################
 // Test cases
 //#############################################################################
 
@@ -132,15 +89,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
-            umock_c_init(test_hook_on_umock_c_error);
-
-            ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
-
-            REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, test_hook_gballoc_malloc);
-            REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
-
-            REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, test_hook_gballoc_free);
-
             char alpha[] = "ABCD";
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, alpha, strlen(alpha)));
             unsigned char numeric[] = {'1', '2', '3', '4'};
@@ -150,8 +98,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
         TEST_SUITE_CLEANUP(TestClassCleanup)
         {
-            umock_c_deinit();
-
             delete_file_if_exists(TEST_FILE_ALPHA);
             delete_file_if_exists(TEST_FILE_NUMERIC);
             delete_file_if_exists(TEST_FILE_EMPTY);
@@ -166,8 +112,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             {
                 ASSERT_FAIL("Mutex is ABANDONED. Failure in test framework.");
             }
-
-            umock_c_reset_all_calls();
         }
 
         TEST_FUNCTION_CLEANUP(TestMethodCleanup)
