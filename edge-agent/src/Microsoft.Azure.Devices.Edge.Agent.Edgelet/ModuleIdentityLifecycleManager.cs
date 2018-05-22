@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
 
             // First remove identities (so that we don't go over the IoTHub limit)
-            await Task.WhenAll(removeIdentities.Select(i => this.identityManager.CreateIdentityAsync(i)));
+            await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             Identity[] createdIdentities = await Task.WhenAll(createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i)));
 

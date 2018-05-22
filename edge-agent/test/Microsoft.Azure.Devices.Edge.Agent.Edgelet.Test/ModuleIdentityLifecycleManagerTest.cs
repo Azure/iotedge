@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         const string IothubHostName = "test.azure-devices.net";
         const string DeviceId = "edgeDevice1";
         const string GatewayHostName = "edgedevicehost";
-        readonly Uri EdgeletUri = new Uri("http://localhost");
+        static readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, GatewayHostName);
 
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(ModuleSet.Empty, ModuleSet.Empty);
 
             // Assert
-            Assert.True(modulesIdentities.Count() == 0);
+            Assert.True(!modulesIdentities.Any());
             Mock.Get(identityManager).Verify();
         }
 
@@ -126,7 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.IsType<IdentityProviderServiceCredentials>(module1Identity.Credentials);
             Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).ProviderUri);
             Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).Version);
-            Mock.Get(identityManager).Verify();
+
+            Mock.Get(identityManager).Verify(im => im.DeleteIdentityAsync(Module3));
         }
     }
 }
