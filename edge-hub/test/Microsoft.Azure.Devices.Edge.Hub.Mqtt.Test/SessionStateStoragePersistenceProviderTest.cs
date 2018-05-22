@@ -2,18 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 {
-    using System;
-    using System.Linq;
-    using System.Threading.Tasks;
     using DotNetty.Codecs.Mqtt.Packets;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Storage;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Moq;
+    using System;
+    using System.Linq;
+    using System.Threading.Tasks;
     using Xunit;
     using IProtocolgatewayDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
@@ -26,9 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Fact]
         [Unit]
         public void TestCreate_ShouldReturn_Session()
-        {
-            IConnectionManager connectionManager = new Mock<IConnectionManager>().Object;
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager, this.entityStore);
+        {            
+            var sessionProvider = new SessionStateStoragePersistenceProvider(Mock.Of<IEdgeHub>(), this.entityStore);
             ISessionState session = sessionProvider.Create(true);
 
             Assert.NotNull(session);
@@ -39,50 +36,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public void TestSetAsync_AddedMethodSubscription_ShouldComplete()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
         }
 
         [Fact]
         [Unit]
         public void TestSetAsync_RemovedSubscription_ShouldComplete()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.RemoveSubscription(MethodPostTopicPrefix);
             Task setTask = sessionProvider.SetAsync(identity, sessionState);
 
             Assert.True(setTask.IsCompleted);
-            cloudProxy.Verify(x => x.RemoveCallMethodAsync(), Times.Once);
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
         }
 
         [Fact]
         [Unit]
         public void TestGetAsync_NoSessionFound_ShouldReturnNull()
         {
-            var connectionManager = new Mock<IConnectionManager>();
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var sessionProvider = new SessionStateStoragePersistenceProvider(Mock.Of<IEdgeHub>(), this.entityStore);
 
             Task<ISessionState> task = sessionProvider.GetAsync(identity);
 
@@ -93,10 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public void TestGetAsync_DeleteSession()
         {
-            var connectionManager = new Mock<IConnectionManager>();
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var sessionProvider = new SessionStateStoragePersistenceProvider(Mock.Of<IEdgeHub>(), this.entityStore);
             Task task = sessionProvider.DeleteAsync(identity, It.IsAny<ISessionState>());
 
             Assert.True(task.IsCompleted);
@@ -106,21 +89,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestSetAsync_AddedMethodSubscription_ShouldSaveToStore()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             await sessionProvider.SetAsync(identity, sessionState);
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
@@ -130,35 +108,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestSetAsync_AddedMethodSubscription_TransientSession_ShouldNotSaveToStore()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(true);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             await sessionProvider.SetAsync(identity, sessionState);
 
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.Null(storedSession);
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
         }
 
         [Fact]
         [Unit]
         public async Task TestSetAsync_RemovedSubscription_ShouldUpdateStore()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
-
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(cm => cm.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var edgeHub = new Mock<IEdgeHub>();
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             var sessionState = new SessionState(false);
             sessionState.AddOrUpdateSubscription(MethodPostTopicPrefix, QualityOfService.AtLeastOnce);
             await sessionProvider.SetAsync(identity, sessionState);
@@ -169,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
             Assert.Null(storedSession.Subscriptions.SingleOrDefault(p => p.TopicFilter == MethodPostTopicPrefix));
-            cloudProxy.Verify(x => x.RemoveCallMethodAsync(), Times.Once);
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.Methods), Times.Once);
 
             // clean up
             await sessionProvider.DeleteAsync(identity, sessionState);
@@ -179,10 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestGetAsync_DeleteSession_DeleteFromStore()
         {
-            var connectionManager = new Mock<IConnectionManager>();
             var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
 
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var sessionProvider = new SessionStateStoragePersistenceProvider(Mock.Of<IEdgeHub>(), this.entityStore);
             var sessionState = new SessionState(false);
             await sessionProvider.SetAsync(identity, sessionState);
 
@@ -196,17 +163,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Unit]
         public async Task TestPersistence()
         {
-            var cloudProxy = new Mock<ICloudProxy>();
-            Option<ICloudProxy> cloudProxyOption = Option.Some(cloudProxy.Object);
+            var edgeHub = new Mock<IEdgeHub>();
 
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.SetupSequence(cm => cm.GetCloudConnection(It.IsAny<string>()))
-                .Returns(Option.None<ICloudProxy>())
-                .Returns(cloudProxyOption)
-                .Returns(cloudProxyOption);
-
-            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "deviceId");
-            var sessionProvider = new SessionStateStoragePersistenceProvider(connectionManager.Object, this.entityStore);
+            var identity = Mock.Of<IProtocolgatewayDeviceIdentity>(i => i.Id == "d1");
+            var sessionProvider = new SessionStateStoragePersistenceProvider(edgeHub.Object, this.entityStore);
             ISessionState sessionState = await sessionProvider.GetAsync(identity);
             Assert.Null(sessionState);
 
@@ -216,10 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             sessionState.RemoveSubscription(SessionStatePersistenceProvider.TwinSubscriptionTopicPrefix);
             await sessionProvider.SetAsync(identity, sessionState);
 
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Never);
-            cloudProxy.Verify(x => x.StartListening(), Times.Never);
-            cloudProxy.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Never);
-
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Once);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Once);
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Once);
+            
             ISessionState storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
 
@@ -244,9 +204,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             await sessionProvider.SetAsync(identity, sessionState);
 
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Once);
-            cloudProxy.Verify(x => x.StartListening(), Times.Once);
-            cloudProxy.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Once);
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Exactly(2));
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Exactly(2));
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Exactly(2));
 
             storedSession = await sessionProvider.GetAsync(identity);
             Assert.NotNull(storedSession);
@@ -272,9 +232,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             await sessionProvider.SetAsync(identity, sessionState);
 
-            cloudProxy.Verify(x => x.SetupCallMethodAsync(), Times.Exactly(2));
-            cloudProxy.Verify(x => x.StartListening(), Times.Exactly(2));
-            cloudProxy.Verify(x => x.RemoveDesiredPropertyUpdatesAsync(), Times.Exactly(2));
-        }        
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.Methods), Times.Exactly(3));
+            edgeHub.Verify(x => x.AddSubscription("d1", DeviceSubscription.C2D), Times.Exactly(3));
+            edgeHub.Verify(x => x.RemoveSubscription("d1", DeviceSubscription.DesiredPropertyUpdates), Times.Exactly(3));
+        }
     }
 }

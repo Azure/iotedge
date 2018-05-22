@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 	using System;
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
+	using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 	using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     /// <summary>
@@ -27,5 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection);
 
 	    Task SendC2DMessageAsync(string id, IMessage message);
+
+	    Task AddSubscription(string id, DeviceSubscription deviceSubscription);
+
+	    Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
 	}
 }

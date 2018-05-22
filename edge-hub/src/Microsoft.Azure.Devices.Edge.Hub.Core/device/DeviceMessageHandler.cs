@@ -112,11 +112,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public void StartListeningToC2DMessages() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEach(c => c.StartListening());
+        public void StartListeningToC2DMessages() => this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.C2D);
 
-        public Task SetupCallMethodAsync() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(c => c.SetupCallMethodAsync());
+        public Task SetupCallMethodAsync() => this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.Methods);
 
-        public Task SetupDesiredPropertyUpdatesAsync() => this.connectionManager.GetCloudConnection(this.Identity.Id).ForEachAsync(c => c.SetupDesiredPropertyUpdatesAsync());
+        public Task SetupDesiredPropertyUpdatesAsync() => this.edgeHub.AddSubscription(this.Identity.Id, DeviceSubscription.DesiredPropertyUpdates);
 
         public async Task SendGetTwinRequest(string correlationId)
         {

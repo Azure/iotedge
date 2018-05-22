@@ -198,6 +198,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Created = IdStart,
                 CloudProxySet,
+                CallTimedOut,
+                OnDisconnectedExit,
+                OnDisconnected,
+                OnUnreachable,
+                CallSucceeded,
+                OnConnectedExit,
+                OnConnected,
+                ErrorCallingIotHub,
+                MakingTestIotHubCall
             }
 
             internal static void SetTestCloudProxy()
@@ -212,47 +221,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void OnDisconnectedExit()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Exiting disconnected state"));
+                Log.LogDebug((int)EventIds.OnDisconnectedExit, Invariant($"Exiting disconnected state"));
             }
 
             public static void CallTimedOut()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"IotHub call timed out"));
+                Log.LogDebug((int)EventIds.CallTimedOut, Invariant($"IotHub call timed out"));
             }
 
             public static void OnDisconnected()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Entering disconnected state"));
+                Log.LogDebug((int)EventIds.OnDisconnected, Invariant($"Entering disconnected state"));
             }
 
             public static void OnUnreachable()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Entering unreachable state"));
+                Log.LogDebug((int)EventIds.OnUnreachable, Invariant($"Entering unreachable state"));
             }
 
             public static void CallSucceeded()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"IotHub call succeeded"));
+                Log.LogDebug((int)EventIds.CallSucceeded, Invariant($"IotHub call succeeded"));
             }
 
             public static void OnConnected()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Entering connected state"));
+                Log.LogDebug((int)EventIds.OnConnected, Invariant($"Entering connected state"));
             }
 
             public static void OnConnectedExit()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Exiting connected state"));
+                Log.LogDebug((int)EventIds.OnConnectedExit, Invariant($"Exiting connected state"));
             }
 
             public static void ErrorCallingIotHub(Exception ex)
             {
-                Log.LogWarning((int)EventIds.Created, ex, Invariant($"Error calling IotHub for connectivity test"));
+                Log.LogWarning((int)EventIds.ErrorCallingIotHub, ex, Invariant($"Error calling IotHub for connectivity test"));
             }
 
             public static void MakingTestIotHubCall()
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Calling IotHub to test connectivity"));
+                Log.LogDebug((int)EventIds.MakingTestIotHubCall, Invariant($"Calling IotHub to test connectivity"));
             }
         }
     }

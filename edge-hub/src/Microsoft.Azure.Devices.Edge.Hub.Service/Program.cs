@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
             IConfigurationRoot configuration = new ConfigurationBuilder()
+                .AddJsonFile(Constants.ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
 

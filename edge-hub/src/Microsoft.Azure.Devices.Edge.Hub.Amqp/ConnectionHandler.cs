@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     class ConnectionHandler : IConnectionHandler
     {
-        IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
+        readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         bool isInitialized;
         IDeviceListener deviceListener;
         AmqpAuthentication amqpAuthentication;
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public class DeviceProxy : IDeviceProxy
         {
             readonly ConnectionHandler connectionHandler;
-            AtomicBoolean isActive = new AtomicBoolean(true);
+            readonly AtomicBoolean isActive = new AtomicBoolean(true);
 
             public DeviceProxy(ConnectionHandler connectionHandler, IIdentity identity)
             {

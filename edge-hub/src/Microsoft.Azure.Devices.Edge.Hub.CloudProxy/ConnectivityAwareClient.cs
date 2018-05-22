@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -67,8 +68,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.underlyingClient.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangedHandler);
         }
 
+        // The SDK caches whether DesiredProperty Update callback has been set and returns directly in that case.
+        // So this method is not a good candidate for checking connectivity status. 
         public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates, object userContext)
-            => this.InvokeFunc(() => this.underlyingClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext));
+            => this.underlyingClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext);
 
         public Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext)
             => this.InvokeFunc(() => this.underlyingClient.SetMethodDefaultHandlerAsync(methodHandler, userContext));
@@ -87,13 +90,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
-        {
-            // If the connection failed because of an Expired SAS Token, then propogate that change up.
-            // Ingore all other changes as they will be provided by DeviceConnectivityManager manager
-            if (status != ConnectionStatus.Connected && reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+        {            
+            if (status == ConnectionStatus.Connected)
             {
-                this.connectionStatusChangedHandler?.Invoke(status, reason);
+                this.deviceConnectivityManager.CallSucceeded();
             }
+            else
+            {
+                this.deviceConnectivityManager.CallTimedOut();
+            }
+            this.connectionStatusChangedHandler?.Invoke(status, reason);
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func)
@@ -104,9 +110,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.deviceConnectivityManager.CallSucceeded();
                 return result;
             }
-            catch (TimeoutException)
+            catch (Exception ex)
             {
-                this.deviceConnectivityManager.CallTimedOut();
+                if (ex.HasTimeoutException())
+                {
+                    this.deviceConnectivityManager.CallTimedOut();
+                }
                 throw;
             }
         }
@@ -117,6 +126,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 await func();
                 return true;
             });
-
     }
 }

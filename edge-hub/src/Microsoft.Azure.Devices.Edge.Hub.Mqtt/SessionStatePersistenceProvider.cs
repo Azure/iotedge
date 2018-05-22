@@ -2,17 +2,18 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
+    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.ProtocolGateway.Identity;
-    using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
-    using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using static System.FormattableString;
+    using IDeviceIdentity = Microsoft.Azure.Devices.ProtocolGateway.Identity.IDeviceIdentity;
 
     public class SessionStatePersistenceProvider : ISessionStatePersistenceProvider
     {
@@ -22,17 +23,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         internal const string TwinResponseTopicFilter = "$iothub/twin/res/#";
         static readonly Regex ModuleMessageTopicRegex = new Regex("^devices/.+/modules/.+/#$");
 
-        readonly IConnectionManager connectionManager;
+        readonly IEdgeHub edgeHub;
+        readonly AsyncLock setLock = new AsyncLock();
 
-        public SessionStatePersistenceProvider(IConnectionManager connectionManager)
+        public SessionStatePersistenceProvider(IEdgeHub edgeHub)
         {
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
         }
 
-        public ISessionState Create(bool transient)
-        {
-            return new SessionState(transient);
-        }
+        public ISessionState Create(bool transient) => new SessionState(transient);
 
         public virtual Task<ISessionState> GetAsync(IDeviceIdentity identity)
         {
@@ -47,112 +46,72 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         protected async Task ProcessSessionSubscriptions(string id, SessionState sessionState)
         {
-            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-            await cloudProxy.ForEachAsync(async cp =>
+            using (await this.setLock.LockAsync())
             {
                 foreach (KeyValuePair<string, bool> subscriptionRegistration in sessionState.SubscriptionRegistrations)
                 {
                     string topicName = subscriptionRegistration.Key;
                     bool addSubscription = subscriptionRegistration.Value;
 
-                    Events.ProcessingSubscription(id, topicName, addSubscription);
                     try
                     {
-                        switch (GetSubscriptionTopic(topicName))
+                        Events.ProcessingSubscription(id, topicName, addSubscription);
+                        DeviceSubscription deviceSubscription = GetDeviceSubscription(topicName);
+                        if (deviceSubscription == DeviceSubscription.Unknown)
                         {
-                            case SubscriptionTopic.Method:
-                                if (addSubscription)
-                                {
-                                    await cp.SetupCallMethodAsync();
-                                }
-                                else
-                                {
-                                    await cp.RemoveCallMethodAsync();
-                                }
-                                break;
-
-                            case SubscriptionTopic.TwinDesiredProperties:
-                                if (addSubscription)
-                                {
-                                    await cp.SetupDesiredPropertyUpdatesAsync();
-                                }
-                                else
-                                {
-                                    await cp.RemoveDesiredPropertyUpdatesAsync();
-                                }
-                                break;
-
-                            case SubscriptionTopic.C2D:
-                                if (addSubscription)
-                                {
-                                    cp.StartListening();
-                                }
-                                // No way to stop listening to C2D messages right now.
-                                break;
-
-                            case SubscriptionTopic.TwinResponse:
-                                // No action required
-                                break;
-
-                            case SubscriptionTopic.ModuleMessage:
-                                // No action required
-                                break;
-
-                            default:
-                                Events.UnknownTopicSubscription(topicName);
-                                break;
+                            Events.UnknownTopicSubscription(topicName, id);
+                        }
+                        else
+                        {
+                            if (addSubscription)
+                            {
+                                await this.edgeHub.AddSubscription(id, deviceSubscription);
+                            }
+                            else
+                            {
+                                await this.edgeHub.RemoveSubscription(id, deviceSubscription);
+                            }
                         }
                     }
                     catch (Exception ex)
                     {
                         Events.ErrorHandlingSubscription(id, topicName, addSubscription, ex);
-                    }                    
+                    }
                 }
-
-                // Don't clear subscriptions here. That way the subscriptions are set every time the connection
-                // is re-established. Setting subscriptions is an idempotent operation. 
-            });
+            }
+            // Don't clear subscriptions here. That way the subscriptions are set every time the connection
+            // is re-established. Setting subscriptions is an idempotent operation.             
         }
 
         public virtual Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => Task.CompletedTask;
 
-        internal static SubscriptionTopic GetSubscriptionTopic(string topicName)
-        { 
+        internal static DeviceSubscription GetDeviceSubscription(string topicName)
+        {
             Preconditions.CheckNonWhiteSpace(topicName, nameof(topicName));
             if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
             {
-                return SubscriptionTopic.Method;
+                return DeviceSubscription.Methods;
             }
             else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
             {
-                return SubscriptionTopic.TwinDesiredProperties;
+                return DeviceSubscription.DesiredPropertyUpdates;
             }
             else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
             {
-                return SubscriptionTopic.C2D;
+                return DeviceSubscription.C2D;
             }
             else if (topicName.Equals(TwinResponseTopicFilter))
             {
-                return SubscriptionTopic.TwinResponse;
+                return DeviceSubscription.TwinResponse;
             }
             else if (ModuleMessageTopicRegex.IsMatch(topicName))
             {
-                return SubscriptionTopic.ModuleMessage;
+                return DeviceSubscription.ModuleMessages;
             }
             else
             {
-                return SubscriptionTopic.Unknown;
+                return DeviceSubscription.Unknown;
             }
-        }
-
-        internal enum SubscriptionTopic
-        {
-            Method,
-            TwinDesiredProperties,
-            C2D,
-            TwinResponse,
-            ModuleMessage,
-            Unknown
         }
 
         static class Events
@@ -166,9 +125,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 ErrorHandlingSubscription
             }
 
-            public static void UnknownTopicSubscription(string topicName)
+            public static void UnknownTopicSubscription(string topicName, string id)
             {
-                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName}."));
+                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName} for client {id}."));
             }
 
             public static void ErrorHandlingSubscription(string id, string topicName, bool addSubscription, Exception exception)

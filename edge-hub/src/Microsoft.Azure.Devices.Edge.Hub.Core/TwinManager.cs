@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
     using System;
+    using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                     {
                                         IMessage reported = this.twinCollectionConverter.ToMessage(t.ReportedPropertiesPatch);
                                         await this.SendReportedPropertiesToCloudProxy(identity.Id, reported);
-                                        await store.Update(identity.Id, u => new TwinInfo(u.Twin, null, u.SubscribedToDesiredPropertyUpdates));
+                                        await store.Update(identity.Id, u => new TwinInfo(u.Twin, null));
                                         Events.ReportedPropertiesSyncedToCloudSuccess(identity.Id, t.ReportedPropertiesPatch.Version);
                                     }
                                 });
@@ -216,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 desired.Version);
                             getTwin = true;
                         }
-                        return new TwinInfo(u.Twin, u.ReportedPropertiesPatch, true);
+                        return new TwinInfo(u.Twin, u.ReportedPropertiesPatch);
                     });
             }
 
@@ -249,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 IMessage twinMessage = await cp.GetTwinAsync();
                 Twin cloudTwin = this.twinConverter.FromMessage(twinMessage);
                 Events.GotTwinFromCloudSuccess(id, cloudTwin.Properties.Desired.Version, cloudTwin.Properties.Reported.Version);
-                var newTwin = new TwinInfo(cloudTwin, null, false);
+                var newTwin = new TwinInfo(cloudTwin, null);
                 cached = newTwin;
 
                 IEntityStore<string, TwinInfo> twinStore = this.TwinStore.Expect(() => new InvalidOperationException("Missing twin store"));
@@ -261,9 +262,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         // If the new twin is more recent than the cached twin, update the cached copy.
                         // If not, reject the cloud twin
-                        if ((t.Twin == null) ||
-                            (cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version) ||
-                            (cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version))
+                        if (t.Twin == null ||
+                            cloudTwin.Properties.Desired.Version > t.Twin.Properties.Desired.Version ||
+                            cloudTwin.Properties.Reported.Version > t.Twin.Properties.Reported.Version)
                         {
                             if (t.Twin != null)
                             {
@@ -273,16 +274,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                     cloudTwin.Properties.Desired.Version,
                                     t.Twin.Properties.Reported.Version,
                                     cloudTwin.Properties.Reported.Version);
-                                cached = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch, t.SubscribedToDesiredPropertyUpdates);
+                                cached = new TwinInfo(cloudTwin, t.ReportedPropertiesPatch);
                                 // If the device is subscribed to desired property updates and we are refreshing twin as a result
                                 // of a connection reset or desired property update, send a patch to the downstream device
-                                if (sendDesiredPropertyUpdate && t.SubscribedToDesiredPropertyUpdates)
+                                if (sendDesiredPropertyUpdate)
                                 {
-                                    Events.SendDesiredPropertyUpdateToSubscriber(
-                                        id,
-                                        t.Twin.Properties.Desired.Version,
-                                        cloudTwin.Properties.Desired.Version);
-                                    diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
+                                    Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
+                                    subscriptions.ForEach(
+                                        s =>
+                                        {
+                                            if (s.TryGetValue(DeviceSubscription.DesiredPropertyUpdates, out bool hasDesiredPropertyUpdatesSubscription)
+                                                && hasDesiredPropertyUpdatesSubscription)
+                                            {
+                                                Events.SendDesiredPropertyUpdateToSubscriber(
+                                                    id,
+                                                    t.Twin.Properties.Desired.Version,
+                                                    cloudTwin.Properties.Desired.Version);
+                                                diff = new TwinCollection(JsonEx.Diff(t.Twin.Properties.Desired, cloudTwin.Properties.Desired));
+                                            }
+                                        });                                    
                                 }
                             }
                         }
@@ -390,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 string mergedJson = JsonEx.Merge(u.ReportedPropertiesPatch, reportedProperties, /*treatNullAsDelete*/ false);
                                 var mergedPatch = new TwinCollection(mergedJson);
                                 Events.UpdatingReportedPropertiesPatchCollection(id, mergedPatch.Version);
-                                return new TwinInfo(u.Twin, mergedPatch, u.SubscribedToDesiredPropertyUpdates);
+                                return new TwinInfo(u.Twin, mergedPatch);
                             });
                 }
             }
@@ -467,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         // Update the collective patch of reported properties
                         await this.UpdateReportedPropertiesPatchAsync(
                             id,
-                            new TwinInfo(null, reported, false) /* only used when twin was not previously cached */,
+                            new TwinInfo(null, reported) /* only used when twin was not previously cached */,
                             reported);
                     }
                 }

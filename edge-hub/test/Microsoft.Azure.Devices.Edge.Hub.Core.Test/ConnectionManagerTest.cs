@@ -74,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var cloudProviderMock = new Mock<ICloudConnectionProvider>();
             cloudProviderMock.Setup(p => p.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>())).ReturnsAsync(() => Try.Success(cloudConnectionMock));
 
+            // ReSharper disable once PossibleUnintendedReferenceComparison
             var deviceCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>(d => d.Id == "Device1"));
 
             IConnectionManager connectionManager = new ConnectionManager(cloudProviderMock.Object);
@@ -446,6 +447,129 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await connectionManager.AddDeviceConnection(deviceIdentity1, deviceProxy1);
             await connectionManager.AddDeviceConnection(deviceIdentity2, deviceProxy2);
             await Assert.ThrowsAsync<EdgeHubConnectionException>(async () => await connectionManager.AddDeviceConnection(deviceIdentity3, deviceProxy3));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task AddRemoveSubscriptionsTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
+            // ReSharper disable once PossibleUnintendedReferenceComparison
+            var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive && d.Identity == identity);
+
+            // Act
+            await connectionManager.AddDeviceConnection(identity, deviceProxy);
+            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            IReadOnlyDictionary<DeviceSubscription, bool> subscriptions = subscriptionsOption.OrDefault();
+            Assert.Empty(subscriptions);
+
+            // Act
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.Methods);
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.C2D);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+
+            // Act
+            connectionManager.RemoveSubscription(deviceId, DeviceSubscription.Methods);
+            connectionManager.RemoveSubscription(deviceId, DeviceSubscription.DesiredPropertyUpdates);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(3, subscriptions.Count);
+            Assert.Equal(false, subscriptions[DeviceSubscription.Methods]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+            Assert.Equal(false, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ClearSubscriptionsOnDeviceRemoveTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider);
+            var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
+            bool isProxyActive = true;
+            // ReSharper disable once PossibleUnintendedReferenceComparison
+            var deviceProxy = Mock.Of<IDeviceProxy>(d => d.Identity == identity);
+            Mock.Get(deviceProxy).Setup(d => d.CloseAsync(It.IsAny<Exception>()))
+                .Callback(() => isProxyActive = false)
+                .Returns(Task.CompletedTask);
+            Mock.Get(deviceProxy).SetupGet(d => d.IsActive)
+                .Returns(() => isProxyActive);
+            // ReSharper disable once PossibleUnintendedReferenceComparison
+            var deviceProxy2 = Mock.Of<IDeviceProxy>(d => d.IsActive && d.Identity == identity);
+
+            // Act
+            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.False(subscriptionsOption.HasValue);
+
+            // Act
+            await connectionManager.AddDeviceConnection(identity, deviceProxy);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            IReadOnlyDictionary<DeviceSubscription, bool> subscriptions = subscriptionsOption.OrDefault();
+            Assert.Empty(subscriptions);
+
+            // Act
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.Methods);
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.C2D);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
+
+            // Act
+            await connectionManager.RemoveDeviceConnection(deviceId);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.False(subscriptionsOption.HasValue);
+
+            // Act
+            await connectionManager.AddDeviceConnection(identity, deviceProxy2);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Empty(subscriptions);
+
+            // Act
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.DesiredPropertyUpdates);
+            connectionManager.AddSubscription(deviceId, DeviceSubscription.ModuleMessages);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.Equal(true, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.ModuleMessages]);
         }
 
         static ICloudConnection GetCloudConnectionMock()

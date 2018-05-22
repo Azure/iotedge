@@ -11,14 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public TwinCollection ReportedPropertiesPatch { get; }
 
-        public bool SubscribedToDesiredPropertyUpdates { get; }
-
         [JsonConstructor]
-        public TwinInfo(Twin twin, TwinCollection reportedPropertiesPatch, bool subscribedToDesiredPropertyUpdates)
+        public TwinInfo(Twin twin, TwinCollection reportedPropertiesPatch)
         {
             this.Twin = twin;
             this.ReportedPropertiesPatch = reportedPropertiesPatch;
-            this.SubscribedToDesiredPropertyUpdates = subscribedToDesiredPropertyUpdates;
         }
     }
 }

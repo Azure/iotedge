@@ -2,23 +2,23 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
-    using System;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using static System.FormattableString;
 
     public class SessionStateStoragePersistenceProvider : SessionStatePersistenceProvider
     {
         readonly IEntityStore<string, SessionState> sessionStore;
+        readonly AsyncLock setLock = new AsyncLock();
 
-        public SessionStateStoragePersistenceProvider(IConnectionManager connectionManager, IEntityStore<string, SessionState> sessionStore)
-            : base(connectionManager)
+        public SessionStateStoragePersistenceProvider(IEdgeHub edgeHub, IEntityStore<string, SessionState> sessionStore)
+            : base(edgeHub)
         {
             this.sessionStore = Preconditions.CheckNotNull(sessionStore, nameof(sessionStore));
         }
@@ -27,9 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public override async Task SetAsync(IDeviceIdentity identity, ISessionState sessionState)
         {
-            await base.SetAsync(identity, sessionState);
-            await this.PersistToStore(identity.Id, sessionState);
-            Events.SetSessionStateSuccess(identity);
+            using (await this.setLock.LockAsync())
+            {
+                await base.SetAsync(identity, sessionState);
+                await this.PersistToStore(identity.Id, sessionState);
+                Events.SetSessionStateSuccess(identity);
+            }
         }
 
         public override Task DeleteAsync(IDeviceIdentity identity, ISessionState sessionState) => this.sessionStore.Remove(identity.Id);        
@@ -54,36 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             enum EventIds
             {
-                SetSubscriptionStarted = IdStart,
-                ClientReconnectError,
-                SetSubscriptionSuccess,
-                SetSessionState,
-                NoSessionState
-            }
-
-            public static void ClientReconnectError(Exception ex, IIdentity identity)
-            {
-                Log.LogWarning((int)EventIds.ClientReconnectError, ex, Invariant($"Error setting subscriptions for {identity.Id} on cloud reconnect"));
-            }
-
-            internal static void SetSubscriptionsSuccess(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.SetSubscriptionSuccess, Invariant($"Set subscriptions from session state for {identity.Id} on cloud reconnect"));
+                SetSessionState = IdStart
             }
 
             internal static void SetSessionStateSuccess(IDeviceIdentity identity)
             {
                 Log.LogInformation((int)EventIds.SetSessionState, Invariant($"Set subscriptions from session state for {identity.Id}"));
-            }
-
-            public static void SetSubscriptionsStarted(IIdentity identity)
-            {
-                Log.LogDebug((int)EventIds.SetSubscriptionStarted, Invariant($"Cloud connection established, setting subscriptions for {identity.Id}"));
-            }
-
-            public static void NoSessionStateFoundInStore(IIdentity identity)
-            {
-                Log.LogInformation((int)EventIds.NoSessionState, Invariant($"No session state found in store for {identity.Id}"));
             }
         }
     }

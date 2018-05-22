@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -32,6 +33,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Option<IDeviceProxy> GetDeviceConnection(string id);
 
         Option<ICloudProxy> GetCloudConnection(string id);
+
+        void AddSubscription(string id, DeviceSubscription deviceSubscription);
+
+        void RemoveSubscription(string id, DeviceSubscription deviceSubscription);
+
+        Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 
         event EventHandler<IIdentity> CloudConnectionLost;
 

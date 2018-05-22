@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -13,6 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Moq;
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Xunit;
     using IMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
     using Message = Microsoft.Azure.Devices.Edge.Hub.Core.EdgeMessage;
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // Test Scenario
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
             var identity = Mock.Of<IIdentity>();
-            EdgeMessage[] messages = new[] { new Message.Builder(new byte[0]).Build() };
+            EdgeMessage[] messages = { new Message.Builder(new byte[0]).Build() };
             await routingEdgeHub.ProcessDeviceMessageBatch(identity, messages);
 
             // Verify Expectation
@@ -303,6 +303,258 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             routingEdgeHub.AddEdgeSystemProperties(clientMessage3);
             Assert.False(clientMessage3.SystemProperties.ContainsKey(Core.SystemProperties.EdgeHubOriginInterface));
             Assert.True(clientMessage3.SystemProperties.ContainsKey(Core.SystemProperties.EdgeMessageId));
+        }
+
+        [Fact]
+        public async Task ProcessC2DSubscriptionTest()
+        {
+            // Arrange
+            RoutingEdgeHub edgeHub = await GetTestEdgeHub();
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.StartListening());
+
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.C2D, true);
+
+            // Assert
+            cloudProxy.VerifyAll();
+
+            // Arrange
+            cloudProxy = new Mock<ICloudProxy>();
+            
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.C2D, false);
+
+            // Assert
+            cloudProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ProcessDesiredPropertiesSubscriptionTest()
+        {
+            // Arrange
+            RoutingEdgeHub edgeHub = await GetTestEdgeHub();
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupDesiredPropertyUpdatesAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.DesiredPropertyUpdates, true);
+
+            // Assert
+            cloudProxy.VerifyAll();
+
+            // Arrange
+            cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.RemoveDesiredPropertyUpdatesAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.DesiredPropertyUpdates, false);
+
+            // Assert
+            cloudProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ProcessMethodsSubscriptionTest()
+        {
+            // Arrange
+            RoutingEdgeHub edgeHub = await GetTestEdgeHub();
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.Methods, true);
+
+            // Assert
+            cloudProxy.VerifyAll();
+
+            // Arrange
+            cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.RemoveCallMethodAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.Methods, false);
+
+            // Assert
+            cloudProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ProcessNoOpSubscriptionTest()
+        {
+            // Arrange
+            RoutingEdgeHub edgeHub = await GetTestEdgeHub();
+            var cloudProxy = new Mock<ICloudProxy>();
+            
+            // Act
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.ModuleMessages, true);
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.ModuleMessages, false);
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.TwinResponse, true);
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.TwinResponse, false);
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.Unknown, true);
+            await edgeHub.ProcessSubscription(cloudProxy.Object, DeviceSubscription.Unknown, false);
+
+            // Assert
+            cloudProxy.VerifyAll();            
+        }
+
+        [Fact]
+        public async Task AddSubscriptionTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .Returns(Task.CompletedTask);
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+            
+            // Act
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+        [Fact]
+        public async Task AddSubscriptionThrowsTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .ThrowsAsync(new InvalidOperationException());
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+
+            // Act
+            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+        [Fact]
+        public async Task AddSubscriptionTimesOutTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .ThrowsAsync(new TimeoutException());
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+
+            // Act
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+
+        [Fact]
+        public async Task RemoveSubscriptionTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .Returns(Task.CompletedTask);
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+
+            // Act
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+        [Fact]
+        public async Task RemoveSubscriptionThrowsTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .ThrowsAsync(new InvalidOperationException());
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+
+            // Act
+            await Assert.ThrowsAsync<InvalidOperationException>(() => edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods));
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+        [Fact]
+        public async Task RemoveSubscriptionTimesOutTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .ThrowsAsync(new TimeoutException());
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Option.Some(cloudProxy.Object));
+            IEdgeHub edgeHub = await GetTestEdgeHub(connectionManager.Object);
+
+            // Act
+            await edgeHub.AddSubscription(deviceId, DeviceSubscription.Methods);
+
+            // Assert
+            cloudProxy.VerifyAll();
+            connectionManager.VerifyAll();
+        }
+
+        static async Task<RoutingEdgeHub> GetTestEdgeHub(IConnectionManager connectionManager = null)
+        {
+            // Arrange
+            connectionManager = connectionManager ?? Mock.Of<IConnectionManager>();
+            var endpoint = new Mock<Endpoint>("myId");
+            var endpointExecutor = Mock.Of<IEndpointExecutor>();
+            Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
+            var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+
+            // Create a route to map to the message
+            var endpoints = new HashSet<Endpoint> { endpoint.Object };
+            var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoints);
+
+            // Create a router
+            var routerConfig = new RouterConfig(new[] { route });
+            Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
+            var edgeHub = new RoutingEdgeHub(router, Mock.Of<Core.IMessageConverter<IMessage>>(),
+                connectionManager, Mock.Of<ITwinManager>(), "ed1");
+            return edgeHub;
         }
     }
 }

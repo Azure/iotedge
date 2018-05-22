@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Xunit;
     using System.Linq;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     [Unit]
@@ -416,7 +417,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(JToken.DeepEquals(
                 JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
                 JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
-            Assert.Equal(cached.SubscribedToDesiredPropertyUpdates, false);
         }
 
         [Fact]
@@ -789,7 +789,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Out of space"));
             mockTwinStore.Setup(t => t.Get(It.IsAny<string>()))
                 .Callback(() => getCalled = true)
-                .Returns(Task.FromResult(Option.Some(new TwinInfo(twin, null, false))));
+                .Returns(Task.FromResult(Option.Some(new TwinInfo(twin, null))));
 
             // Arrange - change what the cloud returns
             IMessage newTwinMessage = this.twinMessageConverter.ToMessage(twin);
@@ -818,7 +818,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
 
             var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
-            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some(new TwinInfo(twin, new TwinCollection(), false)));
+            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some(new TwinInfo(twin, new TwinCollection())));
             mockTwinStore.Setup(t => t.Update(It.IsAny<string>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Throws(new InvalidOperationException("Out of space"));
 
@@ -930,7 +930,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify version of twin matches new version and device not subsribed
             Assert.Equal(cached.Properties.Desired.Version, 33);
             Assert.Equal(twinInfo.Twin.Properties.Desired.Version, 33);
-            Assert.Equal(twinInfo.SubscribedToDesiredPropertyUpdates, false);
 
             // Assert - verify desired property update callback was not generated (device was not subscribed to updates)
             Assert.Equal(receivedCallback, false);
@@ -940,9 +939,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void DesiredPropertyFetchesTwinWithCallbackSuccess()
         {
             // Arrange - make a twin with a version
-            var twin = new Twin("d1");
+            string deviceId = "device20";
+            var twin = new Twin(deviceId);
             twin.Version = 32;
-            twin.Properties.Desired = new TwinCollection()
+            twin.Properties.Desired = new TwinCollection
             {
                 ["value"] = "old",
                 ["$version"] = 32
@@ -960,13 +960,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
+            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
+                new Dictionary<DeviceSubscription, bool>
+                {
+                    [DeviceSubscription.DesiredPropertyUpdates] = true
+                });
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
+            connectionManager.Setup(t => t.GetSubscriptions(deviceId))
+                .Returns(Option.Some(deviceSubscriptions));
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
-
-            string deviceId = "device20";
 
             // Act - cache a twin
             await twinManager.GetTwinAsync(deviceId);
@@ -1093,7 +1098,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async void ConnectionReestablishedGetTwinWithDesiredPropertyUpdateSuccess()
         {
             // Arrange
-            var twin = new Twin("d1");
+            string deviceId = "device22";
+            var twin = new Twin(deviceId);
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockCloudProxy = new Mock<ICloudProxy>();
@@ -1112,13 +1118,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
 
+            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
+                new Dictionary<DeviceSubscription, bool>
+                {
+                    [DeviceSubscription.DesiredPropertyUpdates] = true
+                });
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(cloudProxy);
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
+            connectionManager.Setup(t => t.GetSubscriptions(deviceId))
+                .Returns(Option.Some(deviceSubscriptions));
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
-
-            string deviceId = "device22";
 
             var desired = new TwinCollection()
             {
@@ -1129,11 +1140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act - subscribe to desired property updates
             await twinManager.UpdateDesiredPropertiesAsync(deviceId, twinCollectionMessage);
 
-            TwinInfo cached = null;
-            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => { cached = t; return Task.FromResult(t); }, () => Task.FromResult<TwinInfo>(null));
-
-            // Assert - verify the subscribed flag is set
-            Assert.Equal(cached.SubscribedToDesiredPropertyUpdates, true);
+            await twinManager.ExecuteOnTwinStoreResultAsync(deviceId, t => Task.FromResult(t), () => Task.FromResult<TwinInfo>(null));
 
             // Arrange
             var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);

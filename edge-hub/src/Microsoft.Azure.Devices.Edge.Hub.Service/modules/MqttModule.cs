@@ -94,21 +94,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IDeviceIdentityProvider>()
                 .SingleInstance();
 
-            // ISessionStatePersistenceProvider
-            builder.Register<ISessionStatePersistenceProvider>(
-                    c =>
-                    {
+            // Task<ISessionStatePersistenceProvider>
+            builder.Register(
+                    async c =>
+                    {                        
                         if (this.isStoreAndForwardEnabled)
                         {
                             IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
-                            return new SessionStateStoragePersistenceProvider(c.Resolve<IConnectionManager>(), entityStore);
+                            IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                            return new SessionStateStoragePersistenceProvider(edgeHub, entityStore) as ISessionStatePersistenceProvider;
                         }
                         else
                         {
-                            return new SessionStatePersistenceProvider(c.Resolve<IConnectionManager>());
+                            IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                            return new SessionStatePersistenceProvider(edgeHub) as ISessionStatePersistenceProvider;
                         }
                     })
-                .As<ISessionStatePersistenceProvider>()
+                .As<Task<ISessionStatePersistenceProvider>>()
                 .SingleInstance();
 
             // MqttProtocolHead
@@ -118,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         this.tlsCertificate,
                         await c.Resolve<Task<IMqttConnectionProvider>>(),
                         c.Resolve<IDeviceIdentityProvider>(),
-                        c.Resolve<ISessionStatePersistenceProvider>(),
+                        await c.Resolve<Task<ISessionStatePersistenceProvider>>(),
                         c.Resolve<IWebSocketListenerRegistry>(),
                         c.Resolve<IByteBufferAllocator>(),
                         this.clientCertAuthAllowed,

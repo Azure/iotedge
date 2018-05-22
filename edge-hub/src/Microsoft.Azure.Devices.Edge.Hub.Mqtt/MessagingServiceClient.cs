@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             public static void SendMethodResponseFailed(IIdentity identity, Exception exception)
             {
-                Log.LogWarning((int)EventIds.SendMethodResponseFailure, Invariant($"Method response was not sent for device Id {identity.Id} exception {exception}"));
+                Log.LogWarning((int)EventIds.SendMethodResponseFailure, Invariant($"Methods response was not sent for device Id {identity.Id} exception {exception}"));
             }
         }
     }

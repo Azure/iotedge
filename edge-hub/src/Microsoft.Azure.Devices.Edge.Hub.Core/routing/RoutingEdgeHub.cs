@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -98,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        private IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
+        IRoutingMessage ProcessMessageInternal(IMessage message, bool validateSize)
         {
             this.AddEdgeSystemProperties(message);
             IRoutingMessage routingMessage = this.messageConverter.FromMessage(Preconditions.CheckNotNull(message, nameof(message)));
@@ -133,7 +135,103 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection)
         {
             Events.UpdateDesiredPropertiesCallReceived(id);
-            return   this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
+            return this.twinManager.UpdateDesiredPropertiesAsync(id, twinCollection);
+        }
+
+        public async Task AddSubscription(string id, DeviceSubscription deviceSubscription)
+        {
+            Events.AddingSubscription(id, deviceSubscription);
+            this.connectionManager.AddSubscription(id, deviceSubscription);
+            try
+            {
+                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(c, deviceSubscription, true));
+            }
+            catch (Exception e)
+            {
+                Events.ErrorAddingSubscription(e, id, deviceSubscription);
+                if (!e.HasTimeoutException())
+                {
+                    throw;
+                }
+            }
+        }
+
+        public async Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
+        {
+            Events.RemovingSubscription(id, deviceSubscription);
+            this.connectionManager.RemoveSubscription(id, deviceSubscription);
+            try
+            {
+                Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(c, deviceSubscription, false));
+            }
+            catch (Exception e)
+            {
+                Events.ErrorRemovingSubscription(e, id, deviceSubscription);
+                if (!(e is TimeoutException))
+                {
+                    throw;
+                }
+            }
+        }
+
+        internal async Task ProcessSubscription(ICloudProxy cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
+        {
+            switch (deviceSubscription)
+            {
+                case DeviceSubscription.C2D:
+                    if (addSubscription)
+                    {
+                        cloudProxy.StartListening();
+                    }
+                    break;
+
+                case DeviceSubscription.DesiredPropertyUpdates:
+                    await (addSubscription ? cloudProxy.SetupDesiredPropertyUpdatesAsync() : cloudProxy.RemoveDesiredPropertyUpdatesAsync());
+                    break;
+
+                case DeviceSubscription.Methods:
+                    await (addSubscription ? cloudProxy.SetupCallMethodAsync() : cloudProxy.RemoveCallMethodAsync());
+                    break;
+
+                case DeviceSubscription.ModuleMessages:
+                case DeviceSubscription.TwinResponse:
+                case DeviceSubscription.Unknown:
+                    // No Action required
+                    break;
+            }
+        }
+
+        async void CloudConnectionEstablished(object sender, IIdentity identity)
+        {
+            try
+            {
+                await this.ProcessSubscriptions(identity.Id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingSubscriptions(e, identity);
+            }
+        }
+
+        async Task ProcessSubscriptions(string id)
+        {
+            Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
+            await cloudProxy.ForEachAsync(
+                c =>
+                {
+                    Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
+                    return subscriptions.ForEachAsync(
+                        async s =>
+                        {
+                            foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+                            {
+                                await this.ProcessSubscription(c, subscription.Key, subscription.Value);
+                            }
+                        });
+
+                });
         }
 
         protected virtual void Dispose(bool disposing)
@@ -161,7 +259,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 MessageReceived = 1501,
                 ReportedPropertiesUpdateReceived = 1502,
                 DesiredPropertiesUpdateReceived = 1503,
-                DeviceConnectionNotFound
+                DeviceConnectionNotFound,
+                ErrorProcessingSubscriptions,
+                ErrorRemovingSubscription,
+                ErrorAddingSubscription,
+                AddingSubscription,
+                RemovingSubscription
             }
 
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
@@ -192,6 +295,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void UnableToSendC2DMessageNoDeviceConnection(string id)
             {
                 Log.LogWarning((int)EventIds.DeviceConnectionNotFound, Invariant($"Unable to send C2D message to device {id} as an active device connection was not found."));
+            }
+
+            public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
+            {
+                Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+            }
+
+            public static void ErrorRemovingSubscription(Exception ex, string id, DeviceSubscription subscription)
+            {
+                Log.LogWarning((int)EventIds.ErrorRemovingSubscription, ex, Invariant($"Error removing subscription {subscription} for client {id}."));
+            }
+
+            public static void ErrorAddingSubscription(Exception ex, string id, DeviceSubscription subscription)
+            {
+                Log.LogWarning((int)EventIds.ErrorAddingSubscription, ex, Invariant($"Error adding subscription {subscription} for client {id}."));
+            }
+
+            public static void AddingSubscription(string id, DeviceSubscription subscription)
+            {
+                Log.LogDebug((int)EventIds.AddingSubscription, Invariant($"Adding subscription {subscription} for client {id}."));
+            }
+
+            public static void RemovingSubscription(string id, DeviceSubscription subscription)
+            {
+                Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
             }
         }
     }
