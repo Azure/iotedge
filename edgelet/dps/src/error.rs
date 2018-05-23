@@ -3,6 +3,7 @@
 use std::fmt;
 use std::fmt::Display;
 
+use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
 use serde_json::Error as SerdeError;
 use tokio_timer::TimerError as TokioError;
@@ -33,8 +34,10 @@ pub enum ErrorKind {
     TimerError,
     #[fail(display = "DPS operation not assigned")]
     NotAssigned,
-    #[fail(display = "Client reference error")]
-    ClientReference,
+    #[fail(display = "Error during keystore operation")]
+    Keystore,
+    #[fail(display = "Decode error")]
+    Decode,
 }
 
 impl Fail for Error {
@@ -107,6 +110,14 @@ impl From<TokioError> for Error {
     fn from(error: TokioError) -> Error {
         Error {
             inner: error.context(ErrorKind::TimerError),
+        }
+    }
+}
+
+impl From<DecodeError> for Error {
+    fn from(error: DecodeError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Decode),
         }
     }
 }

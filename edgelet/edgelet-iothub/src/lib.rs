@@ -28,6 +28,7 @@ extern crate iothubservice;
 mod error;
 
 use std::convert::AsRef;
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 use chrono::{DateTime, Utc};
@@ -104,14 +105,15 @@ fn convert_auth_type(hub_auth_type: &HubAuthType) -> AuthType {
     }
 }
 
-struct State<K, S>
+struct State<K, S, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    D: 'static + Sign + Clone,
 {
     key_store: K,
-    client: DeviceClient<S, SasTokenSource<K::Key>>,
+    client: DeviceClient<S, SasTokenSource<D>>,
 }
 
 pub struct SasTokenSource<K>
@@ -180,27 +182,31 @@ where
     }
 }
 
-pub struct HubIdentityManager<K, S>
+pub struct HubIdentityManager<K, S, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    D: 'static + Sign + Clone,
 {
-    state: Rc<State<K, S>>,
+    state: Rc<State<K, S, D>>,
+    phantom: PhantomData<D>,
 }
 
-impl<K, S> HubIdentityManager<K, S>
+impl<K, S, D> HubIdentityManager<K, S, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    D: 'static + Sign + Clone,
 {
     pub fn new(
         key_store: K,
-        client: DeviceClient<S, SasTokenSource<K::Key>>,
-    ) -> HubIdentityManager<K, S> {
+        client: DeviceClient<S, SasTokenSource<D>>,
+    ) -> HubIdentityManager<K, S, D> {
         HubIdentityManager {
             state: Rc::new(State { key_store, client }),
+            phantom: PhantomData,
         }
     }
 
@@ -223,24 +229,27 @@ fn build_key_name(key_name: &str, generation_id: &str) -> String {
     format!("{}{}", key_name, generation_id)
 }
 
-impl<K, S> Clone for HubIdentityManager<K, S>
+impl<K, S, D> Clone for HubIdentityManager<K, S, D>
 where
     K: KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    D: 'static + Sign + Clone,
 {
     fn clone(&self) -> Self {
         HubIdentityManager {
             state: self.state.clone(),
+            phantom: PhantomData,
         }
     }
 }
 
-impl<K, S> IdentityManager for HubIdentityManager<K, S>
+impl<K, S, D> IdentityManager for HubIdentityManager<K, S, D>
 where
     K: 'static + KeyStore,
     K::Key: AsRef<[u8]> + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    D: 'static + Sign + Clone,
 {
     type Identity = HubIdentity;
     type Error = Error;

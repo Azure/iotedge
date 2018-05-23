@@ -1,25 +1,20 @@
 [package]
-name = "dps"
+name = "provisioning"
 version = "0.1.0"
 authors = ["Janice D'Sa <jadsa@microsoft.com>"]
 
 [dependencies]
-base64 = "0.9"
 bytes = "0.4"
-chrono = { version = "0.4", features = ["serde"] }
-failure = "0.1"
+failure = "0.1" 
 futures = "0.1"
+regex = "0.2"
 hyper = "0.11"
-log = "0.4"
-percent-encoding = "1.0"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-tokio = "0.1"
-tokio-timer = "0.1"
 url = "1.7"
 
+hsm = { path = "../hsm-rs"}
+dps = { path = "../dps" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 

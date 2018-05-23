@@ -19,6 +19,7 @@ pub enum Provisioning {
     Dps {
         global_endpoint: String,
         scope_id: String,
+        registration_id: String,
     },
 }
 
@@ -181,10 +182,7 @@ mod tests {
             &Provisioning::Manual {
                 ref device_connection_string,
             } => Ok(device_connection_string.to_string()),
-            &Provisioning::Dps {
-                global_endpoint: _,
-                scope_id: _,
-            } => Ok("not implemented".to_string()),
+            &Provisioning::Dps { .. } => Ok("not implemented".to_string()),
         }
     }
 

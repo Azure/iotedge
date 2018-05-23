@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 extern crate base64;
+extern crate bytes;
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 extern crate hmac;
@@ -8,6 +9,7 @@ extern crate sha2;
 
 use std::str;
 
+use bytes::Bytes;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
@@ -39,7 +41,9 @@ fn tpm_active_key_sign() {
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
 
-    key_store.activate_key(decoded_key_str).unwrap();
+    key_store
+        .activate_key(Bytes::from(decoded_key_str))
+        .unwrap();
 
     let key1 = key_store.get_active_key().unwrap();
 

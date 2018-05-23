@@ -2,13 +2,16 @@
 
 use std::sync::{Arc, RwLock};
 
+use bytes::Bytes;
+
 use edgelet_core::Error as CoreError;
-use edgelet_core::crypto::{KeyStore as CoreKeyStore, Sign, SignatureAlgorithm};
+use edgelet_core::crypto::{Activate, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm};
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use error::{Error, ErrorKind};
 
 /// Represents a key which can sign data.
+#[derive(Clone)]
 pub struct TpmKey {
     tpm: Arc<RwLock<Tpm>>,
     identity: Option<String>,
@@ -29,11 +32,11 @@ impl TpmKeyStore {
     }
 
     /// Activate and store a private key in the TPM.
-    pub fn activate_key(&self, key_value: &str) -> Result<(), Error> {
+    pub fn activate_key(&self, key_value: Bytes) -> Result<(), Error> {
         self.tpm
             .read()
             .expect("Read lock on KeyStore TPM failed")
-            .activate_identity_key(key_value.as_bytes())
+            .activate_identity_key(&key_value)
             .map_err(Error::from)?;
         Ok(())
     }
@@ -59,6 +62,20 @@ impl CoreKeyStore for TpmKeyStore {
             tpm: Arc::clone(&self.tpm),
             identity: Some(identity.to_string()),
         })
+    }
+}
+
+impl Activate for TpmKeyStore {
+    type Key = TpmKey;
+
+    fn activate_identity_key<B: AsRef<[u8]>>(
+        &mut self,
+        _identity: String,
+        _key_name: String,
+        key: B,
+    ) -> Result<(), CoreError> {
+        self.activate_key(Bytes::from(key.as_ref()))
+            .map_err(CoreError::from)
     }
 }
 

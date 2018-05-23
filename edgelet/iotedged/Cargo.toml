@@ -22,6 +22,7 @@ tokio-signal = "0.1"
 url = "1.7"
 url_serde = "0.2"
 
+hsm = { path = "../hsm-rs"}
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
@@ -31,3 +32,4 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
 iothubservice = { path = "../iothubservice" }
+provisioning = { path = "../provisioning" }

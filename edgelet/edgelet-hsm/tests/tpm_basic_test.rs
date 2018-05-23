@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 extern crate base64;
+extern crate bytes;
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 extern crate hmac;
@@ -11,6 +12,7 @@ use std::str;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
+use bytes::Bytes;
 use edgelet_core::KeyStore;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::Signature;
@@ -43,7 +45,9 @@ fn tpm_basic_test() {
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
     let module1_identity: &str = "module1";
 
-    key_store.activate_key(decoded_key_str).unwrap();
+    key_store
+        .activate_key(Bytes::from(decoded_key_str))
+        .unwrap();
 
     let key1 = key_store.get(module1_identity, "ignored").unwrap();
 

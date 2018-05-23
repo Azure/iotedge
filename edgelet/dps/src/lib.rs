@@ -3,6 +3,7 @@
 #![deny(warnings)]
 
 extern crate base64;
+extern crate bytes;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
@@ -28,4 +29,7 @@ pub mod error;
 mod model;
 pub mod registration;
 
-pub use model::{DeviceRegistration, DeviceRegistrationResult, TpmRegistrationResult};
+pub use error::{Error, ErrorKind};
+pub use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
+                TpmRegistrationResult};
+pub use registration::{DpsClient, DpsTokenSource};

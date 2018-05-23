@@ -9,11 +9,14 @@ use base64::DecodeError;
 use config::ConfigError as SettingsError;
 use edgelet_core::Error as CoreError;
 use edgelet_docker::Error as DockerError;
+use edgelet_hsm::Error as SoftHsmError;
 use edgelet_http::Error as HttpError;
 use failure::{Backtrace, Context, Fail};
+use hsm::Error as HardHsmError;
 use hyper::Error as HyperError;
 use hyper_tls::Error as HyperTlsError;
 use iothubservice::error::Error as IotHubError;
+use provisioning::Error as ProvisioningError;
 use serde_json::Error as JsonError;
 use url::ParseError;
 
@@ -46,6 +49,12 @@ pub enum ErrorKind {
     Parse,
     #[fail(display = "An http error occurred.")]
     Http,
+    #[fail(display = "A provisioning error occurred.")]
+    Provisioning,
+    #[fail(display = "A hardware hsm error occurred.")]
+    HardHsm,
+    #[fail(display = "An hsm error occurred.")]
+    SoftHsm,
 }
 
 impl Fail for Error {
@@ -170,6 +179,30 @@ impl From<HttpError> for Error {
     fn from(error: HttpError) -> Error {
         Error {
             inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
+impl From<ProvisioningError> for Error {
+    fn from(error: ProvisioningError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Provisioning),
+        }
+    }
+}
+
+impl From<HardHsmError> for Error {
+    fn from(error: HardHsmError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HardHsm),
+        }
+    }
+}
+
+impl From<SoftHsmError> for Error {
+    fn from(error: SoftHsmError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::SoftHsm),
         }
     }
 }

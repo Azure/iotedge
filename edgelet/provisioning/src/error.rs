@@ -4,10 +4,11 @@ use std::fmt;
 use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
+use regex::Error as RegexError;
 
+use dps::{Error as DpsError, ErrorKind as DpsErrorKind};
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use edgelet_utils::Error as UtilsError;
-
-pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct Error {
@@ -16,26 +17,20 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "A module runtime error occurred.")]
-    ModuleRuntime,
-    #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
-    Sign(usize),
-    #[fail(display = "A error occurred retrieving a key from the key store.")]
-    KeyStore,
-    #[fail(display = "Item not found.")]
-    NotFound,
+    #[fail(display = "DPS error")]
+    Dps,
     #[fail(display = "Utils error")]
     Utils,
+    #[fail(display = "Item not found.")]
+    NotFound,
     #[fail(display = "Provisioning error")]
     Provision(String),
-    #[fail(display = "Identity error")]
-    Identity,
-    #[fail(display = "Error activating key")]
-    Activate,
-    #[fail(display = "Edge runtime module has not been created in IoT Hub")]
-    EdgeRuntimeNotFound,
+    #[fail(display = "Core error")]
+    Core,
+    #[fail(display = "HSM error")]
+    Hsm,
+    #[fail(display = "Regex error")]
+    Regex,
 }
 
 impl Fail for Error {
@@ -55,10 +50,6 @@ impl Display for Error {
 }
 
 impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Error {
-        Error { inner }
-    }
-
     pub fn kind(&self) -> &ErrorKind {
         self.inner.get_context()
     }
@@ -82,6 +73,42 @@ impl From<UtilsError> for Error {
     fn from(error: UtilsError) -> Error {
         Error {
             inner: error.context(ErrorKind::Utils),
+        }
+    }
+}
+
+impl From<DpsError> for Error {
+    fn from(error: DpsError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Dps),
+        }
+    }
+}
+
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Core),
+        }
+    }
+}
+
+impl From<Error> for DpsError {
+    fn from(err: Error) -> DpsError {
+        DpsError::from(err.context(DpsErrorKind::Keystore))
+    }
+}
+
+impl From<Error> for CoreError {
+    fn from(err: Error) -> CoreError {
+        CoreError::from(err.context(CoreErrorKind::Activate))
+    }
+}
+
+impl From<RegexError> for Error {
+    fn from(err: RegexError) -> Error {
+        Error {
+            inner: err.context(ErrorKind::Regex),
         }
     }
 }

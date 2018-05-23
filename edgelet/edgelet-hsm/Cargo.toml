@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
 
 [dependencies]
+bytes = "0.4"
 failure = "0.1"
 
 edgelet-core = { path = "../edgelet-core"}

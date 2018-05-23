@@ -7,7 +7,7 @@ use hsm_sys::*;
 
 mod crypto;
 mod error;
-mod tpm;
+pub mod tpm;
 mod x509;
 
 pub use crypto::{Buffer, CertificateProperties, CertificateType, Crypto, HsmCertificate, KeyBytes,

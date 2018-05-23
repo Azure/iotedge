@@ -29,7 +29,6 @@ mod error;
 mod identity;
 mod module;
 pub mod pid;
-pub mod provisioning;
 pub mod watchdog;
 
 use std::rc::Rc;

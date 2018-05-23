@@ -13,6 +13,17 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
+pub trait Activate {
+    type Key: Sign;
+
+    fn activate_identity_key<B: AsRef<[u8]>>(
+        &mut self,
+        identity: String,
+        key_name: String,
+        key: B,
+    ) -> Result<(), Error>;
+}
+
 pub trait Sign {
     type Signature: Signature;
 
@@ -244,6 +255,20 @@ impl MemoryKeyStore {
             .read()
             .expect("Failed to acquire a read lock")
             .len()
+    }
+}
+
+impl Activate for MemoryKeyStore {
+    type Key = MemoryKey;
+
+    fn activate_identity_key<B: AsRef<[u8]>>(
+        &mut self,
+        identity: String,
+        key_name: String,
+        key: B,
+    ) -> Result<(), Error> {
+        self.insert(identity.as_str(), key_name.as_str(), MemoryKey::new(key));
+        Ok(())
     }
 }
 

@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use base64;
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::future::Either;
 use futures::{future, Future};
@@ -15,12 +16,12 @@ use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
-use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
+use edgelet_core::crypto::{Activate, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_http::ErrorKind as HttpErrorKind;
 use edgelet_http::client::{Client, TokenSource};
 use error::{Error, ErrorKind};
 use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
-            TpmRegistrationResult};
+            TpmAttestation, TpmRegistrationResult};
 
 #[derive(Clone)]
 pub struct DpsTokenSource<K>
@@ -73,63 +74,60 @@ where
     }
 }
 
-pub trait Activate {
-    type Key;
-    fn activate_identity_key(&mut self, key: Self::Key) -> Result<(), Error>;
-}
-
-pub trait NewKeyGetter {
-    type Key;
-    fn get_key<B: AsRef<[u8]>>(&self, key: B) -> Result<Self::Key, Error>;
-}
-
-pub struct DpsClient<S, K, A, G>
+pub struct DpsClient<S, K, A>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
     K: 'static + Sign + Clone,
     A: 'static + KeyStore<Key = K> + Activate<Key = K> + Clone,
-    G: 'static + NewKeyGetter<Key = K> + Clone,
 {
     client: Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
     scope_id: String,
     registration_id: String,
+    tpm_ek: Bytes,
+    tpm_srk: Bytes,
     key_store: A,
-    key_getter: G,
     seconds_to_try_operation_status: u64,
 }
 
-impl<S, K, A, G> DpsClient<S, K, A, G>
+impl<S, K, A> DpsClient<S, K, A>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
     K: 'static + Sign + Clone,
     A: 'static + KeyStore<Key = K> + Activate<Key = K> + Clone,
-    G: 'static + NewKeyGetter<Key = K> + Clone,
 {
     pub fn new(
         client: Client<S, DpsTokenSource<K>>,
         scope_id: String,
         registration_id: String,
+        tpm_ek: Bytes,
+        tpm_srk: Bytes,
         key_store: A,
-        key_getter: G,
         seconds_to_try_operation_status: u64,
-    ) -> Result<DpsClient<S, K, A, G>, Error> {
+    ) -> Result<DpsClient<S, K, A>, Error> {
         Ok(DpsClient {
             client: Arc::new(RwLock::new(client)),
             scope_id,
             registration_id,
+            tpm_ek,
+            tpm_srk,
             key_store,
-            key_getter,
             seconds_to_try_operation_status,
         })
     }
 
-    fn get_tpm_challenge_key(body: &str, key_getter: &G) -> Result<K, Error> {
+    fn get_tpm_challenge_key(body: &str, key_store: &mut A) -> Result<K, Error> {
         serde_json::from_str(body).map_err(Error::from).and_then(
             |tpm_challenge: TpmRegistrationResult| {
                 tpm_challenge
                     .authentication_key()
                     .ok_or_else(|| Error::from(ErrorKind::InvalidTpmToken))
-                    .and_then(|key_str| key_getter.get_key(key_str))
+                    .and_then(|key_str| base64::decode(key_str).map_err(Error::from))
+                    .and_then(|key_bytes| {
+                        key_store
+                            .activate_identity_key("dps".to_string(), "auth".to_string(), key_bytes)
+                            .map_err(Error::from)
+                    })
+                    .and_then(|_| key_store.get("dps", "auth").map_err(Error::from))
             },
         )
     }
@@ -223,11 +221,6 @@ where
             })
             .skip_while(
                 |registration_result: &Option<DeviceRegistrationResult>| -> Result<bool, Error> {
-                    // if registration_result.is_some() {
-                    //     Ok(false)
-                    // } else {
-                    //     Ok(true)
-                    // }
                     Ok(registration_result.is_none())
                 },
             )
@@ -242,14 +235,19 @@ where
         Box::new(chain)
     }
 
-    pub fn register_with_auth(
+    fn register_with_auth(
         client: &Arc<RwLock<Client<S, DpsTokenSource<K>>>>,
         scope_id: String,
         registration_id: String,
+        tpm_ek: &Bytes,
+        tpm_srk: &Bytes,
         key_store: &A,
-        key_getter: G,
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error>> {
-        let registration = DeviceRegistration::new().with_registration_id(registration_id.clone());
+        let tpm_attestation = TpmAttestation::new(base64::encode(&tpm_ek))
+            .with_storage_root_key(base64::encode(&tpm_srk));
+        let registration = DeviceRegistration::new()
+            .with_registration_id(registration_id.clone())
+            .with_tpm(tpm_attestation);
         let client_inner = client.clone();
         let mut key_store_inner = key_store.clone();
         let r = client
@@ -281,13 +279,7 @@ where
                             };
 
                         body.map(move |body| {
-                            Self::get_tpm_challenge_key(body.as_str(), &key_getter)
-                                .and_then(move |key| {
-                                    Activate::activate_identity_key(
-                                        &mut key_store_inner,
-                                        key.clone(),
-                                    ).map(|_| key)
-                                })
+                            Self::get_tpm_challenge_key(body.as_str(), &mut key_store_inner)
                                 .map(move |key| {
                                     Either::A(Self::get_operation_id(
                                         &client_inner.clone(),
@@ -312,15 +304,16 @@ where
         let scope_id_status = self.scope_id.clone();
         let registration_id = self.registration_id.clone();
         let registration_id_status = self.registration_id.clone();
-        let key_getter = self.key_getter.clone();
-        let key_getter_status = self.key_getter.clone();
+        let tpm_ek = self.tpm_ek.clone();
+        let tpm_srk = self.tpm_srk.clone();
         let seconds_to_try = self.seconds_to_try_operation_status;
         let r = Self::register_with_auth(
             &self.client,
             scope_id,
             registration_id,
+            &tpm_ek,
+            &tpm_srk,
             &self.key_store,
-            key_getter,
         ).and_then(
             move |operation_status: Option<RegistrationOperationStatus>| {
                 operation_status
@@ -348,13 +341,13 @@ where
                                 r.authentication_key()
                                     .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
                                     .and_then(|kb| -> Result<(), Error> {
-                                        key_getter_status.get_key(kb).and_then(
-                                            |k| -> Result<(), Error> {
-                                                key_store_status
-                                                    .activate_identity_key(k)
-                                                    .and_then(|_| Ok(()))
-                                            },
-                                        )
+                                        key_store_status
+                                            .activate_identity_key(
+                                                "device".to_string(),
+                                                "primary".to_string(),
+                                                kb,
+                                            )
+                                            .map_err(Error::from)
                                     })
                             })
                             .and_then(|_| -> Result<(String, String), Error> {
@@ -366,7 +359,7 @@ where
     }
 }
 
-pub fn get_device_info(
+fn get_device_info(
     registration_result: &DeviceRegistrationResult,
 ) -> Result<(String, String), Error> {
     Ok((
@@ -387,7 +380,6 @@ mod tests {
 
     use std::cell::RefCell;
     use std::mem;
-    use std::str;
 
     use hyper::StatusCode;
     use hyper::header::Authorization;
@@ -396,68 +388,7 @@ mod tests {
     use tokio_core::reactor::Core;
     use url::Url;
 
-    use edgelet_core::Error as CoreError;
-
-    #[derive(Clone)]
-    struct TestKey {
-        key: String,
-    }
-    impl Sign for TestKey {
-        type Signature = TestSignature;
-        fn sign(
-            &self,
-            _signature_algorithm: SignatureAlgorithm,
-            _data: &[u8],
-        ) -> Result<Self::Signature, CoreError> {
-            Ok(TestSignature {
-                val: format!("{} {}", "testsignature".to_string(), self.key.clone()),
-            })
-        }
-    }
-
-    struct TestSignature {
-        val: String,
-    }
-    impl Signature for TestSignature {
-        fn as_bytes(&self) -> &[u8] {
-            self.val.as_bytes()
-        }
-    }
-
-    #[derive(Clone)]
-    struct TestKeyStore {
-        activated_key: Option<TestKey>,
-    }
-
-    impl Activate for TestKeyStore {
-        type Key = TestKey;
-
-        fn activate_identity_key(&mut self, key: Self::Key) -> Result<(), Error> {
-            self.activated_key = Some(key);
-            Ok(())
-        }
-    }
-
-    impl KeyStore for TestKeyStore {
-        type Key = TestKey;
-
-        fn get(&self, _identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
-            Ok(self.activated_key.clone().unwrap())
-        }
-    }
-
-    #[derive(Clone)]
-    struct TestKeyGetter {}
-
-    impl NewKeyGetter for TestKeyGetter {
-        type Key = TestKey;
-
-        fn get_key<B: AsRef<[u8]>>(&self, key_bytes: B) -> Result<Self::Key, Error> {
-            Ok(TestKey {
-                key: str::from_utf8(key_bytes.as_ref()).unwrap().to_string(),
-            })
-        }
-    }
+    use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
 
     #[test]
     fn server_register_with_auth_success() {
@@ -502,10 +433,9 @@ mod tests {
             &client,
             "scope".to_string(),
             "reg".to_string(),
-            &TestKeyStore {
-                activated_key: None,
-            },
-            TestKeyGetter {},
+            &Bytes::from("ek".to_string().into_bytes()),
+            &Bytes::from("srk".to_string().into_bytes()),
+            &MemoryKeyStore::new(),
         ).map(|result| match result {
             Some(op) => {
                 assert_eq!(op.operation_id(), "something");
@@ -531,10 +461,9 @@ mod tests {
             client,
             "scope".to_string(),
             "test".to_string(),
-            TestKeyStore {
-                activated_key: None,
-            },
-            TestKeyGetter {},
+            Bytes::from("ek".to_string().into_bytes()),
+            Bytes::from("srk".to_string().into_bytes()),
+            MemoryKeyStore::new(),
             5,
         ).unwrap();
         let task = dps.register().then(|result| {
@@ -580,10 +509,9 @@ mod tests {
             client,
             "scope".to_string(),
             "test".to_string(),
-            TestKeyStore {
-                activated_key: None,
-            },
-            TestKeyGetter {},
+            Bytes::from("ek".to_string().into_bytes()),
+            Bytes::from("srk".to_string().into_bytes()),
+            MemoryKeyStore::new(),
             5,
         ).unwrap();
         let task = dps.register().then(|result| {
@@ -639,20 +567,17 @@ mod tests {
                 .with_token_source(DpsTokenSource::new(
                     "scope_id".to_string(),
                     "reg".to_string(),
-                    TestKey {
-                        key: "key".to_string(),
-                    },
+                    MemoryKey::new("key".to_string()),
                 ))
                 .clone(),
         ));
-        let dps_operation =
-            DpsClient::<_, _, TestKeyStore, TestKeyGetter>::get_device_registration_result(
-                client,
-                "scope_id".to_string(),
-                "reg".to_string(),
-                "operation".to_string(),
-                5,
-            );
+        let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
+            client,
+            "scope_id".to_string(),
+            "reg".to_string(),
+            "operation".to_string(),
+            5,
+        );
         let task = dps_operation.map(|result| {
             match result {
                 Some(r) => assert_eq!(*r.registration_id(), "reg".to_string()),
@@ -687,20 +612,17 @@ mod tests {
                 .with_token_source(DpsTokenSource::new(
                     "scope_id".to_string(),
                     "reg".to_string(),
-                    TestKey {
-                        key: "key".to_string(),
-                    },
+                    MemoryKey::new("key".to_string()),
                 ))
                 .clone(),
         ));
-        let dps_operation =
-            DpsClient::<_, _, TestKeyStore, TestKeyGetter>::get_device_registration_result(
-                client,
-                "scope_id".to_string(),
-                "reg".to_string(),
-                "operation".to_string(),
-                5,
-            );
+        let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
+            client,
+            "scope_id".to_string(),
+            "reg".to_string(),
+            "operation".to_string(),
+            5,
+        );
         let task = dps_operation.map(|result| {
             match result {
                 Some(_) => panic!("Shouldn't have passed because every attempt failed"),
@@ -738,7 +660,7 @@ mod tests {
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
-        let dps_operation = DpsClient::<_, _, TestKeyStore, TestKeyGetter>::get_operation_status(
+        let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
             "reg",
@@ -764,7 +686,7 @@ mod tests {
             "2017-11-15",
             Url::parse("https://global.azure-devices-provisioning.net/").unwrap(),
         ).unwrap();
-        let dps_operation = DpsClient::<_, _, TestKeyStore, TestKeyGetter>::get_operation_status(
+        let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
             &Arc::new(RwLock::new(client.clone())),
             "scope_id",
             "reg",
