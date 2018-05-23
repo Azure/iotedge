@@ -117,7 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.Configuration.GetValue<string>(Constants.SslCertEnvName));
             var tlsCertificate = new X509Certificate2(certPath);
 
-            bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
+            // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth. 
+            //bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
+            bool clientCertAuthEnabled = false;
+
             string caChainPath = this.Configuration.GetValue("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
