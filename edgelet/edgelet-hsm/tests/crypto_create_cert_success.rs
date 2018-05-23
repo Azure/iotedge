@@ -9,34 +9,29 @@ use edgelet_hsm::Crypto;
 #[test]
 fn crypto_create_cert_success() {
     // arrange
-    // todo
-    // temporarily execute this test only when env variable EDGEHOMEDIR
-    // is set with valid certificates
-    if std::env::var("EDGEHOMEDIR").is_ok() {
-        let crypto = Crypto::default();
+    let crypto = Crypto::default();
 
-        // act
-        let props = CertificateProperties::new(
-            3600,
-            "Common Name".to_string(),
-            CertificateType::Ca,
-            "Alias".to_string(),
-        );
+    // act
+    let props = CertificateProperties::new(
+        3600,
+        "Common Name".to_string(),
+        CertificateType::Ca,
+        "Alias".to_string(),
+    );
 
-        let cert_info = crypto.create_certificate(&props).unwrap();
+    let cert_info = crypto.create_certificate(&props).unwrap();
 
-        let buffer = cert_info.pem().unwrap();
+    let buffer = cert_info.pem().unwrap();
 
-        let pk = match cert_info.get_private_key().unwrap() {
-            Some(pk) => pk,
-            None => panic!("Expected to find a key"),
-        };
+    let pk = match cert_info.get_private_key().unwrap() {
+        Some(pk) => pk,
+        None => panic!("Expected to find a key"),
+    };
 
-        // assert
-        assert!(buffer.as_bytes().len() > 0);
-        match pk {
-            PrivateKey::Ref(_) => panic!("did not expect reference private key"),
-            PrivateKey::Key(KeyBytes::Pem(k)) => assert!(k.as_bytes().len() > 0),
-        }
+    // assert
+    assert!(buffer.as_bytes().len() > 0);
+    match pk {
+        PrivateKey::Ref(_) => panic!("did not expect reference private key"),
+        PrivateKey::Key(KeyBytes::Pem(k)) => assert!(k.as_bytes().len() > 0),
     }
 }

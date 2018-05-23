@@ -387,6 +387,7 @@ static int cert_file_path_helper(const char *alias, STRING_HANDLE cert_file, STR
         (STRING_concat(cert_file, alias) != 0) ||
         (STRING_concat(cert_file, CERT_FILE_EXT) != 0))
     {
+        LOG_ERROR("Could not construct path to certificate for %s", alias);
         result = __FAILURE__;
     }
     else if ((STRING_concat(pk_file, base_dir_path) != 0) ||
@@ -394,6 +395,7 @@ static int cert_file_path_helper(const char *alias, STRING_HANDLE cert_file, STR
              (STRING_concat(pk_file, alias) != 0) ||
              (STRING_concat(pk_file, PK_FILE_EXT) != 0))
     {
+        LOG_ERROR("Could not construct path to private key for %s", alias);
         result = __FAILURE__;
     }
     else
@@ -1557,6 +1559,7 @@ static int edge_hsm_client_store_create_pki_cert
         }
         else if (cert_file_path_helper(alias, alias_cert_handle, alias_pk_handle) != 0)
         {
+            LOG_ERROR("Could not create file paths to the certificate and private key for alias %s", alias); 
             result = __FAILURE__;
         }
         else
@@ -1573,6 +1576,7 @@ static int edge_hsm_client_store_create_pki_cert
                 STORE_ENTRY_PKI_CERT *issuer_cert_entry;
                 if ((issuer_cert_entry = get_pki_cert(store, issuer_alias)) == NULL)
                 {
+                    LOG_ERROR("Could not get certificate entry for issuer %s", issuer_alias);
                     result = __FAILURE__;
                 }
                 else

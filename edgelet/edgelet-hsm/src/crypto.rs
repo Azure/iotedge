@@ -20,7 +20,7 @@ use hsm::{CertificateProperties as HsmCertificateProperties,
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Crypto {
     crypto: Arc<RwLock<HsmCrypto>>,
 }
@@ -40,6 +40,12 @@ impl Crypto {
         Ok(Crypto {
             crypto: Arc::new(RwLock::new(crypto)),
         })
+    }
+}
+
+impl Default for Crypto {
+    fn default() -> Self {
+        Crypto::new(HsmCrypto::default()).expect("Could not create default instance of HSM crypto")
     }
 }
 
