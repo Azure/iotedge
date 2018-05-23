@@ -74,6 +74,18 @@ fn main() {
 
     println!("#Done Updating C-Shared Utilities");
 
+    println!("#Start building shared utilities");
+    let _shared = Config::new(c_shared_repo)
+        .define(SSL_OPTION, "ON")
+        .define("CMAKE_BUILD_TYPE", "Release")
+        .define("run_unittests", "OFF")
+        .define("use_default_uuid", "ON")
+        .define("skip_samples", "ON")
+        .set_platform_defines()
+        .define("run_valgrind", "OFF")
+        .profile("Release")
+        .build();
+
     // make the C libary at azure-iot-hsm-c (currently a subdirectory in this
     // crate)
     // Always make the Release version because Rust links to the Release CRT.

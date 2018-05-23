@@ -18,10 +18,7 @@ $ManifestPath = Get-Manifest
 $env:OPENSSL_ROOT_DIR = "C:\\vcpkg\\packages\\openssl_x64-windows"
 Write-Host "OpenSSL Root Dir $env:OPENSSL_ROOT_DIR"
 
-Invoke-Expression "rd $env:PROGRAMDATA\azure-iot-edge -Recurse"
-Invoke-Expression "md $env:PROGRAMDATA\azure-iot-edge"
-Invoke-Expression "md $env:PROGRAMDATA\azure-iot-edge\config"
-Invoke-Expression "md $env:PROGRAMDATA\azure-iot-edge\data"
+$env:IOTEDGE_HOMEDIR = $env:Temp
 
 Write-Host "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"

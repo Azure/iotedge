@@ -3,6 +3,8 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 project(iothsm)
+set (iothsm_VERSION_MAJOR 0)
+set (iothsm_VERSION_MINOR 1)
 
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -83,7 +85,7 @@ if (run_unittests)
     add_subdirectory(./azure-c-shared-utility/testtools/umock-c)
 endif(run_unittests)
 
-add_subdirectory(./azure-c-shared-utility)
+add_subdirectory(./azure-c-shared-utility EXCLUDE_FROM_ALL)
 
 if (save_ut)
     set(run_unittests ${save_ut} CACHE BOOL "unittests" FORCE)
@@ -99,4 +101,16 @@ else()
      target_link_libraries(iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
 endif(WIN32)
 
-install(TARGETS iothsm DESTINATION .)
+install(TARGETS iothsm DESTINATION lib)
+
+# CPack
+include (InstallRequiredSystemLibraries)
+set (CPACK_PACKAGE_VERSION_MAJOR "${iothsm_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${iothsm_VERSION_MINOR}")
+set (CPACK_PACKAGE_NAME "libiothsm-std")
+
+set (CPACK_GENERATOR "DEB")
+set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
+set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs <edgedevs@microsoft.com>")
+set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+include (CPack)

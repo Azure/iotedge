@@ -501,6 +501,10 @@ static CERT_INFO_HANDLE prepare_cert_info_handle
                                                  (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
                                                                            PRIVATE_KEY_UNKNOWN);
             }
+            else
+            {
+                result = NULL;
+            }
             STRING_delete(full_cert);
         }
     }
