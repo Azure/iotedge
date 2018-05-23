@@ -14,7 +14,13 @@
       }
     },
     "hostname": "localhost",
-    "workload_uri": "unix:///var/run/iotedge/workload.sock",
-    "management_uri": "unix:///var/run/iotedge/mgmt.sock",
+    "connect": {
+        "workload_uri": "unix:///var/run/iotedge/workload.sock",
+        "management_uri": "unix:///var/run/iotedge/mgmt.sock"
+    },
+    "listen": {
+        "workload_uri": "fd://iotedge.workload",
+        "management_uri": "fd://iotedge.mgmt"
+    },
     "docker_uri": "unix:///var/run/docker.sock"
 }

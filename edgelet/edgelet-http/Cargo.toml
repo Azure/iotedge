@@ -21,8 +21,9 @@ tokio-core = "0.1"
 tokio-io = "0.1"
 url = "1.7"
 
-edgelet-utils = { path = "../edgelet-utils" }
 edgelet-core = { path = "../edgelet-core" }
+edgelet-utils = { path = "../edgelet-utils" }
+systemd = { path = "../systemd" }
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.4"

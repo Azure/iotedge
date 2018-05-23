@@ -11,6 +11,7 @@ use hyper::{Body, Error as HyperError, StatusCode as HyperStatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Error as PipeError;
 use serde_json::Error as SerdeError;
+use systemd::Error as SystemdError;
 use url::ParseError;
 
 use edgelet_utils::Error as UtilsError;
@@ -49,6 +50,8 @@ pub enum ErrorKind {
     #[cfg(windows)]
     #[fail(display = "Named pipe error")]
     HyperPipe,
+    #[fail(display = "Systemd error")]
+    Systemd,
 }
 
 impl Fail for Error {
@@ -184,6 +187,14 @@ impl From<UtilsError> for Error {
     fn from(error: UtilsError) -> Error {
         Error {
             inner: error.context(ErrorKind::Utils),
+        }
+    }
+}
+
+impl From<SystemdError> for Error {
+    fn from(error: SystemdError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Systemd),
         }
     }
 }

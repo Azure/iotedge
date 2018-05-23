@@ -23,6 +23,7 @@ extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_json;
+extern crate systemd;
 #[cfg(test)]
 extern crate tempfile;
 #[macro_use]
@@ -40,7 +41,11 @@ extern crate edgelet_utils;
 #[cfg(unix)]
 use std::fs;
 use std::io;
+#[cfg(unix)]
+use std::net;
 use std::net::ToSocketAddrs;
+#[cfg(unix)]
+use std::os::unix::io::FromRawFd;
 #[cfg(unix)]
 use std::path::Path;
 
@@ -48,6 +53,8 @@ use futures::{future, Future, Poll, Stream};
 use http::{Request, Response};
 use hyper::server::{Http, NewService};
 use hyper::{Body, Error as HyperError};
+#[cfg(unix)]
+use systemd::Socket;
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::Handle;
 #[cfg(unix)]
@@ -74,6 +81,8 @@ const HTTP_SCHEME: &str = "http";
 const TCP_SCHEME: &str = "tcp";
 #[cfg(unix)]
 const UNIX_SCHEME: &str = "unix";
+#[cfg(unix)]
+const FD_SCHEME: &str = "fd";
 
 pub trait IntoResponse {
     fn into_response(self) -> Response<Body>;
@@ -200,6 +209,22 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
                 }
                 let listener = UnixListener::bind(path, &handle)?;
                 Incoming::Unix(listener)
+            }
+            #[cfg(unix)]
+            FD_SCHEME => {
+                let host = url.host_str()
+                    .ok_or_else(|| Error::from(ErrorKind::InvalidUri(url.to_string())))?;
+                match systemd::listener(host)? {
+                    Socket::Inet(fd, addr) => {
+                        let l = unsafe { net::TcpListener::from_raw_fd(fd) };
+                        Incoming::Tcp(TcpListener::from_listener(l, &addr, &handle)?)
+                    }
+                    Socket::Unix(fd) => {
+                        let l = unsafe { ::std::os::unix::net::UnixListener::from_raw_fd(fd) };
+                        Incoming::Unix(UnixListener::from_listener(l, &handle)?)
+                    }
+                    _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
+                }
             }
             _ => Err(Error::from(ErrorKind::InvalidUri(url.to_string())))?,
         };

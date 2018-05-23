@@ -170,20 +170,9 @@ impl Main {
         let (mgmt_tx, mgmt_rx) = oneshot::channel();
         let (work_tx, work_rx) = oneshot::channel();
 
-        let mgmt = start_management(
-            settings.management_uri().clone(),
-            &core.handle(),
-            &runtime,
-            &id_man,
-            mgmt_rx,
-        )?;
+        let mgmt = start_management(&settings, &core.handle(), &runtime, &id_man, mgmt_rx)?;
 
-        let workload = start_workload(
-            settings.workload_uri().clone(),
-            &key_store,
-            &core.handle(),
-            work_rx,
-        )?;
+        let workload = start_workload(&settings, &key_store, &core.handle(), work_rx)?;
 
         start_runtime(
             &runtime,
@@ -254,7 +243,10 @@ fn start_runtime(
     // volume mount management and workload URIs
     vol_mount_uri(
         spec.config_mut(),
-        &[settings.management_uri(), settings.workload_uri()],
+        &[
+            settings.connect().management_uri(),
+            settings.connect().workload_uri(),
+        ],
     )?;
 
     let mut watchdog = Watchdog::new(runtime.clone(), id_man.clone());
@@ -307,11 +299,11 @@ fn build_env(
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
     env.insert(
         WORKLOAD_URI_KEY.to_string(),
-        settings.workload_uri().to_string(),
+        settings.connect().workload_uri().to_string(),
     );
     env.insert(
         MANAGEMENT_URI_KEY.to_string(),
-        settings.management_uri().to_string(),
+        settings.connect().management_uri().to_string(),
     );
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
 
@@ -322,7 +314,7 @@ fn build_env(
 }
 
 fn start_management(
-    addr: Url,
+    settings: &Settings<DockerConfig>,
     handle: &Handle,
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<
@@ -331,22 +323,23 @@ fn start_management(
     >,
     shutdown: Receiver<()>,
 ) -> Result<Run, Error> {
+    let url = settings.listen().management_uri().clone();
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(ManagementService::new(
         mgmt,
         id_man,
     )?));
 
-    info!("Listening on {} with 1 thread for management API.", addr);
+    info!("Listening on {} with 1 thread for management API.", url);
 
     let run = Http::new()
-        .bind_handle(addr, server_handle, service)?
+        .bind_handle(url, server_handle, service)?
         .run_until(shutdown.map_err(|_| ()));
     Ok(run)
 }
 
 fn start_workload<K>(
-    addr: Url,
+    settings: &Settings<DockerConfig>,
     key_store: &K,
     handle: &Handle,
     shutdown: Receiver<()>,
@@ -354,16 +347,17 @@ fn start_workload<K>(
 where
     K: 'static + KeyStore + Clone,
 {
+    let url = settings.listen().workload_uri().clone();
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
         key_store,
         Crypto::default(),
     )?));
 
-    info!("Listening on {} with 1 thread for workload API.", addr);
+    info!("Listening on {} with 1 thread for workload API.", url);
 
     let run = Http::new()
-        .bind_handle(addr, server_handle, service)?
+        .bind_handle(url, server_handle, service)?
         .run_until(shutdown.map_err(|_| ()));
     Ok(run)
 }

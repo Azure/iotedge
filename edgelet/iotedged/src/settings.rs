@@ -39,8 +39,14 @@ static DEFAULTS: &str = r#"{
       }
     },
     "hostname": "localhost",
-    "workload_uri": "http://0.0.0.0:8081",
-    "management_uri": "http://0.0.0.0:8080",
+    "connect": {
+        "workload_uri": "http://localhost:8081",
+        "management_uri": "http://localhost:8080"
+    },
+    "listen": {
+        "workload_uri": "http://0.0.0.0:8081",
+        "management_uri": "http://0.0.0.0:8080"
+    },
     "docker_uri": "unix:///var/run/docker.sock"
 }"#;
 
@@ -61,20 +67,60 @@ static DEFAULTS: &str = r#"{
       }
     },
     "hostname": "localhost",
-    "workload_uri": "http://0.0.0.0:8081",
-    "management_uri": "http://0.0.0.0:8080",
+    "connect": {
+        "workload_uri": "http://localhost:8081",
+        "management_uri": "http://localhost:8080"
+    },
+    "listen": {
+        "workload_uri": "http://0.0.0.0:8081",
+        "management_uri": "http://0.0.0.0:8080"
+    },
     "docker_uri": "http://localhost:2375"
 }"#;
+
+#[derive(Debug, Deserialize)]
+pub struct Connect {
+    #[serde(with = "url_serde")]
+    workload_uri: Url,
+    #[serde(with = "url_serde")]
+    management_uri: Url,
+}
+
+impl Connect {
+    pub fn workload_uri(&self) -> &Url {
+        &self.workload_uri
+    }
+
+    pub fn management_uri(&self) -> &Url {
+        &self.management_uri
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Listen {
+    #[serde(with = "url_serde")]
+    workload_uri: Url,
+    #[serde(with = "url_serde")]
+    management_uri: Url,
+}
+
+impl Listen {
+    pub fn workload_uri(&self) -> &Url {
+        &self.workload_uri
+    }
+
+    pub fn management_uri(&self) -> &Url {
+        &self.management_uri
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     runtime: ModuleSpec<T>,
     hostname: String,
-    #[serde(with = "url_serde")]
-    workload_uri: Url,
-    #[serde(with = "url_serde")]
-    management_uri: Url,
+    connect: Connect,
+    listen: Listen,
     #[serde(with = "url_serde")]
     docker_uri: Url,
 }
@@ -112,12 +158,12 @@ where
         &self.hostname
     }
 
-    pub fn workload_uri(&self) -> &Url {
-        &self.workload_uri
+    pub fn connect(&self) -> &Connect {
+        &self.connect
     }
 
-    pub fn management_uri(&self) -> &Url {
-        &self.management_uri
+    pub fn listen(&self) -> &Listen {
+        &self.listen
     }
 
     pub fn docker_uri(&self) -> &Url {

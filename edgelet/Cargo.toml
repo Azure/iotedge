@@ -18,5 +18,6 @@ members = [
     "hsm-sys",
     "hyper-named-pipe",
     "management",
+    "systemd",
     "tokio-named-pipe",
 ]

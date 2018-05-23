@@ -14,7 +14,13 @@
       }
     },
     "hostname": "localhost",
-    "workload_uri": "tcp://0.0.0.0:8081",
-    "management_uri": "tcp://0.0.0.0:8080",
+    "connect": {
+        "workload_uri": "http://localhost:8081",
+        "management_uri": "http://localhost:8080"
+    },
+    "listen": {
+        "workload_uri": "http://0.0.0.0:8081",
+        "management_uri": "http://0.0.0.0:8080"
+    },
     "docker_uri": "http://localhost:2375"
 }

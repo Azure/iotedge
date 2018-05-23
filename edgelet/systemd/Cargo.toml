@@ -1,0 +1,13 @@
+[package]
+name = "systemd"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
+
+[dependencies]
+failure = "0.1"
+failure_derive = "0.1"
+log = "0.4"
+nix = "0.10"
+
+[dev-dependencies]
+lazy_static = "1.0"
