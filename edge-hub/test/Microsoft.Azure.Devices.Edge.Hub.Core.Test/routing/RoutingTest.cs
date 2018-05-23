@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(moduleAsa.HasReceivedMessage(mlMessage2));
         }
 
-        [Fact]
+        [Fact(Skip = "Flaky test, bug #2509253")]
         public async Task MultipleRoutesTest_WithNoModuleOutput()
         {
             var routes = new List<string>
