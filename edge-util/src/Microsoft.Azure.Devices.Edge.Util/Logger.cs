@@ -13,27 +13,26 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public const string RuntimeLogLevelEnvKey = "RuntimeLogLevel";
 
-        static Dictionary<string, LogEventLevel> LogLevelDictionary = new Dictionary<string, LogEventLevel>()
+        static readonly  Dictionary<string, LogEventLevel> LogLevelDictionary = new Dictionary<string, LogEventLevel>(StringComparer.OrdinalIgnoreCase)
         {
             {"verbose", LogEventLevel.Verbose},
             {"debug", LogEventLevel.Debug},
             {"info", LogEventLevel.Information},
+            {"information", LogEventLevel.Information},
             {"warning", LogEventLevel.Warning},
             {"error", LogEventLevel.Error},
             {"fatal", LogEventLevel.Fatal}
         };
 
         static LogEventLevel logLevel = LogEventLevel.Information;
+
         public static void SetLogLevel(string level)
         {
             Preconditions.CheckNonWhiteSpace(level, nameof(level));
             logLevel = LogLevelDictionary.GetOrElse(level.ToLower(), LogEventLevel.Information);
         }
 
-        public static LogEventLevel GetLogLevel()
-        {
-            return logLevel;
-        }
+        public static LogEventLevel GetLogLevel() => logLevel;
 
         static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(() => GetLoggerFactory(), true);
 

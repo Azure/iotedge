@@ -136,10 +136,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar { Key = Constants.IotHubHostnameVariableName, Value = identity.IotHubHostname });
             }
 
-            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname)
-                && !identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
+            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))                
             {
-                envVars.Add(new EnvVar { Key = Constants.GatewayHostnameVariableName, Value = identity.GatewayHostname });
+                if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
+                {
+                    envVars.Add(
+                        new EnvVar
+                        {
+                            Key = Constants.EdgeDeviceHostNameKey,
+                            Value = identity.GatewayHostname
+                        });
+                }
+                else if (!identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
+                {
+                    envVars.Add(
+                        new EnvVar
+                        {
+                            Key = Constants.GatewayHostnameVariableName,
+                            Value = identity.GatewayHostname
+                        });
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))
@@ -170,6 +186,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 {
                     envVars.Add(new EnvVar { Key = Constants.EdgeletManagementUriVariableName, Value = managementUri });
                 }
+
+                envVars.Add(new EnvVar { Key = Constants.ModeKey, Value = Constants.IotedgedMode });
             }
 
             return envVars;

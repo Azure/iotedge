@@ -110,6 +110,12 @@ const MANAGEMENT_URI_KEY: &str = "IOTEDGE_MANAGEMENTURI";
 /// scheme can mean either that we are to use SAS tokens or a TLS client cert.
 const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 
+/// This is the key for the edge runtime mode.
+const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
+
+/// This is the edge runtime mode - it should always be iotedged, when iotedged starts edge runtime.
+const EDGE_RUNTIME_MODE: &str = "iotedged";
+
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
 const UNIX_SCHEME: &str = "unix";
@@ -412,7 +418,10 @@ fn build_env(
         settings.connect().management_uri().to_string(),
     );
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
-
+    env.insert(
+        EDGE_RUNTIME_MODE_KEY.to_string(),
+        EDGE_RUNTIME_MODE.to_string(),
+    );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }

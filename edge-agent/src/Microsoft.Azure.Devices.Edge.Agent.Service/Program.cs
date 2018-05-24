@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue("Mode", "docker");                
+                mode = configuration.GetValue(Constants.ModeKey, "docker");                
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -101,13 +101,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
                 switch (mode.ToLowerInvariant())
                 {
-                    case "docker":
+                    case Constants.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol));
                         break;
 
-                    case "iotedged":
+                    case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
