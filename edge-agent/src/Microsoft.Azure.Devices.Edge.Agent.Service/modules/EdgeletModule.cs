@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
 
-        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri, Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
+        public EdgeletModule(string iotHubHostname, string gatewayHostName, string deviceId, Uri managementUri,
+            Uri workloadUri, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -63,8 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // ICombinedConfigProvider<CombinedDockerConfig>
-            builder.Register(c => new CombinedEdgeletConfigProvider(this.dockerAuthConfig, this.workloadUri, this.managementUri))
-                .As<ICombinedConfigProvider<CombinedDockerConfig>>()
+            builder.Register(
+                async c =>
+                {
+                    IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
+                    return new CombinedEdgeletConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
+                })
+                .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
                 .SingleInstance();
 
             // ICommandFactory
@@ -72,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     async c =>
                     {
                         var moduleManager = c.Resolve<IModuleManager>();
-                        var combinedDockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
+                        ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
                         IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
                         var edgeletCommandFactory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
                         return new LoggingCommandFactory(edgeletCommandFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;

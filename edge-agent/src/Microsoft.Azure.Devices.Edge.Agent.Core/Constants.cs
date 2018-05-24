@@ -72,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string DockerMode = "docker";
 
+        public const string NetworkIdKey = "NetworkId";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

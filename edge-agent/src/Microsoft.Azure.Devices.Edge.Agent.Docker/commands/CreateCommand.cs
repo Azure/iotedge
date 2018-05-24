@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
         static void InjectNetworkAlias(CreateContainerParameters createContainerParameters, IConfigSource configSource, bool addEdgeDeviceHostNameAlias)
         {
-            string networkId = configSource.Configuration.GetValue<string>(Docker.Constants.NetworkIdKey);
+            string networkId = configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
             string edgeDeviceHostName = configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
             if (!string.IsNullOrWhiteSpace(networkId))
             {

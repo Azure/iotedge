@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar { Key = Constants.IotHubHostnameVariableName, Value = identity.IotHubHostname });
             }
 
-            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))                
+            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))
             {
                 if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
                 {
@@ -185,6 +185,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 if (!string.IsNullOrEmpty(managementUri))
                 {
                     envVars.Add(new EnvVar { Key = Constants.EdgeletManagementUriVariableName, Value = managementUri });
+                }
+
+                string networkId = configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
+                if (!string.IsNullOrEmpty(networkId))
+                {
+                    envVars.Add(new EnvVar { Key = Constants.NetworkIdKey, Value = networkId });
                 }
 
                 envVars.Add(new EnvVar { Key = Constants.ModeKey, Value = Constants.IotedgedMode });

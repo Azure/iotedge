@@ -117,6 +117,10 @@ const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 /// This is the edge runtime mode - it should always be iotedged, when iotedged starts edge runtime.
 const EDGE_RUNTIME_MODE: &str = "iotedged";
 
+const EDGE_NETWORKID_KEY: &str = "NetworkId";
+
+const EDGE_NETWORKID: &str = "azure-iot-edge";
+
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
 const UNIX_SCHEME: &str = "unix";
@@ -152,7 +156,7 @@ impl Main {
             .build(&handle);
 
         let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?
-            .with_network_id("azure-iot-edge".to_string());
+            .with_network_id(EDGE_NETWORKID.to_string());
 
         init_docker_runtime(&runtime, &mut core)?;
 
@@ -402,6 +406,7 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
+    env.insert(EDGE_NETWORKID_KEY.to_string(), EDGE_NETWORKID.to_string());
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }

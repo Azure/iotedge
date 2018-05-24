@@ -1,9 +1,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 {
     using System;
+    using System.Collections.Generic;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
 
@@ -12,9 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
         [Fact]
         public void TestCreateValidation()
         {
-            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, null, new Uri("http://localhost:5000")));
-            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, new Uri("http://localhost:5000"), null));
-            Assert.NotNull(new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, new Uri("unix:///var/run/iotedgeworkload.sock"), new Uri("unix:///var/run/iotedgemgmt.sock")));
+            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(new[] { new AuthConfig(), }, null));
+            Assert.Throws<ArgumentNullException>(() => new CombinedEdgeletConfigProvider(null, Mock.Of<IConfigSource>()));
         }
 
         [Fact]
@@ -28,10 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-            var provider = new CombinedEdgeletConfigProvider(
-                new[] { new AuthConfig(), },
-                new Uri("unix:///var/run/iotedgedworkload.sock"),
-                new Uri("unix:///var/run/iotedgedmgmt.sock"));
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    {Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    {Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
             // Act
             CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
@@ -56,10 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
 
-            var provider = new CombinedEdgeletConfigProvider(
-                new[] { new AuthConfig(), },
-                new Uri("http://localhost:2375/"),
-                new Uri("http://localhost:2376/"));
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    {Constants.EdgeletWorkloadUriVariableName, "http://localhost:2375/" },
+                    {Constants.EdgeletManagementUriVariableName, "http://localhost:2376/" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
             // Act
             CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
@@ -67,6 +76,74 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             // Assert
             Assert.NotNull(config.CreateOptions);
             Assert.Null(config.CreateOptions.HostConfig);
+        }
+
+        [Fact]
+        public void InjectNetworkAliasTest()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
+                    { Constants.NetworkIdKey, "testnetwork1" },
+                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"]);
+            Assert.Null(config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"].Aliases);
+        }
+
+        [Fact]
+        public void InjectNetworkAlias_EdgeHubTest()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeHubModuleName);
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
+                    { Constants.NetworkIdKey, "testnetwork1" },
+                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"]);
+            Assert.Equal("edhk1", config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"].Aliases[0]);
         }
     }
 }

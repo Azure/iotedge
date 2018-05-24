@@ -8,20 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
     {
-        readonly Uri workloadUri;
-        readonly Uri managementUri;
+        readonly IConfigSource configSource;
 
         public CombinedEdgeletConfigProvider(IEnumerable<AuthConfig> authConfigs,
-            Uri workloadUri,
-            Uri managementUri)
+            IConfigSource configSource)
             : base(authConfigs)
         {
-            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
-            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
         }
 
         static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>
@@ -35,18 +33,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
             // if the workload URI is a Unix domain socket then volume mount it into the container
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
-            if (this.workloadUri.Scheme == "unix")
-            {                
-                SetMountOptions(createOptions, this.workloadUri);
+            this.MountSockets(module, createOptions);
+            this.InjectNetworkAliases(module, createOptions);
+
+            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
+        }
+
+        void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
+        {
+            string networkId = this.configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
+            string edgeDeviceHostName = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+
+            if (!string.IsNullOrWhiteSpace(networkId))
+            {
+                var endpointSettings = new EndpointSettings();
+                if (module.Name.Equals(Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
+                {
+                    endpointSettings.Aliases = new List<string> { edgeDeviceHostName };
+                }
+
+                IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
+                {
+                    [networkId] = endpointSettings
+                };
+                createOptions.NetworkingConfig = new NetworkingConfig { EndpointsConfig = endpointsConfig };
+            }
+        }
+
+        void MountSockets(IModule module, CreateContainerParameters createOptions)
+        {
+            var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
+            if (workloadUri.Scheme == "unix")
+            {
+                SetMountOptions(createOptions, workloadUri);
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
-            if (this.managementUri.Scheme == "unix"
+            var managementUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName));
+            if (managementUri.Scheme == "unix"
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
-                SetMountOptions(createOptions, this.managementUri);
+                SetMountOptions(createOptions, managementUri);
             }
-            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
         }
 
         static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)

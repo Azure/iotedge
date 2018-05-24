@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         new Dictionary<string, string>
                         {
                             { "EdgeHubConnectionString", fakeConnectionString },
-                            {Docker.Constants.NetworkIdKey, "testnetwork" },
+                            {Constants.NetworkIdKey, "testnetwork" },
                             {Constants.EdgeDeviceHostNameKey, "testdevice" },
                             {Constants.EdgeModuleHubServerCaChainCertificateFileKey,mountMap[Constants.EdgeModuleHubServerCaChainCertificateFileKey] },
                             {Constants.EdgeModuleHubServerCertificateFileKey, mountMap[Constants.EdgeModuleHubServerCertificateFileKey] },
