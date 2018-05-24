@@ -83,6 +83,7 @@ MOCKABLE_FUNCTION(, const HSM_CLIENT_KEY_INTERFACE*, hsm_client_key_interface);
 // Interface(s) under test
 //#############################################################################
 #include "hsm_client_data.h"
+#include "hsm_client_tpm_in_mem.h"
 
 //#############################################################################
 // Test defines and data
@@ -450,7 +451,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
         /**
          * Test function for API
-         *   hsm_client_tpm_init
+         *   hsm_client_tpm_store_init
         */
         TEST_FUNCTION(hsm_client_tpm_init_success)
         {
@@ -461,19 +462,19 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
 
             // act
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             //cleanup
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
          * Test function for API
-         *   hsm_client_tpm_init
+         *   hsm_client_tpm_store_init
         */
         TEST_FUNCTION(hsm_client_tpm_init_negative)
         {
@@ -494,7 +495,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
                 umock_c_negative_tests_fail_call(i);
 
                 // act
-                status = hsm_client_tpm_init();
+                status = hsm_client_tpm_store_init();
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -506,38 +507,38 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
         /**
          * Test function for API
-         *   hsm_client_tpm_init
+         *   hsm_client_tpm_store_init
         */
         TEST_FUNCTION(hsm_client_tpm_init_multiple_times_fails)
         {
             //arrange
             int status;
-            (void)hsm_client_tpm_init();
+            (void)hsm_client_tpm_store_init();
             umock_c_reset_all_calls();
 
             // act
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
 
             // assert
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             //cleanup
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
          * Test function for API
-         *   hsm_client_tpm_deinit
+         *   hsm_client_tpm_store_deinit
         */
-        TEST_FUNCTION(hsm_client_tpm_deinit_success)
+        TEST_FUNCTION(hsm_client_tpm_store_deinit_success)
         {
             //arrange
-            (void)hsm_client_tpm_init();
+            (void)hsm_client_tpm_store_init();
             umock_c_reset_all_calls();
 
             // act
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
@@ -547,15 +548,15 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
         /**
          * Test function for API
-         *   hsm_client_tpm_init
-         *   hsm_client_tpm_deinit
+         *   hsm_client_tpm_store_init
+         *   hsm_client_tpm_store_deinit
         */
         TEST_FUNCTION(hsm_client_tpm_init_deinit_init_success)
         {
             //arrange
             int status;
-            hsm_client_tpm_init();
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_init();
+            hsm_client_tpm_store_deinit();
             umock_c_reset_all_calls();
 
             EXPECTED_CALL(hsm_client_store_interface());
@@ -563,26 +564,26 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
 
             // act
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             //cleanup
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
          * Test function for API
-         *   hsm_client_tpm_interface
+         *   hsm_client_tpm_store_interface
         */
         TEST_FUNCTION(hsm_client_tpm_interface_success)
         {
             //arrange
 
             // act
-            const HSM_CLIENT_TPM_INTERFACE* result = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* result = hsm_client_tpm_store_interface();
 
             // assert
             ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
@@ -606,7 +607,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             umock_c_reset_all_calls();
 
@@ -626,9 +627,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             umock_c_reset_all_calls();
@@ -645,7 +646,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -659,9 +660,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
 
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             umock_c_reset_all_calls();
@@ -684,7 +685,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             }
 
             //cleanup
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
             umock_c_negative_tests_deinit();
         }
 
@@ -695,7 +696,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_destroy_does_nothing_with_invalid_handle)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
 
             // act
@@ -712,7 +713,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_destroy_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
 
             // act
@@ -730,9 +731,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_HANDLE hsm_handle = hsm_client_tpm_create();
@@ -749,7 +750,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             //cleanup
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -760,9 +761,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
@@ -779,7 +780,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -790,9 +791,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
@@ -811,7 +812,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -825,9 +826,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
 
-            status = hsm_client_tpm_init();
+            status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_ACTIVATE_IDENTITY_KEY hsm_client_activate_identity_key = interface->hsm_client_activate_identity_key;
@@ -853,7 +854,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
             umock_c_negative_tests_deinit();
         }
 
@@ -864,7 +865,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_ek_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
             int status;
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
@@ -888,9 +889,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_ek_success)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
@@ -910,7 +911,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -920,9 +921,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_ek_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_GET_ENDORSEMENT_KEY hsm_client_get_ek = interface->hsm_client_get_ek;
@@ -950,7 +951,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -960,7 +961,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_srk_does_nothing_when_tpm_not_initialized)
         {
             //arrange
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
             unsigned char *test_output_buffer = (unsigned char*)0x5000;
             size_t test_output_len = 10;
@@ -984,9 +985,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_srk_success)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
@@ -1006,7 +1007,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1016,9 +1017,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_get_srk_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_GET_STORAGE_ROOT_KEY hsm_client_get_srk = interface->hsm_client_get_srk;
@@ -1046,7 +1047,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1057,7 +1058,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = TEST_OUTPUT_DIGEST_PTR;
@@ -1082,9 +1083,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_sign_with_identity_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
@@ -1127,7 +1128,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1137,9 +1138,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_sign_with_identity_success)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
@@ -1162,7 +1163,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1174,9 +1175,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_SIGN_WITH_IDENTITY hsm_client_sign_with_identity = interface->hsm_client_sign_with_identity;
@@ -1206,7 +1207,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
             umock_c_negative_tests_deinit();
         }
 
@@ -1218,7 +1219,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         {
             //arrange
             int status;
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
             unsigned char test_input[] = {'t', 'e', 's', 't'};
             unsigned char *test_output_buffer = NULL;
@@ -1243,9 +1244,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_derive_and_sign_with_identity_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
@@ -1305,7 +1306,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1315,9 +1316,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_derive_and_sign_with_identity_success)
         {
             //arrange
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
@@ -1342,7 +1343,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
         }
 
         /**
@@ -1354,9 +1355,9 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             //arrange
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
-            int status = hsm_client_tpm_init();
+            int status = hsm_client_tpm_store_init();
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+            const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             HSM_CLIENT_DESTROY hsm_client_tpm_destroy = interface->hsm_client_tpm_destroy;
             HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY hsm_client_derive_and_sign_with_identity = interface->hsm_client_derive_and_sign_with_identity;
@@ -1388,7 +1389,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             //cleanup
             hsm_client_tpm_destroy(hsm_handle);
-            hsm_client_tpm_deinit();
+            hsm_client_tpm_store_deinit();
             umock_c_negative_tests_deinit();
         }
 

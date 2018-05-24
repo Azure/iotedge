@@ -5,6 +5,12 @@ This crate is the unsafe C to Rust interface for the HSM API library.
 This crate represents the functions that the HSM API implements. This crate is 
 used by the HSM-RS crate to provide more Rust-friendly interfaces.
 
+## TPM functionality
+
+The default hsm library built as part of this crate has two modes for the TPM functional interface: 
+an in-memory keystore, and a TPM device keystore.  The default is the in-memory keystore. To enable 
+the TPM device keystore set an envronment variable `IOTEDGE_USE_TPM_DEVICE` to "ON".
+
 ## Memory allocation
 
 The current HSPM API functions expect the calling function to allocate 

@@ -1,3 +1,6 @@
-[submodule "edgelet/hsm-sys/azure-iot-hsm-c/azure-c-shared-utility"]
-	path = edgelet/hsm-sys/azure-iot-hsm-c/azure-c-shared-utility
-	url = https://github.com/Azure/azure-c-shared-utility
+[submodule "edgelet/hsm-sys/azure-iot-hsm-c/deps/azure-c-shared-utility"]
+	path = edgelet/hsm-sys/azure-iot-hsm-c/deps/c-shared
+	url = https://github.com/Azure/azure-c-shared-utility.git
+[submodule "edgelet/hsm-sys/azure-iot-hsm-c/deps/azure-utpm-c"]
+	path = edgelet/hsm-sys/azure-iot-hsm-c/deps/utpm
+	url = https://github.com/Azure/azure-utpm-c.git

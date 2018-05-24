@@ -52,6 +52,7 @@ static void test_hook_gballoc_free(void* ptr)
 
 #include "hsm_client_data.h"
 #include "hsm_key.h"
+#include "edge_sas_perform_sign_with_key.h"
 
 //#############################################################################
 // Test defines and data
@@ -426,7 +427,7 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
                 status = key_if->hsm_client_key_sign(key_handle, data_to_be_signed, data_len, &digest, &digest_size);
 
                 // assert
-                ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             }
 
             //cleanup
@@ -532,11 +533,11 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(size_t, sizeof(TEST_DERIVED_DIGEST_DATA), digest_size, "Line:" TOSTRING(__LINE__));
+
             status = memcmp(TEST_DERIVED_DIGEST_DATA, digest, sizeof(TEST_DERIVED_DIGEST_DATA));
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, sizeof(TEST_DERIVED_DIGEST_DATA), digest_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
             // cleanup
             test_hook_gballoc_free(digest);
             test_helper_destroy_key(key_handle);
@@ -600,7 +601,7 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
                     status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, data_len, identity, identity_size, &digest, &digest_size);
 
                     // assert
-                    ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+                    ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
                 }
             }
 

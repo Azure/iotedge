@@ -9,7 +9,8 @@ set (iothsm_VERSION_MINOR 1)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include_directories(./azure-c-shared-utility/inc)
+include_directories(./deps/c-shared/inc)
+include_directories(./deps/utpm/inc)
 include_directories(. ./inc)
 
 find_package(OpenSSL REQUIRED)
@@ -20,13 +21,16 @@ set(source_c_files
     ./src/constants.c
     ./src/edge_hsm_client_crypto.c
     ./src/edge_hsm_client_store.c
-    ./src/edge_hsm_client_tpm.c
     ./src/edge_hsm_client_x509.c
     ./src/edge_hsm_key_interface.c
+    ./src/edge_sas_perform_sign_with_key.c
     ./src/edge_pki_openssl.c
     ./src/edge_sas_key.c
     ./src/hsm_certificate_props.c
     ./src/hsm_client_data.c
+    ./src/hsm_client_tpm_device.c
+    ./src/hsm_client_tpm_in_mem.c
+    ./src/hsm_client_tpm_select.c
     ./src/hsm_log.c
     ./src/hsm_utils.c
 )
@@ -35,6 +39,14 @@ set(source_h_files
     ./inc/certificate_info.h
     ./inc/hsm_client_data.h
     ./inc/hsm_certificate_props.h
+    ./src/edge_sas_perform_sign_with_key.h
+    ./src/hsm_client_store.h
+    ./src/hsm_client_tpm_device.h
+    ./src/hsm_client_tpm_in_mem.h
+    ./src/hsm_constants.h
+    ./src/hsm_key.h
+    ./src/hsm_log.h
+    ./src/hsm_utils.h
 )
 
 if(WIN32)
@@ -71,21 +83,22 @@ endif(WIN32)
 # We want this to always be a shared library and let the dynamic linker on the
 # target system find the HSM library.
 if(BUILD_SHARED)
-    add_library(iothsm SHARED ${source_c_files} ${source_h_files})
+    add_library(iothsm SHARED ${source_c_files} ${source_in_mem_store_c_files} ${source_h_files})
 else()
-    add_library(iothsm STATIC ${source_c_files} ${source_h_files})
+    add_library(iothsm STATIC ${source_c_files} ${source_in_mem_store_c_files} ${source_h_files})
 endif(BUILD_SHARED)
 
 if (run_unittests)
     enable_testing()
     set(save_ut ${run_unittests})
     set(run_unittests OFF CACHE BOOL "unittests" FORCE)
-    add_subdirectory(./azure-c-shared-utility/testtools/ctest)
-    add_subdirectory(./azure-c-shared-utility/testtools/testrunner)
-    add_subdirectory(./azure-c-shared-utility/testtools/umock-c)
+    add_subdirectory(./deps/c-shared/testtools/ctest)
+    add_subdirectory(./deps/c-shared/testtools/testrunner)
+    add_subdirectory(./deps/c-shared/testtools/umock-c)
 endif(run_unittests)
 
-add_subdirectory(./azure-c-shared-utility EXCLUDE_FROM_ALL)
+add_subdirectory(./deps/c-shared EXCLUDE_FROM_ALL)
+add_subdirectory(./deps/utpm EXCLUDE_FROM_ALL)
 
 if (save_ut)
     set(run_unittests ${save_ut} CACHE BOOL "unittests" FORCE)
@@ -96,9 +109,9 @@ if (${run_unittests})
 endif()
 
 if(WIN32)
-    target_link_libraries(iothsm aziotsharedutil $ENV{OPENSSL_ROOT_DIR}/lib/ssleay32.lib $ENV{OPENSSL_ROOT_DIR}/lib/libeay32.lib)
+    target_link_libraries(iothsm aziotsharedutil utpm $ENV{OPENSSL_ROOT_DIR}/lib/ssleay32.lib $ENV{OPENSSL_ROOT_DIR}/lib/libeay32.lib)
 else()
-     target_link_libraries(iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
+     target_link_libraries(iothsm aziotsharedutil utpm ${OPENSSL_LIBRARIES})
 endif(WIN32)
 
 install(TARGETS iothsm DESTINATION lib)

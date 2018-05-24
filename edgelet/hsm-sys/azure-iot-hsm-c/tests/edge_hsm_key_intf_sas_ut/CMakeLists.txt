@@ -14,6 +14,7 @@ add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
     ../../src/edge_hsm_key_interface.c
+    ../../src/edge_sas_perform_sign_with_key.c
     ../../src/edge_sas_key.c
     ../../src/hsm_log.c
     ../../src/constants.c
@@ -21,7 +22,7 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_h_files
-
+    ../../src/edge_sas_perform_sign_with_key.h
 )
 
 build_c_test_artifacts(${theseTestsName} ON "tests/azure_c_shared_utility_tests")

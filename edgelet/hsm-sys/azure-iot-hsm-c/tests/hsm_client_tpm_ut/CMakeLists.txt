@@ -1,27 +1,26 @@
 #Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#this is CMakeLists.txt for edge_hsm_tpm_ut
+#this is CMakeLists.txt for device_auth_ut
 cmake_minimum_required(VERSION 2.8.11)
-
-compileAsC11()
-
-set(theseTestsName edge_hsm_tpm_ut)
 
 include_directories(../../src)
 
-add_definitions(-DGB_DEBUG_ALLOC)
+compileAsC11()
+set(theseTestsName hsm_client_tpm_ut)
 
 set(${theseTestsName}_test_files
-    ../../src/hsm_client_tpm_in_mem.c
-    ../../src/hsm_log.c
-    ../../src/constants.c
     ${theseTestsName}.c
 )
 
-set(${theseTestsName}_h_files
-    ../../src/hsm_client_tpm_in_mem.h
-
+set(${theseTestsName}_c_files
+    ../../src/hsm_client_tpm_device.c
+    ../../src/hsm_log.c
+    ../../src/constants.c
 )
 
-build_c_test_artifacts(${theseTestsName} ON "tests/azure_c_shared_utility_tests")
+set(${theseTestsName}_h_files
+    ../../src/hsm_client_tpm_device.h
+)
+
+build_c_test_artifacts(${theseTestsName} ON "tests")

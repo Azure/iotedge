@@ -22,7 +22,6 @@ $env:IOTEDGE_HOMEDIR = $env:Temp
 
 Write-Host "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
 Invoke-Expression "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-if ($LastExitCode)
-{
+if ($LastExitCode) {
     Throw "cargo test failed with exit code $LastExitCode"
 }

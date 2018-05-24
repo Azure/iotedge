@@ -20,7 +20,7 @@ static const HSM_CLIENT_STORE_INTERFACE* g_hsm_store_if = NULL;
 static const HSM_CLIENT_KEY_INTERFACE* g_hsm_key_if = NULL;
 static bool g_is_tpm_initialized = false;
 
-int hsm_client_tpm_init(void)
+int hsm_client_tpm_store_init(void)
 {
     int result;
     int status;
@@ -60,7 +60,7 @@ int hsm_client_tpm_init(void)
     return result;
 }
 
-void hsm_client_tpm_deinit(void)
+void hsm_client_tpm_store_deinit(void)
 {
     if (!g_is_tpm_initialized)
     {
@@ -408,7 +408,7 @@ static const HSM_CLIENT_TPM_INTERFACE edge_tpm_interface =
     edge_hsm_free_buffer
 };
 
-const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface()
+const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_store_interface()
 {
     return &edge_tpm_interface;
 }

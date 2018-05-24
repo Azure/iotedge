@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 #include "hsm_constants.h"
 
 /* IOTEDGE env variables set by iotedged */
@@ -6,6 +7,7 @@ const char* const ENV_DEVICE_CA_PATH = "IOTEDGE_DEVICE_CA_PATH";
 const char* const ENV_DEVICE_CA_CHAIN_PATH = "IOTEDGE_DEVICE_CA_CHAIN_PATH";
 const char* const ENV_DEVICE_PK_PATH = "IOTEDGE_DEVICE_PK_PATH";
 const char* const ENV_OWNER_CA_PATH = "IOTEDGE_OWNER_CA_PATH";
+const char* const ENV_TPM_SELECT = "IOTEDGE_USE_TPM_DEVICE"; 
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
 const char* const DEFAULT_EDGE_HOME_DIR_UNIX = "/var/lib/iotedge"; // note MacOS is included

@@ -8,6 +8,7 @@ use std::process::Command;
 use cmake::Config;
 
 const SSL_OPTION: &str = "use_openssl";
+const USE_EMULATOR: &str = "use_emulator";
 
 trait SetPlatformDefines {
     fn set_platform_defines(&mut self) -> &mut Self;
@@ -17,12 +18,26 @@ trait SetPlatformDefines {
 impl SetPlatformDefines for Config {
     #[cfg(windows)]
     fn set_platform_defines(&mut self) -> &mut Self {
+        // if the builder chooses to set "use_emulator", use their setting, otherwise, use the
+        // emulator for debug and a real device for release
+        let use_emulator = env::var(USE_EMULATOR)
+            .or_else(|_| {
+                env::var("PROFILE").and_then(|profile| {
+                    Ok(if profile.to_lowercase() == "release" {
+                        String::from("OFF")
+                    } else {
+                        String::from("ON")
+                    })
+                })
+            })
+            .unwrap();
         // C-shared library wants Windows flags (/DWIN32 /D_WINDOWS) for Windows,
         // and the cmake library overrides this.
         self.cflag("/DWIN32")
             .cxxflag("/DWIN32")
             .cflag("/D_WINDOWS")
             .cxxflag("/D_WINDOWS")
+            .define(USE_EMULATOR, use_emulator)
     }
 
     #[cfg(unix)]
@@ -35,12 +50,12 @@ impl SetPlatformDefines for Config {
         } else {
             "ON"
         };
-        //CMAKE_SYSROOT
         if let Ok(sysroot) = env::var("SYSROOT") {
             self.define("run_valgrind", rv)
                 .define("CMAKE_SYSROOT", sysroot)
+                .define(USE_EMULATOR, "OFF")
         } else {
-            self.define("run_valgrind", rv)
+            self.define("run_valgrind", rv).define(USE_EMULATOR, "OFF")
         }
     }
 
@@ -59,10 +74,13 @@ impl SetPlatformDefines for Config {
 
 fn main() {
     // Clone Azure C -shared library
-    let c_shared_repo = "azure-iot-hsm-c/azure-c-shared-utility";
+    let c_shared_repo = "azure-iot-hsm-c/deps/c-shared";
+    let utpm_repo = "azure-iot-hsm-c/deps/utpm";
 
     println!("#Start Update C-Shared Utilities");
-    if !Path::new(&format!("{}/.git", c_shared_repo)).exists() {
+    if !Path::new(&format!("{}/.git", c_shared_repo)).exists()
+        || !Path::new(&format!("{}/.git", utpm_repo)).exists()
+    {
         let _ = Command::new("git")
             .arg("submodule")
             .arg("update")
@@ -76,6 +94,18 @@ fn main() {
 
     println!("#Start building shared utilities");
     let _shared = Config::new(c_shared_repo)
+        .define(SSL_OPTION, "ON")
+        .define("CMAKE_BUILD_TYPE", "Release")
+        .define("run_unittests", "OFF")
+        .define("use_default_uuid", "ON")
+        .define("skip_samples", "ON")
+        .set_platform_defines()
+        .define("run_valgrind", "OFF")
+        .profile("Release")
+        .build();
+
+    println!("#Also build micro tpm library");
+    let _shared = Config::new(utpm_repo)
         .define(SSL_OPTION, "ON")
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("run_unittests", "OFF")
@@ -118,6 +148,8 @@ fn main() {
     // library as a static lib which we do only in rust debug builds
     #[cfg(debug_assertions)]
     println!("cargo:rustc-link-lib=aziotsharedutil");
+    #[cfg(debug_assertions)]
+    println!("cargo:rustc-link-lib=utpm");
 
     #[cfg(windows)]
     {
