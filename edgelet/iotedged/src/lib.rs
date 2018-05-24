@@ -40,6 +40,8 @@ pub mod logging;
 pub mod settings;
 pub mod signal;
 
+use std::collections::HashMap;
+
 use docker::models::HostConfig;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey, MemoryKeyStore, Sign};
 use edgelet_core::watchdog::Watchdog;
@@ -64,11 +66,10 @@ use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{DpsProvisioning, ManualProvisioning, Provision,
                                  ProvisioningResult};
-use std::collections::HashMap;
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
-use settings::{Provisioning, Settings};
+use settings::{Dps, Manual, Provisioning, Settings};
 
 pub use self::error::{Error, ErrorKind};
 
@@ -155,34 +156,31 @@ impl Main {
 
         init_docker_runtime(&runtime, &mut core)?;
 
-        let provisioning_settings = settings.provisioning();
-        match *provisioning_settings {
-            Provisioning::Manual { .. } => {
+        match settings.provisioning() {
+            Provisioning::Manual(manual) => {
                 let (key_store, provisioning_result, root_key) =
-                    manual_provision(provisioning_settings, &mut core)?;
+                    manual_provision(&manual, &mut core)?;
                 start_api(
                     &settings,
                     core,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &provisioning_result.hub_name,
-                    &provisioning_result.device_id,
+                    &provisioning_result,
                     root_key,
                     shutdown_signal,
                 )?;
             }
-            Provisioning::Dps { .. } => {
+            Provisioning::Dps(dps) => {
                 let (key_store, provisioning_result, root_key) =
-                    dps_provision(provisioning_settings, hyper_client.clone(), &mut core)?;
+                    dps_provision(&dps, hyper_client.clone(), &mut core)?;
                 start_api(
                     &settings,
                     core,
                     hyper_client,
                     &runtime,
                     &key_store,
-                    &provisioning_result.hub_name,
-                    &provisioning_result.device_id,
+                    &provisioning_result,
                     root_key,
                     shutdown_signal,
                 )?;
@@ -201,8 +199,7 @@ fn start_api<S, K, F>(
     hyper_client: S,
     runtime: &DockerModuleRuntime,
     key_store: &DerivedKeyStore<K>,
-    hub_name: &str,
-    device_id: &str,
+    provisioning_result: &ProvisioningResult,
     root_key: K,
     shutdown_signal: F,
 ) -> Result<(), Error>
@@ -211,14 +208,13 @@ where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
     K: 'static + Sign + Clone,
 {
+    let hub_name = provisioning_result.hub_name();
+    let device_id = provisioning_result.device_id();
     let hostname = format!("https://{}", hub_name);
+    let token_source = SasTokenSource::new(hub_name.to_string(), device_id.to_string(), root_key);
     let http_client = HttpClient::new(
         hyper_client,
-        Some(SasTokenSource::new(
-            hub_name.to_string(),
-            device_id.to_string(),
-            root_key,
-        )),
+        Some(token_source),
         IOTHUB_API_VERSION,
         Url::parse(&hostname)?,
     )?;
@@ -236,7 +232,7 @@ where
         &runtime,
         &id_man,
         &mut core,
-        &hub_name,
+        &hostname,
         &device_id,
         &settings,
     )?;
@@ -260,75 +256,59 @@ fn init_docker_runtime(runtime: &DockerModuleRuntime, core: &mut Core) -> Result
 }
 
 fn manual_provision(
-    provisioning: &Provisioning,
+    provisioning: &Manual,
     core: &mut Core,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    match *provisioning {
-        Provisioning::Manual {
-            ref device_connection_string,
-        } => {
-            let manual = ManualProvisioning::new(device_connection_string.as_str())?;
-            let memory_hsm = MemoryKeyStore::new();
-            let provision = manual
-                .provision(memory_hsm.clone())
+    let manual = ManualProvisioning::new(provisioning.device_connection_string())?;
+    let memory_hsm = MemoryKeyStore::new();
+    let provision = manual
+        .provision(memory_hsm.clone())
+        .map_err(Error::from)
+        .and_then(move |prov_result| {
+            memory_hsm
+                .get("device", "primary")
                 .map_err(Error::from)
-                .and_then(move |prov_result| {
-                    memory_hsm
-                        .get("device", "primary")
-                        .map_err(Error::from)
-                        .and_then(|k| {
-                            let derived_key_store = DerivedKeyStore::new(k.clone());
-                            Ok((derived_key_store, prov_result, k))
-                        })
-                });
-            core.run(provision)
-        }
-        _ => unimplemented!(),
-    }
+                .and_then(|k| {
+                    let derived_key_store = DerivedKeyStore::new(k.clone());
+                    Ok((derived_key_store, prov_result, k))
+                })
+        });
+    core.run(provision)
 }
 
 fn dps_provision<S>(
-    provisioning: &Provisioning,
+    provisioning: &Dps,
     hyper_client: S,
     core: &mut Core,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
-    match *provisioning {
-        Provisioning::Dps {
-            ref global_endpoint,
-            ref scope_id,
-            ref registration_id,
-        } => {
-            let tpm = Tpm::new().map_err(Error::from)?;
-            let ek_result = tpm.get_ek().map_err(Error::from)?;
-            let srk_result = tpm.get_srk().map_err(Error::from)?;
-            let dps = DpsProvisioning::new(
-                hyper_client,
-                Url::parse(global_endpoint).expect("Failure creating url"),
-                scope_id.to_string(),
-                registration_id.to_string(),
-                "2017-11-15",
-                ek_result,
-                srk_result,
-            )?;
-            let tpm_hsm = TpmKeyStore::new(tpm)?;
-            let provision = dps.provision(tpm_hsm.clone())
+    let tpm = Tpm::new().map_err(Error::from)?;
+    let ek_result = tpm.get_ek().map_err(Error::from)?;
+    let srk_result = tpm.get_srk().map_err(Error::from)?;
+    let dps = DpsProvisioning::new(
+        hyper_client,
+        provisioning.global_endpoint().clone(),
+        provisioning.scope_id().to_string(),
+        provisioning.registration_id().to_string(),
+        "2017-11-15",
+        ek_result,
+        srk_result,
+    )?;
+    let tpm_hsm = TpmKeyStore::new(tpm)?;
+    let provision = dps.provision(tpm_hsm.clone())
+        .map_err(Error::from)
+        .and_then(move |prov_result| {
+            tpm_hsm
+                .get("device", "identity")
                 .map_err(Error::from)
-                .and_then(move |prov_result| {
-                    tpm_hsm
-                        .get("device", "identity")
-                        .map_err(Error::from)
-                        .and_then(|k| {
-                            let derived_key_store = DerivedKeyStore::new(k.clone());
-                            Ok((derived_key_store, prov_result, k))
-                        })
-                });
-            core.run(provision)
-        }
-        _ => unimplemented!(),
-    }
+                .and_then(|k| {
+                    let derived_key_store = DerivedKeyStore::new(k.clone());
+                    Ok((derived_key_store, prov_result, k))
+                })
+        });
+    core.run(provision)
 }
 
 fn start_runtime<K, S>(
@@ -343,7 +323,7 @@ where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
-    let spec = settings.runtime().clone();
+    let spec = settings.agent().clone();
     let env = build_env(spec.env(), hostname, device_id, settings);
     let mut spec = ModuleSpec::<DockerConfig>::new(
         EDGE_RUNTIME_MODULE_NAME,

@@ -1,83 +1,61 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use config::{Config, File};
+use config::{Config, Environment, File, FileFormat};
 use serde::de::DeserializeOwned;
-use serde_json;
 use url::Url;
 use url_serde;
 
 use edgelet_core::ModuleSpec;
 use error::Error;
 
+#[cfg(unix)]
+static DEFAULTS: &str = include_str!("config/unix/default.yaml");
+
+#[cfg(windows)]
+static DEFAULTS: &str = include_str!("config/windows/default.yaml");
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Manual {
+    device_connection_string: String,
+}
+
+impl Manual {
+    pub fn device_connection_string(&self) -> &str {
+        &self.device_connection_string
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Dps {
+    #[serde(with = "url_serde")]
+    global_endpoint: Url,
+    scope_id: String,
+    registration_id: String,
+}
+
+impl Dps {
+    pub fn global_endpoint(&self) -> &Url {
+        &self.global_endpoint
+    }
+
+    pub fn scope_id(&self) -> &str {
+        &self.scope_id
+    }
+
+    pub fn registration_id(&self) -> &str {
+        &self.registration_id
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
-    Manual {
-        device_connection_string: String,
-    },
-    Dps {
-        global_endpoint: String,
-        scope_id: String,
-        registration_id: String,
-    },
+    Manual(Manual),
+    Dps(Dps),
 }
-
-#[cfg(unix)]
-static DEFAULTS: &str = r#"{
-    "provisioning": {
-      "source": "manual",
-      "device_connection_string": "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
-    },
-    "runtime": {
-      "name": "edgeAgent",
-      "type": "docker",
-      "env": {},
-      "config": {
-        "image": "microsoft/azureiotedge-agent:1.0-preview",
-        "create_options": "",
-        "auth": {}
-      }
-    },
-    "hostname": "localhost",
-    "connect": {
-        "workload_uri": "http://localhost:8081",
-        "management_uri": "http://localhost:8080"
-    },
-    "listen": {
-        "workload_uri": "http://0.0.0.0:8081",
-        "management_uri": "http://0.0.0.0:8080"
-    },
-    "docker_uri": "unix:///var/run/docker.sock"
-}"#;
-
-#[cfg(windows)]
-static DEFAULTS: &str = r#"{
-    "provisioning": {
-      "source": "manual",
-      "device_connection_string": "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
-    },
-    "runtime": {
-      "name": "edgeAgent",
-      "type": "docker",
-      "env": {},
-      "config": {
-        "image": "microsoft/azureiotedge-agent:1.0-preview",
-        "create_options": "",
-        "auth": {}
-      }
-    },
-    "hostname": "localhost",
-    "connect": {
-        "workload_uri": "http://localhost:8081",
-        "management_uri": "http://localhost:8080"
-    },
-    "listen": {
-        "workload_uri": "http://0.0.0.0:8081",
-        "management_uri": "http://0.0.0.0:8080"
-    },
-    "docker_uri": "http://localhost:2375"
-}"#;
 
 #[derive(Debug, Deserialize)]
 pub struct Connect {
@@ -118,7 +96,7 @@ impl Listen {
 #[derive(Debug, Deserialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
-    runtime: ModuleSpec<T>,
+    agent: ModuleSpec<T>,
     hostname: String,
     connect: Connect,
     listen: Listen,
@@ -131,28 +109,29 @@ where
     T: DeserializeOwned,
 {
     pub fn new(filename: Option<&str>) -> Result<Self, Error> {
-        filename
-            .map(|val| {
-                let mut settings = Config::default();
-                settings.merge(File::with_name(val))?;
-                settings.try_into().map_err(Error::from)
-            })
-            .unwrap_or_else(|| {
-                Ok(serde_json::from_str::<Settings<T>>(DEFAULTS)
-                    .expect("Invalid default configuration"))
-            })
+        let mut config = Config::default();
+        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
+
+        if let Some(file) = filename {
+            config.merge(File::with_name(file).required(true))?;
+        }
+
+        config.merge(Environment::with_prefix("IOTEDGE"))?;
+
+        let settings = config.try_into()?;
+        Ok(settings)
     }
 
     pub fn provisioning(&self) -> &Provisioning {
         &self.provisioning
     }
 
-    pub fn runtime(&self) -> &ModuleSpec<T> {
-        &self.runtime
+    pub fn agent(&self) -> &ModuleSpec<T> {
+        &self.agent
     }
 
-    pub fn runtime_mut(&mut self) -> &mut ModuleSpec<T> {
-        &mut self.runtime
+    pub fn agent_mut(&mut self) -> &mut ModuleSpec<T> {
+        &mut self.agent
     }
 
     pub fn hostname(&self) -> &str {
@@ -177,12 +156,10 @@ mod tests {
     use super::*;
     use edgelet_docker::DockerConfig;
 
-    fn unwrap_manual_provisioning(p: &Provisioning) -> Result<String, Error> {
+    fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
-            &Provisioning::Manual {
-                ref device_connection_string,
-            } => Ok(device_connection_string.to_string()),
-            &Provisioning::Dps { .. } => Ok("not implemented".to_string()),
+            Provisioning::Manual(manual) => manual.device_connection_string().to_string(),
+            _ => "not implemented".to_string(),
         }
     }
 
@@ -193,9 +170,8 @@ mod tests {
         let s = settings.unwrap();
         let p = s.provisioning();
         let connection_string = unwrap_manual_provisioning(p);
-        assert_eq!(connection_string.is_ok(), true);
         assert_eq!(
-            connection_string.expect("unexpected"),
+            connection_string,
             "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
         );
     }
@@ -203,25 +179,25 @@ mod tests {
     #[test]
     fn no_file_gets_error() {
         let settings = Settings::<DockerConfig>::new(Some("garbage"));
-        assert_eq!(settings.is_err(), true);
+        assert!(settings.is_err());
     }
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::<DockerConfig>::new(Some("test/bad_sample_settings.json"));
-        assert_eq!(settings.is_err(), true);
+        let settings = Settings::<DockerConfig>::new(Some("test/bad_sample_settings.yaml"));
+        assert!(settings.is_err());
     }
 
     #[test]
     fn manual_file_gets_sample_connection_string() {
-        let settings = Settings::<DockerConfig>::new(Some("test/sample_settings.json"));
-        assert_eq!(settings.is_ok(), true);
+        let settings = Settings::<DockerConfig>::new(Some("test/sample_settings.yaml"));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
         let s = settings.unwrap();
         let p = s.provisioning();
         let connection_string = unwrap_manual_provisioning(p);
-        assert_eq!(connection_string.is_ok(), true);
         assert_eq!(
-            connection_string.expect("unexpected"),
+            connection_string,
             "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
         );
     }

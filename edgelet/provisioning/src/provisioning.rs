@@ -28,8 +28,18 @@ static HOSTNAME_REGEX: &'static str = r"HostName=([a-zA-Z0-9_\-\.]+)";
 static SHAREDACCESSKEY_REGEX: &'static str = r"SharedAccessKey=(.+)";
 
 pub struct ProvisioningResult {
-    pub device_id: String,
-    pub hub_name: String,
+    device_id: String,
+    hub_name: String,
+}
+
+impl ProvisioningResult {
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    pub fn hub_name(&self) -> &str {
+        &self.hub_name
+    }
 }
 
 pub trait Provision {

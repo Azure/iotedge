@@ -1,0 +1,110 @@
+###############################################################################
+#                      IoT Edge Daemon configuration
+###############################################################################
+#
+# This file configures the IoT Edge daemon.
+# The daemon must be restarted to pick up any configuration changes.
+#
+# Note - this file is yaml. Learn more here: http://yaml.org/refcard.html
+#
+###############################################################################
+
+###############################################################################
+# Provisioning mode and settings
+###############################################################################
+#
+# This configures the identity provisioning mode of the daemon.
+#
+# Supported modes:
+#     manual - using an iothub connection string
+#     dps    - using dps for provisioning
+#
+###############################################################################
+
+provisioning:
+  source: "manual"
+  device_connection_string: ""
+
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+
+###############################################################################
+# Edge Agent module spec
+###############################################################################
+#
+# This configures the initial Edge Agent module.
+# The daemon uses this Edge Agent definition to bootstrap the system.
+# The Edge Agent can then update itself based on the Edge Agent module
+# definition present in the deployment.
+#
+###############################################################################
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env: {}
+  config:
+    image: "microsoft/azureiotedge-agent:1.0-preview"
+    create_options: ""
+    auth: {}
+
+###############################################################################
+# Edge Device Hostname
+# This is injected into modules as IOTEDGE_GATEWAYHOSTNAME
+###############################################################################
+
+hostname: "localhost"
+
+###############################################################################
+# Connect settings
+###############################################################################
+#
+# This configures the connection uri for a client of the workload/mgmt APIs
+# The workload_uri is the API modules use to retrieve tokens and certificates.
+# The management_uri is the API the Edge Agent uses to start/stop/manage
+# modules.
+#
+# The following uri schemes are supported:
+#     http - connect over tcp
+#     unix - connect over unix domain socket
+#
+###############################################################################
+
+connect:
+  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+
+###############################################################################
+# Listen settings
+###############################################################################
+#
+# This configures the listen address for the daemon.
+# The workload_uri is the API modules use to retrieve tokens and certificates.
+# The management_uri is the API the Edge Agent uses to start/stop/manage
+# modules.
+#
+# The following uri schemes are supported:
+#     http - listen over tcp
+#     unix - listen over unix domain socket
+#     fd   - listen using systemd socket activation
+#
+# They can be different than the connect uris.
+#
+# For instance, when using the fd:// scheme for systemd,
+#   the listen address is fd://iotedge.workload,
+#   but the connect address is unix:///var/run/iotedge/workload.sock
+#
+###############################################################################
+
+listen:
+  workload_uri: "fd://iotedge.workload"
+  management_uri: "fd://iotedge.mgmt"
+
+###############################################################################
+# Docker Engine URI
+###############################################################################
+
+docker_uri: "unix:///var/run/docker.sock"
+

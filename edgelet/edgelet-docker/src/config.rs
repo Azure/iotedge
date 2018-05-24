@@ -5,7 +5,7 @@ use edgelet_utils::serde_clone;
 
 use error::Result;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
