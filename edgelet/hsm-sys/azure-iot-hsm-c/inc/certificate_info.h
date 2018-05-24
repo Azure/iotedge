@@ -45,7 +45,7 @@ extern CERT_INFO_HANDLE certificate_info_create(const char* certificate, const v
 extern void certificate_info_destroy(CERT_INFO_HANDLE handle);
 
 /**
-* @brief            Retrieves the certificate associated with this object
+* @brief            Retrieves the complete certificate (leaf and chain) associated with this object
 *
 * @param handle     The handle created in certificate_info_create
 *
@@ -89,6 +89,15 @@ extern int64_t certificate_info_get_valid_to(CERT_INFO_HANDLE handle);
 * @return           On success the PRIVATE_KEY_TYPE value or PRIVATE_KEY_PAYLOAD on failure
 */
 extern PRIVATE_KEY_TYPE certificate_info_private_key_type(CERT_INFO_HANDLE handle);
+
+/**
+* @brief            Retrieves the leaf certificate (not chain) associated with this object
+*
+* @param handle     The handle created in certificate_info_create
+*
+* @return           On success the certificate value or NULL on failure
+*/
+extern const char* certificate_info_get_leaf_certificate(CERT_INFO_HANDLE handle);
 
 extern const char* certificate_info_get_chain(CERT_INFO_HANDLE handle);
 extern const char* certificate_info_get_issuer(CERT_INFO_HANDLE handle);

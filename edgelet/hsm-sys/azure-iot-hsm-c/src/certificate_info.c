@@ -593,7 +593,7 @@ void certificate_info_destroy(CERT_INFO_HANDLE handle)
     }
 }
 
-const char* certificate_info_get_certificate(CERT_INFO_HANDLE handle)
+const char* certificate_info_get_leaf_certificate(CERT_INFO_HANDLE handle)
 {
     const char* result;
     if (handle == NULL)
@@ -604,6 +604,21 @@ const char* certificate_info_get_certificate(CERT_INFO_HANDLE handle)
     else
     {
         result = handle->first_certificate;
+    }
+    return result;
+}
+
+const char* certificate_info_get_certificate(CERT_INFO_HANDLE handle)
+{
+    const char* result;
+    if (handle == NULL)
+    {
+        LogError("Invalid parameter specified");
+        result = NULL;
+    }
+    else
+    {
+        result = handle->certificate_pem;
     }
     return result;
 }

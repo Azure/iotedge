@@ -564,6 +564,36 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
+    TEST_FUNCTION(certificate_info_get_certificate_leaf_succeed)
+    {
+        //arrange
+        CERT_INFO_HANDLE cert_handle = certificate_info_create(TEST_RSA_CERT, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN, PRIVATE_KEY_PAYLOAD);
+        umock_c_reset_all_calls();
+
+        //act
+        const char* certificate = certificate_info_get_leaf_certificate(cert_handle);
+
+        //assert
+        ASSERT_IS_NOT_NULL(certificate);
+        ASSERT_ARE_EQUAL(char_ptr, TEST_RSA_CERT, certificate);
+
+        //cleanup
+        certificate_info_destroy(cert_handle);
+    }
+
+    TEST_FUNCTION(certificate_info_get_certificate_leaf_fail)
+    {
+        //arrange
+
+        //act
+        const char* certificate = certificate_info_get_leaf_certificate(NULL);
+
+        //assert
+        ASSERT_IS_NULL(certificate);
+
+        //cleanup
+    }
+
     TEST_FUNCTION(certificate_info_get_private_key_succeed)
     {
         //arrange
