@@ -118,136 +118,136 @@ static TPM2B_PUBLIC* GetSrkTemplate()
         curr_pos += arrSize;                         \
     }
 
-static int dps_umarshal_array
-(
-    unsigned char* dst_ptr, 
-    uint32_t dest_size, 
-    unsigned char* act_buff, 
-    uint32_t act_size
-)
-{
-    int result;
-    uint8_t* curr_pos = act_buff;
-
-    DPS_UNMARSHAL(UINT32, &(dest_size));
-    if (act_size < dest_size)
-    {
-        LOG_ERROR("Unmarshaling failed: Need %d bytes, while only %d left", 
-                        dest_size, act_size);
-        result = __FAILURE__;
-    }
-    else
-    {
-        dst_ptr = act_buff - sizeof(UINT16);
-        *(UINT16*)dst_ptr = (UINT16)dest_size;
-        act_buff += dest_size;
-        result = 0;
-    }
-    return result;
-}
-
-static int unmarshal_array
-(
-    uint8_t* dstptr, 
-    uint32_t size, 
-    uint8_t** curr_pos, 
-    uint32_t* curr_size
-)
-{
-    int result;
-
-    TPM_RC tpm_res = UINT32_Unmarshal((uint32_t*)dstptr, curr_pos, (int32_t*)curr_size);
-    if (tpm_res != TPM_RC_SUCCESS)
-    {
-        LOG_ERROR("Failure: unmarshalling array.");
-        result = __FAILURE__;
-    }
-    else if (*curr_size < size)
-    {
-        LOG_ERROR("Failure: unmarshalling array need %d bytes, while only %d left.", 
-                        size, *curr_size);
-        result = __FAILURE__;
-    }
-    else
-    {
-        dstptr = *curr_pos - sizeof(UINT16);
-        *(UINT16*)dstptr = (UINT16)size;
-        curr_pos += size;
-        result = 0;
-    }
-    return result;
-}
-
-static int marshal_array_values
-(
-    const unsigned char* key, 
-    size_t key_len, 
-    uint8_t** decrypt_blob, 
-    uint8_t** decrypt_secret, 
-    uint8_t** decrypt_wrap_key, 
-    TPM2B_PRIVATE* enc_key_blob
-)
-{
-    int result = 0;
-    uint8_t* curr_pos = (uint8_t*)key;
-    uint32_t act_size = (int32_t)key_len;
-    uint32_t decrypt_size = 0;
-    uint32_t decrypt_secret_size = 0;
-    uint32_t decrypt_key_size = 0;
-    TPM2B_PUBLIC id_key_Public = { TPM_ALG_NULL };
-    UINT16 gratuitousSizeField;    // WORKAROUND for the current protocol
-
-    DPS_UNMARSHAL_ARRAY(*decrypt_blob, decrypt_size);
-    if (result != 0)
-    {
-        LOG_ERROR("Failure: decrypting blob");
-    }
-    else
-    {
-        DPS_UNMARSHAL_ARRAY(*decrypt_secret, decrypt_secret_size);
-        if (result != 0)
-        {
-            LOG_ERROR("Failure: decrypting secret");
-        }
-        else
-        {
-            DPS_UNMARSHAL_ARRAY(*decrypt_wrap_key, decrypt_key_size);
-            if (result != 0)
-            {
-                LOG_ERROR("Failure: decrypting wrap secret");
-            }
-            else
-            {
-                DPS_UNMARSHAL_FLAGGED(TPM2B_PUBLIC, &id_key_Public);
-                if (result != 0)
-                {
-                    LOG_ERROR("Failure: id key public");
-                }
-                else
-                {
-                    DPS_UNMARSHAL(UINT16, &gratuitousSizeField);
-                    if (result != 0)
-                    {
-                        LOG_ERROR("Failure: gratuitousSizeField");
-                    }
-                    else
-                    {
-                        DPS_UNMARSHAL(TPM2B_PRIVATE, enc_key_blob);
-                        if (result != 0)
-                        {
-                            LOG_ERROR("Failure: enc key blob");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
+/* static int dps_umarshal_array */
+/* ( */
+/*     unsigned char* dst_ptr,  */
+/*     uint32_t dest_size,  */
+/*     unsigned char* act_buff,  */
+/*     uint32_t act_size */
+/* ) */
+/* { */
+/*     int result; */
+/*     uint8_t* curr_pos = act_buff; */
+/*  */
+/*     DPS_UNMARSHAL(UINT32, &(dest_size)); */
+/*     if (act_size < dest_size) */
+/*     { */
+/*         LOG_ERROR("Unmarshaling failed: Need %d bytes, while only %d left",  */
+/*                         dest_size, act_size); */
+/*         result = __FAILURE__; */
+/*     } */
+/*     else */
+/*     { */
+/*         dst_ptr = act_buff - sizeof(UINT16); */
+/*         *(UINT16*)dst_ptr = (UINT16)dest_size; */
+/*         act_buff += dest_size; */
+/*         result = 0; */
+/*     } */
+/*     return result; */
+/* } */
+/*  */
+/* static int unmarshal_array */
+/* ( */
+/*     uint8_t* dstptr,  */
+/*     uint32_t size,  */
+/*     uint8_t** curr_pos,  */
+/*     uint32_t* curr_size */
+/* ) */
+/* { */
+/*     int result; */
+/*  */
+/*     TPM_RC tpm_res = UINT32_Unmarshal((uint32_t*)dstptr, curr_pos, (int32_t*)curr_size); */
+/*     if (tpm_res != TPM_RC_SUCCESS) */
+/*     { */
+/*         LOG_ERROR("Failure: unmarshalling array."); */
+/*         result = __FAILURE__; */
+/*     } */
+/*     else if (*curr_size < size) */
+/*     { */
+/*         LOG_ERROR("Failure: unmarshalling array need %d bytes, while only %d left.",  */
+/*                         size, *curr_size); */
+/*         result = __FAILURE__; */
+/*     } */
+/*     else */
+/*     { */
+/*         dstptr = *curr_pos - sizeof(UINT16); */
+/*         *(UINT16*)dstptr = (UINT16)size; */
+/*         curr_pos += size; */
+/*         result = 0; */
+/*     } */
+/*     return result; */
+/* } */
+/*  */
+/* static int marshal_array_values */
+/* ( */
+/*     const unsigned char* key,  */
+/*     size_t key_len,  */
+/*     uint8_t** decrypt_blob,  */
+/*     uint8_t** decrypt_secret,  */
+/*     uint8_t** decrypt_wrap_key,  */
+/*     TPM2B_PRIVATE* enc_key_blob */
+/* ) */
+/* { */
+/*     int result = 0; */
+/*     uint8_t* curr_pos = (uint8_t*)key; */
+/*     uint32_t act_size = (int32_t)key_len; */
+/*     uint32_t decrypt_size = 0; */
+/*     uint32_t decrypt_secret_size = 0; */
+/*     uint32_t decrypt_key_size = 0; */
+/*     TPM2B_PUBLIC id_key_Public = { TPM_ALG_NULL }; */
+/*     UINT16 gratuitousSizeField;    // WORKAROUND for the current protocol */
+/*  */
+/*     DPS_UNMARSHAL_ARRAY(*decrypt_blob, decrypt_size); */
+/*     if (result != 0) */
+/*     { */
+/*         LOG_ERROR("Failure: decrypting blob"); */
+/*     } */
+/*     else */
+/*     { */
+/*         DPS_UNMARSHAL_ARRAY(*decrypt_secret, decrypt_secret_size); */
+/*         if (result != 0) */
+/*         { */
+/*             LOG_ERROR("Failure: decrypting secret"); */
+/*         } */
+/*         else */
+/*         { */
+/*             DPS_UNMARSHAL_ARRAY(*decrypt_wrap_key, decrypt_key_size); */
+/*             if (result != 0) */
+/*             { */
+/*                 LOG_ERROR("Failure: decrypting wrap secret"); */
+/*             } */
+/*             else */
+/*             { */
+/*                 DPS_UNMARSHAL_FLAGGED(TPM2B_PUBLIC, &id_key_Public); */
+/*                 if (result != 0) */
+/*                 { */
+/*                     LOG_ERROR("Failure: id key public"); */
+/*                 } */
+/*                 else */
+/*                 { */
+/*                     DPS_UNMARSHAL(UINT16, &gratuitousSizeField); */
+/*                     if (result != 0) */
+/*                     { */
+/*                         LOG_ERROR("Failure: gratuitousSizeField"); */
+/*                     } */
+/*                     else */
+/*                     { */
+/*                         DPS_UNMARSHAL(TPM2B_PRIVATE, enc_key_blob); */
+/*                         if (result != 0) */
+/*                         { */
+/*                             LOG_ERROR("Failure: enc key blob"); */
+/*                         } */
+/*                     } */
+/*                 } */
+/*             } */
+/*         } */
+/*     } */
+/*     return result; */
+/* } */
 
 static int create_tpm_session
 (
-    HSM_CLIENT_INFO* sec_info, 
+    HSM_CLIENT_INFO* sec_info,
     TSS_SESSION* tpm_session
 )
 {
@@ -272,8 +272,8 @@ static int create_tpm_session
 
 static int insert_key_in_tpm
 (
-    HSM_CLIENT_INFO* sec_info, 
-    const unsigned char* key, 
+    HSM_CLIENT_INFO* sec_info,
+    const unsigned char* key,
     size_t key_len
 )
 {
@@ -444,8 +444,8 @@ static void hsm_client_tpm_destroy(HSM_CLIENT_HANDLE handle)
 
 static int hsm_client_tpm_activate_identity_key
 (
-    HSM_CLIENT_HANDLE handle, 
-    const unsigned char* key, 
+    HSM_CLIENT_HANDLE handle,
+    const unsigned char* key,
     size_t key_len
 )
 {
@@ -472,8 +472,8 @@ static int hsm_client_tpm_activate_identity_key
 
 static int hsm_client_tpm_get_endorsement_key
 (
-    HSM_CLIENT_HANDLE handle, 
-    unsigned char** key, 
+    HSM_CLIENT_HANDLE handle,
+    unsigned char** key,
     size_t* key_len
 )
 {
@@ -514,8 +514,8 @@ static int hsm_client_tpm_get_endorsement_key
 
 static int hsm_client_tpm_get_storage_key
 (
-    HSM_CLIENT_HANDLE handle, 
-    unsigned char** key, 
+    HSM_CLIENT_HANDLE handle,
+    unsigned char** key,
     size_t* key_len
 )
 {
@@ -556,19 +556,19 @@ static int hsm_client_tpm_get_storage_key
 
 static int hsm_client_tpm_sign_data
 (
-    HSM_CLIENT_HANDLE handle, 
-    const unsigned char* data_to_be_signed, 
-    size_t data_to_be_signed_size, 
-    unsigned char** digest, 
+    HSM_CLIENT_HANDLE handle,
+    const unsigned char* data_to_be_signed,
+    size_t data_to_be_signed_size,
+    unsigned char** digest,
     size_t* digest_size
 )
 {
     int result;
 
-    if (handle == NULL || data_to_be_signed == NULL || data_to_be_signed_size == 0 || 
+    if (handle == NULL || data_to_be_signed == NULL || data_to_be_signed_size == 0 ||
                     digest == NULL || digest_size == NULL)
     {
-        LOG_ERROR("Invalid handle value specified handle: %p, data: %p, data_size: %zu, digest: %p, digest_size: %p", 
+        LOG_ERROR("Invalid handle value specified handle: %p, data: %p, data_size: %zu, digest: %p, digest_size: %p",
             handle, data_to_be_signed, data_to_be_signed_size, digest, digest_size);
         result = __FAILURE__;
     }
@@ -578,8 +578,8 @@ static int hsm_client_tpm_sign_data
         BYTE* data_copy = (unsigned char*)data_to_be_signed;
         HSM_CLIENT_INFO* hsm_client_info = (HSM_CLIENT_INFO*)handle;
 
-        uint32_t sign_len = SignData(&hsm_client_info->tpm_device, 
-                        &NullPwSession, data_copy, (UINT32)data_to_be_signed_size, 
+        uint32_t sign_len = SignData(&hsm_client_info->tpm_device,
+                        &NullPwSession, data_copy, (UINT32)data_to_be_signed_size,
                         data_signature, sizeof(data_signature) );
         if (sign_len == 0)
         {
@@ -655,13 +655,13 @@ static int hsm_client_tpm_derive_and_sign_with_identity
     {
         *digest = NULL;
         *digest_size = 0;
-        
+
         BYTE data_signature[1024];
         BYTE* data_copy = (unsigned char*)identity;
         HSM_CLIENT_INFO* hsm_client_info = (HSM_CLIENT_INFO*)handle;
 
-        uint32_t sign_len = SignData(&hsm_client_info->tpm_device, 
-                        &NullPwSession, data_copy, (UINT32)identity_size, 
+        uint32_t sign_len = SignData(&hsm_client_info->tpm_device,
+                        &NullPwSession, data_copy, (UINT32)identity_size,
                         data_signature, sizeof(data_signature) );
         if (sign_len == 0)
         {
@@ -670,9 +670,9 @@ static int hsm_client_tpm_derive_and_sign_with_identity
         }
         else
         {
-            // data_signature has the module key 
+            // data_signature has the module key
             // - use software signing so we don't displace the key in TPM0
-            if( perform_sign_with_key(data_signature, sign_len, 
+            if( perform_sign_with_key(data_signature, sign_len,
                                     data_to_be_signed, data_to_be_signed_size,
                                     digest, digest_size) != 0)
             {
@@ -707,7 +707,7 @@ void hsm_client_tpm_device_deinit(void)
 {
 }
 
-static const HSM_CLIENT_TPM_INTERFACE tpm_interface = 
+static const HSM_CLIENT_TPM_INTERFACE tpm_interface =
 {
     hsm_client_tpm_create,
     hsm_client_tpm_destroy,
