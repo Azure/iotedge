@@ -13,14 +13,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DecryptResponse {
-    /// The decrypted form of the data.
+    /// The decrypted form of the data encoded in base 64.
     #[serde(rename = "plaintext")]
     plaintext: String,
 }
 
 impl DecryptResponse {
     pub fn new(plaintext: String) -> DecryptResponse {
-        DecryptResponse { plaintext }
+        DecryptResponse {
+            plaintext: plaintext,
+        }
     }
 
     pub fn set_plaintext(&mut self, plaintext: String) {

@@ -16,9 +16,6 @@ pub struct EncryptRequest {
     /// The data to be encrypted.
     #[serde(rename = "plaintext")]
     plaintext: String,
-    /// An optional passphrase used to encrypt the data.
-    #[serde(rename = "passphrase", skip_serializing_if = "Option::is_none")]
-    passphrase: Option<String>,
     /// An initialization vector used to encrypt the data.
     #[serde(rename = "initializationVector")]
     initialization_vector: String,
@@ -27,9 +24,8 @@ pub struct EncryptRequest {
 impl EncryptRequest {
     pub fn new(plaintext: String, initialization_vector: String) -> EncryptRequest {
         EncryptRequest {
-            plaintext,
-            passphrase: None,
-            initialization_vector,
+            plaintext: plaintext,
+            initialization_vector: initialization_vector,
         }
     }
 
@@ -44,23 +40,6 @@ impl EncryptRequest {
 
     pub fn plaintext(&self) -> &String {
         &self.plaintext
-    }
-
-    pub fn set_passphrase(&mut self, passphrase: String) {
-        self.passphrase = Some(passphrase);
-    }
-
-    pub fn with_passphrase(mut self, passphrase: String) -> EncryptRequest {
-        self.passphrase = Some(passphrase);
-        self
-    }
-
-    pub fn passphrase(&self) -> Option<&String> {
-        self.passphrase.as_ref()
-    }
-
-    pub fn reset_passphrase(&mut self) {
-        self.passphrase = None;
     }
 
     pub fn set_initialization_vector(&mut self, initialization_vector: String) {

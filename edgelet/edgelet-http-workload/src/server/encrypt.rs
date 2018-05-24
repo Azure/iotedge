@@ -36,28 +36,24 @@ where
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
-            .map(|name| {
-                let id = name.to_string();
+            .and_then(|name| {
+                params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::BadParam))
+                    .map(|genid| (name, genid))
+            })
+            .map(|(module_id, genid)| {
+                let id = format!("{}{}", module_id.to_string(), genid.to_string());
                 let ok = req.into_body().concat2().map(move |b| {
                     serde_json::from_slice::<EncryptRequest>(&b)
                         .context(ErrorKind::BadBody)
                         .map_err(Error::from)
                         .and_then(|request| {
-                            let id = &base64::decode(&id)?;
                             let plaintext = base64::decode(request.plaintext())?;
-                            let passphrase = match request.passphrase() {
-                                Some(val) => Some(base64::decode(val)?),
-                                None => None,
-                            };
                             let initialization_vector =
                                 base64::decode(request.initialization_vector())?;
-
-                            hsm.encrypt(
-                                id,
-                                &plaintext,
-                                passphrase.as_ref().map(|p| p as &[u8]),
-                                &initialization_vector,
-                            ).map_err(Error::from)
+                            hsm.encrypt(id.as_bytes(), &plaintext, None, &initialization_vector)
+                                .map_err(Error::from)
                         })
                         .and_then(|ciphertext| {
                             let encoded = base64::encode(&ciphertext);
@@ -116,7 +112,7 @@ mod tests {
 
     fn create_args(
         request: Option<&EncryptRequest>,
-        params: Option<(&'static str, &'static str)>,
+        params: Option<Vec<(Option<String>, String)>>,
     ) -> (Request<Body>, Parameters) {
         let request = match request {
             Some(req) => {
@@ -126,7 +122,7 @@ mod tests {
             None => Request::builder().body(Body::from("xyz")).unwrap(),
         };
         let params = match params {
-            Some(pair) => Parameters::with_captures(pair),
+            Some(param_list) => Parameters::with_captures(param_list),
             None => Parameters::default(),
         };
         (request, params)
@@ -154,7 +150,10 @@ mod tests {
 
     macro_rules! params_ok {
         () => {
-            Some(("name", "test"))
+            Some(vec![
+                (Some("name".to_string()), "test".to_string()),
+                (Some("genid".to_string()), "I".to_string()),
+            ])
         };
     }
 
@@ -170,16 +169,26 @@ mod tests {
         EncryptRequest::new(b64_text!(), raw_text!())
     }
 
-    fn request_with_unencoded_passphrase() -> EncryptRequest {
-        request_ok().with_passphrase(raw_text!())
-    }
-
     fn args_ok() -> (Request<Body>, Parameters) {
         create_args(Some(&request_ok()), params_ok!())
     }
 
     fn args_with_empty_params() -> (Request<Body>, Parameters) {
         create_args(Some(&request_ok()), None)
+    }
+
+    fn args_with_no_name() -> (Request<Body>, Parameters) {
+        create_args(
+            Some(&request_ok()),
+            Some(vec![(Some("genid".to_string()), "I".to_string())]),
+        )
+    }
+
+    fn args_with_no_genid() -> (Request<Body>, Parameters) {
+        create_args(
+            Some(&request_ok()),
+            Some(vec![(Some("name".to_string()), "test".to_string())]),
+        )
     }
 
     fn args_with_bad_request() -> (Request<Body>, Parameters) {
@@ -219,8 +228,30 @@ mod tests {
     }
 
     #[test]
-    fn handler_responds_with_bad_request_when_name_is_missing() {
+    fn handler_responds_with_bad_request_when_params_are_missing() {
         let (request, params) = args_with_empty_params();
+        let handler = EncryptHandler::new(TestHsm::default());
+
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_response_message_eq("Bad parameter", response);
+    }
+
+    #[test]
+    fn handler_responds_with_bad_request_when_name_is_missing() {
+        let (request, params) = args_with_no_name();
+        let handler = EncryptHandler::new(TestHsm::default());
+
+        let response = handler.handle(request, params).wait().unwrap();
+
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        assert_response_message_eq("Bad parameter", response);
+    }
+
+    #[test]
+    fn handler_responds_with_bad_request_when_genid_is_missing() {
+        let (request, params) = args_with_no_genid();
         let handler = EncryptHandler::new(TestHsm::default());
 
         let response = handler.handle(request, params).wait().unwrap();
@@ -248,7 +279,6 @@ mod tests {
         let bodies = [
             request_with_unencoded_plaintext(),
             request_with_unencoded_init_vector(),
-            request_with_unencoded_passphrase(),
         ];
         let handler = EncryptHandler::new(TestHsm::default());
 

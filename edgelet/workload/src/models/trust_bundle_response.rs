@@ -13,14 +13,16 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TrustBundleResponse {
-    /// Base64 encoded PEM formatted byte array containing the certificate.
+    /// Base64 encoded PEM formatted byte array containing the trusted certificates.
     #[serde(rename = "certificate")]
     certificate: String,
 }
 
 impl TrustBundleResponse {
     pub fn new(certificate: String) -> TrustBundleResponse {
-        TrustBundleResponse { certificate }
+        TrustBundleResponse {
+            certificate: certificate,
+        }
     }
 
     pub fn set_certificate(&mut self, certificate: String) {

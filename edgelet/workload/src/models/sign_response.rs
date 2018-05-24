@@ -20,7 +20,7 @@ pub struct SignResponse {
 
 impl SignResponse {
     pub fn new(digest: String) -> SignResponse {
-        SignResponse { digest }
+        SignResponse { digest: digest }
     }
 
     pub fn set_digest(&mut self, digest: String) {

@@ -13,7 +13,7 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerCertificateRequest {
-    /// subject common name
+    /// Subject common name
     #[serde(rename = "commonName")]
     common_name: String,
     /// Certificate expiration date-time (ISO 8601)
@@ -24,8 +24,8 @@ pub struct ServerCertificateRequest {
 impl ServerCertificateRequest {
     pub fn new(common_name: String, expiration: String) -> ServerCertificateRequest {
         ServerCertificateRequest {
-            common_name,
-            expiration,
+            common_name: common_name,
+            expiration: expiration,
         }
     }
 

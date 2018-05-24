@@ -16,9 +16,6 @@ pub struct DecryptRequest {
     /// The data to be decrypted.
     #[serde(rename = "ciphertext")]
     ciphertext: String,
-    /// An optional passphrase used to decrypt the data.
-    #[serde(rename = "passphrase", skip_serializing_if = "Option::is_none")]
-    passphrase: Option<String>,
     /// An initialization vector used to decrypt the data.
     #[serde(rename = "initializationVector")]
     initialization_vector: String,
@@ -27,9 +24,8 @@ pub struct DecryptRequest {
 impl DecryptRequest {
     pub fn new(ciphertext: String, initialization_vector: String) -> DecryptRequest {
         DecryptRequest {
-            ciphertext,
-            passphrase: None,
-            initialization_vector,
+            ciphertext: ciphertext,
+            initialization_vector: initialization_vector,
         }
     }
 
@@ -44,23 +40,6 @@ impl DecryptRequest {
 
     pub fn ciphertext(&self) -> &String {
         &self.ciphertext
-    }
-
-    pub fn set_passphrase(&mut self, passphrase: String) {
-        self.passphrase = Some(passphrase);
-    }
-
-    pub fn with_passphrase(mut self, passphrase: String) -> DecryptRequest {
-        self.passphrase = Some(passphrase);
-        self
-    }
-
-    pub fn passphrase(&self) -> Option<&String> {
-        self.passphrase.as_ref()
-    }
-
-    pub fn reset_passphrase(&mut self) {
-        self.passphrase = None;
     }
 
     pub fn set_initialization_vector(&mut self, initialization_vector: String) {

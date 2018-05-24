@@ -15,7 +15,7 @@ use serde_json::Value;
 pub struct CertificateResponse {
     #[serde(rename = "privateKey")]
     private_key: ::models::PrivateKey,
-    /// Base64 encoded PEM formatted byte array containing the certificate.
+    /// Base64 encoded PEM formatted byte array containing the certificate and its chain.
     #[serde(rename = "certificate")]
     certificate: String,
     /// Certificate expiration date-time (ISO 8601)
@@ -30,9 +30,9 @@ impl CertificateResponse {
         expiration: String,
     ) -> CertificateResponse {
         CertificateResponse {
-            private_key,
-            certificate,
-            expiration,
+            private_key: private_key,
+            certificate: certificate,
+            expiration: expiration,
         }
     }
 

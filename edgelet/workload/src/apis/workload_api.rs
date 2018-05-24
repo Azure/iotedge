@@ -27,7 +27,9 @@ pub struct WorkloadApiClient<C: hyper::client::Connect> {
 
 impl<C: hyper::client::Connect> WorkloadApiClient<C> {
     pub fn new(configuration: Rc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
-        WorkloadApiClient { configuration }
+        WorkloadApiClient {
+            configuration: configuration,
+        }
     }
 }
 
@@ -36,29 +38,34 @@ pub trait WorkloadApi {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn create_server_certificate(
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         request: ::models::ServerCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>>;
     fn decrypt(
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::DecryptRequest,
     ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>>;
     fn encrypt(
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::EncryptRequest,
     ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>>;
     fn sign(
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::SignRequest,
     ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>>;
     fn trust_bundle(
@@ -72,6 +79,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
@@ -81,9 +89,10 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             .append_pair("api-version", &api_version.to_string())
             .finish();
         let uri_str = format!(
-            "/modules/{name}/certificate/identity?{}",
+            "/modules/{name}/genid/{genid}/certificate/identity?{}",
             query,
-            name = name
+            name = name,
+            genid = genid
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -103,13 +112,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -121,7 +130,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
@@ -130,6 +139,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         request: ::models::ServerCertificateRequest,
     ) -> Box<Future<Item = ::models::CertificateResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -139,7 +149,12 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/modules/{name}/certificate/server?{}", query, name = name);
+        let uri_str = format!(
+            "/modules/{name}/genid/{genid}/certificate/server?{}",
+            query,
+            name = name,
+            genid = genid
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -164,13 +179,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -182,7 +197,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
@@ -191,6 +206,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::DecryptRequest,
     ) -> Box<Future<Item = ::models::DecryptResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -200,7 +216,12 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/modules/{name}/decrypt?{}", query, name = name);
+        let uri_str = format!(
+            "/modules/{name}/genid/{genid}/decrypt?{}",
+            query,
+            name = name,
+            genid = genid
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -225,13 +246,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -243,7 +264,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::DecryptResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
@@ -252,6 +273,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::EncryptRequest,
     ) -> Box<Future<Item = ::models::EncryptResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -261,7 +283,12 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/modules/{name}/encrypt?{}", query, name = name);
+        let uri_str = format!(
+            "/modules/{name}/genid/{genid}/encrypt?{}",
+            query,
+            name = name,
+            genid = genid
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -286,13 +313,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -304,7 +331,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::EncryptResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
@@ -313,6 +340,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         &self,
         api_version: &str,
         name: &str,
+        genid: &str,
         payload: ::models::SignRequest,
     ) -> Box<Future<Item = ::models::SignResponse, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
@@ -322,7 +350,12 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/modules/{name}/sign?{}", query, name = name);
+        let uri_str = format!(
+            "/modules/{name}/genid/{genid}/sign?{}",
+            query,
+            name = name,
+            genid = genid
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -347,13 +380,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -364,7 +397,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::SignResponse, _> = serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }
@@ -399,13 +432,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(Error::from)
+                .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(Error::from)
+                        .map_err(|e| Error::from(e))
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -417,7 +450,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::TrustBundleResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
+                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }

@@ -20,7 +20,7 @@ where
     T: serde::Deserialize<'de>,
 {
     fn from(e: (hyper::StatusCode, &'de [u8])) -> Self {
-        if e.1.is_empty() {
+        if e.1.len() == 0 {
             return Error::ApiError(ApiError {
                 code: e.0,
                 content: None,
@@ -38,13 +38,13 @@ where
 
 impl<T> From<hyper::Error> for Error<T> {
     fn from(e: hyper::Error) -> Self {
-        Error::Hyper(e)
+        return Error::Hyper(e);
     }
 }
 
 impl<T> From<serde_json::Error> for Error<T> {
     fn from(e: serde_json::Error) -> Self {
-        Error::Serde(e)
+        return Error::Serde(e);
     }
 }
 
