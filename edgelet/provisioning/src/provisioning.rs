@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use base64;
 use bytes::Bytes;
 
 use futures::future::Either;
@@ -44,33 +45,45 @@ impl ProvisioningResult {
 
 pub trait Provision {
     type Hsm: Activate + KeyStore;
+
     fn provision(
-        &self,
+        self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error>>;
 }
 
 #[derive(Debug)]
 pub struct ManualProvisioning {
-    connection_string: String,
-    hash_map: HashMap<String, String>,
+    key: MemoryKey,
+    device_id: String,
+    hub: String,
 }
 
 impl ManualProvisioning {
     pub fn new(conn_string: &str) -> Result<Self, Error> {
         ensure_not_empty!(conn_string);
         let hash_map = ManualProvisioning::parse_conn_string(conn_string)?;
-        Ok(ManualProvisioning {
-            connection_string: conn_string.to_string(),
-            hash_map,
-        })
-    }
 
-    pub fn key(&self) -> Result<&str, Error> {
-        self.hash_map
+        let key_str = hash_map
             .get(SHAREDACCESSKEY_KEY)
             .map(|s| s.as_str())
-            .ok_or_else(|| Error::from(ErrorKind::NotFound))
+            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
+        let key = MemoryKey::new(base64::decode(key_str)?);
+
+        let device_id = hash_map
+            .get(DEVICEID_KEY)
+            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
+
+        let hub = hash_map
+            .get(HOSTNAME_KEY)
+            .ok_or_else(|| Error::from(ErrorKind::NotFound))?;
+
+        let result = ManualProvisioning {
+            key,
+            device_id: device_id.to_owned(),
+            hub: hub.to_owned(),
+        };
+        Ok(result)
     }
 
     fn parse_conn_string(conn_string: &str) -> Result<HashMap<String, String>, Error> {
@@ -98,28 +111,27 @@ impl Provision for ManualProvisioning {
     type Hsm = MemoryKeyStore;
 
     fn provision(
-        &self,
-        key_activator: Self::Hsm,
+        self,
+        mut key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
-        let r = self.key()
-            .map(move |k| {
-                key_activator
-                    .clone()
-                    .activate_identity_key(
-                        "device".to_string(),
-                        "primary".to_string(),
-                        MemoryKey::new(k),
-                    )
-                    .map(|_| {
-                        Either::A(future::ok(ProvisioningResult {
-                            device_id: self.hash_map[DEVICEID_KEY].clone(),
-                            hub_name: self.hash_map[HOSTNAME_KEY].clone(),
-                        }))
-                    })
-                    .unwrap_or_else(|err| Either::B(future::err(Error::from(err))))
+        let ManualProvisioning {
+            key,
+            device_id,
+            hub,
+        } = self;
+
+        info!(
+            "Manually provisioning device \"{}\" in hub \"{}\"",
+            &device_id, &hub
+        );
+        let result = key_activator
+            .activate_identity_key("device".to_string(), "primary".to_string(), key)
+            .map(|_| ProvisioningResult {
+                device_id,
+                hub_name: hub,
             })
-            .unwrap_or_else(|err| Either::B(future::err(err)));
-        Box::new(r)
+            .map_err(Error::from);
+        Box::new(future::result(result))
     }
 }
 
@@ -147,18 +159,21 @@ where
         hsm_tpm_ek: HsmTpmKey,
         hsm_tpm_srk: HsmTpmKey,
     ) -> Result<DpsProvisioning<S>, Error> {
-        Ok(DpsProvisioning {
-            client: HttpClient::new(
-                service,
-                None as Option<DpsTokenSource<TpmKey>>,
-                &api_version,
-                endpoint,
-            ).expect("Failed getting Http client"),
+        let client = HttpClient::new(
+            service,
+            None as Option<DpsTokenSource<TpmKey>>,
+            &api_version,
+            endpoint,
+        )?;
+
+        let result = DpsProvisioning {
+            client,
             scope_id,
             registration_id,
             hsm_tpm_ek,
             hsm_tpm_srk,
-        })
+        };
+        Ok(result)
     }
 }
 
@@ -169,7 +184,7 @@ where
     type Hsm = TpmKeyStore;
 
     fn provision(
-        &self,
+        self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
         let d = DpsClient::new(

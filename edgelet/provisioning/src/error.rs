@@ -3,11 +3,13 @@
 use std::fmt;
 use std::fmt::Display;
 
+use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
 use regex::Error as RegexError;
 
 use dps::{Error as DpsError, ErrorKind as DpsErrorKind};
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
+use edgelet_http::Error as HttpError;
 use edgelet_utils::Error as UtilsError;
 
 #[derive(Debug)]
@@ -31,6 +33,10 @@ pub enum ErrorKind {
     Hsm,
     #[fail(display = "Regex error")]
     Regex,
+    #[fail(display = "Base64 decode error")]
+    Base64,
+    #[fail(display = "Http error")]
+    Http,
 }
 
 impl Fail for Error {
@@ -109,6 +115,22 @@ impl From<RegexError> for Error {
     fn from(err: RegexError) -> Error {
         Error {
             inner: err.context(ErrorKind::Regex),
+        }
+    }
+}
+
+impl From<DecodeError> for Error {
+    fn from(error: DecodeError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Base64),
+        }
+    }
+}
+
+impl From<HttpError> for Error {
+    fn from(error: HttpError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Http),
         }
     }
 }

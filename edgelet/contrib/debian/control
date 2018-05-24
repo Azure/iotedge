@@ -10,5 +10,5 @@ Homepage: https://github.com/azure/iot-edge
 Package: iotedge
 Architecture: any
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, libiothsm
 Description: Azure IoT Edge daemon

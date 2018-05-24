@@ -146,10 +146,7 @@ where
 
     fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Error> {
         let expiry = expiry.timestamp().to_string();
-        let audience = format!(
-            "{}.azure-devices.net/devices/{}",
-            self.hub_id, self.device_id
-        );
+        let audience = format!("{}/devices/{}", self.hub_id, self.device_id);
 
         let resource_uri =
             percent_encode(audience.to_lowercase().as_bytes(), PATH_SEGMENT_ENCODE_SET).to_string();
@@ -846,7 +843,7 @@ mod tests {
     #[test]
     fn token_source_success() {
         // arrange
-        let hub_id = "Miyagley-Edge".to_string();
+        let hub_id = "Miyagley-Edge.azure-devices.net".to_string();
         let device_id = "miYagley1".to_string();
         let key = MemoryKey::new(base64::decode("key").unwrap());
         let token_source = SasTokenSource::new(hub_id, device_id, key);

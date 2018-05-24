@@ -5,7 +5,7 @@ Requires=network-online.target iotedge.socket iotedge.mgmt.socket
 Documentation=man:iotedged(8)
 
 [Service]
-ExecStart=/usr/bin/iotedged -c /etc/iotedge/config.json
+ExecStart=/usr/bin/iotedged -c /etc/iotedge/config.yaml
 KillMode=process
 TimeoutStartSec=600
 TimeoutStopSec=40

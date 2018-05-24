@@ -41,7 +41,7 @@ package: all
 	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.json $(TARGET)/$(PACKAGE)/etc/iotedge/config.json
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
 
 deb: package
 	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
@@ -53,14 +53,14 @@ install: all
 	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.json $(DESTDIR)$(sysconfdir)/iotedge/config.json
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedged
 	rm -f $(DESTDIR)$(bindir)/iotedge
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
 	-rm -f $(DESTDIR)$(man8)/iotedged.8
-	-rm $(DESTDIR)$(systconfdir)/iotedge/config.json
+	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
 
 clean:
 	rm -rf $(TARGET)

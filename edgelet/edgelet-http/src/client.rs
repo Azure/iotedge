@@ -88,7 +88,7 @@ where
             debug!(
                 "Success generating token for request {} {}",
                 req.method(),
-                path
+                path,
             );
             req.headers_mut()
                 .set(Authorization(format!("SharedAccessSignature {}", token)));

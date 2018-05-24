@@ -2,12 +2,15 @@
 
 #![deny(warnings)]
 
+extern crate base64;
 extern crate bytes;
 #[macro_use]
 extern crate failure;
 extern crate futures;
 extern crate hsm;
 extern crate hyper;
+#[macro_use]
+extern crate log;
 extern crate regex;
 #[cfg(test)]
 extern crate tokio_core;
