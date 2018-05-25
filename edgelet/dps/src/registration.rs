@@ -340,6 +340,7 @@ where
                             .and_then(|r| -> Result<(), Error> {
                                 r.authentication_key()
                                     .ok_or_else(|| Error::from(ErrorKind::NotAssigned))
+                                    .and_then(|ks| base64::decode(ks).map_err(Error::from))
                                     .and_then(|kb| -> Result<(), Error> {
                                         key_store_status
                                             .activate_identity_key(
@@ -403,7 +404,7 @@ mod tests {
             match auth {
                 None => {
                     let mut result = TpmRegistrationResult::new();
-                    result.set_authentication_key("key".to_string());
+                    result.set_authentication_key(base64::encode("key"));
                     future::ok(
                         Response::new()
                             .with_status(StatusCode::Unauthorized)
