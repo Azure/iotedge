@@ -39,7 +39,11 @@ where
         let name = spec.name().to_string();
 
         // Update identity of EdgeAgent to use the Auth mechanism supported by this Edgelet (Sas tokens)
-        update_identity(&mut self.id_mgr, module_id)
+        let mut id_mgr_copy = self.id_mgr.clone();
+        let module_id = module_id.to_string();
+        //TODO: remove edgeHub identity update when agent can update identities
+        update_identity(&mut self.id_mgr, "$edgeHub")
+            .and_then(move |_| update_identity(&mut id_mgr_copy, &module_id))
             .and_then(move |id| runtime.list().map(|m| (id, m)).map_err(|e| e.into()))
             .and_then(move |(id, m)| {
                 m.iter()
