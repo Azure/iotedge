@@ -52,9 +52,9 @@ On Windows:
 Valgrind was added to the linux build dependencies. We are using Valgrind for detecting 
 memory leaks, unassigned variables, and overruns in the dev mode iothsm library.
 
-The iothsm library in hsm-sys runs tests with valgrind turned on by default in Debug 
-builds. Valgrind slows down the tests considerably, so if you don't wish to run valgrind, 
-set the environment variable "NO_VALGRIND".
+Valgrind slows down the tests considerably, so the iothsm library in hsm-sys runs tests with 
+valgrind turned off by default.  If you wish to run valgrind, set the 
+environment variable "RUN_VALGRIND".
 
 ## Linking
 

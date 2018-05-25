@@ -42,13 +42,12 @@ impl SetPlatformDefines for Config {
 
     #[cfg(unix)]
     fn set_platform_defines(&mut self) -> &mut Self {
-        let rv = if env::var("PROFILE").unwrap().to_lowercase() == "release"
-            || !env::var("TARGET").unwrap().starts_with("x86_64")
-            || env::var("NO_VALGRIND").is_ok()
+        let rv = if env::var("TARGET").unwrap().starts_with("x86_64")
+            && env::var("RUN_VALGRIND").is_ok()
         {
-            "OFF"
-        } else {
             "ON"
+        } else {
+            "OFF"
         };
         if let Ok(sysroot) = env::var("SYSROOT") {
             self.define("run_valgrind", rv)
@@ -137,7 +136,7 @@ fn main() {
     // where to find the library (The "link-lib" should match the library name
     // defined in the CMakefile.txt)
 
-    println!("cargo:rerun-if-env-changed=NO_VALGRIND");
+    println!("cargo:rerun-if-env-changed=RUN_VALGRIND");
     // For libraries which will just install in target directory
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
