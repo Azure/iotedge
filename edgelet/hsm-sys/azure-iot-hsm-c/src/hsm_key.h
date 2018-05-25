@@ -105,7 +105,6 @@ static inline int key_derive_and_verify(KEY_HANDLE key_handle,
 static inline int key_encrypt(KEY_HANDLE key_handle,
                               const SIZED_BUFFER *identity,
                               const SIZED_BUFFER *plaintext,
-                              const SIZED_BUFFER *passphrase,
                               const SIZED_BUFFER *initialization_vector,
                               SIZED_BUFFER *ciphertext)
 {
@@ -113,7 +112,6 @@ static inline int key_encrypt(KEY_HANDLE key_handle,
     return key_interface->hsm_client_key_encrypt(key_handle,
                                                  identity,
                                                  plaintext,
-                                                 passphrase,
                                                  initialization_vector,
                                                  ciphertext);
 }
@@ -121,7 +119,6 @@ static inline int key_encrypt(KEY_HANDLE key_handle,
 static inline int key_decrypt(KEY_HANDLE key_handle,
                               const SIZED_BUFFER *identity,
                               const SIZED_BUFFER *ciphertext,
-                              const SIZED_BUFFER *passphrase,
                               const SIZED_BUFFER *initialization_vector,
                               SIZED_BUFFER *plaintext)
 {
@@ -129,7 +126,6 @@ static inline int key_decrypt(KEY_HANDLE key_handle,
     return key_interface->hsm_client_key_decrypt(key_handle,
                                                  identity,
                                                  ciphertext,
-                                                 passphrase,
                                                  initialization_vector,
                                                  plaintext);
 }

@@ -70,8 +70,8 @@ MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_sign, KEY_HANDLE, key_handle, con
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_derive_and_sign, KEY_HANDLE, key_handle, const unsigned char*, data_to_be_signed, size_t, data_len, const unsigned char*, identity, size_t, identity_size, unsigned char**, digest, size_t*, digest_size);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_verify, KEY_HANDLE, key_handle, const unsigned char*, data, size_t, data_size, const unsigned char*, sig_verify, size_t, sig_verify_size, bool*, status);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_derive_and_verify, KEY_HANDLE, key_handle, const unsigned char*, data, size_t, data_size, const unsigned char*, identity, size_t, identity_size, const unsigned char*, sig_verify, size_t, sig_verify_size, bool*, status);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_encrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, plaintext, const SIZED_BUFFER*, pass, const SIZED_BUFFER*, iv, SIZED_BUFFER*, ciphertext);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_decrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, ciphertext, const SIZED_BUFFER*, pass, const SIZED_BUFFER*, iv, SIZED_BUFFER*, plaintext);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_encrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, plaintext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, ciphertext);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_decrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, ciphertext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, plaintext);
 
 // interface mocks
 MOCKABLE_FUNCTION(, const HSM_CLIENT_STORE_INTERFACE*, hsm_client_store_interface);
@@ -312,7 +312,6 @@ static int test_hook_hsm_client_key_derive_and_verify(KEY_HANDLE key_handle,
 static int test_hook_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *identity,
                                             const SIZED_BUFFER *plaintext,
-                                            const SIZED_BUFFER *passphrase,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *ciphertext)
 {
@@ -323,7 +322,6 @@ static int test_hook_hsm_client_key_encrypt(KEY_HANDLE key_handle,
 static int test_hook_hsm_client_key_decrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *identity,
                                             const SIZED_BUFFER *ciphertext,
-                                            const SIZED_BUFFER *passphrase,
                                             const SIZED_BUFFER *initialization_vector,
                                             SIZED_BUFFER *plaintext)
 {

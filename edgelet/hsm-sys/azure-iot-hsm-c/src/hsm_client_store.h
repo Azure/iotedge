@@ -56,14 +56,12 @@ typedef int (*HSM_KEY_DERIVE_AND_VERIFY)(KEY_HANDLE key_handle,
 typedef int (*HSM_KEY_ENCRYPT)(KEY_HANDLE key_handle,
                                const SIZED_BUFFER *identity,
                                const SIZED_BUFFER *plaintext,
-                               const SIZED_BUFFER *passphrase,
                                const SIZED_BUFFER *initialization_vector,
                                SIZED_BUFFER *ciphertext);
 
 typedef int (*HSM_KEY_DECRYPT)(KEY_HANDLE key_handle,
                                const SIZED_BUFFER *identity,
                                const SIZED_BUFFER *ciphertext,
-                               const SIZED_BUFFER *passphrase,
                                const SIZED_BUFFER *initialization_vector,
                                SIZED_BUFFER *plaintext);
 

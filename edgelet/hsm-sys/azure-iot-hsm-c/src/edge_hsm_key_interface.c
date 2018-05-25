@@ -108,6 +108,41 @@ static int edge_hsm_client_key_derive_and_sign
                         identity, identity_size, digest, digest_size);
 }
 
+static int enc_dec_validation(KEY_HANDLE key_handle,
+                              const SIZED_BUFFER *identity,
+                              const SIZED_BUFFER *plaintext,
+                              const SIZED_BUFFER *iv,
+                              const SIZED_BUFFER *ciphertext)
+{
+    int result;
+    if ((identity == NULL) || (identity->buffer == NULL) || (identity->size == 0))
+    {
+        LOG_ERROR("Invalid identity parameter");
+        result = 1;
+    }
+    else if ((plaintext == NULL) || (plaintext->buffer == NULL) || (plaintext->size == 0))
+    {
+        LOG_ERROR("Invalid plaintext parameter");
+        result = 1;
+    }
+    else if ((iv == NULL) || (iv->buffer == NULL) || (iv->size == 0))
+    {
+        LOG_ERROR("Invalid initialization vector parameter");
+        result = 1;
+    }
+    else if ((ciphertext == NULL) || (ciphertext->buffer == NULL) || (ciphertext->size == 0))
+    {
+        LOG_ERROR("Invalid ciphertext parameter");
+        result = 1;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
 static int perform_verify
 (
     bool do_derive_and_verify,
@@ -221,61 +256,16 @@ int edge_hsm_client_key_derive_and_verify(KEY_HANDLE key_handle,
                           verification_status);
 }
 
-static int enc_dec_validation(KEY_HANDLE key_handle,
-                              const SIZED_BUFFER *identity,
-                              const SIZED_BUFFER *plaintext,
-                              const SIZED_BUFFER *passphrase,
-                              const SIZED_BUFFER *initialization_vector,
-                              const SIZED_BUFFER *ciphertext)
-{
-    int result;
-    if ((identity == NULL) || (identity->buffer == NULL) || (identity->size == 0))
-    {
-        LOG_ERROR("Invalid identity parameter");
-        result = 1;
-    }
-    else if ((plaintext == NULL) || (plaintext->buffer == NULL) || (plaintext->size == 0))
-    {
-        LOG_ERROR("Invalid plaintext parameter");
-        result = 1;
-    }
-    else if ((passphrase != NULL) && ((passphrase->buffer == NULL) || (plaintext->size == 0)))
-    {
-        LOG_ERROR("Invalid passphrase parameter");
-        result = 1;
-    }
-    else if ((initialization_vector == NULL) || (initialization_vector->buffer == NULL) ||
-                                                (initialization_vector->size == 0))
-    {
-        LOG_ERROR("Invalid initialization vector parameter");
-        result = 1;
-    }
-    else if ((ciphertext == NULL) || (ciphertext->buffer == NULL) || (ciphertext->size == 0))
-    {
-        LOG_ERROR("Invalid ciphertext parameter");
-        result = 1;
-    }
-    else
-    {
-        result = 0;
-    }
-
-    return result;
-}
-
 static int edge_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                        const SIZED_BUFFER *identity,
                                        const SIZED_BUFFER *plaintext,
-                                       const SIZED_BUFFER *passphrase,
-                                       const SIZED_BUFFER *initialization_vector,
+                                       const SIZED_BUFFER *iv,
                                        SIZED_BUFFER *ciphertext)
 {
-    int result = enc_dec_validation(key_handle, identity, plaintext, passphrase,
-                                    initialization_vector, ciphertext);
+    int result = enc_dec_validation(key_handle, identity, plaintext, iv, ciphertext);
     if (result == 0)
     {
-        result = key_encrypt(key_handle, identity, plaintext, passphrase,
-                             initialization_vector, ciphertext);
+        result = key_encrypt(key_handle, identity, plaintext, iv, ciphertext);
     }
 
     return result;
@@ -284,16 +274,13 @@ static int edge_hsm_client_key_encrypt(KEY_HANDLE key_handle,
 static int edge_hsm_client_key_decrypt(KEY_HANDLE key_handle,
                                        const SIZED_BUFFER *identity,
                                        const SIZED_BUFFER *ciphertext,
-                                       const SIZED_BUFFER *passphrase,
-                                       const SIZED_BUFFER *initialization_vector,
+                                       const SIZED_BUFFER *iv,
                                        SIZED_BUFFER *plaintext)
 {
-    int result = enc_dec_validation(key_handle, identity, plaintext, passphrase,
-                                    initialization_vector, ciphertext);
+    int result = enc_dec_validation(key_handle, identity, plaintext, iv, ciphertext);
     if (result == 0)
     {
-        result = key_decrypt(key_handle, identity, ciphertext, passphrase,
-                             initialization_vector, plaintext);
+        result = key_decrypt(key_handle, identity, ciphertext, iv, plaintext);
     }
 
     return result;

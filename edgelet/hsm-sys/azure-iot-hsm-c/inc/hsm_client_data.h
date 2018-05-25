@@ -16,7 +16,7 @@ extern "C" {
 #include "hsm_certificate_props.h"
 #include "certificate_info.h"
 
-/** @file */ 
+/** @file */
 
 typedef void* HSM_CLIENT_HANDLE;
 
@@ -36,7 +36,7 @@ extern const char* const HSM_CLIENT_VERSION;
 
 /**
  * @brief   Creates a client for the associated interface
- * 
+ *
  * @return  An instance handle that is passed into most functions of the interface.
  */
 typedef HSM_CLIENT_HANDLE (*HSM_CLIENT_CREATE)();
@@ -221,8 +221,6 @@ typedef void (*HSM_CLIENT_DESTROY_CERTIFICATE)(HSM_CLIENT_HANDLE handle, const c
 * @param handle             A valid HSM client handle
 * @param client_id          Module or client identity string used in key generation
 * @param plaintext          Plaintext payload to encrypt
-* @param passphrase         Optional passphrase "secret" used to encrypt the
-*                           plaintext. NULL if no passphrase is desired.
 * @param init_vector        Initialization vector used for any CBC cipher
 * @param[out] ciphertext    The returned cipher. This function allocates memory for a buffer
 *                           which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
@@ -232,7 +230,7 @@ typedef void (*HSM_CLIENT_DESTROY_CERTIFICATE)(HSM_CLIENT_HANDLE handle, const c
 *
 * @return   Zero on success, nonzero otherwise
 */
-typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* plaintext, const SIZED_BUFFER* passphrase, const SIZED_BUFFER* init_vector, SIZED_BUFFER* ciphertext);
+typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* plaintext, const SIZED_BUFFER* init_vector, SIZED_BUFFER* ciphertext);
 
 
 /**
@@ -241,8 +239,6 @@ typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUF
 * @param handle         A valid HSM client handle
 * @param client_id      Module or client identity string used in key generation
 * @param ciphertext     Cipher text payload to decrypt
-* @param passphrase     Optional passphrase "secret" used to encrypt the
-*                       plaintext. NULL if no passphrase is desired.
 * @param init_vector    Initialization vector used for any CBC cipher
 * @param[out] plaintext Returned plaintext. This function allocates memory for a buffer
 *                       which must be freed by a call to ::HSM_CLIENT_FREE_BUFFER.
@@ -252,7 +248,7 @@ typedef int (*HSM_CLIENT_ENCRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUF
 *
 * @return   Zero on success, nonzero otherwise
 */
-typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* ciphertext, const SIZED_BUFFER* passphrase, const SIZED_BUFFER* init_vector, SIZED_BUFFER* plaintext);
+typedef int (*HSM_CLIENT_DECRYPT_DATA)(HSM_CLIENT_HANDLE handle, const SIZED_BUFFER* identity, const SIZED_BUFFER* ciphertext, const SIZED_BUFFER* init_vector, SIZED_BUFFER* plaintext);
 
 /**
 * @brief    Retrieves the trusted certificate bundle used to authenticate the server.

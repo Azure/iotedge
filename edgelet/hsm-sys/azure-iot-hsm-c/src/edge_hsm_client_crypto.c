@@ -319,7 +319,6 @@ static int edge_hsm_client_encrypt_data
     HSM_CLIENT_HANDLE handle,
     const SIZED_BUFFER *identity,
     const SIZED_BUFFER *plaintext,
-    const SIZED_BUFFER *passphrase,
     const SIZED_BUFFER *initialization_vector,
     SIZED_BUFFER *ciphertext
 )
@@ -338,11 +337,6 @@ static int edge_hsm_client_encrypt_data
     else if (!validate_sized_buffer(initialization_vector))
     {
         LOG_ERROR("Invalid initialization vector buffer provided");
-        result = __FAILURE__;
-    }
-    else if ((passphrase != NULL) && !validate_sized_buffer(passphrase))
-    {
-        LOG_ERROR("Invalid passphrase buffer provided");
         result = __FAILURE__;
     }
     else if (ciphertext == NULL)
@@ -369,7 +363,6 @@ static int edge_hsm_client_decrypt_data
     HSM_CLIENT_HANDLE handle,
     const SIZED_BUFFER *identity,
     const SIZED_BUFFER *ciphertext,
-    const SIZED_BUFFER *passphrase,
     const SIZED_BUFFER *initialization_vector,
     SIZED_BUFFER *plaintext
 )
@@ -388,11 +381,6 @@ static int edge_hsm_client_decrypt_data
     else if (!validate_sized_buffer(initialization_vector))
     {
         LOG_ERROR("Invalid initialization vector buffer provided");
-        result = __FAILURE__;
-    }
-    else if ((passphrase != NULL) && !validate_sized_buffer(passphrase))
-    {
-        LOG_ERROR("Invalid passphrase buffer provided");
         result = __FAILURE__;
     }
     else if (plaintext == NULL)

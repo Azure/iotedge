@@ -63,7 +63,6 @@ pub trait Encrypt {
         &self,
         client_id: &[u8],
         plaintext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error>;
 }
@@ -73,7 +72,6 @@ pub trait Decrypt {
         &self,
         client_id: &[u8],
         ciphertext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error>;
 }

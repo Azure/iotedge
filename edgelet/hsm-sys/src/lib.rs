@@ -176,8 +176,6 @@ pub type HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY =
 /// handle[in]       -- A valid HSM client handle
 /// client_id[in]    -- Module or client identity string used in key generation
 /// plaintext[in]    -- Plaintext payload to encrypt
-/// passphrase[in]   -- Optional passphrase "secret" used to encrypt the
-/// plaintext. NULL if no passphrase is desired.
 /// initialization_vector[in] -- Initialization vector used for any CBC cipher
 /// ciphertext[out]  -- Encrypted cipher text
 ///
@@ -192,7 +190,6 @@ pub type HSM_CLIENT_ENCRYPT_DATA = Option<
         handle: HSM_CLIENT_HANDLE,
         client_id: *const SIZED_BUFFER,
         plaintext: *const SIZED_BUFFER,
-        passphrase: *const SIZED_BUFFER,
         initialization_vector: *const SIZED_BUFFER,
         ciphertext: *mut SIZED_BUFFER,
     ) -> c_int,
@@ -203,8 +200,6 @@ pub type HSM_CLIENT_ENCRYPT_DATA = Option<
 /// handle[in]      -- A valid HSM client handle
 /// client_id[in]   -- Module or client identity string used in key generation
 /// ciphertext[in]  -- Cipher text payload to decrypt
-/// passphrase[in]  -- Optional passphrase "secret" used to encrypt the
-/// plaintext. NULL if no passphrase is desired.
 /// initialization_vector[in] -- Initialization vector used for any CBC cipher
 /// plaintext[out]  -- Decrypted plain text
 ///
@@ -219,7 +214,6 @@ pub type HSM_CLIENT_DECRYPT_DATA = Option<
         handle: HSM_CLIENT_HANDLE,
         client_id: *const SIZED_BUFFER,
         ciphertext: *const SIZED_BUFFER,
-        passphrase: *const SIZED_BUFFER,
         initialization_vector: *const SIZED_BUFFER,
         plaintext: *mut SIZED_BUFFER,
     ) -> c_int,

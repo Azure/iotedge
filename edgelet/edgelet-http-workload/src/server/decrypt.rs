@@ -52,7 +52,7 @@ where
                             let ciphertext = base64::decode(request.ciphertext())?;
                             let initialization_vector =
                                 base64::decode(request.initialization_vector())?;
-                            hsm.decrypt(id.as_bytes(), &ciphertext, None, &initialization_vector)
+                            hsm.decrypt(id.as_bytes(), &ciphertext, &initialization_vector)
                                 .map_err(Error::from)
                         })
                         .and_then(|plaintext| {
@@ -101,7 +101,6 @@ mod tests {
             &self,
             _client_id: &[u8],
             ciphertext: &[u8],
-            _passphrase: Option<&[u8]>,
             _initialization_vector: &[u8],
         ) -> Result<Self::Buffer, CoreError> {
             let mut rev = ciphertext.to_vec();

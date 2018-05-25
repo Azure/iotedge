@@ -73,13 +73,12 @@ impl CoreEncrypt for Crypto {
         &self,
         client_id: &[u8],
         plaintext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
         self.crypto
             .read()
             .expect("Shared read lock on crypto structure failed")
-            .encrypt(client_id, plaintext, passphrase, initialization_vector)
+            .encrypt(client_id, plaintext, initialization_vector)
             .map_err(Error::from)
             .map_err(CoreError::from)
     }
@@ -92,13 +91,12 @@ impl CoreDecrypt for Crypto {
         &self,
         client_id: &[u8],
         ciphertext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Self::Buffer, CoreError> {
         self.crypto
             .read()
             .expect("Shared read lock on crypto structure failed")
-            .decrypt(client_id, ciphertext, passphrase, initialization_vector)
+            .decrypt(client_id, ciphertext, initialization_vector)
             .map_err(Error::from)
             .map_err(CoreError::from)
     }

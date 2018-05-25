@@ -239,7 +239,6 @@ impl Encrypt for Crypto {
         &self,
         client_id: &[u8],
         plaintext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error> {
         let if_fn = self.interface
@@ -262,33 +261,14 @@ impl Encrypt for Crypto {
             buffer: std::ptr::null_mut() as *mut c_uchar,
             size: 0,
         };
-        let result = match passphrase {
-            Some(pp) => {
-                let c_passphrase = SIZED_BUFFER {
-                    buffer: pp.as_ptr() as *mut c_uchar,
-                    size: pp.len(),
-                };
-                unsafe {
-                    if_fn(
-                        self.handle,
-                        &c_client_id,
-                        &c_plaintext,
-                        &c_passphrase,
-                        &c_initialization_vector,
-                        &mut encrypted,
-                    )
-                }
-            }
-            None => unsafe {
-                if_fn(
-                    self.handle,
-                    &c_client_id,
-                    &c_plaintext,
-                    std::ptr::null(),
-                    &c_initialization_vector,
-                    &mut encrypted,
-                )
-            },
+        let result = unsafe {
+            if_fn(
+                self.handle,
+                &c_client_id,
+                &c_plaintext,
+                &c_initialization_vector,
+                &mut encrypted,
+            )
         };
         match result {
             0 => Ok(Buffer::new(self.interface, encrypted)),
@@ -302,7 +282,6 @@ impl Decrypt for Crypto {
         &self,
         client_id: &[u8],
         ciphertext: &[u8],
-        passphrase: Option<&[u8]>,
         initialization_vector: &[u8],
     ) -> Result<Buffer, Error> {
         let if_fn = self.interface
@@ -325,33 +304,14 @@ impl Decrypt for Crypto {
             buffer: std::ptr::null_mut() as *mut c_uchar,
             size: 0,
         };
-        let result = match passphrase {
-            Some(pp) => {
-                let c_passphrase = SIZED_BUFFER {
-                    buffer: pp.as_ptr() as *mut c_uchar,
-                    size: pp.len(),
-                };
-                unsafe {
-                    if_fn(
-                        self.handle,
-                        &c_client_id,
-                        &c_ciphertext,
-                        &c_passphrase,
-                        &c_initialization_vector,
-                        &mut decrypted,
-                    )
-                }
-            }
-            None => unsafe {
-                if_fn(
-                    self.handle,
-                    &c_client_id,
-                    &c_ciphertext,
-                    std::ptr::null(),
-                    &c_initialization_vector,
-                    &mut decrypted,
-                )
-            },
+        let result = unsafe {
+            if_fn(
+                self.handle,
+                &c_client_id,
+                &c_ciphertext,
+                &c_initialization_vector,
+                &mut decrypted,
+            )
         };
         match result {
             0 => Ok(Buffer::new(self.interface, decrypted)),
@@ -700,7 +660,6 @@ mod tests {
         handle: HSM_CLIENT_HANDLE,
         _client_id: *const SIZED_BUFFER,
         _plaintext: *const SIZED_BUFFER,
-        _passphrase: *const SIZED_BUFFER,
         _initialization_vector: *const SIZED_BUFFER,
         ciphertext: *mut SIZED_BUFFER,
     ) -> c_int {
@@ -717,7 +676,6 @@ mod tests {
         handle: HSM_CLIENT_HANDLE,
         _client_id: *const SIZED_BUFFER,
         _ciphertext: *const SIZED_BUFFER,
-        _passphrase: *const SIZED_BUFFER,
         _initialization_vector: *const SIZED_BUFFER,
         plaintext: *mut SIZED_BUFFER,
     ) -> c_int {
@@ -824,16 +782,10 @@ mod tests {
     fn no_encrypt_api_fail() {
         let client_id = b"client_id";
         let plaintext = b"plaintext";
-        let passphrase = b"passphrase";
         let initialization_vector = b"initialization_vector";
         let hsm_crypto = fake_no_if_hsm_crypto();
         let result = hsm_crypto
-            .encrypt(
-                client_id,
-                plaintext,
-                Some(passphrase),
-                initialization_vector,
-            )
+            .encrypt(client_id, plaintext, initialization_vector)
             .unwrap();
         println!("You should never see this print {:?}", result);
     }
@@ -843,16 +795,10 @@ mod tests {
     fn no_decrypt_api_fail() {
         let client_id = b"client_id";
         let ciphertext = b"ciphertext";
-        let passphrase = b"passphrase";
         let initialization_vector = b"initialization_vector";
         let hsm_crypto = fake_no_if_hsm_crypto();
         let result = hsm_crypto
-            .encrypt(
-                client_id,
-                ciphertext,
-                Some(passphrase),
-                initialization_vector,
-            )
+            .encrypt(client_id, ciphertext, initialization_vector)
             .unwrap();
         println!("You should never see this print {:?}", result);
     }
@@ -923,7 +869,7 @@ mod tests {
     fn hsm_encrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto
-            .encrypt(b"client_id", b"plaintext", None, b"init_vector")
+            .encrypt(b"client_id", b"plaintext", b"init_vector")
             .unwrap();
         println!("You should never see this print {:?}", result);
     }
@@ -932,7 +878,7 @@ mod tests {
     fn hsm_decrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let result = hsm_crypto
-            .decrypt(b"client_id", b"ciphertext", None, b"init_vector")
+            .decrypt(b"client_id", b"ciphertext", b"init_vector")
             .unwrap();
         println!("You should never see this print {:?}", result);
     }
@@ -977,30 +923,20 @@ mod tests {
         let _new_cert = hsm_crypto.create_certificate(&props).unwrap();
 
         let crypt1 = hsm_crypto
-            .encrypt(b"client_id", b"plaintext", None, b"init_vector")
+            .encrypt(b"client_id", b"plaintext", b"init_vector")
             .unwrap();
         let crypt2 = hsm_crypto
-            .encrypt(
-                b"client_id",
-                b"plaintext",
-                Some(b"passcode"),
-                b"init_vector",
-            )
+            .encrypt(b"client_id", b"plaintext", b"init_vector")
             .unwrap();
 
         assert_eq!(crypt1.len(), DEFAULT_BUF_LEN);
         assert_eq!(crypt2.len(), DEFAULT_BUF_LEN);
 
         let plain1 = hsm_crypto
-            .decrypt(b"client_id", b"ciphertext", None, b"init_vector")
+            .decrypt(b"client_id", b"ciphertext", b"init_vector")
             .unwrap();
         let plain2 = hsm_crypto
-            .decrypt(
-                b"client_id",
-                b"ciphertext",
-                Some(b"passcode"),
-                b"init_vector",
-            )
+            .decrypt(b"client_id", b"ciphertext", b"init_vector")
             .unwrap();
 
         assert_eq!(plain1.len(), DEFAULT_BUF_LEN);

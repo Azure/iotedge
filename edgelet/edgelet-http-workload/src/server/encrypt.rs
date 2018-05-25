@@ -52,7 +52,7 @@ where
                             let plaintext = base64::decode(request.plaintext())?;
                             let initialization_vector =
                                 base64::decode(request.initialization_vector())?;
-                            hsm.encrypt(id.as_bytes(), &plaintext, None, &initialization_vector)
+                            hsm.encrypt(id.as_bytes(), &plaintext, &initialization_vector)
                                 .map_err(Error::from)
                         })
                         .and_then(|ciphertext| {
@@ -101,7 +101,6 @@ mod tests {
             &self,
             _client_id: &[u8],
             plaintext: &[u8],
-            _passphrase: Option<&[u8]>,
             _initialization_vector: &[u8],
         ) -> Result<Self::Buffer, CoreError> {
             let mut rev = plaintext.to_vec();

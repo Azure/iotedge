@@ -17,14 +17,14 @@ fn crypto_encrypt_decypt_success() {
     let iv = b"initialization vector";
 
     //act
-    match crypto.encrypt(client_id, plaintext, None, iv) {
+    match crypto.encrypt(client_id, plaintext, iv) {
         //assert
         Ok(result) => assert_ne!(result.as_ref().len(), 0),
         Err(_) => panic!("Encrypt function returned error"),
     };
 
     //act
-    match crypto.decrypt(client_id, ciphertext, None, iv) {
+    match crypto.decrypt(client_id, ciphertext, iv) {
         //assert
         Ok(result) => assert_ne!(result.as_ref().len(), 0),
         Err(_) => panic!("Decrypt function returned error"),
