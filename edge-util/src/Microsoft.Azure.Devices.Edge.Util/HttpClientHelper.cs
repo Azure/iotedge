@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Util.Uds
+namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Linq;
     using System.Net.Http;
+    using Microsoft.Azure.Devices.Edge.Util.Uds;
 
     public class HttpClientHelper
     {

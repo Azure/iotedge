@@ -1977,5 +1977,4 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             Result = result;
         }
     }
-
 }

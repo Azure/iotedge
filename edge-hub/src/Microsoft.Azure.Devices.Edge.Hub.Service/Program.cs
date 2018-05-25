@@ -3,9 +3,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
-    using System.IO;
-    using System.Runtime.InteropServices;
+    using System.Linq;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -46,10 +46,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 Routing.Core.Routing.LoggerFactory = Logger.Factory;
             }
-            string certPath = Path.Combine(
-                configuration.GetValue<string>(Constants.SslCertPathEnvName),
-                configuration.GetValue<string>(Constants.SslCertEnvName));
-            Hosting hosting = Hosting.Initialize(certPath);
+
+            X509Certificate2 cert;
+            IEnumerable<X509Certificate2> chain;
+            string edgeHubConnectionString = configuration.GetValue<string>(Constants.IotHubConnectionStringVariableName);
+            // When connection string is not set it is edged mode
+            if (string.IsNullOrEmpty(edgeHubConnectionString))
+            {
+                Uri workloadUri = new Uri(configuration.GetValue<string>(Constants.WorkloadUriVariableName));
+                string edgeHubHostname = configuration.GetValue<string>(Constants.EdgeDeviceHostnameVariableName);
+                string moduleId = configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
+                (cert, chain) = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, edgeHubHostname, expiration);
+            }
+            else
+            {
+                (cert, chain) = CertificateHelper.GetServerCertificatesFromFile(configuration.GetValue<string>(Constants.SslCertPathEnvName), configuration.GetValue<string>(Constants.SslCertEnvName));
+            }
+
+            // TODO: set certificate for Startup without the cache
+            ServerCertificateCache.X509Certificate = cert;
+            Hosting hosting = Hosting.Initialize();
 
             IContainer container = hosting.Container;
 
@@ -68,15 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                logger.LogInformation("Installing intermediate certificates.");
-                string chainPath = Environment.GetEnvironmentVariable("EdgeModuleHubServerCAChainCertificateFile");
-                CertificateHelper.InstallCerts(
-                    StoreName.CertificateAuthority,
-                    StoreLocation.CurrentUser,
-                    CertificateHelper.ExtractCertsFromPem(chainPath));
-            }
+            logger.LogInformation("Installing intermediate certificates.");
+
+            CertificateHelper.InstallCerts(
+                StoreName.CertificateAuthority,
+                StoreLocation.CurrentUser,
+                chain);
 
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.

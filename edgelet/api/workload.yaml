@@ -177,7 +177,7 @@ paths:
           schema:
             $ref: '#/definitions/ServerCertificateRequest'
       responses:
-        '200':
+        '201':
           description: Ok
           schema:
             $ref: '#/definitions/CertificateResponse'

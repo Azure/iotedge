@@ -9,6 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using System.Net.Http;
+    using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
+    using Org.BouncyCastle.Pkcs;
+    using Org.BouncyCastle.OpenSsl;
+    using Org.BouncyCastle.Crypto.Parameters;
+    using Org.BouncyCastle.Security;
 
     public static class CertificateHelper
     {
@@ -178,15 +186,111 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             using (var sr = new StreamReader(certPath))
             {
-                // Extract each certificate's string. The final string from the split will either be empty
-                // or a non-certificate entry, so it is dropped.
-                string delimiter = @"-----END CERTIFICATE-----";
-                string[] rawCerts = sr.ReadToEnd().Split(new[] { delimiter }, StringSplitOptions.None);
-                return rawCerts
-                    .Take(rawCerts.Count() - 1) // Drop the invalid entry
-                    .Select(c => $"{c}\r\n{delimiter}") // Re-add the certificate end-marker which was removed by split
-                    .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
-                    .Select(c => new X509Certificate2(c));
+                return GetCertificatesFromPem(ParsePemCerts(sr.ReadToEnd()));
+            }
+        }
+
+        public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts)
+        {
+            return rawPemCerts
+                .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
+                .Select(c => new X509Certificate2(c));
+        }
+
+        public async static Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string edgeHubIdentityName, string edgeHubHostname, DateTime expiration)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(workloadUri))
+            {
+                var workload = new HttpWorkloadClient(httpClient)
+                {
+                    BaseUrl = HttpClientHelper.GetBaseUrl(workloadUri)
+                };
+
+                if (string.IsNullOrEmpty(edgeHubHostname))
+                {
+                    throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
+                }
+
+                ServerCertificateRequest request = new ServerCertificateRequest()
+                {
+                    CommonName = edgeHubHostname,
+                    Expiration = expiration
+                };
+                CertificateResponse response = await workload.CreateServerCertificateAsync(workloadApiVersion, edgeHubIdentityName, request);
+
+                return ParseCertificateResponse(response);
+               
+            }
+        }
+
+        public static (X509Certificate2, IEnumerable<X509Certificate2>) GetServerCertificatesFromFile(string certPath, string certName)
+        {
+            IEnumerable<X509Certificate2> certChain = new List<X509Certificate2>();
+            string certFullPath = Path.Combine(certPath, certName);
+            X509Certificate2 sslCert = new X509Certificate2(Preconditions.CheckNonWhiteSpace(certFullPath, nameof(certFullPath)));
+
+            string chainPath = Environment.GetEnvironmentVariable("EdgeModuleHubServerCAChainCertificateFile");
+            certChain = ExtractCertsFromPem(chainPath);
+
+            return (sslCert, certChain);
+        }
+
+        public static IEnumerable<string> ParsePemCerts(string pemCerts)
+        {
+            // Extract each certificate's string. The final string from the split will either be empty
+            // or a non-certificate entry, so it is dropped.
+            string delimiter = @"-----END CERTIFICATE-----";
+            string[] rawCerts = pemCerts.Split(new[] { delimiter }, StringSplitOptions.None);
+            return rawCerts
+                .Take(rawCerts.Count() - 1) // Drop the invalid entry
+                .Select(c => $"{c}{delimiter}"); // Re-add the certificate end-marker which was removed by split
+        }
+
+        private static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
+        {
+            IEnumerable<string> pemCerts = ParsePemCerts(response.Certificate);
+
+            if (pemCerts.FirstOrDefault() == null)
+            {
+                throw new InvalidOperationException("Certificate is required");
+            }
+
+            IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1)); 
+
+            Pkcs12Store store = new Pkcs12StoreBuilder().Build();
+            IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
+
+            StringReader sr = new StringReader(pemCerts.First() + "\r\n" +response.PrivateKey.Bytes);
+            PemReader pemReader = new PemReader(sr);
+
+            RsaPrivateCrtKeyParameters keyParams = null;
+            object certObject = pemReader.ReadObject();
+            while (certObject != null)
+            {
+                if (certObject is Org.BouncyCastle.X509.X509Certificate x509Cert)
+                {
+                    chain.Add(new X509CertificateEntry(x509Cert));
+                }
+                if (certObject is RsaPrivateCrtKeyParameters)
+                {
+                   keyParams = ((RsaPrivateCrtKeyParameters)certObject);
+                }
+
+                certObject = pemReader.ReadObject();
+            }
+
+            if (keyParams == null)
+            {
+                throw new InvalidOperationException("Private key is required"); 
+            }
+
+            store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
+            using (MemoryStream p12file = new MemoryStream())
+            {
+                store.Save(p12file, new char[] { }, new SecureRandom());
+
+                var cert = new X509Certificate2(p12file.ToArray());
+                return (cert, certsChain);
             }
         }
     }

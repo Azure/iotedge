@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
             if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))
             {
-                if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
+                if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
                 {
                     envVars.Add(
                         new EnvVar

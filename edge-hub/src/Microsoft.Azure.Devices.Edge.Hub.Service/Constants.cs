@@ -10,5 +10,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string EdgeHubStorageFolder = "edgeHub";
         public const string SslCertPathEnvName = "SSL_CERTIFICATE_PATH";
         public const string SslCertEnvName = "SSL_CERTIFICATE_NAME";
+        public const string IotHubConnectionStringVariableName = "IotHubConnectionString";
+        public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
+        public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
+        public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
+        public const string WorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
+        public const string EdgeDeviceHostnameVariableName = "EdgeDeviceHostName";
+        public const string WorkloadApiVersion = "2018-06-28";
+        public const int CertificateValidityDays = 90;
     }
 }
