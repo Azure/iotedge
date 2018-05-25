@@ -81,12 +81,6 @@ impl Crypto {
     }
 }
 
-impl Default for Crypto {
-    fn default() -> Self {
-        Self::new().expect("Default Crypto struct failed to create")
-    }
-}
-
 impl MakeRandom for Crypto {
     fn get_random_bytes(&self, rand_buffer: &mut [u8]) -> Result<(), Error> {
         let if_fn = self.interface

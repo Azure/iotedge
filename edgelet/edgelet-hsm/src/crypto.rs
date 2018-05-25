@@ -26,7 +26,12 @@ pub struct Crypto {
 }
 
 impl Crypto {
-    pub fn new(crypto: HsmCrypto) -> Result<Crypto, Error> {
+    pub fn new() -> Result<Crypto, Error> {
+        let hsm = HsmCrypto::new()?;
+        Crypto::from_hsm(hsm)
+    }
+
+    pub fn from_hsm(crypto: HsmCrypto) -> Result<Crypto, Error> {
         let edgelet_ca_props = HsmCertificateProperties::new(
             IOTEDGED_VALIDITY,
             IOTEDGED_COMMONNAME.to_string(),
@@ -40,12 +45,6 @@ impl Crypto {
         Ok(Crypto {
             crypto: Arc::new(RwLock::new(crypto)),
         })
-    }
-}
-
-impl Default for Crypto {
-    fn default() -> Self {
-        Crypto::new(HsmCrypto::default()).expect("Could not create default instance of HSM crypto")
     }
 }
 

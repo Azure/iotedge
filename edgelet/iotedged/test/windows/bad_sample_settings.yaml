@@ -17,3 +17,4 @@ listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
 docker_uri: "http://localhost:2375"
+homedir: "C:\\Temp"

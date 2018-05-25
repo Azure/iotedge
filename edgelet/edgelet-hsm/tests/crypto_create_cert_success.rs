@@ -9,7 +9,7 @@ use edgelet_hsm::Crypto;
 #[test]
 fn crypto_create_cert_success() {
     // arrange
-    let crypto = Crypto::default();
+    let crypto = Crypto::new().unwrap();
 
     // act
     let props = CertificateProperties::new(

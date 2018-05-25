@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::convert::AsRef;
-use std::default::Default;
 use std::ops::{Deref, Drop};
 use std::os::raw::{c_uchar, c_void};
 use std::ptr;
@@ -57,12 +56,6 @@ impl Tpm {
             unsafe { hsm_client_tpm_deinit() };
             Err(ErrorKind::NullResponse)?
         }
-    }
-}
-
-impl Default for Tpm {
-    fn default() -> Self {
-        Self::new().expect("Default TPM failed to create")
     }
 }
 

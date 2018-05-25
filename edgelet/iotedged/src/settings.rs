@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::path::{Path, PathBuf};
+
 use config::{Config, Environment, File, FileFormat};
 use serde::de::DeserializeOwned;
 use url::Url;
@@ -102,6 +104,7 @@ pub struct Settings<T> {
     listen: Listen,
     #[serde(with = "url_serde")]
     docker_uri: Url,
+    homedir: PathBuf,
 }
 
 impl<T> Settings<T>
@@ -116,7 +119,7 @@ where
             config.merge(File::with_name(file).required(true))?;
         }
 
-        config.merge(Environment::with_prefix("IOTEDGE"))?;
+        config.merge(Environment::with_prefix("iotedge"))?;
 
         let settings = config.try_into()?;
         Ok(settings)
@@ -149,12 +152,26 @@ where
     pub fn docker_uri(&self) -> &Url {
         &self.docker_uri
     }
+
+    pub fn homedir(&self) -> &Path {
+        &self.homedir
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use edgelet_docker::DockerConfig;
+
+    #[cfg(unix)]
+    static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
+
+    #[cfg(windows)]
+    static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -184,13 +201,13 @@ mod tests {
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::<DockerConfig>::new(Some("test/bad_sample_settings.yaml"));
+        let settings = Settings::<DockerConfig>::new(Some(BAD_SETTINGS));
         assert!(settings.is_err());
     }
 
     #[test]
     fn manual_file_gets_sample_connection_string() {
-        let settings = Settings::<DockerConfig>::new(Some("test/sample_settings.yaml"));
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();

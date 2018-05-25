@@ -8,7 +8,7 @@ use edgelet_hsm::Crypto;
 #[test]
 fn crypto_create_cert_input_fail() {
     // arrange
-    let crypto = Crypto::default();
+    let crypto = Crypto::new().unwrap();
 
     let props_time = CertificateProperties::new(
         0,

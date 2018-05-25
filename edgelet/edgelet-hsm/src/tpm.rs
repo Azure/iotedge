@@ -19,13 +19,18 @@ pub struct TpmKey {
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct TpmKeyStore {
     tpm: Arc<RwLock<Tpm>>,
 }
 
 impl TpmKeyStore {
-    pub fn new(tpm: Tpm) -> Result<TpmKeyStore, Error> {
+    pub fn new() -> Result<TpmKeyStore, Error> {
+        let hsm = Tpm::new()?;
+        TpmKeyStore::from_hsm(hsm)
+    }
+
+    pub fn from_hsm(tpm: Tpm) -> Result<TpmKeyStore, Error> {
         Ok(TpmKeyStore {
             tpm: Arc::new(RwLock::new(tpm)),
         })

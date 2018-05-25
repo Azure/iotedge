@@ -11,7 +11,7 @@ case "$1" in
             chown ${USER}:${GROUP} /var/log/iotedge
             chown ${USER}:${GROUP} /etc/iotedge/config.yaml
 
-            chmod 744 /var/lib/iotedge
+            chmod 755 /var/lib/iotedge
             chmod 755 /var/log/iotedge
             chmod 400 /etc/iotedge/config.yaml
         fi

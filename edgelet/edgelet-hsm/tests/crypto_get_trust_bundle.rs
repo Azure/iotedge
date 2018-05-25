@@ -12,7 +12,7 @@ fn crypto_get_trust_bundle() {
     // temporarily execute this test only when env variable EDGEHOMEDIR
     // is set with valid certificates
     if std::env::var("EDGEHOMEDIR").is_ok() {
-        let crypto = Crypto::default();
+        let crypto = Crypto::new().unwrap();
 
         // act
         let cert_info = crypto.get_trust_bundle().unwrap();

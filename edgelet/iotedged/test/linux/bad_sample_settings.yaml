@@ -1,26 +1,20 @@
 provisioning:
   source: "manual"
-  device_connection_string: "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
-
+  device_connection_string": 2,
 agent:
   name: "edgeAgent"
   type: "docker"
-  env": {}
-  config:
+  env: {}
+  config: {
     image: "microsoft/azureiotedge-agent:1.0-preview"
     create_options: ""
     auth: {}
-
 hostname: "localhost"
-
 connect:
   workload_uri: "http://localhost:8081"
   management_uri: "http://localhost:8080"
-
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-
-docker_uri: "unix:///var/run/docker.sock"
-
-homedir: "/tmp/iotedge"
+docker_uri: "http://localhost:2375"
+homedir: "/tmp"

@@ -18,7 +18,7 @@ const TEST_KEY_BASE64: &'static str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EF
 // The HSM implementation expects keys, identity and data to be non-zero length.
 #[test]
 fn tpm_input_tests() {
-    let key_store = TpmKeyStore::default();
+    let key_store = TpmKeyStore::new().unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };

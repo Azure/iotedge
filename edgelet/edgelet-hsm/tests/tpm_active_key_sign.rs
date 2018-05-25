@@ -36,7 +36,7 @@ pub fn test_helper_compute_hmac(key: &[u8], input: &[u8]) -> Vec<u8> {
 #[test]
 fn tpm_active_key_sign() {
     // arrange
-    let key_store = TpmKeyStore::default();
+    let key_store = TpmKeyStore::new().unwrap();
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };

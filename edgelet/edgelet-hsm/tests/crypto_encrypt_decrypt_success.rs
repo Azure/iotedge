@@ -9,7 +9,7 @@ use edgelet_hsm::Crypto;
 #[test]
 fn crypto_encrypt_decypt_success() {
     // arrange
-    let crypto = Crypto::default();
+    let crypto = Crypto::new().unwrap();
 
     let client_id = b"buffer1";
     let plaintext = b"plaintext";

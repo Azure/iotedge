@@ -29,6 +29,7 @@ provisioning:
 #   source: "dps"
 #   global_endpoint: "global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
+#   registration_id: "{registration_id}"
 
 ###############################################################################
 # Edge Agent module spec
@@ -108,3 +109,4 @@ listen:
 
 docker_uri: "unix:///var/run/docker.sock"
 
+homedir: "/var/lib/iotedge"

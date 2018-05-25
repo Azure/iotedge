@@ -41,6 +41,7 @@ pub mod settings;
 pub mod signal;
 
 use std::collections::HashMap;
+use std::env;
 
 use docker::models::HostConfig;
 use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey, MemoryKeyStore, Sign};
@@ -117,6 +118,9 @@ const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 /// This is the edge runtime mode - it should always be iotedged, when iotedged starts edge runtime.
 const EDGE_RUNTIME_MODE: &str = "iotedged";
 
+/// The HSM lib expects this variable to be set with home directory of the daemon.
+const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
+
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const EDGE_NETWORKID: &str = "azure-iot-edge";
@@ -160,6 +164,7 @@ impl Main {
 
         init_docker_runtime(&runtime, &mut core)?;
 
+        env::set_var(HOMEDIR_KEY, &settings.homedir());
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 let (key_store, provisioning_result, root_key) =
@@ -300,7 +305,7 @@ where
         ek_result,
         srk_result,
     )?;
-    let tpm_hsm = TpmKeyStore::new(tpm)?;
+    let tpm_hsm = TpmKeyStore::from_hsm(tpm)?;
     let provision = dps.provision(tpm_hsm.clone())
         .map_err(Error::from)
         .and_then(move |prov_result| {
@@ -452,7 +457,7 @@ where
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
         key_store,
-        Crypto::default(),
+        Crypto::new()?,
     )?));
 
     info!("Listening on {} with 1 thread for workload API.", url);
