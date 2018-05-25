@@ -26,11 +26,7 @@ pub struct SignRequest {
 
 impl SignRequest {
     pub fn new(key_id: String, algo: String, data: String) -> SignRequest {
-        SignRequest {
-            key_id: key_id,
-            algo: algo,
-            data: data,
-        }
+        SignRequest { key_id, algo, data }
     }
 
     pub fn set_key_id(&mut self, key_id: String) {

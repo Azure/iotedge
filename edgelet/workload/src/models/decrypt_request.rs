@@ -24,8 +24,8 @@ pub struct DecryptRequest {
 impl DecryptRequest {
     pub fn new(ciphertext: String, initialization_vector: String) -> DecryptRequest {
         DecryptRequest {
-            ciphertext: ciphertext,
-            initialization_vector: initialization_vector,
+            ciphertext,
+            initialization_vector,
         }
     }
 

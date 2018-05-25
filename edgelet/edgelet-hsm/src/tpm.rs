@@ -37,11 +37,11 @@ impl TpmKeyStore {
     }
 
     /// Activate and store a private key in the TPM.
-    pub fn activate_key(&self, key_value: Bytes) -> Result<(), Error> {
+    pub fn activate_key(&self, key_value: &Bytes) -> Result<(), Error> {
         self.tpm
             .read()
             .expect("Read lock on KeyStore TPM failed")
-            .activate_identity_key(&key_value)
+            .activate_identity_key(key_value)
             .map_err(Error::from)?;
         Ok(())
     }
@@ -79,7 +79,7 @@ impl Activate for TpmKeyStore {
         _key_name: String,
         key: B,
     ) -> Result<(), CoreError> {
-        self.activate_key(Bytes::from(key.as_ref()))
+        self.activate_key(&Bytes::from(key.as_ref()))
             .map_err(CoreError::from)
     }
 }

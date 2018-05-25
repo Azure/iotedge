@@ -20,9 +20,7 @@ pub struct EncryptResponse {
 
 impl EncryptResponse {
     pub fn new(ciphertext: String) -> EncryptResponse {
-        EncryptResponse {
-            ciphertext: ciphertext,
-        }
+        EncryptResponse { ciphertext }
     }
 
     pub fn set_ciphertext(&mut self, ciphertext: String) {

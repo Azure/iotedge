@@ -31,7 +31,7 @@ fn tpm_identity_affects_digest() {
     let module2_identity: &str = "module2";
 
     key_store
-        .activate_key(Bytes::from(decoded_key_str))
+        .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
     let key1 = key_store.get(module1_identity, "ignored").unwrap();

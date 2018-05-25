@@ -30,9 +30,9 @@ impl CertificateResponse {
         expiration: String,
     ) -> CertificateResponse {
         CertificateResponse {
-            private_key: private_key,
-            certificate: certificate,
-            expiration: expiration,
+            private_key,
+            certificate,
+            expiration,
         }
     }
 

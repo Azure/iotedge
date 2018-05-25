@@ -20,9 +20,7 @@ pub struct DecryptResponse {
 
 impl DecryptResponse {
     pub fn new(plaintext: String) -> DecryptResponse {
-        DecryptResponse {
-            plaintext: plaintext,
-        }
+        DecryptResponse { plaintext }
     }
 
     pub fn set_plaintext(&mut self, plaintext: String) {

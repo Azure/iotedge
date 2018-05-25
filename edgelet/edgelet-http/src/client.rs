@@ -130,7 +130,7 @@ where
                 // conversion from url::Url to hyper::Uri and not really a URL
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
-                let mut req = Request::new(method.clone(),
+                let mut req = Request::new(method,
                     url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure")
                 );
 

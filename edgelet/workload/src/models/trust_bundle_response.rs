@@ -20,9 +20,7 @@ pub struct TrustBundleResponse {
 
 impl TrustBundleResponse {
     pub fn new(certificate: String) -> TrustBundleResponse {
-        TrustBundleResponse {
-            certificate: certificate,
-        }
+        TrustBundleResponse { certificate }
     }
 
     pub fn set_certificate(&mut self, certificate: String) {

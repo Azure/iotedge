@@ -46,6 +46,7 @@ fn unsetenv_all() {
     env::remove_var(ENV_NAMES);
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(redundant_field_names))] // False positive in clippy
 fn listen_fds(unset_environment: bool, start: Fd) -> Result<Vec<Socket>, Error> {
     let pid_str = env::var(ENV_PID)?;
     debug!("{} {}", ENV_PID, pid_str);

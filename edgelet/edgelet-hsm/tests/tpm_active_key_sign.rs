@@ -42,7 +42,7 @@ fn tpm_active_key_sign() {
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
 
     key_store
-        .activate_key(Bytes::from(decoded_key_str))
+        .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
     let key1 = key_store.get_active_key().unwrap();

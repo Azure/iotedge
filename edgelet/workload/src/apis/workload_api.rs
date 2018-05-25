@@ -27,9 +27,7 @@ pub struct WorkloadApiClient<C: hyper::client::Connect> {
 
 impl<C: hyper::client::Connect> WorkloadApiClient<C> {
     pub fn new(configuration: Rc<configuration::Configuration<C>>) -> WorkloadApiClient<C> {
-        WorkloadApiClient {
-            configuration: configuration,
-        }
+        WorkloadApiClient { configuration }
     }
 }
 
@@ -112,13 +110,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -130,7 +128,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -179,13 +177,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -197,7 +195,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::CertificateResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -246,13 +244,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -264,7 +262,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::DecryptResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -313,13 +311,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -331,7 +329,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::EncryptResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -380,13 +378,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -397,7 +395,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::SignResponse, _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
@@ -432,13 +430,13 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -450,7 +448,7 @@ impl<C: hyper::client::Connect> WorkloadApi for WorkloadApiClient<C> {
                 .and_then(|body| {
                     let parsed: Result<::models::TrustBundleResponse, _> =
                         serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }

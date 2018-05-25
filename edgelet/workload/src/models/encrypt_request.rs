@@ -24,8 +24,8 @@ pub struct EncryptRequest {
 impl EncryptRequest {
     pub fn new(plaintext: String, initialization_vector: String) -> EncryptRequest {
         EncryptRequest {
-            plaintext: plaintext,
-            initialization_vector: initialization_vector,
+            plaintext,
+            initialization_vector,
         }
     }
 

@@ -24,13 +24,13 @@ fn tpm_input_tests() {
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
     let module1_identity: &str = "module1";
 
-    match key_store.activate_key(Bytes::from("")) {
+    match key_store.activate_key(&Bytes::from("")) {
         Ok(()) => panic!("empty key is not allowed"),
         Err(_) => (),
     };
 
     key_store
-        .activate_key(Bytes::from(decoded_key_str))
+        .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
     match key_store.get("", "ignored") {

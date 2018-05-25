@@ -46,7 +46,7 @@ fn tpm_basic_test() {
     let module1_identity: &str = "module1";
 
     key_store
-        .activate_key(Bytes::from(decoded_key_str))
+        .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
     let key1 = key_store.get(module1_identity, "ignored").unwrap();

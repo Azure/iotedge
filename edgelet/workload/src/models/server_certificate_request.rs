@@ -24,8 +24,8 @@ pub struct ServerCertificateRequest {
 impl ServerCertificateRequest {
     pub fn new(common_name: String, expiration: String) -> ServerCertificateRequest {
         ServerCertificateRequest {
-            common_name: common_name,
-            expiration: expiration,
+            common_name,
+            expiration,
         }
     }
 
