@@ -241,7 +241,7 @@ where
         &runtime,
         &id_man,
         &mut core,
-        &hostname,
+        &hub_name,
         &device_id,
         &settings,
     )?;
