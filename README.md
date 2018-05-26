@@ -12,28 +12,6 @@ Make sure the following dependencies are installed in your environment before yo
 | Java              | Not needed if building in VS IDE (Windows). Otherwise, JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
 | package feed authorization| Access to project package feeds. |
 
-### Visual Studios Team Services package feed.
-
-This project uses custom built binary packages distributed from a VSTS package 
-feed.  This feed requires authorization. To get access to this feed:
-
-1. On the [repo page](https://msazure.visualstudio.com/One/_git/Azure-IoT-Edge-Core), Find 
-“Build and Release” menu, select “Packages” and search for “Azure-IoT-Edge” on 
-the left.
-
-2. Select rocksdb-native-arm, on the upper right, select “Connect to feed”.
-
-3. The "Connect to feed" page provides different options for connecting. On 
-Windows, the easiest option is to download the “NuGet+VSTS credential provider” 
-and copy these executables into a directory in your path.
-
-You should only need to do this setup once.
-
-The “NuGet+VSTS credential provider” is basically a zipfile containing a copy 
-of the latest `nuget.exe` and another executable called 
-`CredentialProvider.VSS.exe`. This `CredentialProvider.VSS.exe` is an extension 
-to NuGet that gives it access to VSTS credentials.
-
 ## Build
 
 Besides using Visual Studio IDE in Windows, you can build by running the build script:

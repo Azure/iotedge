@@ -1,163 +1,212 @@
 #!/bin/bash
 
-# This script finds and builds all .NET Core solutions in the repo, and
-# publishes .NET Core apps to target/publish/.
+# This script:
+# - builds the IoT Edge runtime components (Agent and Hub)
+# - builds sample modules (temperature sensor and filter)
+# - builds the tests
+# - packages the smoke tests as tarballs for amd64 and arm32v7
+# - publishes everything to {source_root}/target/
 
-# Get directory of running script
+SCRIPT_NAME=$(basename $0)
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-# Check if environment variables are set
+# Paths
+AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
-
-SLN_PATTERN='Microsoft.Azure.*.sln'
-CSPROJ_PATTERN='*.csproj'
-TEST_CSPROJ_PATTERN='*Test.csproj'
-FUNCTION_BINDING_CSPROJ_PATTERN='*Binding.csproj'
-ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 RELEASE_TESTS_FOLDER=$BUILD_BINARIESDIRECTORY/release-tests
+ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
+SRC_BIN_DIR=$ROOT_FOLDER/bin
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
-SRC_BIN_DIR=$ROOT_FOLDER/bin
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
+
 DOTNET_RUNTIME=netcoreapp2.1
 
-# Process script arguments
-PUBLISH_TESTS=${1:-""}
+usage()
+{
+    echo "$SCRIPT_NAME [options]"
+    echo ""
+    echo "options"
+    echo " -c, --config         Product binary configuration: Debug [default] or Release"
+    echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
+    echo " --publish-tests      Publish test binaries and scripts to $RELEASE_TESTS_FOLDER"
+    exit 1;
+}
 
-if [ ! -d "${ROOT_FOLDER}" ]; then
-    echo "Folder $ROOT_FOLDER does not exist" 1>&2
+print_help_and_exit()
+{
+    echo "Run $SCRIPT_NAME --help for more information."
     exit 1
-fi
+}
 
-if [ -f "${AGENT_WORKFOLDER}/dotnet/dotnet" ]; then # VSTS Linux
-    DOTNET_ROOT_PATH="$AGENT_WORKFOLDER/dotnet"
-elif [ -f "/usr/share/dotnet/dotnet" ]; then        # default Linux
-    DOTNET_ROOT_PATH="/usr/share/dotnet"
-elif [ -f "/usr/local/share/dotnet/dotnet" ]; then   # default macOS
-    DOTNET_ROOT_PATH="/usr/local/share/dotnet"
-else
-    echo "dotnet not found" 1>&2
-    exit 1
-fi
+process_args()
+{
+    local save_next_arg=0
+    for arg in "$@"
+    do
+        if [ $save_next_arg -eq 1 ]; then
+            CONFIGURATION="$arg"
+            save_next_arg=0
+        else
+            case "$arg" in
+                "-h" | "--help" ) usage;;
+                "-c" | "--config" ) save_next_arg=1;;
+                "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
+                "--publish-tests" ) PUBLISH_TESTS=1;;
+                * ) usage;;
+            esac
+        fi
+    done
 
-if [ ! -d "${BUILD_BINARIESDIRECTORY}" ]; then
-    mkdir $BUILD_BINARIESDIRECTORY
-fi
+    if [ ! -d "$ROOT_FOLDER" ]; then
+        echo "Folder $ROOT_FOLDER does not exist" 1>&2
+        exit 1
+    fi
 
-if [ -z "${CONFIGURATION}" ]; then
-    CONFIGURATION="Debug"
-fi
+    if [ -f "$AGENT_WORKFOLDER/dotnet/dotnet" ]; then   # VSTS Linux
+        DOTNET_ROOT_PATH="$AGENT_WORKFOLDER/dotnet"
+    elif [ -f "/usr/share/dotnet/dotnet" ]; then        # default Linux
+        DOTNET_ROOT_PATH="/usr/share/dotnet"
+    elif [ -f "/usr/local/share/dotnet/dotnet" ]; then  # default macOS
+        DOTNET_ROOT_PATH="/usr/local/share/dotnet"
+    else
+        echo "dotnet not found" 1>&2
+        exit 1
+    fi
 
-if [ -z "${BUILD_SOURCEVERSION}" ]; then
-    BUILD_SOURCEVERSION=""
-fi
+    if [ ! -d "$BUILD_BINARIESDIRECTORY" ]; then
+        mkdir $BUILD_BINARIESDIRECTORY
+    fi
 
-if [ -z "${BUILD_BUILDID}" ]; then
-    BUILD_BUILDID=""
-fi
+    if [ -z "$CONFIGURATION" ]; then
+        CONFIGURATION="Debug"
+    fi
 
-if [ -f "${VERSIONINFO_FILE_PATH}" ]; then
-    echo "Updating versionInfo.json with build ID and commit ID"
-    sed -i "s/BUILDNUMBER/$BUILD_BUILDID/" $VERSIONINFO_FILE_PATH
-    sed -i "s/COMMITID/$BUILD_SOURCEVERSION/" $VERSIONINFO_FILE_PATH
-else
-    echo "VersionInfo.json file not found."
-fi
+    if [ -z "$PUBLISH_TESTS" ]; then
+        PUBLISH_TESTS=0
+    fi
 
-echo "Building all solutions in repo"
-RES=0
-while read soln; do
-    echo "Building Solution - $soln"
-    $DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION --output $BUILD_BINARIESDIRECTORY $soln
+    if [ -z "$BUILD_SOURCEVERSION" ]; then
+        BUILD_SOURCEVERSION=""
+    fi
+
+    if [ -z "$BUILD_BUILDID" ]; then
+        BUILD_BUILDID=""
+    fi
+}
+
+update_version_info()
+{
+    if [ -f "$VERSIONINFO_FILE_PATH" ]; then
+        echo "Updating versionInfo.json with build ID and commit ID"
+        sed -i "s/BUILDNUMBER/$BUILD_BUILDID/" $VERSIONINFO_FILE_PATH
+        sed -i "s/COMMITID/$BUILD_SOURCEVERSION/" $VERSIONINFO_FILE_PATH
+    else
+        echo "VersionInfo.json file not found."
+    fi
+}
+
+publish_files()
+{
+    local src="$1"
+    local dst="$2"
+    echo "Publishing files from '$src'"
+    cp -rv $src $dst
+}
+
+publish_project()
+{
+    local type="$1"
+    local name="$2"
+    local framework="$3"
+    local config="$4"
+    local output="$5"
+    local option="$6"
+
+    local path=$(find $ROOT_FOLDER -type f -name $name.csproj)
+    if [ -z "$path" ]; then
+        echo "Could not find project named '$name'"
+        RES=1
+    fi
+
+    echo "Publishing $type '$name'"
+    $DOTNET_ROOT_PATH/dotnet publish -f $framework -c $config $option -o $output $path
     if [ $? -gt 0 ]; then
         RES=1
     fi
-done < <(find $ROOT_FOLDER -type f -name $SLN_PATTERN)
+}
 
-if [ $RES -ne 0 ]; then
-    exit $RES
-fi
+publish_app()
+{
+    local name="$1"
+    publish_project app \
+        "$name" $DOTNET_RUNTIME $CONFIGURATION "$PUBLISH_FOLDER/$name" $MSBUILD_OPTIONS
+}
 
-echo "Publishing all required solutions in repo"
-rm -fr $PUBLISH_FOLDER
+publish_lib()
+{
+    local name="$1"
+    publish_project library "$name" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+}
 
-while read proj; do
-    echo "Publishing project - $proj"
-    PROJ_FILE=$(basename "$proj")
-    PROJ_NAME="${PROJ_FILE%.*}"
-    $DOTNET_ROOT_PATH/dotnet publish -f $DOTNET_RUNTIME -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
-    if [ $? -gt 0 ]; then
-        RES=1
-    fi
-done < <(find $ROOT_FOLDER -type f -name $CSPROJ_PATTERN -exec grep -l "<OutputType>Exe</OutputType>" {} +)
+publish_tests()
+{
+    local name="$1"
+    publish_project tests "$name" $DOTNET_RUNTIME Debug "$RELEASE_TESTS_FOLDER/target"
 
-while read proj; do
-    echo "Publishing project - $proj"
-    PROJ_FILE=$(basename "$proj")
-    PROJ_NAME="${PROJ_FILE%.*}"
-    $DOTNET_ROOT_PATH/dotnet publish -f netstandard2.0 -c $CONFIGURATION -o $PUBLISH_FOLDER/$PROJ_NAME $proj
-    if [ $? -gt 0 ]; then
-        RES=1
-    fi
-done < <(find $ROOT_FOLDER -type f -name $FUNCTION_BINDING_CSPROJ_PATTERN)
+    mkdir -p "$RELEASE_TESTS_FOLDER/$proj_name"
+    publish_files "$proj" "$RELEASE_TESTS_FOLDER/$proj_name"
+}
 
 publish_quickstart()
 {
-    RID="$1"
-    echo "Publishing IotEdgeQuickstart for '$RID'"
+    local rid="$1"
+    echo "Publishing IotEdgeQuickstart for '$rid'"
     $DOTNET_ROOT_PATH/dotnet publish \
         -c $CONFIGURATION \
         -f $DOTNET_RUNTIME \
-        -r $RID \
+        -r $rid \
         $ROOT_FOLDER/smoke/IotEdgeQuickstart
     if [ $? -gt 0 ]; then
         RES=1
     fi
 
     tar \
-        -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/$RID/publish/" \
-        -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.$RID.tar.gz" \
+        -C "$ROOT_FOLDER/smoke/IotEdgeQuickstart/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
+        -czf "$PUBLISH_FOLDER/IotEdgeQuickstart.$rid.tar.gz" \
         .
 }
 
+
+process_args "$@"
+
+rm -fr $PUBLISH_FOLDER
+
+update_version_info
+
+publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
+publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
+publish_app "SimulatedTemperatureSensor"
+publish_app "TemperatureFilter"
+
+publish_lib "Microsoft.Azure.Devices.Edge.Functions.Binding"
+
+publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
+publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
+publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
+
+if [ $PUBLISH_TESTS -eq 1 ]; then
+    while read proj; do
+        publish_tests $(basename "$proj" .csproj)
+    done < <(find $ROOT_FOLDER -type f -name '*Test.csproj')
+
+    publish_files $SRC_SCRIPTS_DIR $RELEASE_TESTS_FOLDER
+    publish_files "$ROOT_FOLDER/nuget.config" $RELEASE_TESTS_FOLDER
+fi
+
 publish_quickstart linux-arm
 publish_quickstart linux-x64
-
-echo "Copying $SRC_DOCKER_DIR to $PUBLISH_FOLDER/docker"
-rm -fr $PUBLISH_FOLDER/docker
-cp -r $SRC_DOCKER_DIR $PUBLISH_FOLDER
-
-echo "Copying $SRC_SCRIPTS_DIR to $PUBLISH_FOLDER/scripts"
-rm -fr $PUBLISH_FOLDER/scripts
-cp -r $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-
-echo "Copying $SRC_BIN_DIR to $PUBLISH_FOLDER/bin"
-rm -fr $PUBLISH_FOLDER/bin
-cp -r $SRC_BIN_DIR $PUBLISH_FOLDER
-
-if [ "$PUBLISH_TESTS" == "--publish-tests" ]; then
-
-    echo "Publishing tests"
-    while read proj; do
-        echo "Publishing Tests from solution - $proj"
-        PROJ_FILE=$(basename "$proj")
-        PROJ_NAME="${PROJ_FILE%.*}"
-        $DOTNET_ROOT_PATH/dotnet publish -f $DOTNET_RUNTIME -c $CONFIGURATION -o $RELEASE_TESTS_FOLDER/target $proj
-        if [ $? -gt 0 ]; then
-            RES=1
-        fi
-
-        echo "Copying $proj to $RELEASE_TESTS_FOLDER/$PROJ_NAME"
-        mkdir -p $RELEASE_TESTS_FOLDER/$PROJ_NAME
-        cp $proj "$RELEASE_TESTS_FOLDER/$PROJ_NAME"
-    done < <(find $ROOT_FOLDER -type f -name $TEST_CSPROJ_PATTERN)
-
-    echo "Copying $SRC_SCRIPTS_DIR to $RELEASE_TESTS_FOLDER/scripts"
-    rm -fr $RELEASE_TESTS_FOLDER/scripts
-    cp -r $SRC_SCRIPTS_DIR $RELEASE_TESTS_FOLDER
-    cp $ROOT_FOLDER/nuget.config $RELEASE_TESTS_FOLDER
-fi
 
 exit $RES

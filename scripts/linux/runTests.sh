@@ -41,13 +41,18 @@ fi
 echo "Running tests in all test projects with filter: ${TEST_FILTER#--filter }"
 
 RES=0
-while read line; do
-  echo "Running tests for project - $line"
-  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test $TEST_FILTER -p:ParallelizeTestCollections=false --logger "trx;LogFileName=result.trx" -o "$OUTPUT_FOLDER" --no-build $line
+while read proj; do
+  echo "Running tests for project - $proj"
+  TESTENVIRONMENT=$ENVIRONMENT $DOTNET_ROOT_PATH/dotnet test \
+    $TEST_FILTER \
+    -p:ParallelizeTestCollections=false \
+    --logger "trx;LogFileName=result.trx" \
+    -o "$OUTPUT_FOLDER" \
+    $proj
   if [ $? -gt 0 ]
   then
     RES=1
-    echo "Error running test $line, RES = $RES"
+    echo "Error running test $proj, RES = $RES"
   fi
 done < <(find $ROOTFOLDER -type f -iname $SUFFIX)
 

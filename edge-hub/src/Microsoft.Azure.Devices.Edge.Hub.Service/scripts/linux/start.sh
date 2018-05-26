@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 # This scrips starts the IoT hub service
 
-function logtime
+logtime()
 {
     echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]") $*"
     return $?
@@ -15,7 +15,7 @@ EDGEHUB_CA_INSTALLED_FILE="/app/ca_certs_installed.json"
 
 # check if the EdgeAgent supplied the hub with the server certificate and its
 # corresponding signing CA cert
-if [[ -z "${EdgeModuleHubServerCertificateFile}" ]] || [[ -z "${EdgeModuleHubServerCAChainCertificateFile}" ]]; then
+if [ -z "${EdgeModuleHubServerCertificateFile}" ] || [ -z "${EdgeModuleHubServerCAChainCertificateFile}" ]; then
     # certs not provided so generate SSL self signed certificate
 	chmod +x ./scripts/linux/generate-cert.sh
     ./scripts/linux/generate-cert.sh
@@ -56,9 +56,9 @@ else
 fi
 
 # start service
-command="exec runuser -u ${EdgeHubUser} dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll"
+command="exec su ${EdgeHubUser} -c 'dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll'"
 logtime "Starting Edge Hub: ${command}"
-if ! $command; then
+if ! eval "$command"; then
     logtime "Failed to start Edge Hub"
     exit 1
 fi

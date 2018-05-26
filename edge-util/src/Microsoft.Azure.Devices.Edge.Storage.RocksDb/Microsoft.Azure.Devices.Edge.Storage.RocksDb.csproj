@@ -1,3 +1,4 @@
+﻿<!--EXTERNAL_PROPERTIES: RocksDbAsPackage-->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -20,21 +21,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="rocksdb-native-arm" Version="5.4.6" />
-    <PackageReference Include="RocksDbNative" Version="5.4.6.10" />
+    <!--
+      Add '-p:RocksDbAsPackage=false' to the 'dotnet build/publish' command line to avoid
+      referencing the RocksDbNative package (which contains the Windows and Linux-glibc
+      rocksdb binaries) in this library. If specified, you must ensure that rocksdb is
+      installed and reachable in your runtime environment.
+      -->
+    <PackageReference Include="RocksDbNative" Version="5.4.6.10" Condition="'$(RocksDbAsPackage)' != 'false'" />
     <PackageReference Include="RocksDbSharp" Version="5.4.6.10" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
   </ItemGroup>
-
-  <Import Project="$(NuGetPackageRoot)\rocksdb-native-arm\5.4.6\build\rocksdb-native-arm.targets" Condition="Exists('$(NuGetPackageRoot)\rocksdb-native-arm\5.4.6\build\rocksdb-native-arm.targets')" />
-    <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-      <PropertyGroup>
-        <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-      </PropertyGroup>
-      <Error Condition="!Exists('$(NuGetPackageRoot)\rocksdb-native-arm\5.4.6\build\rocksdb-native-arm.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)\rocksdb-native-arm\5.4.6\build\rocksdb-native-arm.targets'))" />
-    </Target>
 
 </Project>
