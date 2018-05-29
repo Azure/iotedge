@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         Task<Identity> CreateIdentityAsync(string name);
 
+        Task<Identity> UpdateIdentityAsync(string name, string generationId);
+
         Task DeleteIdentityAsync(string name);
 
         Task<IEnumerable<Identity>> GetIdentities();

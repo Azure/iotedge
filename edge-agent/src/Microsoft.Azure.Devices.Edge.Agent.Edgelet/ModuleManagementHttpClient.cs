@@ -32,7 +32,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
-                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, name, new IdentitySpec { ModuleId = name }), $"Create identity for {name}");
+                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, name), $"Create identity for {name}");
+                return identity;
+            }
+        }
+
+        public async Task<Identity> UpdateIdentityAsync(string name, string generationId)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                Identity identity = await this.Execute(() => edgeletHttpClient.UpdateIdentityAsync(
+                    ApiVersion,
+                    new IdentitySpec() { ModuleId = name, GenerationId = generationId }),
+                    $"Update identity for {name} with generation ID {generationId}");
                 return identity;
             }
         }
@@ -123,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 await this.Execute(() => edgeletHttpClient.UpdateModuleAsync(ApiVersion, moduleSpec.Name, null, moduleSpec), $"update module {moduleSpec.Name}");
             }
         }
-        
+
         public async Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
@@ -134,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         }
 
         Task Execute(Func<Task> func, string operation) =>
-            this.Execute<int>(async () =>
+            this.Execute(async () =>
             {
                 await func();
                 return 1;

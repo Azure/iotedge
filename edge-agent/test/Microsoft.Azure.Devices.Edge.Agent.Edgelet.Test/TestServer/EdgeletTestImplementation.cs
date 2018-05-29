@@ -10,13 +10,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
 
     public class EdgeletTestImplementation : IController
     {
-        ConcurrentDictionary<string, Identity> identities = new ConcurrentDictionary<string, Identity>();
-        ConcurrentDictionary<string, ModuleDetails> modules = new ConcurrentDictionary<string, ModuleDetails>();
+        readonly ConcurrentDictionary<string, Identity> identities = new ConcurrentDictionary<string, Identity>();
+        readonly ConcurrentDictionary<string, ModuleDetails> modules = new ConcurrentDictionary<string, ModuleDetails>();
 
-        public Task<Identity> CreateIdentityAsync(string api_version, string name, IdentitySpec identity) =>
+        public Task<Identity> CreateIdentityAsync(string apiVersion, string name) =>
             Task.FromResult(this.identities.GetOrAdd(name, (n) => new Identity { ModuleId = n, ManagedBy = "IotEdge", GenerationId = Guid.NewGuid().ToString() }));
 
-        public Task<ModuleDetails> CreateModuleAsync(string api_version, ModuleSpec module)
+        public Task<Identity> UpdateIdentityAsync(string apiVersion, IdentitySpec identity)
+        {
+            if (this.identities.ContainsKey(identity.ModuleId) == false)
+            {
+                throw new InvalidOperationException("Module not found");
+            }
+
+            if (string.IsNullOrEmpty(identity.GenerationId))
+            {
+                throw new InvalidOperationException("Generation ID not specified");
+            }
+
+            var newIdentity = new Identity
+            {
+                ModuleId = identity.ModuleId,
+                ManagedBy = "IotEdge",
+                GenerationId = identity.GenerationId
+            };
+
+            return Task.FromResult(
+                this.identities.AddOrUpdate(
+                    identity.ModuleId,
+                    newIdentity,
+                    (name, val) => newIdentity));
+        }
+
+        public Task<ModuleDetails> CreateModuleAsync(string apiVersion, ModuleSpec module)
         {
             ModuleDetails createdModule = this.modules.GetOrAdd(module.Name, (n) => GetModuleDetails(module));
             return Task.FromResult(createdModule);
@@ -35,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return moduleDetails;
         }
 
-        public Task DeleteIdentityAsync(string api_version, string name)
+        public Task DeleteIdentityAsync(string apiVersion, string name)
         {
             if (!this.identities.TryRemove(name, out Identity _))
             {
@@ -44,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task DeleteModuleAsync(string api_version, string name)
+        public Task DeleteModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryRemove(name, out ModuleDetails _))
             {
@@ -53,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task<ModuleDetails> GetModuleAsync(string api_version, string name)
+        public Task<ModuleDetails> GetModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
             {
@@ -62,13 +88,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.FromResult(module);
         }
 
-        public Task<IdentityList> ListIdentitiesAsync(string api_version) =>
+        public Task<IdentityList> ListIdentitiesAsync(string apiVersion) =>
             Task.FromResult(new IdentityList { Identities = this.identities.Values.ToList() });
 
-        public Task<ModuleList> ListModulesAsync(string api_version) =>
+        public Task<ModuleList> ListModulesAsync(string apiVersion) =>
             Task.FromResult(new ModuleList { Modules = this.modules.Values.ToList() });
 
-        public Task RestartModuleAsync(string api_version, string name)
+        public Task RestartModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
             {
@@ -78,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task StartModuleAsync(string api_version, string name)
+        public Task StartModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
             {
@@ -88,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task StopModuleAsync(string api_version, string name)
+        public Task StopModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
             {
@@ -98,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task<ModuleDetails> UpdateModuleAsync(string api_version, string name, ModuleSpec module)
+        public Task<ModuleDetails> UpdateModuleAsync(string apiVersion, string name, bool start, ModuleSpec module)
         {
             if (!this.modules.ContainsKey(name))
             {

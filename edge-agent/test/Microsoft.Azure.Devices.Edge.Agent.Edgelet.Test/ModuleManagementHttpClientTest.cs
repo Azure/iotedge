@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     [Unit]
     public class ModuleManagementHttpClientTest : IClassFixture<EdleletFixture>
     {
-        Uri serverUrl;
+        readonly Uri serverUrl;
 
         public ModuleManagementHttpClientTest(EdleletFixture edleletFixture)
         {
@@ -36,6 +36,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal("Foo", identity1.ModuleId);
             Assert.NotNull(identity2);
             Assert.Equal("Bar", identity2.ModuleId);
+
+            // Act
+            Identity identity3 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId);
+            Identity identity4 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId);
+
+            // Assert
+            Assert.NotNull(identity3);
+            Assert.Equal("Foo", identity3.ModuleId);
+            Assert.Equal(identity1.GenerationId, identity3.GenerationId);
+            Assert.NotNull(identity4);
+            Assert.Equal("Bar", identity4.ModuleId);
+            Assert.Equal(identity2.GenerationId, identity4.GenerationId);
 
             // Act
             List<Identity> identities = (await client.GetIdentities())

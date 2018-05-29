@@ -32,19 +32,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
-            IEnumerable<string> updatedModuleNames = diff.Updated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name));
+            IList<string> updatedModuleNames = diff.Updated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             IEnumerable<string> removedModuleNames = diff.Removed.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m));
 
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
+            // Create identities for all modules that are in the deployment but aren't in iotedged.
             IEnumerable<string> createIdentities = updatedModuleNames.Where(m => !identities.ContainsKey(m));
+
+            // Update identities for all modules that are in the deployment and are in iotedged (except for Edge Agent which gets special
+            // treatment in iotedged).
+            //
+            // NOTE: This update can potentiatlly be made more efficient by checking that an update is actually needed, i.e. if auth type
+            // is not SAS and/or if the credentials are not what iotedged expects it to be.
+            IEnumerable<Identity> updateIdentities = updatedModuleNames
+                .Where(m => identities.ContainsKey(m) && m != Constants.EdgeAgentModuleIdentityName)
+                .Select(m => identities[m]);
+
+            // Remove identities which exist in iotedged but don't exist in the deployment anymore. We exclude however, identities that
+            // aren't managed by Edge since these have been created by some out-of-band process and Edge doesn't "own" the identity.
             IEnumerable<string> removeIdentities = removedModuleNames.Where(m => identities.ContainsKey(m) &&
                 Constants.ModuleIdentityEdgeManagedByValue.Equals(identities[m].ManagedBy, StringComparison.OrdinalIgnoreCase));
 
-            // First remove identities (so that we don't go over the IoTHub limit)
+            // First remove identities (so that we don't go over the IoTHub limit).
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
-            Identity[] createdIdentities = await Task.WhenAll(createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i)));
+            // Create/update identities.
+            IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i));
+            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId));
+            Identity[] createdIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
             IEnumerable<IModuleIdentity> moduleIdentities = createdIdentities.Concat(identities.Values)
                 .Select(m => this.GetModuleIdentity(m));

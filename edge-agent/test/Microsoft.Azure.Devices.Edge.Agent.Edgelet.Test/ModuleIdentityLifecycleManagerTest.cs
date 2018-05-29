@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         [Fact]
         [Unit]
-        public async Task TestGetModulesIdentity_WithUpdatedModules_ShouldCreateIdentities()
+        public async Task TestGetModulesIdentity_WithNewModules_ShouldCreateIdentities()
         {
             // Arrange
             const string Name = "module1";
@@ -62,7 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, new Dictionary<string, EnvVal>());
 
             // Act
-            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(
+                ModuleSet.Create(new IModule[] { module }), ModuleSet.Empty);
 
             // Assert
             Assert.True(modulesIdentities.Count() == 1);
@@ -71,6 +72,86 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.IsType<IdentityProviderServiceCredentials>(moduleIdentity.Credentials);
             Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).ProviderUri);
             Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).Version);
+            Mock.Get(identityManager).Verify();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestGetModulesIdentity_WithUpdatedModules_ShouldUpdateIdentities()
+        {
+            // Arrange
+            const string Module1 = "module1";
+            var identity1 = new Identity
+            {
+                ModuleId = Module1,
+                ManagedBy = "IotEdge",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module2 = "module2";
+            var identity2 = new Identity
+            {
+                ModuleId = Module2,
+                ManagedBy = "Me",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module3 = "module3";
+            var identity3 = new Identity
+            {
+                ModuleId = Module3,
+                ManagedBy = "IotEdge",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            const string Module4 = "$edgeHub";
+            var identity4 = new Identity
+            {
+                ModuleId = Module4,
+                ManagedBy = "IotEdge",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            // We should NOT get an update request for this identity
+            const string Module5 = "$edgeAgent";
+            var identity5 = new Identity
+            {
+                ModuleId = Module5,
+                ManagedBy = "IotEdge",
+                GenerationId = Guid.NewGuid().ToString()
+            };
+
+            var identityManager = Mock.Of<IIdentityManager>(m =>
+                m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3, identity4, identity5 }.AsEnumerable()) &&
+                m.CreateIdentityAsync(Module1) == Task.FromResult(identity1) &&
+                m.UpdateIdentityAsync(identity2.ModuleId, identity2.GenerationId) == Task.FromResult(identity2) &&
+                m.UpdateIdentityAsync(identity3.ModuleId, identity3.GenerationId) == Task.FromResult(identity3) &&
+                m.UpdateIdentityAsync(identity4.ModuleId, identity4.GenerationId) == Task.FromResult(identity4));
+
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
+            var envVar = new Dictionary<string, EnvVal>();
+            var module1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            var module5 = new TestModule(Module5, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
+            ModuleSet desired = ModuleSet.Create(new IModule[] { module1, module2, module3, module4, module5 });
+            ModuleSet current = ModuleSet.Create(new IModule[] { module2, module3, module4, module5 });
+
+            // Act
+            IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
+
+            // Assert
+            Assert.True(modulesIdentities.Count() == 5);
+            Assert.True(modulesIdentities.TryGetValue(Module1, out IModuleIdentity moduleIdentity1));
+            Assert.Equal(Module1, moduleIdentity1.ModuleId);
+            Assert.True(modulesIdentities.TryGetValue(Module2, out IModuleIdentity moduleIdentity2));
+            Assert.Equal(Module2, moduleIdentity2.ModuleId);
+            Assert.True(modulesIdentities.TryGetValue(Module3, out IModuleIdentity moduleIdentity3));
+            Assert.Equal(Module3, moduleIdentity3.ModuleId);
+            Assert.True(modulesIdentities.TryGetValue("edgeHub", out IModuleIdentity moduleIdentity4));
+            Assert.Equal(Module4, moduleIdentity4.ModuleId);
+            Assert.IsType<IdentityProviderServiceCredentials>(moduleIdentity1.Credentials);
             Mock.Get(identityManager).Verify();
         }
 
