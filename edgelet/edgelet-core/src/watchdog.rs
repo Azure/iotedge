@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use error::{Error, ErrorKind};
-use futures::Future;
 use futures::future::{self, Either, FutureResult};
+use futures::Future;
 use identity::{Identity, IdentityManager, IdentitySpec};
 use module::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ModuleStatus};
 
@@ -350,9 +350,12 @@ mod tests {
 
     #[test]
     fn update_identity_update_fails() {
-        let mut manager = TestIdentityManager::new(vec![
-            TestIdentity::new("$edgeAgent", "iotedge", "1", AuthType::None),
-        ]).with_fail_update(true);
+        let mut manager = TestIdentityManager::new(vec![TestIdentity::new(
+            "$edgeAgent",
+            "iotedge",
+            "1",
+            AuthType::None,
+        )]).with_fail_update(true);
 
         assert_eq!(
             true,
@@ -363,9 +366,12 @@ mod tests {
 
     #[test]
     fn update_identity_succeeds() {
-        let mut manager = TestIdentityManager::new(vec![
-            TestIdentity::new("$edgeAgent", "iotedge", "1", AuthType::None),
-        ]);
+        let mut manager = TestIdentityManager::new(vec![TestIdentity::new(
+            "$edgeAgent",
+            "iotedge",
+            "1",
+            AuthType::None,
+        )]);
 
         assert_eq!(
             false,

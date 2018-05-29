@@ -1,0 +1,9 @@
+/var/log/iotedge/iotedge.log {
+       copytruncate
+       daily
+       rotate 7
+       delaycompress
+       compress
+       notifempty
+       missingok
+}

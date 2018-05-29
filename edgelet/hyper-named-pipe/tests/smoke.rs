@@ -15,8 +15,8 @@ extern crate hyper_named_pipe;
 use std::sync::mpsc::channel;
 use std::thread;
 
-use futures::Stream;
 use futures::future::Future;
+use futures::Stream;
 use httparse::Request;
 use hyper::header::{ContentLength, ContentType};
 use hyper::{Client as HyperClient, Method, Request as HyperRequest, StatusCode};

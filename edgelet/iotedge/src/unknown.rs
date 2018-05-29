@@ -2,8 +2,8 @@
 
 use futures::future::{self, FutureResult};
 
-use Command;
 use error::Error;
+use Command;
 
 pub struct Unknown {
     command: String,

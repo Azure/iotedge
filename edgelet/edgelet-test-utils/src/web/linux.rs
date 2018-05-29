@@ -4,8 +4,8 @@ use std::fs;
 use std::sync::mpsc::Sender;
 
 use futures::prelude::*;
-use hyper::Error as HyperError;
 use hyper::server::{const_service, service_fn, Request, Response};
+use hyper::Error as HyperError;
 use hyperlocal::server::Http as UdsHttp;
 
 pub fn run_uds_server<F, R>(path: &str, handler: F, ready_channel: &Sender<()>)

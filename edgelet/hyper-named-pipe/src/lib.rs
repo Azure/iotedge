@@ -22,8 +22,8 @@ pub mod uri;
 
 use std::io;
 
-use futures::IntoFuture;
 use futures::future::FutureResult;
+use futures::IntoFuture;
 use hyper::Uri as HyperUri;
 use tokio_core::reactor::Handle;
 use tokio_service::Service;

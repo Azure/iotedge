@@ -13,10 +13,10 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
 use bytes::Bytes;
-use edgelet_core::KeyStore;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
+use edgelet_core::KeyStore;
 use edgelet_hsm::TpmKeyStore;
 
 const TEST_KEY_BASE64: &'static str = "D7PuplFy7vIr0349blOugqCxyfMscyVZDoV9Ii0EFnA=";

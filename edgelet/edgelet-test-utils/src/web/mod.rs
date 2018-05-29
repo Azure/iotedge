@@ -15,8 +15,8 @@ pub use self::windows::run_pipe_server;
 use std::sync::mpsc::Sender;
 
 use futures::prelude::*;
-use hyper::Error as HyperError;
 use hyper::server::{const_service, service_fn, Http, Request, Response};
+use hyper::Error as HyperError;
 
 pub fn run_tcp_server<F, R>(ip: &str, port: u16, handler: F, ready_channel: &Sender<()>)
 where

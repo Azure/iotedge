@@ -2,8 +2,8 @@
 
 use edgelet_core::*;
 use failure::Fail;
-use futures::IntoFuture;
 use futures::future::{self, FutureResult};
+use futures::IntoFuture;
 use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]

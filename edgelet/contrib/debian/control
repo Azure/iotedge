@@ -1,5 +1,5 @@
 Source: iotedge
-Section: unknown
+Section: admin
 Priority: extra
 Maintainer: Azure IoT Edge Devs <edgedevs@microsoft.com>
 Build-Depends: debhelper (>=9),
@@ -10,5 +10,11 @@ Homepage: https://github.com/azure/iot-edge
 Package: iotedge
 Architecture: any
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}, libiothsm
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, hostname, libiothsm, sed
 Description: Azure IoT Edge daemon
+ Azure IoT Edge is a fully managed service that delivers cloud intelligence
+ locally by deploying and running artificial intelligence (AI), Azure services,
+ and custom logic directly on cross-platform IoT devices. Run your IoT solution
+ securely and at scale—whether in the cloud or offline.
+ .
+ This package contains the IoT Edge daemon and CLI tool.

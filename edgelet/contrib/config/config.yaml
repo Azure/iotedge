@@ -23,7 +23,7 @@
 
 provisioning:
   source: "manual"
-  device_connection_string: ""
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 # provisioning:
 #   source: "dps"
@@ -48,7 +48,7 @@ agent:
   env: {}
   config:
     image: "microsoft/azureiotedge-agent:1.0-preview"
-    create_options: ""
+    create_options: {}
     auth: {}
 
 ###############################################################################
@@ -56,7 +56,7 @@ agent:
 # This is injected into modules as IOTEDGE_GATEWAYHOSTNAME
 ###############################################################################
 
-hostname: "localhost"
+hostname: "<ADD HOSTNAME HERE>"
 
 ###############################################################################
 # Connect settings
@@ -104,9 +104,21 @@ listen:
   management_uri: "fd://iotedge.mgmt"
 
 ###############################################################################
-# Docker Engine URI
+# Home Directory
+###############################################################################
+#
+# This configures the home directory for the daemon.
+#
+###############################################################################
+
+homedir: "/var/lib/iotedge"
+
+###############################################################################
+# Container Runtime settings
+###############################################################################
+#
+# This configures the uri for the container runtime.
+#
 ###############################################################################
 
 docker_uri: "unix:///var/run/docker.sock"
-
-homedir: "/var/lib/iotedge"

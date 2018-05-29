@@ -33,8 +33,8 @@ use std::rc::Rc;
 
 use chrono::{DateTime, Utc};
 use failure::ResultExt;
-use futures::Future;
 use futures::future::{self, Either};
+use futures::Future;
 use hyper::client::Service;
 use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};

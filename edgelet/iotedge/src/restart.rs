@@ -7,8 +7,8 @@ use std::sync::Arc;
 use edgelet_core::ModuleRuntime;
 use futures::Future;
 
-use Command;
 use error::Error;
+use Command;
 
 pub struct Restart<M, W> {
     id: String,

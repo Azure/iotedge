@@ -4,8 +4,8 @@ use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
 
-use edgelet_core::Error as CoreError;
 use edgelet_core::crypto::{Activate, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm};
+use edgelet_core::Error as CoreError;
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use error::{Error, ErrorKind};

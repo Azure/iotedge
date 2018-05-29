@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use base64;
-use edgelet_core::KeyStore;
 use edgelet_core::crypto::{Sign, Signature, SignatureAlgorithm};
+use edgelet_core::KeyStore;
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -12,8 +12,8 @@ use hyper::{Body, Error as HyperError};
 use serde_json;
 use workload::models::{SignRequest, SignResponse};
 
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 pub struct SignHandler<K>
 where

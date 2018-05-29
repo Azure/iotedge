@@ -10,12 +10,12 @@ use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
 use hyper::Body;
 use management::models::*;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json;
 
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 mod create;
 mod delete;

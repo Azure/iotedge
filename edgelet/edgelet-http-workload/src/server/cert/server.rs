@@ -14,8 +14,8 @@ use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse,
                        ServerCertificateRequest};
 
-use IntoResponse;
 use error::{Error, ErrorKind, Result};
+use IntoResponse;
 
 pub struct ServerCertHandler<T: CreateCertificate> {
     hsm: T,
@@ -128,8 +128,8 @@ mod tests {
     use std::rc::Rc;
     use std::result::Result as StdResult;
 
-    use chrono::Duration;
     use chrono::offset::Utc;
+    use chrono::Duration;
 
     use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
     use edgelet_test_utils::cert::TestCert;

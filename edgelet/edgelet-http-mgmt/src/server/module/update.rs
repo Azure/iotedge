@@ -8,14 +8,14 @@ use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use management::models::*;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
 use super::{spec_to_core, spec_to_details};
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 pub struct UpdateModule<M>
 where

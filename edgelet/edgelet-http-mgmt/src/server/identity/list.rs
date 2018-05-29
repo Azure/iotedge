@@ -11,8 +11,8 @@ use management::models::{Identity, IdentityList};
 use serde::Serialize;
 use serde_json;
 
-use IntoResponse;
 use error::ErrorKind;
+use IntoResponse;
 
 pub struct ListIdentities<I>
 where

@@ -12,8 +12,8 @@ use serde::Serialize;
 use serde_json;
 
 use super::core_to_details;
-use IntoResponse;
 use error::ErrorKind;
+use IntoResponse;
 
 pub struct ListModules<M>
 where

@@ -10,8 +10,8 @@ use edgelet_http::route::*;
 use http::{Request, Response};
 use hyper::server::{NewService, Service};
 use hyper::{Body, Error as HyperError};
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 use self::identity::*;
 use self::module::*;

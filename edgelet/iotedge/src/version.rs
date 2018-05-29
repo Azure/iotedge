@@ -2,8 +2,8 @@
 
 use futures::future::{self, FutureResult};
 
-use Command;
 use error::Error;
+use Command;
 
 #[derive(Default)]
 pub struct Version;

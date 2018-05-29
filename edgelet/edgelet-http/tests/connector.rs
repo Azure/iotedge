@@ -33,9 +33,9 @@ use futures::future;
 use futures::prelude::*;
 #[cfg(windows)]
 use httparse::Request as HtRequest;
-use hyper::Error as HyperError;
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
+use hyper::Error as HyperError;
 use hyper::{Client, Method, Request as ClientRequest, StatusCode};
 #[cfg(windows)]
 use hyper_named_pipe::Uri as PipeUri;

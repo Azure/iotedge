@@ -11,8 +11,8 @@ use edgelet_core::{Module, ModuleRuntime, ModuleRuntimeState, ModuleStatus};
 use futures::{future, Future};
 use tabwriter::TabWriter;
 
-use Command;
 use error::Error;
+use Command;
 
 pub struct List<M, W> {
     runtime: M,

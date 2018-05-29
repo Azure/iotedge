@@ -27,8 +27,8 @@ use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
 use hyper::{Error as HyperError, Method, StatusCode};
 use tokio_core::reactor::Core;
-use url::Url;
 use url::form_urlencoded::parse as parse_query;
+use url::Url;
 
 #[cfg(unix)]
 use docker::models::AuthConfig;
@@ -309,15 +309,11 @@ fn container_create_succeeds() {
     let mut port_bindings = HashMap::new();
     port_bindings.insert(
         "22/tcp".to_string(),
-        vec![
-            HostConfigPortBindings::new().with_host_port("11022".to_string()),
-        ],
+        vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
     );
     port_bindings.insert(
         "80/tcp".to_string(),
-        vec![
-            HostConfigPortBindings::new().with_host_port("8080".to_string()),
-        ],
+        vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
 
     let create_options = ContainerCreateBody::new()
@@ -440,10 +436,7 @@ fn container_list_handler(req: Request) -> Box<Future<Item = Response, Error = H
     assert_eq!(
         query_map.get("filters"),
         Some(&json!({
-            "label":
-                vec![
-                    "net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent",
-                ]
+            "label": vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"]
         }).to_string())
     );
 

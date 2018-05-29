@@ -106,9 +106,7 @@ mod tests {
         let mut port_bindings = HashMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
-            vec![
-                HostConfigPortBindings::new().with_host_port("27017".to_string()),
-            ],
+            vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
         );
 
         let create_options = ContainerCreateBody::new()
@@ -153,9 +151,7 @@ mod tests {
         let mut port_bindings = HashMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
-            vec![
-                HostConfigPortBindings::new().with_host_port("27017".to_string()),
-            ],
+            vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
         );
 
         let create_options = ContainerCreateBody::new()

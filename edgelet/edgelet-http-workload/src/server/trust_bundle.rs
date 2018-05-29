@@ -13,8 +13,8 @@ use edgelet_core::{Certificate, GetTrustBundle};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use workload::models::TrustBundleResponse;
 
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 pub struct TrustBundleHandler<T: GetTrustBundle> {
     hsm: T,

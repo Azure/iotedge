@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use futures::Future;
 use futures::future::{self, Either};
+use futures::Future;
 use hyper::client::Service;
 use hyper::{Error as HyperError, Method, Request, Response, StatusCode};
 

@@ -69,9 +69,7 @@ pub use self::generic_resources::GenericResources;
 mod generic_resources_inner;
 pub use self::generic_resources_inner::GenericResourcesInner;
 mod generic_resources_inner_discrete_resource_spec;
-pub use self
-    ::generic_resources_inner_discrete_resource_spec
-    ::GenericResourcesInnerDiscreteResourceSpec;
+pub use self::generic_resources_inner_discrete_resource_spec::GenericResourcesInnerDiscreteResourceSpec;
 mod generic_resources_inner_named_resource_spec;
 pub use self::generic_resources_inner_named_resource_spec::GenericResourcesInnerNamedResourceSpec;
 mod graph_driver_data;
@@ -319,13 +317,9 @@ pub use self::task_spec_container_spec_file_1::TaskSpecContainerSpecFile1;
 mod task_spec_container_spec_privileges;
 pub use self::task_spec_container_spec_privileges::TaskSpecContainerSpecPrivileges;
 mod task_spec_container_spec_privileges_credential_spec;
-pub use self
-    ::task_spec_container_spec_privileges_credential_spec
-    ::TaskSpecContainerSpecPrivilegesCredentialSpec;
+pub use self::task_spec_container_spec_privileges_credential_spec::TaskSpecContainerSpecPrivilegesCredentialSpec;
 mod task_spec_container_spec_privileges_se_linux_context;
-pub use self
-    ::task_spec_container_spec_privileges_se_linux_context
-    ::TaskSpecContainerSpecPrivilegesSeLinuxContext;
+pub use self::task_spec_container_spec_privileges_se_linux_context::TaskSpecContainerSpecPrivilegesSeLinuxContext;
 mod task_spec_container_spec_secrets;
 pub use self::task_spec_container_spec_secrets::TaskSpecContainerSpecSecrets;
 mod task_spec_log_driver;

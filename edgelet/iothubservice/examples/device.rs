@@ -29,8 +29,8 @@ use url::Url;
 
 use edgelet_http::client::{Client, TokenSource};
 use edgelet_http::error::Error as HttpError;
-use iothubservice::DeviceClient;
 use iothubservice::error::Error;
+use iothubservice::DeviceClient;
 
 #[derive(Clone)]
 struct StaticTokenSource {

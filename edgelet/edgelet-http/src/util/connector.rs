@@ -18,8 +18,8 @@ use std::io;
 use std::path::Path;
 
 use futures::Future;
-use hyper::Uri;
 use hyper::client::{HttpConnector, Service};
+use hyper::Uri;
 #[cfg(windows)]
 use hyper_named_pipe::{PipeConnector, Uri as PipeUri};
 #[cfg(unix)]

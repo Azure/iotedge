@@ -17,8 +17,8 @@ use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{Activate, KeyStore, Sign, Signature, SignatureAlgorithm};
-use edgelet_http::ErrorKind as HttpErrorKind;
 use edgelet_http::client::{Client, TokenSource};
+use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
 use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
             TpmAttestation, TpmRegistrationResult};
@@ -382,9 +382,9 @@ mod tests {
     use std::cell::RefCell;
     use std::mem;
 
-    use hyper::StatusCode;
     use hyper::header::Authorization;
     use hyper::server::service_fn;
+    use hyper::StatusCode;
     use serde_json;
     use tokio_core::reactor::Core;
     use url::Url;

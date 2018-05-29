@@ -48,18 +48,18 @@ use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey, MemoryKeyStore,
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
-use edgelet_hsm::Crypto;
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
+use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{ApiVersionService, HyperExt, Run};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
-use futures::Future;
 use futures::sync::oneshot::{self, Receiver};
-use hsm::ManageTpmKeys;
+use futures::Future;
 use hsm::tpm::Tpm;
+use hsm::ManageTpmKeys;
 use hyper::client::Service;
 use hyper::server::Http;
 use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
@@ -238,12 +238,7 @@ where
     let workload = start_workload(&settings, key_store, &core.handle(), work_rx)?;
 
     start_runtime(
-        &runtime,
-        &id_man,
-        &mut core,
-        &hub_name,
-        &device_id,
-        &settings,
+        &runtime, &id_man, &mut core, &hub_name, &device_id, &settings,
     )?;
 
     let shutdown = shutdown_signal.map(move |_| {
@@ -432,8 +427,7 @@ where
     let url = settings.listen().management_uri().clone();
     let server_handle = handle.clone();
     let service = LoggingService::new(ApiVersionService::new(ManagementService::new(
-        mgmt,
-        id_man,
+        mgmt, id_man,
     )?));
 
     info!("Listening on {} with 1 thread for management API.", url);

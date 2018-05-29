@@ -8,8 +8,8 @@ use hyper::server::{NewService, Service};
 use hyper::{Body, Error as HyperError};
 use url::form_urlencoded::parse as parse_query;
 
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 pub const API_VERSION: &str = "2018-06-28";
 

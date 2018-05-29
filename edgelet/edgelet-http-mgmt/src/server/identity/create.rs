@@ -14,8 +14,8 @@ use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentitySpec};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use management::models::Identity;
 
-use IntoResponse;
 use error::{Error, ErrorKind};
+use IntoResponse;
 
 pub struct CreateIdentity<I>
 where

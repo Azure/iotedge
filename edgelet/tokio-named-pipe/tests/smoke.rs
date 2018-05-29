@@ -15,9 +15,9 @@ extern crate tokio_named_pipe;
 use std::io::{Read, Write};
 use std::str;
 
-use futures::Future;
 use futures::sink::Sink;
 use futures::stream::Stream;
+use futures::Future;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_named_pipes::NamedPipe;
 use rand::Rng;

@@ -9,9 +9,9 @@ use futures::{Future, Stream};
 use hyper::client::Service;
 use hyper::header::{Authorization, ContentLength, ContentType, IfMatch, UserAgent};
 use hyper::{Error as HyperError, Method, Request, Response, Uri};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json;
-use url::{Url, form_urlencoded::Serializer as UrlSerializer};
+use url::{form_urlencoded::Serializer as UrlSerializer, Url};
 
 use error::Error;
 

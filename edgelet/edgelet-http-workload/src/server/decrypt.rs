@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use IntoResponse;
 use base64;
 use edgelet_core::Decrypt;
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
@@ -12,6 +11,7 @@ use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 use workload::models::{DecryptRequest, DecryptResponse};
+use IntoResponse;
 
 pub struct DecryptHandler<T: Decrypt> {
     hsm: T,

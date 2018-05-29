@@ -7,8 +7,8 @@ extern crate http;
 extern crate hyper;
 extern crate tokio_core;
 
-use edgelet_http::HyperExt;
 use edgelet_http::route::{BoxFuture, Builder, Parameters, Router};
+use edgelet_http::HyperExt;
 use futures::future;
 use http::header::CONTENT_TYPE;
 use http::{Request, Response, StatusCode};
