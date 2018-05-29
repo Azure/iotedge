@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.Collections.Generic;
     using System.Globalization;
-    using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -53,11 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // When connection string is not set it is edged mode
             if (string.IsNullOrEmpty(edgeHubConnectionString))
             {
-                Uri workloadUri = new Uri(configuration.GetValue<string>(Constants.WorkloadUriVariableName));
+                var workloadUri = new Uri(configuration.GetValue<string>(Constants.WorkloadUriVariableName));
                 string edgeHubHostname = configuration.GetValue<string>(Constants.EdgeDeviceHostnameVariableName);
                 string moduleId = configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                string generationId = configuration.GetValue<string>(Constants.ModuleGenerationIdVariableName);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
-                (cert, chain) = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, edgeHubHostname, expiration);
+                (cert, chain) = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
             }
             else
             {
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Installing intermediate certificates.");
 
             CertificateHelper.InstallCerts(
-                StoreName.CertificateAuthority,
+                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
                 StoreLocation.CurrentUser,
                 chain);
 

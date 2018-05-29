@@ -4,18 +4,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.IO;
+    using System.Linq;
+    using System.Net.Http;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
-    using System.Net.Http;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
-    using Org.BouncyCastle.Pkcs;
-    using Org.BouncyCastle.OpenSsl;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
+    using Microsoft.Extensions.Logging;
     using Org.BouncyCastle.Crypto.Parameters;
+    using Org.BouncyCastle.OpenSsl;
+    using Org.BouncyCastle.Pkcs;
     using Org.BouncyCastle.Security;
 
     public static class CertificateHelper
@@ -194,10 +193,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             return rawPemCerts
                 .Select(c => System.Text.Encoding.UTF8.GetBytes(c))
-                .Select(c => new X509Certificate2(c));
+                .Select(c => new X509Certificate2(c))
+                .ToList();
         }
 
-        public async static Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string edgeHubIdentityName, string edgeHubHostname, DateTime expiration)
+        public async static Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(workloadUri))
             {
@@ -211,12 +211,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
                 }
 
-                ServerCertificateRequest request = new ServerCertificateRequest()
+                var request = new ServerCertificateRequest()
                 {
                     CommonName = edgeHubHostname,
                     Expiration = expiration
                 };
-                CertificateResponse response = await workload.CreateServerCertificateAsync(workloadApiVersion, edgeHubIdentityName, request);
+                CertificateResponse response = await workload.CreateServerCertificateAsync(workloadApiVersion, moduleId, moduleGenerationId, request);
 
                 return ParseCertificateResponse(response);
                
@@ -225,9 +225,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static (X509Certificate2, IEnumerable<X509Certificate2>) GetServerCertificatesFromFile(string certPath, string certName)
         {
-            IEnumerable<X509Certificate2> certChain = new List<X509Certificate2>();
+            IEnumerable<X509Certificate2> certChain;
             string certFullPath = Path.Combine(certPath, certName);
-            X509Certificate2 sslCert = new X509Certificate2(Preconditions.CheckNonWhiteSpace(certFullPath, nameof(certFullPath)));
+            var sslCert = new X509Certificate2(Preconditions.CheckNonWhiteSpace(certFullPath, nameof(certFullPath)));
 
             string chainPath = Environment.GetEnvironmentVariable("EdgeModuleHubServerCAChainCertificateFile");
             certChain = ExtractCertsFromPem(chainPath);
@@ -235,18 +235,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return (sslCert, certChain);
         }
 
-        public static IEnumerable<string> ParsePemCerts(string pemCerts)
+        public static IList<string> ParsePemCerts(string pemCerts)
         {
+            if (string.IsNullOrEmpty(pemCerts))
+            {
+                throw new InvalidOperationException("Trusted certificates can not be null or empty.");
+            }
+
             // Extract each certificate's string. The final string from the split will either be empty
             // or a non-certificate entry, so it is dropped.
-            string delimiter = @"-----END CERTIFICATE-----";
+            string delimiter = "-----END CERTIFICATE-----";
             string[] rawCerts = pemCerts.Split(new[] { delimiter }, StringSplitOptions.None);
             return rawCerts
                 .Take(rawCerts.Count() - 1) // Drop the invalid entry
-                .Select(c => $"{c}{delimiter}"); // Re-add the certificate end-marker which was removed by split
+                .Select(c => $"{c}{delimiter}")
+                .ToList(); // Re-add the certificate end-marker which was removed by split
         }
 
-        private static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
+        internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(CertificateResponse response)
         {
             IEnumerable<string> pemCerts = ParsePemCerts(response.Certificate);
 
@@ -260,8 +266,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Pkcs12Store store = new Pkcs12StoreBuilder().Build();
             IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
 
-            StringReader sr = new StringReader(pemCerts.First() + "\r\n" +response.PrivateKey.Bytes);
-            PemReader pemReader = new PemReader(sr);
+            var sr = new StringReader(pemCerts.First() + "\r\n" +response.PrivateKey.Bytes);
+            var pemReader = new PemReader(sr);
 
             RsaPrivateCrtKeyParameters keyParams = null;
             object certObject = pemReader.ReadObject();
@@ -285,11 +291,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());
-            using (MemoryStream p12file = new MemoryStream())
+            using (var p12File = new MemoryStream())
             {
-                store.Save(p12file, new char[] { }, new SecureRandom());
+                store.Save(p12File, new char[] { }, new SecureRandom());
 
-                var cert = new X509Certificate2(p12file.ToArray());
+                var cert = new X509Certificate2(p12File.ToArray());
                 return (cert, certsChain);
             }
         }

@@ -36,7 +36,7 @@ impl WorkloadService {
             post   "/modules/(?P<name>[^/]+)/decrypt" => DecryptHandler::new(hsm.clone()),
             post   "/modules/(?P<name>[^/]+)/encrypt" => EncryptHandler::new(hsm.clone()),
             post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,
-            post   "/modules/(?P<name>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
 
             get    "/trust-bundle" => TrustBundleHandler::new(hsm),
         );

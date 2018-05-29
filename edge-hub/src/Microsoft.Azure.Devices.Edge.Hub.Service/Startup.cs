@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
-    using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
@@ -104,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<UpstreamProtocol> upstreamProtocolOption = Enum.TryParse(this.Configuration.GetValue("UpstreamProtocol", string.Empty), false, out UpstreamProtocol upstreamProtocol)
                 ? Option.Some(upstreamProtocol)
                 : Option.None<UpstreamProtocol>();
-            int connectivityCheckFrequencySecs = this.Configuration.GetValue<int>("ConnectivityCheckFrequencySecs", 300);
+            int connectivityCheckFrequencySecs = this.Configuration.GetValue("ConnectivityCheckFrequencySecs", 300);
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
 
             // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth. 

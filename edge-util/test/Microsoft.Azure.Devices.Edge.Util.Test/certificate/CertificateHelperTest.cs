@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using CertificateHelper = Microsoft.Azure.Devices.Edge.Util.CertificateHelper;
@@ -89,6 +91,87 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         {
             Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(null));
             Assert.Throws<ArgumentException>(() => CertificateHelper.ExtractCertsFromPem(""));
+        }
+
+        [Fact]
+        public void ParseCertificatesSingleShouldReturnCetificate()
+        {
+            IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem);
+            IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
+
+            Assert.Equal(certs.Count(), 1);
+        }
+
+        [Fact]
+        public void ParseCertificatesMultipleCertsShouldReturnCetificates()
+        {
+            IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem + TestCertificateHelper.CertificatePem);
+            IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
+
+            Assert.Equal(certs.Count(), 2);
+        }
+
+        [Fact]
+        public void ParseCertificatesWithNonCertificatesEntriesShouldReturnCetificates()
+        {
+            IList<string> pemCerts = CertificateHelper.ParsePemCerts(TestCertificateHelper.CertificatePem + TestCertificateHelper.CertificatePem + "test");
+            IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
+
+            Assert.Equal(certs.Count(), 2);
+        }
+
+        [Fact]
+        public void ParseCertificatesNoCertificatesEntriesShouldReturnNoCetificates()
+        {
+            IList<string> pemCerts = CertificateHelper.ParsePemCerts("test");
+            IEnumerable<X509Certificate2> certs = CertificateHelper.GetCertificatesFromPem(pemCerts);
+
+            Assert.Equal(certs.Count(), 0);
+        }
+
+        [Fact]
+        public void ParseCertificatesResponseInvalidCertificateShouldThrow()
+        {
+            var response = new CertificateResponse()
+            {
+                Certificate = "InvalidCert",
+            };
+            Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseCertificateResponse(response));
+        }
+
+        [Fact]
+        public void ParseCertificatesResponseInvalidKeyShouldThrow()
+        {
+            var response = new CertificateResponse()
+            {
+                Certificate = TestCertificateHelper.CertificatePem,
+                Expiration = DateTime.UtcNow.AddDays(1),
+                PrivateKey = new PrivateKey()
+                {
+                    Bytes = "InvalidKey"
+                }
+            };
+
+            Assert.Throws<InvalidOperationException>(() => CertificateHelper.ParseCertificateResponse(response));
+        }
+
+        [Fact]
+        public void ParseCertificatesResponseShouldReturnCert()
+        {
+            TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
+            var response = new CertificateResponse()
+            {
+                Certificate = TestCertificateHelper.CertificatePem,
+                Expiration = DateTime.UtcNow.AddDays(1),
+                PrivateKey = new PrivateKey()
+                {
+                    Bytes = TestCertificateHelper.PrivateKeyPem
+                }
+            };
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateResponse(response);
+
+            Assert.True(cert.HasPrivateKey);
+            Assert.Equal(chain.Count(), 0);
         }
     }
 }

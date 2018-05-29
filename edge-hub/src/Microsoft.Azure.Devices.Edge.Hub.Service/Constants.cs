@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
         public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
         public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
+        public const string ModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
         public const string WorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
         public const string EdgeDeviceHostnameVariableName = "EdgeDeviceHostName";
         public const string WorkloadApiVersion = "2018-06-28";

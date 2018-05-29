@@ -331,7 +331,7 @@ definitions:
         description: Indicates format of the key (present in PEM formatted bytes or a reference)
         enum:
           - ref
-          - bytes
+          - key
       ref:
         type: string
         description: Reference to private key.
