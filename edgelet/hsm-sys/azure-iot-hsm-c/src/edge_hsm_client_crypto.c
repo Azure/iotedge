@@ -48,7 +48,7 @@ int hsm_client_crypto_init(void)
             g_is_crypto_initialized = true;
             g_hsm_store_if = store_if;
             g_hsm_key_if = key_if;
-			srand(time(NULL));
+			srand((unsigned int)time(NULL));
             result = 0;
         }
     }

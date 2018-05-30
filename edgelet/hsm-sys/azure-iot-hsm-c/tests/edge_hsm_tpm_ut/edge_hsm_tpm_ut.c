@@ -604,7 +604,6 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
         TEST_FUNCTION(edge_hsm_client_tpm_create_fails_when_tpm_not_initialized)
         {
             //arrange
-            int status;
             const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_store_interface();
             HSM_CLIENT_CREATE hsm_client_tpm_create = interface->hsm_client_tpm_create;
             umock_c_reset_all_calls();

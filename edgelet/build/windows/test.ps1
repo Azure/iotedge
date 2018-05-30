@@ -15,9 +15,6 @@ Assert-Rust
 $cargo = Get-CargoCommand
 $ManifestPath = Get-Manifest
 
-$env:OPENSSL_ROOT_DIR = "C:\\vcpkg\\packages\\openssl_x64-windows"
-Write-Host "OpenSSL Root Dir $env:OPENSSL_ROOT_DIR"
-
 $env:IOTEDGE_HOMEDIR = $env:Temp
 
 Write-Host "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"

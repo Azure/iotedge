@@ -71,7 +71,7 @@ typedef enum TBS_CERTIFICATE_FIELD_TAG
 typedef struct ASN1_OBJECT_TAG
 {
     ASN1_TYPE type;
-    uint32_t length;
+    size_t length;
     const unsigned char* value;
 } ASN1_OBJECT;
 

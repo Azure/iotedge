@@ -16,6 +16,9 @@
 //##############################################################################
 // Data types
 //##############################################################################
+#define OWNER_CA_PATHLEN  3
+#define DEVICE_CA_PATHLEN (OWNER_CA_PATHLEN - 1)
+
 struct STORE_ENTRY_KEY_TAG
 {
     STRING_HANDLE id;
@@ -76,10 +79,11 @@ static CRYPTO_STORE* g_crypto_store = NULL;
 //##############################################################################
 // Forward declarations
 //##############################################################################
-static int edge_hsm_client_store_create_pki_cert
+static int edge_hsm_client_store_create_pki_cert_internal
 (
     HSM_CLIENT_STORE_HANDLE handle,
-    CERT_PROPS_HANDLE cert_props_handle
+    CERT_PROPS_HANDLE cert_props_handle,
+    int ca_path_len
 );
 
 static int edge_hsm_client_store_insert_pki_trusted_cert
@@ -1034,7 +1038,8 @@ static int generate_edge_hsm_certificates(void)
     }
     else
     {
-        result = edge_hsm_client_store_create_pki_cert(g_crypto_store, ca_props);
+        result = edge_hsm_client_store_create_pki_cert_internal(g_crypto_store, ca_props,
+                                                                OWNER_CA_PATHLEN);
         cert_properties_destroy(ca_props);
         ca_props = NULL;
     }
@@ -1053,7 +1058,9 @@ static int generate_edge_hsm_certificates(void)
         }
         else
         {
-            result = edge_hsm_client_store_create_pki_cert(g_crypto_store, ca_props);
+            result = edge_hsm_client_store_create_pki_cert_internal(g_crypto_store,
+                                                                    ca_props,
+                                                                    DEVICE_CA_PATHLEN);
             cert_properties_destroy(ca_props);
             ca_props = NULL;
         }
@@ -1511,10 +1518,11 @@ static int edge_hsm_client_store_remove_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
     return remove_cert_by_alias(handle, alias);
 }
 
-static int edge_hsm_client_store_create_pki_cert
+static int edge_hsm_client_store_create_pki_cert_internal
 (
     HSM_CLIENT_STORE_HANDLE handle,
-    CERT_PROPS_HANDLE cert_props_handle
+    CERT_PROPS_HANDLE cert_props_handle,
+    int ca_path_len
 )
 {
     int result;
@@ -1559,7 +1567,7 @@ static int edge_hsm_client_store_create_pki_cert
         }
         else if (cert_file_path_helper(alias, alias_cert_handle, alias_pk_handle) != 0)
         {
-            LOG_ERROR("Could not create file paths to the certificate and private key for alias %s", alias); 
+            LOG_ERROR("Could not create file paths to the certificate and private key for alias %s", alias);
             result = __FAILURE__;
         }
         else
@@ -1596,6 +1604,7 @@ static int edge_hsm_client_store_create_pki_cert
                 // files for the requested alias
                 result = generate_pki_cert_and_key(cert_props_handle,
                                                    rand(), // todo check if rand is okay or if we need something stronger like a SHA1
+                                                   ca_path_len,
                                                    alias_pk_path,
                                                    alias_cert_path,
                                                    issuer_pk_path,
@@ -1627,11 +1636,20 @@ static int edge_hsm_client_store_create_pki_cert
     return result;
 }
 
+static int edge_hsm_client_store_create_pki_cert
+(
+    HSM_CLIENT_STORE_HANDLE handle,
+    CERT_PROPS_HANDLE cert_props_handle
+)
+{
+    return edge_hsm_client_store_create_pki_cert_internal(handle, cert_props_handle, 0);
+}
+
 static int edge_hsm_client_store_insert_pki_trusted_cert
 (
-	HSM_CLIENT_STORE_HANDLE handle,
+    HSM_CLIENT_STORE_HANDLE handle,
     const char* alias,
-	const char* cert_file_name
+    const char* cert_file_name
 )
 {
     int result;

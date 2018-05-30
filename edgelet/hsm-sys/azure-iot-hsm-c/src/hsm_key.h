@@ -133,10 +133,12 @@ static inline int key_decrypt(KEY_HANDLE key_handle,
 MOCKABLE_FUNCTION(, KEY_HANDLE, create_sas_key, const unsigned char*, key, size_t, key_len);
 MOCKABLE_FUNCTION(, void, destroy_sas_key, KEY_HANDLE, key_handle);
 MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key, CERT_PROPS_HANDLE, cert_props_handle,
-                    int, serial_number, const char*, key_file_name, const char*, cert_file_name,
+                    int, serial_number, int, ca_path_len,
+                    const char*, key_file_name, const char*, cert_file_name,
                     const char*, issuer_key_file, const char*, issuer_certificate_file);
 MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key_with_props, CERT_PROPS_HANDLE, cert_props_handle,
-                    int, serial_number, const char*, key_file_name, const char*, cert_file_name,
+                    int, serial_number, int, ca_path_len,
+                    const char*, key_file_name, const char*, cert_file_name,
                     const PKI_KEY_PROPS*, key_props);
 
 MOCKABLE_FUNCTION(, KEY_HANDLE, create_cert_key, const char*, key_file_name);

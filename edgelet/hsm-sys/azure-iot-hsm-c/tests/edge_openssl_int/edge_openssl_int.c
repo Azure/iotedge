@@ -78,7 +78,6 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
     uint64_t validity
 )
 {
-    int result;
     CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
     ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
     set_validity_seconds(cert_props_handle, validity);
@@ -98,6 +97,7 @@ static void test_helper_generate_pki_certificate
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_num,
+    int path_len,
     const char *private_key_file,
     const char *cert_file,
     const char *issuer_private_key_file,
@@ -106,6 +106,7 @@ static void test_helper_generate_pki_certificate
 {
     int result = generate_pki_cert_and_key(cert_props_handle,
                                            serial_num,
+                                           path_len,
                                            private_key_file,
                                            cert_file,
                                            issuer_private_key_file,
@@ -117,6 +118,7 @@ static void test_helper_generate_self_signed
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_num,
+    int path_len,
     const char *private_key_file,
     const char *cert_file,
     const PKI_KEY_PROPS *key_props
@@ -124,6 +126,7 @@ static void test_helper_generate_self_signed
 {
     int result = generate_pki_cert_and_key_with_props(cert_props_handle,
                                                       serial_num,
+                                                      path_len,
                                                       private_key_file,
                                                       cert_file,
                                                       key_props);
@@ -158,12 +161,14 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
     // act
     test_helper_generate_self_signed(ca_root_handle,
                                     TEST_SERIAL_NUM + 1,
+                                    2,
                                     TEST_CA_PK_RSA_FILE_1,
                                     TEST_CA_CERT_RSA_FILE_1,
                                     key_props);
 
     test_helper_generate_pki_certificate(int_ca_root_handle,
                                          TEST_SERIAL_NUM + 2,
+                                         1,
                                          TEST_CA_PK_RSA_FILE_2,
                                          TEST_CA_CERT_RSA_FILE_2,
                                          TEST_CA_PK_RSA_FILE_1,
@@ -171,6 +176,7 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
 
     test_helper_generate_pki_certificate(server_root_handle,
                                          TEST_SERIAL_NUM + 3,
+                                         0,
                                          TEST_SERVER_PK_RSA_FILE_3,
                                          TEST_SERVER_CERT_RSA_FILE_3,
                                          TEST_CA_PK_RSA_FILE_2,
@@ -236,6 +242,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         0,
                                          TEST_SERVER_PK_RSA_FILE_1,
                                          TEST_SERVER_CERT_RSA_FILE_1,
                                          &key_props);
@@ -262,6 +269,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         0,
                                          TEST_CLIENT_PK_RSA_FILE_1,
                                          TEST_CLIENT_CERT_RSA_FILE_1,
                                          &key_props);
@@ -271,6 +279,31 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // cleanup
         delete_file(TEST_CLIENT_PK_RSA_FILE_1);
         delete_file(TEST_CLIENT_CERT_RSA_FILE_1);
+        cert_properties_destroy(cert_props_handle);
+    }
+
+    TEST_FUNCTION(test_self_signed_non_ca_cert_with_non_zero_path_fails)
+    {
+        // arrange
+        CERT_PROPS_HANDLE cert_props_handle;
+        cert_props_handle = test_helper_create_certificate_props(TEST_SERVER_CN_1,
+                                                                 TEST_SERVER_ALIAS_1,
+                                                                 TEST_SERVER_ALIAS_1,
+                                                                 CERTIFICATE_TYPE_SERVER,
+                                                                 TEST_VALIDITY);
+        PKI_KEY_PROPS key_props = { HSM_PKI_KEY_RSA, NULL };
+
+        // act
+        int result = generate_pki_cert_and_key_with_props(cert_props_handle,
+                                                          TEST_SERIAL_NUM,
+                                                          2,
+                                                          TEST_SERVER_PK_RSA_FILE_1,
+                                                          TEST_SERVER_CERT_RSA_FILE_1,
+                                                          &key_props);
+        // assert
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
         cert_properties_destroy(cert_props_handle);
     }
 
@@ -288,6 +321,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         2,
                                          TEST_CA_PK_RSA_FILE_1,
                                          TEST_CA_CERT_RSA_FILE_1,
                                          &key_props);
@@ -315,6 +349,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         0,
                                          TEST_SERVER_PK_ECC_FILE_1,
                                          TEST_SERVER_CERT_ECC_FILE_1,
                                          &key_props);
@@ -341,6 +376,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         0,
                                          TEST_CLIENT_PK_ECC_FILE_1,
                                          TEST_CLIENT_CERT_ECC_FILE_1,
                                          &key_props);
@@ -367,6 +403,7 @@ BEGIN_TEST_SUITE(edge_openssl_int_tests)
         // act
         test_helper_generate_self_signed(cert_props_handle,
                                          TEST_SERIAL_NUM,
+                                         2,
                                          TEST_CA_PK_ECC_FILE_1,
                                          TEST_CA_CERT_ECC_FILE_1,
                                          &key_props);

@@ -607,7 +607,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //assert
         ASSERT_IS_NOT_NULL(priv_key);
         ASSERT_ARE_EQUAL(int, 0, memcmp(priv_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LEN));
-        ASSERT_ARE_EQUAL(int, TEST_PRIVATE_KEY_LEN, pk_len);
+        ASSERT_ARE_EQUAL(size_t, TEST_PRIVATE_KEY_LEN, pk_len);
 
         //cleanup
         certificate_info_destroy(cert_handle);
@@ -623,7 +623,7 @@ BEGIN_TEST_SUITE(certificate_info_ut)
 
         //assert
         ASSERT_IS_NULL(priv_key);
-        ASSERT_ARE_EQUAL(int, 123, pk_len);
+        ASSERT_ARE_EQUAL(size_t, 123, pk_len);
 
         //cleanup
     }

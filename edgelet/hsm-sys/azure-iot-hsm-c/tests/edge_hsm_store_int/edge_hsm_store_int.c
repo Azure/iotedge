@@ -48,7 +48,6 @@ static CERT_PROPS_HANDLE test_helper_create_certificate_props
     uint64_t validity
 )
 {
-    int result;
     CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
     ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
     set_validity_seconds(cert_props_handle, validity);

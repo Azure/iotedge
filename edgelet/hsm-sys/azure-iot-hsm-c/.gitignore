@@ -5,7 +5,7 @@
 # Compiled static libraries
 *.a
 
-cmake/
+cmake*/
 build/
 
 # Doxygen output

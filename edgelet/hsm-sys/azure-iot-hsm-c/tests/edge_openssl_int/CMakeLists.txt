@@ -13,6 +13,9 @@ set(theseTestsName edge_openssl_inut)
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
+    ../../src/edge_pki_openssl.c
+    ../../src/hsm_utils.c
+    ../../src/hsm_log.c
     edge_openssl_int.c
 )
 

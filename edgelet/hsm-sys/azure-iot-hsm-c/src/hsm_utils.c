@@ -14,10 +14,11 @@
 #define HSM_UTIL_EMPTY 2
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    #include <direct.h>
     #if !defined S_ISDIR
         #define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
     #endif
-    #define HSM_MKDIR(dir_path) mkdir(dir_path)
+    #define HSM_MKDIR(dir_path) _mkdir(dir_path)
 #else
     #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
 #endif

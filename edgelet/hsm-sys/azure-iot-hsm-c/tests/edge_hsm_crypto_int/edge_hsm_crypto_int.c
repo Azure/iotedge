@@ -252,7 +252,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
 
         // cleanup
         certificate_info_destroy(result);

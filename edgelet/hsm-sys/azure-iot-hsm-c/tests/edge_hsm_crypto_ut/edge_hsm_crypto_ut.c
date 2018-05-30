@@ -652,7 +652,6 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_crypto_create_fails_when_crypto_not_initialized)
         {
             //arrange
-            int status;
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
             umock_c_reset_all_calls();

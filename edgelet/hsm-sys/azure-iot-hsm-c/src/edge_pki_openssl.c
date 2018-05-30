@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdbool.h>
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
@@ -5,6 +6,7 @@
 #include <openssl/ec.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/buffer_.h"
@@ -183,7 +185,7 @@ static EVP_PKEY* generate_rsa_key(CERTIFICATE_TYPE cert_type)
         EVP_PKEY_free(pkey);
         pkey = NULL;
     }
-    else if ((status = RSA_generate_key_ex(rsa, key_len, bne, NULL)) != 1)
+    else if ((status = RSA_generate_key_ex(rsa, (int)key_len, bne, NULL)) != 1)
     {
         LOG_ERROR("Unable to generate RSA key");
         RSA_free(rsa);
@@ -471,7 +473,7 @@ static int cert_set_expiration
     }
     else
     {
-	    // compute the MIN of seconds between:
+        // compute the MIN of seconds between:
         //    - UTC now() and the issuer certificate expiration timestamp and
         //    - Requested certificate expiration time expressed in UTC seconds from now()
         uint64_t requested_validity = get_validity_seconds(cert_props_handle);
@@ -485,7 +487,7 @@ static int cert_set_expiration
                 LOG_ERROR("Invalid time format in issuer certificate");
                 result = __FAILURE__;
             }
-			// check if issuer certificate is expired
+            // check if issuer certificate is expired
             else if ((diff_days < 0) || ((diff_days == 0) && (diff_seconds <= 0)))
             {
                 LOG_ERROR("Issuer certificate has expired. Diff days: %d, secs %d",
@@ -530,12 +532,17 @@ static int cert_set_expiration
 {
     int result;
     uint64_t requested_validity = get_validity_seconds(cert_props_handle);
-    if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
+    if (requested_validity > LONG_MAX)
+    {
+        LOG_ERROR("Number of seconds too large %llu", requested_validity);
+        result = __FAILURE__;
+    }
+    else if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
     {
         LOG_ERROR("Failure setting not before time");
         result = __FAILURE__;
     }
-    else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), requested_validity))
+    else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), (long)requested_validity))
     {
         LOG_ERROR("Failure setting not after time %lu", requested_validity);
         result = __FAILURE__;
@@ -548,6 +555,56 @@ static int cert_set_expiration
     return result;
 }
 #endif
+
+static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE type, int ca_path_len)
+{
+    int result;
+    BASIC_CONSTRAINTS *bc;
+
+    if ((bc = BASIC_CONSTRAINTS_new()) == NULL)
+    {
+        LOG_ERROR("Could not allocate basic constraint");
+        result = __FAILURE__;
+    }
+    else
+    {
+        int is_critical = 0;
+        bc->ca = 0;
+        if (type == CERTIFICATE_TYPE_CA)
+        {
+            bc->ca = 1;
+            bc->pathlen = ASN1_INTEGER_new();
+            ASN1_INTEGER_set(bc->pathlen, ca_path_len);
+            is_critical = 1;
+        }
+        if (X509_add1_ext_i2d(x509_cert, NID_basic_constraints, bc, is_critical, X509V3_ADD_DEFAULT) != 1)
+        {
+            LOG_ERROR("Could not add basic constraint extension to certificate");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        BASIC_CONSTRAINTS_free(bc);
+    }
+
+    return result;
+}
+
+static int cert_set_extensions
+(
+    X509 *x509_cert,
+    X509* issuer_cert,
+    CERT_PROPS_HANDLE cert_props_handle,
+    int ca_path_len
+)
+{
+    (void)issuer_cert;
+    CERTIFICATE_TYPE type;
+    type = get_certificate_type(cert_props_handle);
+    return set_basic_constraints(x509_cert, type, ca_path_len);
+}
 
 static int cert_set_subject_field
 (
@@ -728,6 +785,7 @@ static int generate_evp_certificate
     X509* issuer_certificate,
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_num,
+    int ca_path_len,
     const char* cert_file_name,
     X509** result_cert
 )
@@ -751,6 +809,14 @@ static int generate_evp_certificate
         else if (cert_set_expiration(x509_cert, issuer_certificate, cert_props_handle) != 0)
         {
             LOG_ERROR("Failure setting certificate validity period");
+            result = __FAILURE__;
+        }
+        else if (cert_set_extensions(x509_cert,
+                                     issuer_certificate,
+                                     cert_props_handle,
+                                     ca_path_len) != 0)
+        {
+            LOG_ERROR("Failure setting certificate extensions");
             result = __FAILURE__;
         }
         else if (cert_set_subject_fields_and_issuer(x509_cert,
@@ -791,6 +857,7 @@ static int generate_pki_cert_and_key_helper
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_number,
+    int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
     const char* issuer_key_file,
@@ -838,6 +905,11 @@ static int generate_pki_cert_and_key_helper
         LOG_ERROR("Invalid issuer certificate and key file provided");
         result = __FAILURE__;
     }
+    else if (ca_path_len < 0)
+    {
+        LOG_ERROR("Invalid CA path len %d", ca_path_len);
+        result = __FAILURE__;
+    }
     else
     {
         result = 0;
@@ -859,15 +931,19 @@ static int generate_pki_cert_and_key_helper
             X509* x509_cert = NULL;
             EVP_PKEY* evp_key = NULL;
             CERTIFICATE_TYPE type = get_certificate_type(cert_props_handle);
-
-            if (generate_cert_key(type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
+            if ((type != CERTIFICATE_TYPE_CA) && (ca_path_len != 0))
+            {
+                LOG_ERROR("Invalid path len argument provided for a non CA certificate request");
+                result = __FAILURE__;
+            }
+            else if (generate_cert_key(type, issuer_certificate, key_file_name, &evp_key, key_props) != 0)
             {
                 LOG_ERROR("Could not generate private key for certificate create request");
                 result = __FAILURE__;
             }
             else if (generate_evp_certificate(evp_key, issuer_evp_key, issuer_certificate,
-                                              cert_props_handle, serial_number, cert_file_name,
-                                              &x509_cert) != 0)
+                                              cert_props_handle, serial_number, ca_path_len,
+                                              cert_file_name, &x509_cert) != 0)
             {
                 LOG_ERROR("Could not generate certificate create request");
                 result = __FAILURE__;
@@ -900,6 +976,7 @@ int generate_pki_cert_and_key_with_props
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_number,
+    int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
     const PKI_KEY_PROPS *key_props
@@ -918,6 +995,7 @@ int generate_pki_cert_and_key_with_props
     {
         result = generate_pki_cert_and_key_helper(cert_props_handle,
                                                   serial_number,
+                                                  ca_path_len,
                                                   key_file_name,
                                                   cert_file_name,
                                                   NULL,
@@ -932,6 +1010,7 @@ int generate_pki_cert_and_key
 (
     CERT_PROPS_HANDLE cert_props_handle,
     int serial_number,
+    int ca_path_len,
     const char* key_file_name,
     const char* cert_file_name,
     const char* issuer_key_file,
@@ -940,6 +1019,7 @@ int generate_pki_cert_and_key
 {
     return generate_pki_cert_and_key_helper(cert_props_handle,
                                             serial_number,
+                                            ca_path_len,
                                             key_file_name,
                                             cert_file_name,
                                             issuer_key_file,
