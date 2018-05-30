@@ -163,8 +163,13 @@ where
         scope_id: &str,
         registration_id: &str,
         operation_id: &str,
+        key: K,
     ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error>> {
+        let token_source =
+            DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
         let request = client.read().expect("RwLock read failure")
+            .clone()
+            .with_token_source(token_source)
             .request::<(), RegistrationOperationStatus>(
                 Method::Get,
                 &format!(
@@ -207,6 +212,7 @@ where
         registration_id: String,
         operation_id: String,
         seconds_to_try: u64,
+        key: K,
     ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error>> {
         let chain = Interval::new(Instant::now(), Duration::from_secs(1))
             .take(seconds_to_try)
@@ -217,6 +223,7 @@ where
                     &scope_id,
                     &registration_id,
                     &operation_id,
+                    key.clone(),
                 )
             })
             .skip_while(
@@ -298,6 +305,7 @@ where
     }
 
     pub fn register(&self) -> Box<Future<Item = (String, String), Error = Error>> {
+        let key_store = self.key_store.clone();
         let mut key_store_status = self.key_store.clone();
         let client_with_token_status = self.client.clone();
         let scope_id = self.scope_id.clone();
@@ -316,17 +324,25 @@ where
             &self.key_store,
         ).and_then(
             move |operation_status: Option<RegistrationOperationStatus>| {
-                operation_status
-                    .map(move |s| {
-                        Either::A(Self::get_device_registration_result(
-                            client_with_token_status,
-                            scope_id_status,
-                            registration_id_status,
-                            s.operation_id().clone(),
-                            seconds_to_try,
-                        ))
+                key_store
+                    .get("dps", "auth")
+                    .map(|k| {
+                        operation_status
+                            .map(move |s| {
+                                Either::A(Self::get_device_registration_result(
+                                    client_with_token_status,
+                                    scope_id_status,
+                                    registration_id_status,
+                                    s.operation_id().clone(),
+                                    seconds_to_try,
+                                    k.clone(),
+                                ))
+                            })
+                            .unwrap_or_else(|| {
+                                Either::B(future::err(Error::from(ErrorKind::NotAssigned)))
+                            })
                     })
-                    .unwrap_or_else(|| Either::B(future::err(Error::from(ErrorKind::NotAssigned))))
+                    .unwrap_or_else(|err| Either::B(future::err(Error::from(err))))
             },
         )
             .and_then(move |operation_status: Option<DeviceRegistrationResult>| {
@@ -557,6 +573,7 @@ mod tests {
                 unimplemented!();
             }
         };
+        let key = MemoryKey::new("key".to_string());
         let service = service_fn(handler);
         let client = Arc::new(RwLock::new(
             Client::new(
@@ -568,7 +585,7 @@ mod tests {
                 .with_token_source(DpsTokenSource::new(
                     "scope_id".to_string(),
                     "reg".to_string(),
-                    MemoryKey::new("key".to_string()),
+                    key.clone(),
                 ))
                 .clone(),
         ));
@@ -578,6 +595,7 @@ mod tests {
             "reg".to_string(),
             "operation".to_string(),
             5,
+            key,
         );
         let task = dps_operation.map(|result| {
             match result {
@@ -602,6 +620,7 @@ mod tests {
                 ),
             )
         };
+        let key = MemoryKey::new("key".to_string());
         let service = service_fn(handler);
         let client = Arc::new(RwLock::new(
             Client::new(
@@ -613,7 +632,7 @@ mod tests {
                 .with_token_source(DpsTokenSource::new(
                     "scope_id".to_string(),
                     "reg".to_string(),
-                    MemoryKey::new("key".to_string()),
+                    key.clone(),
                 ))
                 .clone(),
         ));
@@ -623,6 +642,7 @@ mod tests {
             "reg".to_string(),
             "operation".to_string(),
             5,
+            key,
         );
         let task = dps_operation.map(|result| {
             match result {
@@ -666,6 +686,7 @@ mod tests {
             "scope_id",
             "reg",
             "operation",
+            MemoryKey::new("key".to_string()),
         );
         let task = dps_operation.map(|result| match result {
             Some(op) => {
@@ -692,6 +713,7 @@ mod tests {
             "scope_id",
             "reg",
             "operation",
+            MemoryKey::new("key".to_string()),
         );
         let task = dps_operation.then(|result| {
             match result {
