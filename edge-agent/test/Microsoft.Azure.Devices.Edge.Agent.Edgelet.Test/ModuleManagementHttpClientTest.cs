@@ -114,6 +114,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.NotNull(moduleDetails);
             Assert.Equal("Stopped", moduleDetails.Status.RuntimeStatus.Status);
 
+            // Act - Stopping a stopped module should not throw
+            await client.StopModuleAsync(moduleSpec.Name);
+            moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();
+
+            // Assert
+            Assert.NotNull(moduleDetails);
+            Assert.Equal("Stopped", moduleDetails.Status.RuntimeStatus.Status);
+
             // Act
             await client.DeleteModuleAsync(moduleSpec.Name);
             moduleDetails = (await client.GetModules(CancellationToken.None)).FirstOrDefault();

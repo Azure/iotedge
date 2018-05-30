@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             try
             {
                 Events.ExecutingOperation(operation, this.managementUri.ToString());
-                T result = await ExecuteWithRetry(func, (r) => Events.RetryingOperation(operation, this.managementUri.ToString(), r));
+                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.managementUri.ToString(), r));
                 Events.SuccessfullyExecutedOperation(operation, this.managementUri.ToString());
                 return result;
             }
@@ -166,9 +166,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 switch (ex)
                 {
                     case SwaggerException<ErrorResponse> errorResponseException:
-                        throw new EdgeletCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);
+                        throw new EdgeletCommunicationException($"Error calling {operation}: {errorResponseException.Result?.Message ?? string.Empty}", errorResponseException.StatusCode);                        
+                        
                     case SwaggerException swaggerException:
-                        throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
+                        if (swaggerException.StatusCode < 400)
+                        {
+                            Events.SuccessfullyExecutedOperation(operation, this.managementUri.ToString());
+                            return default(T);
+                        }
+                        else
+                        {
+                            throw new EdgeletCommunicationException($"Error calling {operation}: {swaggerException.Response ?? string.Empty}", swaggerException.StatusCode);
+                        }
                     default:
                         throw;
                 }
