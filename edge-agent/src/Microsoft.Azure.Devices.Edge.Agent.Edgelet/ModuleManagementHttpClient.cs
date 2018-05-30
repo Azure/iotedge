@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
-                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, name), $"Create identity for {name}");
+                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, new IdentitySpec { ModuleId = name}), $"Create identity for {name}");
                 return identity;
             }
         }
@@ -43,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
                 Identity identity = await this.Execute(() => edgeletHttpClient.UpdateIdentityAsync(
                     ApiVersion,
-                    new IdentitySpec() { ModuleId = name, GenerationId = generationId }),
+                    name,
+                    new UpdateIdentity { GenerationId = generationId }),
                     $"Update identity for {name} with generation ID {generationId}");
                 return identity;
             }

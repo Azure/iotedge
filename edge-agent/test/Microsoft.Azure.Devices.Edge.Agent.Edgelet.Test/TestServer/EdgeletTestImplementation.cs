@@ -13,33 +13,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
         readonly ConcurrentDictionary<string, Identity> identities = new ConcurrentDictionary<string, Identity>();
         readonly ConcurrentDictionary<string, ModuleDetails> modules = new ConcurrentDictionary<string, ModuleDetails>();
 
-        public Task<Identity> CreateIdentityAsync(string apiVersion, string name) =>
-            Task.FromResult(this.identities.GetOrAdd(name, (n) => new Identity { ModuleId = n, ManagedBy = "IotEdge", GenerationId = Guid.NewGuid().ToString() }));
+        public Task<Identity> CreateIdentityAsync(string apiVersion, IdentitySpec identity) =>
+            Task.FromResult(this.identities.GetOrAdd(identity.ModuleId, (n) => new Identity { ModuleId = n, ManagedBy = "IotEdge", GenerationId = Guid.NewGuid().ToString() }));
 
-        public Task<Identity> UpdateIdentityAsync(string apiVersion, IdentitySpec identity)
+        public Task<Identity> UpdateIdentityAsync(string apiVersion, string name, UpdateIdentity updateinfo)
         {
-            if (this.identities.ContainsKey(identity.ModuleId) == false)
+            if (this.identities.ContainsKey(name) == false)
             {
                 throw new InvalidOperationException("Module not found");
             }
 
-            if (string.IsNullOrEmpty(identity.GenerationId))
+            if (string.IsNullOrEmpty(updateinfo.GenerationId))
             {
                 throw new InvalidOperationException("Generation ID not specified");
             }
 
             var newIdentity = new Identity
             {
-                ModuleId = identity.ModuleId,
+                ModuleId = name,
                 ManagedBy = "IotEdge",
-                GenerationId = identity.GenerationId
+                GenerationId = updateinfo.GenerationId
             };
 
             return Task.FromResult(
                 this.identities.AddOrUpdate(
-                    identity.ModuleId,
+                    name,
                     newIdentity,
-                    (name, val) => newIdentity));
+                    (n, v) => newIdentity));
         }
 
         public Task<ModuleDetails> CreateModuleAsync(string apiVersion, ModuleSpec module)

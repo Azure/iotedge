@@ -12,6 +12,9 @@ pub enum Error {
 
     #[fail(display = "Module not found")]
     ModuleNotFound,
+
+    #[fail(display = "Module generation ID was not provided")]
+    MissingGenerationId,
 }
 
 impl From<Error> for CoreError {
@@ -129,25 +132,29 @@ impl IdentityManager for TestIdentityManager {
     }
 
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
-        // find the existing module
-        let index = self.identities
-            .iter()
-            .position(|m| m.module_id() == id.module_id())
-            .unwrap();
+        if let Some(generation_id) = id.generation_id() {
+            // find the existing module
+            let index = self.identities
+                .iter()
+                .position(|m| m.module_id() == id.module_id())
+                .unwrap();
 
-        let mut module = self.identities[index].clone();
+            let mut module = self.identities[index].clone();
 
-        // verify if genid matches
-        assert_eq!(&module.generation_id, id.generation_id().unwrap());
+            // verify if genid matches
+            assert_eq!(&module.generation_id, generation_id);
 
-        // set the sas type
-        module.auth_type = AuthType::Sas;
+            // set the sas type
+            module.auth_type = AuthType::Sas;
 
-        // delete/insert updated module
-        self.identities.remove(index);
-        self.identities.push(module.clone());
+            // delete/insert updated module
+            self.identities.remove(index);
+            self.identities.push(module.clone());
 
-        future::ok(module)
+            future::ok(module)
+        } else {
+            future::err(Error::MissingGenerationId)
+        }
     }
 
     fn list(&self) -> Self::ListFuture {

@@ -12,6 +12,8 @@ mod identity_list;
 pub use self::identity_list::IdentityList;
 mod identity_spec;
 pub use self::identity_spec::IdentitySpec;
+mod update_identity;
+pub use self::update_identity::UpdateIdentity;
 mod module_details;
 pub use self::module_details::ModuleDetails;
 mod module_list;

@@ -258,12 +258,37 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+    post:
+      tags:
+        - Identity
+      summary: Create an identity.
+      operationId: CreateIdentity
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: body
+          name: identity
+          required: true
+          schema:
+            $ref: '#/definitions/IdentitySpec'
+      responses:
+        '200':
+          description: Created
+          schema:
+            $ref: '#/definitions/Identity'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
   '/identities/{name}':
     put:
       tags:
         - Identity
-      summary: Create or update an identity.
-      operationId: CreateIdentity
+      summary: Update an identity.
+      operationId: UpdateIdentity
       consumes:
         - application/json
       produces:
@@ -272,21 +297,17 @@ paths:
         - $ref: '#/parameters/api-version'
         - in: path
           name: name
-          description: The name of the identity to create/update. (urlencoded)
+          description: The name of the identity to update. (urlencoded)
           required: true
           type: string
         - in: body
-          name: identity
+          name: updateinfo
           required: true
           schema:
-            $ref: '#/definitions/IdentitySpec'
+            $ref: '#/definitions/UpdateIdentity'
       responses:
         '200':
           description: Updated
-          schema:
-            $ref: '#/definitions/Identity'
-        '201':
-          description: Created
           schema:
             $ref: '#/definitions/Identity'
         default:
@@ -455,6 +476,14 @@ definitions:
         example: "edgeHub"
     required:
       - moduleId
+  UpdateIdentity:
+    type: object
+    properties:
+      generationId:
+        type: string
+        example: "636463636967581550"
+    required:
+      - generationId
   Identity:
     type: object
     properties:
@@ -466,7 +495,7 @@ definitions:
         example: "iot-edge"
       generationId:
         type: string
-        example: "731f88d3-cf72-4a23-aca1-cd91fd4f52ff"
+        example: "636463636967581550"
       authType:
         type: string
         enum:

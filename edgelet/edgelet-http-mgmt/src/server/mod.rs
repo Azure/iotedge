@@ -44,7 +44,8 @@ impl ManagementService {
             post   "/modules/(?P<name>[^/]+)/restart" => RestartModule::new(runtime.clone()),
 
             get    "/identities"                      => ListIdentities::new(identity.clone()),
-            put    "/identities/(?P<name>[^/]+)"      => CreateIdentity::new(identity.clone()),
+            post   "/identities"                      => CreateIdentity::new(identity.clone()),
+            put    "/identities/(?P<name>[^/]+)"      => UpdateIdentity::new(identity.clone()),
             delete "/identities/(?P<name>[^/]+)"      => DeleteIdentity::new(identity.clone()),
         );
         let inner = router.new_service()?;
