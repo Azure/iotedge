@@ -16,6 +16,7 @@ use bytes::Bytes;
 use edgelet_core::crypto::Sign;
 use edgelet_core::crypto::Signature;
 use edgelet_core::crypto::SignatureAlgorithm;
+use edgelet_core::KeyIdentity;
 use edgelet_core::KeyStore;
 use edgelet_hsm::TpmKeyStore;
 
@@ -43,20 +44,23 @@ fn tpm_basic_test() {
 
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
-    let module1_identity: &str = "module1";
+    let module1_str = "module1";
+    let module1_identity: KeyIdentity = KeyIdentity::Module(module1_str.to_string());
 
     key_store
         .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
-    let key1 = key_store.get(module1_identity, "ignored").unwrap();
+    let key1 = key_store.get(&module1_identity, "primary").unwrap();
 
     let data_to_be_signed1 = b"I am the very model of a modern major general";
     let data_to_be_signed2 = b"I've information vegetable, animal, and mineral,";
 
     // compute expected result
-    let test_expected_primary_key_buf =
-        test_helper_compute_hmac(decoded_key_str.as_bytes(), module1_identity.as_bytes());
+    let test_expected_primary_key_buf = test_helper_compute_hmac(
+        decoded_key_str.as_bytes(),
+        format!("{}{}", module1_str, "primary").as_bytes(),
+    );
 
     let test_expected_digest1 =
         test_helper_compute_hmac(test_expected_primary_key_buf.as_slice(), data_to_be_signed1);

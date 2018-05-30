@@ -4,17 +4,21 @@ use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
 
-use edgelet_core::crypto::{Activate, KeyStore as CoreKeyStore, Sign, SignatureAlgorithm};
+use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore as CoreKeyStore, Sign,
+                           SignatureAlgorithm};
 use edgelet_core::Error as CoreError;
 use hsm::{ManageTpmKeys, SignWithTpm, Tpm, TpmDigest};
 
 pub use error::{Error, ErrorKind};
 
+const ROOT_KEY_NAME: &str = "primary";
+
 /// Represents a key which can sign data.
 #[derive(Clone)]
 pub struct TpmKey {
     tpm: Arc<RwLock<Tpm>>,
-    identity: Option<String>,
+    identity: KeyIdentity,
+    key_name: String,
 }
 
 /// The TPM Key Store.
@@ -50,7 +54,8 @@ impl TpmKeyStore {
     pub fn get_active_key(&self) -> Result<TpmKey, Error> {
         Ok(TpmKey {
             tpm: Arc::clone(&self.tpm),
-            identity: None,
+            identity: KeyIdentity::Device,
+            key_name: ROOT_KEY_NAME.to_string(),
         })
     }
 }
@@ -59,14 +64,22 @@ impl CoreKeyStore for TpmKeyStore {
     type Key = TpmKey;
 
     /// Get a TPM Key which will derive and sign data.
-    fn get(&self, identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
-        if identity.is_empty() {
-            Err(Error::from(ErrorKind::EmptyStrings))?;
+    fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
+        match *identity {
+            KeyIdentity::Device => self.get_active_key().map_err(CoreError::from),
+            KeyIdentity::Module(ref m) => {
+                if key_name.is_empty() || m.is_empty() {
+                    Err(ErrorKind::EmptyStrings)
+                        .map_err(Error::from)
+                        .map_err(CoreError::from)?;
+                }
+                Ok(TpmKey {
+                    tpm: Arc::clone(&self.tpm),
+                    identity: identity.clone(),
+                    key_name: key_name.to_string(),
+                })
+            }
         }
-        Ok(TpmKey {
-            tpm: Arc::clone(&self.tpm),
-            identity: Some(identity.to_string()),
-        })
     }
 }
 
@@ -75,10 +88,15 @@ impl Activate for TpmKeyStore {
 
     fn activate_identity_key<B: AsRef<[u8]>>(
         &mut self,
-        _identity: String,
+        identity: KeyIdentity,
         _key_name: String,
         key: B,
     ) -> Result<(), CoreError> {
+        if identity != KeyIdentity::Device {
+            Err(ErrorKind::NoModuleActivation)
+                .map_err(Error::from)
+                .map_err(CoreError::from)?;
+        }
         self.activate_key(&Bytes::from(key.as_ref()))
             .map_err(CoreError::from)
     }
@@ -95,20 +113,29 @@ impl Sign for TpmKey {
         _signature_algorithm: SignatureAlgorithm,
         data: &[u8],
     ) -> Result<Self::Signature, CoreError> {
-        if let Some(ref id) = self.identity.as_ref() {
-            self.tpm
-                .read()
-                .expect("Read lock failed")
-                .derive_and_sign_with_identity(data, id.as_bytes())
-                .map_err(Error::from)
-                .map_err(CoreError::from)
-        } else {
-            self.tpm
+        match self.identity {
+            KeyIdentity::Device => self.tpm
                 .read()
                 .expect("Read lock failed")
                 .sign_with_identity(data)
                 .map_err(Error::from)
-                .map_err(CoreError::from)
+                .map_err(CoreError::from),
+            KeyIdentity::Module(ref _m) => self.tpm
+                .read()
+                .expect("Read lock failed")
+                .derive_and_sign_with_identity(
+                    data,
+                    format!(
+                        "{}{}",
+                        match self.identity {
+                            KeyIdentity::Device => "",
+                            KeyIdentity::Module(ref m) => m,
+                        },
+                        self.key_name
+                    ).as_bytes(),
+                )
+                .map_err(Error::from)
+                .map_err(CoreError::from),
         }
     }
 }

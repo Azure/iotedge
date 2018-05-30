@@ -44,7 +44,7 @@ use std::collections::HashMap;
 use std::env;
 
 use docker::models::HostConfig;
-use edgelet_core::crypto::{DerivedKeyStore, KeyStore, MemoryKey, MemoryKeyStore, Sign};
+use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore, Sign};
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
@@ -270,7 +270,7 @@ fn manual_provision(
         .map_err(Error::from)
         .and_then(move |prov_result| {
             memory_hsm
-                .get("device", "primary")
+                .get(&KeyIdentity::Device, "primary")
                 .map_err(Error::from)
                 .and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
@@ -305,7 +305,7 @@ where
         .map_err(Error::from)
         .and_then(move |prov_result| {
             tpm_hsm
-                .get("device", "identity")
+                .get(&KeyIdentity::Device, "primary")
                 .map_err(Error::from)
                 .and_then(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());

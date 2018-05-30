@@ -14,7 +14,7 @@ use regex::RegexSet;
 use url::Url;
 
 use dps::registration::{DpsClient, DpsTokenSource};
-use edgelet_core::crypto::{Activate, KeyStore, MemoryKey, MemoryKeyStore};
+use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::Client as HttpClient;
 use error::{Error, ErrorKind};
@@ -125,7 +125,7 @@ impl Provision for ManualProvisioning {
             &device_id, &hub
         );
         let result = key_activator
-            .activate_identity_key("device".to_string(), "primary".to_string(), key)
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key)
             .map(|_| ProvisioningResult {
                 device_id,
                 hub_name: hub,

@@ -29,14 +29,13 @@ fn tpm_identity_affects_digest() {
     let decoded_key = base64::decode(TEST_KEY_BASE64).unwrap();
     let decoded_key_str = unsafe { str::from_utf8_unchecked(&decoded_key) };
     let module1_identity: KeyIdentity = KeyIdentity::Module("module1".to_string());
-    let module2_identity: KeyIdentity = KeyIdentity::Module("module2".to_string());
 
     key_store
         .activate_key(&Bytes::from(decoded_key_str))
         .unwrap();
 
-    let key1 = key_store.get(&module1_identity, "fixed value").unwrap();
-    let key2 = key_store.get(&module2_identity, "fixed value").unwrap();
+    let key1 = key_store.get(&module1_identity, "primary").unwrap();
+    let key2 = key_store.get(&module1_identity, "secondary").unwrap();
 
     let data_to_be_signed = b"I am the very model of a modern major general";
 

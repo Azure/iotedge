@@ -22,6 +22,8 @@ pub enum ErrorKind {
     X509NotEnabled,
     #[fail(display = "Empty strings are not allowed")]
     EmptyStrings,
+    #[fail(display = "Only Device keys are allowed to be activated")]
+    NoModuleActivation,
 }
 
 impl Fail for Error {

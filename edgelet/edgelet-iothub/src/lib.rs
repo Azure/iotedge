@@ -40,7 +40,7 @@ use hyper::{Error as HyperError, Request, Response};
 use percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 use url::form_urlencoded::Serializer as UrlSerializer;
 
-use edgelet_core::crypto::{KeyStore, Sign, Signature, SignatureAlgorithm};
+use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 use edgelet_http::client::TokenSource;
 use iothubservice::{AuthMechanism, AuthType as HubAuthType, DeviceClient,
@@ -210,11 +210,17 @@ where
     fn get_key_pair(&self, id: &str, generation_id: &str) -> Result<(K::Key, K::Key), Error> {
         self.state
             .key_store
-            .get(id, &build_key_name(KEY_PRIMARY, generation_id))
+            .get(
+                &KeyIdentity::Module(id.to_string()),
+                &build_key_name(KEY_PRIMARY, generation_id),
+            )
             .and_then(|primary_key| {
                 self.state
                     .key_store
-                    .get(id, &build_key_name(KEY_SECONDARY, generation_id))
+                    .get(
+                        &KeyIdentity::Module(id.to_string()),
+                        &build_key_name(KEY_SECONDARY, generation_id),
+                    )
                     .map(|secondary_key| (primary_key, secondary_key))
             })
             .context(ErrorKind::CannotGetKey(id.to_string()))
@@ -395,12 +401,12 @@ mod tests {
     fn get_key_pair_succeeds() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_PRIMARY, "g1"),
             MemoryKey::new("pkey"),
         );
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_SECONDARY, "g1"),
             MemoryKey::new("skey"),
         );
@@ -457,7 +463,7 @@ mod tests {
     fn get_key_pair_fails_for_no_pkey() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_SECONDARY, "g1"),
             MemoryKey::new("skey"),
         );
@@ -487,7 +493,7 @@ mod tests {
     fn get_key_pair_fails_for_no_skey() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_PRIMARY, "g1"),
             MemoryKey::new("pkey"),
         );
@@ -516,12 +522,12 @@ mod tests {
     fn create_succeeds() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_PRIMARY, "g1"),
             MemoryKey::new("pkey"),
         );
         key_store.insert(
-            "m1",
+            &KeyIdentity::Module("m1".to_string()),
             &format!("{}{}", KEY_SECONDARY, "g1"),
             MemoryKey::new("skey"),
         );
@@ -611,10 +617,26 @@ mod tests {
         let m2skey = "m2skey";
 
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new(m1pkey));
-        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new(m1skey));
-        key_store.insert("m2", KEY_PRIMARY, MemoryKey::new(m2pkey));
-        key_store.insert("m2", KEY_SECONDARY, MemoryKey::new(m2skey));
+        key_store.insert(
+            &KeyIdentity::Module("m1".to_string()),
+            KEY_PRIMARY,
+            MemoryKey::new(m1pkey),
+        );
+        key_store.insert(
+            &KeyIdentity::Module("m1".to_string()),
+            KEY_SECONDARY,
+            MemoryKey::new(m1skey),
+        );
+        key_store.insert(
+            &KeyIdentity::Module("m2".to_string()),
+            KEY_PRIMARY,
+            MemoryKey::new(m2pkey),
+        );
+        key_store.insert(
+            &KeyIdentity::Module("m2".to_string()),
+            KEY_SECONDARY,
+            MemoryKey::new(m2skey),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();
@@ -714,8 +736,16 @@ mod tests {
         let m1skey = "m1skey";
 
         let mut key_store = MemoryKeyStore::new();
-        key_store.insert("m1", KEY_PRIMARY, MemoryKey::new(m1pkey));
-        key_store.insert("m1", KEY_SECONDARY, MemoryKey::new(m1skey));
+        key_store.insert(
+            &KeyIdentity::Module("m1".to_string()),
+            KEY_PRIMARY,
+            MemoryKey::new(m1pkey),
+        );
+        key_store.insert(
+            &KeyIdentity::Module("m1".to_string()),
+            KEY_SECONDARY,
+            MemoryKey::new(m1skey),
+        );
 
         let api_version = "2018-04-10";
         let host_name = Url::parse("http://localhost").unwrap();

@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::AsRef;
+use std::convert::{AsRef, From};
+use std::fmt;
+use std::string::ToString;
 use std::sync::{Arc, RwLock};
 
 use bytes::Bytes;
@@ -13,12 +15,27 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum KeyIdentity {
+    Device,
+    Module(String),
+}
+
+impl fmt::Display for KeyIdentity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            KeyIdentity::Device => write!(f, "Device"),
+            KeyIdentity::Module(m) => write!(f, "Module({})", m),
+        }
+    }
+}
+
 pub trait Activate {
     type Key: Sign;
 
     fn activate_identity_key<B: AsRef<[u8]>>(
         &mut self,
-        identity: String,
+        identity: KeyIdentity,
         key_name: String,
         key: B,
     ) -> Result<(), Error>;
@@ -37,7 +54,7 @@ pub trait Sign {
 pub trait KeyStore {
     type Key: Sign;
 
-    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error>;
+    fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error>;
 }
 
 pub enum SignatureAlgorithm {
@@ -214,7 +231,19 @@ impl AsRef<[u8]> for MemoryKey {
 
 #[derive(Clone, Default)]
 pub struct MemoryKeyStore {
-    keys: Arc<RwLock<HashMap<String, MemoryKey>>>,
+    keys: Arc<RwLock<HashMap<MemoryKeyIdentity, MemoryKey>>>,
+}
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+struct MemoryKeyIdentity {
+    identity: KeyIdentity,
+    key_name: String,
+}
+
+impl MemoryKeyIdentity {
+    pub fn new(identity: KeyIdentity, key_name: String) -> MemoryKeyIdentity {
+        MemoryKeyIdentity { identity, key_name }
+    }
 }
 
 impl MemoryKeyStore {
@@ -228,17 +257,20 @@ impl MemoryKeyStore {
     ///
     /// If the store did not have this key present, None is returned.
     ///
-    /// If the store did have this key (by Identity and Key_name) present, the value (Key) is updated and the old value is returned.
+    /// If the store did have this key (by KeyIdentity and Key_name) present, the value (Key) is updated and the old value is returned.
     pub fn insert(
         &mut self,
-        identity: &str,
+        identity: &KeyIdentity,
         key_name: &str,
         key_value: MemoryKey,
     ) -> Option<MemoryKey> {
         self.keys
             .write()
             .expect("Failed to acquire a write lock")
-            .insert(format!("{}{}", identity, key_name), key_value)
+            .insert(
+                MemoryKeyIdentity::new(identity.clone(), key_name.to_string()),
+                key_value,
+            )
     }
 
     pub fn is_empty(&self) -> bool {
@@ -261,11 +293,11 @@ impl Activate for MemoryKeyStore {
 
     fn activate_identity_key<B: AsRef<[u8]>>(
         &mut self,
-        identity: String,
+        identity: KeyIdentity,
         key_name: String,
         key: B,
     ) -> Result<(), Error> {
-        self.insert(identity.as_str(), key_name.as_str(), MemoryKey::new(key));
+        self.insert(&identity, &key_name, MemoryKey::new(key));
         Ok(())
     }
 }
@@ -273,11 +305,14 @@ impl Activate for MemoryKeyStore {
 impl KeyStore for MemoryKeyStore {
     type Key = MemoryKey;
 
-    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error> {
+    fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error> {
         self.keys
             .read()
             .expect("Failed to acquire a read lock")
-            .get(&format!("{}{}", identity, key_name))
+            .get(&MemoryKeyIdentity::new(
+                identity.clone(),
+                key_name.to_string(),
+            ))
             .cloned()
             .ok_or_else(|| Error::from(ErrorKind::NotFound))
     }
@@ -299,11 +334,18 @@ impl<K> DerivedKeyStore<K> {
 impl<K: Sign> KeyStore for DerivedKeyStore<K> {
     type Key = MemoryKey;
 
-    fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, Error> {
+    fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, Error> {
         self.root
             .sign(
                 SignatureAlgorithm::HMACSHA256,
-                format!("{}{}", identity, key_name).as_bytes(),
+                format!(
+                    "{}{}",
+                    match identity {
+                        KeyIdentity::Device => "",
+                        KeyIdentity::Module(ref m) => m,
+                    },
+                    key_name
+                ).as_bytes(),
             )
             .map(|d| MemoryKey::new(d.as_bytes()))
             .context(ErrorKind::KeyStore)
@@ -404,12 +446,26 @@ mod tests {
         };
 
         //Act
-        memory_key_store.insert("mod1", "key1", in_memory_key);
+        memory_key_store.insert(
+            &KeyIdentity::Module("mod1".to_string()),
+            "key1",
+            in_memory_key,
+        );
 
         //Assert
         assert_eq!(false, memory_key_store.is_empty());
-        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_ok());
-        assert_eq!(true, memory_key_store.get("mod1", "key1").is_ok());
+        assert_eq!(
+            false,
+            memory_key_store
+                .get(&KeyIdentity::Module("mod1".to_string()), "invalidKey")
+                .is_ok()
+        );
+        assert_eq!(
+            true,
+            memory_key_store
+                .get(&KeyIdentity::Module("mod1".to_string()), "key1")
+                .is_ok()
+        );
     }
 
     #[test]
@@ -425,21 +481,46 @@ mod tests {
         };
 
         //Act
-        memory_key_store.insert("mod1", "key1", in_memory_key);
-        memory_key_store.insert("mod2", "key2", in_memory_key2);
+        memory_key_store.insert(
+            &KeyIdentity::Module("mod1".to_string()),
+            "key1",
+            in_memory_key,
+        );
+        memory_key_store.insert(
+            &KeyIdentity::Module("mod2".to_string()),
+            "key2",
+            in_memory_key2,
+        );
 
         //Assert
         assert_eq!(false, memory_key_store.is_empty());
-        assert_eq!(false, memory_key_store.get("mod1", "invalidKey").is_ok());
-        assert_eq!(true, memory_key_store.get("mod1", "key1").is_ok());
-        assert_eq!(true, memory_key_store.get("mod2", "key2").is_ok());
+        assert_eq!(
+            false,
+            memory_key_store
+                .get(&KeyIdentity::Module("mod1".to_string()), "invalidKey")
+                .is_ok()
+        );
+        assert_eq!(
+            true,
+            memory_key_store
+                .get(&KeyIdentity::Module("mod1".to_string()), "key1")
+                .is_ok()
+        );
+        assert_eq!(
+            true,
+            memory_key_store
+                .get(&KeyIdentity::Module("mod2".to_string()), "key2")
+                .is_ok()
+        );
         assert_eq!(2, memory_key_store.len());
     }
 
     #[test]
     fn derived_key_store() {
         let key_store = DerivedKeyStore::new(MemoryKey::new("key"));
-        let key = key_store.get("key2", "primary").unwrap();
+        let key = key_store
+            .get(&KeyIdentity::Module("key2".to_string()), "primary")
+            .unwrap();
         let digest = key.sign(
             SignatureAlgorithm::HMACSHA256,
             b"The quick brown fox jumps over the lazy dog",

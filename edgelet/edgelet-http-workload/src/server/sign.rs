@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use base64;
-use edgelet_core::crypto::{Sign, Signature, SignatureAlgorithm};
-use edgelet_core::KeyStore;
+use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
 use failure::ResultExt;
 use futures::{future, Future, Stream};
@@ -38,7 +37,7 @@ pub fn sign<K: KeyStore>(
     request: SignRequest,
 ) -> Result<SignResponse, Error> {
     key_store
-        .get(&id, request.key_id())
+        .get(&KeyIdentity::Module(id), request.key_id())
         .context(ErrorKind::NotFound)
         .map_err(Error::from)
         .and_then(|k| {
@@ -146,8 +145,11 @@ mod tests {
     impl KeyStore for TestKeyStore {
         type Key = MemoryKey;
 
-        fn get(&self, identity: &str, key_name: &str) -> Result<Self::Key, CoreError> {
-            self.state.borrow_mut().last_id = identity.to_string();
+        fn get(&self, identity: &KeyIdentity, key_name: &str) -> Result<Self::Key, CoreError> {
+            self.state.borrow_mut().last_id = match identity {
+                KeyIdentity::Device => "".to_string(),
+                KeyIdentity::Module(ref m) => m.to_string(),
+            };
             self.state.borrow_mut().last_key_name = key_name.to_string();
             Ok(self.key.clone())
         }
@@ -165,7 +167,7 @@ mod tests {
     impl KeyStore for NullKeyStore {
         type Key = MemoryKey;
 
-        fn get(&self, _identity: &str, _key_name: &str) -> Result<Self::Key, CoreError> {
+        fn get(&self, _identity: &KeyIdentity, _key_name: &str) -> Result<Self::Key, CoreError> {
             Err(CoreError::from(CoreErrorKind::NotFound))
         }
     }

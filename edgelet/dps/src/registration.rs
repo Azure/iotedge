@@ -16,7 +16,7 @@ use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
-use edgelet_core::crypto::{Activate, KeyStore, Sign, Signature, SignatureAlgorithm};
+use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_http::client::{Client, TokenSource};
 use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
@@ -124,10 +124,18 @@ where
                     .and_then(|key_str| base64::decode(key_str).map_err(Error::from))
                     .and_then(|key_bytes| {
                         key_store
-                            .activate_identity_key("dps".to_string(), "auth".to_string(), key_bytes)
+                            .activate_identity_key(
+                                KeyIdentity::Device,
+                                "primary".to_string(),
+                                key_bytes,
+                            )
                             .map_err(Error::from)
                     })
-                    .and_then(|_| key_store.get("dps", "auth").map_err(Error::from))
+                    .and_then(|_| {
+                        key_store
+                            .get(&KeyIdentity::Device, "primary")
+                            .map_err(Error::from)
+                    })
             },
         )
     }
@@ -325,7 +333,7 @@ where
         ).and_then(
             move |operation_status: Option<RegistrationOperationStatus>| {
                 key_store
-                    .get("dps", "auth")
+                    .get(&KeyIdentity::Device, "primary")
                     .map(|k| {
                         operation_status
                             .map(move |s| {
@@ -360,7 +368,7 @@ where
                                     .and_then(|kb| -> Result<(), Error> {
                                         key_store_status
                                             .activate_identity_key(
-                                                "device".to_string(),
+                                                KeyIdentity::Device,
                                                 "primary".to_string(),
                                                 kb,
                                             )
