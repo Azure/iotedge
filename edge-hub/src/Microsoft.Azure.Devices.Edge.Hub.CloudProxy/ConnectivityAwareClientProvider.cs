@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings) =>
             new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, transportSettings), this.deviceConnectivityManager);
 
-        public IClient Create(IIdentity identity, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, transportSettings), this.deviceConnectivityManager);
+        public async Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings) =>
+            new ConnectivityAwareClient(await underlyingClientProvider.CreateAsync(identity, transportSettings).ConfigureAwait(false), this.deviceConnectivityManager);
     }
 }

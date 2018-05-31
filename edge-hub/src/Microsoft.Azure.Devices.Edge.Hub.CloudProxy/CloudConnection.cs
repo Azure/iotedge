@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ITransportSettings transportSettings)
         {
             Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType(), newCredentials.Identity);
-            IClient client = this.CreateDeviceClient(newCredentials, new[] { transportSettings });
+            IClient client = await CreateDeviceClient(newCredentials, new[] { transportSettings }).ConfigureAwait(false);
             client.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return client;
         }
 
-        IClient CreateDeviceClient(IClientCredentials newCredentials, ITransportSettings[] settings)
+        Task<IClient> CreateDeviceClient(IClientCredentials newCredentials, ITransportSettings[] settings)
         {
             switch (newCredentials.AuthenticationType)
             {
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         throw new ArgumentException($"Sas key credential should be of type {nameof(ISharedKeyCredentials)}");
                     }
-                    return this.clientProvider.Create(newCredentials.Identity, sharedKeyAuthentication.ConnectionString, settings);
+                    return Task.FromResult(this.clientProvider.Create(newCredentials.Identity, sharedKeyAuthentication.ConnectionString, settings));
 
                 case AuthenticationType.Token:
                     if (!(newCredentials is ITokenCredentials tokenAuthentication))
@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         throw new ArgumentException($"Token credential should be of type {nameof(ITokenCredentials)}");
                     }
                     IAuthenticationMethod authenticationMethod = this.GetAuthenticationMethod(tokenAuthentication.Identity, tokenAuthentication.Token);
-                    return this.clientProvider.Create(newCredentials.Identity, authenticationMethod, settings);
+                    return Task.FromResult(this.clientProvider.Create(newCredentials.Identity, authenticationMethod, settings));
 
                 case AuthenticationType.IoTEdged:
                     if (!(newCredentials is IotEdgedCredentials))
@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         throw new ArgumentException($"IoTEdged credential should be of type {nameof(IotEdgedCredentials)}");
                     }
 
-                    return this.clientProvider.Create(newCredentials.Identity, settings);
+                    return this.clientProvider.CreateAsync(newCredentials.Identity, settings);
 
                 default:
                     throw new InvalidOperationException($"Unsupported authentication type {newCredentials.AuthenticationType}");

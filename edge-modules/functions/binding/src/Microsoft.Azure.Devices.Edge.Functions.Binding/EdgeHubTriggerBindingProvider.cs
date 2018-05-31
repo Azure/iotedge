@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 throw new InvalidOperationException($"Can't bind EdgeHubTriggerAttribute to type '{parameter.ParameterType}'.");
             }
 
-            await this.TrySetEventDefaultHandlerAsync();
+            await TrySetEventDefaultHandlerAsync().ConfigureAwait(false);
 
             var messageProcessor = new EdgeHubMessageProcessor();
             var triggerBinding = new EdgeHubTriggerBinding(context.Parameter, messageProcessor);
@@ -70,15 +70,15 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             return triggerBinding;
         }
 
-        Task TrySetEventDefaultHandlerAsync()
+        async Task TrySetEventDefaultHandlerAsync()
         {
             if (this.moduleClient != null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            this.moduleClient = ModuleClientCache.Instance.GetOrCreate(this.transportType);
-            return this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
+            this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync(transportType).ConfigureAwait(false);
+            await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null).ConfigureAwait(false);
         }
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
-                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
+                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext).ConfigureAwait(false);
                 }
             }
 

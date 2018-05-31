@@ -3,21 +3,18 @@
 namespace SimulatedTemperatureSensor
 {
     using System;
+    using System.Globalization;
     using System.IO;
     using System.Net;
-    using System.Net.Security;
-    using System.Runtime.InteropServices;
     using System.Runtime.Loader;
-    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Edge;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     class Program
     {
@@ -30,9 +27,7 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}] Main()");
-
-            InstallCert();
+            Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Main()");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -55,99 +50,22 @@ namespace SimulatedTemperatureSensor
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             var mqttSetting = new MqttTransportSettings(transportType);
-            // Pin root certificate from file at runtime on Windows
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                mqttSetting.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                {
-                    // Terminate on errors other than those caused by a chain failure
-                    SslPolicyErrors terminatingErrors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors;
-                    if (terminatingErrors != SslPolicyErrors.None)
-                    {
-                        Console.WriteLine("Discovered SSL session errors: {0}", terminatingErrors);
-                        return false;
-                    }
-
-                    // Load the expected root certificate
-                    string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
-                    if (string.IsNullOrWhiteSpace(certPath))
-                    {
-                        Console.WriteLine("Missing path to the root certificate file.");
-                        return false;
-                    }
-                    else if (!File.Exists(certPath))
-                    {
-                        Console.WriteLine($"Unable to find a root certificate file at {certPath}.");
-                        return false;
-                    }
-                    var expectedRoot = new X509Certificate2(certPath);
-
-                    // Allow the chain the chance to rebuild itself with the expected root
-                    chain.ChainPolicy.ExtraStore.Add(expectedRoot);
-                    chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-                    if (!chain.Build(new X509Certificate2(certificate)))
-                    {
-                        Console.WriteLine("Unable to build the chain using the expected root certificate.");
-                        return false;
-                    }
-
-                    // Pin the trusted root of the chain to the expected root certificate
-                    X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    if (!expectedRoot.Equals(actualRoot))
-                    {
-                        Console.WriteLine("The certificate chain was not signed by the trusted root certificate.");
-                        return false;
-                    }
-                    return true;
-                };
-            }
             ITransportSettings[] settings = { mqttSetting };
 
-            ModuleClient moduleClient = ModuleClient.CreateFromEnvironment(settings);
-            await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
+            await moduleClient.OpenAsync().ConfigureAwait(false);
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
 
             ModuleClient userContext = moduleClient;
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
+            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
 
             var cts = new CancellationTokenSource();
             void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts); };
 
-            await SendEvent(moduleClient, messageDelay, sim, cts);
+            await SendEvent(moduleClient, messageDelay, sim, cts).ConfigureAwait(false);
             return 0;
-        }
-
-        /// <summary>
-        /// Add certificate in local cert store for use by client for secure connection to IoT Edge runtime
-        /// </summary>
-        static void InstallCert()
-        {
-            // Suppress cert validation on Windows for now
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return;
-            }
-
-            string certPath = Environment.GetEnvironmentVariable("EdgeModuleCACertificateFile");
-            if (string.IsNullOrWhiteSpace(certPath))
-            {
-                // We cannot proceed further without a proper cert file
-                Console.WriteLine($"Missing path to certificate collection file: {certPath}");
-                throw new InvalidOperationException("Missing path to certificate file.");
-            }
-            else if (!File.Exists(certPath))
-            {
-                // We cannot proceed further without a proper cert file
-                Console.WriteLine($"Missing certificate collection file: {certPath}");
-                throw new InvalidOperationException("Missing certificate file.");
-            }
-            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(certPath)));
-            Console.WriteLine("Added Cert: " + certPath);
-            store.Close();
         }
 
         //Control Message expected to be:
@@ -253,8 +171,8 @@ namespace SimulatedTemperatureSensor
                 var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
                 Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
-                await Task.Delay(messageDelay, cts.Token);
+                await moduleClient.SendEventAsync("temperatureOutput", eventMessage).ConfigureAwait(false);
+                await Task.Delay(messageDelay, cts.Token).ConfigureAwait(false);
                 count++;
             }
         }
@@ -265,7 +183,7 @@ namespace SimulatedTemperatureSensor
             cts.Cancel();
         }
 
-        public class ControlCommand
+        internal class ControlCommand
         {
             [JsonProperty("command")]
             public ControlCommandEnum Command { get; set; }

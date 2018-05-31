@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     /// </summary>
     public class EdgeHubAsyncCollector : IAsyncCollector<Message>
     {
-        readonly ModuleClient client;
+        readonly TransportType transportType;
         readonly EdgeHubAttribute attribute;
         readonly int batchSize;
 
@@ -34,11 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         /// <summary>
         /// Create a sender around the given client. 
         /// </summary>
-        /// <param name="client">Device Client instance. </param>
+        /// <param name="transportType">Device Client transport type. </param>
         /// <param name="attribute">Attributes used by EdgeHub when receiving a message from function.</param>
-        public EdgeHubAsyncCollector(ModuleClient client, EdgeHubAttribute attribute)
+        public EdgeHubAsyncCollector(TransportType transportType, EdgeHubAttribute attribute)
         {
-            this.client = client;
+            this.transportType = transportType;
             this.attribute = attribute;
             this.batchSize = attribute.BatchSize > 0 ? (attribute.BatchSize > MaxBatchSize ? MaxBatchSize : attribute.BatchSize) : DefaultBatchSize;
         }
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 if (size > MaxByteSize)
                 {
                     // Single event is too large to add.
-                    string msg = string.Format("Event is too large. Event is approximately {0}b and max size is {1}b", size, MaxByteSize);
+                    string msg = string.Format(CultureInfo.InvariantCulture, "Event is too large. Event is approximately {0}b and max size is {1}b", size, MaxByteSize);
                     throw new InvalidOperationException(msg);
                 }
 
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 }
             }
 
-            await this.SendBatchAsync(batch);
+            await this.SendBatchAsync(batch).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             IList<Message> batch = this.TakeSnapshot();
-            await this.SendBatchAsync(batch);
+            await this.SendBatchAsync(batch).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -103,13 +104,15 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return;
             }
 
+            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync(this.transportType).ConfigureAwait(false);
+
             if (string.IsNullOrEmpty(this.attribute.OutputName))
             {
-                await this.client.SendEventBatchAsync(batch);
+                await client.SendEventBatchAsync(batch).ConfigureAwait(false);
             }
             else
             {
-                await this.client.SendEventBatchAsync(this.attribute.OutputName, batch);
+                await client.SendEventBatchAsync(this.attribute.OutputName, batch).ConfigureAwait(false);
             }
         }
 

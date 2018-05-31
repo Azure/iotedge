@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
         {
             public override string GetTriggerReason(IDictionary<string, string> arguments)
             {
-                return string.Format("EdgeHub trigger fired at {0}", DateTime.Now.ToString("o"));
+                return string.Format(CultureInfo.InvariantCulture, "EdgeHub trigger fired at {0}", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
             }
         }
 

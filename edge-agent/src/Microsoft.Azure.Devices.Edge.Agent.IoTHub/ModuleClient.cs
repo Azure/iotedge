@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
         {
             Events.AttemptingConnectionWithTransport(transport);
-            Client.ModuleClient deviceClient = Client.ModuleClient.CreateFromEnvironment(transport);
+            Client.ModuleClient deviceClient = await Client.ModuleClient.CreateFromEnvironmentAsync(transport);
             await OpenAsync(statusChangedHandler, deviceClient);
             Events.ConnectedWithTransport(transport);
             return deviceClient;

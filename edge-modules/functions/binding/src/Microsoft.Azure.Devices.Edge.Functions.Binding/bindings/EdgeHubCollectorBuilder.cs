@@ -16,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 
         public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
         {
-            ModuleClient client = ModuleClientCache.Instance.GetOrCreate(this.transportType);
-            return new EdgeHubAsyncCollector(client, attribute);
+            return new EdgeHubAsyncCollector(this.transportType, attribute);
         }
     }
 }

@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Config
 
             if (context == null)
             {
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
             }
 
             var extensions = context.Config.GetService<IExtensionRegistry>();

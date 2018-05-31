@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -39,14 +40,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
 
-        public IClient Create(IIdentity identity, ITransportSettings[] transportSettings)
+        public async Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings)
         {
             if (!(identity is IModuleIdentity))
             {
                 throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}. CreateFromEnvironment supports only ModuleIdentity");
             }
 
-            ModuleClient moduleClient = ModuleClient.CreateFromEnvironment(transportSettings);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings).ConfigureAwait(false);
             return new ModuleClientWrapper(moduleClient);
         }
     }
