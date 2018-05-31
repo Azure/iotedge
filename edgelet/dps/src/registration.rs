@@ -206,6 +206,18 @@ where
         Box::new(request)
     }
 
+    // Return Ok(true) if we get no result, or the result is not complete.
+    // The result is complete if we receive a status of anything other than "assigning"
+    fn is_skippable_result(
+        registration_result: &Option<DeviceRegistrationResult>,
+    ) -> Result<bool, Error> {
+        if let Some(r) = registration_result.as_ref() {
+            Ok(r.status().eq_ignore_ascii_case("assigning"))
+        } else {
+            Ok(true)
+        }
+    }
+
     // The purpose of this function is to poll DPS till it sends either an error or the device
     // credentials back. This function calls get_operation_status on a timer which in turns calls
     // in to DPS. The way polling is implemented is by generating a stream of timer events and
@@ -234,11 +246,7 @@ where
                     key.clone(),
                 )
             })
-            .skip_while(
-                |registration_result: &Option<DeviceRegistrationResult>| -> Result<bool, Error> {
-                    Ok(registration_result.is_none())
-                },
-            )
+            .skip_while(Self::is_skippable_result)
             .take(1)
             .fold(
                 None,
