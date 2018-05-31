@@ -60,10 +60,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             // Create/update identities.
             IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i));
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId));
-            Identity[] createdIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
+            Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
-            IEnumerable<IModuleIdentity> moduleIdentities = createdIdentities.Concat(identities.Values)
-                .Select(m => this.GetModuleIdentity(m));
+            List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
+            // Add the module identity for Edge Agent in the returned dictionary
+            // because is was excluded from the update call.
+            if (identities.ContainsKey(Constants.EdgeAgentModuleIdentityName))
+            {
+                moduleIdentities.Add(this.GetModuleIdentity(identities[Constants.EdgeAgentModuleIdentityName]));
+            }
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 

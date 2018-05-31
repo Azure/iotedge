@@ -122,6 +122,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             : base(name, version, type, desiredStatus, config, restartPolicy, configuration, env)
         {
         }
+
+        public TestModule CloneWithImage(string image)
+        {
+            return new TestModule(this.Name, this.Version, this.Type, this.DesiredStatus, new TestConfig(image), this.RestartPolicy, this.ConfigurationInfo, this.Env);
+        }
     }
 
     public class TestAgentModule : TestModule, IEdgeAgentModule

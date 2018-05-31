@@ -135,14 +135,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
             var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
             var module5 = new TestModule(Module5, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
-            ModuleSet desired = ModuleSet.Create(new IModule[] { module1, module2, module3, module4, module5 });
+            ModuleSet desired = ModuleSet.Create(new IModule[] { module1, module2.CloneWithImage("image2"), module3.CloneWithImage("image2"), module4.CloneWithImage("image2"), module5.CloneWithImage("image2") });
             ModuleSet current = ModuleSet.Create(new IModule[] { module2, module3, module4, module5 });
 
             // Act
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
 
             // Assert
-            Assert.True(modulesIdentities.Count() == 5);
+            Assert.Equal(5, modulesIdentities.Count);
             Assert.True(modulesIdentities.TryGetValue(Module1, out IModuleIdentity moduleIdentity1));
             Assert.Equal(Module1, moduleIdentity1.ModuleId);
             Assert.True(modulesIdentities.TryGetValue(Module2, out IModuleIdentity moduleIdentity2));

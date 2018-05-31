@@ -66,10 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             // be "updated"
             IEnumerable<IModule> updated = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
-                .Where(key =>
-                {
-                    return !this.Modules[key].Equals(other.Modules[key]);
-                })
+                .Where(key => !this.Modules[key].Equals(other.Modules[key]))
                 .Select(key => this.Modules[key]);
 
             return new Diff(created.Concat(updated).ToList(), removed.ToList());
