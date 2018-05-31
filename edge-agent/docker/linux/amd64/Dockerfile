@@ -1,5 +1,5 @@
 ARG base_tag=2.1.0-rc1-runtime-alpine3.7
-FROM azureiotedge/azureiotedge-agent-base:1.0.0-linux-amd64 as builder
+FROM azureiotedge/azureiotedge-agent-base:1.0.0-preview001-linux-amd64 as builder
 
 FROM microsoft/dotnet:${base_tag}
 
