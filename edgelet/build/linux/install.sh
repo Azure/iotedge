@@ -51,9 +51,6 @@ process_args "$@"
 
 if command -v "$RUSTUP" >/dev/null; then
     $RUSTUP install "$TOOLCHAIN"
-
-    # This incantation is how the PATH is updated in a VSTS build
-    echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
 else
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain "$TOOLCHAIN"
 fi

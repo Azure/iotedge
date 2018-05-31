@@ -17,9 +17,6 @@ PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
 TOOLCHAIN="armv7-unknown-linux-gnueabihf"
 RELEASE=
-source $HOME/.cargo/env
-export CARGO_HOME="$HOME/.cargo"
-
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -63,7 +60,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && cross build --all --target "$TOOLCHAIN" 
+    cd "$PROJECT_ROOT" && cross build --all --target "$TOOLCHAIN"
 else
-    cd "$PROJECT_ROOT" && cross build --all --release --target "$TOOLCHAIN" 
+    cd "$PROJECT_ROOT" && cross build --all --release --target "$TOOLCHAIN"
 fi
