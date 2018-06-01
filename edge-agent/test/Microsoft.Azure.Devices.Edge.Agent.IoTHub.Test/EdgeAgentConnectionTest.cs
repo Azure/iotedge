@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -19,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
+    using ModuleClient = Microsoft.Azure.Devices.Edge.Agent.IoTHub.ModuleClient;
 
     public class EdgeAgentConnectionTest
     {
@@ -949,7 +952,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 });
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             connectionStatusChangesHandler.Invoke(
                 Client.ConnectionStatus.Connected,
@@ -1019,7 +1022,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(Task.CompletedTask);
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(deviceClientProvider.Object, serde.Object, retryStrategy.Object, TimeSpan.FromHours(1));
             Assert.NotNull(connectionStatusChangesHandler);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
@@ -1286,6 +1289,157 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     // ignored
                 }
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task EdgeAgentConnectionRefreshTest()
+        {
+            // Arrange
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+
+            var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", ""), null, null);
+            var edgeHubDockerModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always,
+                new DockerConfig("image", ""), null, null);
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                runtimeInfo,
+                new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
+                new Dictionary<string, IModule>());
+            string deploymentConfigJson = serde.Serialize(deploymentConfig);
+            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson)});
+
+            var moduleClient = new Mock<IModuleClient>();
+            moduleClient.Setup(m => m.GetTwinAsync())
+                .ReturnsAsync(twin);
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>(), It.IsAny<Func<IModuleClient, Task>>()))
+                .ReturnsAsync(moduleClient.Object);
+
+            // Act
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, TimeSpan.FromSeconds(3)))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(8));
+
+                // Assert
+                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(3));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async Task EdgeAgentConnectionRefreshTest_NoRefresh()
+        {
+            // Arrange
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+
+            var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", ""), null, null);
+            var edgeHubDockerModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always,
+                new DockerConfig("image", ""), null, null);
+            var deploymentConfig = new DeploymentConfig(
+                "1.0",
+                runtimeInfo,
+                new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
+                new Dictionary<string, IModule>());
+            long version = 1;
+            string deploymentConfigJson = serde.Serialize(deploymentConfig);
+            JObject deploymentConfigJobject = JObject.Parse(deploymentConfigJson);
+            deploymentConfigJobject.Add("$version", JToken.Parse($"{version}"));
+            var twinCollection = new TwinCollection(deploymentConfigJobject, new JObject());
+            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
+
+            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = null;
+            var moduleClient = new Mock<IModuleClient>();
+            moduleClient.Setup(m => m.GetTwinAsync())
+                .ReturnsAsync(twin);
+            moduleClient.Setup(m => m.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>()))
+                .Callback<DesiredPropertyUpdateCallback>(d => desiredPropertyUpdateCallback = d)
+                .Returns(Task.CompletedTask);
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            Func<IModuleClient, Task> updateModuleClient = null;
+            moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>(), It.IsAny<Func<IModuleClient, Task>>()))
+                .Callback<ConnectionStatusChangesHandler, Func<IModuleClient, Task>>((c, f) => updateModuleClient = f)
+                .ReturnsAsync(moduleClient.Object);
+
+            // Act
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, TimeSpan.FromSeconds(5)))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(0.5));
+                Assert.NotNull(updateModuleClient);
+
+                await updateModuleClient(moduleClient.Object);
+                Assert.NotNull(desiredPropertyUpdateCallback);
+
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                JObject patchConfigJobject = JObject.Parse(deploymentConfigJson);
+                patchConfigJobject.Add("$version", JToken.Parse($"{version + 1}"));
+                var patchTwinCollection = new TwinCollection(deploymentConfigJobject, new JObject());
+                await desiredPropertyUpdateCallback(patchTwinCollection, null);
+                await Task.Delay(TimeSpan.FromSeconds(4));
+
+                // Assert
+                moduleClient.Verify(m => m.GetTwinAsync(), Times.Once);
             }
         }
     }

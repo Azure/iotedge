@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<AuthConfig> dockerAuthConfig;
+            int configRefreshFrequencySecs;
 
             try
             {
@@ -84,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>() ?? new List<AuthConfig>();
+                configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             }
             catch (Exception ex)
             {
@@ -122,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 switch (configSourceConfig.ToLowerInvariant())
                 {
                     case "twin":
-                        builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo));
+                        builder.RegisterModule(new TwinConfigSourceModule(backupConfigFilePath, configuration, versionInfo, TimeSpan.FromSeconds(configRefreshFrequencySecs)));
                         break;
 
                     case "local":

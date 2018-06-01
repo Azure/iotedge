@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Threading.Tasks;
+    using System.Timers;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
+        static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         internal const string ExpectedSchemaVersion = "1.0";
         const string PingMethodName = "ping";
         static readonly Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
@@ -24,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
         readonly Task initTask;
         readonly RetryStrategy retryStrategy;
+        readonly Timer refreshTimer;
 
         Option<IModuleClient> deviceClient;
         TwinCollection desiredProperties;
@@ -36,19 +39,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public EdgeAgentConnection(IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe)
-            : this(moduleClientProvider, desiredPropertiesSerDe, TransientRetryStrategy)
+            : this(moduleClientProvider, desiredPropertiesSerDe, TransientRetryStrategy, DefaultConfigRefreshFrequency)
+        { }
+
+        public EdgeAgentConnection(IModuleClientProvider moduleClientProvider,
+            ISerde<DeploymentConfig> desiredPropertiesSerDe,
+            TimeSpan configRefreshFrequency)
+            : this(moduleClientProvider, desiredPropertiesSerDe, TransientRetryStrategy, configRefreshFrequency)
         { }
 
         internal EdgeAgentConnection(IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            RetryStrategy retryStrategy)
+            RetryStrategy retryStrategy,
+            TimeSpan refreshConfigFrequency)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
             this.reportedProperties = Option.None<TwinCollection>();
             this.deviceClient = Option.None<IModuleClient>();
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
-            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));
+            this.refreshTimer = new Timer(refreshConfigFrequency.TotalMilliseconds);
+            this.refreshTimer.Elapsed += (_, __) => this.RefreshTimerElapsed();
+            this.initTask = this.CreateAndInitDeviceClient(Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider)));            
+        }
+
+        async void RefreshTimerElapsed() => await this.RefreshTwinAsync();
+
+        void ResetRefreshTimer()
+        {
+            this.refreshTimer.Stop();
+            this.refreshTimer.Start();
         }
 
         async Task CreateAndInitDeviceClient(IModuleClientProvider moduleClientProvider)
@@ -64,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     });
                 this.deviceClient = Option.Some(dc);
 
-                await this.RefreshTwinAsync();
+                await this.RefreshTwinAsync();                
             }
         }
 
@@ -123,6 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.reportedProperties = Option.Some(twin.Properties.Reported);
                 await this.UpdateDeploymentConfig();
                 Events.TwinRefreshSuccess();
+                this.ResetRefreshTimer();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -140,6 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 this.desiredProperties = new TwinCollection(mergedJson);
                 await this.UpdateDeploymentConfig();
                 Events.DesiredPropertiesPatchApplied();
+                this.ResetRefreshTimer();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -208,7 +230,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
 
-        public void Dispose() => this.deviceClient.ForEach(d => d.Dispose());
+        public void Dispose()
+        {
+            this.deviceClient.ForEach(d => d.Dispose());
+            this.refreshTimer?.Dispose();
+        }
 
         public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
         {

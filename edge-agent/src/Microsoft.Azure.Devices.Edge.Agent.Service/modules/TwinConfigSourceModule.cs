@@ -22,15 +22,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         const string DockerType = "docker";
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
+        readonly TimeSpan configRefreshFrequency;
 
         public TwinConfigSourceModule(string backupConfigFilePath,
             IConfiguration config,
-            VersionInfo versionInfo
+            VersionInfo versionInfo,
+            TimeSpan configRefreshFrequency
         )
         {
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
+            this.configRefreshFrequency = configRefreshFrequency;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -41,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()
