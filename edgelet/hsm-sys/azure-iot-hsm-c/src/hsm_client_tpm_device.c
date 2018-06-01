@@ -22,7 +22,7 @@
 #define EPOCH_TIME_T_VALUE          0
 #define HMAC_LENGTH                 32
 
-static TPM2B_AUTH      NullAuth = { 0 };
+static TPM2B_AUTH      NullAuth = { .t = {0,  {0}} };
 static TSS_SESSION     NullPwSession;
 static const UINT32 TPM_20_SRK_HANDLE = HR_PERSISTENT | 0x00000001;
 static const UINT32 TPM_20_EK_HANDLE = HR_PERSISTENT | 0x00010001;
@@ -40,7 +40,7 @@ typedef struct HSM_CLIENT_INFO_TAG
 } HSM_CLIENT_INFO;
 
 static TPMS_RSA_PARMS  RsaStorageParams = {
-    { TPM_ALG_AES, 128, TPM_ALG_CFB },      // TPMT_SYM_DEF_OBJECT  symmetric
+    { TPM_ALG_AES, {128}, {TPM_ALG_CFB} },  // TPMT_SYM_DEF_OBJECT  symmetric
     { TPM_ALG_NULL },                       // TPMT_RSA_SCHEME      scheme
     2048,                                   // TPMI_RSA_KEY_BITS    keyBits
     0                                       // UINT32               exponent
@@ -53,14 +53,14 @@ static TPM2B_PUBLIC* GetEkTemplate ()
         TPM_ALG_RSA,                    // TPMI_ALG_PUBLIC      type
         TPM_ALG_SHA256,                 // TPMI_ALG_HASH        nameAlg
         { 0 },                          // TPMA_OBJECT  objectAttributes (set below)
-        {32,
-        { 0x83, 0x71, 0x97, 0x67, 0x44, 0x84, 0xb3, 0xf8,
-        0x1a, 0x90, 0xcc, 0x8d, 0x46, 0xa5, 0xd7, 0x24,
-        0xfd, 0x52, 0xd7, 0x6e, 0x06, 0x52, 0x0b, 0x64,
-        0xf2, 0xa1, 0xda, 0x1b, 0x33, 0x14, 0x69, 0xaa }
+        { .t.size = 32,
+          .t.buffer = { 0x83, 0x71, 0x97, 0x67, 0x44, 0x84, 0xb3, 0xf8,
+                       0x1a, 0x90, 0xcc, 0x8d, 0x46, 0xa5, 0xd7, 0x24,
+                       0xfd, 0x52, 0xd7, 0x6e, 0x06, 0x52, 0x0b, 0x64,
+                       0xf2, 0xa1, 0xda, 0x1b, 0x33, 0x14, 0x69, 0xaa }
         },                              // TPM2B_DIGEST         authPolicy
-        { 0 },                          // TPMU_PUBLIC_PARMS    parameters (set below)
-        { 0 }                           // TPMU_PUBLIC_ID       unique
+        { .rsaDetail = {{0}, {0}, 0, 0} }, // TPMU_PUBLIC_PARMS    parameters (set below)
+        { .sym.b = {0} }                // TPMU_PUBLIC_ID       unique
     } };
     EkTemplate.publicArea.objectAttributes = ToTpmaObject(
         Restricted | Decrypt | FixedTPM | FixedParent | AdminWithPolicy | SensitiveDataOrigin);
@@ -75,9 +75,9 @@ static TPM2B_PUBLIC* GetSrkTemplate()
         TPM_ALG_RSA,                // TPMI_ALG_PUBLIC      type
         TPM_ALG_SHA256,             // TPMI_ALG_HASH        nameAlg
         { 0 },                      // TPMA_OBJECT  objectAttributes (set below)
-        { 0 },                      // TPM2B_DIGEST         authPolicy
-        { 0 },                      // TPMU_PUBLIC_PARMS    parameters (set before use)
-        { 0 }                       // TPMU_PUBLIC_ID       unique
+        { .t = {0, {0}} },            // TPM2B_DIGEST         authPolicy
+        { .rsaDetail = {{0}, {0}, 0, 0} }, // TPMU_PUBLIC_PARMS    parameters (set below)
+        { .sym.b = {0} }            // TPMU_PUBLIC_ID       unique
     } };
     SrkTemplate.publicArea.objectAttributes = ToTpmaObject(
         Restricted | Decrypt | FixedTPM | FixedParent | NoDA | UserWithAuth | SensitiveDataOrigin);
@@ -286,14 +286,14 @@ static int insert_key_in_tpm
     }
     else
     {
-        TPMT_SYM_DEF_OBJECT Aes128SymDef = { TPM_ALG_AES, 128, TPM_ALG_CFB };
+        TPMT_SYM_DEF_OBJECT Aes128SymDef = { TPM_ALG_AES, {128}, {TPM_ALG_CFB} };
         TPM2B_ID_OBJECT enc_key_blob;
         TPM2B_ENCRYPTED_SECRET tpm_enc_secret;
         TPM2B_PRIVATE id_key_dup_blob;
         TPM2B_ENCRYPTED_SECRET encrypt_wrap_key;
         TPM2B_PUBLIC id_key_Public = { TPM_ALG_NULL };
         UINT16 enc_data_size = 0;
-        TPM2B_DIGEST inner_wrap_key = { 0 };
+        TPM2B_DIGEST inner_wrap_key = { .t = {0, {0}} };
         TPM2B_PRIVATE id_key_priv;
         TPM_HANDLE load_id_key = TPM_ALG_NULL;
 
@@ -325,17 +325,17 @@ static int insert_key_in_tpm
         else
         {
             TPM2B_SENSITIVE_CREATE sen_create = { 0 };
-            TPM2B_PUBLIC sym_pub = { 0 };
-            TPM2B_PRIVATE sym_priv = { 0 };
+            TPM2B_PUBLIC sym_pub;
+            TPM2B_PRIVATE sym_priv;
 
             static TPM2B_PUBLIC symTemplate = { 0,   // size will be computed during marshaling
             {
                 TPM_ALG_SYMCIPHER,              // TPMI_ALG_PUBLIC      type
                 TPM_ALG_SHA256,                 // TPMI_ALG_HASH        nameAlg
                 { 0 },                          // TPMA_OBJECT  objectAttributes (set below)
-                { 0 },                          // TPM2B_DIGEST         authPolicy
-                { 0 },                          // TPMU_PUBLIC_PARMS    parameters (set below)
-                { 0 }                           // TPMU_PUBLIC_ID       unique
+                { .t = {0, {0}} },              // TPM2B_DIGEST         authPolicy
+                { .symDetail.sym = {0} },       // TPMU_PUBLIC_PARMS    parameters (set below)
+                { .sym.b = {0} }                // TPMU_PUBLIC_ID       unique
             } };
             symTemplate.publicArea.objectAttributes = ToTpmaObject(Decrypt | FixedTPM | FixedParent | UserWithAuth);
             symTemplate.publicArea.parameters.symDetail.sym.algorithm = TPM_ALG_AES;
@@ -345,6 +345,8 @@ static int insert_key_in_tpm
             memcpy(sen_create.sensitive.data.t.buffer, inner_wrap_key.t.buffer, inner_wrap_key.t.size);
             sen_create.sensitive.data.t.size = inner_wrap_key.t.size;
 
+            memset(&sym_pub, 0, sizeof(TPM2B_PUBLIC));
+            memset(&sym_priv, 0, sizeof(TPM2B_PRIVATE));
             if (TSS_Create(&sec_info->tpm_device, &NullPwSession, TPM_20_SRK_HANDLE, &sen_create, &symTemplate, &sym_priv, &sym_pub) != TPM_RC_SUCCESS)
             {
                 LOG_ERROR("Failed to inject symmetric key data");
