@@ -391,7 +391,7 @@ fn build_env(
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
         GATEWAY_HOSTNAME_KEY.to_string(),
-        settings.hostname().to_string(),
+        settings.hostname().to_string().to_lowercase(),
     );
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
