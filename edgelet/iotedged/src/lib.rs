@@ -52,7 +52,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt, Run};
+use edgelet_http::{ApiVersionService, HyperExt};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -121,8 +121,10 @@ const EDGE_RUNTIME_MODE: &str = "iotedged";
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 
+/// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
+/// This is the name of the network created by the iotedged
 const EDGE_NETWORKID: &str = "azure-iot-edge";
 
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
@@ -237,19 +239,19 @@ where
 
     let workload = start_workload(&settings, key_store, &core.handle(), work_rx)?;
 
-    start_runtime(
-        &runtime, &id_man, &mut core, &hub_name, &device_id, &settings,
-    )?;
+    let (runt_tx, runt_rx) = oneshot::channel();
+    let edge_rt = start_runtime(&runtime, &id_man, &hostname, &device_id, &settings, runt_rx)?;
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
+        runt_tx.send(()).unwrap_or(());
     });
 
     core.handle().spawn(shutdown);
 
-    core.run(mgmt.join(workload))?;
+    core.run(mgmt.join3(workload, edge_rt))?;
 
     Ok(())
 }
@@ -318,11 +320,11 @@ where
 fn start_runtime<K, S>(
     runtime: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, S, K>,
-    core: &mut Core,
     hostname: &str,
     device_id: &str,
     settings: &Settings<DockerConfig>,
-) -> Result<(), Error>
+    shutdown: Receiver<()>,
+) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
@@ -345,12 +347,12 @@ where
         ],
     )?;
 
-    let mut watchdog = Watchdog::new(runtime.clone(), id_man.clone());
-    let runtime_future = watchdog.start(spec, EDGE_RUNTIME_MODULEID);
-    // TODO: When this is converted to a watchdog that keeps running, convert this to use a handle
-    // that allows it to shutdown gracefully.
-    core.run(runtime_future)?;
-    Ok(())
+    let watchdog = Watchdog::new(runtime.clone(), id_man.clone());
+    let runtime_future = watchdog
+        .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
+        .map_err(Error::from);
+
+    Ok(runtime_future)
 }
 
 fn vol_mount_uri(config: &mut DockerConfig, uris: &[&Url]) -> Result<(), Error> {
@@ -419,7 +421,7 @@ fn start_management<K, S>(
     mgmt: &DockerModuleRuntime,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, S, K>,
     shutdown: Receiver<()>,
-) -> Result<Run, Error>
+) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
@@ -434,7 +436,8 @@ where
 
     let run = Http::new()
         .bind_handle(url, server_handle, service)?
-        .run_until(shutdown.map_err(|_| ()));
+        .run_until(shutdown.map_err(|_| ()))
+        .map_err(Error::from);
     Ok(run)
 }
 
@@ -443,7 +446,7 @@ fn start_workload<K>(
     key_store: &K,
     handle: &Handle,
     shutdown: Receiver<()>,
-) -> Result<Run, Error>
+) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + KeyStore + Clone,
 {
@@ -458,6 +461,7 @@ where
 
     let run = Http::new()
         .bind_handle(url, server_handle, service)?
-        .run_until(shutdown.map_err(|_| ()));
+        .run_until(shutdown.map_err(|_| ()))
+        .map_err(Error::from);
     Ok(run)
 }

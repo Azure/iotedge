@@ -19,6 +19,8 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate sha2;
+extern crate tokio;
+extern crate tokio_timer;
 
 #[macro_use]
 extern crate edgelet_utils;

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use failure::{Backtrace, Context, Fail};
 use std::fmt;
 use std::fmt::Display;
-
-use failure::{Backtrace, Context, Fail};
+use tokio_timer;
 
 use edgelet_utils::Error as UtilsError;
 
@@ -36,6 +36,10 @@ pub enum ErrorKind {
     Activate,
     #[fail(display = "Edge runtime module has not been created in IoT Hub")]
     EdgeRuntimeNotFound,
+    #[fail(display = "Watchdog error")]
+    Watchdog,
+    #[fail(display = "Tokio timer error")]
+    TokioTimer,
 }
 
 impl Fail for Error {
@@ -82,6 +86,14 @@ impl From<UtilsError> for Error {
     fn from(error: UtilsError) -> Error {
         Error {
             inner: error.context(ErrorKind::Utils),
+        }
+    }
+}
+
+impl From<tokio_timer::Error> for Error {
+    fn from(error: tokio_timer::Error) -> Error {
+        Error {
+            inner: error.context(ErrorKind::TokioTimer),
         }
     }
 }
