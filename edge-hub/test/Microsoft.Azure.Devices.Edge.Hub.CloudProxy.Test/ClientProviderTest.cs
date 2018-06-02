@@ -3,18 +3,17 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer;
     using Xunit;
 
     [Unit]
-    public class ClientProviderTest
+    public class ClientProviderTest : IClassFixture<WorkloadFixture>
     {
         const string IotHubHostName = "iothub.test";
         const string DeviceId = "device1";
@@ -28,6 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string ModuleGeneratioIdVariableName = "IOTEDGE_MODULEGENERATIONID";
 
         readonly string authKey = Convert.ToBase64String("key".ToBytes());
+        readonly Uri serverUrl;
+
+        public ClientProviderTest(WorkloadFixture workloadFixture)
+        {
+            this.serverUrl = new Uri(workloadFixture.ServiceUrl);
+        }
 
         [Fact]
         public void Test_Create_DeviceIdentity_WithAuthMethod_ShouldCreateDeviceClient()
@@ -93,10 +98,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(client is ModuleClientWrapper);
         }
 
-        [Fact(Skip = "Add mock for edgelet to fix test")]
+        [Fact]
         public async Task Test_Create_ModuleIdentity_WithEnv_ShouldCreateModuleClient()
         {
-            Environment.SetEnvironmentVariable(IotEdgedUriVariableName, "http://localhost:8081");
+            Environment.SetEnvironmentVariable(IotEdgedUriVariableName, this.serverUrl.OriginalString);
             Environment.SetEnvironmentVariable(IotHubHostnameVariableName, "iothub.test");
             Environment.SetEnvironmentVariable(GatewayHostnameVariableName, "localhost");
             Environment.SetEnvironmentVariable(DeviceIdVariableName, "device1");
