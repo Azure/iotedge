@@ -235,8 +235,25 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
 
                 assert_eq!("nginx:latest", create_options.image().unwrap());
 
+                for v in vec!["/do/the/custom/command", "with these args"].iter() {
+                    assert!(create_options.cmd().unwrap().contains(&v.to_string()));
+                }
+
+                for v in vec![
+                    "/also/do/the/entrypoint".to_string(),
+                    "and this".to_string(),
+                ].iter()
+                {
+                    assert!(
+                        create_options
+                            .entrypoint()
+                            .unwrap()
+                            .contains(&v.to_string())
+                    );
+                }
+
                 for v in vec!["k1=v1", "k2=v2", "k3=v3", "k4=v4", "k5=v5"].iter() {
-                    assert!(create_options.env().unwrap().contains(&v.to_string()))
+                    assert!(create_options.env().unwrap().contains(&v.to_string()));
                 }
 
                 let port_bindings = create_options
@@ -318,6 +335,14 @@ fn container_create_succeeds() {
 
     let create_options = ContainerCreateBody::new()
         .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
+        .with_cmd(vec![
+            "/do/the/custom/command".to_string(),
+            "with these args".to_string(),
+        ])
+        .with_entrypoint(vec![
+            "/also/do/the/entrypoint".to_string(),
+            "and this".to_string(),
+        ])
         .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()]);
 
     let module_config = ModuleSpec::new(

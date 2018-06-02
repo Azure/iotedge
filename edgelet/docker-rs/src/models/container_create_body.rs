@@ -46,6 +46,9 @@ pub struct ContainerCreateBody {
     /// A list of environment variables to set inside the container in the form `[\"VAR=value\", ...]`. A variable without `=` is removed from the environment, rather than to have an empty value.
     #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
     env: Option<Vec<String>>,
+    /// Command to run specified as a string or an array of strings.
+    #[serde(rename = "Cmd", skip_serializing_if = "Option::is_none")]
+    cmd: Option<Vec<String>>,
     #[serde(rename = "Healthcheck", skip_serializing_if = "Option::is_none")]
     healthcheck: Option<::models::HealthConfig>,
     /// Command is already escaped (Windows only)
@@ -59,6 +62,12 @@ pub struct ContainerCreateBody {
     /// The working directory for commands to run in.
     #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     working_dir: Option<String>,
+    /// The entry point for the container as a string or an array of strings.
+    /// If the array consists of exactly one empty string ([""]) then the entry
+    /// point is reset to system default (i.e., the entry point used by docker
+    /// when there is no ENTRYPOINT instruction in the Dockerfile).
+    #[serde(rename = "Entrypoint", skip_serializing_if = "Option::is_none")]
+    entrypoint: Option<Vec<String>>,
     /// Disable networking for the container.
     #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
     network_disabled: Option<bool>,
@@ -100,11 +109,13 @@ impl ContainerCreateBody {
             open_stdin: None,
             stdin_once: None,
             env: None,
+            cmd: None,
             healthcheck: None,
             args_escaped: None,
             image: None,
             volumes: None,
             working_dir: None,
+            entrypoint: None,
             network_disabled: None,
             mac_address: None,
             on_build: None,
@@ -307,6 +318,23 @@ impl ContainerCreateBody {
         self.env = None;
     }
 
+    pub fn set_cmd(&mut self, cmd: Vec<String>) {
+        self.cmd = Some(cmd);
+    }
+
+    pub fn with_cmd(mut self, cmd: Vec<String>) -> ContainerCreateBody {
+        self.cmd = Some(cmd);
+        self
+    }
+
+    pub fn cmd(&self) -> Option<&Vec<String>> {
+        self.cmd.as_ref()
+    }
+
+    pub fn reset_cmd(&mut self) {
+        self.cmd = None;
+    }
+
     pub fn set_healthcheck(&mut self, healthcheck: ::models::HealthConfig) {
         self.healthcheck = Some(healthcheck);
     }
@@ -389,6 +417,23 @@ impl ContainerCreateBody {
 
     pub fn working_dir(&self) -> Option<&String> {
         self.working_dir.as_ref()
+    }
+
+    pub fn set_entrypoint(&mut self, entrypoint: Vec<String>) {
+        self.entrypoint = Some(entrypoint);
+    }
+
+    pub fn with_entrypoint(mut self, entrypoint: Vec<String>) -> ContainerCreateBody {
+        self.entrypoint = Some(entrypoint);
+        self
+    }
+
+    pub fn entrypoint(&self) -> Option<&Vec<String>> {
+        self.entrypoint.as_ref()
+    }
+
+    pub fn reset_entrypoint(&mut self) {
+        self.entrypoint = None;
     }
 
     pub fn reset_working_dir(&mut self) {
