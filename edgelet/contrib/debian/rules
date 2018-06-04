@@ -14,3 +14,6 @@ override_dh_installinit:
 
 override_dh_systemd_start:
 	echo "Not running dh_systemd_start"
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l /usr/arm-linux-gnueabihf/lib/

@@ -64,4 +64,7 @@ sudo apt-get install -y \
     libcurl4-openssl-dev \
     debhelper \
     dh-systemd \
-    valgrind
+    valgrind \
+    binutils-arm-linux-gnueabihf \
+    libc6-armhf-cross \
+    gcc-arm-linux-gnueabihf

@@ -20,25 +20,26 @@ srcdir?=.
 CARGOFLAGS=--release --manifest-path=$(srcdir)/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 
+CARGO=cargo
+GZIP=gzip
 INSTALL=install
 INSTALL_DATA=$(INSTALL) -m 644
 INSTALL_PROGRAM=$(INSTALL)
 MAKE=make
 MKDIR_P=mkdir -p
-GZIP=gzip
 SED=sed
 
 all: $(TARGET)/iotedged $(TARGET)/iotedge
 
 $(TARGET)/iotedged:
-	cargo build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS)
 
 $(TARGET)/iotedge:
-	cargo build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS)
 
 package: all
-	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
-	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
+	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
