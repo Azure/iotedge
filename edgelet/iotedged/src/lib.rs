@@ -240,7 +240,7 @@ where
     let workload = start_workload(&settings, key_store, &core.handle(), work_rx)?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(&runtime, &id_man, &hostname, &device_id, &settings, runt_rx)?;
+    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
