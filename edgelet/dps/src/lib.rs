@@ -9,6 +9,7 @@ extern crate chrono;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
+#[macro_use]
 extern crate log;
 extern crate percent_encoding;
 extern crate serde;

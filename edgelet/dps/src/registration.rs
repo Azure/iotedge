@@ -123,6 +123,7 @@ where
                     .ok_or_else(|| Error::from(ErrorKind::InvalidTpmToken))
                     .and_then(|key_str| base64::decode(key_str).map_err(Error::from))
                     .and_then(|key_bytes| {
+                        debug!("Storing authentication key");
                         key_store
                             .activate_identity_key(
                                 KeyIdentity::Device,
@@ -149,7 +150,10 @@ where
     ) -> Box<Future<Item = Option<RegistrationOperationStatus>, Error = Error>> {
         let token_source =
             DpsTokenSource::new(scope_id.to_string(), registration_id.to_string(), key);
-
+        debug!(
+            "Registration PUT, scope_id, \"{}\", registration_id \"{}\"",
+            scope_id, registration_id
+        );
         let f = client
             .write()
             .expect("RwLock write failure")
@@ -212,8 +216,15 @@ where
         registration_result: &Option<DeviceRegistrationResult>,
     ) -> Result<bool, Error> {
         if let Some(r) = registration_result.as_ref() {
+            debug!(
+                "Device Registration Result: device {:?}, hub {:?}, status {}",
+                r.device_id(),
+                r.assigned_hub(),
+                r.status()
+            );
             Ok(r.status().eq_ignore_ascii_case("assigning"))
         } else {
+            debug!("Not a device registration response");
             Ok(true)
         }
     }
@@ -238,6 +249,7 @@ where
             .take(seconds_to_try)
             .map_err(|_| Error::from(ErrorKind::TimerError))
             .and_then(move |_instant: Instant| {
+                debug!("Ask DPS for registration status");
                 Self::get_operation_status(
                     &client.clone(),
                     &scope_id,
@@ -293,11 +305,17 @@ where
                         let body =
                             if let HttpErrorKind::ServiceError(status, ref body) = *err.kind() {
                                 if status == StatusCode::Unauthorized {
+                                    debug!(
+                                    "Registration unauthorized, checking response for challenge {}",
+                                    status
+                                );
                                     Some(body.clone())
                                 } else {
+                                    debug!("Unexpected registration status, {}", status);
                                     None
                                 }
                             } else {
+                                debug!("Response error {:?}", err);
                                 None
                             };
 
@@ -331,6 +349,10 @@ where
         let tpm_ek = self.tpm_ek.clone();
         let tpm_srk = self.tpm_srk.clone();
         let seconds_to_try = self.seconds_to_try_operation_status;
+        debug!(
+            "Starting DPS registration process, scope_id \"{}\", registration_id \"{}\"",
+            scope_id, registration_id
+        );
         let r = Self::register_with_auth(
             &self.client,
             scope_id,
