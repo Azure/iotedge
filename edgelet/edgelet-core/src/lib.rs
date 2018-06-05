@@ -25,6 +25,7 @@ extern crate tokio_timer;
 #[macro_use]
 extern crate edgelet_utils;
 
+mod authorization;
 mod certificate_properties;
 pub mod crypto;
 mod error;
@@ -37,6 +38,7 @@ use std::rc::Rc;
 
 use futures::{future, future::FutureResult};
 
+pub use authorization::Authorization;
 pub use certificate_properties::{CertificateProperties, CertificateType};
 pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes,
                  KeyIdentity, KeyStore, PrivateKey, Signature};

@@ -96,6 +96,7 @@ impl<C: Connect> Module for DockerModule<C> {
                                     }),
                                 )
                                 .with_image_id(resp.id().cloned())
+                                .with_pid(state.pid().cloned())
                         })
                         .unwrap_or_else(ModuleRuntimeState::default)
                 })
@@ -228,7 +229,8 @@ mod tests {
                             .with_exit_code(10)
                             .with_status("running".to_string())
                             .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_finished_at(finished_at.clone())
+                            .with_pid(1234),
                     )
                     .with_id("mod1".to_string()),
             ),
@@ -245,6 +247,7 @@ mod tests {
             finished_at,
             runtime_state.finished_at().unwrap().to_rfc3339()
         );
+        assert_eq!(1234, *runtime_state.pid().unwrap());
     }
 
     #[test]

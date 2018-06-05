@@ -40,6 +40,8 @@ pub enum ErrorKind {
     Watchdog,
     #[fail(display = "Tokio timer error")]
     TokioTimer,
+    #[fail(display = "Module runtime returned module information without pid.")]
+    ModuleRuntimeNoPid,
 }
 
 impl Fail for Error {
