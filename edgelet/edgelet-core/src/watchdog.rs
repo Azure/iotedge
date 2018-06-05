@@ -2,8 +2,10 @@
 
 use std::time::{Duration, Instant};
 
+use edgelet_utils::log_failure;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
+use log::Level;
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
@@ -97,10 +99,8 @@ where
         .for_each(move |_| {
             info!("Checking edge runtime status");
             check_runtime(runtime.clone(), spec.clone()).or_else(|e| {
-                warn!(
-                    "Error in watchdog when checking for edge runtime status: {}",
-                    e
-                );
+                warn!("Error in watchdog when checking for edge runtime status:");
+                log_failure(Level::Warn, &e);
                 future::ok(())
             })
         })

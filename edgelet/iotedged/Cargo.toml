@@ -31,5 +31,6 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
+edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }

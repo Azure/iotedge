@@ -14,6 +14,7 @@ extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 extern crate edgelet_iothub;
+extern crate edgelet_utils;
 extern crate env_logger;
 #[macro_use]
 extern crate failure;

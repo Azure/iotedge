@@ -3,8 +3,8 @@
 use std::env;
 use std::io::Write;
 
+use edgelet_utils::log_failure;
 use env_logger;
-use failure::Fail;
 use log::{Level, LevelFilter};
 
 use error::Error;
@@ -60,10 +60,5 @@ fn syslog_level(level: &Level) -> i8 {
 }
 
 pub fn log_error(error: &Error) {
-    let mut fail: &Fail = error;
-    error!("{}", error.to_string());
-    while let Some(cause) = fail.cause() {
-        error!("\tcaused by: {}", cause.to_string());
-        fail = cause;
-    }
+    log_failure(Level::Error, error);
 }

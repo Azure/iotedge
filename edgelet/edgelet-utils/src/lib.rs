@@ -5,6 +5,8 @@
 #[macro_use]
 extern crate failure;
 extern crate futures;
+#[macro_use]
+extern crate log;
 extern crate serde;
 
 // Need serde_derive only for unit tests.
@@ -22,12 +24,14 @@ extern crate serde_json;
 extern crate serde_json;
 
 mod error;
+mod logging;
 pub mod macros;
 mod ser_de;
 
 use std::collections::HashMap;
 
 pub use error::{Error, ErrorKind};
+pub use logging::log_failure;
 pub use ser_de::{serde_clone, string_or_struct};
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
