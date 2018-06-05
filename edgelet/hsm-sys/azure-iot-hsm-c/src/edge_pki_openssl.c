@@ -1,5 +1,14 @@
+#include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    #include <io.h>
+#else
+    #include <unistd.h>
+#endif
+
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -55,6 +64,17 @@ struct CERT_KEY_TAG
     EVP_PKEY* evp_key;
 };
 typedef struct CERT_KEY_TAG CERT_KEY;
+
+//#################################################################################################
+// Utilities
+//#################################################################################################
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    #define OPEN_HELPER(fname) _open((fname), _O_CREAT|_O_WRONLY|_O_TRUNC, _S_IREAD|_S_IWRITE)
+    #define CLOSE_HELPER(fd) _close(fd)
+#else
+    #define OPEN_HELPER(fname) open((fname), O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)
+    #define CLOSE_HELPER(fd) close(fd)
+#endif
 
 //#################################################################################################
 // PKI key operations
@@ -349,6 +369,8 @@ static X509* load_certificate_file(const char* cert_file_name)
 static int write_certificate_file(X509* x509_cert, const char* cert_file_name)
 {
     int result;
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     BIO* cert_file = BIO_new_file(cert_file_name, "w");
     if (cert_file == NULL)
     {
@@ -368,6 +390,38 @@ static int write_certificate_file(X509* x509_cert, const char* cert_file_name)
         }
         BIO_free_all(cert_file);
     }
+#else
+    int fd = OPEN_HELPER(cert_file_name);
+    if (fd == -1)
+    {
+        LOG_ERROR("Failure opening cert file for writing for %s", cert_file_name);
+        result = __FAILURE__;
+    }
+    else
+    {
+        BIO *cert_file;
+        if ((cert_file = BIO_new_fd(fd, 0)) == NULL)
+        {
+            LOG_ERROR("Failure creating new BIO handle for %s", cert_file_name);
+            result = __FAILURE__;
+        }
+        else
+        {
+            if (!PEM_write_bio_X509(cert_file, x509_cert))
+            {
+                LOG_ERROR("Unable to write certificate to file %s", cert_file_name);
+                result = __FAILURE__;
+            }
+            else
+            {
+                result = 0;
+            }
+            BIO_free_all(cert_file);
+        }
+        (void)CLOSE_HELPER(fd);
+    }
+#endif
+
     return result;
 }
 
@@ -396,6 +450,8 @@ static EVP_PKEY* load_private_key_file(const char* key_file_name)
 static int write_private_key_file(EVP_PKEY* evp_key, const char* key_file_name)
 {
     int result;
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     BIO* key_file = BIO_new_file(key_file_name, "w");
     if (key_file == NULL)
     {
@@ -415,6 +471,34 @@ static int write_private_key_file(EVP_PKEY* evp_key, const char* key_file_name)
         }
         BIO_free_all(key_file);
     }
+#else
+    int fd = OPEN_HELPER(key_file_name);
+    if (fd == -1)
+    {
+        LOG_ERROR("Failure opening key file for writing for %s", key_file_name);
+        result = __FAILURE__;
+    }
+    else
+    {
+        BIO *key_file;
+        if ((key_file = BIO_new_fd(fd, 0)) == NULL)
+        {
+            LOG_ERROR("Failure creating new BIO handle for %s", key_file_name);
+            result = __FAILURE__;
+        }
+        else if (!PEM_write_bio_PrivateKey(key_file, evp_key, NULL, NULL, 0, NULL, NULL))
+        {
+            LOG_ERROR("Unable to write private key to file %s", key_file_name);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        BIO_free_all(key_file);
+        (void)CLOSE_HELPER(fd);
+    }
+#endif
 
     return result;
 }

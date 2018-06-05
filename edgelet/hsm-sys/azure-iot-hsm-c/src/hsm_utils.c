@@ -20,7 +20,8 @@
     #endif
     #define HSM_MKDIR(dir_path) _mkdir(dir_path)
 #else
-    #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
+    // equivalent to 755
+    #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
 static int read_file_into_buffer_impl
