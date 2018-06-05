@@ -158,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var dockerRuntimeConfig = deploymentConfigRuntime as IRuntimeInfo<DockerRuntimeConfig>;
             Assert.NotNull(dockerRuntimeConfig);
 
-            Assert.Equal("1.5", dockerRuntimeConfig.Config.MinDockerVersion);
             Assert.Null(dockerRuntimeConfig.Config.LoggingOptions);
             Assert.Equal(2, dockerRuntimeConfig.Config.RegistryCredentials.Count);
             RegistryCredentials r1 = dockerRuntimeConfig.Config.RegistryCredentials["r1"];
@@ -185,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     type = "docker",
                     settings = new
                     {
-                        minDockerVersion = "1.5",
                         registryCredentials = new
                         {
                             r1 = new
@@ -363,15 +361,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion, deploymentConfig.SchemaVersion);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
-                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeAgent.OrDefault().ConfigurationInfo.Id);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
-                Assert.Equal(configurationId, deploymentConfig.SystemModules.EdgeHub.OrDefault().ConfigurationInfo.Id);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
-                Assert.Equal(configurationId, deploymentConfig.Modules["mongoserver"].ConfigurationInfo.Id);
                 Assert.NotNull(deploymentConfig.Modules["asa"]);
-                Assert.Equal(configurationId, deploymentConfig.Modules["asa"].ConfigurationInfo.Id);
-
+                
                 TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                 await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
@@ -518,7 +512,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     type = "docker",
                     settings = new
                     {
-                        minDockerVersion = "1.5",
                         loggingOptions = ""
                     }
                 },
@@ -622,7 +615,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     type = "docker",
                     settings = new
                     {
-                        minDockerVersion = "1.5",
                         registryCredentials = new
                         {
                             r1 = new

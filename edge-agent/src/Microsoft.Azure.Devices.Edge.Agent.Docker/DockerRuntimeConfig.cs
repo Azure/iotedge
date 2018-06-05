@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonConstructor]
         public DockerRuntimeConfig(string minDockerVersion, IDictionary<string, RegistryCredentials> registryCredentials, string loggingOptions = "")
         {
-            this.MinDockerVersion = Preconditions.CheckNotNull(minDockerVersion, nameof(minDockerVersion));
+            this.MinDockerVersion = minDockerVersion ?? string.Empty;
             this.LoggingOptions = loggingOptions;
             this.RegistryCredentials = registryCredentials?.ToImmutableDictionary() ?? ImmutableDictionary<string, RegistryCredentials>.Empty;
         }
