@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::env::VarError;
 use std::fmt;
 use std::fmt::Display;
 use std::io;
@@ -55,6 +56,8 @@ pub enum ErrorKind {
     HardHsm,
     #[fail(display = "An hsm error occurred.")]
     SoftHsm,
+    #[fail(display = "Env var error")]
+    Var,
 }
 
 impl Fail for Error {
@@ -203,6 +206,14 @@ impl From<SoftHsmError> for Error {
     fn from(error: SoftHsmError) -> Error {
         Error {
             inner: error.context(ErrorKind::SoftHsm),
+        }
+    }
+}
+
+impl From<VarError> for Error {
+    fn from(error: VarError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Var),
         }
     }
 }

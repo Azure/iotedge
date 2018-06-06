@@ -3,9 +3,12 @@
 use std::fmt;
 use std::fmt::Display;
 
+use std::io::Error as IoError;
+
 use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
 use regex::Error as RegexError;
+use serde_json::Error as SerdeError;
 
 use dps::{Error as DpsError, ErrorKind as DpsErrorKind};
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
@@ -37,6 +40,10 @@ pub enum ErrorKind {
     Base64,
     #[fail(display = "Http error")]
     Http,
+    #[fail(display = "I/O error")]
+    Io,
+    #[fail(display = "Serde error")]
+    Serde,
 }
 
 impl Fail for Error {
@@ -131,6 +138,22 @@ impl From<HttpError> for Error {
     fn from(error: HttpError) -> Error {
         Error {
             inner: error.context(ErrorKind::Http),
+        }
+    }
+}
+
+impl From<IoError> for Error {
+    fn from(error: IoError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Io),
+        }
+    }
+}
+
+impl From<SerdeError> for Error {
+    fn from(error: SerdeError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Serde),
         }
     }
 }

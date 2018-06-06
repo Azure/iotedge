@@ -43,6 +43,7 @@ pub mod signal;
 
 use std::collections::HashMap;
 use std::env;
+use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
 use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore, Sign};
@@ -66,8 +67,8 @@ use hyper::server::Http;
 use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
 use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
-use provisioning::provisioning::{DpsProvisioning, ManualProvisioning, Provision,
-                                 ProvisioningResult};
+use provisioning::provisioning::{BackupProvisioning, DpsProvisioning, ManualProvisioning,
+                                 Provision, ProvisioningResult};
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
@@ -132,6 +133,9 @@ const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
 const UNIX_SCHEME: &str = "unix";
 
+/// This is the name of the provisioning backup file
+const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
+
 pub struct Main {
     settings: Settings<DockerConfig>,
     reactor: Core,
@@ -184,8 +188,10 @@ impl Main {
                 )?;
             }
             Provisioning::Dps(dps) => {
+                let home_dir = env::var(HOMEDIR_KEY)?;
+                let path = Path::new(&home_dir).join(EDGE_PROVISIONING_BACKUP_FILENAME);
                 let (key_store, provisioning_result, root_key) =
-                    dps_provision(&dps, hyper_client.clone(), &mut core)?;
+                    dps_provision(&dps, hyper_client.clone(), &mut core, path)?;
                 start_api(
                     &settings,
                     core,
@@ -287,6 +293,7 @@ fn dps_provision<S>(
     provisioning: &Dps,
     hyper_client: S,
     core: &mut Core,
+    backup_path: PathBuf,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
@@ -304,7 +311,9 @@ where
         srk_result,
     )?;
     let tpm_hsm = TpmKeyStore::from_hsm(tpm)?;
-    let provision = dps.provision(tpm_hsm.clone())
+    let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
+    let provision = provision_with_file_backup
+        .provision(tpm_hsm.clone())
         .map_err(Error::from)
         .and_then(move |prov_result| {
             tpm_hsm
@@ -315,6 +324,7 @@ where
                     Ok((derived_key_store, prov_result, k))
                 })
         });
+
     core.run(provision)
 }
 

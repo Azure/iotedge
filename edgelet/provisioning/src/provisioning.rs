@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::PathBuf;
 
 use base64;
 use bytes::Bytes;
@@ -9,16 +12,18 @@ use futures::future::Either;
 use futures::{future, Future};
 use hyper::client::Service;
 use hyper::{Error as HyperError, Request, Response};
-
 use regex::RegexSet;
+use serde_json;
 use url::Url;
 
 use dps::registration::{DpsClient, DpsTokenSource};
 use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_http::client::Client as HttpClient;
+use edgelet_utils::log_failure;
 use error::{Error, ErrorKind};
 use hsm::TpmKey as HsmTpmKey;
+use log::Level;
 
 static DEVICEID_KEY: &'static str = "DeviceId";
 static HOSTNAME_KEY: &'static str = "HostName";
@@ -28,6 +33,7 @@ static DEVICEID_REGEX: &'static str = r"DeviceId=([A-Za-z0-9\-:.+%_#*?!(),=@;$']
 static HOSTNAME_REGEX: &'static str = r"HostName=([a-zA-Z0-9_\-\.]+)";
 static SHAREDACCESSKEY_REGEX: &'static str = r"SharedAccessKey=(.+)";
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
@@ -222,10 +228,115 @@ where
     }
 }
 
+pub struct BackupProvisioning<P>
+where
+    P: 'static + Provision,
+{
+    underlying: P,
+    path: PathBuf,
+}
+
+impl<P> BackupProvisioning<P>
+where
+    P: 'static + Provision,
+{
+    pub fn new(provisioner: P, path: PathBuf) -> Self {
+        BackupProvisioning {
+            underlying: provisioner,
+            path,
+        }
+    }
+
+    fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
+        // create a file if it doesn't exist, else open it for writing
+        let mut file = File::create(path)?;
+        let buffer = serde_json::to_string(&prov_result)?;
+        file.write_all(buffer.as_bytes())?;
+        Ok(())
+    }
+
+    fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
+        let mut file = File::open(path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)
+            .map(|_| {
+                info!("Restoring device credentials from backup");
+                serde_json::from_str(&buffer).map_err(Error::from)
+            })
+            .map_err(|err| {
+                log_failure(Level::Warn, &err);
+                err
+            })?
+    }
+}
+
+impl<P> Provision for BackupProvisioning<P>
+where
+    P: 'static + Provision,
+{
+    type Hsm = P::Hsm;
+
+    fn provision(
+        self,
+        key_activator: Self::Hsm,
+    ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+        let path = self.path.clone();
+        let path_on_err = self.path.clone();
+        Box::new(
+            self.underlying
+                .provision(key_activator)
+                .and_then(move |prov_result| {
+                    Self::backup(&prov_result, path)
+                        .map(|_| Either::A(future::ok(prov_result.clone())))
+                        .unwrap_or_else(|err| Either::B(future::err(err)))
+                })
+                .or_else(move |err| {
+                    log_failure(Level::Warn, &err);
+                    Self::restore(path_on_err)
+                        .map(|prov_result| Either::A(future::ok(prov_result)))
+                        .unwrap_or_else(|err| Either::B(future::err(err)))
+                }),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use tempdir::TempDir;
     use tokio_core::reactor::Core;
+
+    use error::ErrorKind;
+
+    struct TestProvisioning {}
+
+    impl Provision for TestProvisioning {
+        type Hsm = MemoryKeyStore;
+
+        fn provision(
+            self,
+            _key_activator: Self::Hsm,
+        ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+            Box::new(future::ok(ProvisioningResult {
+                device_id: "TestDevice".to_string(),
+                hub_name: "TestHub".to_string(),
+            }))
+        }
+    }
+
+    struct TestProvisioningWithError {}
+
+    impl Provision for TestProvisioningWithError {
+        type Hsm = MemoryKeyStore;
+
+        fn provision(
+            self,
+            _key_activator: Self::Hsm,
+        ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
+            Box::new(future::err(Error::from(ErrorKind::Dps)))
+        }
+    }
 
     #[test]
     fn manual_get_credentials_success() {
@@ -317,6 +428,86 @@ mod tests {
             }
             Ok(()) as Result<(), Error>
         });
+        core.run(task1).unwrap();
+    }
+
+    #[test]
+    fn backup_success() {
+        let mut core = Core::new().unwrap();
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                match result {
+                    Ok(_) => {
+                        let result = BackupProvisioning::<ManualProvisioning>::restore(
+                            file_path_clone,
+                        ).unwrap();
+                        assert_eq!(result.device_id(), "TestDevice");
+                        assert_eq!(result.hub_name(), "TestHub");
+                    }
+                    Err(_) => panic!("Unexpected"),
+                }
+                Ok(()) as Result<(), Error>
+            });
+        core.run(task).unwrap();
+    }
+
+    #[test]
+    fn restore_success() {
+        let mut core = Core::new().unwrap();
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        core.run(task).unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                match result {
+                    Ok(_) => {
+                        let prov_result = result.unwrap();
+                        assert_eq!(prov_result.device_id(), "TestDevice");
+                        assert_eq!(prov_result.hub_name(), "TestHub");
+                    }
+                    Err(_) => panic!("Unexpected"),
+                }
+                Ok(()) as Result<(), Error>
+            });
+        core.run(task1).unwrap();
+    }
+
+    #[test]
+    fn restore_failure() {
+        let mut core = Core::new().unwrap();
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_wrong = tmp_dir.path().join("dps_backup_wrong.json");
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        core.run(task).unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_wrong);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                match result {
+                    Ok(_) => panic!("Unexpected"),
+                    Err(_) => assert_eq!(1, 1),
+                }
+                Ok(()) as Result<(), Error>
+            });
         core.run(task1).unwrap();
     }
 }

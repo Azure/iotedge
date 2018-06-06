@@ -12,6 +12,12 @@ extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate regex;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+#[cfg(test)]
+extern crate tempdir;
 #[cfg(test)]
 extern crate tokio_core;
 extern crate url;
@@ -27,4 +33,4 @@ pub mod error;
 pub mod provisioning;
 
 pub use error::Error;
-pub use provisioning::{DpsProvisioning, Provision, ProvisioningResult};
+pub use provisioning::{BackupProvisioning, DpsProvisioning, Provision, ProvisioningResult};
