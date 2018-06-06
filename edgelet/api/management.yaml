@@ -13,6 +13,10 @@ tags:
     x-displayName: Identities
     description: |
       Create and manage module identity.
+  - name: SystemInformation
+    x-displayName: SystemInformation
+    description: |
+      Get information about the runtime.
 paths:
   /modules:
     get:
@@ -339,6 +343,26 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+            
+  /systeminfo:
+    get:
+      tags:
+        - SystemInformation
+      summary: Return host system information.
+      produces:
+        - application/json
+      operationId: GetSystemInfo
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/SystemInfo'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'            
 definitions:
   ModuleList:
     type: object
@@ -458,7 +482,19 @@ definitions:
     example:
       status: the status
       description: the description
-
+  SystemInfo:
+    type: object
+    properties:
+      osType:
+        type: string
+      architecture:
+        type: string
+    required:
+      - osType
+      - architecture
+    example:
+      osType: "linux/windows"
+      architecture: "arm/amd64/x86"
   IdentityList:
     type: object
     properties:
