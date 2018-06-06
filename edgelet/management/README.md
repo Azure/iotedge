@@ -21,9 +21,10 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*IdentityApi* | [**create_identity**](docs/IdentityApi.md#create_identity) | **Put** /identities/{name} | Create or update an identity.
+*IdentityApi* | [**create_identity**](docs/IdentityApi.md#create_identity) | **Post** /identities/ | Create an identity.
 *IdentityApi* | [**delete_identity**](docs/IdentityApi.md#delete_identity) | **Delete** /identities/{name} | Delete an identity.
 *IdentityApi* | [**list_identities**](docs/IdentityApi.md#list_identities) | **Get** /identities/ | List identities.
+*IdentityApi* | [**update_identity**](docs/IdentityApi.md#update_identity) | **Put** /identities/{name} | Update an identity.
 *ModuleApi* | [**create_module**](docs/ModuleApi.md#create_module) | **Post** /modules | Create module.
 *ModuleApi* | [**delete_module**](docs/ModuleApi.md#delete_module) | **Delete** /modules/{name} | Delete a module.
 *ModuleApi* | [**get_module**](docs/ModuleApi.md#get_module) | **Get** /modules/{name} | Get a module&#39;s status.
@@ -33,6 +34,7 @@ Class | Method | HTTP request | Description
 *ModuleApi* | [**start_module**](docs/ModuleApi.md#start_module) | **Post** /modules/{name}/start | Start a module.
 *ModuleApi* | [**stop_module**](docs/ModuleApi.md#stop_module) | **Post** /modules/{name}/stop | Stop a module.
 *ModuleApi* | [**update_module**](docs/ModuleApi.md#update_module) | **Put** /modules/{name} | Update a module.
+*SystemInformationApi* | [**get_system_info**](docs/SystemInformationApi.md#get_system_info) | **Get** /systeminfo | Return host system information.
 
 
 ## Documentation For Models
@@ -49,6 +51,8 @@ Class | Method | HTTP request | Description
  - [ModuleSpec](docs/ModuleSpec.md)
  - [RuntimeStatus](docs/RuntimeStatus.md)
  - [Status](docs/Status.md)
+ - [SystemInfo](docs/SystemInfo.md)
+ - [UpdateIdentity](docs/UpdateIdentity.md)
 
 
 ## Documentation For Authorization

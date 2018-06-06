@@ -24,6 +24,8 @@ mod runtime_status;
 pub use self::runtime_status::RuntimeStatus;
 mod status;
 pub use self::status::Status;
+mod system_info;
+pub use self::system_info::SystemInfo;
 
 // TODO(farcaller): sort out files
 pub struct File;

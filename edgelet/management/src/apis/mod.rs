@@ -54,6 +54,8 @@ mod identity_api;
 pub use self::identity_api::{IdentityApi, IdentityApiClient};
 mod module_api;
 pub use self::module_api::{ModuleApi, ModuleApiClient};
+mod system_information_api;
+pub use self::system_information_api::{SystemInformationApi, SystemInformationApiClient};
 
 pub mod client;
 pub mod configuration;
