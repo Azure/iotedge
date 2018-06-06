@@ -84,7 +84,8 @@ mod tests {
     use failure::Context;
     use futures::future;
     use futures::future::FutureResult;
-    use module::{Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec};
+    use futures::stream::Empty;
+    use module::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec};
 
     #[test]
     fn should_authorize_anonymous() {
@@ -300,9 +301,13 @@ mod tests {
         type Config = TestConfig;
         type Module = TestModule;
         type ModuleRegistry = Self;
+        type Chunk = String;
+        type Logs = Empty<Self::Chunk, Self::Error>;
+
         type CreateFuture = FutureResult<(), Self::Error>;
         type InitFuture = FutureResult<(), Self::Error>;
         type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+        type LogsFuture = FutureResult<Self::Logs, Self::Error>;
         type RemoveFuture = FutureResult<(), Self::Error>;
         type RestartFuture = FutureResult<(), Self::Error>;
         type StartFuture = FutureResult<(), Self::Error>;
@@ -311,27 +316,38 @@ mod tests {
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
         }
+
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             notimpl_error!()
         }
+
         fn start(&self, _id: &str) -> Self::StartFuture {
             notimpl_error!()
         }
+
         fn stop(&self, _id: &str) -> Self::StopFuture {
             notimpl_error!()
         }
+
         fn restart(&self, _id: &str) -> Self::RestartFuture {
             notimpl_error!()
         }
+
         fn remove(&self, _id: &str) -> Self::RemoveFuture {
             notimpl_error!()
         }
+
         fn list(&self) -> Self::ListFuture {
             match self.behavior {
                 TestModuleListBehavior::Default => future::ok(self.modules.clone()),
                 TestModuleListBehavior::FailList => notimpl_error!(),
             }
         }
+
+        fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
+            notimpl_error!()
+        }
+
         fn registry(&self) -> &Self::ModuleRegistry {
             self
         }

@@ -6,6 +6,7 @@ extern crate base64;
 extern crate chrono;
 #[macro_use]
 extern crate failure;
+#[macro_use]
 extern crate futures;
 extern crate hyper;
 #[macro_use]

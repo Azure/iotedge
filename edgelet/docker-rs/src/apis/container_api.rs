@@ -110,7 +110,7 @@ pub trait ContainerApi {
         since: i32,
         timestamps: bool,
         tail: &str,
-    ) -> Box<Future<Item = String, Error = Error<serde_json::Value>>>;
+    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>>>;
     fn container_pause(&self, id: &str)
         -> Box<Future<Item = (), Error = Error<serde_json::Value>>>;
     fn container_prune(
@@ -780,7 +780,7 @@ impl<C: hyper::client::Connect> ContainerApi for ContainerApiClient<C> {
         since: i32,
         timestamps: bool,
         tail: &str,
-    ) -> Box<Future<Item = String, Error = Error<serde_json::Value>>> {
+    ) -> Box<Future<Item = hyper::Body, Error = Error<serde_json::Value>>> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::Get;
@@ -815,21 +815,12 @@ impl<C: hyper::client::Connect> ContainerApi for ContainerApiClient<C> {
                 .map_err(|e| Error::from(e))
                 .and_then(|resp| {
                     let status = resp.status();
-                    resp.body()
-                        .concat2()
-                        .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
-                })
-                .and_then(|(status, body)| {
                     if status.is_success() {
-                        Ok(body)
+                        Ok(resp.body())
                     } else {
-                        Err(Error::from((status, &*body)))
+                        let b: &[u8] = &[];
+                        Err(Error::from((status, b)))
                     }
-                })
-                .and_then(|body| {
-                    let parsed: Result<String, _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
                 }),
         )
     }

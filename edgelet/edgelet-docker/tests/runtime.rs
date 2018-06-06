@@ -21,8 +21,8 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use futures::future;
 use futures::prelude::*;
+use futures::{future, Stream};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Request, Response};
 use hyper::{Error as HyperError, Method, StatusCode};
@@ -34,7 +34,7 @@ use url::Url;
 use docker::models::AuthConfig;
 use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
                      ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
+use edgelet_core::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
 
@@ -582,6 +582,66 @@ fn container_list_succeeds() {
             );
         }
     }
+}
+
+fn container_logs_handler(req: Request) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Get);
+    assert_eq!(req.path(), "/containers/mod1/logs");
+
+    let query_map: HashMap<String, String> = parse_query(req.query().unwrap().as_bytes())
+        .into_owned()
+        .collect();
+    assert!(query_map.contains_key("stdout"));
+    assert!(query_map.contains_key("stderr"));
+    assert!(query_map.contains_key("follow"));
+    assert!(query_map.contains_key("tail"));
+    assert_eq!("true", query_map["follow"]);
+    assert_eq!("all", query_map["tail"]);
+
+    let body = vec![
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20, 0x61,
+        0x72, 0x65, 0x20, 0x72, 0x65, 0x64, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x76,
+        0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73, 0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75, 0x65,
+    ];
+
+    Box::new(future::ok(
+        Response::new().with_body(body).with_status(StatusCode::Ok),
+    ))
+}
+
+#[test]
+fn container_logs_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server("127.0.0.1", port, container_logs_handler, &sender);
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let options = LogOptions::new().with_follow(true).with_tail(LogTail::All);
+    let task = mri.logs("mod1", &options);
+    let logs = core.run(task).unwrap();
+
+    let expected_body = [
+        0x01u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20, 0x61,
+        0x72, 0x65, 0x20, 0x72, 0x65, 0x64, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x76,
+        0x69, 0x6f, 0x6c, 0x65, 0x74, 0x73, 0x20, 0x61, 0x72, 0x65, 0x20, 0x62, 0x6c, 0x75, 0x65,
+    ];
+
+    let assert = logs.concat2().and_then(|b| {
+        assert_eq!(&expected_body[..], b.as_ref());
+        Ok(())
+    });
+    core.run(assert).unwrap();
 }
 
 #[test]

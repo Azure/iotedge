@@ -28,6 +28,7 @@ Class | Method | HTTP request | Description
 *ModuleApi* | [**delete_module**](docs/ModuleApi.md#delete_module) | **Delete** /modules/{name} | Delete a module.
 *ModuleApi* | [**get_module**](docs/ModuleApi.md#get_module) | **Get** /modules/{name} | Get a module&#39;s status.
 *ModuleApi* | [**list_modules**](docs/ModuleApi.md#list_modules) | **Get** /modules | List modules.
+*ModuleApi* | [**module_logs**](docs/ModuleApi.md#module_logs) | **Get** /modules/{name}/logs | Get module logs.
 *ModuleApi* | [**restart_module**](docs/ModuleApi.md#restart_module) | **Post** /modules/{name}/restart | Restart a module.
 *ModuleApi* | [**start_module**](docs/ModuleApi.md#start_module) | **Post** /modules/{name}/start | Start a module.
 *ModuleApi* | [**stop_module**](docs/ModuleApi.md#stop_module) | **Post** /modules/{name}/stop | Stop a module.

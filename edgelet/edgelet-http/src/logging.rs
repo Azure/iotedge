@@ -72,7 +72,11 @@ where
     type Future = ResponseFuture<T::Future>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        let request = format!("{} {} {:?}", req.method(), req.uri().path(), req.version());
+        let uri = req.uri()
+            .query()
+            .map(|q| format!("{}?{}", req.uri().path(), q))
+            .unwrap_or_else(|| req.uri().path().to_string());
+        let request = format!("{} {} {:?}", req.method(), uri, req.version());
         let user_agent = req.headers()
             .get(USER_AGENT)
             .and_then(|ua| ua.to_str().ok())

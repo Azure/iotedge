@@ -28,6 +28,7 @@ impl ManagementService {
         M: 'static + ModuleRuntime + Clone,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Error: IntoResponse,
+        M::Logs: Into<Body>,
         <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
         I: 'static + IdentityManager + Clone,
         I::Identity: Serialize,
@@ -42,6 +43,7 @@ impl ManagementService {
             post   "/modules/(?P<name>[^/]+)/start"   => StartModule::new(runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/stop"    => StopModule::new(runtime.clone()),
             post   "/modules/(?P<name>[^/]+)/restart" => RestartModule::new(runtime.clone()),
+            get    "/modules/(?P<name>[^/]+)/logs"    => ModuleLogs::new(runtime.clone()),
 
             get    "/identities"                      => ListIdentities::new(identity.clone()),
             post   "/identities"                      => CreateIdentity::new(identity.clone()),

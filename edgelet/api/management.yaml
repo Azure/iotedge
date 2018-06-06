@@ -240,6 +240,42 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/logs':
+    get:
+      tags:
+        - Module
+      summary: Get module logs.
+      operationId: ModuleLogs
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to obtain logs for. (urlencoded)
+          required: true
+          type: string
+        - in: query
+          name: follow
+          description: Return the logs as a stream.
+          type: boolean
+          default: false
+        - in: query
+          name: tail
+          description: Only return this number of lines from the end of the logs.
+          type: string
+          default: "all"
+      responses:
+        '101':
+          description: Logs returned as a stream
+        '200':
+          description: Logs returned as a string in response body
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   '/identities/':
     get:

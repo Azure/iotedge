@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate clap;
+extern crate edgelet_core;
 extern crate edgelet_http_mgmt;
 extern crate failure;
 extern crate futures;
@@ -16,6 +17,7 @@ use std::io::Write;
 use std::process;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 use failure::Fail;
 use iotedge::*;
@@ -79,6 +81,30 @@ fn run() -> Result<(), Error> {
                         .index(1),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("logs")
+                .about("Fetch the logs of a module")
+                .arg(
+                    Arg::with_name("MODULE")
+                        .help("Sets the module identity to get logs")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("tail")
+                        .help("Number of lines to show from the end of the log")
+                        .long("tail")
+                        .takes_value(true)
+                        .value_name("NUM")
+                        .default_value("all"),
+                )
+                .arg(
+                    Arg::with_name("follow")
+                        .help("Follow output log")
+                        .short("f")
+                        .long("follow"),
+                ),
+        )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
@@ -105,6 +131,15 @@ fn run() -> Result<(), Error> {
                 io::stdout(),
             ).execute(),
         ),
+        ("logs", Some(args)) => {
+            let id = args.value_of("MODULE").unwrap().to_string();
+            let follow = args.is_present("follow");
+            let tail = args.value_of("tail")
+                .and_then(|a| a.parse::<LogTail>().ok())
+                .unwrap_or_default();
+            let options = LogOptions::new().with_follow(follow).with_tail(tail);
+            core.run(Logs::new(id, options, runtime).execute())
+        }
         ("version", Some(_args)) => core.run(Version::new().execute()),
         (command, _) => core.run(Unknown::new(command.to_string()).execute()),
     }

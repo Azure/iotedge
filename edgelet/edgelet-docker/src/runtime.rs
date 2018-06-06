@@ -7,7 +7,7 @@ use std::ops::Deref;
 use base64;
 use futures::future;
 use futures::prelude::*;
-use hyper::Client;
+use hyper::{Body, Chunk as HyperChunk, Client};
 use serde_json;
 use tokio_core::reactor::Handle;
 use url::Url;
@@ -18,7 +18,7 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings,
                      NetworkConfig};
-use edgelet_core::{ModuleRegistry, ModuleRuntime, ModuleSpec};
+use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_http::UrlConnector;
 use edgelet_utils::serde_clone;
 
@@ -140,13 +140,17 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Module = DockerModule<UrlConnector>;
     type ModuleRegistry = Self;
+    type Chunk = Chunk;
+    type Logs = Logs;
+
     type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type InitFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
+    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error>>;
+    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
-    type InitFuture = Box<Future<Item = (), Error = Self::Error>>;
 
     fn init(&self) -> Self::InitFuture {
         let created = self.network_id
@@ -327,8 +331,67 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
     }
 
+    fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
+        let tail = &options.tail().to_string();
+        let result = self.client
+            .container_api()
+            .container_logs(id, options.follow(), true, true, 0, false, tail)
+            .map(Logs)
+            .map_err(Error::from);
+        Box::new(result)
+    }
+
     fn registry(&self) -> &Self::ModuleRegistry {
         self
+    }
+}
+
+#[derive(Debug)]
+pub struct Logs(Body);
+
+#[derive(Debug, Default)]
+pub struct Chunk(HyperChunk);
+
+impl IntoIterator for Chunk {
+    type Item = u8;
+    type IntoIter = <HyperChunk as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Extend<u8> for Chunk {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = u8>,
+    {
+        self.0.extend(iter)
+    }
+}
+
+impl Stream for Logs {
+    type Item = Chunk;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        if let Some(c) = try_ready!(self.0.poll()) {
+            Ok(Async::Ready(Some(Chunk(c))))
+        } else {
+            Ok(Async::Ready(None))
+        }
+    }
+}
+
+impl Into<Body> for Logs {
+    fn into(self) -> Body {
+        self.0
+    }
+}
+
+impl AsRef<[u8]> for Chunk {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
     }
 }
 

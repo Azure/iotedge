@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::fmt::{self, Display};
+use std::str::ParseBoolError;
 
 use edgelet_core::Error as CoreError;
 use edgelet_http::Error as EdgeletHttpError;
@@ -47,6 +48,8 @@ pub enum ErrorKind {
     Client(MgmtError<serde_json::Value>),
     #[fail(display = "State not modified")]
     NotModified,
+    #[fail(display = "Parse error")]
+    Parse,
 }
 
 impl Fail for Error {
@@ -148,6 +151,14 @@ impl From<IoTHubError> for Error {
     fn from(error: IoTHubError) -> Error {
         Error {
             inner: error.context(ErrorKind::IoTHub),
+        }
+    }
+}
+
+impl From<ParseBoolError> for Error {
+    fn from(error: ParseBoolError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Parse),
         }
     }
 }

@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
+use std::default::Default;
 use std::fmt;
 use std::result::Result as StdResult;
 use std::str::FromStr;
+use std::string::ToString;
 
 use chrono::prelude::*;
 use failure::Fail;
-use futures::Future;
+use futures::{Future, Stream};
 use serde_json;
 
-use error::Result;
+use error::{Error, Result};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -218,6 +220,74 @@ impl<T> ModuleSpec<T> {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum LogTail {
+    All,
+    Num(u64),
+}
+
+impl Default for LogTail {
+    fn default() -> Self {
+        LogTail::All
+    }
+}
+
+impl FromStr for LogTail {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let tail = if s == "all" {
+            LogTail::All
+        } else {
+            let num = s.parse()?;
+            LogTail::Num(num)
+        };
+        Ok(tail)
+    }
+}
+
+impl ToString for LogTail {
+    fn to_string(&self) -> String {
+        match self {
+            LogTail::All => "all".to_string(),
+            LogTail::Num(n) => n.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct LogOptions {
+    follow: bool,
+    tail: LogTail,
+}
+
+impl LogOptions {
+    pub fn new() -> Self {
+        LogOptions {
+            follow: false,
+            tail: LogTail::All,
+        }
+    }
+
+    pub fn with_follow(mut self, follow: bool) -> Self {
+        self.follow = follow;
+        self
+    }
+
+    pub fn with_tail(mut self, tail: LogTail) -> Self {
+        self.tail = tail;
+        self
+    }
+
+    pub fn follow(&self) -> bool {
+        self.follow
+    }
+
+    pub fn tail(&self) -> &LogTail {
+        &self.tail
+    }
+}
+
 pub trait Module {
     type Config;
     type Error: Fail;
@@ -241,12 +311,17 @@ pub trait ModuleRegistry {
 
 pub trait ModuleRuntime {
     type Error: Fail;
+
     type Config;
+    type Module: Module<Config = Self::Config>;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
+    type Chunk: AsRef<[u8]>;
+    type Logs: Stream<Item = Self::Chunk, Error = Self::Error>;
+
     type CreateFuture: Future<Item = (), Error = Self::Error>;
     type InitFuture: Future<Item = (), Error = Self::Error>;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error>;
-    type Module: Module<Config = Self::Config>;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
+    type LogsFuture: Future<Item = Self::Logs, Error = Self::Error>;
     type RemoveFuture: Future<Item = (), Error = Self::Error>;
     type RestartFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
@@ -259,6 +334,7 @@ pub trait ModuleRuntime {
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn list(&self) -> Self::ListFuture;
+    fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
 }
 

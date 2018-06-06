@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::marker::PhantomData;
+
 use edgelet_core::*;
 use failure::Fail;
 use futures::future::{self, FutureResult};
+use futures::prelude::*;
 use futures::IntoFuture;
-use std::marker::PhantomData;
+use hyper::Body;
 
 #[derive(Clone, Debug)]
 pub struct NullRegistry<E: Fail> {
@@ -109,18 +112,55 @@ impl<E: Fail> TestRuntime<E> {
     }
 }
 
+pub struct EmptyBody<E> {
+    phantom: PhantomData<E>,
+}
+
+impl<E> EmptyBody<E> {
+    pub fn new() -> Self {
+        EmptyBody {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<E> Default for EmptyBody<E> {
+    fn default() -> Self {
+        EmptyBody::new()
+    }
+}
+
+impl<E> Stream for EmptyBody<E> {
+    type Item = String;
+    type Error = E;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        Ok(Async::Ready(None))
+    }
+}
+
+impl<E> From<EmptyBody<E>> for Body {
+    fn from(_: EmptyBody<E>) -> Body {
+        Body::empty()
+    }
+}
+
 impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Error = E;
     type Config = TestConfig;
     type Module = TestModule<E>;
     type ModuleRegistry = NullRegistry<E>;
+    type Chunk = String;
+    type Logs = EmptyBody<Self::Error>;
+
     type CreateFuture = FutureResult<(), Self::Error>;
+    type InitFuture = FutureResult<(), Self::Error>;
+    type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
+    type LogsFuture = FutureResult<Self::Logs, Self::Error>;
+    type RemoveFuture = FutureResult<(), Self::Error>;
+    type RestartFuture = FutureResult<(), Self::Error>;
     type StartFuture = FutureResult<(), Self::Error>;
     type StopFuture = FutureResult<(), Self::Error>;
-    type RestartFuture = FutureResult<(), Self::Error>;
-    type RemoveFuture = FutureResult<(), Self::Error>;
-    type ListFuture = FutureResult<Vec<Self::Module>, Self::Error>;
-    type InitFuture = FutureResult<(), Self::Error>;
 
     fn init(&self) -> Self::InitFuture {
         match self.module {
@@ -167,6 +207,13 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     fn list(&self) -> Self::ListFuture {
         match self.module {
             Ok(ref m) => future::ok(vec![m.clone()]),
+            Err(ref e) => future::err(e.clone()),
+        }
+    }
+
+    fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
+        match self.module {
+            Ok(ref _m) => future::ok(EmptyBody::new()),
             Err(ref e) => future::err(e.clone()),
         }
     }

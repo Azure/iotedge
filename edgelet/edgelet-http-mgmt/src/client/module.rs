@@ -8,8 +8,9 @@ use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 use futures::future::{self, FutureResult};
-use futures::Future;
+use futures::prelude::*;
 use hyper::client::Client;
+use hyper::{Body, Chunk as HyperChunk};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
@@ -141,14 +142,21 @@ impl ModuleRuntime for ModuleClient {
     type Config = ModuleConfig;
     type Module = ModuleDetails;
     type ModuleRegistry = Self;
+    type Chunk = Chunk;
+    type Logs = Logs;
 
     type CreateFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type InitFuture = FutureResult<(), Self::Error>;
+    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
+    type LogsFuture = Box<Future<Item = Self::Logs, Error = Self::Error>>;
+    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type RemoveFuture = Box<Future<Item = (), Error = Self::Error>>;
-    type ListFuture = Box<Future<Item = Vec<Self::Module>, Error = Self::Error>>;
-    type InitFuture = FutureResult<(), Self::Error>;
+
+    fn init(&self) -> Self::InitFuture {
+        future::ok(())
+    }
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -222,11 +230,40 @@ impl ModuleRuntime for ModuleClient {
         Box::new(modules)
     }
 
+    fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
+        let tail = &options.tail().to_string();
+        let result = self.client
+            .module_api()
+            .module_logs(API_VERSION, id, options.follow(), tail)
+            .map(Logs)
+            .map_err(Error::from);
+        Box::new(result)
+    }
+
     fn registry(&self) -> &Self::ModuleRegistry {
         self
     }
+}
 
-    fn init(&self) -> Self::InitFuture {
-        future::ok(())
+pub struct Logs(Body);
+
+pub struct Chunk(HyperChunk);
+
+impl Stream for Logs {
+    type Item = Chunk;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        if let Some(c) = try_ready!(self.0.poll()) {
+            Ok(Async::Ready(Some(Chunk(c))))
+        } else {
+            Ok(Async::Ready(None))
+        }
+    }
+}
+
+impl AsRef<[u8]> for Chunk {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
     }
 }

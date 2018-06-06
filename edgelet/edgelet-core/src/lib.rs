@@ -44,8 +44,8 @@ pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundl
                  KeyIdentity, KeyStore, PrivateKey, Signature};
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
-pub use module::{Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-                 ModuleStatus};
+pub use module::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+                 ModuleSpec, ModuleStatus};
 
 pub struct Edgelet<T>
 where

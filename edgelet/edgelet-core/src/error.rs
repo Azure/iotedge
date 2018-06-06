@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Backtrace, Context, Fail};
 use std::fmt;
 use std::fmt::Display;
-use tokio_timer;
+use std::num::ParseIntError;
 
 use edgelet_utils::Error as UtilsError;
+use failure::{Backtrace, Context, Fail};
+use tokio_timer;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -42,6 +43,8 @@ pub enum ErrorKind {
     TokioTimer,
     #[fail(display = "Module runtime returned module information without pid.")]
     ModuleRuntimeNoPid,
+    #[fail(display = "Parse error.")]
+    Parse,
 }
 
 impl Fail for Error {
@@ -96,6 +99,14 @@ impl From<tokio_timer::Error> for Error {
     fn from(error: tokio_timer::Error) -> Error {
         Error {
             inner: error.context(ErrorKind::TokioTimer),
+        }
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Parse),
         }
     }
 }
