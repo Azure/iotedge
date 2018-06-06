@@ -23,6 +23,8 @@ pub enum ErrorKind {
     UrlParse,
     #[fail(display = "An error in the management http client occurred.")]
     HttpMgmt,
+    #[fail(display = "Missing host")]
+    NoHost,
 }
 
 impl Fail for Error {

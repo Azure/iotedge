@@ -46,14 +46,23 @@ fn main() {
 
 fn run() -> Result<(), Error> {
     let mut core = Core::new()?;
-    let url = Url::parse(MGMT_URI)?;
-    let runtime = ModuleClient::new(&url, &core.handle())?;
 
     let matches = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!("\n"))
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
+        .arg(
+            Arg::with_name("host")
+                .help("Daemon socket to connect to")
+                .short("H")
+                .long("host")
+                .takes_value(true)
+                .value_name("HOST")
+                .global(true)
+                .env("IOTEDGE_HOST")
+                .default_value(MGMT_URI),
+        )
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("start").about("Start a module").arg(
@@ -107,6 +116,12 @@ fn run() -> Result<(), Error> {
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
+
+    let url = matches
+        .value_of("host")
+        .map(|h| Url::parse(h).map_err(Error::from))
+        .unwrap_or_else(|| Err(Error::from(ErrorKind::NoHost)))?;
+    let runtime = ModuleClient::new(&url, &core.handle())?;
 
     match matches.subcommand() {
         ("list", Some(_args)) => core.run(List::new(runtime, io::stdout()).execute()),

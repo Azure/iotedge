@@ -55,13 +55,12 @@ where
                     .map_err(|e| e.into())
                     .and_then(move |states| {
                         let mut w = write.borrow_mut();
-                        writeln!(w, "NAME\tTYPE\tSTATUS\tDESCRIPTION\tCONFIG")?;
+                        writeln!(w, "NAME\tSTATUS\tDESCRIPTION\tCONFIG")?;
                         for (module, state) in modules.iter().zip(states) {
                             writeln!(
                                 w,
-                                "{}\t{}\t{}\t{}\t{}",
+                                "{}\t{}\t{}\t{}",
                                 module.name(),
-                                module.type_(),
                                 state.status(),
                                 humanize_state(&state),
                                 module.config(),
