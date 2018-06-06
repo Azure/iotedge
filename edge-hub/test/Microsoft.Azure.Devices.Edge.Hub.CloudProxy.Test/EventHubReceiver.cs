@@ -1,10 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.EventHubs;
 
@@ -39,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
                     if (i < 3)
                     {
-                        Thread.Sleep(2000);
+                        await Task.Delay(TimeSpan.FromSeconds(5));
                     }
                 }
                 await partitionReceiver.CloseAsync();

@@ -29,23 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static readonly int EventHubMessageReceivedRetry = 5;
 
-        public static IEnumerable<object[]> GetTestMessages()
-        {
-            IList<IMessage> messages = MessageHelper.GenerateMessages(4);
-            return new List<object[]> { new object[] { messages } };
-        }
-
-        public static IEnumerable<object[]> GetTestMessage()
-        {
-            IList<IMessage> messages = MessageHelper.GenerateMessages(1);
-            return new List<object[]> { new object[] { messages[0] } };
-        }
-
-        [Theory]
-        [MemberData(nameof(GetTestMessage))]
+        [Fact]
         [TestPriority(401)]
-        public async Task SendMessageTest(IMessage message)
+        public async Task SendMessageTest()
         {
+            IMessage message = MessageHelper.GenerateMessages(1)[0];
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             await cloudProxy.SendMessageAsync(message);
@@ -55,11 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(new List<IMessage> { message }, startTime);
         }
 
-        [Theory]
-        [MemberData(nameof(GetTestMessages))]
+        [Fact]
         [TestPriority(402)]
-        public async Task SendMessageMultipleDevicesTest(IList<IMessage> messages)
+        public async Task SendMessageMultipleDevicesTest()
         {
+            IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
 
             ICloudProxy cloudProxy1 = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
@@ -80,11 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await CheckMessageInEventHub(messages, startTime);
         }
 
-        [Theory]
-        [MemberData(nameof(GetTestMessages))]
+        [Fact]
         [TestPriority(403)]
-        public async Task SendMessageBatchTest(IList<IMessage> messages)
+        public async Task SendMessageBatchTest()
         {
+            IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
             ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
             await cloudProxy.SendMessageBatchAsync(messages);
@@ -209,16 +197,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
-            IList<EventData> cloudMessages = null;
+            var cloudMessages = new List<EventData>();
             bool messagesFound = false;
             //Add retry mechanism to make sure all the messages sent reached Event Hub. Retry 3 times.
             for (int i = 0; i < EventHubMessageReceivedRetry; i++)
             {
-                cloudMessages = await eventHubReceiver.GetMessagesFromAllPartitions(startTime);
+                cloudMessages.AddRange(await eventHubReceiver.GetMessagesFromAllPartitions(startTime));
                 messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessages, cloudMessages);
                 if (messagesFound)
-                    break; //Retry till we have the messages. Sleep for 10 seconds after each retry.
-                Thread.Sleep(10000);
+                {
+                    break;
+                } 
+                await Task.Delay(TimeSpan.FromSeconds(20));
             }
 
             await eventHubReceiver.Close();

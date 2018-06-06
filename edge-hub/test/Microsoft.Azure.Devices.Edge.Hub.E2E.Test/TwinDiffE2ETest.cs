@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,354 +15,398 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     public class TwinDiffE2ETest : IClassFixture<ProtocolHeadFixture>
     {
         const string DeviceNamePrefix = "E2E_twin_";
-        string deviceName;
-        RegistryManager rm;
-        DeviceClient deviceClient;
-        string deviceConnectionString;
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task AddPropertySuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["101"] = "value"
-            };
-
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
-
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
-
-            twinPatch.Properties.Desired = new TwinCollection
-            {
-                ["101"] = "value",
-                ["101-new"] = new TwinCollection
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = "value"
-                }
-            };
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection
+                    {
+                        ["101"] = "value"
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+
+                    twinPatch.Properties.Desired = new TwinCollection
+                    {
+                        ["101"] = "value",
+                        ["101-new"] = new TwinCollection
+                        {
+                            ["object"] = "value"
+                        }
+                    };
+
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["102"] = "value"
-            };
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
+                {
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["102"] = "value"
+                    };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
 
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["102"] = "overwritten value"
-            };
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["102"] = "overwritten value"
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["103"] = new TwinCollection()
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = new TwinCollection()
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["103"] = new TwinCollection()
                         {
-                            ["103"] = "value"
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["103"] = "value"
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
 
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["103"] = new TwinCollection()
-                {
-                    ["object"] = new TwinCollection()
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["103"] = new TwinCollection()
                         {
-                            ["103"] = "value",
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["103"] = "value",
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task RemovePropertySuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["104"] = new TwinCollection()
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = new TwinCollection()
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["104"] = new TwinCollection()
                         {
-                            ["104"] = "value"
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["104"] = "value"
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
 
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["104"] = new TwinCollection()
-                {
-                    ["object"] = new TwinCollection()
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["104"] = new TwinCollection()
                         {
-                            ["104"] = null,
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["104"] = null,
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["105"] = new TwinCollection()
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = new TwinCollection()
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["105"] = new TwinCollection()
                         {
-                            ["105"] = "value"
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["105"] = "value"
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
 
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["105"] = new TwinCollection()
-                {
-                    ["object"] = new TwinCollection()
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["105"] = new TwinCollection()
                         {
-                            ["105"] = "value",
-                            ["nonexistant"] = null
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["105"] = "value",
+                                    ["nonexistant"] = null
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["106"] = "value"
-            };
-
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
-
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
-
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["106"] = new TwinCollection()
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = new TwinCollection()
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["106"] = "value"
+                    };
+
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["106"] = new TwinCollection()
                         {
-                            ["106"] = "value"
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["106"] = "value"
+                                }
+                            }
                         }
-                    }
-                }
-            };
+                    };
 
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
         {
-            var twinPatch = new Twin();
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["107"] = new TwinCollection()
+            await this.RunTestCase(
+                transportSettings,
+                async (deviceClient, deviceName, registryManager) =>
                 {
-                    ["object"] = new TwinCollection()
+                    var twinPatch = new Twin();
+                    twinPatch.Properties.Desired = new TwinCollection()
                     {
-                        ["object"] = new TwinCollection()
+                        ["107"] = new TwinCollection()
                         {
-                            ["107"] = "value"
+                            ["object"] = new TwinCollection()
+                            {
+                                ["object"] = new TwinCollection()
+                                {
+                                    ["107"] = "value"
+                                }
+                            }
                         }
-                    }
+                    };
+
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+
+                    twinPatch.Properties.Desired = new TwinCollection()
+                    {
+                        ["107"] = "value"
+                    };
+
+                    results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+
+                    Assert.True(
+                        JToken.DeepEquals(
+                            JToken.Parse(results.Item1.ToJson()),
+                            JToken.Parse(results.Item2.ToJson())));
+                });
+        }
+
+        static async Task<(DeviceClient, string)> InitializeDeviceClient(RegistryManager rm, string iotHubConnectionString, ITransportSettings[] settings)
+        {
+            DeviceClient deviceClient = null;
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+                    await deviceClient.OpenAsync();
+                    break;
                 }
-            };
-
-            Tuple<TwinCollection, TwinCollection> results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, false);
-
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
-
-            twinPatch.Properties.Desired = new TwinCollection()
-            {
-                ["107"] = "value"
-            };
-
-            results = await this.RunTestCase(new CancellationTokenSource(), twinPatch, transportSettings, true);
-
-            Assert.True(JToken.DeepEquals(
-                    JToken.Parse(results.Item1.ToJson()),
-                    JToken.Parse(results.Item2.ToJson())));
+                catch (Exception)
+                {
+                    if (i == 2)
+                    {
+                        throw;
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                }
+            }
+            return (deviceClient, deviceName);
         }
 
-        async Task Setup(DesiredPropertyUpdateCallback callback, Twin twinPatch, Func<Twin, Task> afterSetup, Func<Task> afterCallback, ITransportSettings[] settings)
+        async Task RunTestCase(ITransportSettings[] transportSettings, Func<DeviceClient, string, RegistryManager, Task> testCase)
         {
-            if (this.rm == null)
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
+            try
             {
-                string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-
-                this.rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-                (this.deviceName, this.deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, this.rm);
-
-                this.deviceClient = DeviceClient.CreateFromConnectionString(this.deviceConnectionString, settings);
-                await this.deviceClient.OpenAsync();
+                await testCase(deviceClient, deviceName, rm);
             }
-            await this.deviceClient.SetDesiredPropertyUpdateCallbackAsync(callback, afterCallback);
-            await afterSetup(twinPatch);
+            finally
+            {
+                await deviceClient.CloseAsync();
+                await RegistryManagerHelper.RemoveDevice(deviceName, rm);
+                await rm.CloseAsync();
+            }
         }
 
-        async Task Teardown()
+        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(DeviceClient deviceClient, string deviceName,
+            RegistryManager rm, Twin twinPatch)
         {
-            await this.deviceClient.CloseAsync();
-            await RegistryManagerHelper.RemoveDevice(this.deviceName, this.rm);
-            await this.rm.CloseAsync();
-            this.rm = null;
-        }
-
-        async Task<Tuple<TwinCollection, TwinCollection>> RunTestCase(CancellationTokenSource cts, Twin twinPatch, ITransportSettings[] transportSettings, bool teardown)
-        {
-            var desiredPropertyPatch = new TwinCollection();
-            var originalCloudTwin = new Twin();
-            var updatedCloudTwin = new Twin();
-            var localMergedTwinProperties = new TwinCollection();
-
-            await this.Setup(async (diff, ctx) =>
+            var receivedDesiredProperties = new TwinCollection();
+            Task DesiredPropertiesUpdateCallback(TwinCollection desiredproperties, object usercontext)
             {
-                desiredPropertyPatch = diff;
-                var next = (Func<Task>)ctx;
-                await next();
-                cts.Cancel();
-            },
-            twinPatch,
-            async (p) => // after setup
-            {
-                // fetch the newly minted twin
-                originalCloudTwin = await this.deviceClient.GetTwinAsync();
-
-                Twin rmTwin = await this.rm.GetTwinAsync(this.deviceName);
-
-                // updated twin in the cloud with the patch
-                await this.rm.UpdateTwinAsync(this.deviceName, p, rmTwin.ETag);
-            },
-            async () => // after callback
-            {
-                updatedCloudTwin = await this.deviceClient.GetTwinAsync();
-
-                // replicate the patch operation locally
-                string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, desiredPropertyPatch, true);
-                localMergedTwinProperties = new TwinCollection(mergedJson);
-            },
-            transportSettings);
-
-            while (!cts.IsCancellationRequested)
-            {
-                Thread.Sleep(10000);
+                receivedDesiredProperties = desiredproperties;
+                return Task.CompletedTask;
             }
 
-            if (teardown)
-            {
-                await this.Teardown();
-            }
+            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(DesiredPropertiesUpdateCallback, null);
 
-            return new Tuple<TwinCollection, TwinCollection>(localMergedTwinProperties, updatedCloudTwin.Properties.Desired);
+            // fetch the newly minted twin
+            Twin originalCloudTwin = await deviceClient.GetTwinAsync();
+            Twin rmTwin = await rm.GetTwinAsync(deviceName);
+
+            // updated twin in the cloud with the patch
+            await rm.UpdateTwinAsync(deviceName, twinPatch, rmTwin.ETag);
+
+            // Get the updated twin
+            Twin updatedCloudTwin = await deviceClient.GetTwinAsync();
+
+            // replicate the patch operation locally
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, receivedDesiredProperties, true);
+            var localMergedTwinProperties = new TwinCollection(mergedJson);
+
+            return (localMergedTwinProperties, updatedCloudTwin.Properties.Desired);
         }
     }
 }
