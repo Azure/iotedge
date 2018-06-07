@@ -36,9 +36,9 @@ pub enum StreamSelector {
 impl StreamSelector {
     pub fn pid(&self) -> io::Result<Pid> {
         match *self {
-            StreamSelector::Tcp(_) => Ok(Pid::None),
+            StreamSelector::Tcp(_) => Ok(Pid::Any),
             #[cfg(windows)]
-            StreamSelector::Pipe(_) => Ok(Pid::None),
+            StreamSelector::Pipe(_) => Ok(Pid::Any),
             #[cfg(unix)]
             StreamSelector::Unix(ref stream) => stream.pid(),
         }
@@ -160,11 +160,15 @@ mod tests {
         let core = Core::new().unwrap();
         let (a, b) = UnixStream::pair(&core.handle()).unwrap();
         assert_eq!(a.pid().unwrap(), b.pid().unwrap());
-        if let Pid::None = a.pid().unwrap() {
-            panic!("no pid");
+        match a.pid().unwrap() {
+            Pid::None => panic!("no pid 'a'"),
+            Pid::Any => panic!("any pid 'a'"),
+            Pid::Value(_) => (),
         }
-        if let Pid::None = b.pid().unwrap() {
-            panic!("no pid");
+        match b.pid().unwrap() {
+            Pid::None => panic!("no pid 'b'"),
+            Pid::Any => panic!("any pid 'b'"),
+            Pid::Value(_) => (),
         }
     }
 }

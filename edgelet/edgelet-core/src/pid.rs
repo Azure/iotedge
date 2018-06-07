@@ -6,6 +6,7 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub enum Pid {
     None,
+    Any,
     Value(i32),
 }
 
@@ -13,21 +14,26 @@ impl fmt::Display for Pid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Pid::None => write!(f, "none"),
+            Pid::Any => write!(f, "any"),
             Pid::Value(pid) => write!(f, "{}", pid),
         }
     }
 }
 
-/// Pids are considered equal when comparing against None.
-/// This is the logic required for using the pid to perform
-/// access control. By default, if a pid isn't present, then
-/// it should be considered equal to all other pids.
+/// Pids are considered not equal when compared against
+/// None, or equal when compared against Any. None takes
+/// precedence, so Any is not equal to None.
 impl cmp::PartialEq for Pid {
     fn eq(&self, other: &Pid) -> bool {
         match *self {
-            Pid::None => true,
+            Pid::None => false,
+            Pid::Any => match *other {
+                Pid::None => false,
+                _ => true,
+            },
             Pid::Value(pid1) => match *other {
-                Pid::None => true,
+                Pid::None => false,
+                Pid::Any => true,
                 Pid::Value(pid2) => pid1 == pid2,
             },
         }
@@ -40,8 +46,14 @@ mod tests {
 
     #[test]
     fn test_eq() {
-        assert_eq!(Pid::None, Pid::Value(42));
-        assert_eq!(Pid::None, Pid::None);
+        assert_ne!(Pid::None, Pid::None);
+        assert_ne!(Pid::None, Pid::Any);
+        assert_ne!(Pid::None, Pid::Value(42));
+        assert_ne!(Pid::Any, Pid::None);
+        assert_eq!(Pid::Any, Pid::Any);
+        assert_eq!(Pid::Any, Pid::Value(42));
+        assert_ne!(Pid::Value(42), Pid::None);
+        assert_eq!(Pid::Value(42), Pid::Any);
         assert_eq!(Pid::Value(42), Pid::Value(42));
         assert_ne!(Pid::Value(0), Pid::Value(42));
     }
