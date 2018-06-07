@@ -284,15 +284,6 @@ fn container_create_handler(req: Request) -> Box<Future<Item = Response, Error =
                         .unwrap()
                 );
 
-                assert!(
-                    create_options
-                        .networking_config()
-                        .unwrap()
-                        .endpoints_config()
-                        .unwrap()
-                        .contains_key(&"edge-network".to_string())
-                );
-
                 Ok(())
             })
             .map(|_| {

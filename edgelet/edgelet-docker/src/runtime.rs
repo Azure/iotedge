@@ -16,11 +16,10 @@ use client::DockerClient;
 use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings,
-                     NetworkConfig};
+use docker::models::{ContainerCreateBody, NetworkConfig};
+
 use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_http::UrlConnector;
-use edgelet_utils::serde_clone;
 
 use error::{Error, Result};
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
@@ -198,29 +197,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .unwrap_or_else(HashMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
-                let mut create_options = create_options
+                let create_options = create_options
                     .with_image(module.config().image().to_string())
                     .with_env(merged_env)
                     .with_labels(labels);
 
-                // add the container to the custom network
-                if let Some(ref network_id) = self.network_id {
-                    let mut network_config = create_options
-                        .networking_config()
-                        .and_then(|network_config| serde_clone(network_config).ok())
-                        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
-
-                    let mut endpoints_config = network_config
-                        .endpoints_config()
-                        .and_then(|endpoints_config| serde_clone(endpoints_config).ok())
-                        .unwrap_or_else(HashMap::new);
-                    if !endpoints_config.contains_key(network_id.as_str()) {
-                        endpoints_config.insert(network_id.clone(), EndpointSettings::new());
-                    }
-
-                    network_config = network_config.with_endpoints_config(endpoints_config);
-                    create_options = create_options.with_networking_config(network_config);
-                }
+                // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+                // It contains the logic to add a container to the iot edge network only if a network is not already specified.
 
                 Ok(self.client
                     .container_api()

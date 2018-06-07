@@ -41,23 +41,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
         {
-            string networkId = this.configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
-            string edgeDeviceHostName = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-
-            if (!string.IsNullOrWhiteSpace(networkId))
+            if (createOptions.NetworkingConfig?.EndpointsConfig == null)
             {
-                var endpointSettings = new EndpointSettings();
-                if (module.Name.Equals(Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
-                    && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
-                {
-                    endpointSettings.Aliases = new List<string> { edgeDeviceHostName };
-                }
+                string networkId = this.configSource.Configuration.GetValue<string>(Constants.NetworkIdKey);
+                string edgeDeviceHostName = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
 
-                IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
+                if (!string.IsNullOrWhiteSpace(networkId))
                 {
-                    [networkId] = endpointSettings
-                };
-                createOptions.NetworkingConfig = new NetworkingConfig { EndpointsConfig = endpointsConfig };
+                    var endpointSettings = new EndpointSettings();
+                    if (module.Name.Equals(Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
+                    {
+                        endpointSettings.Aliases = new List<string>
+                        {
+                            edgeDeviceHostName
+                        };
+                    }
+
+                    IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
+                    {
+                        [networkId] = endpointSettings
+                    };
+                    createOptions.NetworkingConfig = new NetworkingConfig
+                    {
+                        EndpointsConfig = endpointsConfig
+                    };
+                }
             }
         }
 

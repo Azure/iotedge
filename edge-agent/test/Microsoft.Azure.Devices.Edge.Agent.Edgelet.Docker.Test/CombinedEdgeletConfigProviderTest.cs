@@ -145,5 +145,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"]);
             Assert.Equal("edhk1", config.CreateOptions.NetworkingConfig.EndpointsConfig["testnetwork1"].Aliases[0]);
         }
+
+        [Fact]
+        public void InjectNetworkAlias_HostNetworkTest()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            string hostNetworkCreateOptions = "{\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"HostConfig\":{\"NetworkMode\":\"host\"}}";
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
+                    { Constants.NetworkIdKey, "testnetwork1" },
+                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig);
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig);
+            Assert.False(config.CreateOptions.NetworkingConfig.EndpointsConfig.ContainsKey("testnetwork1"));
+            Assert.NotNull(config.CreateOptions.NetworkingConfig.EndpointsConfig["host"]);
+            Assert.Null(config.CreateOptions.NetworkingConfig.EndpointsConfig["host"].Aliases);
+            Assert.Equal("host", config.CreateOptions.HostConfig.NetworkMode);
+        }
     }
 }
