@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Modules);
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
-                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion, deploymentConfig.SchemaVersion);
+                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(1, deploymentConfig.Modules.Count);
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Modules);
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
-                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion, deploymentConfig.SchemaVersion);
+                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
@@ -359,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Modules);
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
-                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion, deploymentConfig.SchemaVersion);
+                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeAgent);
                 Assert.NotNull(deploymentConfig.SystemModules.EdgeHub);
                 Assert.Equal(2, deploymentConfig.Modules.Count);
@@ -1432,6 +1432,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 // Assert
                 moduleClient.Verify(m => m.GetTwinAsync(), Times.Once);
+            }
+        }
+
+        [Theory]
+        [Unit]
+        [InlineData("1.0", null)]
+        [InlineData("1.1", null)]
+        [InlineData("1.2", null)]
+        [InlineData("1.3", null)]
+        [InlineData("1", typeof(InvalidSchemaVersionException))]
+        [InlineData("", typeof(InvalidSchemaVersionException))]
+        [InlineData(null, typeof(InvalidSchemaVersionException))]
+        [InlineData("0.1", typeof(InvalidSchemaVersionException))]
+        [InlineData("2.0", typeof(InvalidSchemaVersionException))]
+        [InlineData("2.1", typeof(InvalidSchemaVersionException))]
+        public void SchemaVersionCheckTest(string schemaVersion, Type expectedException)
+        {
+            if (expectedException != null)
+            {
+                Assert.Throws(expectedException, () => EdgeAgentConnection.ValidateSchemaVersion(schemaVersion));
+            }
+            else
+            {
+                EdgeAgentConnection.ValidateSchemaVersion(schemaVersion);
             }
         }
     }

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(routes, nameof(routes));
             Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
             IEnumerable<(string Name, string Value, Route Route)> parsedRoutes = routes.Select(r => (r.Key, r.Value, routeFactory.Create(r.Value)));
-            this.edgeHubConfig = new EdgeHubConfig(Core.Constants.ConfigSchemaVersion, parsedRoutes, storeAndForwardConfiguration);
+            this.edgeHubConfig = new EdgeHubConfig(Core.Constants.ConfigSchemaVersion.ToString(), parsedRoutes, storeAndForwardConfiguration);
         }
 
         public Task<Option<EdgeHubConfig>> GetConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));

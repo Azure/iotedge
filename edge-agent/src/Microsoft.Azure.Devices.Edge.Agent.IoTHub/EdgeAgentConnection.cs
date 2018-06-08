@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
-        internal const string ExpectedSchemaVersion = "1.0";
+        internal static readonly Version ExpectedSchemaVersion = new Version("1.0");
         const string PingMethodName = "ping";
         static readonly Task<MethodResponse> PingMethodResponse = Task.FromResult(new MethodResponse(200));
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
@@ -202,11 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 // Do any validation on deploymentConfig if necessary
-                if (!deploymentConfig.SchemaVersion.Equals(ExpectedSchemaVersion, StringComparison.OrdinalIgnoreCase))
-                {
-                    // TODO: Localize this error?
-                    throw new InvalidSchemaVersionException($"Received schema with version {deploymentConfig.SchemaVersion}, but only version {ExpectedSchemaVersion} is supported.");
-                }
+                ValidateSchemaVersion(deploymentConfig.SchemaVersion);
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(this.desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
@@ -217,6 +213,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
 
             return Task.CompletedTask;
+        }
+
+        internal static void ValidateSchemaVersion(string schemaVersion)
+        {
+            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            {
+                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
+            }
+
+            if (ExpectedSchemaVersion.Major != version.Major)
+            {
+                throw new InvalidSchemaVersionException($"Desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
+            }
+
+            if (ExpectedSchemaVersion.Minor != version.Minor)
+            {
+                Events.MismatchedMinorVersions(version, ExpectedSchemaVersion);
+            }
         }
 
         public async Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync()
@@ -261,7 +275,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 TwinRefreshSuccess,
                 ErrorHandlingConnectionChangeEvent,
                 EmptyDeploymentConfig,
-                RetryingGetTwin
+                RetryingGetTwin,
+                MismatchedSchemaVersion
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -317,6 +332,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            {
+                Log.LogWarning((int)EventIds.MismatchedSchemaVersion,
+                    $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
             }
         }
     }

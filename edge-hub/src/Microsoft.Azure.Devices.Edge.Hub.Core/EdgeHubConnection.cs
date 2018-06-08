@@ -130,11 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
-            if (string.IsNullOrWhiteSpace(desiredProperties.SchemaVersion) ||
-                !desiredProperties.SchemaVersion.Equals(Constants.ConfigSchemaVersion, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException($"Desired properties schema version {desiredProperties.SchemaVersion} is different from the expected schema version {Constants.ConfigSchemaVersion}");
-            }
+            ValidateSchemaVersion(desiredProperties.SchemaVersion);
 
             var routes = new List<(string Name, string Value, Route Route)>();
             if (desiredProperties.Routes != null)
@@ -157,6 +153,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return new EdgeHubConfig(desiredProperties.SchemaVersion, routes, desiredProperties.StoreAndForwardConfiguration);
+        }
+
+        internal static void ValidateSchemaVersion(string schemaVersion)
+        {
+            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            {
+                throw new ArgumentException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
+            }
+
+            if (Constants.ConfigSchemaVersion.Major != version.Major)
+            {
+                throw new InvalidOperationException($"Desired properties schema version {schemaVersion} is not compatible with the expected version is {Constants.ConfigSchemaVersion}");
+            }
+
+            if (Constants.ConfigSchemaVersion.Minor != version.Minor)
+            {
+                Events.MismatchedMinorVersions(version, Constants.ConfigSchemaVersion);
+            }
         }
 
         /// <summary>
@@ -314,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             [JsonConstructor]
             public DesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
-            {
+            {                
                 this.SchemaVersion = schemaVersion;
                 this.Routes = routes;
                 this.StoreAndForwardConfiguration = storeAndForwardConfiguration;
@@ -480,7 +494,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 GetConfigSuccess,
                 PatchConfigSuccess,
                 ErrorClearingDeviceConnectionStatuses,
-                UpdatingDeviceConnectionStatus
+                UpdatingDeviceConnectionStatus,
+                MismatchedSchemaVersion
             }
 
             internal static void Initialized(IIdentity edgeHubIdentity)
@@ -549,6 +564,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             internal static void UpdatingDeviceConnectionStatus(string deviceId, ConnectionStatus connectionStatus)
             {
                 Log.LogDebug((int)EventIds.UpdatingDeviceConnectionStatus, Invariant($"Updating device {deviceId} connection status to {connectionStatus}"));
+            }
+
+            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            {
+                Log.LogWarning((int)EventIds.MismatchedSchemaVersion,
+                    Invariant($"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported."));
             }
         }
     }
