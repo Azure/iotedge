@@ -11,9 +11,30 @@
 #![allow(non_snake_case)]
 
 use std::os::raw::{c_char, c_int, c_uchar, c_void};
-//extern const char* const DEVICE_CA_ALIAS;
+
 extern "C" {
-    pub static DEVICE_CA_ALIAS: *const c_char;
+    pub fn hsm_get_device_ca_alias() -> *const c_char;
+    pub fn hsm_get_version() -> *const c_char;
+}
+
+#[test]
+fn bindgen_test_get_device_alias() {
+    let result = unsafe {
+        std::ffi::CStr::from_ptr(hsm_get_device_ca_alias())
+            .to_string_lossy()
+            .into_owned()
+    };
+    assert_eq!(String::from("device_ca_alias"), result);
+}
+
+#[test]
+fn bindgen_test_supported_hsm_version() {
+    let result = unsafe {
+        std::ffi::CStr::from_ptr(hsm_get_version())
+            .to_string_lossy()
+            .into_owned()
+    };
+    assert_eq!(String::from("1.0.0"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;

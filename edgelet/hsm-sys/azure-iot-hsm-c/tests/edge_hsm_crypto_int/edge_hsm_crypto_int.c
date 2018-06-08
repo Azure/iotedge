@@ -58,7 +58,7 @@ static CERT_PROPS_HANDLE test_helper_create_ca_cert_properties(void)
     set_common_name(certificate_props, TEST_CA_COMMON_NAME);
     set_validity_seconds(certificate_props, 3600);
     set_alias(certificate_props, TEST_CA_ALIAS);
-    set_issuer_alias(certificate_props, DEVICE_CA_ALIAS);
+    set_issuer_alias(certificate_props, hsm_get_device_ca_alias());
     set_certificate_type(certificate_props, CERTIFICATE_TYPE_CA);
     return certificate_props;
 }

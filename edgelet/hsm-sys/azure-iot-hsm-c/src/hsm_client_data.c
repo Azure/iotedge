@@ -3,6 +3,16 @@
 
 #include "hsm_client_data.h"
 
-const char* const DEVICE_CA_ALIAS = "device_ca_alias";
+static const char* const DEVICE_CA_ALIAS = "device_ca_alias";
 
-const char* const HSM_CLIENT_VERSION = "1.0.0";
+static const char* const HSM_CLIENT_VERSION = "1.0.0";
+
+const char* hsm_get_device_ca_alias(void)
+{
+    return DEVICE_CA_ALIAS;
+}
+
+const char* hsm_get_version(void)
+{
+    return HSM_CLIENT_VERSION;
+}

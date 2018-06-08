@@ -74,7 +74,7 @@ impl Crypto {
 
     pub fn get_device_ca_alias(&self) -> String {
         unsafe {
-            CStr::from_ptr(DEVICE_CA_ALIAS)
+            CStr::from_ptr(hsm_get_device_ca_alias())
                 .to_string_lossy()
                 .into_owned()
         }

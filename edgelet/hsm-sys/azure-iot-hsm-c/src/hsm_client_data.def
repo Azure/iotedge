@@ -12,7 +12,6 @@ EXPORTS
     certificate_info_get_valid_from
     certificate_info_get_valid_to
     certificate_info_private_key_type
-    DEVICE_CA_ALIAS
     get_alias
     get_certificate_type
     get_common_name
@@ -26,6 +25,8 @@ EXPORTS
     hsm_client_crypto_deinit
     hsm_client_crypto_init
     hsm_client_crypto_interface
+    hsm_get_device_ca_alias
+    hsm_get_version
     hsm_client_tpm_deinit
     hsm_client_tpm_init
     hsm_client_tpm_interface

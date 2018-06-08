@@ -1048,7 +1048,7 @@ static int generate_edge_hsm_certificates(void)
     {
         ca_props = create_ca_certificate_properties(DEVICE_CA_COMMON_NAME,
                                                     CA_VALIDITY,
-                                                    DEVICE_CA_ALIAS,
+                                                    hsm_get_device_ca_alias(),
                                                     OWNER_CA_ALIAS,
                                                     CERTIFICATE_TYPE_CA);
         if (ca_props == NULL)

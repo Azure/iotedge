@@ -31,9 +31,6 @@ typedef struct SIZED_BUFFER_TAG
     size_t size;
 } SIZED_BUFFER;
 
-extern const char* const DEVICE_CA_ALIAS;
-extern const char* const HSM_CLIENT_VERSION;
-
 /**
  * @brief   Creates a client for the associated interface
  *
@@ -310,6 +307,8 @@ extern int hsm_client_tpm_init();
 extern void hsm_client_tpm_deinit();
 extern int hsm_client_crypto_init();
 extern void hsm_client_crypto_deinit();
+extern const char* hsm_get_device_ca_alias(void);
+extern const char* hsm_get_version(void);
 
 #ifdef __cplusplus
 }

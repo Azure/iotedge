@@ -342,7 +342,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
 
         CERT_PROPS_HANDLE cert_props = test_helper_create_certificate_props("test_cn",
                                                                             "my_test_alias",
-                                                                            DEVICE_CA_ALIAS,
+                                                                            hsm_get_device_ca_alias(),
                                                                             CERTIFICATE_TYPE_CLIENT,
                                                                             3600);
         // act, assert
