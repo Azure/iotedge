@@ -221,7 +221,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("Bad parameter\n\tcaused by: Core error\n\tcaused by: Parse error.\n\tcaused by: invalid digit found in string", error.message());
+                assert_eq!("Bad parameter\n\tcaused by: Core error\n\tcaused by: Parse error\n\tcaused by: invalid digit found in string", error.message());
                 Ok(())
             })
             .wait()

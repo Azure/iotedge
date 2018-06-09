@@ -5,7 +5,9 @@ mod module;
 
 use std::io;
 
-use edgelet_core::{IdentityManager, Module, ModuleRegistry, ModuleRuntime};
+use edgelet_core::{Error as CoreError, IdentityManager, Module, ModuleRegistry, ModuleRuntime,
+                   Policy};
+use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use http::{Request, Response};
 use hyper::server::{NewService, Service};
@@ -16,6 +18,10 @@ use serde::Serialize;
 use self::identity::*;
 use self::module::*;
 use IntoResponse;
+
+lazy_static! {
+    static ref AGENT_NAME: String = "$edgeAgent".to_string();
+}
 
 #[derive(Clone)]
 pub struct ManagementService {
@@ -28,6 +34,8 @@ impl ManagementService {
         M: 'static + ModuleRuntime + Clone,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Error: IntoResponse,
+        M::Error: Into<CoreError>,
+        <M::Module as Module>::Error: Into<CoreError>,
         M::Logs: Into<Body>,
         <M::ModuleRegistry as ModuleRegistry>::Error: IntoResponse,
         I: 'static + IdentityManager + Clone,
@@ -35,20 +43,20 @@ impl ManagementService {
         I::Error: IntoResponse,
     {
         let router = router!(
-            get    "/modules"                         => ListModules::new(runtime.clone()),
-            post   "/modules"                         => CreateModule::new(runtime.clone()),
-            get    "/modules/(?P<name>[^/]+)"         => GetModule,
-            put    "/modules/(?P<name>[^/]+)"         => UpdateModule::new(runtime.clone()),
-            delete "/modules/(?P<name>[^/]+)"         => DeleteModule::new(runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/start"   => StartModule::new(runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/stop"    => StopModule::new(runtime.clone()),
-            post   "/modules/(?P<name>[^/]+)/restart" => RestartModule::new(runtime.clone()),
-            get    "/modules/(?P<name>[^/]+)/logs"    => ModuleLogs::new(runtime.clone()),
+            get    "/modules"                         => Authorization::new(ListModules::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            post   "/modules"                         => Authorization::new(CreateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            get    "/modules/(?P<name>[^/]+)"         => Authorization::new(GetModule, Policy::Anonymous, runtime.clone()),
+            put    "/modules/(?P<name>[^/]+)"         => Authorization::new(UpdateModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            delete "/modules/(?P<name>[^/]+)"         => Authorization::new(DeleteModule::new(runtime.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/start"   => Authorization::new(StartModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/stop"    => Authorization::new(StopModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/restart" => Authorization::new(RestartModule::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
+            get    "/modules/(?P<name>[^/]+)/logs"    => Authorization::new(ModuleLogs::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
 
-            get    "/identities"                      => ListIdentities::new(identity.clone()),
-            post   "/identities"                      => CreateIdentity::new(identity.clone()),
-            put    "/identities/(?P<name>[^/]+)"      => UpdateIdentity::new(identity.clone()),
-            delete "/identities/(?P<name>[^/]+)"      => DeleteIdentity::new(identity.clone()),
+            get    "/identities"                      => Authorization::new(ListIdentities::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            post   "/identities"                      => Authorization::new(CreateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            put    "/identities/(?P<name>[^/]+)"      => Authorization::new(UpdateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+            delete "/identities/(?P<name>[^/]+)"      => Authorization::new(DeleteIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
         );
         let inner = router.new_service()?;
         let service = ManagementService { inner };

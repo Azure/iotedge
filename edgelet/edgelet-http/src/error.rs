@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use std::io;
 use std::str;
 
+use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
 use failure::{Backtrace, Context, Fail};
 use http::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use http::{Response, StatusCode};
@@ -52,6 +53,8 @@ pub enum ErrorKind {
     HyperPipe,
     #[fail(display = "Systemd error")]
     Systemd,
+    #[fail(display = "Module not found")]
+    NotFound,
 }
 
 impl Fail for Error {
@@ -104,6 +107,20 @@ impl From<Error> for HyperError {
     }
 }
 
+impl From<Error> for CoreError {
+    fn from(_err: Error) -> CoreError {
+        CoreError::from(CoreErrorKind::Http)
+    }
+}
+
+impl From<CoreError> for Error {
+    fn from(error: CoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::NotFound),
+        }
+    }
+}
+
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Error {
         Error {
@@ -132,6 +149,7 @@ impl IntoResponse for Error {
 
         let status_code = match *self.kind() {
             ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
+            ErrorKind::NotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

@@ -8,7 +8,7 @@ use hyper::client::Connect;
 
 use client::DockerClient;
 use config::DockerConfig;
-use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
+use edgelet_core::{pid::Pid, Module, ModuleRuntimeState, ModuleStatus};
 use error::{Error, Result};
 
 pub const MODULE_TYPE: &str = "docker";
@@ -96,7 +96,10 @@ impl<C: Connect> Module for DockerModule<C> {
                                     }),
                                 )
                                 .with_image_id(resp.id().cloned())
-                                .with_pid(state.pid().cloned())
+                                .with_pid(&state
+                                    .pid()
+                                    .map(|val| Pid::Value(*val))
+                                    .unwrap_or(Pid::None))
                         })
                         .unwrap_or_else(ModuleRuntimeState::default)
                 })
@@ -118,7 +121,7 @@ mod tests {
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
     use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
-    use edgelet_core::{Module, ModuleStatus};
+    use edgelet_core::{pid::Pid, Module, ModuleStatus};
     use edgelet_test_utils::JsonConnector;
 
     use client::DockerClient;
@@ -247,7 +250,7 @@ mod tests {
             finished_at,
             runtime_state.finished_at().unwrap().to_rfc3339()
         );
-        assert_eq!(1234, *runtime_state.pid().unwrap());
+        assert_eq!(Pid::Value(1234), *runtime_state.pid());
     }
 
     #[test]

@@ -41,10 +41,10 @@ pub enum ErrorKind {
     Watchdog,
     #[fail(display = "Tokio timer error")]
     TokioTimer,
-    #[fail(display = "Module runtime returned module information without pid.")]
-    ModuleRuntimeNoPid,
-    #[fail(display = "Parse error.")]
+    #[fail(display = "Parse error")]
     Parse,
+    #[fail(display = "Http error")]
+    Http,
 }
 
 impl Fail for Error {

@@ -10,6 +10,7 @@ use std::string::ToString;
 use chrono::prelude::*;
 use failure::Fail;
 use futures::{Future, Stream};
+use pid::Pid;
 use serde_json;
 
 use error::{Error, Result};
@@ -51,7 +52,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i32>,
+    pid: Pid,
 }
 
 impl Default for ModuleRuntimeState {
@@ -63,7 +64,7 @@ impl Default for ModuleRuntimeState {
             started_at: None,
             finished_at: None,
             image_id: None,
-            pid: None,
+            pid: Pid::None,
         }
     }
 }
@@ -126,12 +127,12 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Option<&i32> {
-        self.pid.as_ref()
+    pub fn pid(&self) -> &Pid {
+        &self.pid
     }
 
-    pub fn with_pid(mut self, pid: Option<i32>) -> ModuleRuntimeState {
-        self.pid = pid;
+    pub fn with_pid(mut self, pid: &Pid) -> ModuleRuntimeState {
+        self.pid = pid.clone();
         self
     }
 }

@@ -61,6 +61,7 @@ use tokio_core::reactor::Handle;
 use tokio_uds::UnixListener;
 use url::Url;
 
+pub mod authorization;
 pub mod client;
 mod compat;
 pub mod error;
