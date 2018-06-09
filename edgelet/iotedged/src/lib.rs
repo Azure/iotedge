@@ -244,7 +244,7 @@ where
 
     let mgmt = start_management(&settings, &core.handle(), &runtime, &id_man, mgmt_rx)?;
 
-    let workload = start_workload(&settings, key_store, &core.handle(), work_rx)?;
+    let workload = start_workload(&settings, key_store, &core.handle(), &runtime, work_rx)?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
@@ -456,6 +456,7 @@ fn start_workload<K>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
     handle: &Handle,
+    runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
@@ -466,6 +467,7 @@ where
     let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
         key_store,
         Crypto::new()?,
+        runtime,
     )?));
 
     info!("Listening on {} with 1 thread for workload API.", url);

@@ -8,7 +8,9 @@ mod trust_bundle;
 
 use std::io;
 
-use edgelet_core::{CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore};
+use edgelet_core::{CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle,
+                   KeyStore, Module, ModuleRuntime, Policy};
+use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use http::{Request, Response};
 use hyper::server::{NewService, Service};
@@ -26,19 +28,23 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    pub fn new<K, H>(key_store: &K, hsm: H) -> Result<Self, HyperError>
+    pub fn new<K, H, M>(key_store: &K, hsm: H, runtime: &M) -> Result<Self, HyperError>
     where
         K: 'static + KeyStore + Clone,
         H: 'static + CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone,
+        M: 'static + ModuleRuntime + Clone,
+        M::Error: Into<CoreError>,
+        <M::Module as Module>::Error: Into<CoreError>,
+        M::Logs: Into<Body>,
     {
         let router = router!(
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => SignHandler::new(key_store.clone()),
-            post   "/modules/(?P<name>[^/]+)/decrypt" => DecryptHandler::new(hsm.clone()),
-            post   "/modules/(?P<name>[^/]+)/encrypt" => EncryptHandler::new(hsm.clone()),
-            post   "/modules/(?P<name>[^/]+)/certificate/identity" => IdentityCertHandler,
-            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign" => Authorization::new(SignHandler::new(key_store.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/decrypt" => Authorization::new(DecryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/encrypt" => Authorization::new(EncryptHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/certificate/identity" => Authorization::new(IdentityCertHandler, Policy::Caller, runtime.clone()),
+            post   "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => Authorization::new(ServerCertHandler::new(hsm.clone()), Policy::Caller, runtime.clone()),
 
-            get    "/trust-bundle" => TrustBundleHandler::new(hsm),
+            get    "/trust-bundle" => Authorization::new(TrustBundleHandler::new(hsm), Policy::Anonymous, runtime.clone()),
         );
         let inner = router.new_service()?;
         let service = WorkloadService { inner };
