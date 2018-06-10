@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
             if (versionInfo != VersionInfo.Empty)
             {
-                logger.LogInformation($"Version - {versionInfo}");
+                logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
             LogLogo(logger);
 

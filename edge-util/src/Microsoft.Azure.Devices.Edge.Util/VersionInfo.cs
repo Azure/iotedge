@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [JsonProperty(PropertyName = "commit")]
         public string Commit { get; }
 
-        public override string ToString()
+        public string ToString(bool includeCommitId)
         {
             if (string.IsNullOrWhiteSpace(this.Version))
             {
@@ -59,13 +59,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 sb.Append($".{this.Build}");
             }
 
-            if (!string.IsNullOrWhiteSpace(this.Commit))
+            if (includeCommitId && !string.IsNullOrWhiteSpace(this.Commit))
             {
                 sb.Append($" ({this.Commit})");
             }
 
             return sb.ToString();
         }
+
+        public override string ToString() => this.ToString(false);        
 
         public override bool Equals(object obj) => this.Equals(obj as VersionInfo);
 

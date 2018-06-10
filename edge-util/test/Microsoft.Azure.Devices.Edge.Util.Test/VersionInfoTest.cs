@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal("1.0", versionInfo.Version);
             Assert.Equal("7238638", versionInfo.Build);
             Assert.Equal("fc9f2dafaf93cac936ef756bb37efeaa58688914", versionInfo.Commit);
-            Assert.Equal("1.0.7238638 (fc9f2dafaf93cac936ef756bb37efeaa58688914)", versionInfo.ToString());
+            Assert.Equal("1.0.7238638 (fc9f2dafaf93cac936ef756bb37efeaa58688914)", versionInfo.ToString(true));
+            Assert.Equal("1.0.7238638", versionInfo.ToString());
         }
 
         [Fact]

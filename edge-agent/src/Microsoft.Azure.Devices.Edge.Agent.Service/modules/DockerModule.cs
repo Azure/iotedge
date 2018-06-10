@@ -24,8 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Uri dockerHostname;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<string> productInfo;
 
-        public DockerModule(string edgeDeviceConnectionString, string gatewayHostName, Uri dockerHostname, IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol)
+        public DockerModule(string edgeDeviceConnectionString, string gatewayHostName, Uri dockerHostname,
+            IEnumerable<AuthConfig> dockerAuthConfig, Option<UpstreamProtocol> upstreamProtocol, Option<string> productInfo)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -35,13 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.dockerHostname = Preconditions.CheckNotNull(dockerHostname, nameof(dockerHostname));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
+            this.productInfo = productInfo;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             // IDeviceClientProvider
             string edgeAgentConnectionString = $"{this.edgeDeviceConnectionString};{Constants.ModuleIdKey}={Constants.EdgeAgentModuleIdentityName}";
-            builder.Register(c => new ModuleClientProvider(edgeAgentConnectionString, this.upstreamProtocol))
+            builder.Register(c => new ModuleClientProvider(edgeAgentConnectionString, this.upstreamProtocol, this.productInfo))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

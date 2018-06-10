@@ -129,10 +129,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
+            string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();;
+
             // Register modules
             builder.RegisterModule(
                 new CommonModule(
-                    this.GetProductInfo(),
+                    productInfo,
                     this.iotHubHostname,
                     this.edgeDeviceId));
             builder.RegisterModule(
@@ -191,13 +193,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
             return (isEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
-        }
-
-        string GetProductInfo()
-        {
-            string name = "Microsoft.Azure.Devices.Edge.Hub";
-            string version = FileVersionInfo.GetVersionInfo(typeof(Startup).Assembly.Location).ProductVersion;
-            return $"{name}/{version}";
         }
 
         string GetStoragePath()

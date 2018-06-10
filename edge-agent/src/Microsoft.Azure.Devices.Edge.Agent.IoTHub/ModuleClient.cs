@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Edge;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -35,20 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deviceClient = deviceClient;
         }
 
-        public static Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol,
-            ConnectionStatusChangesHandler statusChangedHandler,
-            Func<ModuleClient, Task> initialize)
-        {
-            return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, statusChangedHandler));
-        }
-
-        public static Task<IModuleClient> Create(string connectionString,
+        public static Task<IModuleClient> Create(Option<string> connectionString,
             Option<UpstreamProtocol> upstreamProtocol,
             ConnectionStatusChangesHandler statusChangedHandler,
-            Func<ModuleClient, Task> initialize)
-        {
-            return Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler));
-        }
+            Func<ModuleClient, Task> initialize,
+            Option<string> productInfo) =>
+            Create(upstreamProtocol, initialize, t => CreateAndOpenDeviceClient(t, connectionString, statusChangedHandler, productInfo));
 
         static async Task<IModuleClient> Create(Option<UpstreamProtocol> upstreamProtocol, Func<ModuleClient, Task> initialize, Func<TransportType, Task<Client.ModuleClient>> deviceClientCreator)
         {
@@ -98,19 +89,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return result.Value;
                 });
 
-        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport, ConnectionStatusChangesHandler statusChangedHandler)
+        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport,
+            Option<string> connectionString,
+            ConnectionStatusChangesHandler statusChangedHandler,
+            Option<string> productInfo)
         {
             Events.AttemptingConnectionWithTransport(transport);
-            Client.ModuleClient deviceClient = await Client.ModuleClient.CreateFromEnvironmentAsync(transport);
-            await OpenAsync(statusChangedHandler, deviceClient);
-            Events.ConnectedWithTransport(transport);
-            return deviceClient;
-        }
-
-        static async Task<Client.ModuleClient> CreateAndOpenDeviceClient(TransportType transport, string connectionString, ConnectionStatusChangesHandler statusChangedHandler)
-        {
-            Events.AttemptingConnectionWithTransport(transport);
-            Client.ModuleClient deviceClient = Client.ModuleClient.CreateFromConnectionString(connectionString, transport);
+            Client.ModuleClient deviceClient = await connectionString.Map(cs => Task.FromResult(Client.ModuleClient.CreateFromConnectionString(cs, transport)))
+                .GetOrElse(() => Client.ModuleClient.CreateFromEnvironmentAsync(transport));
+            productInfo.ForEach(p => deviceClient.ProductInfo = p);
             await OpenAsync(statusChangedHandler, deviceClient);
             Events.ConnectedWithTransport(transport);
             return deviceClient;
