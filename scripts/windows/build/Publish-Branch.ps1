@@ -126,7 +126,8 @@ foreach ($Solution in (Get-ChildItem $BuildRepositoryLocalPath -Include $SLN_PAT
 Write-Host "`nPublishing .NET Core apps`n"
 
 $AppProjects = Get-ChildItem $BuildRepositoryLocalPath -Include $CSPROJ_PATTERN -Recurse |
-    Where-Object FullName -NotMatch "\\azure-c-shared-utility\\?" |
+    Where-Object FullName -NotMatch "\\c-shared\\?" |
+    Where-Object FullName -NotMatch "\\c-utility\\?" |
     Select-String "<OutputType>Exe</OutputType>"
 
 foreach ($Project in $AppProjects) {
