@@ -3,11 +3,13 @@
     "Microsoft.Azure.Devices.Edge.Agent.Service": {
       "commandName": "Project",
       "environmentVariables": {
-        "IOTEDGE_DEVICEID": "<YourDeviceName>",
-        "IOTEDGE_IOTHUBHOSTNAME": "<YourIoTHub>",
-        "IOTEDGE_IOTEDGEDURI": "http://<edgeAgentMachine>:8081",
+        "IOTEDGE_DEVICEID": "<YOUR_DEVICE_ID>",
+        "IOTEDGE_MANAGEMENTURI": "http://<hostname>:8080",
+        "IOTEDGE_IOTHUBHOSTNAME": "<YOUR_IOTHUBHOSTNAME>",
         "IOTEDGE_MODULEID": "$edgeAgent",
-        "IOTEDGE_AUTHSCHEME": "sastoken"
+        "IOTEDGE_AUTHSCHEME": "sasToken",
+        "IOTEDGE_WORKLOADURI": "http://<hostname>:8081",
+        "IOTEDGE_MODULEGENERATIONID": "<MODULE_GENERATION_ID>"
       }
     }
   }
