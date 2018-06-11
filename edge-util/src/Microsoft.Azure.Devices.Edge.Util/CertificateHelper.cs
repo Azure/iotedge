@@ -225,13 +225,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static (X509Certificate2, IEnumerable<X509Certificate2>) GetServerCertificatesFromFile(string certPath, string certName)
         {
-            IEnumerable<X509Certificate2> certChain;
             string certFullPath = Path.Combine(certPath, certName);
             var sslCert = new X509Certificate2(Preconditions.CheckNonWhiteSpace(certFullPath, nameof(certFullPath)));
 
             string chainPath = Environment.GetEnvironmentVariable("EdgeModuleHubServerCAChainCertificateFile");
-            certChain = ExtractCertsFromPem(chainPath);
-
+            IEnumerable<X509Certificate2> certChain = !string.IsNullOrWhiteSpace(chainPath) ? ExtractCertsFromPem(chainPath) : null;
             return (sslCert, certChain);
         }
 

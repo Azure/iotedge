@@ -468,7 +468,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
                 deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))
-                    .Callback<IMessage, string>((m, e) => receivedMessages.Add(m))
+                    .Callback<IMessage, string>((m, e) =>
+                    {
+                        receivedMessages.Add(m);
+                        deviceListener.ProcessMessageFeedbackAsync(m.SystemProperties[SystemProperties.LockToken], FeedbackStatus.Complete).Wait();
+                    })
                     .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
                 deviceListener.BindDeviceProxy(deviceProxy.Object);

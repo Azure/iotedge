@@ -86,12 +86,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             AssemblyLoadContext.Default.Unloading += OnUnload;
             Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
 
-            logger.LogInformation("Installing intermediate certificates.");
+            if (chain != null)
+            {
+                logger.LogInformation("Installing intermediate certificates.");
 
-            CertificateHelper.InstallCerts(
-                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
-                StoreLocation.CurrentUser,
-                chain);
+                CertificateHelper.InstallCerts(
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root,
+                    StoreLocation.CurrentUser,
+                    chain);
+            }
+            else
+            {
+                logger.LogWarning("Unable to find intermediate certificates.");
+            }
 
             // EdgeHub cloud proxy and DeviceConnectivityManager have a circular dependency,
             // so the cloud proxy has to be set on the DeviceConnectivityManager after both have been initialized.

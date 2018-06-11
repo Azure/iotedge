@@ -111,6 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled = false;
 
             string caChainPath = this.Configuration.GetValue("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
+            // n Clients + 1 Edgehub
+            int maxConnectedClients = this.Configuration.GetValue("MaxConnectedClients", 100) + 1;
 
             IConfiguration amqpSettings = this.Configuration.GetSection("amqp");
 
@@ -153,7 +155,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.VersionInfo,
                     upstreamProtocolOption,
                     optimizeForPerformance,
-                    connectivityCheckFrequency));
+                    connectivityCheckFrequency,
+                    maxConnectedClients));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));

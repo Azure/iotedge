@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly bool optimizeForPerformance;
         readonly TimeSpan connectivityCheckFrequency;
+        readonly int maxConnectedClients;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -57,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             VersionInfo versionInfo,
             Option<UpstreamProtocol> upstreamProtocol,
             bool optimizeForPerformance,
-            TimeSpan connectivityCheckFrequency)
+            TimeSpan connectivityCheckFrequency,
+            int maxConnectedClients)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -74,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.optimizeForPerformance = optimizeForPerformance;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
+            this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -168,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IConnectionManager
-            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>()))
+            builder.Register(c => new ConnectionManager(c.Resolve<ICloudConnectionProvider>(), this.maxConnectedClients))
                 .As<IConnectionManager>()
                 .SingleInstance();
 
