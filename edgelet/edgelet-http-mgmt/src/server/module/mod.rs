@@ -165,7 +165,7 @@ fn spec_to_details(spec: &ModuleSpec, module_status: &ModuleStatus) -> ModuleDet
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
     use futures::{Future, Stream};
     use http::{Response, StatusCode};

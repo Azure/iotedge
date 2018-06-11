@@ -161,6 +161,17 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type RestartFuture = FutureResult<(), Self::Error>;
     type StartFuture = FutureResult<(), Self::Error>;
     type StopFuture = FutureResult<(), Self::Error>;
+    type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
+        match self.module {
+            Ok(_) => future::ok(SystemInfo::new(
+                "os_type_sample".to_string(),
+                "architecture_sample".to_string(),
+            )),
+            Err(ref e) => future::err(e.clone()),
+        }
+    }
 
     fn init(&self) -> Self::InitFuture {
         match self.module {

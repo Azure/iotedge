@@ -74,7 +74,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec};
+    use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
     use futures::{future::FutureResult, stream::Empty, Stream};
     use http::{Request, Response, StatusCode};
     use hyper::{Body, Error as HyperError};
@@ -280,6 +280,7 @@ mod tests {
         type RestartFuture = FutureResult<(), Self::Error>;
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
+        type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
@@ -294,6 +295,10 @@ mod tests {
         }
 
         fn stop(&self, _id: &str) -> Self::StopFuture {
+            notimpl_error!()
+        }
+
+        fn system_info(&self) -> Self::SystemInfoFuture {
             notimpl_error!()
         }
 

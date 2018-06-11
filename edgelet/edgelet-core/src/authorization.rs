@@ -105,7 +105,8 @@ mod tests {
     use futures::future;
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use module::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec};
+    use module::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
+                 SystemInfo as CoreSystemInfo};
 
     #[test]
     fn should_authorize_anonymous() {
@@ -389,6 +390,7 @@ mod tests {
         type RestartFuture = FutureResult<(), Self::Error>;
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
+        type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
@@ -403,6 +405,10 @@ mod tests {
         }
 
         fn stop(&self, _id: &str) -> Self::StopFuture {
+            notimpl_error!()
+        }
+
+        fn system_info(&self) -> Self::SystemInfoFuture {
             notimpl_error!()
         }
 

@@ -4,6 +4,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use edgelet_core::SystemInfo as CoreSystemInfo;
 use edgelet_core::*;
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
@@ -153,6 +154,11 @@ impl ModuleRuntime for ModuleClient {
     type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error>>;
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
+        unimplemented!()
+    }
 
     fn init(&self) -> Self::InitFuture {
         future::ok(())

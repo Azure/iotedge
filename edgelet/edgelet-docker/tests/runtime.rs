@@ -822,3 +822,128 @@ fn runtime_init_network_exist_do_not_create() {
     assert_eq!(true, *list_got_called_lock_cloned.read().unwrap());
     assert_eq!(false, *create_got_called_lock_cloned.read().unwrap());
 }
+
+#[test]
+fn runtime_system_info_succeed() {
+    //arrange
+    let (sender, receiver) = channel();
+
+    let system_info_got_called_lock = Arc::new(RwLock::new(false));
+    let system_info_got_called_lock_cloned = system_info_got_called_lock.clone();
+
+    let port = get_unused_tcp_port();
+
+    thread::spawn(move || {
+        run_tcp_server(
+            "127.0.0.1",
+            port,
+            move |req: Request| {
+                let method = req.method();
+                match method {
+                    &Method::Get => {
+                        let mut system_info_got_called_w =
+                            system_info_got_called_lock.write().unwrap();
+                        *system_info_got_called_w = true;
+
+                        assert_eq!(req.path(), "/info");
+
+                        let response = json!(
+                            {
+                                "OSType": "linux",
+                                "Architecture": "x86_64",
+                            }
+                    ).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    _ => panic!("Method is not a get neither a post."),
+                }
+            },
+            &sender,
+        );
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    //act
+    let task = mri.system_info();
+    let system_info = core.run(task).unwrap();
+
+    //assert
+    assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
+    assert_eq!("linux", system_info.os_type());
+    assert_eq!("x86_64", system_info.architecture());
+}
+
+#[test]
+fn runtime_system_info_none_returns_unkown() {
+    //arrange
+    let (sender, receiver) = channel();
+
+    let system_info_got_called_lock = Arc::new(RwLock::new(false));
+    let system_info_got_called_lock_cloned = system_info_got_called_lock.clone();
+
+    let port = get_unused_tcp_port();
+
+    thread::spawn(move || {
+        run_tcp_server(
+            "127.0.0.1",
+            port,
+            move |req: Request| {
+                let method = req.method();
+                match method {
+                    &Method::Get => {
+                        let mut system_info_got_called_w =
+                            system_info_got_called_lock.write().unwrap();
+                        *system_info_got_called_w = true;
+
+                        assert_eq!(req.path(), "/info");
+
+                        let response = json!({}).to_string();
+
+                        return Box::new(future::ok(
+                            Response::new()
+                                .with_header(ContentLength(response.len() as u64))
+                                .with_header(ContentType::json())
+                                .with_body(response)
+                                .with_status(StatusCode::Ok),
+                        ));
+                    }
+                    _ => panic!("Method is not a get neither a post."),
+                }
+            },
+            &sender,
+        );
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    //act
+    let task = mri.system_info();
+    let system_info = core.run(task).unwrap();
+
+    //assert
+    assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
+    assert_eq!("Unknown", system_info.os_type());
+    assert_eq!("Unknown", system_info.architecture());
+}

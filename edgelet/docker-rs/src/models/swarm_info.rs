@@ -21,8 +21,10 @@ pub struct SwarmInfo {
     /// IP address at which this node can be reached by other nodes in the swarm.
     #[serde(rename = "NodeAddr", skip_serializing_if = "Option::is_none")]
     node_addr: Option<String>,
+    //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
+    //If Auto generate tool is run again, make sure this is working.
     #[serde(rename = "LocalNodeState", skip_serializing_if = "Option::is_none")]
-    local_node_state: Option<::models::LocalNodeState>,
+    local_node_state: Option<String>,
     #[serde(rename = "ControlAvailable", skip_serializing_if = "Option::is_none")]
     control_available: Option<bool>,
     #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
@@ -90,19 +92,25 @@ impl SwarmInfo {
         self.node_addr = None;
     }
 
-    pub fn set_local_node_state(&mut self, local_node_state: ::models::LocalNodeState) {
+    //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
+    //If Auto generate tool is run again, make sure this is working.
+    pub fn set_local_node_state(&mut self, local_node_state: String) {
         self.local_node_state = Some(local_node_state);
     }
 
     pub fn with_local_node_state(
         mut self,
-        local_node_state: ::models::LocalNodeState,
+        //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
+        //If Auto generate tool is run again, make sure this is working.
+        local_node_state: String,
     ) -> SwarmInfo {
         self.local_node_state = Some(local_node_state);
         self
     }
 
-    pub fn local_node_state(&self) -> Option<&::models::LocalNodeState> {
+    //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
+    //If Auto generate tool is run again, make sure this is working.
+    pub fn local_node_state(&self) -> Option<&String> {
         self.local_node_state.as_ref()
     }
 

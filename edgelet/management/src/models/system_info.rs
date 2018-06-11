@@ -22,8 +22,8 @@ pub struct SystemInfo {
 impl SystemInfo {
     pub fn new(os_type: String, architecture: String) -> SystemInfo {
         SystemInfo {
-            os_type: os_type,
-            architecture: architecture,
+            os_type,
+            architecture,
         }
     }
 

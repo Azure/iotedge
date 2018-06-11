@@ -310,6 +310,31 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
+#[derive(Debug)]
+pub struct SystemInfo {
+    /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
+    os_type: String,
+    /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
+    architecture: String,
+}
+
+impl SystemInfo {
+    pub fn new(os_type: String, architecture: String) -> Self {
+        SystemInfo {
+            os_type,
+            architecture,
+        }
+    }
+
+    pub fn os_type(&self) -> &str {
+        &self.os_type
+    }
+
+    pub fn architecture(&self) -> &str {
+        &self.architecture
+    }
+}
+
 pub trait ModuleRuntime {
     type Error: Fail;
 
@@ -327,6 +352,7 @@ pub trait ModuleRuntime {
     type RestartFuture: Future<Item = (), Error = Self::Error>;
     type StartFuture: Future<Item = (), Error = Self::Error>;
     type StopFuture: Future<Item = (), Error = Self::Error>;
+    type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error>;
 
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -334,6 +360,7 @@ pub trait ModuleRuntime {
     fn stop(&self, id: &str) -> Self::StopFuture;
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
+    fn system_info(&self) -> Self::SystemInfoFuture;
     fn list(&self) -> Self::ListFuture;
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
@@ -416,5 +443,27 @@ mod tests {
                 _ => panic!("Expected utils error. Got some other error."),
             },
         }
+    }
+
+    #[test]
+    fn system_info_new_and_access_succeed() {
+        //arrange
+        let system_info = SystemInfo::new(
+            "testValueOsType".to_string(),
+            "testArchitectureType".to_string(),
+        );
+        let expected_value_os_type = "testValueOsType";
+        let expected_test_architecture_type = "testArchitectureType";
+
+        //act
+        let current_value_os_type = system_info.os_type();
+        let current_value_architecture_type = system_info.architecture();
+
+        //assert
+        assert_eq!(expected_value_os_type, current_value_os_type);
+        assert_eq!(
+            expected_test_architecture_type,
+            current_value_architecture_type
+        );
     }
 }

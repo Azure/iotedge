@@ -18,7 +18,8 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
 
-use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntime, ModuleSpec};
+use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntime, ModuleSpec,
+                   SystemInfo as CoreSystemInfo};
 use edgelet_http::UrlConnector;
 
 use error::{Error, Result};
@@ -150,6 +151,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RestartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
+    type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error>>;
 
     fn init(&self) -> Self::InitFuture {
         let created = self.network_id
@@ -235,6 +237,27 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .container_stop(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
                 .map_err(Error::from)
                 .map(|_| ()),
+        )
+    }
+
+    fn system_info(&self) -> Self::SystemInfoFuture {
+        Box::new(
+            self.client
+                .system_api()
+                .system_info()
+                .map(|system_info| {
+                    CoreSystemInfo::new(
+                        system_info
+                            .os_type()
+                            .unwrap_or(&String::from("Unknown"))
+                            .to_string(),
+                        system_info
+                            .architecture()
+                            .unwrap_or(&String::from("Unknown"))
+                            .to_string(),
+                    )
+                })
+                .map_err(Error::from),
         )
     }
 

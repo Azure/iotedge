@@ -2,6 +2,7 @@
 
 mod identity;
 mod module;
+mod system_info;
 
 use std::io;
 
@@ -17,6 +18,8 @@ use serde::Serialize;
 
 use self::identity::*;
 use self::module::*;
+use self::system_info::*;
+
 use IntoResponse;
 
 lazy_static! {
@@ -57,6 +60,8 @@ impl ManagementService {
             post   "/identities"                      => Authorization::new(CreateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
             put    "/identities/(?P<name>[^/]+)"      => Authorization::new(UpdateIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
             delete "/identities/(?P<name>[^/]+)"      => Authorization::new(DeleteIdentity::new(identity.clone()), Policy::Module(&*AGENT_NAME), runtime.clone()),
+
+            get    "/systeminfo"                      => Authorization::new(GetSystemInfo::new(runtime.clone()), Policy::Anonymous, runtime.clone()),
         );
         let inner = router.new_service()?;
         let service = ManagementService { inner };

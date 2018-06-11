@@ -29,9 +29,7 @@ impl<C: hyper::client::Connect> SystemInformationApiClient<C> {
     pub fn new(
         configuration: Rc<configuration::Configuration<C>>,
     ) -> SystemInformationApiClient<C> {
-        SystemInformationApiClient {
-            configuration: configuration,
-        }
+        SystemInformationApiClient { configuration }
     }
 }
 
@@ -73,13 +71,13 @@ impl<C: hyper::client::Connect> SystemInformationApi for SystemInformationApiCli
             configuration
                 .client
                 .request(req)
-                .map_err(|e| Error::from(e))
+                .map_err(Error::from)
                 .and_then(|resp| {
                     let status = resp.status();
                     resp.body()
                         .concat2()
                         .and_then(move |body| Ok((status, body)))
-                        .map_err(|e| Error::from(e))
+                        .map_err(Error::from)
                 })
                 .and_then(|(status, body)| {
                     if status.is_success() {
@@ -90,7 +88,7 @@ impl<C: hyper::client::Connect> SystemInformationApi for SystemInformationApiCli
                 })
                 .and_then(|body| {
                     let parsed: Result<::models::SystemInfo, _> = serde_json::from_slice(&body);
-                    parsed.map_err(|e| Error::from(e))
+                    parsed.map_err(Error::from)
                 }),
         )
     }
