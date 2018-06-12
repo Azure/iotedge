@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     address = template.Bind(message.SystemProperties);                    
                     if (!string.IsNullOrWhiteSpace(address) && messagePropertiesToSend != null && messagePropertiesToSend.Count > 0)
                     {
-                        address = Invariant($"{address.TrimEnd('/')}/{UrlEncodedDictionarySerializer.Serialize(messagePropertiesToSend)}/");
+                        address = Invariant($"{address.TrimEnd('/')}/{UrlEncodedDictionarySerializer.Serialize(messagePropertiesToSend)}");
                     }
                 }
                 catch (InvalidOperationException ex)

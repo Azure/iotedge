@@ -234,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
             Assert.NotNull(pgMessage);
-            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1&%24.cdid=fromDevice1&%24.cmid=fromModule1/", pgMessage.Address);
+            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1&%24.cdid=fromDevice1&%24.cmid=fromModule1", pgMessage.Address);
             Assert.Equal(12, pgMessage.Properties.Count);
             Assert.Equal("Bar", pgMessage.Properties["Foo"]);
             Assert.Equal("Value2", pgMessage.Properties["Prop2"]);

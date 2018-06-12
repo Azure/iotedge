@@ -251,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1/", address);
+            Assert.Equal<string>("a/123/c/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
             message.VerifyAll();
         }
 
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("d/123/f/Prop1=Val1&Prop2=Val2&%24.cdid=Device1/", address);
+            Assert.Equal<string>("d/123/f/Prop1=Val1&Prop2=Val2&%24.cdid=Device1", address);
             message.VerifyAll();
         }
 
@@ -333,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.True(result);
             Assert.NotNull(address);
             Assert.NotEmpty(address);
-            Assert.Equal<string>("a/123/c/456/e/789/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1/", address);
+            Assert.Equal<string>("a/123/c/456/e/789/Prop1=Val1&Prop2=Val2&%24.cdid=Device1&%24.cmid=Module1", address);
             message.VerifyAll();
         }
 
@@ -485,14 +485,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Fact]
         public void TestTryParseAddressWithParamsIntoMessagePropertiesFailsNoMatchMultiple()
         {
-            IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{params}/" };
+            IList<string> input = new List<string>() { "a/{b}/d/", "a/{b}/c/{params}" };
             var config = new MessageAddressConversionConfiguration(
                 input,
                 DontCareOutput
             );
             var converter = new MessageAddressConverter(config);
 
-            string address = "a/bee/p1=v1&p2=v2/";
+            string address = "a/bee/p1=v1&p2=v2";
             ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(Payload, address)
                 .Build();
             bool status = converter.TryParseProtocolMessagePropsFromAddress(message);
