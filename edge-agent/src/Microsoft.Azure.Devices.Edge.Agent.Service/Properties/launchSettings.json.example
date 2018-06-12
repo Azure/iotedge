@@ -9,7 +9,8 @@
         "IOTEDGE_MODULEID": "edgeAgent",
         "IOTEDGE_AUTHSCHEME": "sasToken",
         "IOTEDGE_WORKLOADURI": "http://<hostname>:8081",
-        "IOTEDGE_MODULEGENERATIONID": "<MODULE_GENERATION_ID>"
+        "IOTEDGE_MODULEGENERATIONID": "<MODULE_GENERATION_ID>",
+        "IOTEDGE_APIVERSION": "2018-06-28"
       }
     }
   }

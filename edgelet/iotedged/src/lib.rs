@@ -54,7 +54,7 @@ use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::Crypto;
 use edgelet_http::client::Client as HttpClient;
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{ApiVersionService, HyperExt};
+use edgelet_http::{ApiVersionService, HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -128,6 +128,9 @@ const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 /// This is the name of the network created by the iotedged
 const EDGE_NETWORKID: &str = "azure-iot-edge";
+
+/// This is the key for the largest API version that this edgelet supports
+const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
 const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
 const DNS_WORKER_THREADS: usize = 4;
@@ -423,6 +426,7 @@ fn build_env(
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }
+    env.insert(API_VERSION_KEY.to_string(), API_VERSION.to_string());
     env
 }
 

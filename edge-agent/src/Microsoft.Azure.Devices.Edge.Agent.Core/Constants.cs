@@ -66,6 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletModuleGenerationIdVariableName = "IOTEDGE_MODULEGENERATIONID";
 
+        public const string EdgeletApiVersionVariableName = "IOTEDGE_APIVERSION";
+
         public const string ModeKey = "Mode";
 
         public const string IotedgedMode = "iotedged";
