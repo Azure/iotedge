@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
     public interface IIdentityManager
     {
-        Task<Identity> CreateIdentityAsync(string name);
+        Task<Identity> CreateIdentityAsync(string name, string managedBy);
 
-        Task<Identity> UpdateIdentityAsync(string name, string generationId);
+        Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy);
 
         Task DeleteIdentityAsync(string name);
 

@@ -121,7 +121,7 @@ impl IdentityManager for TestIdentityManager {
             self.gen_id_sentinel += 1;
             let id = TestIdentity::new(
                 id.module_id(),
-                "iotedge",
+                id.managed_by().unwrap_or(&"".to_string()),
                 &format!("{}", self.gen_id_sentinel),
                 AuthType::Sas,
             );
@@ -146,6 +146,9 @@ impl IdentityManager for TestIdentityManager {
 
             // set the sas type
             module.auth_type = AuthType::Sas;
+
+            // Update managed by
+            module.managed_by = id.managed_by().unwrap_or(&"".to_string()).to_string();
 
             // delete/insert updated module
             self.identities.remove(index);

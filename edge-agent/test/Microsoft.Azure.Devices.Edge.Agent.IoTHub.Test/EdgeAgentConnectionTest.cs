@@ -173,9 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
-            var cc = new ConfigurationContent { ModuleContent = new Dictionary<string, TwinContent>() };
-            var twinContent = new TwinContent();
-            cc.ModuleContent["$edgeAgent"] = twinContent;
             var dp = new
             {
                 schemaVersion = "1.0",
@@ -190,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                             {
                                 address = "acr1.azure.net",
                                 username = "u1",
-                                password  = "p1"
+                                password = "p1"
                             },
                             r2 = new
                             {
@@ -238,10 +235,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                             {
                                 value = "e3val"
                             },
-                            e4= new
+                            e4 = new
                             {
                                 value = "e4val"
-                            }                            
+                            }
                         },
                         settings = new
                         {
@@ -267,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                             e6 = new
                             {
                                 value = "e6val"
-                            }                        
+                            }
                         },
                         settings = new
                         {
@@ -277,8 +274,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-            string patch = JsonConvert.SerializeObject(dp);
-            twinContent.TargetContent = new TwinCollection(patch);
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = dp
+
+                    }
+                }
+            };
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
@@ -365,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.Equal(2, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 Assert.NotNull(deploymentConfig.Modules["asa"]);
-                
+
                 TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                 await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
@@ -374,13 +380,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 Configuration config = await registryManager.GetConfigurationAsync(configurationId);
                 Assert.NotNull(config);
-                Assert.NotNull(config.Statistics);
-                Assert.True(config.Statistics.ContainsKey("targetedCount"));
-                Assert.Equal(1, config.Statistics["targetedCount"]);
-                Assert.True(config.Statistics.ContainsKey("appliedCount"));
-                Assert.Equal(1, config.Statistics["appliedCount"]);
-                Assert.True(config.Statistics.ContainsKey("reportedSuccessfulCount"));
-                Assert.Equal(1, config.Statistics["reportedSuccessfulCount"]);
+                Assert.NotNull(config.SystemMetrics);
+                Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"));
+                Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
+                Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
+                Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
+                Assert.True(config.SystemMetrics.Results.ContainsKey("reportedSuccessfulCount"));
+                Assert.Equal(1, config.SystemMetrics.Results["reportedSuccessfulCount"]);
             }
             finally
             {
@@ -489,21 +495,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static ConfigurationContent GetDefaultConfigurationContent()
         {
-            return new ConfigurationContent()
+            return new ConfigurationContent
             {
-                ModuleContent = new Dictionary<string, TwinContent>
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
-                    { "$edgeAgent", GetEdgeAgentConfiguration() },
-                    { "$edgeHub", GetEdgeHubConfiguration() },
-                    { "mongoserver", GetTwinConfiguration("mongoserver") },
-                    { "asa", GetTwinConfiguration("asa") }
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetEdgeAgentConfiguration()
+                    },
+                    ["$edgeHub"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetEdgeHubConfiguration()
+                    },
+                    ["mongoserver"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetTwinConfiguration("mongoserver")
+                    },
+                    ["asa"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetTwinConfiguration("asa")
+                    }
                 }
-            };
+            };            
         }
 
-        static TwinContent GetEdgeAgentConfiguration()
+        static object GetEdgeAgentConfiguration()
         {
-            var edgeAgent = new TwinContent();
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -566,15 +583,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-            string patch = JsonConvert.SerializeObject(desiredProperties);
-            edgeAgent.TargetContent = new TwinCollection(patch);
-
-            return edgeAgent;
+            return desiredProperties;
         }
 
-        static TwinContent GetEdgeHubConfiguration()
+        static object GetEdgeHubConfiguration()
         {
-            var edgeHub = new TwinContent();
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -587,26 +600,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     timeToLiveSecs = 20
                 }
             };
-            string patch = JsonConvert.SerializeObject(desiredProperties);
-
-            edgeHub.TargetContent = new TwinCollection(patch);
-
-            return edgeHub;
+            return desiredProperties;
         }
 
-        static TwinContent GetTwinConfiguration(string moduleName)
+        static object GetTwinConfiguration(string moduleName)
         {
-            var configuration = new TwinContent();
-            configuration.TargetContent = new TwinCollection();
-            configuration.TargetContent["name"] = moduleName;
-            return configuration;
+            var desiredProperties = new
+            {
+                name = moduleName
+            };
+            return desiredProperties;
         }
 
         public static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
-            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
-            var twinContent = new TwinContent();
-            cc.ModuleContent["$edgeAgent"] = twinContent;
             var dp = new
             {
                 schemaVersion = "1.0",
@@ -698,8 +705,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-            string patch = JsonConvert.SerializeObject(dp);
-            twinContent.TargetContent = new TwinCollection(patch);
+
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = dp
+
+                    }
+                }
+            };
+
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
@@ -938,7 +956,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             retryStrategy.Setup(rs => rs.GetShouldRetry())
-                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => {
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) =>
+                {
                     delay = TimeSpan.Zero;
                     return false;
                 });
@@ -986,7 +1005,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
 
             retryStrategy.SetupSequence(rs => rs.GetShouldRetry())
-                .Returns((int retryCount, Exception lastException, out TimeSpan delay) => {
+                .Returns((int retryCount, Exception lastException, out TimeSpan delay) =>
+                {
                     delay = TimeSpan.Zero;
                     return true;
                 });
@@ -1329,7 +1349,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
                 new Dictionary<string, IModule>());
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
-            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson)});
+            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
             var moduleClient = new Mock<IModuleClient>();
             moduleClient.Setup(m => m.GetTwinAsync())

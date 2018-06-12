@@ -111,7 +111,12 @@ fn read_request(name: &str, req: Request<Body>) -> impl Future<Item = IdentitySp
                 .map_err(Error::from)
         })
         .map(move |update_req| {
-            IdentitySpec::new(&name).with_generation_id(update_req.generation_id().to_string())
+            let mut spec =
+                IdentitySpec::new(&name).with_generation_id(update_req.generation_id().to_string());
+            if let Some(m) = update_req.managed_by() {
+                spec = spec.with_managed_by(m.to_string());
+            }
+            spec
         })
 }
 
@@ -133,7 +138,8 @@ mod tests {
             AuthType::Sas,
         )]);
         let handler = UpdateIdentity::new(manager);
-        let update_req = UpdateIdentityRequest::new("g1".to_string());
+        let update_req =
+            UpdateIdentityRequest::new("g1".to_string()).with_managed_by("iotedge".to_string());
         let request = Request::put("http://localhost/identities")
             .body(serde_json::to_string(&update_req).unwrap().into())
             .unwrap();

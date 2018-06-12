@@ -275,6 +275,7 @@ where
                 .create_module(
                     id.module_id(),
                     Some(AuthMechanism::default().with_type(HubAuthType::None)),
+                    id.managed_by(),
                 )
                 .map_err(Error::from)
                 .and_then(move |module| {
@@ -298,7 +299,7 @@ where
                     idman_copy2
                         .state
                         .client
-                        .update_module(id.module_id(), Some(auth))
+                        .update_module(id.module_id(), Some(auth), id.managed_by())
                         .map_err(Error::from)
                         .map(HubIdentity::new)
                 }),
@@ -320,7 +321,7 @@ where
                     Either::A(
                         self.state
                             .client
-                            .update_module(id.module_id(), Some(auth))
+                            .update_module(id.module_id(), Some(auth), id.managed_by())
                             .map_err(Error::from)
                             .map(HubIdentity::new),
                     )

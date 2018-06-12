@@ -50,13 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity = new Identity
             {
                 ModuleId = Name,
-                ManagedBy = "IotEdge",
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
                 GenerationId = Guid.NewGuid().ToString()
             };
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(Enumerable.Empty<Identity>()) &&
-                m.CreateIdentityAsync(Name) == Task.FromResult(identity));
+                m.CreateIdentityAsync(Name, Constants.ModuleIdentityEdgeManagedByValue) == Task.FromResult(identity));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, new Dictionary<string, EnvVal>());
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity3 = new Identity
             {
                 ModuleId = Module3,
-                ManagedBy = "IotEdge",
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
                 GenerationId = Guid.NewGuid().ToString()
             };
 
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity4 = new Identity
             {
                 ModuleId = Module4,
-                ManagedBy = "IotEdge",
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
                 GenerationId = Guid.NewGuid().ToString()
             };
 
@@ -117,16 +117,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity5 = new Identity
             {
                 ModuleId = Module5,
-                ManagedBy = "IotEdge",
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
                 GenerationId = Guid.NewGuid().ToString()
             };
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3, identity4, identity5 }.AsEnumerable()) &&
-                m.CreateIdentityAsync(Module1) == Task.FromResult(identity1) &&
-                m.UpdateIdentityAsync(identity2.ModuleId, identity2.GenerationId) == Task.FromResult(identity2) &&
-                m.UpdateIdentityAsync(identity3.ModuleId, identity3.GenerationId) == Task.FromResult(identity3) &&
-                m.UpdateIdentityAsync(identity4.ModuleId, identity4.GenerationId) == Task.FromResult(identity4));
+                m.CreateIdentityAsync(Module1, Constants.ModuleIdentityEdgeManagedByValue) == Task.FromResult(identity1) &&
+                m.UpdateIdentityAsync(identity2.ModuleId, identity2.GenerationId, identity2.ManagedBy) == Task.FromResult(identity2) &&
+                m.UpdateIdentityAsync(identity3.ModuleId, identity3.GenerationId, identity3.ManagedBy) == Task.FromResult(identity3) &&
+                m.UpdateIdentityAsync(identity4.ModuleId, identity4.GenerationId, identity4.ManagedBy) == Task.FromResult(identity4));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
@@ -135,8 +135,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
             var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
             var module5 = new TestModule(Module5, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, envVar);
-            ModuleSet desired = ModuleSet.Create(new IModule[] { module1, module2.CloneWithImage("image2"), module3.CloneWithImage("image2"), module4.CloneWithImage("image2"), module5.CloneWithImage("image2") });
-            ModuleSet current = ModuleSet.Create(new IModule[] { module2, module3, module4, module5 });
+            ModuleSet desired = ModuleSet.Create(module1, module2.CloneWithImage("image2"), module3.CloneWithImage("image2"), module4.CloneWithImage("image2"), module5.CloneWithImage("image2"));
+            ModuleSet current = ModuleSet.Create(module2, module3, module4, module5);
 
             // Act
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
@@ -180,13 +180,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity3 = new Identity
             {
                 ModuleId = Module3,
-                ManagedBy = "IotEdge",
+                ManagedBy = Constants.ModuleIdentityEdgeManagedByValue,
                 GenerationId = Guid.NewGuid().ToString()
             };
 
             var identityManager = Mock.Of<IIdentityManager>(m =>
                 m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3 }.AsEnumerable()) &&
-                m.CreateIdentityAsync(Module1) == Task.FromResult(identity1) &&
+                m.CreateIdentityAsync(Module1, It.IsAny<string>()) == Task.FromResult(identity1) &&
                 m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);

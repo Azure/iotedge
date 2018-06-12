@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
         readonly ConcurrentDictionary<string, ModuleDetails> modules = new ConcurrentDictionary<string, ModuleDetails>();
 
         public Task<Identity> CreateIdentityAsync(string apiVersion, IdentitySpec identity) =>
-            Task.FromResult(this.identities.GetOrAdd(identity.ModuleId, (n) => new Identity { ModuleId = n, ManagedBy = "IotEdge", GenerationId = Guid.NewGuid().ToString() }));
+            Task.FromResult(this.identities.GetOrAdd(identity.ModuleId, n => new Identity { ModuleId = n, ManagedBy = identity.ManagedBy, GenerationId = Guid.NewGuid().ToString() }));
 
         public Task<Identity> UpdateIdentityAsync(string apiVersion, string name, UpdateIdentity updateinfo)
         {
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             var newIdentity = new Identity
             {
                 ModuleId = name,
-                ManagedBy = "IotEdge",
+                ManagedBy = updateinfo.ManagedBy,
                 GenerationId = updateinfo.GenerationId
             };
 

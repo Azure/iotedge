@@ -40,22 +40,25 @@ where
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
+        managed_by: Option<&String>,
     ) -> impl Future<Item = Module, Error = Error> {
-        self.upsert_module(module_id, authentication, false)
+        self.upsert_module(module_id, authentication, managed_by, false)
     }
 
     pub fn update_module(
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
+        managed_by: Option<&String>,
     ) -> impl Future<Item = Module, Error = Error> {
-        self.upsert_module(module_id, authentication, true)
+        self.upsert_module(module_id, authentication, managed_by, true)
     }
 
     fn upsert_module(
         &self,
         module_id: &str,
         authentication: Option<AuthMechanism>,
+        managed_by: Option<&String>,
         add_if_match: bool,
     ) -> impl Future<Item = Module, Error = Error> {
         if module_id.trim().is_empty() {
@@ -67,6 +70,10 @@ where
 
             if let Some(authentication) = authentication {
                 module = module.with_authentication(authentication);
+            }
+
+            if let Some(managed_by) = managed_by {
+                module = module.with_managed_by(managed_by.to_string());
             }
 
             let res = self.client
@@ -242,7 +249,7 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let task = device_client
-            .upsert_module("", None, false)
+            .upsert_module("", None, None, false)
             .then(|result| match result {
                 Ok(_) => panic!("Expected error but got a result."),
                 Err(err) => {
@@ -271,7 +278,7 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1").unwrap();
 
         let task = device_client
-            .upsert_module("     ", None, false)
+            .upsert_module("     ", None, None, false)
             .then(|result| match result {
                 Ok(_) => panic!("Expected error but got a result."),
                 Err(err) => {
@@ -302,11 +309,9 @@ mod tests {
         let module_request = Module::default()
             .with_device_id("d1".to_string())
             .with_module_id("m1".to_string())
-            .with_authentication(auth.clone());
-        let expected_response = module_request
-            .clone()
-            .with_generation_id("g1".to_string())
+            .with_authentication(auth.clone())
             .with_managed_by("iotedge".to_string());
+        let expected_response = module_request.clone().with_generation_id("g1".to_string());
 
         let handler = move |req: Request| {
             assert_eq!(req.method(), &Method::Put);
@@ -324,9 +329,7 @@ mod tests {
                         .with_status(StatusCode::Ok)
                         .with_header(ContentType::json())
                         .with_body(
-                            serde_json::to_string(&module
-                                .with_generation_id("g1".to_string())
-                                .with_managed_by("iotedge".to_string()))
+                            serde_json::to_string(&module.with_generation_id("g1".to_string()))
                                 .unwrap()
                                 .into_bytes(),
                         ))
@@ -341,7 +344,7 @@ mod tests {
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
-            .upsert_module("m1", Some(auth), false)
+            .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), false)
             .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
 
         core.run(task).unwrap();
@@ -362,11 +365,9 @@ mod tests {
         let module_request = Module::default()
             .with_device_id("d1".to_string())
             .with_module_id("m1".to_string())
-            .with_authentication(auth.clone());
-        let expected_response = module_request
-            .clone()
-            .with_generation_id("g1".to_string())
+            .with_authentication(auth.clone())
             .with_managed_by("iotedge".to_string());
+        let expected_response = module_request.clone().with_generation_id("g1".to_string());
 
         let handler = move |req: Request| {
             assert_eq!(req.method(), &Method::Put);
@@ -384,9 +385,7 @@ mod tests {
                         .with_status(StatusCode::Ok)
                         .with_header(ContentType::json())
                         .with_body(
-                            serde_json::to_string(&module
-                                .with_generation_id("g1".to_string())
-                                .with_managed_by("iotedge".to_string()))
+                            serde_json::to_string(&module.with_generation_id("g1".to_string()))
                                 .unwrap()
                                 .into_bytes(),
                         ))
@@ -401,7 +400,7 @@ mod tests {
 
         let device_client = DeviceClient::new(client, "d1").unwrap();
         let task = device_client
-            .upsert_module("m1", Some(auth), true)
+            .upsert_module("m1", Some(auth), Some(&"iotedge".to_string()), true)
             .then(|result| Ok(assert_eq!(expected_response, result.unwrap())) as Result<(), Error>);
 
         core.run(task).unwrap();

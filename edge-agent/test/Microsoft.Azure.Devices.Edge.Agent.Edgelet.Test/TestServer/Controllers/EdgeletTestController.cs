@@ -787,6 +787,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
     public partial class IdentitySpec : System.ComponentModel.INotifyPropertyChanged
     {
         private string _moduleId;
+        private string _managedBy;
 
         [Newtonsoft.Json.JsonProperty("moduleId", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required]
@@ -798,6 +799,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
                 if (_moduleId != value)
                 {
                     _moduleId = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("managedBy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ManagedBy
+        {
+            get { return _managedBy; }
+            set
+            {
+                if (_managedBy != value)
+                {
+                    _managedBy = value;
                     RaisePropertyChanged();
                 }
             }
@@ -828,6 +843,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
     public partial class UpdateIdentity : System.ComponentModel.INotifyPropertyChanged
     {
         private string _generationId;
+        private string _managedBy;
 
         [Newtonsoft.Json.JsonProperty("generationId", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required]
@@ -839,6 +855,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
                 if (_generationId != value)
                 {
                     _generationId = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("managedBy", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ManagedBy
+        {
+            get { return _managedBy; }
+            set
+            {
+                if (_managedBy != value)
+                {
+                    _managedBy = value;
                     RaisePropertyChanged();
                 }
             }

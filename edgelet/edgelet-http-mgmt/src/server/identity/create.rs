@@ -94,7 +94,13 @@ fn read_request(req: Request<Body>) -> impl Future<Item = IdentitySpec, Error = 
                 .context(ErrorKind::BadBody)
                 .map_err(Error::from)
         })
-        .map(move |create_req| IdentitySpec::new(create_req.module_id()))
+        .map(move |create_req| {
+            let mut spec = IdentitySpec::new(create_req.module_id());
+            if let Some(m) = create_req.managed_by() {
+                spec = spec.with_managed_by(m.to_string());
+            }
+            spec
+        })
 }
 
 #[cfg(test)]
@@ -128,7 +134,7 @@ mod tests {
                 let json: Value = serde_json::from_slice(&body).unwrap();
                 let expected_json = json!({
                     "moduleId": "m1",
-                    "managedBy": "iotedge",
+                    "managedBy": "",
                     "generationId": "1",
                     "authType": "Sas",
                 });
@@ -136,7 +142,46 @@ mod tests {
 
                 let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
                 assert_eq!("m1", identity.module_id());
-                assert_eq!("iotedge", identity.managed_by());
+                assert_eq!("", identity.managed_by());
+                assert_eq!("1", identity.generation_id());
+                assert_eq!(AuthType::Sas, identity.auth_type());
+
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn create_with_managed_by_succeeds() {
+        let manager = TestIdentityManager::new(vec![]);
+        let handler = CreateIdentity::new(manager);
+        let val = json!({ "moduleId": "m1", "managedBy": "foo" });
+        let request = Request::post("http://localhost/identities")
+            .body(serde_json::to_string(&val).unwrap().into())
+            .unwrap();
+
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
+        response
+            .into_body()
+            .concat2()
+            .and_then(|body| {
+                // make sure the JSON matches what we expect
+                let json: Value = serde_json::from_slice(&body).unwrap();
+                let expected_json = json!({
+                    "moduleId": "m1",
+                    "managedBy": "foo",
+                    "generationId": "1",
+                    "authType": "Sas",
+                });
+                assert_eq!(expected_json, json);
+
+                let identity: TestIdentity = serde_json::from_slice(&body).unwrap();
+                assert_eq!("m1", identity.module_id());
+                assert_eq!("foo", identity.managed_by());
                 assert_eq!("1", identity.generation_id());
                 assert_eq!(AuthType::Sas, identity.auth_type());
 

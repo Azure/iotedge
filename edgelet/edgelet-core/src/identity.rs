@@ -33,6 +33,7 @@ pub trait Identity {
 pub struct IdentitySpec {
     module_id: String,
     generation_id: Option<String>,
+    managed_by: Option<String>,
 }
 
 impl IdentitySpec {
@@ -40,6 +41,7 @@ impl IdentitySpec {
         IdentitySpec {
             module_id: module_id.to_string(),
             generation_id: None,
+            managed_by: None,
         }
     }
 
@@ -53,6 +55,15 @@ impl IdentitySpec {
 
     pub fn with_generation_id(mut self, generation_id: String) -> Self {
         self.generation_id = Some(generation_id);
+        self
+    }
+
+    pub fn managed_by(&self) -> Option<&String> {
+        self.managed_by.as_ref()
+    }
+
+    pub fn with_managed_by(mut self, managed_by: String) -> Self {
+        self.managed_by = Some(managed_by);
         self
     }
 }

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ServiceClient : IServiceClient
@@ -37,7 +38,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public Task<Module[]> CreateModules(IEnumerable<string> identities)
         {
-            return Task.WhenAll(identities.Select(moduleId => this.rm.AddModuleAsync(new Module(this.deviceId, moduleId))));
+            return Task.WhenAll(
+                identities.Select(
+                    moduleId => this.rm.AddModuleAsync(
+                        new Module(this.deviceId, moduleId)
+                        {
+                            ManagedBy = Constants.ModuleIdentityEdgeManagedByValue
+                        }
+                    )
+                )
+            );
         }
 
         public Task<Module[]> UpdateModules(IEnumerable<Module> modules)

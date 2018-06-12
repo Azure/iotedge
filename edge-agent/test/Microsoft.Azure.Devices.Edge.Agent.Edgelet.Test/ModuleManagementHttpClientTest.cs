@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -28,26 +29,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             IIdentityManager client = new ModuleManagementHttpClient(this.serverUrl);
 
             // Act
-            Identity identity1 = await client.CreateIdentityAsync("Foo");
-            Identity identity2 = await client.CreateIdentityAsync("Bar");
+            Identity identity1 = await client.CreateIdentityAsync("Foo", Constants.ModuleIdentityEdgeManagedByValue);
+            Identity identity2 = await client.CreateIdentityAsync("Bar", Constants.ModuleIdentityEdgeManagedByValue);
+            Identity identity3 = await client.CreateIdentityAsync("External", "Someone");
 
             // Assert
             Assert.NotNull(identity1);
             Assert.Equal("Foo", identity1.ModuleId);
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identity1.ManagedBy);
             Assert.NotNull(identity2);
             Assert.Equal("Bar", identity2.ModuleId);
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identity2.ManagedBy);
+            Assert.NotNull(identity3);
+            Assert.Equal("External", identity3.ModuleId);
+            Assert.Equal("Someone", identity3.ManagedBy);
 
             // Act
-            Identity identity3 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId);
-            Identity identity4 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId);
+            Identity identity4 = await client.UpdateIdentityAsync("Foo", identity1.GenerationId, identity1.ManagedBy);
+            Identity identity5 = await client.UpdateIdentityAsync("Bar", identity2.GenerationId, identity2.ManagedBy);            
+            Identity identity6 = await client.UpdateIdentityAsync("External", identity3.GenerationId, identity3.ManagedBy);
 
             // Assert
-            Assert.NotNull(identity3);
-            Assert.Equal("Foo", identity3.ModuleId);
-            Assert.Equal(identity1.GenerationId, identity3.GenerationId);
             Assert.NotNull(identity4);
-            Assert.Equal("Bar", identity4.ModuleId);
-            Assert.Equal(identity2.GenerationId, identity4.GenerationId);
+            Assert.Equal("Foo", identity4.ModuleId);
+            Assert.Equal(identity1.GenerationId, identity4.GenerationId);
+            Assert.Equal(identity1.ManagedBy, identity4.ManagedBy);
+            Assert.NotNull(identity5);
+            Assert.Equal("Bar", identity5.ModuleId);
+            Assert.Equal(identity2.GenerationId, identity5.GenerationId);
+            Assert.Equal(identity2.ManagedBy, identity5.ManagedBy);
+            Assert.NotNull(identity6);
+            Assert.Equal("External", identity6.ModuleId);
+            Assert.Equal(identity3.GenerationId, identity6.GenerationId);
+            Assert.Equal("Someone", identity6.ManagedBy);
 
             // Act
             List<Identity> identities = (await client.GetIdentities())
@@ -56,18 +70,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Assert
             Assert.NotNull(identities);
-            Assert.Equal(2, identities.Count);
+            Assert.Equal(3, identities.Count);
             Assert.Equal("Bar", identities[0].ModuleId);
-            Assert.Equal("Foo", identities[1].ModuleId);
+            Assert.Equal("External", identities[1].ModuleId);
+            Assert.Equal("Foo", identities[2].ModuleId);
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[0].ManagedBy);            
+            Assert.Equal("Someone", identities[1].ManagedBy);
+            Assert.Equal(Constants.ModuleIdentityEdgeManagedByValue, identities[2].ManagedBy);
 
             // Act
             await client.DeleteIdentityAsync("Bar");
-            identities = (await client.GetIdentities()).ToList();
+            identities = (await client.GetIdentities())
+                .OrderBy(s => s.ModuleId)
+                .ToList();
 
             // Assert
             Assert.NotNull(identities);
-            Assert.Equal(1, identities.Count);
-            Assert.Equal("Foo", identities[0].ModuleId);
+            Assert.Equal(2, identities.Count);
+            Assert.Equal("External", identities[0].ModuleId);
+            Assert.Equal("Foo", identities[1].ModuleId);
         }
 
         [Fact]

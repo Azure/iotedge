@@ -546,6 +546,9 @@ definitions:
       moduleId:
         type: string
         example: "edgeHub"
+      managedBy:
+        type: string
+        example: "IotEdge"
     required:
       - moduleId
   UpdateIdentity:
@@ -554,6 +557,9 @@ definitions:
       generationId:
         type: string
         example: "636463636967581550"
+      managedBy:
+        type: string
+        example: "IotEdge"
     required:
       - generationId
   Identity:

@@ -26,17 +26,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
         }
 
-        public async Task<Identity> CreateIdentityAsync(string name)
+        public async Task<Identity> CreateIdentityAsync(string name, string managedBy)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
-                Identity identity = await this.Execute(() => edgeletHttpClient.CreateIdentityAsync(ApiVersion, new IdentitySpec { ModuleId = name}), $"Create identity for {name}");
+                Identity identity = await this.Execute(
+                    () => edgeletHttpClient.CreateIdentityAsync(
+                        ApiVersion,
+                        new IdentitySpec
+                        {
+                            ModuleId = name,
+                            ManagedBy = managedBy
+                        }),
+                    $"Create identity for {name}");
                 return identity;
             }
         }
 
-        public async Task<Identity> UpdateIdentityAsync(string name, string generationId)
+        public async Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
             {
@@ -44,7 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 Identity identity = await this.Execute(() => edgeletHttpClient.UpdateIdentityAsync(
                     ApiVersion,
                     name,
-                    new UpdateIdentity { GenerationId = generationId }),
+                    new UpdateIdentity
+                    {
+                        GenerationId = generationId,
+                        ManagedBy = managedBy
+                    }),
                     $"Update identity for {name} with generation ID {generationId}");
                 return identity;
             }
