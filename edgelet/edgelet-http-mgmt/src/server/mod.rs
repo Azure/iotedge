@@ -23,7 +23,7 @@ use self::system_info::*;
 use IntoResponse;
 
 lazy_static! {
-    static ref AGENT_NAME: String = "$edgeAgent".to_string();
+    static ref AGENT_NAME: String = "edgeAgent".to_string();
 }
 
 #[derive(Clone)]
