@@ -65,6 +65,8 @@ typedef int (*HSM_KEY_DECRYPT)(KEY_HANDLE key_handle,
                                const SIZED_BUFFER *initialization_vector,
                                SIZED_BUFFER *plaintext);
 
+typedef void (*HSM_KEY_DESTROY)(KEY_HANDLE key_handle);
+
 struct HSM_CLIENT_KEY_INTERFACE_TAG
 {
     HSM_KEY_SIGN hsm_client_key_sign;
@@ -73,6 +75,7 @@ struct HSM_CLIENT_KEY_INTERFACE_TAG
     HSM_KEY_DERIVE_AND_VERIFY hsm_client_key_derive_and_verify;
     HSM_KEY_ENCRYPT hsm_client_key_encrypt;
     HSM_KEY_DECRYPT hsm_client_key_decrypt;
+    HSM_KEY_DESTROY hsm_client_key_destroy;
 };
 typedef struct HSM_CLIENT_KEY_INTERFACE_TAG HSM_CLIENT_KEY_INTERFACE;
 const HSM_CLIENT_KEY_INTERFACE* hsm_client_key_interface(void);

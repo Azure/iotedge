@@ -135,6 +135,11 @@ pub trait MakeRandom {
     fn get_random_bytes(&self, buffer: &mut [u8]) -> Result<(), Error>;
 }
 
+pub trait MasterEncryptionKey {
+    fn create_key(&self) -> Result<(), Error>;
+    fn destroy_key(&self) -> Result<(), Error>;
+}
+
 pub trait Encrypt {
     type Buffer: AsRef<[u8]>;
 

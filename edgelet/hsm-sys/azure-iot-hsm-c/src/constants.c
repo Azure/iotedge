@@ -7,7 +7,7 @@ const char* const ENV_DEVICE_CA_PATH = "IOTEDGE_DEVICE_CA_PATH";
 const char* const ENV_DEVICE_CA_CHAIN_PATH = "IOTEDGE_DEVICE_CA_CHAIN_PATH";
 const char* const ENV_DEVICE_PK_PATH = "IOTEDGE_DEVICE_PK_PATH";
 const char* const ENV_OWNER_CA_PATH = "IOTEDGE_OWNER_CA_PATH";
-const char* const ENV_TPM_SELECT = "IOTEDGE_USE_TPM_DEVICE"; 
+const char* const ENV_TPM_SELECT = "IOTEDGE_USE_TPM_DEVICE";
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
 const char* const DEFAULT_EDGE_HOME_DIR_UNIX = "/var/lib/iotedge"; // note MacOS is included
@@ -19,6 +19,7 @@ const char* const HSM_CRYPTO_PK_DIR = "private";
 /* HSM C misc constants */
 const char* const EDGE_STORE_NAME = "edgelet";
 const char* const EDGELET_IDENTITY_SAS_KEY_NAME = "edgelet-identity";
+const char* const EDGELET_ENC_KEY_NAME = "edgelet-master";
 const char* const OWNER_CA_ALIAS = "edge_owner_ca";
 const char* const OWNER_CA_COMMON_NAME = "Test Edge Owner CA";
 const char* const DEVICE_CA_COMMON_NAME = "Test Edge Device CA";

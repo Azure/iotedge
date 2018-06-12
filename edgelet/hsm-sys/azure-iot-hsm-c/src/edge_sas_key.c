@@ -7,7 +7,7 @@
 
 struct SAS_KEY_TAG
 {
-    HSM_CLIENT_KEY_INTERFACE interface;
+    HSM_CLIENT_KEY_INTERFACE intf;
     unsigned char *key;
     size_t key_len;
 };
@@ -126,6 +126,19 @@ static int sas_key_decrypt(KEY_HANDLE key_handle,
     return 1;
 }
 
+void sas_key_destroy(KEY_HANDLE key_handle)
+{
+    SAS_KEY *sas_key = (SAS_KEY*)key_handle;
+    if (sas_key != NULL)
+    {
+        if (sas_key->key != NULL)
+        {
+            free(sas_key->key);
+        }
+        free(sas_key);
+    }
+}
+
 KEY_HANDLE create_sas_key(const unsigned char* key, size_t key_len)
 {
     SAS_KEY* sas_key;
@@ -149,28 +162,16 @@ KEY_HANDLE create_sas_key(const unsigned char* key, size_t key_len)
         }
         else
         {
-            sas_key->interface.hsm_client_key_sign = sas_key_sign;
-            sas_key->interface.hsm_client_key_derive_and_sign = sas_key_derive_and_sign;
-            sas_key->interface.hsm_client_key_verify = sas_key_verify;
-            sas_key->interface.hsm_client_key_derive_and_verify = sas_key_derive_and_verify;
-            sas_key->interface.hsm_client_key_encrypt = sas_key_encrypt;
-            sas_key->interface.hsm_client_key_decrypt = sas_key_decrypt;
+            sas_key->intf.hsm_client_key_sign = sas_key_sign;
+            sas_key->intf.hsm_client_key_derive_and_sign = sas_key_derive_and_sign;
+            sas_key->intf.hsm_client_key_verify = sas_key_verify;
+            sas_key->intf.hsm_client_key_derive_and_verify = sas_key_derive_and_verify;
+            sas_key->intf.hsm_client_key_encrypt = sas_key_encrypt;
+            sas_key->intf.hsm_client_key_decrypt = sas_key_decrypt;
+            sas_key->intf.hsm_client_key_destroy = sas_key_destroy;
             memcpy(sas_key->key, key, key_len);
             sas_key->key_len = key_len;
         }
     }
     return (KEY_HANDLE)sas_key;
-}
-
-void destroy_sas_key(KEY_HANDLE key_handle)
-{
-    SAS_KEY *sas_key = (SAS_KEY*)key_handle;
-    if (sas_key != NULL)
-    {
-        if (sas_key->key != NULL)
-        {
-            free(sas_key->key);
-        }
-        free(sas_key);
-    }
 }

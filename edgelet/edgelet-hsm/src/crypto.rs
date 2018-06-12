@@ -8,7 +8,7 @@ use edgelet_core::{Certificate as CoreCertificate,
                    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt,
                    Encrypt as CoreEncrypt, Error as CoreError,
                    GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
-                   PrivateKey as CorePrivateKey};
+                   MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey};
 
 use super::{IOTEDGED_CA, IOTEDGED_COMMONNAME, IOTEDGED_VALIDITY};
 pub use error::{Error, ErrorKind};
@@ -16,7 +16,8 @@ pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes
               PrivateKey as HsmPrivateKey};
 use hsm::{CertificateProperties as HsmCertificateProperties,
           CertificateType as HsmCertificateType, CreateCertificate as HsmCreateCertificate,
-          Crypto as HsmCrypto};
+          CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
+          DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey};
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.
@@ -45,6 +46,28 @@ impl Crypto {
         Ok(Crypto {
             crypto: Arc::new(RwLock::new(crypto)),
         })
+    }
+}
+
+impl CoreMasterEncryptionKey for Crypto {
+    fn create_key(&self) -> Result<(), CoreError> {
+        let result = self.crypto
+            .read()
+            .expect("Shared read lock on crypto structure failed")
+            .create_master_encryption_key()
+            .map_err(Error::from)
+            .map_err(CoreError::from)?;
+        Ok(result)
+    }
+
+    fn destroy_key(&self) -> Result<(), CoreError> {
+        let result = self.crypto
+            .read()
+            .expect("Shared read lock on crypto structure failed")
+            .destroy_master_encryption_key()
+            .map_err(Error::from)
+            .map_err(CoreError::from)?;
+        Ok(result)
     }
 }
 

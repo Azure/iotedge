@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@
 #define HSM_UTIL_SUCCESS 0
 #define HSM_UTIL_ERROR 1
 #define HSM_UTIL_EMPTY 2
+#define HSM_UTIL_UNSUPPORTED 3
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     #include <direct.h>
@@ -20,6 +22,7 @@
     #endif
     #define HSM_MKDIR(dir_path) _mkdir(dir_path)
 #else
+    #include <unistd.h>
     // equivalent to 755
     #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
@@ -96,37 +99,85 @@ static int read_file_into_buffer_impl
     return result;
 }
 
+static bool is_windows()
+{
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        return true;
+    #else
+        return false;
+    #endif
+}
+
 static int write_ascii_buffer_into_file
 (
     const char *file_name,
     const void *input_buffer,
-    size_t input_buffer_size
+    size_t input_buffer_size,
+    bool make_private
 )
 {
-    FILE *file_handle;
-    int result;
+    int result = HSM_UTIL_UNSUPPORTED;
 
-    if ((file_handle = fopen(file_name, "w")) == NULL)
+    if (is_windows() || !make_private)
     {
-        LOG_ERROR("Could not open file for writing %s", file_name);
-        result = HSM_UTIL_ERROR;
-    }
-    else
-    {
-        size_t num_bytes_written;
-        result = HSM_UTIL_SUCCESS;
-        num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
-        if (num_bytes_written != input_buffer_size)
+        FILE *file_handle;
+        if ((file_handle = fopen(file_name, "w")) == NULL)
         {
-            LOG_ERROR("File write failed for file %s", file_name);
+            LOG_ERROR("Could not open file for writing %s", file_name);
             result = HSM_UTIL_ERROR;
         }
-        (void)fclose(file_handle);
-        if (result != HSM_UTIL_SUCCESS)
+        else
         {
-            (void)delete_file(file_name);
+            size_t num_bytes_written;
+            result = HSM_UTIL_SUCCESS;
+            num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
+            if (num_bytes_written != input_buffer_size)
+            {
+                LOG_ERROR("File write failed for file %s", file_name);
+                result = HSM_UTIL_ERROR;
+            }
+            (void)fclose(file_handle);
+            if (result != HSM_UTIL_SUCCESS)
+            {
+                (void)delete_file(file_name);
+            }
         }
     }
+#if !(defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows)
+    else
+    {
+        int fd = open(file_name, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR);
+        if (fd == -1)
+        {
+            LOG_ERROR("Could not open file for writing %s", file_name);
+            result = HSM_UTIL_ERROR;
+        }
+        else
+        {
+            size_t num_bytes_written;
+            result = HSM_UTIL_SUCCESS;
+            if (input_buffer_size != 0)
+            {
+                ssize_t write_status = write(fd, input_buffer, input_buffer_size);
+                if ((write_status == -1) || (write_status != input_buffer_size))
+                {
+                    LOG_ERROR("File write failed for file %s", file_name);
+                    result = HSM_UTIL_ERROR;
+                }
+                else if (fsync(fd) != 0)
+                {
+                    LOG_ERROR("File sync failed for file %s", file_name);
+                    result = HSM_UTIL_ERROR;
+                }
+            }
+            (void)close(fd);
+            if (result != HSM_UTIL_SUCCESS)
+            {
+                (void)delete_file(file_name);
+            }
+        }
+    }
+#endif
 
     return result;
 }
@@ -341,7 +392,40 @@ int write_cstring_to_file(const char* file_name, const char* data)
     }
     else
     {
-        result = write_ascii_buffer_into_file(file_name, data, strlen(data));
+        result = write_ascii_buffer_into_file(file_name, data, strlen(data), false);
+    }
+
+    return result;
+}
+
+int write_buffer_to_file
+(
+    const char *file_name,
+    const unsigned char *data,
+    size_t data_size,
+    bool make_private
+)
+{
+    int result;
+
+    if ((file_name == NULL) || (strlen(file_name) == 0))
+    {
+        LOG_ERROR("Invalid file name parameter");
+        result = __FAILURE__;
+    }
+    else if (data == NULL)
+    {
+        LOG_ERROR("Invalid data parameter");
+        result = __FAILURE__;
+    }
+    else if (data_size == 0)
+    {
+        LOG_ERROR("Invalid data size parameter");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = write_ascii_buffer_into_file(file_name, data, data_size, make_private);
     }
 
     return result;

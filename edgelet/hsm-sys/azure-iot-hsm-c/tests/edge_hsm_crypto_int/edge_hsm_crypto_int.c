@@ -9,12 +9,12 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_utils.h"
+#include "hsm_log.h"
 
 //#############################################################################
 // Interface(s) under test
 //#############################################################################
 #include "hsm_client_data.h"
-
 
 //#############################################################################
 // Test defines and data
@@ -29,6 +29,15 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_CA_COMMON_NAME "test_ca_cert"
 #define TEST_SERVER_COMMON_NAME "test_server_cert"
 #define TEST_CLIENT_COMMON_NAME "test_client_cert"
+
+static unsigned char TEST_ID[] = {'M', 'O', 'D', 'U', 'L', 'E', '1'};
+static size_t TEST_ID_SIZE = sizeof(TEST_ID);
+
+static unsigned char TEST_PLAINTEXT[] = {'P', 'L', 'A', 'I', 'N', 'T', 'E', 'X', 'T'};
+static size_t TEST_PLAINTEXT_SIZE = sizeof(TEST_PLAINTEXT);
+
+static unsigned char TEST_IV[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G'};
+static size_t TEST_IV_SIZE = sizeof(TEST_IV);
 
 //#############################################################################
 // Test helpers
@@ -256,6 +265,66 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // cleanup
         certificate_info_destroy(result);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_encryption_key_smoke)
+    {
+        // arrange
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        int status;
+
+        // act, assert
+        status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        status = interface->hsm_client_create_master_encryption_key(hsm_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_encrypt_decrypt_smoke)
+    {
+        // arrange
+        int status;
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        SIZED_BUFFER id = {TEST_ID, TEST_ID_SIZE};
+        SIZED_BUFFER pt = {TEST_PLAINTEXT, TEST_PLAINTEXT_SIZE};
+        SIZED_BUFFER iv = {TEST_IV, TEST_IV_SIZE};
+        SIZED_BUFFER ciphertext_result = { NULL, 0 };
+        SIZED_BUFFER plaintext_result = { NULL, 0 };
+
+        // act, assert
+        status = interface->hsm_client_create_master_encryption_key(hsm_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        status = interface->hsm_client_encrypt_data(hsm_handle, &id, &pt, &iv, &ciphertext_result);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(ciphertext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(size_t, 0, ciphertext_result.size, "Line:" TOSTRING(__LINE__));
+        status = memcmp(TEST_PLAINTEXT, ciphertext_result.buffer, TEST_PLAINTEXT_SIZE);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        status = interface->hsm_client_decrypt_data(hsm_handle, &id, &ciphertext_result, &iv, &plaintext_result);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(plaintext_result.buffer, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, TEST_PLAINTEXT_SIZE, plaintext_result.size, "Line:" TOSTRING(__LINE__));
+        status = memcmp(TEST_PLAINTEXT, plaintext_result.buffer, TEST_PLAINTEXT_SIZE);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        status = interface->hsm_client_destroy_master_encryption_key(hsm_handle);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(plaintext_result.buffer);
+        free(ciphertext_result.buffer);
         test_helper_crypto_deinit(hsm_handle);
     }
 

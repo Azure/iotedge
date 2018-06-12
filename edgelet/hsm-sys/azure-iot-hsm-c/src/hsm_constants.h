@@ -20,6 +20,7 @@ extern const char* const HSM_CRYPTO_PK_DIR;
 /* HSM C misc constants */
 extern const char* const EDGE_STORE_NAME;
 extern const char* const EDGELET_IDENTITY_SAS_KEY_NAME;
+extern const char* const EDGELET_ENC_KEY_NAME;
 extern const char* const OWNER_CA_ALIAS;
 extern const char* const OWNER_CA_COMMON_NAME;
 extern const char* const DEVICE_CA_COMMON_NAME;

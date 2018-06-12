@@ -19,6 +19,7 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 set(source_c_files
     ./src/certificate_info.c
     ./src/constants.c
+    ./src/edge_enc_openssl_key.c
     ./src/edge_hsm_client_crypto.c
     ./src/edge_hsm_client_store.c
     ./src/edge_hsm_client_x509.c

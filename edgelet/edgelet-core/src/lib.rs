@@ -41,7 +41,7 @@ use futures::{future, future::FutureResult};
 pub use authorization::{Authorization, Policy};
 pub use certificate_properties::{CertificateProperties, CertificateType};
 pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes,
-                 KeyIdentity, KeyStore, PrivateKey, Signature};
+                 KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature};
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
 pub use module::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,

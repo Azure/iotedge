@@ -130,8 +130,16 @@ static inline int key_decrypt(KEY_HANDLE key_handle,
                                                  plaintext);
 }
 
+static inline void key_destroy(KEY_HANDLE key_handle)
+{
+    HSM_CLIENT_KEY_INTERFACE* key_interface = (HSM_CLIENT_KEY_INTERFACE*)key_handle;
+    key_interface->hsm_client_key_destroy(key_handle);
+}
+
 MOCKABLE_FUNCTION(, KEY_HANDLE, create_sas_key, const unsigned char*, key, size_t, key_len);
-MOCKABLE_FUNCTION(, void, destroy_sas_key, KEY_HANDLE, key_handle);
+MOCKABLE_FUNCTION(, KEY_HANDLE, create_encryption_key, const unsigned char*, key, size_t, key_len);
+MOCKABLE_FUNCTION(, KEY_HANDLE, create_cert_key, const char*, key_file_name);
+
 MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key, CERT_PROPS_HANDLE, cert_props_handle,
                     int, serial_number, int, ca_path_len,
                     const char*, key_file_name, const char*, cert_file_name,
@@ -140,9 +148,7 @@ MOCKABLE_FUNCTION(, int, generate_pki_cert_and_key_with_props, CERT_PROPS_HANDLE
                     int, serial_number, int, ca_path_len,
                     const char*, key_file_name, const char*, cert_file_name,
                     const PKI_KEY_PROPS*, key_props);
-
-MOCKABLE_FUNCTION(, KEY_HANDLE, create_cert_key, const char*, key_file_name);
-MOCKABLE_FUNCTION(, void, destroy_cert_key, KEY_HANDLE, key_handle);
+MOCKABLE_FUNCTION(, int, generate_encryption_key, unsigned char**, key, size_t*, key_size);
 
 #ifdef __cplusplus
 }

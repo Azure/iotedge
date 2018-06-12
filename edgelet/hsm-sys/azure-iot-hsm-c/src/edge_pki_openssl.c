@@ -66,6 +66,12 @@ struct CERT_KEY_TAG
 typedef struct CERT_KEY_TAG CERT_KEY;
 
 //#################################################################################################
+// Forward Declarations
+//#################################################################################################
+
+static void destroy_evp_key(EVP_PKEY *evp_key);
+
+//#################################################################################################
 // Utilities
 //#################################################################################################
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
@@ -167,6 +173,16 @@ static int cert_key_decrypt
     plaintext->buffer = NULL;
     plaintext->size = 0;
     return 1;
+}
+
+static void cert_key_destroy(KEY_HANDLE key_handle)
+{
+    CERT_KEY *cert_key = (CERT_KEY*)key_handle;
+    if (cert_key != NULL)
+    {
+        destroy_evp_key(cert_key->evp_key);
+        free(cert_key);
+    }
 }
 
 //#################################################################################################
@@ -1141,18 +1157,9 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
         cert_key->interface.hsm_client_key_derive_and_verify = cert_key_derive_and_verify;
         cert_key->interface.hsm_client_key_encrypt = cert_key_encrypt;
         cert_key->interface.hsm_client_key_decrypt = cert_key_decrypt;
+        cert_key->interface.hsm_client_key_destroy = cert_key_destroy;
         cert_key->evp_key = evp_key;
         result = (KEY_HANDLE)cert_key;
     }
     return result;
-}
-
-void destroy_cert_key(KEY_HANDLE key_handle)
-{
-    CERT_KEY *cert_key = (CERT_KEY*)key_handle;
-    if (cert_key != NULL)
-    {
-        destroy_evp_key(cert_key->evp_key);
-        free(cert_key);
-    }
 }

@@ -114,6 +114,7 @@ static bool find_key_cb(LIST_ITEM_HANDLE list_item, const void *match_context)
     return result;
 }
 
+
 static STORE_ENTRY_KEY* get_key(const CRYPTO_STORE *store, HSM_KEY_T key_type, const char *key_name)
 {
     STORE_ENTRY_KEY *result = NULL;
@@ -126,6 +127,12 @@ static STORE_ENTRY_KEY* get_key(const CRYPTO_STORE *store, HSM_KEY_T key_type, c
     }
 
     return result;
+}
+
+static bool key_exits(const CRYPTO_STORE *store, HSM_KEY_T key_type, const char *key_name)
+{
+    STORE_ENTRY_KEY *entry = get_key(store, key_type, key_name);
+    return (entry != NULL) ? true : false;
 }
 
 static STORE_ENTRY_KEY* create_key_entry
@@ -405,6 +412,148 @@ static int cert_file_path_helper(const char *alias, STRING_HANDLE cert_file, STR
     else
     {
         result = 0;
+    }
+
+    return result;
+}
+
+static int key_file_path_helper(const char *key_name, STRING_HANDLE key_file)
+{
+    static const char *ENC_KEY_FILE_EXT = ".enc.key";
+    int result;
+    const char *base_dir_path = get_base_dir();
+
+    if ((STRING_concat(key_file, base_dir_path) != 0) ||
+        (STRING_concat(key_file, SLASH)  != 0) ||
+        (STRING_concat(key_file, key_name) != 0) ||
+        (STRING_concat(key_file, ENC_KEY_FILE_EXT) != 0))
+    {
+        LOG_ERROR("Could not construct path to save key for %s", key_name);
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+static int save_encryption_key_to_file(const char *key_name, unsigned char *key, size_t key_size)
+{
+    int result;
+    STRING_HANDLE key_file_handle;
+
+    if ((key_file_handle = STRING_new()) == NULL)
+    {
+        LOG_ERROR("Could not create string handle");
+        result = __FAILURE__;
+    }
+    {
+        const char *key_file;
+        if (key_file_path_helper(key_name, key_file_handle) != 0)
+        {
+            LOG_ERROR("Could not construct path to key");
+            result = __FAILURE__;
+        }
+        else if ((key_file = STRING_c_str(key_file_handle)) == NULL)
+        {
+            LOG_ERROR("Key file path NULL");
+            result = __FAILURE__;
+        }
+        else if (write_buffer_to_file(key_file, key, key_size, true) != 0)
+        {
+            LOG_ERROR("Could not write key to file");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        STRING_delete(key_file_handle);
+    }
+
+    return result;
+}
+
+static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_name)
+{
+    int result;
+    STRING_HANDLE key_file_handle;
+
+    if ((key_file_handle = STRING_new()) == NULL)
+    {
+        LOG_ERROR("Could not create string handle");
+        result = __FAILURE__;
+    }
+    {
+        const char *key_file;
+        unsigned char *key = NULL;
+        size_t key_size = 0;
+
+        if (key_file_path_helper(key_name, key_file_handle) != 0)
+        {
+            LOG_ERROR("Could not construct path to key");
+            result = __FAILURE__;
+        }
+        else if ((key_file = STRING_c_str(key_file_handle)) == NULL)
+        {
+            LOG_ERROR("Key file path NULL");
+            result = __FAILURE__;
+        }
+        else if (((key = read_file_into_buffer(key_file, &key_size)) == NULL) ||
+                  (key_size == 0))
+        {
+            LOG_ERROR("Could not read key from file. Key size %d", key_size);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = put_key(store, HSM_KEY_ENCRYPTION, key_name, key, key_size);
+        }
+
+        if (key != NULL)
+        {
+            free(key);
+        }
+        STRING_delete(key_file_handle);
+    }
+
+    return result;
+}
+
+static int delete_encryption_key_file(const char *key_name)
+{
+    int result;
+    STRING_HANDLE key_file_handle;
+
+    if ((key_file_handle = STRING_new()) == NULL)
+    {
+        LOG_ERROR("Could not create string handle");
+        result = __FAILURE__;
+    }
+    {
+        const char *key_file;
+        if (key_file_path_helper(key_name, key_file_handle) != 0)
+        {
+            LOG_ERROR("Could not construct path to key");
+            result = __FAILURE__;
+        }
+        else if ((key_file = STRING_c_str(key_file_handle)) == NULL)
+        {
+            LOG_ERROR("Key file path NULL");
+            result = __FAILURE__;
+        }
+        else if (delete_file(key_file) != 0)
+        {
+            LOG_ERROR("Could not delete key file");
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        STRING_delete(key_file_handle);
     }
 
     return result;
@@ -1348,7 +1497,17 @@ static int edge_hsm_client_store_remove_key
     }
     else
     {
-        result = remove_key((CRYPTO_STORE*)handle, key_type, key_name);
+        result = 0;
+        if (remove_key((CRYPTO_STORE*)handle, key_type, key_name) != 0)
+        {
+            LOG_DEBUG("Key not loaded in HSM store %s", key_name);
+            result = __FAILURE__;
+        }
+        if (key_type == HSM_KEY_ENCRYPTION)
+        {
+            result = delete_encryption_key_file(key_name);
+        }
+
     }
 
     return result;
@@ -1362,9 +1521,6 @@ static KEY_HANDLE edge_hsm_client_open_key
 )
 {
     KEY_HANDLE result;
-    STORE_ENTRY_KEY* key_entry;
-    size_t buffer_size = 0;
-    const unsigned char *buffer_ptr = NULL;
 
     if (handle == NULL)
     {
@@ -1381,18 +1537,6 @@ static KEY_HANDLE edge_hsm_client_open_key
         LOG_ERROR("Invalid key name parameter");
         result = NULL;
     }
-    else if ((key_entry = get_key((CRYPTO_STORE*)handle, key_type, key_name)) == NULL)
-    {
-        LOG_ERROR("Could not find key name %s", key_name);
-        result = NULL;
-    }
-    else if (((buffer_ptr = BUFFER_u_char(key_entry->key)) == NULL) ||
-             (BUFFER_size(key_entry->key, &buffer_size) != 0) ||
-             (buffer_size == 0))
-    {
-        LOG_ERROR("Invalid key buffer for %s", key_name);
-        result = NULL;
-    }
     else if (g_hsm_state != HSM_STATE_PROVISIONED)
     {
         LOG_ERROR("HSM store has not been provisioned");
@@ -1400,7 +1544,49 @@ static KEY_HANDLE edge_hsm_client_open_key
     }
     else
     {
-        result = create_sas_key(buffer_ptr, buffer_size);
+        bool do_key_create = true;
+        CRYPTO_STORE *store = (CRYPTO_STORE*)handle;
+
+        if (key_type == HSM_KEY_ENCRYPTION)
+        {
+            if (!key_exits(store, HSM_KEY_ENCRYPTION, key_name) &&
+                (load_encryption_key_from_file(store, key_name) != 0))
+            {
+                LOG_ERROR("HSM store could not load encryption key %s", key_name);
+                do_key_create = false;
+                result = NULL;
+            }
+        }
+
+        if (do_key_create)
+        {
+            STORE_ENTRY_KEY* key_entry;
+            size_t buffer_size = 0;
+            const unsigned char *buffer_ptr = NULL;
+            if ((key_entry = get_key(store, key_type, key_name)) == NULL)
+            {
+                LOG_ERROR("Could not find key name %s", key_name);
+                result = NULL;
+            }
+            else if (((buffer_ptr = BUFFER_u_char(key_entry->key)) == NULL) ||
+                     (BUFFER_size(key_entry->key, &buffer_size) != 0) ||
+                     (buffer_size == 0))
+            {
+                LOG_ERROR("Invalid key buffer for %s", key_name);
+                result = NULL;
+            }
+            else
+            {
+                if (key_type == HSM_KEY_ENCRYPTION)
+                {
+                    result = create_encryption_key(buffer_ptr, buffer_size);
+                }
+                else
+                {
+                    result = create_sas_key(buffer_ptr, buffer_size);
+                }
+            }
+        }
     }
 
     return result;
@@ -1427,7 +1613,7 @@ static int edge_hsm_client_close_key(HSM_CLIENT_STORE_HANDLE handle, KEY_HANDLE 
     }
     else
     {
-        destroy_sas_key(key_handle);
+        key_destroy(key_handle);
         result = 0;
     }
 
@@ -1758,10 +1944,33 @@ static int edge_hsm_client_store_insert_encryption_key
         LOG_ERROR("HSM store has not been provisioned");
         result = __FAILURE__;
     }
+    else if (key_exits((CRYPTO_STORE*)handle, HSM_KEY_ENCRYPTION, key_name))
+    {
+        LOG_ERROR("HSM store already has encryption key set %s", key_name);
+        result = __FAILURE__;
+    }
     else
     {
-        LOG_ERROR("API unsupported");
-        result = __FAILURE__;
+        size_t key_size = 0;
+        unsigned char *key = NULL;
+        if (generate_encryption_key(&key, &key_size) != 0)
+        {
+            LOG_ERROR("Could not create encryption key for %s", key_name);
+            result = __FAILURE__;
+        }
+        else
+        {
+            if (save_encryption_key_to_file(key_name, key, key_size) != 0)
+            {
+                LOG_ERROR("Could not persist encryption key %s to file", key_name);
+                result = __FAILURE__;
+            }
+            else
+            {
+                result = 0;
+            }
+            free(key);
+        }
     }
 
     return result;

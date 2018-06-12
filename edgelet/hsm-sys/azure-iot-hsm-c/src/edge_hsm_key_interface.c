@@ -21,7 +21,7 @@ static int perform_sign
     if (digest == NULL)
     {
         LOG_ERROR("Invalid digest parameter");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -30,7 +30,7 @@ static int perform_sign
     if (digest_size == NULL)
     {
         LOG_ERROR("Invalid digest size parameter");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -41,29 +41,29 @@ static int perform_sign
         if (key_handle == NULL)
         {
             LOG_ERROR("Invalid key handle parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed == NULL)
         {
             LOG_ERROR("Invalid data to be signed parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed_size == 0)
         {
             LOG_ERROR("Data to be signed size is 0");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (do_derive_and_sign)
         {
             if (identity == NULL)
             {
                 LOG_ERROR("Invalid identity parameter");
-                result = 1;
+                result = __FAILURE__;
             }
             else if (identity_size == 0)
             {
                 LOG_ERROR("Invalid identity size parameter");
-                result = 1;
+                result = __FAILURE__;
             }
             else
             {
@@ -110,30 +110,24 @@ static int edge_hsm_client_key_derive_and_sign
 
 static int enc_dec_validation(KEY_HANDLE key_handle,
                               const SIZED_BUFFER *identity,
-                              const SIZED_BUFFER *plaintext,
                               const SIZED_BUFFER *iv,
-                              const SIZED_BUFFER *ciphertext)
+                              const SIZED_BUFFER *output)
 {
     int result;
     if ((identity == NULL) || (identity->buffer == NULL) || (identity->size == 0))
     {
         LOG_ERROR("Invalid identity parameter");
-        result = 1;
-    }
-    else if ((plaintext == NULL) || (plaintext->buffer == NULL) || (plaintext->size == 0))
-    {
-        LOG_ERROR("Invalid plaintext parameter");
-        result = 1;
+        result = __FAILURE__;
     }
     else if ((iv == NULL) || (iv->buffer == NULL) || (iv->size == 0))
     {
         LOG_ERROR("Invalid initialization vector parameter");
-        result = 1;
+        result = __FAILURE__;
     }
-    else if ((ciphertext == NULL) || (ciphertext->buffer == NULL) || (ciphertext->size == 0))
+    else if (output == NULL)
     {
-        LOG_ERROR("Invalid ciphertext parameter");
-        result = 1;
+        LOG_ERROR("Invalid output buffer parameter");
+        result = __FAILURE__;
     }
     else
     {
@@ -160,7 +154,7 @@ static int perform_verify
     if (verification_status == NULL)
     {
         LOG_ERROR("Invalid verification status parameter");
-        result = 1;
+        result = __FAILURE__;
     }
     else
     {
@@ -172,39 +166,39 @@ static int perform_verify
         if (key_handle == NULL)
         {
             LOG_ERROR("Invalid key handle parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed == NULL)
         {
             LOG_ERROR("Invalid data to be signed parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (data_to_be_signed_size == 0)
         {
             LOG_ERROR("Data to be signed size is 0");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (signature_to_verify == NULL)
         {
             LOG_ERROR("Invalid signature parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (signature_to_verify_size == 0)
         {
             LOG_ERROR("Invalid signature size parameter");
-            result = 1;
+            result = __FAILURE__;
         }
         else if (do_derive_and_verify)
         {
             if (identity == NULL)
             {
                 LOG_ERROR("Invalid identity parameter");
-                result = 1;
+                result = __FAILURE__;
             }
             else if (identity_size == 0)
             {
                 LOG_ERROR("Invalid identity size parameter");
-                result = 1;
+                result = __FAILURE__;
             }
             else
             {
@@ -262,7 +256,18 @@ static int edge_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                        const SIZED_BUFFER *iv,
                                        SIZED_BUFFER *ciphertext)
 {
-    int result = enc_dec_validation(key_handle, identity, plaintext, iv, ciphertext);
+    int result = 0;
+
+    if ((plaintext == NULL) || (plaintext->buffer == NULL) || (plaintext->size == 0))
+    {
+        LOG_ERROR("Invalid plaintext parameter");
+        result = __FAILURE__;
+    }
+    else if ((result = enc_dec_validation(key_handle, identity, iv, ciphertext)) != 0)
+    {
+        result = __FAILURE__;
+    }
+
     if (result == 0)
     {
         result = key_encrypt(key_handle, identity, plaintext, iv, ciphertext);
@@ -277,13 +282,32 @@ static int edge_hsm_client_key_decrypt(KEY_HANDLE key_handle,
                                        const SIZED_BUFFER *iv,
                                        SIZED_BUFFER *plaintext)
 {
-    int result = enc_dec_validation(key_handle, identity, plaintext, iv, ciphertext);
+    int result = 0;
+
+    if ((ciphertext == NULL) || (ciphertext->buffer == NULL) || (ciphertext->size == 0))
+    {
+        LOG_ERROR("Invalid ciphertext parameter");
+        result = __FAILURE__;
+    }
+    else if ((result = enc_dec_validation(key_handle, identity, iv, plaintext)) != 0)
+    {
+        result = __FAILURE__;
+    }
+
     if (result == 0)
     {
         result = key_decrypt(key_handle, identity, ciphertext, iv, plaintext);
     }
 
     return result;
+}
+
+static void edge_hsm_client_key_destroy(KEY_HANDLE key_handle)
+{
+    if (key_handle != NULL)
+    {
+        key_destroy(key_handle);
+    }
 }
 
 static const HSM_CLIENT_KEY_INTERFACE edge_hsm_key_interface =
@@ -293,7 +317,8 @@ static const HSM_CLIENT_KEY_INTERFACE edge_hsm_key_interface =
     edge_hsm_client_key_verify,
     edge_hsm_client_key_derive_and_verify,
     edge_hsm_client_key_encrypt,
-    edge_hsm_client_key_decrypt
+    edge_hsm_client_key_decrypt,
+    edge_hsm_client_key_destroy
 };
 
 const HSM_CLIENT_KEY_INTERFACE* hsm_client_key_interface(void)

@@ -72,6 +72,7 @@ MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_verify, KEY_HANDLE, key_handle, c
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_derive_and_verify, KEY_HANDLE, key_handle, const unsigned char*, data, size_t, data_size, const unsigned char*, identity, size_t, identity_size, const unsigned char*, sig_verify, size_t, sig_verify_size, bool*, status);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_encrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, plaintext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, ciphertext);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_decrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, ciphertext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, plaintext);
+MOCKABLE_FUNCTION(, void, mocked_hsm_client_key_destroy, KEY_HANDLE, key_handle);
 
 // interface mocks
 MOCKABLE_FUNCTION(, const HSM_CLIENT_STORE_INTERFACE*, hsm_client_store_interface);
@@ -135,7 +136,8 @@ static const HSM_CLIENT_KEY_INTERFACE mocked_hsm_client_key_interface =
     mocked_hsm_client_key_verify,
     mocked_hsm_client_key_derive_and_verify,
     mocked_hsm_client_key_encrypt,
-    mocked_hsm_client_key_decrypt
+    mocked_hsm_client_key_decrypt,
+    mocked_hsm_client_key_destroy
 };
 
 //#############################################################################
@@ -199,8 +201,7 @@ static int test_hook_hsm_client_store_remove_key(HSM_CLIENT_STORE_HANDLE handle,
                                                  HSM_KEY_T key_type,
                                                  const char* key_name)
 {
-    ASSERT_FAIL("API not expected to be called");
-    return __LINE__;
+    return 0;
 }
 
 static int test_hook_hsm_client_store_insert_sas_key(HSM_CLIENT_STORE_HANDLE handle,
@@ -215,8 +216,7 @@ static int test_hook_hsm_client_store_insert_sas_key(HSM_CLIENT_STORE_HANDLE han
 static int test_hook_hsm_client_store_insert_encryption_key(HSM_CLIENT_STORE_HANDLE handle,
                                                             const char* key_name)
 {
-    ASSERT_FAIL("API not expected to be called");
-    return __LINE__;
+    return 0;
 }
 
 static int test_hook_hsm_client_store_create_pki_cert(HSM_CLIENT_STORE_HANDLE handle,
@@ -327,6 +327,11 @@ static int test_hook_hsm_client_key_decrypt(KEY_HANDLE key_handle,
 {
     ASSERT_FAIL("API not expected to be called");
     return __LINE__;
+}
+
+static void test_hook_hsm_client_key_destroy(KEY_HANDLE key_handle)
+{
+    ASSERT_FAIL("API not expected to be called");
 }
 
 static const char* test_hook_get_alias(CERT_PROPS_HANDLE handle)
@@ -456,7 +461,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_decrypt, test_hook_hsm_client_key_decrypt);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_decrypt, 1);
 
-            REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_decrypt, test_hook_hsm_client_key_decrypt);
+            REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_destroy, test_hook_hsm_client_key_destroy);
 
             REGISTER_GLOBAL_MOCK_HOOK(certificate_info_create, test_hook_certificate_info_create);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(certificate_info_create, NULL);
@@ -940,7 +945,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
          * Test function for API
          *   hsm_client_create_master_encryption_key
         */
-        TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_is_unsupported)
+        TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_success)
         {
             //arrange
             int status = hsm_client_crypto_init();
@@ -954,7 +959,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             // act, assert
             status = hsm_client_create_master_encryption_key(hsm_handle);
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_crypto_destroy(hsm_handle);
@@ -1008,7 +1013,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
          * Test function for API
          *   hsm_client_destroy_master_encryption_key
         */
-        TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_is_unsupported)
+        TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_success)
         {
             //arrange
             int status = hsm_client_crypto_init();
@@ -1022,7 +1027,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             // act, assert
             status = hsm_client_destroy_master_encryption_key(hsm_handle);
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
             //cleanup
             hsm_client_crypto_destroy(hsm_handle);

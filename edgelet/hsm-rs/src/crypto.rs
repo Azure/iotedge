@@ -95,7 +95,7 @@ impl MakeRandom for Crypto {
         };
         match result {
             0 => Ok(()),
-            r => Err(r)?,
+            r => Err(ErrorKind::Api(r))?,
         }
     }
 }
@@ -108,7 +108,7 @@ impl CreateMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(r)?,
+            r => Err(ErrorKind::Api(r))?,
         }
     }
 }
@@ -121,7 +121,7 @@ impl DestroyMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(r)?,
+            r => Err(ErrorKind::Api(r))?,
         }
     }
 }

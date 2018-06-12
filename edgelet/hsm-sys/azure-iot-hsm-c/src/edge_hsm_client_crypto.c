@@ -167,6 +167,7 @@ static int edge_hsm_client_get_random_bytes(HSM_CLIENT_HANDLE handle, unsigned c
 static int edge_hsm_client_create_master_encryption_key(HSM_CLIENT_HANDLE handle)
 {
     int result;
+
     if (!g_is_crypto_initialized)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
@@ -179,15 +180,26 @@ static int edge_hsm_client_create_master_encryption_key(HSM_CLIENT_HANDLE handle
     }
     else
     {
-        LOG_ERROR("API unsupported");
-        result = __FAILURE__;
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        if (g_hsm_store_if->hsm_client_store_insert_encryption_key(edge_crypto->hsm_store_handle,
+                                                                   EDGELET_ENC_KEY_NAME) != 0)
+        {
+            LOG_ERROR("Could not insert encryption key %s", EDGELET_ENC_KEY_NAME);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
     }
+
     return result;
 }
 
 static int edge_hsm_client_destroy_master_encryption_key(HSM_CLIENT_HANDLE handle)
 {
     int result;
+
     if (!g_is_crypto_initialized)
     {
         LOG_ERROR("hsm_client_crypto_init not called");
@@ -200,9 +212,20 @@ static int edge_hsm_client_destroy_master_encryption_key(HSM_CLIENT_HANDLE handl
     }
     else
     {
-        LOG_ERROR("API unsupported");
-        result = __FAILURE__;
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        if (g_hsm_store_if->hsm_client_store_remove_key(edge_crypto->hsm_store_handle,
+                                                        HSM_KEY_ENCRYPTION,
+                                                        EDGELET_ENC_KEY_NAME) != 0)
+        {
+            LOG_ERROR("Could not remove encryption key %s", EDGELET_ENC_KEY_NAME);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
     }
+
     return result;
 }
 
@@ -314,6 +337,96 @@ static bool validate_sized_buffer(const SIZED_BUFFER *sized_buffer)
     return result;
 }
 
+static int encrypt_data
+(
+    EDGE_CRYPTO *edge_crypto,
+    const SIZED_BUFFER *id,
+    const SIZED_BUFFER *pt,
+    const SIZED_BUFFER *iv,
+    SIZED_BUFFER *ct
+)
+{
+    int result;
+    KEY_HANDLE key_handle;
+    const HSM_CLIENT_STORE_INTERFACE *store_if = g_hsm_store_if;
+    const HSM_CLIENT_KEY_INTERFACE *key_if = g_hsm_key_if;
+    key_handle = store_if->hsm_client_store_open_key(edge_crypto->hsm_store_handle,
+                                                     HSM_KEY_ENCRYPTION,
+                                                     EDGELET_ENC_KEY_NAME);
+    if (key_handle == NULL)
+    {
+        LOG_ERROR("Could not get encryption key by name '%s'", EDGELET_ENC_KEY_NAME);
+        result = __FAILURE__;
+    }
+    else
+    {
+        int status = key_if->hsm_client_key_encrypt(key_handle, id, pt, iv, ct);
+        if (status != 0)
+        {
+            LOG_ERROR("Error encrypting data. Error code %d", status);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        // always close the key handle
+        status = store_if->hsm_client_store_close_key(edge_crypto->hsm_store_handle, key_handle);
+        if (status != 0)
+        {
+            LOG_ERROR("Error closing key handle. Error code %d", status);
+            result = __FAILURE__;
+        }
+    }
+
+    return result;
+}
+
+static int decrypt_data
+(
+    EDGE_CRYPTO *edge_crypto,
+    const SIZED_BUFFER *id,
+    const SIZED_BUFFER *ct,
+    const SIZED_BUFFER *iv,
+    SIZED_BUFFER *pt
+)
+{
+    int result;
+    KEY_HANDLE key_handle;
+    const HSM_CLIENT_STORE_INTERFACE *store_if = g_hsm_store_if;
+    const HSM_CLIENT_KEY_INTERFACE *key_if = g_hsm_key_if;
+    key_handle = store_if->hsm_client_store_open_key(edge_crypto->hsm_store_handle,
+                                                     HSM_KEY_ENCRYPTION,
+                                                     EDGELET_ENC_KEY_NAME);
+    if (key_handle == NULL)
+    {
+        LOG_ERROR("Could not get encryption key by name '%s'", EDGELET_ENC_KEY_NAME);
+        result = __FAILURE__;
+    }
+    else
+    {
+        int status = key_if->hsm_client_key_decrypt(key_handle, id, ct, iv, pt);
+        if (status != 0)
+        {
+            LOG_ERROR("Error decrypting data. Error code %d", status);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+        // always close the key handle
+        status = store_if->hsm_client_store_close_key(edge_crypto->hsm_store_handle, key_handle);
+        if (status != 0)
+        {
+            LOG_ERROR("Error closing key handle. Error code %d", status);
+            result = __FAILURE__;
+        }
+    }
+
+    return result;
+}
+
 static int edge_hsm_client_encrypt_data
 (
     HSM_CLIENT_HANDLE handle,
@@ -344,17 +457,12 @@ static int edge_hsm_client_encrypt_data
         LOG_ERROR("Invalid output cipher text buffer provided");
         result = __FAILURE__;
     }
-    else if ((ciphertext->buffer = (unsigned char*)malloc(plaintext->size)) == NULL)
-    {
-        LOG_ERROR("Could not allocate memory for the output cipher text");
-        result = __FAILURE__;
-    }
     else
     {
-        memcpy(ciphertext->buffer, plaintext->buffer, plaintext->size);
-        ciphertext->size = plaintext->size;
-        result = 0;
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        result = encrypt_data(edge_crypto, identity, plaintext, initialization_vector, ciphertext);
     }
+
     return result;
 }
 
@@ -388,17 +496,12 @@ static int edge_hsm_client_decrypt_data
         LOG_ERROR("Invalid output plain text buffer provided");
         result = __FAILURE__;
     }
-    else if ((plaintext->buffer = (unsigned char*)malloc(ciphertext->size)) == NULL)
-    {
-        LOG_ERROR("Could not allocate memory for the output plain text");
-        result = __FAILURE__;
-    }
     else
     {
-        memcpy(plaintext->buffer, ciphertext->buffer, ciphertext->size);
-        plaintext->size = ciphertext->size;
-        result = 0;
+        EDGE_CRYPTO *edge_crypto = (EDGE_CRYPTO*)handle;
+        result = decrypt_data(edge_crypto, identity, ciphertext, initialization_vector, plaintext);
     }
+
     return result;
 }
 

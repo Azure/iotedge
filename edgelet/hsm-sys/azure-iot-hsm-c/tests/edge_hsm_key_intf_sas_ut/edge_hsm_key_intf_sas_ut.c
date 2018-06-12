@@ -139,7 +139,8 @@ static KEY_HANDLE test_helper_create_key(const unsigned char* key, size_t key_le
 static void test_helper_destroy_key(KEY_HANDLE key_handle)
 {
     ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
-    destroy_sas_key(key_handle);
+    const HSM_CLIENT_KEY_INTERFACE* key_if = hsm_client_key_interface();
+    key_if->hsm_client_key_destroy(key_handle);
 }
 
 //#############################################################################
@@ -217,6 +218,11 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_sign, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_derive_and_sign, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_verify, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_derive_and_verify, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_encrypt, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_decrypt, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_destroy, "Line:" TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -235,7 +241,7 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
             // cleanup
-            destroy_sas_key(key_handle);
+            test_helper_destroy_key(key_handle);
         }
 
         TEST_FUNCTION(hsm_client_key_interface_create_negative)
@@ -282,9 +288,10 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
         {
             // arrange
             KEY_HANDLE key_handle = NULL;
+            const HSM_CLIENT_KEY_INTERFACE* key_if = hsm_client_key_interface();
 
             // act
-            destroy_sas_key(key_handle);
+            key_if->hsm_client_key_destroy(key_handle);
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
@@ -295,15 +302,15 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
         TEST_FUNCTION(hsm_client_key_interface_destroy_success)
         {
             // arrange
-            KEY_HANDLE key_handle = create_sas_key(TEST_KEY_DATA, sizeof(TEST_KEY_DATA));
-            ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+            const HSM_CLIENT_KEY_INTERFACE* key_if = hsm_client_key_interface();
+            KEY_HANDLE key_handle = test_helper_create_key(TEST_KEY_DATA, sizeof(TEST_KEY_DATA));
             umock_c_reset_all_calls();
 
             EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
             EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
 
             // act
-            destroy_sas_key(key_handle);
+            key_if->hsm_client_key_destroy(key_handle);
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
@@ -324,34 +331,34 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
 
             // act, assert
             status = key_if->hsm_client_key_sign(NULL, data_to_be_signed, data_len, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_sign(key_handle, NULL, data_len, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_sign(key_handle, data_to_be_signed, 0, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_sign(key_handle, data_to_be_signed, data_len, NULL, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_sign(key_handle, data_to_be_signed, data_len, &digest, NULL);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
 
             // cleanup
@@ -450,48 +457,48 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
 
             // act, assert
             status = key_if->hsm_client_key_derive_and_sign(NULL, data_to_be_signed, data_len, identity, identity_size, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, NULL, data_len, identity, identity_size, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, 0, identity, identity_size, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, data_len, NULL, identity_size, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, data_len, identity, 0, &digest, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, data_len, identity, identity_size, NULL, &digest_size);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, digest_size, "Line:" TOSTRING(__LINE__));
 
             digest = TEST_DIGEST_PTR;
             digest_size = 10;
             status = key_if->hsm_client_key_derive_and_sign(key_handle, data_to_be_signed, data_len, identity, identity_size, &digest, NULL);
-            ASSERT_ARE_EQUAL_WITH_MSG(int, 1, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NULL_WITH_MSG(digest, "Line:" TOSTRING(__LINE__));
 
             // cleanup
