@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task MethodCallHandler_WhenResponse_WithRequestIdReceived_Completes()
         {
             var cloudListener = new Mock<ICloudListener>();
-            cloudListener.Setup(p => p.CallMethodAsync(It.IsAny<DirectMethodRequest>())).Returns(Task.FromResult(new DirectMethodResponse(RequestId, Data, StatusCode)));
+            cloudListener.Setup(p => p.CallMethodAsync(It.IsAny<Core.DirectMethodRequest>())).Returns(Task.FromResult(new DirectMethodResponse(RequestId, Data, StatusCode)));
             var messageConverter = new Mock<IMessageConverterProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1");
 
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var cloudReceiver = new CloudProxy.CloudReceiver(cloudProxy, cloudListener.Object);
 
             MethodResponse methodResponse = await cloudReceiver.MethodCallHandler(new MethodRequest(MethodName, Data), null);
-            cloudListener.Verify(p => p.CallMethodAsync(It.Is<DirectMethodRequest>(x => x.Name == MethodName && x.Data == Data)), Times.Once);
+            cloudListener.Verify(p => p.CallMethodAsync(It.Is<Core.DirectMethodRequest>(x => x.Name == MethodName && x.Data == Data)), Times.Once);
             Assert.NotNull(methodResponse);
         }
 

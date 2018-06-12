@@ -274,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.MethodCallReceived(this.cloudProxy.clientId);
 
-                var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
+                var direceMethodRequest = new Core.DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
                 DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
                 MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
                 return methodResponse;
