@@ -35,12 +35,11 @@ where
         name: Option<String>,
         pid: Pid,
     ) -> impl Future<Item = bool, Error = Error> {
+        let name = name.map(|n| n.trim_left_matches('$').to_string());
         match self.policy {
             Policy::Anonymous => Either::A(Either::A(self.auth_anonymous())),
             Policy::Caller => Either::A(Either::B(self.auth_caller(name, pid))),
-            Policy::Module(ref expected_name) => {
-                Either::B(self.auth_module(expected_name, name, pid))
-            }
+            Policy::Module(ref expected_name) => Either::B(self.auth_module(expected_name, pid)),
         }
     }
 
@@ -81,19 +80,9 @@ where
     fn auth_module(
         &self,
         expected_name: &str,
-        name: Option<String>,
         pid: Pid,
     ) -> impl Future<Item = bool, Error = Error> {
-        match name {
-            None => Either::A(future::ok(false)),
-            Some(n) => {
-                if expected_name != n.as_str() {
-                    Either::A(future::ok(false))
-                } else {
-                    Either::B(self.auth_caller(Some(n), pid))
-                }
-            }
-        }
+        self.auth_caller(Some(expected_name.to_string()), pid)
     }
 }
 
@@ -125,6 +114,21 @@ mod tests {
         assert_eq!(
             true,
             auth.authorize(Some("abc".to_string()), Pid::Value(123))
+                .wait()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn should_authorize_system_caller() {
+        let runtime = TestModuleList::new(&vec![
+            TestModule::new("xyz", 987),
+            TestModule::new("edgeAgent", 123),
+        ]);
+        let auth = Authorization::new(runtime, Policy::Caller);
+        assert_eq!(
+            true,
+            auth.authorize(Some("$edgeAgent".to_string()), Pid::Value(123))
                 .wait()
                 .unwrap()
         );
@@ -168,55 +172,21 @@ mod tests {
             TestModule::new("abc", 123),
         ]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
-        assert_eq!(
-            true,
-            auth.authorize(Some("abc".to_string()), Pid::Value(123))
-                .wait()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn should_reject_module_without_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
-        let auth = Authorization::new(runtime, Policy::Module("abc"));
-        assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
+        assert_eq!(true, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_whose_name_does_not_match_policy() {
         let runtime = TestModuleList::new(&vec![TestModule::new("xyz", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
-        assert_eq!(
-            false,
-            auth.authorize(Some("xyz".to_string()), Pid::Value(123))
-                .wait()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn should_reject_module_with_different_name() {
-        let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
-        let auth = Authorization::new(runtime, Policy::Module("abc"));
-        assert_eq!(
-            false,
-            auth.authorize(Some("xyz".to_string()), Pid::Value(123))
-                .wait()
-                .unwrap()
-        );
+        assert_eq!(false, auth.authorize(None, Pid::Value(123)).wait().unwrap());
     }
 
     #[test]
     fn should_reject_module_with_different_pid() {
         let runtime = TestModuleList::new(&vec![TestModule::new("abc", 123)]);
         let auth = Authorization::new(runtime, Policy::Module("abc"));
-        assert_eq!(
-            false,
-            auth.authorize(Some("abc".to_string()), Pid::Value(456))
-                .wait()
-                .unwrap()
-        );
+        assert_eq!(false, auth.authorize(None, Pid::Value(456)).wait().unwrap());
     }
 
     #[test]
