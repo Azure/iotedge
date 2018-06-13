@@ -49,7 +49,6 @@ fn run() -> Result<(), Error> {
 
     let matches = App::new(crate_name!())
         .version(crate_version!())
-        .author(crate_authors!("\n"))
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(

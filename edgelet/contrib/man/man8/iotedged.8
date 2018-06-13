@@ -1,29 +1,6 @@
 .\" (C) Copyright 2018 Microsoft. All rights reserved.
-.\"
-.\" See http://www.debian.org/doc/manuals/maint-guide/dother.en.html#manpage1
-.\"
-.\" 1. Use this as the template for the manpage for <commandname> after
-.\"    renaming this file to <commandname>.1 (if it is for section 1).
-.\"
-.\" 2. List the path to this file in debian/<packagename>.manpages to
-.\"    install this manpage to the target binary package.
-.\"
-.\" First parameter, IOTEDGE, should be all caps
-.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
-.\" other parameters are allowed: see man(7), man(1)
 .TH IOTEDGED 8 "Azure IoT Edge User Manuals" "June 2018"
-.\" Please adjust this date whenever revising the manpage.
-.\"
-.\" Some roff macros, for reference:
-.\" .nh        disable hyphenation
-.\" .hy        enable hyphenation
-.\" .ad l      left justify
-.\" .ad b      justify to both left and right margins
-.\" .nf        disable filling
-.\" .fi        enable filling
-.\" .br        insert line break
-.\" .sp <n>    insert n+1 empty lines
-.\" for manpage-specific macros, see man(7)
+
 .SH NAME
 iotedged \- Azure IoT Edge Security Daemon
 .SH SYNOPSIS
@@ -34,10 +11,16 @@ iotedged \- Azure IoT Edge Security Daemon
 [\fB\-c\fP \fIFILE\fP|\fB\-\-config\-file\fP=\fIFILE\fP]
 .br
 .SH DESCRIPTION
-This manual page documents briefly the
-.B iotedged.
+This manual page documents the \fBiotedged\fP.
 .PP
-\fBiotedged\fP is a program that...
+The IoT Edge Security Daemon (iotedged) manages provisioning of the edge device,
+creation of sas tokens and certificates for connecting to IoT Hub, and access control to any hardware security module on the device.
+.PP
+In order to achieve this, it must be the component that executes the modules. Module lifecycle is performed via this daemon by the Edge Agent. The daemon serves two APIs, the management API and workload API.
+.PP
+The management API contains operations for creating, starting, stopping, removing, etc. modules. Access to this API is restricted to the Edge Agent only.
+.PP
+The workload API contains operations for modules to retrieve sas tokens and certificates for use at runtime.
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
 options starting with two dashes (`-').

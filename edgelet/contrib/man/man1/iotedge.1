@@ -1,40 +1,20 @@
 .\" (C) Copyright 2018 Microsoft. All rights reserved.
-.\"
-.\" See http://www.debian.org/doc/manuals/maint-guide/dother.en.html#manpage1
-.\"
-.\" 1. Use this as the template for the manpage for <commandname> after
-.\"    renaming this file to <commandname>.1 (if it is for section 1).
-.\"
-.\" 2. List the path to this file in debian/<packagename>.manpages to
-.\"    install this manpage to the target binary package.
-.\"
-.\" First parameter, IOTEDGE, should be all caps
-.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
-.\" other parameters are allowed: see man(7), man(1)
 .TH IOTEDGE 1 "Azure IoT Edge User Manuals" "June 2018"
-.\" Please adjust this date whenever revising the manpage.
-.\"
-.\" Some roff macros, for reference:
-.\" .nh        disable hyphenation
-.\" .hy        enable hyphenation
-.\" .ad l      left justify
-.\" .ad b      justify to both left and right margins
-.\" .nf        disable filling
-.\" .fi        enable filling
-.\" .br        insert line break
-.\" .sp <n>    insert n+1 empty lines
-.\" for manpage-specific macros, see man(7)
+
 .SH NAME
 iotedge \- Management tool for Azure IoT Edge
 .SH SYNOPSIS
-.B iotedge
+.PP
+\fBiotedge\fP
+[\fB\-H\fP \fIHOST\fP|\fB\-\-host\fP-\fIHOST\fP]
 .RI [ subcommands ]
 .br
 .SH DESCRIPTION
-This manual page documents briefly the
-.B iotedge.
+This manual page documents the
+\fBiotedge\fP tool.
 .PP
-\fBiotedge\fP is a program that...
+\fBiotedge\fP is a tool to retrieve status and manage the IoT Edge runtime.
+It communicates directly with the IoT Edge daemon's management socket.
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
 options starting with two dashes (`-').
@@ -45,17 +25,12 @@ Show summary of options.
 .TP
 .B \-v, \-\-version
 Show version of program.
+.TP
+.B \-H <HOST>, \-\-host <HOST>
+Set the location of the daemon's management socket.
 .SH COMMANDS
 .PP
 Use "iotedge help" or "iotedge --help" to get an overview of available commands.
-.SH EXAMPLES
-.PP For specific client examples, please see the man page for the specific command.
-For example:
-.PP
-.RS
-.nf
-man iotedge-list
-.fi
 .RE
 .SH SEE ALSO
 .BR iotedged (8),
