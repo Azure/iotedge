@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
+#include <time.h>
 
 #include "testrunnerswitcher.h"
 #include "azure_c_shared_utility/gballoc.h"
@@ -200,6 +201,88 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         const char *certificate = certificate_info_get_certificate(result);
         const char *chain_certificate = certificate_info_get_chain(result);
         const void* private_key = certificate_info_get_private_key(result, &pk_size);
+
+        // assert
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(certificate_props);
+        certificate_info_destroy(ca_cert_info);
+        cert_properties_destroy(ca_certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_create_server_certificate_with_larger_expiration_time_will_use_issuers_expiration)
+    {
+        //arrange
+        size_t pk_size = 0;
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
+        set_validity_seconds(ca_certificate_props, 3600);
+        CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
+        set_validity_seconds(certificate_props, 3600 * 2);
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+
+        // assert
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        const char *certificate = certificate_info_get_certificate(result);
+        const char *chain_certificate = certificate_info_get_chain(result);
+        const void* private_key = certificate_info_get_private_key(result, &pk_size);
+        int64_t expiration_time = certificate_info_get_valid_to(result);
+        int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
+        ASSERT_IS_TRUE_WITH_MSG((expiration_time <= issuer_expiration_time), "Line:" TOSTRING(__LINE__));
+
+        // assert
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(certificate_props);
+        certificate_info_destroy(ca_cert_info);
+        cert_properties_destroy(ca_certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_create_server_certificate_with_smaller_expiration_time_will_use_smaller_expiration)
+    {
+        //arrange
+        size_t pk_size = 0;
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
+        set_validity_seconds(ca_certificate_props, 3600 * 2);
+        CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
+        set_validity_seconds(certificate_props, 3600);
+
+        // act
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+
+        // assert
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        const char *certificate = certificate_info_get_certificate(result);
+        const char *chain_certificate = certificate_info_get_chain(result);
+        const void* private_key = certificate_info_get_private_key(result, &pk_size);
+        int64_t expiration_time = certificate_info_get_valid_to(result);
+        int64_t issuer_expiration_time = certificate_info_get_valid_to(ca_cert_info);
+        ASSERT_IS_TRUE_WITH_MSG((expiration_time < issuer_expiration_time), "Line:" TOSTRING(__LINE__));
 
         // assert
         ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));

@@ -210,19 +210,19 @@ static time_t tm_to_utc(const struct tm *tm)
     return result < 0 ? -1 : result;
 }
 
-static time_t get_utctime_value(const unsigned char* time_value)
+time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length)
 {
     time_t result;
     char temp_value[TEMP_DATE_LENGTH];
     size_t temp_idx = 0;
     struct tm target_time;
     uint32_t numeric_val;
+
     memset(&target_time, 0, sizeof(target_time));
     memset(temp_value, 0, TEMP_DATE_LENGTH);
-
-    // Check the the type and the length
-    if (*time_value != ASN1_UTCTIME || *(time_value + 1) != TIME_FIELD_LENGTH)
+    if (length != TIME_FIELD_LENGTH)
     {
+        LogError("Parse time error: Invalid length field");
         result = 0;
     }
     else
@@ -230,7 +230,7 @@ static time_t get_utctime_value(const unsigned char* time_value)
         // Don't evaluate the Z at the end of the UTC time field
         for (size_t index = 0; index < TIME_FIELD_LENGTH - 1; index++)
         {
-            temp_value[temp_idx++] = time_value[index + 2];
+            temp_value[temp_idx++] = time_value[index];
             switch (index)
             {
             case 1:
@@ -273,7 +273,22 @@ static time_t get_utctime_value(const unsigned char* time_value)
         }
         result = tm_to_utc(&target_time);
     }
+
     return result;
+}
+
+static time_t get_utctime_value(const unsigned char* time_value)
+{
+    // Check the the type
+    if (*time_value != ASN1_UTCTIME)
+    {
+        LogError("Parse time error: Unknown time format");
+        return 0;
+    }
+    else
+    {
+        return get_utc_time_from_asn_string((time_value + 2), *(time_value + 1));
+    }
 }
 
 static size_t calculate_size(const unsigned char* buff, size_t* pos_change)

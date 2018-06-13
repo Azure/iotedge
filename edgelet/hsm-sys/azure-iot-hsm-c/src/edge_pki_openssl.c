@@ -41,6 +41,10 @@
 
 #define DEFAULT_EC_CURVE_NAME "secp256k1"
 
+// openssl ASN1 time format defines
+#define ASN1_TIME_STRING_UTC_FORMAT 0x17
+#define ASN1_TIME_STRING_UTC_LEN 13
+
 struct SUBJECT_FIELD_OFFSET_TAG
 {
     char field[MAX_SUBJECT_FIELD_SIZE];
@@ -81,6 +85,8 @@ static void destroy_evp_key(EVP_PKEY *evp_key);
     #define OPEN_HELPER(fname) open((fname), O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)
     #define CLOSE_HELPER(fd) close(fd)
 #endif
+
+extern time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length);
 
 //#################################################################################################
 // PKI key operations
@@ -553,11 +559,7 @@ static int cert_set_core_properties
     }
     return result;
 }
-// @todo the following logic is disabled because API ASN1_TIME_diff is not
-// available for libcrypto versions 1.0.0 and 1.0.1. This API is available since
-// 1.0.2+. Until we can figure out a way to solve across all version this code
-// is disabled.
-#if 0
+
 static int cert_set_expiration
 (
     X509* x509_cert,
@@ -566,7 +568,14 @@ static int cert_set_expiration
 )
 {
     int result = 0;
-    if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
+    uint64_t requested_validity = get_validity_seconds(cert_props_handle);
+
+    if (requested_validity > LONG_MAX)
+    {
+        LOG_ERROR("Number of seconds too large %lu", requested_validity);
+        result = __FAILURE__;
+    }
+    else if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
     {
         LOG_ERROR("Failure setting not before time");
         result = __FAILURE__;
@@ -576,35 +585,44 @@ static int cert_set_expiration
         // compute the MIN of seconds between:
         //    - UTC now() and the issuer certificate expiration timestamp and
         //    - Requested certificate expiration time expressed in UTC seconds from now()
-        uint64_t requested_validity = get_validity_seconds(cert_props_handle);
         if (issuer_cert != NULL)
         {
             // determine max validity in seconds of issuer
-            int diff_days = 0, diff_seconds = 0;
-            ASN1_TIME *issuer_expiration_asn1 = X509_get_notAfter(issuer_cert);
-            if (!ASN1_TIME_diff(&diff_days, &diff_seconds, NULL, issuer_expiration_asn1))
+            time_t now = time(NULL);
+            time_t exp_time;
+            double exp_seconds_left;
+
+            ASN1_TIME *issuer_exp_asn1 = X509_get_notAfter(issuer_cert);
+            if ((issuer_exp_asn1->type != ASN1_TIME_STRING_UTC_FORMAT) &&
+                (issuer_exp_asn1->length != ASN1_TIME_STRING_UTC_LEN))
             {
-                LOG_ERROR("Invalid time format in issuer certificate");
+                LOG_ERROR("Unsupported time format in issuer certificate");
                 result = __FAILURE__;
             }
-            // check if issuer certificate is expired
-            else if ((diff_days < 0) || ((diff_days == 0) && (diff_seconds <= 0)))
+            else if ((exp_time = get_utc_time_from_asn_string(issuer_exp_asn1->data,
+                                                              issuer_exp_asn1->length)) == 0)
             {
-                LOG_ERROR("Issuer certificate has expired. Diff days: %d, secs %d",
-                          diff_days, diff_seconds);
+                LOG_ERROR("Could not parse expiration date from issuer certificate");
+                result = __FAILURE__;
+            }
+            else if ((exp_seconds_left = difftime(exp_time, now)) <= 0)
+            {
+                LOG_ERROR("Issuer certificate has expired");
                 result = __FAILURE__;
             }
             else
             {
-                uint64_t number_seconds_left;
-                number_seconds_left = (diff_days * 60 * 60 * 24) + diff_seconds;
+                uint64_t number_seconds_left = (uint64_t)exp_seconds_left;
+                LOG_DEBUG("Num issuer expiration seconds left: %lu, Request validity:%lu",
+                          number_seconds_left, requested_validity);
                 requested_validity = (requested_validity == 0) ?
                                         number_seconds_left :
-                                        (requested_validity < number_seconds_left) ?
+                                        ((requested_validity < number_seconds_left) ?
                                             requested_validity :
-                                            number_seconds_left;
+                                            number_seconds_left);
             }
         }
+
         if (result == 0)
         {
             if (requested_validity == 0)
@@ -612,7 +630,7 @@ static int cert_set_expiration
                 LOG_ERROR("Invalid expiration time in seconds %lu", requested_validity);
                 result = __FAILURE__;
             }
-            else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), requested_validity))
+            else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), (long)requested_validity))
             {
                 LOG_ERROR("Failure setting not after time %lu", requested_validity);
                 result = __FAILURE__;
@@ -622,39 +640,6 @@ static int cert_set_expiration
 
     return result;
 }
-#else
-static int cert_set_expiration
-(
-    X509* x509_cert,
-    X509* issuer_cert,
-    CERT_PROPS_HANDLE cert_props_handle
-)
-{
-    int result;
-    uint64_t requested_validity = get_validity_seconds(cert_props_handle);
-    if (requested_validity > LONG_MAX)
-    {
-        LOG_ERROR("Number of seconds too large %llu", requested_validity);
-        result = __FAILURE__;
-    }
-    else if (!X509_gmtime_adj(X509_get_notBefore(x509_cert), 0))
-    {
-        LOG_ERROR("Failure setting not before time");
-        result = __FAILURE__;
-    }
-    else if (!X509_gmtime_adj(X509_get_notAfter(x509_cert), (long)requested_validity))
-    {
-        LOG_ERROR("Failure setting not after time %lu", requested_validity);
-        result = __FAILURE__;
-    }
-    else
-    {
-        result = 0;
-    }
-
-    return result;
-}
-#endif
 
 static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE type, int ca_path_len)
 {
