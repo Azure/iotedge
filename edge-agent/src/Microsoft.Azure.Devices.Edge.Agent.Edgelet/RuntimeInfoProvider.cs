@@ -28,7 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             return modulesRuntimeInfo;
         }
 
-        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(string.Empty, string.Empty));
+        public async Task<Core.SystemInfo> GetSystemInfo()
+        {
+            GeneratedCode.SystemInfo systemInfo = await this.moduleManager.GetSystemInfoAsync();
+
+            return new Core.SystemInfo(systemInfo.OsType, systemInfo.Architecture);
+        } 
 
         internal static ModuleRuntimeInfo<T> GetModuleRuntimeInfo(ModuleDetails moduleDetails)
         {

@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
+    using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode.SystemInfo;
 
     public class ModuleManagementHttpClient : IModuleManager, IIdentityManager
     {
@@ -107,6 +108,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 await this.Execute(
                     () => edgeletHttpClient.RestartModuleAsync(ApiVersion, name),
                     $"Restart module {name}");
+            }
+        }
+
+        public async Task<SystemInfo> GetSystemInfoAsync()
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.managementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.managementUri) };
+                SystemInfo systemInfo = await this.Execute(
+                    () => edgeletHttpClient.GetSystemInfoAsync(ApiVersion),
+                    "Getting System Info");
+                return systemInfo;
             }
         }
 
