@@ -73,6 +73,9 @@ where
 
 #[cfg(test)]
 mod tests {
+
+    use std::time::Duration;
+
     use super::*;
     use edgelet_core::{LogOptions, ModuleRegistry, ModuleRuntimeState, ModuleSpec, SystemInfo};
     use futures::{future::FutureResult, stream::Empty, Stream};
@@ -294,7 +297,7 @@ mod tests {
             notimpl_error!()
         }
 
-        fn stop(&self, _id: &str) -> Self::StopFuture {
+        fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
             notimpl_error!()
         }
 

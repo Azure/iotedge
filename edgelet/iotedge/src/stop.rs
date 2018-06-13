@@ -38,7 +38,7 @@ where
         let id = self.id.clone();
         let write = self.output.clone();
         let result = self.runtime
-            .stop(&id)
+            .stop(&id, None)
             .map_err(|e| e.into())
             .and_then(move |_| {
                 let mut w = write.borrow_mut();

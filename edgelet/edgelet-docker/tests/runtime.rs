@@ -20,6 +20,7 @@ use std::str;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use std::time::Duration;
 
 use futures::prelude::*;
 use futures::{future, Stream};
@@ -408,7 +409,44 @@ fn container_stop_succeeds() {
         &core.handle(),
     ).unwrap();
 
-    let task = mri.stop("m1");
+    let task = mri.stop("m1", None);
+    core.run(task).unwrap();
+}
+
+fn container_stop_with_timeout_handler(
+    req: Request,
+) -> Box<Future<Item = Response, Error = HyperError>> {
+    assert_eq!(req.method(), &Method::Post);
+    assert_eq!(req.path(), "/containers/m1/stop");
+    assert_eq!(req.query().unwrap(), "t=600");
+
+    Box::new(future::ok(Response::new().with_status(StatusCode::Ok)))
+}
+
+#[test]
+fn container_stop_with_timeout_succeeds() {
+    let (sender, receiver) = channel();
+
+    let port = get_unused_tcp_port();
+    thread::spawn(move || {
+        run_tcp_server(
+            "127.0.0.1",
+            port,
+            container_stop_with_timeout_handler,
+            &sender,
+        );
+    });
+
+    // wait for server to get ready
+    receiver.recv().unwrap();
+
+    let mut core = Core::new().unwrap();
+    let mri = DockerModuleRuntime::new(
+        &Url::parse(&format!("http://localhost:{}/", port)).unwrap(),
+        &core.handle(),
+    ).unwrap();
+
+    let task = mri.stop("m1", Some(Duration::from_secs(600)));
     core.run(task).unwrap();
 }
 

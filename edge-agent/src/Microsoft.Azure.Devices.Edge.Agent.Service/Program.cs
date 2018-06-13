@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class Program
     {
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1); 
         const string ConfigFileName = "appsettings_agent.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
@@ -144,8 +145,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             var cts = new CancellationTokenSource();
+            var completed = new ManualResetEventSlim();
 
-            void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
+            void OnUnload(AssemblyLoadContext ctx) => CancelProgram();
+
+            void CancelProgram()
+            {
+                logger.LogInformation("Termination requested, closing.");
+                cts.Cancel();
+                // Wait for shutdown oprations to complete.
+                completed.Wait(ShutdownWaitPeriod);
+            }
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
@@ -156,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 {
 
                     AssemblyLoadContext.Default.Unloading += OnUnload;
-                    Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts, logger); };
+                    Console.CancelKeyPress += (sender, cpe) => CancelProgram();
 
                     Agent agent = await container.Resolve<Task<Agent>>();
                     agentOption = Option.Some(agent);
@@ -190,7 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 }
 
                 // Attempt to report shutdown of Agent
-                await ReportShutdownAsync(agentOption, logger);
+                await Cleanup(agentOption, logger);
+                completed.Set();
             }
 
             return returnCode;
@@ -204,17 +215,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return logger;
         }
 
-        static async Task ReportShutdownAsync(Option<Agent> agentOption, ILogger logger)
+        static Task Cleanup(Option<Agent> agentOption, ILogger logger)
         {
-            var closeCts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+            var closeCts = new CancellationTokenSource(ShutdownWaitPeriod);
 
             try
             {
-                await agentOption.ForEachAsync(a => a.ReportShutdownAsync(closeCts.Token));
+                return agentOption.ForEachAsync(a => a.HandleShutdown(closeCts.Token));
             }
             catch (Exception ex)
             {
                 logger.LogError(AgentEventIds.Agent, ex, "Error on shutdown");
+                return Task.CompletedTask;
             }
         }
 
@@ -228,12 +240,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
             Directory.CreateDirectory(storagePath);
             return storagePath;
-        }
-
-        static void CancelProgram(CancellationTokenSource cts, ILogger logger)
-        {
-            logger.LogInformation("Termination requested, closing.");
-            cts.Cancel();
         }
 
         static void LogLogo(ILogger logger)

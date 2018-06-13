@@ -6,6 +6,7 @@ use std::fmt;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 use std::string::ToString;
+use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::Fail;
@@ -357,7 +358,7 @@ pub trait ModuleRuntime {
     fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn start(&self, id: &str) -> Self::StartFuture;
-    fn stop(&self, id: &str) -> Self::StopFuture;
+    fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture;
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn system_info(&self) -> Self::SystemInfoFuture;

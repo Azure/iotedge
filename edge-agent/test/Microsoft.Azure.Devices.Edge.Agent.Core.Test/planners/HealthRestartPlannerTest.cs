@@ -892,6 +892,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(r => Assert.Equal(runningGreatModules.Count(), r.WrappedCommmandList.Count));
         }
 
+        [Unit]
+        [Fact]
+        public async Task CreateShutdownPlanTest()
+        {
+            // Arrange
+            var (factory, _, _, planner) = CreatePlanner();
+
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            var modules = new List<IModule>
+            {
+                module1,
+                edgeAgentModule
+            };
+
+            ModuleSet running = ModuleSet.Create(modules.ToArray());
+            var executionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestStop, module1),
+            };
+
+            // Act
+            Plan shutdownPlan = await planner.CreateShutdownPlanAsync(running);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, shutdownPlan, CancellationToken.None);
+
+            // Assert
+            factory.Recorder.ForEach(r => Assert.Equal(executionList, r.ExecutionList));
+        }
+
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
         {
             ICredentials credential = new ConnectionStringCredentials("fake");

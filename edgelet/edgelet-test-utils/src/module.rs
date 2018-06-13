@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::marker::PhantomData;
+use std::time::Duration;
 
 use edgelet_core::*;
 use failure::Fail;
@@ -194,7 +195,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
         }
     }
 
-    fn stop(&self, _id: &str) -> Self::StopFuture {
+    fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
         match self.module {
             Ok(_) => future::ok(()),
             Err(ref e) => future::err(e.clone()),

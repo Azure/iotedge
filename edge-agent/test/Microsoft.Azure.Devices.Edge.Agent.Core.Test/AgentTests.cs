@@ -373,30 +373,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async Task ReportShutdownAsyncReportThrows()
-        {
-            // Arrange
-            var mockConfigSource = new Mock<IConfigSource>();
-            var mockEnvironment = new Mock<IEnvironment>();
-            var mockPlanner = new Mock<IPlanner>();
-            var mockPlanRunner = new Mock<IPlanRunner>();
-            var mockReporter = new Mock<IReporter>();
-            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-            var token = new CancellationToken();
-            var configStore = Mock.Of<IEntityStore<string, string>>();
-            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
-            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
-            mockReporter.Setup(mr => mr.ReportShutdown(It.IsAny<DeploymentStatus>(), token)).Throws<ArgumentNullException>();
-
-            // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
-
-            // Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => agent.ReportShutdownAsync(token));
-        }
-
-        [Fact]
-        [Unit]
         public async Task ReportShutdownAsyncConfigTest()
         {
             // Arrange

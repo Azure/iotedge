@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 current = await this.environment.GetModulesAsync(token);
             }
-            catch (Exception e) when (!ex.IsFatal())
+            catch (Exception e) when (!e.IsFatal())
             {
                 ex = e;
             }
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo = await this.configSource.GetDeploymentConfigInfoAsync();
                 Events.ObtainedDeploymentConfigInfo(deploymentConfigInfo);
             }
-            catch (Exception e) when (!ex.IsFatal())
+            catch (Exception e) when (!e.IsFatal())
             {
                 ex = e;
             }
@@ -212,19 +212,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             await this.configStore.Put(StoreConfigKey, this.deploymentConfigInfoSerde.Serialize(deploymentConfigInfo));
         }
 
-        public async Task ReportShutdownAsync(CancellationToken token)
+        public async Task HandleShutdown(CancellationToken token)
+        {
+            try
+            {
+                Events.InitiateShutdown();
+                await this.ShutdownModules(token);
+                var status = new DeploymentStatus(DeploymentStatusCode.Unknown, "Agent is not running");
+                await this.reporter.ReportShutdown(status, token);
+                Events.CompletedShutdown();
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Events.HandleShutdownFailed(ex);
+            }
+        }
+
+        async Task ShutdownModules(CancellationToken token)
+        {
+            try
+            {
+                Events.InitiateShutdownModules();
+                (ModuleSet modules, Exception ex) = await this.GetCurrentModuleSetAsync(token);
+                if (ex != null)
+                {
+                    throw ex;
+                }
+
+                Plan plan = await this.planner.CreateShutdownPlanAsync(modules);
+                await this.planRunner.ExecuteAsync(-1, plan, token);
+                Events.ShutdownModules();
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Events.ShutdownModulesFailed(ex);
+            }
+        }
+
+        internal async Task ReportShutdownAsync(CancellationToken token)
         {
             try
             {
                 var status = new DeploymentStatus(DeploymentStatusCode.Unknown, "Agent is not running");
-
                 await this.reporter.ReportShutdown(status, token);
                 Events.ReportShutdown();
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ReportShutdownFailed(ex);
-                throw;
             }
         }
 
@@ -245,7 +280,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 GettingDeploymentConfigInfo,
                 ObtainedDeploymentConfigInfo,
                 UnknownFailure,
-                ErrorDeserializingConfig
+                ErrorDeserializingConfig,
+                InitiateShutdown,
+                CompletedShutdown,
+                StopModulesCompleted,
+                InitiatingStopModules,
+                StopModulesFailed
             }
 
             public static void AgentCreated()
@@ -280,12 +320,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             public static void ReportShutdown()
             {
-                Log.LogDebug((int)EventIds.ReportShutdown, "Edge agent reporting Edge and module state as unknown.");
+                Log.LogInformation((int)EventIds.ReportShutdown, "Edge agent reporting Edge and module state as unknown.");
             }
 
             public static void ReportShutdownFailed(Exception ex)
             {
-                Log.LogError((int)EventIds.ReportShutdownFailed, ex, "Failed to report edge agent shutdown.");
+                Log.LogWarning((int)EventIds.ReportShutdownFailed, ex, "Failed to report Edge and module state as unknown.");
+            }
+
+            public static void HandleShutdownFailed(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ReportShutdownFailed, ex, "Failed to report edge agent shutdown.");
             }
 
             public static void GettingDeploymentConfigInfo()
@@ -304,6 +349,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             internal static void ErrorDeserializingConfig(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorDeserializingConfig, ex, "There was an error deserializing stored deployment configuration information");
+            }
+
+            public static void InitiateShutdown()
+            {
+                Log.LogInformation((int)EventIds.InitiateShutdown, "Initiating shutdown cleanup.");
+            }
+
+            public static void CompletedShutdown()
+            {
+                Log.LogInformation((int)EventIds.CompletedShutdown, "Completed shutdown cleanup.");
+            }
+
+            public static void InitiateShutdownModules()
+            {
+                Log.LogInformation((int)EventIds.InitiatingStopModules, "Stopping all modules...");
+            }
+
+            public static void ShutdownModules()
+            {
+                Log.LogInformation((int)EventIds.StopModulesCompleted, "Completed stopping all modules.");
+            }
+
+            public static void ShutdownModulesFailed(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.StopModulesFailed, ex, "Error while stopping all modules.");
             }
         }
     }

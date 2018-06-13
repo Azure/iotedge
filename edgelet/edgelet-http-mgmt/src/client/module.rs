@@ -3,6 +3,7 @@
 use std::fmt;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::time::Duration;
 
 use edgelet_core::SystemInfo as CoreSystemInfo;
 use edgelet_core::*;
@@ -183,7 +184,7 @@ impl ModuleRuntime for ModuleClient {
         Box::new(start)
     }
 
-    fn stop(&self, id: &str) -> Self::StopFuture {
+    fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> Self::StopFuture {
         let stop = self.client
             .module_api()
             .stop_module(API_VERSION, id)

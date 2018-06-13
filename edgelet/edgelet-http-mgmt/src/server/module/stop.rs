@@ -42,7 +42,7 @@ where
             .ok_or_else(|| Error::from(ErrorKind::BadParam))
             .map(|name| {
                 let result = self.runtime
-                    .stop(name)
+                    .stop(name, None)
                     .map(|_| {
                         Response::builder()
                             .status(StatusCode::NO_CONTENT)

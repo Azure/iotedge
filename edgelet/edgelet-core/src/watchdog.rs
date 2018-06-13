@@ -13,6 +13,9 @@ use error::{Error, ErrorKind};
 use identity::{Identity, IdentityManager, IdentitySpec};
 use module::{Module, ModuleRegistry, ModuleRuntime, ModuleSpec, ModuleStatus};
 
+// Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
+const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
+
 /// This variable holds the generation ID associated with the Edge Agent module.
 const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
 
@@ -50,6 +53,7 @@ where
         F: Future<Item = (), Error = ()> + 'static,
     {
         let runtime = self.runtime.clone();
+        let runtime_copy = self.runtime.clone();
         let name = spec.name().to_string();
         let mut id_mgr = self.id_mgr.clone();
         let module_id = module_id.to_string();
@@ -76,10 +80,24 @@ where
         shutdown_signal
             .select(watchdog)
             .then(move |result| match result {
-                Ok(((), _)) => future::ok(()),
-                Err((e, _)) => future::err(e),
+                Ok(((), _)) => Either::A(stop_runtime(&runtime_copy, &name)),
+                Err((e, _)) => Either::B(future::err(e)),
             })
     }
+}
+
+// Stop EdgeAgent
+fn stop_runtime<M>(runtime: &M, name: &str) -> impl Future<Item = (), Error = Error>
+where
+    M: 'static + ModuleRuntime + Clone,
+    <M::Module as Module>::Config: Clone,
+    M::Error: Into<Error>,
+    <M::Module as Module>::Error: Into<Error>,
+{
+    info!("Stopping edge runtime module {}", name);
+    runtime
+        .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
+        .map_err(|e| e.into())
 }
 
 // Start watchdog on a timer for 1 minute

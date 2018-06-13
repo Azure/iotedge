@@ -58,6 +58,7 @@ use edgelet_http::{ApiVersionService, HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
+use futures::future;
 use futures::sync::oneshot::{self, Receiver};
 use futures::Future;
 use hsm::tpm::Tpm;
@@ -252,16 +253,23 @@ where
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
 
-    let shutdown = shutdown_signal.map(move |_| {
-        debug!("shutdown signaled");
+    // Wait for the watchdog to finish, and then send signal to the workload and management services.
+    // This way the edgeAgent can finish shutting down all modules.
+    let edge_rt_with_cleanup = edge_rt.and_then(|_| {
         mgmt_tx.send(()).unwrap_or(());
         work_tx.send(()).unwrap_or(());
+        future::ok(())
+    });
+
+    let shutdown = shutdown_signal.map(move |_| {
+        debug!("shutdown signaled");
+        // Signal the watchdog to shutdown
         runt_tx.send(()).unwrap_or(());
     });
 
     core.handle().spawn(shutdown);
 
-    core.run(mgmt.join3(workload, edge_rt))?;
+    core.run(mgmt.join3(workload, edge_rt_with_cleanup))?;
 
     Ok(())
 }

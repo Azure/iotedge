@@ -38,11 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Act
             // Assert
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-                () => runner.ExecuteAsync(0, plan, token)
+                () => runner.ExecuteAsync(-2, plan, token)
             );
-            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-                () => runner.ExecuteAsync(-1, plan, token)
-            );
+
             await Assert.ThrowsAsync<ArgumentNullException>(
                 () => runner.ExecuteAsync(10, null, token)
             );

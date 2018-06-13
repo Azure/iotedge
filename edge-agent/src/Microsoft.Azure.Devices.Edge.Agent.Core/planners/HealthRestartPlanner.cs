@@ -245,6 +245,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.PlanCreated(commands);
             return new Plan(commands);
         }
+
+        public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
+        {
+            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
+                .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+                .Select(m => this.commandFactory.StopAsync(m));
+            IList<ICommand> commands = await Task.WhenAll(stopTasks);
+            Events.PlanCreated(commands);
+            return new Plan(commands);
+        }
     }
 
     static class Events

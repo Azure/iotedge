@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
         public async Task ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
-            Preconditions.CheckRange(deploymentId, 1, nameof(deploymentId));
+            Preconditions.CheckRange(deploymentId, -1, nameof(deploymentId));
             Preconditions.CheckNotNull(plan, nameof(plan));
 
             using (await this.sync.LockAsync())

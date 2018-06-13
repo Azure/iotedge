@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::convert::From;
 use std::ops::Deref;
+use std::time::Duration;
 
 use base64;
 use futures::future;
@@ -230,11 +231,16 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn stop(&self, id: &str) -> Self::StopFuture {
+    fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
         Box::new(
             self.client
                 .container_api()
-                .container_stop(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
+                .container_stop(
+                    fensure_not_empty!(id),
+                    wait_before_kill
+                        .map(|s| s.as_secs() as i32)
+                        .unwrap_or(WAIT_BEFORE_KILL_SECONDS),
+                )
                 .map_err(Error::from)
                 .map(|_| ()),
         )
@@ -594,7 +600,7 @@ mod tests {
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
-        let task = mri.stop("").then(|result| match result {
+        let task = mri.stop("", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils => Ok(()) as Result<()>,
@@ -612,7 +618,7 @@ mod tests {
             DockerModuleRuntime::new(&Url::parse("http://localhost/").unwrap(), &core.handle())
                 .unwrap();
 
-        let task = mri.stop("     ").then(|result| match result {
+        let task = mri.stop("     ", None).then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
             Err(err) => match err.kind() {
                 &ErrorKind::Utils => Ok(()) as Result<()>,

@@ -155,7 +155,7 @@ where
             let (a, b) = remaining.split_at(amt);
             buf[..amt].copy_from_slice(a);
 
-            if b.len() == 0 {
+            if b.is_empty() {
                 (Ok(amt), None)
             } else {
                 (Ok(amt), Some(Bytes::from(b)))
@@ -194,7 +194,7 @@ where
                     let (a, b) = data.split_at(amt);
                     buf[read..read + amt].copy_from_slice(a);
 
-                    if b.len() == 0 {
+                    if b.is_empty() {
                         (Ok(amt + read), None)
                     } else {
                         (Ok(amt + read), Some(Bytes::from(b)))
