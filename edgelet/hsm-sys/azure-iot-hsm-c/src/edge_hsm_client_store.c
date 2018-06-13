@@ -129,7 +129,7 @@ static STORE_ENTRY_KEY* get_key(const CRYPTO_STORE *store, HSM_KEY_T key_type, c
     return result;
 }
 
-static bool key_exits(const CRYPTO_STORE *store, HSM_KEY_T key_type, const char *key_name)
+static bool key_exists(const CRYPTO_STORE *store, HSM_KEY_T key_type, const char *key_name)
 {
     STORE_ENTRY_KEY *entry = get_key(store, key_type, key_name);
     return (entry != NULL) ? true : false;
@@ -305,13 +305,83 @@ static STORE_ENTRY_PKI_CERT* get_pki_cert
     return result;
 }
 
+static const char* obtain_default_platform_base_dir(void)
+{
+    const char *result;
+    static STRING_HANDLE PLATFORM_BASE_PATH = NULL;
+
+    if (PLATFORM_BASE_PATH == NULL)
+    {
+        #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+            STRING_HANDLE path;
+            char *env_base_path = getenv(DEFAULT_EDGE_BASE_DIR_ENV_WIN);
+            if (env_base_path == NULL)
+            {
+                LOG_ERROR("Windows env variable %s is not set", DEFAULT_EDGE_HOME_DIR_WIN);
+                result = NULL;
+            }
+            else if (!is_directory_valid(env_base_path))
+            {
+                LOG_ERROR("Dir set in environment variable %s is not valid", env_base_path);
+                result = NULL;
+            }
+            else if ((path = STRING_construct(env_base_path)) == NULL)
+            {
+                LOG_ERROR("Could not create string handle for default base path");
+                result = NULL;
+            }
+            else
+            {
+                if ((STRING_concat(path, SLASH) != 0) ||
+                    (STRING_concat(path, DEFAULT_EDGE_HOME_DIR_WIN) != 0))
+                {
+                    LOG_ERROR("Could not build path to IoT Edge home dir");
+                    STRING_delete(path);
+                    result = NULL;
+                }
+                else
+                {
+                    result = STRING_c_str(path);
+                    if (make_dir(result) != 0)
+                    {
+                        LOG_ERROR("Could not create home dir %s", result);
+                        STRING_delete(path);
+                        result = NULL;
+                    }
+                    else
+                    {
+                        PLATFORM_BASE_PATH = path;
+                    }
+                }
+            }
+        #else
+            if (make_dir(DEFAULT_EDGE_HOME_DIR_UNIX) != 0)
+            {
+                LOG_ERROR("Could not create home dir %s", DEFAULT_EDGE_HOME_DIR_UNIX);
+                result = NULL;
+            }
+            else if ((PLATFORM_BASE_PATH = STRING_construct(DEFAULT_EDGE_HOME_DIR_UNIX)) == NULL)
+            {
+                LOG_ERROR("Could not create string handle for default base path");
+                result = NULL;
+            }
+            else
+            {
+                result = DEFAULT_EDGE_HOME_DIR_UNIX;
+            }
+        #endif
+    }
+    else
+    {
+        // platform base dir already initialized
+        result = STRING_c_str(PLATFORM_BASE_PATH);
+    }
+
+    return result;
+}
+
 static const char* get_base_dir(void)
 {
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        const char *DEFAULT_DIR = DEFAULT_EDGE_HOME_DIR_WIN;
-    #else
-        const char *DEFAULT_DIR = DEFAULT_EDGE_HOME_DIR_UNIX;
-    #endif
     static STRING_HANDLE base_dir_path = NULL;
 
     const char *result = NULL;
@@ -341,12 +411,13 @@ static const char* get_base_dir(void)
             }
             else
             {
-                if (make_dir(DEFAULT_DIR) != 0)
+                const char* default_dir = obtain_default_platform_base_dir();
+                if (default_dir == NULL)
                 {
-                    LOG_ERROR("Could not make IOTEDGED default dir %s", result);
+                    LOG_ERROR("IOTEDGED platform specific default base directory is invalid");
                     status = __FAILURE__;
                 }
-                else if (STRING_concat(base_dir_path, DEFAULT_DIR) != 0)
+                else if (STRING_concat(base_dir_path, default_dir) != 0)
                 {
                     LOG_ERROR("Could not construct path to HSM dir");
                     status = __FAILURE__;
@@ -354,8 +425,8 @@ static const char* get_base_dir(void)
             }
             if (status == 0)
             {
-                if (STRING_concat(base_dir_path, SLASH) ||
-                    STRING_concat(base_dir_path, HSM_CRYPTO_DIR))
+                if ((STRING_concat(base_dir_path, SLASH) != 0) ||
+                    (STRING_concat(base_dir_path, HSM_CRYPTO_DIR) != 0))
                 {
                     LOG_ERROR("Could not construct path to HSM dir");
                     status = __FAILURE__;
@@ -1549,7 +1620,7 @@ static KEY_HANDLE edge_hsm_client_open_key
 
         if (key_type == HSM_KEY_ENCRYPTION)
         {
-            if (!key_exits(store, HSM_KEY_ENCRYPTION, key_name) &&
+            if (!key_exists(store, HSM_KEY_ENCRYPTION, key_name) &&
                 (load_encryption_key_from_file(store, key_name) != 0))
             {
                 LOG_ERROR("HSM store could not load encryption key %s", key_name);
@@ -1944,7 +2015,7 @@ static int edge_hsm_client_store_insert_encryption_key
         LOG_ERROR("HSM store has not been provisioned");
         result = __FAILURE__;
     }
-    else if (key_exits((CRYPTO_STORE*)handle, HSM_KEY_ENCRYPTION, key_name))
+    else if (key_exists((CRYPTO_STORE*)handle, HSM_KEY_ENCRYPTION, key_name))
     {
         LOG_ERROR("HSM store already has encryption key set %s", key_name);
         result = __FAILURE__;

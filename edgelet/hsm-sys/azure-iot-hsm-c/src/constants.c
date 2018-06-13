@@ -11,7 +11,8 @@ const char* const ENV_TPM_SELECT = "IOTEDGE_USE_TPM_DEVICE";
 
 /* HSM directory name under IOTEDGE_HOMEDIR */
 const char* const DEFAULT_EDGE_HOME_DIR_UNIX = "/var/lib/iotedge"; // note MacOS is included
-const char* const DEFAULT_EDGE_HOME_DIR_WIN = "C:\\ProgramData\\iotedge\\data";
+const char* const DEFAULT_EDGE_BASE_DIR_ENV_WIN = "ProgramData";
+const char* const DEFAULT_EDGE_HOME_DIR_WIN = "iotedge";
 const char* const HSM_CRYPTO_DIR = "hsm";
 const char* const HSM_CRYPTO_CERTS_DIR = "certs";
 const char* const HSM_CRYPTO_PK_DIR = "private";
