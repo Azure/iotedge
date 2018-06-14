@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Extensions.Logging;
 
     public class RestartPolicyManager : IRestartPolicyManager
-    {
+    {        
+        const int MaxCoolOffPeriodSecs = 300; // 5 mins
         readonly int maxRestartCount;
         readonly int coolOffTimeUnitInSeconds;
 
@@ -37,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 // "OnUnhealthy" (which it would be if it isn't "Always" since we'd be in this
                 // "if" block  only if the restart policy was greater than "Never") and the module
                 // state is "Failed" or "Unhealthy"
-                if (restartPolicy == Core.RestartPolicy.Always || (status == ModuleStatus.Failed || status == ModuleStatus.Unhealthy))
+                if (restartPolicy == RestartPolicy.Always || (status == ModuleStatus.Failed || status == ModuleStatus.Unhealthy))
                 {
                     // if restart count is >= maxRestartCount then the module "failed" - otherwise
                     // it is going to be restarted and is in "Backoff" state
@@ -67,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             if (module.RuntimeStatus == ModuleStatus.Backoff)
             {
                 // compute how long we must wait before restarting this module
-                TimeSpan coolOffPeriod = TimeSpan.FromSeconds(this.coolOffTimeUnitInSeconds * Math.Pow(2, module.RestartCount));
+                TimeSpan coolOffPeriod = this.GetCoolOffPeriod(module.RestartCount);
                 TimeSpan elapsedTime = DateTime.UtcNow - module.LastExitTimeUtc;
 
                 bool shouldRestart = elapsedTime > coolOffPeriod;
@@ -81,6 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             return false;
         }
+
+        internal TimeSpan GetCoolOffPeriod(int restartCount) =>
+            TimeSpan.FromSeconds(Math.Min(this.coolOffTimeUnitInSeconds * Math.Pow(2, restartCount), MaxCoolOffPeriodSecs));        
 
         public IEnumerable<IRuntimeModule> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules) =>
             modules.Where(module => this.ShouldRestart(module));

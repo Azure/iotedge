@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
                 intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
-                coolOffTimeUnitInSeconds = configuration.GetValue<int>("CoolOffTimeUnitInSeconds");
+                coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);

@@ -666,5 +666,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Mock<IRuntimeModule> module = CreateMockRuntimeModule(RestartPolicy.Always, ModuleStatus.Unknown, 0, DateTime.MinValue);
             Assert.Throws<ArgumentException>(() => manager.ApplyRestartPolicy(new[] { module.Object }).ToList());
         }
+
+        [Theory]
+        [Unit]
+        [InlineData(0, 10)]
+        [InlineData(1, 20)]
+        [InlineData(2, 40)]
+        [InlineData(3, 80)]
+        [InlineData(4, 160)]
+        [InlineData(5, 300)]
+        [InlineData(10, 300)]
+        [InlineData(20, 300)]
+        public void CoolOffPeriodTest(int restartCount, int expectedCoolOffPeriodSecs)
+        {
+            // Arrange
+            var restartPolicyManager = new RestartPolicyManager(20, 10);
+
+            // Act
+            TimeSpan coolOffPeriod = restartPolicyManager.GetCoolOffPeriod(restartCount);
+
+            // Assert
+            Assert.Equal(expectedCoolOffPeriodSecs, coolOffPeriod.TotalSeconds);
+        }
     }
 }
