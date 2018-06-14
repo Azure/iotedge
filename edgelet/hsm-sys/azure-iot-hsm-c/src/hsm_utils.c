@@ -27,6 +27,19 @@
     #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
+static const char* err_to_str(void)
+{
+    static char DEFAULT_ERROR_STRING[] = "";
+
+    char *result = strerror(errno);
+    if (result == NULL)
+    {
+        result = DEFAULT_ERROR_STRING;
+    }
+
+    return result;
+}
+
 static int read_file_into_buffer_impl
 (
     const char* file_name,
@@ -46,12 +59,12 @@ static int read_file_into_buffer_impl
 
     if ((file_handle = fopen(file_name, "r")) == NULL)
     {
-        LOG_ERROR("Could not open file for reading %s", file_name);
+        LOG_ERROR("Could not open file for reading %s. Errno %d '%s'", file_name, errno, err_to_str());
         result = HSM_UTIL_ERROR;
     }
     else if (fseek(file_handle, 0, SEEK_END) != 0) // obtain file size by seek()'ing to the end
     {
-        LOG_ERROR("fseek returned error for file %s", file_name);
+        LOG_ERROR("fseek returned error for file %s. Errno %d '%s'", file_name, errno, err_to_str());
         result = HSM_UTIL_ERROR;
     }
     else
@@ -59,7 +72,7 @@ static int read_file_into_buffer_impl
         file_size = ftell(file_handle);
         if (file_size < 0)
         {
-            LOG_ERROR("ftell returned error for file %s", file_name);
+            LOG_ERROR("ftell returned error for file %s. Errno %d '%s'", file_name, errno, err_to_str());
             result = HSM_UTIL_ERROR;
         }
         else if (file_size == 0)
@@ -81,8 +94,8 @@ static int read_file_into_buffer_impl
                                             output_buffer_size :
                                             (size_t)file_size;
                 rewind(file_handle);
-                num_bytes_read = fread(output_buffer, 1, file_size, file_handle);
-                if (num_bytes_read != num_bytes_to_read)
+                num_bytes_read = fread(output_buffer, 1, num_bytes_to_read, file_handle);
+                if ((num_bytes_read != num_bytes_to_read) || (ferror(file_handle) != 0))
                 {
                     LOG_ERROR("File read failed for file %s", file_name);
                     result = HSM_UTIL_ERROR;
@@ -131,7 +144,7 @@ static int write_ascii_buffer_into_file
             size_t num_bytes_written;
             result = HSM_UTIL_SUCCESS;
             num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
-            if (num_bytes_written != input_buffer_size)
+            if ((num_bytes_written != input_buffer_size) || (ferror(file_handle) != 0))
             {
                 LOG_ERROR("File write failed for file %s", file_name);
                 result = HSM_UTIL_ERROR;
