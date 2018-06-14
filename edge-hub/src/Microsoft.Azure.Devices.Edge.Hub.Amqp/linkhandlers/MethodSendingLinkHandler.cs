@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.MethodSending;
 
-        protected override bool RequestFeedback => false;
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         public override string CorrelationId =>
             AmqpConnectionUtils.GetCorrelationId(this.Link);

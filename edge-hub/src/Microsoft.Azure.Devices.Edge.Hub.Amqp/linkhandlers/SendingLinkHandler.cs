@@ -30,24 +30,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         protected ISendingAmqpLink SendingAmqpLink { get; }
 
-        protected abstract bool RequestFeedback { get; }
+        protected abstract QualityOfService QualityOfService { get; }
 
         protected override Task OnOpenAsync(TimeSpan timeout)
         {
-            if (this.RequestFeedback)
+            switch (this.QualityOfService)
             {
-                // SenderSettleMode.Unsettled (null as it is the default and to avoid bytes on the wire)
-                this.SendingAmqpLink.Settings.SndSettleMode = null;
-                // The receiver will only settle after sending the disposition to the sender and receiving a disposition indicating settlement of the delivery from the sender.
-                this.SendingAmqpLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.Second;
-                this.SendingAmqpLink.RegisterDispositionListener(this.DispositionListener);
-            }
-            else
-            {
-                // The Receiver will spontaneously settle all incoming transfers.
-                this.SendingAmqpLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.First;
-                // The Sender will send all deliveries settled to the receiver. 
-                this.SendingAmqpLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
+                case QualityOfService.ExactlyOnce:
+                    // SenderSettleMode.Unsettled (null as it is the default and to avoid bytes on the wire)
+                    this.SendingAmqpLink.Settings.SndSettleMode = null;
+                    // The receiver will only settle after sending the disposition to the sender and receiving a disposition indicating settlement of the delivery from the sender.
+                    this.SendingAmqpLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.Second;
+                    this.SendingAmqpLink.RegisterDispositionListener(this.DispositionListener);
+                    break;
+
+                case QualityOfService.AtLeastOnce:
+                    // SenderSettleMode.Unsettled (null as it is the default and to avoid bytes on the wire)
+                    this.SendingAmqpLink.Settings.SndSettleMode = null;
+                    // The Receiver will spontaneously settle all incoming transfers.
+                    this.SendingAmqpLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.First;
+                    this.SendingAmqpLink.RegisterDispositionListener(this.DispositionListener);
+                    break;
+
+                case QualityOfService.AtMostOnce:
+                    // The Receiver will spontaneously settle all incoming transfers.
+                    this.SendingAmqpLink.Settings.RcvSettleMode = (byte)ReceiverSettleMode.First;
+                    // The Sender will send all deliveries settled to the receiver. 
+                    this.SendingAmqpLink.Settings.SndSettleMode = (byte)SenderSettleMode.Settled;
+                    break;
             }
             return Task.CompletedTask;
         }
@@ -66,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 ArraySegment<byte> deliveryTag = amqpMessage.DeliveryTag.Count == 0
                     ? new ArraySegment<byte>(Guid.NewGuid().ToByteArray())
                     : amqpMessage.DeliveryTag;
-                if (this.RequestFeedback)
+                if (this.QualityOfService != QualityOfService.AtMostOnce)
                 {
                     this.SendingAmqpLink.SendMessageNoWait(amqpMessage, deliveryTag, AmqpConstants.NullBinary);
                 }

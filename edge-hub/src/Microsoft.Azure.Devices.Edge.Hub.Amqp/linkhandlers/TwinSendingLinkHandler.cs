@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
         }
 
-        protected override bool RequestFeedback => false;
+        protected override QualityOfService QualityOfService => QualityOfService.AtMostOnce;
 
         public override LinkType Type => LinkType.TwinSending;
 

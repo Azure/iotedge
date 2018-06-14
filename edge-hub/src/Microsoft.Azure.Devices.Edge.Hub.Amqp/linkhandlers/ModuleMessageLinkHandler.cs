@@ -21,6 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.ModuleMessages;
 
-        protected override bool RequestFeedback => true;
+        protected override QualityOfService QualityOfService => QualityOfService.AtLeastOnce;
     }
 }

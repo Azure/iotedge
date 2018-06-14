@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         public override LinkType Type => LinkType.C2D;
 
-        protected override bool RequestFeedback => true;
+        protected override QualityOfService QualityOfService => QualityOfService.ExactlyOnce;
 
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {
