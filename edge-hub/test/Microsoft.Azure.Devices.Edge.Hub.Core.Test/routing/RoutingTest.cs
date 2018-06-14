@@ -48,13 +48,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
             TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
 
-            IMessage message = GetMessage();
-            await device1.SendMessage(message);
+            IList<IMessage> messages = GetMessages();
+            await device1.SendMessages(messages);
 
             await Task.Delay(GetSleepTime());
 
-            Assert.True(iotHub.HasReceivedMessage(message));
-            Assert.False(module1.HasReceivedMessage(message));
+            Assert.True(iotHub.HasReceivedMessages(messages));
+            Assert.False(module1.HasReceivedMessages(messages));
         }
 
         [Fact]
@@ -72,13 +72,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
             TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
 
-            IMessage message = GetMessage();
-            await device1.SendMessage(message);
+            IList<IMessage> messages = GetMessages();
+            await device1.SendMessages(messages);
 
             await Task.Delay(GetSleepTime());
 
-            Assert.False(iotHub.HasReceivedMessage(message));
-            Assert.True(module1.HasReceivedMessage(message));
+            Assert.False(iotHub.HasReceivedMessages(messages));
+            Assert.True(module1.HasReceivedMessages(messages));
         }
 
         [Fact]
@@ -99,32 +99,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
             TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
 
-            IMessage deviceMessage = GetMessage();
-            await device1.SendMessage(deviceMessage);
+            IList<IMessage> deviceMessages = GetMessages();
+            await device1.SendMessages(deviceMessages);
 
             await Task.Delay(GetSleepTime());
 
-            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
-            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+            Assert.False(iotHub.HasReceivedMessages(deviceMessages));
+            Assert.True(moduleMl.HasReceivedMessages(deviceMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(deviceMessages));
 
-            IMessage mlMessage = GetMessage();
-            await moduleMl.SendMessageOnOutput(mlMessage);
-
-            await Task.Delay(GetSleepTime());
-
-            Assert.False(iotHub.HasReceivedMessage(mlMessage));
-            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
-            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
-
-            IMessage asaMessage = GetMessage();
-            await moduleAsa.SendMessageOnOutput(asaMessage);
+            IList<IMessage> mlMessages = GetMessages();
+            await moduleMl.SendMessageOnOutput(mlMessages);
 
             await Task.Delay(GetSleepTime());
 
-            Assert.True(iotHub.HasReceivedMessage(asaMessage));
-            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages));
+            Assert.False(moduleMl.HasReceivedMessages(mlMessages));
+            Assert.True(moduleAsa.HasReceivedMessages(mlMessages));
+
+            IList<IMessage> asaMessages = GetMessages();
+            await moduleAsa.SendMessageOnOutput(asaMessages);
+
+            await Task.Delay(GetSleepTime());
+
+            Assert.True(iotHub.HasReceivedMessages(asaMessages));
+            Assert.False(moduleMl.HasReceivedMessages(asaMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
         [Fact]
@@ -145,29 +145,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", new List<string> { "in1", "in2" }, edgeHub, connectionManager);
             TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
 
-            IMessage deviceMessage = GetMessage();
-            await device1.SendMessage(deviceMessage);
+            IList<IMessage> deviceMessages = GetMessages();
+            await device1.SendMessages(deviceMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
-            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+            Assert.False(iotHub.HasReceivedMessages(deviceMessages));
+            Assert.True(moduleMl.HasReceivedMessages(deviceMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(deviceMessages));
 
-            IMessage mlMessage = GetMessage();
-            await moduleMl.SendMessageOnOutput(mlMessage);
+            IList<IMessage> mlMessages = GetMessages();
+            await moduleMl.SendMessageOnOutput(mlMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(mlMessage));
-            Assert.True(moduleMl.HasReceivedMessage(mlMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(mlMessage));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages));
+            Assert.True(moduleMl.HasReceivedMessages(mlMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(mlMessages));
 
-            IMessage mlMessage2 = GetMessage();
-            await moduleMl.SendMessageOnOutput(mlMessage2, "op2");
+            IList<IMessage> mlMessages2 = GetMessages();
+            await moduleMl.SendMessageOnOutput(mlMessages2, "op2");
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(mlMessage2));
-            Assert.False(moduleMl.HasReceivedMessage(mlMessage2));
-            Assert.True(moduleAsa.HasReceivedMessage(mlMessage2));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages2));
+            Assert.False(moduleMl.HasReceivedMessages(mlMessages2));
+            Assert.True(moduleAsa.HasReceivedMessages(mlMessages2));
         }
 
-        [Fact(Skip = "Flaky test, bug #2509253")]
+        [Fact]
         public async Task MultipleRoutesTest_WithNoModuleOutput()
         {
             var routes = new List<string>
@@ -185,26 +185,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
             TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
 
-            IMessage deviceMessage = GetMessage();
-            await device1.SendMessage(deviceMessage);
+            IList<IMessage> deviceMessages = GetMessages();
+            await device1.SendMessages(deviceMessages);
             await Task.Delay(GetSleepTime(20));
-            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
-            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+            Assert.False(iotHub.HasReceivedMessages(deviceMessages));
+            Assert.True(moduleMl.HasReceivedMessages(deviceMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(deviceMessages));
 
-            IMessage mlMessage = GetMessage();
-            await moduleMl.SendMessage(mlMessage);
+            IList<IMessage> mlMessages = GetMessages();
+            await moduleMl.SendMessages(mlMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(mlMessage));
-            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
-            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages));
+            Assert.False(moduleMl.HasReceivedMessages(mlMessages));
+            Assert.True(moduleAsa.HasReceivedMessages(mlMessages));
 
-            IMessage asaMessage = GetMessage();
-            await moduleAsa.SendMessage(asaMessage);
+            IList<IMessage> asaMessages = GetMessages();
+            await moduleAsa.SendMessages(asaMessages);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedMessage(asaMessage));
-            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+            Assert.True(iotHub.HasReceivedMessages(asaMessages));
+            Assert.False(moduleMl.HasReceivedMessages(asaMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
         [Fact]
@@ -225,26 +225,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
             TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
 
-            IMessage deviceMessage = GetMessage();
-            await device1.SendMessage(deviceMessage);
+            IList<IMessage> deviceMessages = GetMessages();
+            await device1.SendMessages(deviceMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
-            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+            Assert.False(iotHub.HasReceivedMessages(deviceMessages));
+            Assert.True(moduleMl.HasReceivedMessages(deviceMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(deviceMessages));
 
-            IMessage mlMessage = GetMessage();
-            await moduleMl.SendMessage(mlMessage);
+            IList<IMessage> mlMessages = GetMessages();
+            await moduleMl.SendMessages(mlMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(mlMessage));
-            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
-            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages));
+            Assert.False(moduleMl.HasReceivedMessages(mlMessages));
+            Assert.True(moduleAsa.HasReceivedMessages(mlMessages));
 
-            IMessage asaMessage = GetMessage();
-            await moduleAsa.SendMessage(asaMessage);
+            IList<IMessage> asaMessages = GetMessages();
+            await moduleAsa.SendMessages(asaMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(asaMessage));
-            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+            Assert.False(iotHub.HasReceivedMessages(asaMessages));
+            Assert.False(moduleMl.HasReceivedMessages(asaMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
         [Fact]
@@ -265,33 +265,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule moduleMl = await TestModule.Create(edgeDeviceId, "ml", "op1", "in1", edgeHub, connectionManager);
             TestModule moduleAsa = await TestModule.Create(edgeDeviceId, "asa", "output1", "input1", edgeHub, connectionManager);
 
-            IMessage deviceMessage = GetMessage();
-            deviceMessage.Properties.Add("temp", "100");
-            await device1.SendMessage(deviceMessage);
+            List<IMessage> deviceMessages = GetMessages();
+            deviceMessages.ForEach(d => d.Properties.Add("temp", "100"));
+            await device1.SendMessages(deviceMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(deviceMessage));
-            Assert.True(moduleMl.HasReceivedMessage(deviceMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(deviceMessage));
+            Assert.False(iotHub.HasReceivedMessages(deviceMessages));
+            Assert.True(moduleMl.HasReceivedMessages(deviceMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(deviceMessages));
 
-            IMessage mlMessage = GetMessage();
-            mlMessage.Properties.Add("messageType", "alert");
-            await moduleMl.SendMessageOnOutput(mlMessage);
+            List<IMessage> mlMessages = GetMessages();
+            mlMessages.ForEach(d => d.Properties.Add("messageType", "alert"));
+            await moduleMl.SendMessageOnOutput(mlMessages);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(mlMessage));
-            Assert.False(moduleMl.HasReceivedMessage(mlMessage));
-            Assert.True(moduleAsa.HasReceivedMessage(mlMessage));
+            Assert.False(iotHub.HasReceivedMessages(mlMessages));
+            Assert.False(moduleMl.HasReceivedMessages(mlMessages));
+            Assert.True(moduleAsa.HasReceivedMessages(mlMessages));
 
-            IMessage asaMessage = GetMessage();
-            asaMessage.Properties.Add("info", "aggregate");
-            await moduleAsa.SendMessageOnOutput(asaMessage);
+            List<IMessage> asaMessages = GetMessages();
+            asaMessages.ForEach(d => d.Properties.Add("info", "aggregate"));
+            await moduleAsa.SendMessageOnOutput(asaMessages);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedMessage(asaMessage));
-            Assert.False(moduleMl.HasReceivedMessage(asaMessage));
-            Assert.False(moduleAsa.HasReceivedMessage(asaMessage));
+            Assert.True(iotHub.HasReceivedMessages(asaMessages));
+            Assert.False(moduleMl.HasReceivedMessages(asaMessages));
+            Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
-        // TODO: Re-enable!
-        [Fact(Skip = "Failing intermittently")]
+        [Fact]
         public async Task RoutesWithConditionsTest2()
         {
             var routes = new List<string>
@@ -308,21 +307,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
             TestModule module2 = await TestModule.Create(edgeDeviceId, "mod2", "op2", "in2", edgeHub, connectionManager);
 
-            IMessage message1 = GetMessage();
-            message1.Properties.Add("temp", "100");
-            await device1.SendMessage(message1);
+            List<IMessage> messages1 = GetMessages();
+            messages1.ForEach(d => d.Properties.Add("temp", "100"));
+            await device1.SendMessages(messages1);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(message1));
-            Assert.True(module1.HasReceivedMessage(message1));
-            Assert.False(module2.HasReceivedMessage(message1));
+            Assert.False(iotHub.HasReceivedMessages(messages1));
+            Assert.True(module1.HasReceivedMessages(messages1));
+            Assert.False(module2.HasReceivedMessages(messages1));
 
-            IMessage message2 = GetMessage();
-            message2.Properties.Add("temp", "20");
-            await device1.SendMessage(message2);
+            List<IMessage> messages2 = GetMessages();
+            messages2.ForEach(d => d.Properties.Add("temp", "20"));
+            await device1.SendMessages(messages2);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(message2));
-            Assert.False(module1.HasReceivedMessage(message2));
-            Assert.True(module2.HasReceivedMessage(message2));
+            Assert.False(iotHub.HasReceivedMessages(messages2));
+            Assert.False(module1.HasReceivedMessages(messages2));
+            Assert.True(module2.HasReceivedMessages(messages2));
         }
 
         [Fact]
@@ -342,23 +341,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
             TestModule module2 = await TestModule.Create(edgeDeviceId, "mod2", "op2", "in2", edgeHub, connectionManager);
 
-            IMessage message1 = GetMessage();
-            message1.SystemProperties[SystemProperties.ContentType] = "application/json";
-            message1.SystemProperties[SystemProperties.ContentEncoding] = "utf-8";
-            await device1.SendMessage(message1);
+            List<IMessage> message1 = GetMessages();
+            message1.ForEach(d => d.SystemProperties[SystemProperties.ContentType] = "application/json");
+            message1.ForEach(d => d.SystemProperties[SystemProperties.ContentEncoding] = "utf-8");
+            await device1.SendMessages(message1);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedMessage(message1));
-            Assert.False(module1.HasReceivedMessage(message1));
-            Assert.False(module2.HasReceivedMessage(message1));
+            Assert.True(iotHub.HasReceivedMessages(message1));
+            Assert.False(module1.HasReceivedMessages(message1));
+            Assert.False(module2.HasReceivedMessages(message1));
 
-            IMessage message2 = GetMessage();
-            message2.SystemProperties[SystemProperties.ContentType] = "application/json";
-            message2.SystemProperties[SystemProperties.ContentEncoding] = "utf-16";
-            await device1.SendMessage(message2);
+            List<IMessage> message2 = GetMessages();
+            message2.ForEach(d => d.SystemProperties[SystemProperties.ContentType] = "application/json");
+            message2.ForEach(d => d.SystemProperties[SystemProperties.ContentEncoding] = "utf-16");
+            await device1.SendMessages(message2);
             await Task.Delay(GetSleepTime());
-            Assert.False(iotHub.HasReceivedMessage(message2));
-            Assert.False(module1.HasReceivedMessage(message2));
-            Assert.True(module2.HasReceivedMessage(message2));
+            Assert.False(iotHub.HasReceivedMessages(message2));
+            Assert.False(module1.HasReceivedMessages(message2));
+            Assert.True(module2.HasReceivedMessages(message2));
         }
 
         [Fact(Skip = "Flaky test, bug #2494150")]
@@ -480,7 +479,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 return new TestModule(moduleCredentials.Identity as IModuleIdentity, outputEndpointId, deviceListener, receivedMessages);
             }
 
+            public Task SendMessageOnOutput(IEnumerable<IMessage> messages) => Task.WhenAll(messages.Select(m => this.SendMessageOnOutput(m)));
+
             public Task SendMessageOnOutput(IMessage message) => this.SendMessageOnOutput(message, this.outputName);
+
+            public Task SendMessageOnOutput(IEnumerable<IMessage> messages, string outputNameArg) => Task.WhenAll(messages.Select(m => this.SendMessageOnOutput(m, outputNameArg)));
 
             public Task SendMessageOnOutput(IMessage message, string outputNameArg)
             {
@@ -490,12 +493,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
 
+            public Task SendMessages(IEnumerable<IMessage> messages) => Task.WhenAll(messages.Select(m => this.SendMessage(m)));
+
             public Task SendMessage(IMessage message)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.moduleIdentity.DeviceId;
                 message.SystemProperties[SystemProperties.ConnectionModuleId] = this.moduleIdentity.ModuleId;
                 return this.deviceListener.ProcessDeviceMessageAsync(message);
             }
+
+            public bool HasReceivedMessages(IEnumerable<IMessage> messages) => messages.All(m => this.HasReceivedMessage(m));
 
             public bool HasReceivedMessage(IMessage message) => this.receivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
@@ -529,6 +536,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
             }
 
+            public Task SendMessages(IEnumerable<IMessage> messages) => Task.WhenAll(messages.Select(m => this.SendMessage(m)));
+
             public Task SendMessage(IMessage message)
             {
                 message.SystemProperties[SystemProperties.ConnectionDeviceId] = this.deviceIdentity.DeviceId;
@@ -542,6 +551,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         class IoTHub
         {
             public List<IMessage> ReceivedMessages { get; } = new List<IMessage>();
+
+            public bool HasReceivedMessages(IEnumerable<IMessage> messages) => messages.All(m => this.HasReceivedMessage(m));
 
             public bool HasReceivedMessage(IMessage message) => this.ReceivedMessages.Any(m =>
                 m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
@@ -564,6 +575,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.MessageId, Guid.NewGuid().ToString() }
             };
             return new Message(messageBody, properties, systemProperties);
+        }
+
+        static List<IMessage> GetMessages()
+        {
+            var messages = new List<IMessage>();
+            for (int i = 0; i < 10; i++)
+            {
+                messages.Add(GetMessage());
+            }
+            return messages;
         }
 
         static IMessage GetReportedPropertiesMessage()
