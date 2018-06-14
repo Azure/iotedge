@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             urlBuilder_.Append("api-version=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
-            var client_ = new System.Net.Http.HttpClient();
+            var client_ = _httpClient;
             try
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
@@ -220,8 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             }
             finally
             {
-                if (client_ != null)
-                    client_.Dispose();
             }
         }
 
