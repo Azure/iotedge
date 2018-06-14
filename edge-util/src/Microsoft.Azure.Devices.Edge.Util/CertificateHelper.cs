@@ -6,10 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net.Http;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Extensions.Logging;
     using Org.BouncyCastle.Crypto.Parameters;
@@ -197,30 +197,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .ToList();
         }
 
-        public async static Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2, IEnumerable<X509Certificate2>)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(workloadUri))
+            if (string.IsNullOrEmpty(edgeHubHostname))
             {
-                var workload = new HttpWorkloadClient(httpClient)
-                {
-                    BaseUrl = HttpClientHelper.GetBaseUrl(workloadUri)
-                };
-
-                if (string.IsNullOrEmpty(edgeHubHostname))
-                {
-                    throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
-                }
-
-                var request = new ServerCertificateRequest()
-                {
-                    CommonName = edgeHubHostname,
-                    Expiration = expiration
-                };
-                CertificateResponse response = await workload.CreateServerCertificateAsync(workloadApiVersion, moduleId, moduleGenerationId, request);
-
-                return ParseCertificateResponse(response);
-               
+                throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
             }
+
+            CertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
+            return ParseCertificateResponse(response);
         }
 
         public static (X509Certificate2, IEnumerable<X509Certificate2>) GetServerCertificatesFromFile(string certPath, string certName)
@@ -259,12 +244,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 throw new InvalidOperationException("Certificate is required");
             }
 
-            IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1)); 
+            IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
             Pkcs12Store store = new Pkcs12StoreBuilder().Build();
             IList<X509CertificateEntry> chain = new List<X509CertificateEntry>();
 
-            var sr = new StringReader(pemCerts.First() + "\r\n" +response.PrivateKey.Bytes);
+            var sr = new StringReader(pemCerts.First() + "\r\n" + response.PrivateKey.Bytes);
             var pemReader = new PemReader(sr);
 
             RsaPrivateCrtKeyParameters keyParams = null;
@@ -277,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
                 if (certObject is RsaPrivateCrtKeyParameters)
                 {
-                   keyParams = ((RsaPrivateCrtKeyParameters)certObject);
+                    keyParams = ((RsaPrivateCrtKeyParameters)certObject);
                 }
 
                 certObject = pemReader.ReadObject();
@@ -285,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (keyParams == null)
             {
-                throw new InvalidOperationException("Private key is required"); 
+                throw new InvalidOperationException("Private key is required");
             }
 
             store.SetKeyEntry("Edge", new AsymmetricKeyEntry(keyParams), chain.ToArray());

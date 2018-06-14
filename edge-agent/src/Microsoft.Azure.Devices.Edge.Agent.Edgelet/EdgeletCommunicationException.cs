@@ -8,7 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         public EdgeletCommunicationException(string message, int statusCode)
             : base(message)
-        { }
+        {
+            this.StatusCode = statusCode;
+        }
 
         public int StatusCode { get; }
 

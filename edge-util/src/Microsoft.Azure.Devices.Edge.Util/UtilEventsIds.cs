@@ -6,5 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         const int EventIdStart = 100000;
         public const int HttpUdsMessageHandler = EventIdStart;
+        public const int EdgeletWorkloadClient = EventIdStart + 100;
     }
 }
