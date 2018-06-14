@@ -21,4 +21,4 @@ RUN apt-get update && \
     ln -s /lib/arm-linux-gnueabihf/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder publish/* /usr/local/lib/
+COPY --from=builder publish/* /usr/lib/

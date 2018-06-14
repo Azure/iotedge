@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
     ln -s /lib/arm-linux-gnueabihf/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder publish/* /usr/local/lib/
+COPY --from=builder publish/* /usr/lib/
 
 # add the CAP_NET_BIND_SERVICE capability to the dotnet binary because
 # we are starting edge hub as a non-root user
