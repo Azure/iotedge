@@ -105,6 +105,7 @@ pub struct Settings<T> {
     #[serde(with = "url_serde")]
     docker_uri: Url,
     homedir: PathBuf,
+    network: String,
 }
 
 impl<T> Settings<T>
@@ -155,6 +156,10 @@ where
 
     pub fn homedir(&self) -> &Path {
         &self.homedir
+    }
+
+    pub fn network(&self) -> &str {
+        &self.network
     }
 }
 

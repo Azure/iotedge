@@ -170,8 +170,14 @@ impl Main {
             .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
             .build(&handle);
 
+        let network_id = if settings.network().is_empty() {
+            EDGE_NETWORKID
+        } else {
+            settings.network()
+        }.to_string();
+        info!("Using runtime network id {}", network_id);
         let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?
-            .with_network_id(EDGE_NETWORKID.to_string());
+            .with_network_id(network_id.clone());
 
         init_docker_runtime(&runtime, &mut core)?;
 
@@ -189,6 +195,7 @@ impl Main {
                     &provisioning_result,
                     root_key,
                     shutdown_signal,
+                    network_id,
                 )?;
             }
             Provisioning::Dps(dps) => {
@@ -205,6 +212,7 @@ impl Main {
                     &provisioning_result,
                     root_key,
                     shutdown_signal,
+                    network_id,
                 )?;
             }
         };
@@ -224,6 +232,7 @@ fn start_api<S, K, F>(
     provisioning_result: &ProvisioningResult,
     root_key: K,
     shutdown_signal: F,
+    network_id: String,
 ) -> Result<(), Error>
 where
     F: Future<Item = (), Error = ()> + 'static,
@@ -251,7 +260,9 @@ where
     let workload = start_workload(&settings, key_store, &core.handle(), &runtime, work_rx)?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
+    let edge_rt = start_runtime(
+        &runtime, &id_man, &hub_name, &device_id, &settings, runt_rx, network_id,
+    )?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
@@ -346,13 +357,14 @@ fn start_runtime<K, S>(
     device_id: &str,
     settings: &Settings<DockerConfig>,
     shutdown: Receiver<()>,
+    network_id: String,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     let spec = settings.agent().clone();
-    let env = build_env(spec.env(), hostname, device_id, settings);
+    let env = build_env(spec.env(), hostname, device_id, settings, network_id);
     let mut spec = ModuleSpec::<DockerConfig>::new(
         EDGE_RUNTIME_MODULE_NAME,
         spec.type_(),
@@ -408,6 +420,7 @@ fn build_env(
     hostname: &str,
     device_id: &str,
     settings: &Settings<DockerConfig>,
+    network_id: String,
 ) -> HashMap<String, String> {
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
@@ -430,7 +443,7 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
-    env.insert(EDGE_NETWORKID_KEY.to_string(), EDGE_NETWORKID.to_string());
+    env.insert(EDGE_NETWORKID_KEY.to_string(), network_id);
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }

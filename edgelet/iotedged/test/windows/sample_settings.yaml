@@ -26,3 +26,4 @@ listen:
   management_uri: "http://0.0.0.0:8080"
 docker_uri: "http://localhost:2375"
 homedir: "C:\\Temp"
+network: "azure-iot-edge"

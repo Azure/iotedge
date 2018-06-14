@@ -122,3 +122,11 @@ homedir: "/var/lib/iotedge"
 ###############################################################################
 
 docker_uri: "unix:///var/run/docker.sock"
+
+###############################################################################
+#
+# This configures the network on which the containers will be created.
+#
+###############################################################################
+
+network: "azure-iot-edge"

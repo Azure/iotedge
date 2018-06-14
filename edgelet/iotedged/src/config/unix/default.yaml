@@ -24,3 +24,5 @@ listen:
 docker_uri: "unix:///var/run/docker.sock"
 
 homedir: "/tmp/iotedge"
+
+network: "azure-iot-edge"

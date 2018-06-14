@@ -24,3 +24,5 @@ listen:
 docker_uri: "npipe://./pipe/docker_engine"
 
 homedir: "C:\\Temp\\iotedge"
+
+network: "azure-iot-edge"
