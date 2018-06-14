@@ -4,13 +4,12 @@
     "clientId": "668cc883-59f1-4a11-9d4d-bdf18563d672",
     "clientCertificateThumbprint": "3c79dc82703923b48866c3ce294e0b06f5e2578e"
   },
-  "iotHubConnStrKey": "IotHubConnStr1",
-  "device1ConnStrKey": "IotDevice1ConnStr1",
-  "device2ConnStrKey": "IotDevice2ConnStr1",
-  "device3ConnStrKey": "IotDevice3ConnStr1",
-  "eventHubConnStrKey": "EventHubConnStr1",
-  "edgeCapableDeviceConnStrKey": "EdgeCapableDevice1",
-  "iotEdgeModuleConnStrKey": "EdgeModule1ConnStr",
+  "iotHubConnStrKey": "IotHubConnStr2",
+  "device1ConnStrKey": "IotDevice1ConnStr2",
+  "device2ConnStrKey": "IotDevice2ConnStr2",
+  "device3ConnStrKey": "IotDevice3ConnStr2",
+  "eventHubConnStrKey": "EventHubConnStr2",
+  "edgeCapableDeviceConnStrKey": "EdgeCapableDevice2",
   "testSuite": [
     "test-config-x64.json"
   ],

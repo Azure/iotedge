@@ -385,8 +385,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
                 Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
                 Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
-                Assert.True(config.SystemMetrics.Results.ContainsKey("reportedSuccessfulCount"));
-                Assert.Equal(1, config.SystemMetrics.Results["reportedSuccessfulCount"]);
             }
             finally
             {

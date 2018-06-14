@@ -1,12 +1,7 @@
 ﻿Param([Parameter(Mandatory=$true)] [string]$SecretName)
 
-Try {
-  Get-AzureRmContext
-} Catch {
-  if ($_ -like "*Login-AzureRmAccount to login*") {
-    Login-AzureRmAccount
-  }
-}
+. .\Login.ps1
+Login
 
 Set-AzureRmContext -SubscriptionName IOT_EDGE_DEV1
 
