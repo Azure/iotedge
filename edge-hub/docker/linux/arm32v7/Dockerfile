@@ -13,4 +13,7 @@ COPY $EXE_DIR/ ./
 EXPOSE 8883/tcp
 EXPOSE 443/tcp
 
-CMD ["scripts/linux/start.sh"]
+USER edgehubuser
+
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Edge Hub" && \
+    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll

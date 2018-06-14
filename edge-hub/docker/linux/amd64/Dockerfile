@@ -14,7 +14,6 @@ RUN apt-get update && \
 
 # Add an unprivileged user account for running Edge Hub
 RUN useradd -ms /bin/bash edgehubuser
-ENV EdgeHubUser=edgehubuser
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because
 # we are starting Edge Hub as a non-root user
@@ -28,4 +27,7 @@ COPY $EXE_DIR/ ./
 EXPOSE 8883/tcp
 EXPOSE 443/tcp
 
-CMD ["scripts/linux/start.sh"]
+USER edgehubuser
+
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Edge Hub" && \
+    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
