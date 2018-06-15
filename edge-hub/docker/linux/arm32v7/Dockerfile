@@ -9,8 +9,9 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Expose MQTT and HTTPS ports
+# Expose MQTT, AMQP and HTTPS ports
 EXPOSE 8883/tcp
+EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
 USER edgehubuser
