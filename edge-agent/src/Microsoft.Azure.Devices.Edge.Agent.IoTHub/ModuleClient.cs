@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void DeviceConnectionError(Exception ex)
             {
-                Log.LogDebug((int)EventIds.DeviceConnectionError, ex, "Error creating a device-to-cloud connection");
+                Log.LogWarning((int)EventIds.DeviceConnectionError, ex, "Error creating a device-to-cloud connection");
             }
 
             public static void RetryingDeviceClientConnection(RetryingEventArgs args)

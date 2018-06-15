@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void OnDisconnectedExit()
             {
-                Log.LogDebug((int)EventIds.OnDisconnectedExit, Invariant($"Exiting disconnected state"));
+                Log.LogInformation((int)EventIds.OnDisconnectedExit, Invariant($"Exiting disconnected state"));
             }
 
             public static void CallTimedOut()
@@ -231,12 +231,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void OnDisconnected()
             {
-                Log.LogDebug((int)EventIds.OnDisconnected, Invariant($"Entering disconnected state"));
+                Log.LogInformation((int)EventIds.OnDisconnected, Invariant($"Entering disconnected state"));
             }
 
             public static void OnUnreachable()
             {
-                Log.LogDebug((int)EventIds.OnUnreachable, Invariant($"Entering unreachable state"));
+                Log.LogInformation((int)EventIds.OnUnreachable, Invariant($"Entering unreachable state"));
             }
 
             public static void CallSucceeded()
@@ -246,12 +246,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void OnConnected()
             {
-                Log.LogDebug((int)EventIds.OnConnected, Invariant($"Entering connected state"));
+                Log.LogInformation((int)EventIds.OnConnected, Invariant($"Entering connected state"));
             }
 
             public static void OnConnectedExit()
             {
-                Log.LogDebug((int)EventIds.OnConnectedExit, Invariant($"Exiting connected state"));
+                Log.LogInformation((int)EventIds.OnConnectedExit, Invariant($"Exiting connected state"));
             }
 
             public static void ErrorCallingIotHub(Exception ex)
