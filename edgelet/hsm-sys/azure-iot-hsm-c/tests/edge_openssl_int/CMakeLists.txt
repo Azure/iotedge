@@ -13,6 +13,7 @@ set(theseTestsName edge_openssl_inut)
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
+    ../../src/certificate_info.c
     ../../src/edge_pki_openssl.c
     ../../src/hsm_utils.c
     ../../src/hsm_log.c
@@ -30,3 +31,5 @@ if(WIN32)
 else()
      target_link_libraries(${theseTestsName}_exe iothsm aziotsharedutil ${OPENSSL_LIBRARIES})
 endif(WIN32)
+
+copy_iothsm_dll(${theseTestsName}_exe ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration))

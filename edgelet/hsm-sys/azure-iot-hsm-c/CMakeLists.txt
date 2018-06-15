@@ -90,6 +90,17 @@ else()
     add_library(iothsm STATIC ${source_c_files} ${source_in_mem_store_c_files} ${source_h_files})
 endif(BUILD_SHARED)
 
+set(preinstall_iothsm_library_dll ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/iothsm.dll)
+
+function(copy_iothsm_dll whatIsBuilding whatIsBuildingLocation)
+    if(WIN32 AND BUILD_SHARED)
+        add_custom_command(TARGET ${whatIsBuilding} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${preinstall_iothsm_library_dll}
+                ${whatIsBuildingLocation})
+    endif()
+endfunction(copy_iothsm_dll)
+
 if (run_unittests)
     enable_testing()
     set(save_ut ${run_unittests})
@@ -106,15 +117,15 @@ if (save_ut)
     set(run_unittests ${save_ut} CACHE BOOL "unittests" FORCE)
 endif(save_ut)
 
-if (${run_unittests})
-    add_subdirectory(tests)
-endif()
-
 if(WIN32)
     target_link_libraries(iothsm aziotsharedutil utpm $ENV{OPENSSL_ROOT_DIR}/lib/ssleay32.lib $ENV{OPENSSL_ROOT_DIR}/lib/libeay32.lib)
 else()
-     target_link_libraries(iothsm aziotsharedutil utpm ${OPENSSL_LIBRARIES})
+    target_link_libraries(iothsm aziotsharedutil utpm ${OPENSSL_LIBRARIES})
 endif(WIN32)
+
+if (${run_unittests})
+    add_subdirectory(tests)
+endif()
 
 install(TARGETS iothsm DESTINATION lib)
 

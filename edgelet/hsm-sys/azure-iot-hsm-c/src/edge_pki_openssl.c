@@ -1,6 +1,8 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <time.h>
 
