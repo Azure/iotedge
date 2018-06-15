@@ -14,10 +14,16 @@ extern crate hyper;
 extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
 #[cfg(unix)]
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[cfg(target_os = "linux")]
+#[cfg(test)]
+extern crate nix;
 extern crate percent_encoding;
 extern crate regex;
 extern crate serde;
@@ -241,5 +247,114 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             handle,
             incoming,
         })
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[cfg(test)]
+mod linux_tests {
+    use super::*;
+
+    use std::env;
+    use std::sync::{Mutex, MutexGuard};
+
+    use http::StatusCode;
+    use hyper::server::Service;
+    use nix::sys::socket::{self, AddressFamily, SockType};
+    use nix::unistd::{self, getpid};
+    use systemd::Fd;
+    use tokio_core::reactor::Core;
+
+    lazy_static! {
+        static ref LOCK: Mutex<()> = Mutex::new(());
+    }
+
+    const ENV_FDS: &str = "LISTEN_FDS";
+    const ENV_PID: &str = "LISTEN_PID";
+
+    #[derive(Clone)]
+    struct TestService {
+        status_code: StatusCode,
+        error: bool,
+    }
+
+    impl Service for TestService {
+        type Request = Request<Body>;
+        type Response = Response<Body>;
+        type Error = HyperError;
+        type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
+
+        fn call(&self, _req: Self::Request) -> Self::Future {
+            Box::new(if self.error {
+                future::err(HyperError::TooLarge)
+            } else {
+                future::ok(
+                    Response::builder()
+                        .status(self.status_code)
+                        .body(Body::default())
+                        .unwrap(),
+                )
+            })
+        }
+    }
+
+    fn lock_env<'a>() -> MutexGuard<'a, ()> {
+        LOCK.lock().unwrap()
+    }
+
+    fn set_current_pid() {
+        let pid = getpid();
+        env::set_var(ENV_PID, format!("{}", pid));
+    }
+
+    fn create_fd(family: AddressFamily, type_: SockType) -> Fd {
+        let fd = socket::socket(family, type_, socket::SockFlag::empty(), None).unwrap();
+        fd
+    }
+
+    #[test]
+    fn test_fd_ok() {
+        let core = Core::new().unwrap();
+        let _l = lock_env();
+        set_current_pid();
+        let fd = create_fd(AddressFamily::Unix, SockType::Stream);
+
+        // set the env var so that it contains the created fd
+        env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
+
+        let url = Url::parse(&format!("fd://{}", fd - 3)).unwrap();
+        let run = Http::new().bind_handle(url, core.handle(), move || {
+            let service = TestService {
+                status_code: StatusCode::OK,
+                error: false,
+            };
+            Ok(service)
+        });
+
+        unistd::close(fd).unwrap();
+        assert!(run.is_ok());
+    }
+
+    #[test]
+    fn test_fd_err() {
+        let core = Core::new().unwrap();
+        let _l = lock_env();
+        set_current_pid();
+        let fd = create_fd(AddressFamily::Unix, SockType::Stream);
+
+        // set the env var so that it contains the created fd
+        env::set_var(ENV_FDS, format!("{}", fd - 3 + 1));
+
+        let url = Url::parse("fd://100").unwrap();
+        let run = Http::new().bind_handle(url, core.handle(), move || {
+            let service = TestService {
+                status_code: StatusCode::OK,
+                error: false,
+            };
+            Ok(service)
+        });
+
+        unistd::close(fd).unwrap();
+        assert!(run.is_err());
     }
 }

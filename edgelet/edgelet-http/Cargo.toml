@@ -36,6 +36,8 @@ tokio-named-pipe = { path = "../tokio-named-pipe" }
 
 [dev-dependencies]
 httparse = "1.2"
+lazy_static = "1.0"
+nix = "0.10"
 rand = "0.4"
 scopeguard = "0.3.3"
 tokio-core = "0.1"

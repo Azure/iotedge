@@ -58,8 +58,7 @@ fn unsetenv_all() {
     env::remove_var(ENV_NAMES);
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(redundant_field_names))] // False positive in clippy
-fn listen_fds(unset_environment: bool, start: Fd) -> Result<Vec<Socket>, Error> {
+fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Error> {
     let pid_str = env::var(ENV_PID)?;
     debug!("{} {}", ENV_PID, pid_str);
     let pid: Pid = Pid::from_raw(pid_str.parse()?);
@@ -76,7 +75,7 @@ fn listen_fds(unset_environment: bool, start: Fd) -> Result<Vec<Socket>, Error> 
     }
 
     // Set CLOEXEC on each FD so that they aren't inherited by child processes
-    for fd in start..(start + fds) {
+    for fd in start_fd..(start_fd + fds) {
         fcntl::fcntl(fd, fcntl::FcntlArg::F_SETFD(fcntl::FdFlag::FD_CLOEXEC))?;
     }
 
@@ -84,7 +83,7 @@ fn listen_fds(unset_environment: bool, start: Fd) -> Result<Vec<Socket>, Error> 
         unsetenv_all();
     }
 
-    let sockets = (start..(start + fds))
+    let sockets = (start_fd..(start_fd + fds))
         .map(|fd| {
             if let Some(addr) = is_socket_inet(fd, None, None, None, None).unwrap_or(None) {
                 Socket::Inet(fd, addr)
@@ -101,13 +100,13 @@ fn listen_fds(unset_environment: bool, start: Fd) -> Result<Vec<Socket>, Error> 
 
 fn listen_fds_with_names(
     unset_environment: bool,
-    start: Fd,
+    start_fd: Fd,
 ) -> Result<HashMap<String, Vec<Socket>>, Error> {
     let names_str = env::var(ENV_NAMES)?;
     debug!("{} {}", ENV_NAMES, names_str);
     let names: Vec<&str> = names_str.split(':').collect();
 
-    let fds = listen_fds(unset_environment, start)?;
+    let fds = listen_fds(unset_environment, start_fd)?;
     if fds.len() != names.len() {
         return Err(Error::from(ErrorKind::InvalidVar));
     }
