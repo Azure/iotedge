@@ -27,6 +27,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <None Update="docker\linux\arm32v7\base\Dockerfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

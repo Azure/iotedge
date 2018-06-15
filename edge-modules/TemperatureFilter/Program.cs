@@ -12,12 +12,20 @@ namespace TemperatureFilter
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
+        const int RetryCount = 5;
+        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+        static readonly RetryStrategy TransientRetryStrategy =
+            new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+
         const string TemperatureThresholdKey = "TemperatureThreshold";
         const int DefaultTemperatureThreshold = 25;
         static int counter;
@@ -36,7 +44,16 @@ namespace TemperatureFilter
             
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
-            Init(transportType).Wait();
+            var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
+            retryPolicy.Retrying += (_, args) =>
+            {
+                Console.WriteLine($"Init failed with exception {args.LastException}");
+                if (args.CurrentRetryCount < RetryCount)
+                {
+                    Console.WriteLine("Retrying...");
+                }
+            };
+            retryPolicy.ExecuteAsync(() => Init(transportType)).Wait();
 
             // Wait until the app unloads or is cancelled
             var cts = new CancellationTokenSource();

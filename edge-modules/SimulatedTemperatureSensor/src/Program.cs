@@ -5,6 +5,7 @@ namespace SimulatedTemperatureSensor
     using System;
     using System.Globalization;
     using System.IO;
+    using System.Linq.Expressions;
     using System.Net;
     using System.Runtime.Loader;
     using System.Text;
@@ -12,12 +13,19 @@ namespace SimulatedTemperatureSensor
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
+        const int RetryCount = 5;
+        static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+        static readonly RetryStrategy TransientRetryStrategy =
+            new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
         static readonly Random Rnd = new Random();
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
 
@@ -36,7 +44,7 @@ namespace SimulatedTemperatureSensor
                 .Build();
 
             TimeSpan messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
-            var sim = new SimulatorParameters()
+            var sim = new SimulatorParameters
             {
                 MachineTempMin = configuration.GetValue<double>("machineTempMin", 21),
                 MachineTempMax = configuration.GetValue<double>("machineTempMax", 100),
@@ -49,12 +57,16 @@ namespace SimulatedTemperatureSensor
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
-            var mqttSetting = new MqttTransportSettings(transportType);
-            ITransportSettings[] settings = { mqttSetting };
-
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
-            await moduleClient.OpenAsync().ConfigureAwait(false);
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
+            var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
+            retryPolicy.Retrying += (_, args) =>
+            {
+                Console.WriteLine($"Creating ModuleClient failed with exception {args.LastException}");
+                if (args.CurrentRetryCount < RetryCount)
+                {
+                    Console.WriteLine("Retrying...");
+                }
+            };
+            ModuleClient moduleClient = await retryPolicy.ExecuteAsync(() => InitModuleClient(transportType));
 
             ModuleClient userContext = moduleClient;
             await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
@@ -66,6 +78,18 @@ namespace SimulatedTemperatureSensor
 
             await SendEvent(moduleClient, messageDelay, sim, cts).ConfigureAwait(false);
             return 0;
+        }
+
+        static async Task<ModuleClient> InitModuleClient(TransportType transportType)
+        {
+            ITransportSettings[] settings = { new MqttTransportSettings(transportType) };
+
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
+            await moduleClient.OpenAsync().ConfigureAwait(false);
+            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null).ConfigureAwait(false);
+
+            Console.WriteLine("Successfully initialized module client.");
+            return moduleClient;
         }
 
         //Control Message expected to be:
