@@ -2,6 +2,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     #include <io.h>

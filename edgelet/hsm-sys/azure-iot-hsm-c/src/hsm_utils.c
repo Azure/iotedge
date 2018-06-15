@@ -1,8 +1,8 @@
 #include <fcntl.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "azure_c_shared_utility/gballoc.h"
@@ -17,12 +17,20 @@
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
     #include <direct.h>
+    #include <intsafe.h>
+    #include <windows.h>
     #if !defined S_ISDIR
         #define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
     #endif
     #define HSM_MKDIR(dir_path) _mkdir(dir_path)
 #else
     #include <unistd.h>
+    #include <sys/types.h>
+
+    #ifndef SSIZE_MAX
+        #define SSIZE_MAX INT_MAX
+    #endif
+
     // equivalent to 755
     #define HSM_MKDIR(dir_path) mkdir(dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
@@ -40,74 +48,189 @@ static const char* err_to_str(void)
     return result;
 }
 
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+static int create_file_handle_for_reading(const char *file_name, HANDLE *handle)
+{
+    int result;
+    HANDLE file_handle = CreateFileA(file_name, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file_handle == INVALID_HANDLE_VALUE)
+    {
+        LOG_ERROR("Could not open file for reading %s. GetLastError=%08x", file_name, GetLastError());
+        result = __FAILURE__;
+    }
+    else
+    {
+        *handle = file_handle;
+        result = 0;
+    }
+
+    return result;
+}
+#endif
+
 static int read_file_into_buffer_impl
 (
-    const char* file_name,
+    const char *file_name,
     void  *output_buffer,
     size_t output_buffer_size,
     size_t *file_size_in_bytes
 )
 {
-    FILE *file_handle;
+
     int result;
-    long file_size;
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+
+    HANDLE file_handle;
+    LARGE_INTEGER file_size;
 
     if (file_size_in_bytes != NULL)
     {
         *file_size_in_bytes = 0;
     }
 
-    if ((file_handle = fopen(file_name, "r")) == NULL)
+    if (create_file_handle_for_reading(file_name, &file_handle) != 0)
     {
-        LOG_ERROR("Could not open file for reading %s. Errno %d '%s'", file_name, errno, err_to_str());
-        result = HSM_UTIL_ERROR;
-    }
-    else if (fseek(file_handle, 0, SEEK_END) != 0) // obtain file size by seek()'ing to the end
-    {
-        LOG_ERROR("fseek returned error for file %s. Errno %d '%s'", file_name, errno, err_to_str());
         result = HSM_UTIL_ERROR;
     }
     else
     {
-        file_size = ftell(file_handle);
-        if (file_size < 0)
+        if (!GetFileSizeEx(file_handle, &file_size))
         {
-            LOG_ERROR("ftell returned error for file %s. Errno %d '%s'", file_name, errno, err_to_str());
+            LOG_ERROR("Could not get file size for %s. GetLastError=%08x", file_name, GetLastError());
             result = HSM_UTIL_ERROR;
         }
-        else if (file_size == 0)
+        else if (file_size.QuadPart == 0)
         {
-            LOG_DEBUG("ftell returned zero bytes for file %s", file_name);
+            LOG_ERROR("File size found to be zero for %s", file_name);
             result = HSM_UTIL_EMPTY;
         }
         else
         {
-            result = HSM_UTIL_SUCCESS;
-            if (file_size_in_bytes != NULL)
+            DWORD file_size_converted = 0;
+
+            if (ULongLongToDWord(file_size.QuadPart, &file_size_converted) != S_OK)
             {
-                *file_size_in_bytes = file_size;
+                LOG_ERROR("File size too large, overflow detected for %s", file_name);
+                result = HSM_UTIL_ERROR;
             }
-            if (output_buffer != NULL)
+            else
             {
-                size_t num_bytes_read;
-                size_t num_bytes_to_read = (output_buffer_size < (size_t)file_size) ?
-                                            output_buffer_size :
-                                            (size_t)file_size;
-                rewind(file_handle);
-                num_bytes_read = fread(output_buffer, 1, num_bytes_to_read, file_handle);
-                if ((num_bytes_read != num_bytes_to_read) || (ferror(file_handle) != 0))
+                if (file_size_in_bytes != NULL)
                 {
-                    LOG_ERROR("File read failed for file %s", file_name);
-                    result = HSM_UTIL_ERROR;
+                    *file_size_in_bytes = file_size_converted;
+                }
+                if (output_buffer != NULL)
+                {
+                    DWORD num_bytes_read = 0;
+                    DWORD num_bytes_to_read = (output_buffer_size < (size_t)file_size_converted) ?
+                                               (DWORD)output_buffer_size :
+                                               file_size_converted;
+                    BOOL read_res = ReadFile(file_handle,
+                                             output_buffer,
+                                             num_bytes_to_read,
+                                             &num_bytes_read,
+                                             NULL);
+                    if (!read_res)
+                    {
+                        LOG_ERROR("File read failed for file %s. GetLastError=%08x", file_name, GetLastError());
+                        result = HSM_UTIL_ERROR;
+                    }
+                    else
+                    {
+                        result = HSM_UTIL_SUCCESS;
+                    }
+                }
+                else
+                {
+                    result = HSM_UTIL_SUCCESS;
                 }
             }
         }
+        CloseHandle(file_handle);
     }
 
-    if (file_handle != NULL)
+#else
+
+    int fd;
+    off_t file_size;
+    struct stat stbuf;
+
+    if (file_size_in_bytes != NULL)
     {
-        fclose(file_handle);
+        *file_size_in_bytes = 0;
     }
+
+    if ((fd = open(file_name, O_RDONLY)) == -1)
+    {
+        LOG_ERROR("Could not open file for reading %s. Errno %d '%s'", file_name, errno, err_to_str());
+        result = HSM_UTIL_ERROR;
+    }
+    else
+    {
+        if (fstat(fd, &stbuf) != 0)
+        {
+            LOG_ERROR("fstat returned error for file %s. Errno %d '%s'", file_name, errno, err_to_str());
+            result = HSM_UTIL_ERROR;
+        }
+        else if (!S_ISREG(stbuf.st_mode))
+        {
+            LOG_ERROR("File %s is not a regular file.", file_name);
+            result = HSM_UTIL_ERROR;
+        }
+        else
+        {
+            file_size = stbuf.st_size;
+            if (file_size < 0)
+            {
+                LOG_ERROR("File size invalid for %s", file_name);
+                result = HSM_UTIL_ERROR;
+            }
+            else if (file_size == 0)
+            {
+                LOG_ERROR("File size found to be zero for %s", file_name);
+                result = HSM_UTIL_EMPTY;
+            }
+            else
+            {
+                if (file_size_in_bytes != NULL)
+                {
+                    *file_size_in_bytes = file_size;
+                }
+                if (output_buffer != NULL)
+                {
+                    ssize_t num_bytes_read;
+                    size_t num_bytes_to_read = (output_buffer_size < (size_t)file_size) ?
+                                                output_buffer_size :
+                                                (size_t)file_size;
+                    if (num_bytes_to_read > SSIZE_MAX)
+                    {
+                        LOG_ERROR("Unsupported file read operation. File too large %s.", file_name);
+                        result = HSM_UTIL_ERROR;
+                    }
+                    else
+                    {
+                        num_bytes_read = read(fd, output_buffer, num_bytes_to_read);
+                        if (num_bytes_read == -1)
+                        {
+                            LOG_ERROR("File read failed for file %s. Errno %d '%s'", file_name, errno, err_to_str());
+                            result = HSM_UTIL_ERROR;
+                        }
+                        else
+                        {
+                            result = HSM_UTIL_SUCCESS;
+                        }
+                    }
+                }
+                else
+                {
+                    result = HSM_UTIL_SUCCESS;
+                }
+            }
+        }
+        close(fd);
+    }
+#endif
 
     return result;
 }
@@ -141,19 +264,22 @@ static int write_ascii_buffer_into_file
         }
         else
         {
-            size_t num_bytes_written;
             result = HSM_UTIL_SUCCESS;
-            num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
-            if ((num_bytes_written != input_buffer_size) || (ferror(file_handle) != 0))
+            if (input_buffer_size != 0)
             {
-                LOG_ERROR("File write failed for file %s", file_name);
-                result = HSM_UTIL_ERROR;
+                size_t num_bytes_written;
+                num_bytes_written = fwrite(input_buffer, 1, input_buffer_size, file_handle);
+                if ((num_bytes_written != input_buffer_size) || (ferror(file_handle) != 0))
+                {
+                    LOG_ERROR("File write failed for file %s", file_name);
+                    result = HSM_UTIL_ERROR;
+                }
+                else
+                {
+                    (void)fflush(file_handle);
+                }
             }
             (void)fclose(file_handle);
-            if (result != HSM_UTIL_SUCCESS)
-            {
-                (void)delete_file(file_name);
-            }
         }
     }
 #if !(defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows)
@@ -184,14 +310,14 @@ static int write_ascii_buffer_into_file
                 }
             }
             (void)close(fd);
-            if (result != HSM_UTIL_SUCCESS)
-            {
-                (void)delete_file(file_name);
-            }
         }
     }
 #endif
 
+    if (result != HSM_UTIL_SUCCESS)
+    {
+        (void)delete_file(file_name);
+    }
     return result;
 }
 
@@ -257,7 +383,7 @@ char* read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
     else
     {
         size_t file_size_in_bytes_check = file_size_in_bytes + 1;
-        if (file_size_in_bytes_check < file_size_in_bytes) // check if roll over occured
+        if (file_size_in_bytes_check < file_size_in_bytes) // check if roll over occurred
         {
             LOG_ERROR("Unexpected file size for file %s", file_name);
             result = NULL;
@@ -453,9 +579,13 @@ int delete_file(const char* file_name)
         LOG_ERROR("Invalid file name");
         result = __FAILURE__;
     }
+    else if (remove(file_name) != 0)
+    {
+        result = __FAILURE__;
+    }
     else
     {
-        result = remove(file_name);
+        result = 0;
     }
 
     return result;

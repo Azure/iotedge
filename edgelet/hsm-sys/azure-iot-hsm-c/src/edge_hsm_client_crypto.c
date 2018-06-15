@@ -437,7 +437,13 @@ static int edge_hsm_client_encrypt_data
 )
 {
     int result;
-    if (!validate_sized_buffer(identity))
+
+    if (!g_is_crypto_initialized)
+    {
+        LOG_ERROR("hsm_client_crypto_init not called");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(identity))
     {
         LOG_ERROR("Invalid identity buffer provided");
         result = __FAILURE__;
@@ -476,7 +482,13 @@ static int edge_hsm_client_decrypt_data
 )
 {
     int result;
-    if (!validate_sized_buffer(identity))
+
+    if (!g_is_crypto_initialized)
+    {
+        LOG_ERROR("hsm_client_crypto_init not called");
+        result = __FAILURE__;
+    }
+    else if (!validate_sized_buffer(identity))
     {
         LOG_ERROR("Invalid identity buffer provided");
         result = __FAILURE__;

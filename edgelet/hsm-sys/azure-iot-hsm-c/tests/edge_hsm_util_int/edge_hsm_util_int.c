@@ -19,6 +19,7 @@
 #define TEST_FILE_BAD "test_bad.txt"
 #define TEST_FILE_EMPTY "test_empty.txt"
 #define TEST_WRITE_FILE "test_write_data.txt"
+#define TEST_WRITE_FILE_FOR_DELETE "test_write_data_del.txt"
 
 //#############################################################################
 // Interface(s) under test
@@ -465,6 +466,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         {
             // arrange
             int output;
+            (void)delete_file(TEST_WRITE_FILE);
 
             // act, assert
             output = write_cstring_to_file(NULL, "abcd");
@@ -505,13 +507,15 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // arrange
             size_t expected_string_size = 0;
             const char *input_string = "abcd";
-            int status = write_cstring_to_file(TEST_WRITE_FILE, input_string);
+
+            int status = write_cstring_to_file(TEST_WRITE_FILE_FOR_DELETE, input_string);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
             // act
-            int output = delete_file(TEST_WRITE_FILE);
+            int output = delete_file(TEST_WRITE_FILE_FOR_DELETE);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
             size_t output_size = 10;
-            char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
+            char *output_string = read_file_into_cstring(TEST_WRITE_FILE_FOR_DELETE, &output_size);
 
             // assert
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
