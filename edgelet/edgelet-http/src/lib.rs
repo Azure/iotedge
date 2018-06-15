@@ -215,7 +215,12 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             FD_SCHEME => {
                 let host = url.host_str()
                     .ok_or_else(|| Error::from(ErrorKind::InvalidUri(url.to_string())))?;
-                match systemd::listener(host)? {
+                let socket = host.parse::<usize>()
+                    .map_err(Error::from)
+                    .and_then(|num| systemd::listener(num).map_err(Error::from))
+                    .or_else(|_| systemd::listener_name(host))?;
+
+                match socket {
                     Socket::Inet(fd, addr) => {
                         let l = unsafe { net::TcpListener::from_raw_fd(fd) };
                         Incoming::Tcp(TcpListener::from_listener(l, &addr, &handle)?)

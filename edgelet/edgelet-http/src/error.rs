@@ -2,6 +2,7 @@
 
 use std::fmt::{self, Display};
 use std::io;
+use std::num::ParseIntError;
 use std::str;
 
 use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
@@ -213,6 +214,14 @@ impl From<SystemdError> for Error {
     fn from(error: SystemdError) -> Error {
         Error {
             inner: error.context(ErrorKind::Systemd),
+        }
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Parse),
         }
     }
 }

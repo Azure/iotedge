@@ -22,9 +22,20 @@ const ENV_PID: &str = "LISTEN_PID";
 const ENV_FDS: &str = "LISTEN_FDS";
 const ENV_NAMES: &str = "LISTEN_FDNAMES";
 
+/// Returns the first listener for a file descriptor number.
+pub fn listener(num: usize) -> Result<Socket, Error> {
+    debug!("Finding socket for number: {}", num);
+    listen_fds(false, LISTEN_FDS_START).and_then(|s| {
+        s.get(num)
+            .cloned()
+            .ok_or_else(|| Error::from(ErrorKind::NotFound))
+    })
+}
+
 /// Returns the first listener for a file descriptor name.
-pub fn listener(name: &str) -> Result<Socket, Error> {
-    listeners(name).and_then(|s| {
+pub fn listener_name(name: &str) -> Result<Socket, Error> {
+    debug!("Finding socket for name: {}", name);
+    listeners_name(name).and_then(|s| {
         s.into_iter()
             .next()
             .ok_or_else(|| Error::from(ErrorKind::NotFound))
@@ -32,7 +43,8 @@ pub fn listener(name: &str) -> Result<Socket, Error> {
 }
 
 /// Returns all of the listeners for a file descriptor name.
-pub fn listeners(name: &str) -> Result<Vec<Socket>, Error> {
+pub fn listeners_name(name: &str) -> Result<Vec<Socket>, Error> {
+    debug!("Finding sockets for name: {}", name);
     listen_fds_with_names(false, LISTEN_FDS_START).and_then(|s| {
         s.get(name)
             .cloned()

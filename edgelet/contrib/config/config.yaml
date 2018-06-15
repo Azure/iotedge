@@ -100,8 +100,8 @@ connect:
 ###############################################################################
 
 listen:
-  workload_uri: "fd://iotedge.workload"
-  management_uri: "fd://iotedge.mgmt"
+  workload_uri: "fd://0"
+  management_uri: "fd://1"
 
 ###############################################################################
 # Home Directory

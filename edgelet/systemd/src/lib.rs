@@ -30,20 +30,24 @@ pub enum Socket {
 }
 
 #[cfg(target_os = "linux")]
-pub use self::linux::{listener, listeners};
+pub use self::linux::{listener, listener_name, listeners_name};
 
 #[cfg(not(target_os = "linux"))]
-pub use self::other::{listener, listeners};
+pub use self::other::{listener, listener_name, listeners_name};
 
 #[cfg(not(target_os = "linux"))]
 mod other {
     use super::*;
 
-    pub fn listener(_name: &str) -> Result<Socket, Error> {
+    pub fn listener(num: i32) -> Result<Socket, Error> {
         Err(Error::from(ErrorKind::NotFound))
     }
 
-    pub fn listeners(_name: &str) -> Result<Vec<Socket>, Error> {
+    pub fn listener_name(_name: &str) -> Result<Socket, Error> {
+        Err(Error::from(ErrorKind::NotFound))
+    }
+
+    pub fn listeners_name(_name: &str) -> Result<Vec<Socket>, Error> {
         Err(Error::from(ErrorKind::NotFound))
     }
 }

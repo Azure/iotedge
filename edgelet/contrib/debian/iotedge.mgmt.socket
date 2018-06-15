@@ -9,7 +9,6 @@ DirectoryMode=0755
 SocketUser=iotedge
 SocketGroup=iotedge
 Service=iotedge.service
-FileDescriptorName=iotedge.mgmt
 
 [Install]
 WantedBy=sockets.target
