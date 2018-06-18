@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
     using Autofac;
+    using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -23,7 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IAuthenticator
-            builder.Register(c => new Authenticator(c.Resolve<IConnectionManager>(), this.deviceId))
+            builder.Register(c =>
+                {
+                    
+                    var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(c.Resolve<IConnectionManager>(), c.Resolve<ICredentialsStore>(), this.iothubHostName);
+                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId);
+                })
                 .As<IAuthenticator>()
                 .SingleInstance();
 

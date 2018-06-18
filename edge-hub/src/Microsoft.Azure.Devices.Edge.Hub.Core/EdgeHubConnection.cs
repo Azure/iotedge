@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Func<EdgeHubConfig, Task> configUpdateCallback;
         Option<TwinCollection> lastDesiredProperties = Option.None<TwinCollection>();
-        readonly IIdentity edgeHubIdentity;
+        readonly IModuleIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
         readonly IMessageConverter<Twin> twinMessageConverter;
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly RouteFactory routeFactory;
         readonly AsyncLock edgeHubConfigLock = new AsyncLock();
 
-        EdgeHubConnection(IIdentity edgeHubIdentity,
+        EdgeHubConnection(IModuleIdentity edgeHubIdentity,
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
@@ -48,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public static async Task<EdgeHubConnection> Create(
-            IIdentity edgeHubIdentity,
+            IModuleIdentity edgeHubIdentity,
+            IEdgeHub edgeHub,
             ITwinManager twinManager,
             IConnectionManager connectionManager,
             ICloudProxy cloudProxy,
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         )
         {
             Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
-            Preconditions.CheckNotNull(twinManager, nameof(twinManager));
+            Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(cloudProxy, nameof(cloudProxy));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IDeviceProxy deviceProxy = new EdgeHubDeviceProxy(edgeHubConnection);
             await connectionManager.AddDeviceConnection(edgeHubIdentity, deviceProxy);
 
-            await cloudProxy.SetupDesiredPropertyUpdatesAsync();
+            await edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.DesiredPropertyUpdates);
 
             // Clear out all the reported devices.
             await edgeHubConnection.ClearDeviceConnectionStatuses();
@@ -236,8 +237,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
-                IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
+                IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
             }
             catch (Exception ex)
             {
@@ -298,15 +299,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 };
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
-                IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
+                IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
             }
             catch (Exception ex)
             {
                 Events.ErrorUpdatingDeviceConnectionStatus(client.Id, ex);
                 return Task.CompletedTask;
             }
-        }
+        }        
 
         Task ClearDeviceConnectionStatuses()
         {
@@ -314,8 +315,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, null);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
-                IMessage message = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, message);
+                IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
+                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
             }
             catch (Exception ex)
             {
@@ -328,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             [JsonConstructor]
             public DesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
-            {                
+            {
                 this.SchemaVersion = schemaVersion;
                 this.Routes = routes;
                 this.StoreAndForwardConfiguration = storeAndForwardConfiguration;

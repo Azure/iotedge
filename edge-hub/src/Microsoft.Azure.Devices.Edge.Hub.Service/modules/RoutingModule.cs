@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
@@ -43,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool optimizeForPerformance;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
+        readonly bool cacheTokens;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -59,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             bool optimizeForPerformance,
             TimeSpan connectivityCheckFrequency,
-            int maxConnectedClients)
+            int maxConnectedClients,
+            bool cacheTokens)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -77,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.optimizeForPerformance = optimizeForPerformance;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
+            this.cacheTokens = cacheTokens;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -164,10 +168,73 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 })
                 .As<IClientProvider>()
                 .SingleInstance();
-            
+
             // ICloudConnectionProvider
             builder.Register(c => new CloudConnectionProvider(c.Resolve<Core.IMessageConverterProvider>(), this.connectionPoolSize, c.Resolve<IClientProvider>(), this.upstreamProtocol))
                 .As<ICloudConnectionProvider>()
+                .SingleInstance();
+
+            if (this.isStoreAndForwardEnabled || this.cacheTokens)
+            {
+                // Detect system environment
+                builder.Register(c => new SystemEnvironment())
+                    .As<ISystemEnvironment>()
+                    .SingleInstance();
+
+                // DataBase options
+                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
+                    .As<Storage.RocksDb.IRocksDbOptionsProvider>()
+                    .SingleInstance();
+
+                // IDbStore
+                builder.Register(
+                    c =>
+                    {
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
+
+                        if (this.usePersistentStorage)
+                        {
+                            // Create partitions for messages and twins
+                            var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
+                            try
+                            {
+                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
+                                    this.storagePath, partitionsList);
+                                logger.LogInformation($"Created persistent store at {this.storagePath}");
+                                return dbStoreprovider;
+                            }
+                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            {
+                                logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                                return new InMemoryDbStoreProvider();
+                            }
+                        }
+                        else
+                        {
+                            logger.LogInformation($"Using in-memory store");
+                            return new InMemoryDbStoreProvider();
+                        }
+                    })
+                    .As<IDbStoreProvider>()
+                    .SingleInstance();
+            }
+
+            // ICredentialsStore
+            builder.Register(c =>
+                {
+                    if (this.cacheTokens)
+                    {
+                        var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                        IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                        return new TokenCredentialsStore(storeProvider.GetEntityStore<string, string>("tokenCredentials"));
+                    }
+                    else
+                    {
+                        return new NullCredentialsStore() as ICredentialsStore;
+                    }
+                })
+                .As<ICredentialsStore>()
                 .SingleInstance();
 
             // IConnectionManager
@@ -253,49 +320,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
-                // Detect system environment
-                builder.Register(c => new SystemEnvironment())
-                    .As<ISystemEnvironment>()
-                    .SingleInstance();
-
-                // DataBase options
-                builder.Register(c => new Storage.RocksDb.RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
-                    .As<Storage.RocksDb.IRocksDbOptionsProvider>()
-                    .SingleInstance();
-
-                // IDbStore
-                builder.Register(
-                    c =>
-                    {
-                        var loggerFactory = c.Resolve<ILoggerFactory>();
-                        ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
-
-                        if (this.usePersistentStorage)
-                        {
-                            // Create partitions for messages and twins
-                            var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
-                            try
-                            {
-                                IDbStoreProvider dbStoreprovider = Storage.RocksDb.DbStoreProvider.Create(c.Resolve<Storage.RocksDb.IRocksDbOptionsProvider>(),
-                                    this.storagePath, partitionsList);
-                                logger.LogInformation($"Created persistent store at {this.storagePath}");
-                                return dbStoreprovider;
-                            }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
-                            {
-                                logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
-                            }
-                        }
-                        else
-                        {
-                            logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
-                        }
-                    })
-                    .As<IDbStoreProvider>()
-                    .SingleInstance();
-
                 // ICheckpointStore
                 builder.Register(c => CheckpointStore.Create(c.Resolve<IDbStoreProvider>()))
                     .As<ICheckpointStore>()
@@ -358,49 +382,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             // Task<ICloudProxy> "EdgeHubCloudProxy"
             builder.Register(
-                async c =>
-                {
-                    var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                    var connectionManager = c.Resolve<IConnectionManager>();
-                    Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
-                    if (!cloudProxyTry.Success)
+                    async c =>
                     {
-                        throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
-                    }
-
-                    ICloudProxy cloudProxy = cloudProxyTry.Value;
-                    return cloudProxy;
-                })
-                .Named<Task<ICloudProxy>>("EdgeHubCloudProxy")
-                .SingleInstance();
-
-            // IConfigSource
-            builder.Register(
-                async c =>
-                {
-                    var routeFactory = c.Resolve<RouteFactory>();
-
-                    if (this.useTwinConfig)
-                    {
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         var connectionManager = c.Resolve<IConnectionManager>();
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");                        
-                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
-                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
-                        var twinManager = c.Resolve<ITwinManager>();
-                        ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
-                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
-                            edgeHubCredentials.Identity, twinManager, connectionManager, cloudProxy,
-                            routeFactory, twinCollectionMessageConverter,
-                            twinMessageConverter, this.versionInfo
-                        );
-                        return edgeHubConnection;
-                    }
-                    else
-                    {
-                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
-                    }
-                })
-                .As<Task<IConfigSource>>()
+                        Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
+                        if (!cloudProxyTry.Success)
+                        {
+                            throw new EdgeHubConnectionException("Edge hub is unable to connect to IoT Hub", cloudProxyTry.Exception);
+                        }
+
+                        ICloudProxy cloudProxy = cloudProxyTry.Value;
+                        return cloudProxy;
+                    })
+                .Named<Task<ICloudProxy>>("EdgeHubCloudProxy")
                 .SingleInstance();
 
             // Task<IEdgeHub>
@@ -425,6 +420,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 })
                 .As<Task<ConfigUpdater>>()
                 .SingleInstance();
+
+            // Task<IConfigSource>
+            builder.Register(
+                async c =>
+                {
+                    var routeFactory = c.Resolve<RouteFactory>();
+
+                    if (this.useTwinConfig)
+                    {
+                        var connectionManager = c.Resolve<IConnectionManager>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinManager = c.Resolve<ITwinManager>();
+                        ICloudProxy cloudProxy = await c.ResolveNamed<Task<ICloudProxy>>("EdgeHubCloudProxy");
+                        IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
+                        IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
+                            edgeHubCredentials.Identity as IModuleIdentity,
+                            edgeHub,
+                            twinManager,
+                            connectionManager,
+                            cloudProxy,
+                            routeFactory,
+                            twinCollectionMessageConverter,
+                            twinMessageConverter,
+                            this.versionInfo
+                        );
+                        return edgeHubConnection;
+                    }
+                    else
+                    {
+                        return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                    }
+                })
+                .As<Task<IConfigSource>>()
+                .SingleInstance();            
 
             // Task<IConnectionProvider>
             builder.Register(

@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         }
 
                         IClientCredentials identity = amqpAuth.ClientCredentials.Expect(() => new InvalidOperationException("Authenticated connection should have a valid identity"));
-                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity.Identity);
+                        this.deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity);
                         var deviceProxy = new DeviceProxy(this, identity.Identity);
                         this.deviceListener.BindDeviceProxy(deviceProxy);
                         this.amqpAuthentication = amqpAuth;

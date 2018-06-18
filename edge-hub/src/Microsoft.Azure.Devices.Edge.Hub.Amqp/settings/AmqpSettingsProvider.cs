@@ -18,7 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             IAuthenticator authenticator,
             IClientCredentialsFactory identityFactory,
             ILinkHandlerProvider linkHandlerProvider,
-            IConnectionProvider connectionProvider)
+            IConnectionProvider connectionProvider,
+            ICredentialsStore credentialsStore)
         {
             Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             {
                 AllowAnonymousConnection = true,
                 RequireSecureTransport = true,
-                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider)
+                RuntimeProvider = new AmqpRuntimeProvider(linkHandlerProvider, true, identityFactory, authenticator, iotHubHostName, connectionProvider, credentialsStore)
             };
 
             // Add all transport providers we want to support.

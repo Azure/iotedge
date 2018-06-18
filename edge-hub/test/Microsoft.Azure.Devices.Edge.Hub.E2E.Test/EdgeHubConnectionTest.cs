@@ -16,7 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
+    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
@@ -68,6 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                 IEntityStore<string, TwinInfo> twinStore = storeProvider.GetEntityStore<string, TwinInfo>("twins");
                 var twinManager = new TwinManager(connectionManager, twinCollectionMessageConverter, twinMessageConverter, Option.Some(twinStore));
+                var routerConfig = new RouterConfig(Enumerable.Empty<Route>());
+                TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
+                var endpointExecutorFactory = new SyncEndpointExecutorFactory(new EndpointExecutorConfig(defaultTimeout, new FixedInterval(0, TimeSpan.FromSeconds(1)), defaultTimeout, true));
+                Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
+                IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId);
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
@@ -75,7 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Try<ICloudProxy> edgeHubCloudProxy = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
                 Assert.True(edgeHubCloudProxy.Success);
                 EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(
-                    edgeHubCredentials.Identity,
+                    edgeHubCredentials.Identity as IModuleIdentity, 
+                    edgeHub,
                     twinManager,
                     connectionManager,
                     edgeHubCloudProxy.Value,
@@ -84,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinMessageConverter,
                     versionInfo
                 );
+                await Task.Delay(TimeSpan.FromMinutes(1));
 
                 // Get and Validate EdgeHubConfig
                 Option<EdgeHubConfig> edgeHubConfigOption = await edgeHubConnection.GetConfig();
@@ -240,7 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(versionInfo, reportedProperties.VersionInfo);
 
                 // If the edge hub restarts, clear out the connected devices in the reported properties.
-                await EdgeHubConnection.Create(edgeHubCredentials.Identity, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await EdgeHubConnection.Create(edgeHubCredentials.Identity as IModuleIdentity, edgeHub, twinManager, connectionManager, edgeHubCloudProxy.Value, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo);
+                await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);
                 Assert.Equal("1.0", reportedProperties.SchemaVersion);

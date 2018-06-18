@@ -148,24 +148,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Try<IClient> deviceClientTry = await Fallback.ExecuteAsync(
                 this.transportSettingsList.Select<ITransportSettings, Func<Task<IClient>>>(
                     ts =>
-                        () => this.CreateAndOpenDeviceClient(newCredentials, ts)).ToArray());
+                        () => this.CreateDeviceClient(newCredentials, ts)).ToArray());
 
             return deviceClientTry.Success ? deviceClientTry.Value : throw deviceClientTry.Exception;
         }
 
-        async Task<IClient> CreateAndOpenDeviceClient(
+        async Task<IClient> CreateDeviceClient(
             IClientCredentials newCredentials,
             ITransportSettings transportSettings)
         {
             Events.AttemptingConnectionWithTransport(transportSettings.GetTransportType(), newCredentials.Identity);
-            IClient client = await CreateDeviceClient(newCredentials, new[] { transportSettings }).ConfigureAwait(false);
+            IClient client = await this.CreateDeviceClient(newCredentials, new[] { transportSettings }).ConfigureAwait(false);
             client.SetOperationTimeoutInMilliseconds(OperationTimeoutMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(newCredentials.ProductInfo))
             {
                 client.SetProductInfo(newCredentials.ProductInfo);
             }
-            await client.OpenAsync();
+            
             Events.CreateDeviceClientSuccess(transportSettings.GetTransportType(), OperationTimeoutMilliseconds, newCredentials.Identity);
             return client;
         }
@@ -224,20 +224,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
             if (this.callbacksEnabled)
             {
-                IIdentity currentIdentity = this.identity.Expect(() => new InvalidOperationException("Identity for cloud connection not found"));
-
-                if (status == ConnectionStatus.Connected)
+                this.identity.ForEach(currentIdentity =>
                 {
-                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.ConnectionEstablished);
-                }
-                else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
-                {
-                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
-                }
-                else
-                {
-                    this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.Disconnected);
-                }
+                    if (status == ConnectionStatus.Connected)
+                    {
+                        this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.ConnectionEstablished);
+                    }
+                    else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+                    {
+                        this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
+                    }
+                    else
+                    {
+                        this.connectionStatusChangedHandler?.Invoke(currentIdentity.Id, CloudConnectionStatus.Disconnected);
+                    }
+                });
             }
         }
 

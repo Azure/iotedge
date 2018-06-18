@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Connected,
             Trying,
-            Disconnected,            
+            Disconnected,
         }
 
         enum Trigger

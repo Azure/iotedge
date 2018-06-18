@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public DeviceClientWrapper(DeviceClient deviceClient)
         {
             this.underlyingDeviceClient = Preconditions.CheckNotNull(deviceClient);
-            this.isActive = new AtomicBoolean(false);
+            this.isActive = new AtomicBoolean(true);
         }
 
         public bool IsActive => this.isActive;
@@ -39,9 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<Twin> GetTwinAsync() => this.underlyingDeviceClient.GetTwinAsync();
 
-        public Task OpenAsync() => !this.isActive.GetAndSet(true)
-            ? this.underlyingDeviceClient.OpenAsync()
-            : Task.CompletedTask;
+        public Task OpenAsync() => this.underlyingDeviceClient.OpenAsync();
 
         public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingDeviceClient.ReceiveAsync(receiveMessageTimeout);
 

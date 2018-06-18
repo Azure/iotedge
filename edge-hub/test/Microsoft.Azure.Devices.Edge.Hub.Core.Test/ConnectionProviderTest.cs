@@ -41,7 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Throws<ArgumentNullException>(() => new ConnectionProvider(connectionManager, null));
         }
 
-
         [Fact]
         [Unit]
         public async Task GetDeviceListenerWithSasIdentityTest()
@@ -54,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Mock.Get(connectionManager).Setup(cm => cm.GetOrCreateCloudConnectionAsync(moduleCredentials)).ReturnsAsync(Try.Success(cloudProxy));
 
             var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
-            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(moduleCredentials.Identity));
+            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(moduleCredentials));
         }
 
         [Fact]
@@ -66,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleCredentials = new X509CertCredentials(new ModuleIdentity("hub", "device", "module"), string.Empty);
 
             var connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
-            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(moduleCredentials.Identity));
+            Assert.NotNull(await connectionProvider.GetDeviceListenerAsync(moduleCredentials));
         }
 
         [Fact]

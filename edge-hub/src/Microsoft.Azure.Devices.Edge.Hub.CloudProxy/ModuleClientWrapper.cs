@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public ModuleClientWrapper(ModuleClient moduleClient)
         {
             this.underlyingModuleClient = moduleClient;
-            this.isActive = new AtomicBoolean(false);
+            this.isActive = new AtomicBoolean(true);
         }
 
         public bool IsActive => this.isActive;
@@ -42,9 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<Twin> GetTwinAsync() => this.underlyingModuleClient.GetTwinAsync();
 
-        public Task OpenAsync() => !this.isActive.GetAndSet(true)
-            ? this.underlyingModuleClient.OpenAsync()
-            : Task.CompletedTask;
+        public Task OpenAsync() => this.underlyingModuleClient.OpenAsync();
 
         public Task SendEventAsync(Message message) => this.underlyingModuleClient.SendEventAsync(message);
 

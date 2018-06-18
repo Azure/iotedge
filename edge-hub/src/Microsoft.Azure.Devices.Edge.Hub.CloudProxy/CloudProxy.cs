@@ -53,6 +53,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        public async Task<bool> OpenAsync()
+        {
+            try
+            {
+                await this.client.OpenAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorOpening(this.clientId, ex);
+                throw;
+            }
+        }
+
         public async Task<IMessage> GetTwinAsync()
         {
             Twin twin = await this.client.GetTwinAsync();
@@ -336,7 +350,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ReceiverStopped,
                 MethodReceived,
                 StartListening,
-                CloudReceiverNull
+                CloudReceiverNull,
+                ErrorOpening
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -427,6 +442,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void CloudReceiverNull(string clientId, string operation)
             {
                 Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+            }
+
+            public static void ErrorOpening(string clientId, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
             }
         }
     }

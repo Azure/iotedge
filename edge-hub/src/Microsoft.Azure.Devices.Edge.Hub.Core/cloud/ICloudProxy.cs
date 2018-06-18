@@ -22,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         Task<bool> CloseAsync();
 
+        Task<bool> OpenAsync();
+
         Task SendMessageAsync(IMessage message);
 
         Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages);

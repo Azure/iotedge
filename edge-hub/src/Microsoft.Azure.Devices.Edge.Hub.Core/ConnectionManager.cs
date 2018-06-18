@@ -83,9 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 : Option.None<ICloudProxy>();
         }
 
-        public void AddSubscription(string id,DeviceSubscription deviceSubscription)
+        public void AddSubscription(string id, DeviceSubscription deviceSubscription)
         {
-            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))                
+            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
             {
                 throw new ArgumentException($"A connection for {id} not found.");
             }
@@ -150,7 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         return Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Error updating identity for device {device.Identity.Id}", ex));
                     }
                 })
-                .GetOrElse(() => this.cloudConnectionProvider.Connect(credentials, (identity, status) => this.CloudConnectionStatusChangedHandler(identity, status)));
+            .GetOrElse(() => this.cloudConnectionProvider.Connect(credentials, (identity, status) => this.CloudConnectionStatusChangedHandler(identity, status)));
+
 
         async void CloudConnectionStatusChangedHandler(string deviceId,
             CloudConnectionStatus connectionStatus)
@@ -247,14 +248,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.CloudConnection = cloudProxy;
                 this.DeviceConnection = deviceConnection;
             }
-            
+
             public IIdentity Identity { get; }
 
             public Option<ICloudConnection> CloudConnection { get; private set; }
 
             // ReSharper disable once MemberHidesStaticFromOuterClass
             public Option<DeviceConnection> DeviceConnection { get; private set; }
-            
+
             public Option<IDeviceProxy> UpdateDeviceProxy(IDeviceProxy deviceProxy)
             {
                 Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
@@ -369,5 +370,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
         }
-    }    
+    }
 }

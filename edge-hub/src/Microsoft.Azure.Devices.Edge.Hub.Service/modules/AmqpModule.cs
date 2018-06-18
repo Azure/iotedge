@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
+                    var credentialsStore = c.Resolve<ICredentialsStore>();
                     var authenticator = c.Resolve<IAuthenticator>();
                     var identityFactory = c.Resolve<IClientCredentialsFactory>();
                     var transportSettings = c.Resolve<ITransportSettings>();
@@ -78,7 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         authenticator,
                         identityFactory,
                         linkHandlerProvider,
-                        connectionProvider);
+                        connectionProvider,
+                        credentialsStore);
                     return new AmqpProtocolHead(
                         transportSettings,
                         amqpSettings,

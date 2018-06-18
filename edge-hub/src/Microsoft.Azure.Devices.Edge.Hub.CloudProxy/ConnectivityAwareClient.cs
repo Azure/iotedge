@@ -3,11 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
 
     /// <summary>
@@ -19,14 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     class ConnectivityAwareClient : IClient
     {
         readonly IClient underlyingClient;
-        readonly AtomicBoolean isActive;
         readonly IDeviceConnectivityManager deviceConnectivityManager;
         ConnectionStatusChangesHandler connectionStatusChangedHandler;
 
         public ConnectivityAwareClient(IClient client, IDeviceConnectivityManager deviceConnectivityManager)            
         {
             this.underlyingClient = Preconditions.CheckNotNull(client, nameof(client));
-            this.isActive = new AtomicBoolean(false);
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
 
             this.deviceConnectivityManager.DeviceConnected += (_, __) =>
@@ -35,11 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.No_Network);
         }
 
-        public bool IsActive => this.isActive;
+        public bool IsActive => this.underlyingClient.IsActive;
         
-        public Task CloseAsync() => this.isActive.GetAndSet(false)
-            ? this.underlyingClient.CloseAsync()
-            : Task.CompletedTask;
+        public Task CloseAsync() => this.underlyingClient.CloseAsync();
 
         // This method could throw and is not a reliable candidate to check connectivity status
         public Task RejectAsync(string messageId) => this.underlyingClient.RejectAsync(messageId);
@@ -53,9 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task<Twin> GetTwinAsync() => this.InvokeFunc(() => this.underlyingClient.GetTwinAsync());
 
-        public Task OpenAsync() => !this.isActive.GetAndSet(true)
-            ? this.InvokeFunc(() => this.underlyingClient.OpenAsync())
-            : Task.CompletedTask;
+        public Task OpenAsync() => this.InvokeFunc(() => this.underlyingClient.OpenAsync());
 
         public Task SendEventAsync(Client.Message message) => this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message));
 
@@ -85,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
-            this.isActive.Set(false);
             this.underlyingClient?.Dispose();
         }
 

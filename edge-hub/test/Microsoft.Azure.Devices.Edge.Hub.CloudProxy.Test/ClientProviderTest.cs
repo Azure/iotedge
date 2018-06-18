@@ -62,13 +62,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
-        public void Test_Create_DeviceIdentity_WithEnv_ShouldThrow()
+        public async Task Test_Create_DeviceIdentity_WithEnv_ShouldThrow()
         {
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider().CreateAsync(identity, transportSettings));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider().CreateAsync(identity, transportSettings));
         }
 
         [Fact]

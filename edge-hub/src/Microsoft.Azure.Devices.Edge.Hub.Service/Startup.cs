@@ -109,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // TODO: We don't want to make enabling Cert Auth configurable right now. Turn off Cert auth. 
             //bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
             bool clientCertAuthEnabled = false;
+            bool cacheTokens = this.Configuration.GetValue("CacheTokens", false);
 
             string caChainPath = this.Configuration.GetValue("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
             // n Clients + 1 Edgehub
@@ -156,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption,
                     optimizeForPerformance,
                     connectivityCheckFrequency,
-                    maxConnectedClients));
+                    maxConnectedClients,
+                    cacheTokens));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));

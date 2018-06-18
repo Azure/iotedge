@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var device1UnderlyingClient = new Mock<IClient>();
             device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Returns(Task.CompletedTask);
-            var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager);            
+            var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager);
             device1Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var device2UnderlyingClient = new Mock<IClient>();
@@ -99,12 +99,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         await device1Client.SendEventAsync(new Message());
                         if (!cts.IsCancellationRequested)
                         {
-                            await Task.Delay(TimeSpan.FromSeconds(1));                            
+                            await Task.Delay(TimeSpan.FromSeconds(1));
                         }
                     }
                 });
 
-            await Task.Delay(TimeSpan.FromSeconds(5));            
+            await Task.Delay(TimeSpan.FromSeconds(5));
 
             // Assert
             Assert.True(connected);

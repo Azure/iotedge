@@ -23,11 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var linkHandlerProvider = Mock.Of<ILinkHandlerProvider>();
             var connectionProvider = Mock.Of<IConnectionProvider>();
 
-            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(null, authenticator.Object, identityFactory.Object, linkHandlerProvider, connectionProvider));
-            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, null, identityFactory.Object, linkHandlerProvider, connectionProvider));
-            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, authenticator.Object, null, linkHandlerProvider, connectionProvider));
+            Assert.Throws<ArgumentException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(null, authenticator.Object, identityFactory.Object, linkHandlerProvider, connectionProvider, new NullCredentialsStore()));
+            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, null, identityFactory.Object, linkHandlerProvider, connectionProvider, new NullCredentialsStore()));
+            Assert.Throws<ArgumentNullException>(() => AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, authenticator.Object, null, linkHandlerProvider, connectionProvider, new NullCredentialsStore()));
 
-            Assert.NotNull(AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, authenticator.Object, identityFactory.Object, linkHandlerProvider, connectionProvider));
+            Assert.NotNull(AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, authenticator.Object, identityFactory.Object, linkHandlerProvider, connectionProvider, new NullCredentialsStore()));
         }
     }
 }

@@ -13,16 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class Authenticator : IAuthenticator
     {
-        readonly IConnectionManager connectionManager;
         readonly string edgeDeviceId;
+        readonly IAuthenticator tokenAuthenticator;
 
-        public Authenticator(IConnectionManager connectionManager, string edgeDeviceId)
+        public Authenticator(IAuthenticator tokenAuthenticator, string edgeDeviceId)
         {
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(edgeDeviceId));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.tokenAuthenticator = Preconditions.CheckNotNull(tokenAuthenticator, nameof(tokenAuthenticator));
         }
 
-        public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
+        public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
         {
             Preconditions.CheckNotNull(clientCredentials);
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (clientCredentials.Identity is IModuleIdentity moduleIdentity && !moduleIdentity.DeviceId.Equals(this.edgeDeviceId, StringComparison.OrdinalIgnoreCase))
             {
                 Events.InvalidDeviceId(moduleIdentity, this.edgeDeviceId);
-                return false;
+                return Task.FromResult(false);
             }
 
             if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
@@ -41,17 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // DeviceIdentityProvider.cs::RemoteCertificateValidationCallback. In the future, we could
                 // do authentication based on the CN. However, EdgeHub does not have enough information
                 // currently to do CN validation.
-                return true;
+                return Task.FromResult(true);
             }
             else
             {
-                // Authentication here happens against the cloud (Azure IoT Hub). We consider a device/module
-                // as having authenticated successfully if we are able to acquire a valid ICloudProxy object from
-                // the connection manager.
-
-                Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(clientCredentials);
-                Events.AuthResult(cloudProxyTry, clientCredentials.Identity.Id);
-                return cloudProxyTry.Success && cloudProxyTry.Value.IsActive;
+                return this.tokenAuthenticator.AuthenticateAsync(clientCredentials);
             }
         }
 
