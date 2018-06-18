@@ -11,6 +11,7 @@ extern crate futures;
 extern crate hyper;
 #[macro_use]
 extern crate log;
+#[macro_use]
 extern crate percent_encoding;
 extern crate serde;
 #[macro_use]

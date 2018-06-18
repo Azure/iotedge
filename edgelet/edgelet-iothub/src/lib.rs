@@ -10,6 +10,7 @@ extern crate chrono;
 extern crate failure;
 extern crate futures;
 extern crate hyper;
+#[macro_use]
 extern crate percent_encoding;
 extern crate serde;
 #[macro_use]
@@ -50,6 +51,10 @@ pub use error::{Error, ErrorKind};
 
 const KEY_PRIMARY: &str = "primary";
 const KEY_SECONDARY: &str = "secondary";
+
+define_encode_set! {
+    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
+}
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct HubIdentity {
@@ -149,7 +154,7 @@ where
         let audience = format!("{}/devices/{}", self.hub_id, self.device_id);
 
         let resource_uri =
-            percent_encode(audience.to_lowercase().as_bytes(), PATH_SEGMENT_ENCODE_SET).to_string();
+            percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let signature = self.key
@@ -888,6 +893,27 @@ mod tests {
             "sr=miyagley-edge.azure-devices.net",
             "%2Fdevices%2Fmiyagley1&sig=ynXM1wWasX%2FGvvgnhV%2BLZ5",
             "rxWOiCWtyqHMG2Dcd9Pg8%3D&se=1524776055"
+        );
+        assert_eq!(expected, token);
+    }
+
+    #[test]
+    fn token_source_success_equals() {
+        // arrange
+        let hub_id = "Mi=yagley-Edge.azure-devices.net".to_string();
+        let device_id = "miYagley1".to_string();
+        let key = MemoryKey::new(base64::decode("key").unwrap());
+        let token_source = SasTokenSource::new(hub_id, device_id, key);
+        let expiry = Utc.ymd(2018, 4, 26).and_hms(20, 54, 15);
+
+        // act
+        let token = token_source.get(&expiry).unwrap();
+
+        // assert
+        let expected = concat!(
+            "sr=mi%3Dyagley-edge.azure-devices.net",
+            "%2Fdevices%2Fmiyagley1&sig=R6NGzTl9wTWWI2zqrOhL81kH1H",
+            "Pi%2F15XDxc%2FjLVMHcY%3D&se=1524776055",
         );
         assert_eq!(expected, token);
     }

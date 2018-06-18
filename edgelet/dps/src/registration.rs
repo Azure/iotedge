@@ -23,6 +23,10 @@ use error::{Error, ErrorKind};
 use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
             TpmAttestation, TpmRegistrationResult};
 
+define_encode_set! {
+    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
+}
+
 #[derive(Clone)]
 pub struct DpsTokenSource<K>
 where
@@ -57,7 +61,7 @@ where
         let audience = format!("{}/registrations/{}", self.scope_id, self.registration_id);
 
         let resource_uri =
-            percent_encode(audience.to_lowercase().as_bytes(), PATH_SEGMENT_ENCODE_SET).to_string();
+            percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let signature = self.key
