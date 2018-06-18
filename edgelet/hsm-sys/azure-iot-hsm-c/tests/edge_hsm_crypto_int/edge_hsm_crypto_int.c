@@ -300,6 +300,66 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         test_helper_crypto_deinit(hsm_handle);
     }
 
+    TEST_FUNCTION(hsm_client_create_and_get_client_certificate_smoke)
+    {
+        //arrange
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
+        CERT_INFO_HANDLE ca_cert_info = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(ca_cert_info, "Line:" TOSTRING(__LINE__));
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_client_cert_properties();
+
+        // act, assert multiple calls to create certificate only creates if not created
+        CERT_INFO_HANDLE result_first, result_second;
+        result_first = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result_first, "Line:" TOSTRING(__LINE__));
+        result_second = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result_second, "Line:" TOSTRING(__LINE__));
+        const char *first_certificate = certificate_info_get_certificate(result_first);
+        const char *second_certificate = certificate_info_get_certificate(result_second);
+        size_t first_len = strlen(first_certificate);
+        size_t second_len = strlen(second_certificate);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, first_len, second_len, "Line:" TOSTRING(__LINE__));
+        int cmp_result = memcmp(first_certificate, second_certificate, first_len);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+
+        // destroy the certificate in the HSM and create a new one and test if different from prior call
+        certificate_info_destroy(result_second);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
+        result_second = NULL;
+        result_second = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result_second, "Line:" TOSTRING(__LINE__));
+        second_certificate = certificate_info_get_certificate(result_second);
+        cmp_result = memcmp(first_certificate, second_certificate, first_len);
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result_first);
+        certificate_info_destroy(result_second);
+        cert_properties_destroy(certificate_props);
+        certificate_info_destroy(ca_cert_info);
+        cert_properties_destroy(ca_certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_destroy_client_certificate_for_invalid_cert_smoke)
+    {
+        //arrange
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+
+        // act
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
+
+        // assert
+
+        // cleanup
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
     TEST_FUNCTION(hsm_client_create_client_certificate_smoke)
     {
         //arrange
