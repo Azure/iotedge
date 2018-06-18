@@ -54,8 +54,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
-use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey,
-                           MemoryKeyStore, Sign};
+use edgelet_core::crypto::{CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle,
+                           KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore,
+                           Sign};
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
@@ -225,6 +226,7 @@ impl Main {
                     root_key,
                     shutdown_signal,
                     network_id,
+                    &crypto,
                 )?;
             }
             Provisioning::Dps(dps) => {
@@ -241,6 +243,7 @@ impl Main {
                     root_key,
                     shutdown_signal,
                     network_id,
+                    &crypto,
                 )?;
             }
         };
@@ -305,7 +308,7 @@ where
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-fn start_api<S, K, F>(
+fn start_api<S, K, F, C>(
     settings: &Settings<DockerConfig>,
     mut core: Core,
     hyper_client: S,
@@ -315,11 +318,19 @@ fn start_api<S, K, F>(
     root_key: K,
     shutdown_signal: F,
     network_id: String,
+    crypto: &C,
 ) -> Result<(), Error>
 where
     F: Future<Item = (), Error = ()> + 'static,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
     K: 'static + Sign + Clone,
+    C: 'static
+        + CreateCertificate
+        + Decrypt
+        + Encrypt
+        + GetTrustBundle
+        + MasterEncryptionKey
+        + Clone,
 {
     let hub_name = provisioning_result.hub_name();
     let device_id = provisioning_result.device_id();
@@ -339,7 +350,14 @@ where
 
     let mgmt = start_management(&settings, &core.handle(), &runtime, &id_man, mgmt_rx)?;
 
-    let workload = start_workload(&settings, key_store, &core.handle(), &runtime, work_rx)?;
+    let workload = start_workload(
+        &settings,
+        key_store,
+        &core.handle(),
+        &runtime,
+        work_rx,
+        crypto,
+    )?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime(
@@ -561,22 +579,30 @@ where
     Ok(run)
 }
 
-fn start_workload<K>(
+fn start_workload<K, C>(
     settings: &Settings<DockerConfig>,
     key_store: &K,
     handle: &Handle,
     runtime: &DockerModuleRuntime,
     shutdown: Receiver<()>,
+    crypto: &C,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + KeyStore + Clone,
+    C: 'static
+        + CreateCertificate
+        + Decrypt
+        + Encrypt
+        + GetTrustBundle
+        + MasterEncryptionKey
+        + Clone,
 {
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
     let server_handle = handle.clone();
     let service = LoggingService::new(
         label,
-        ApiVersionService::new(WorkloadService::new(key_store, Crypto::new()?, runtime)?),
+        ApiVersionService::new(WorkloadService::new(key_store, crypto.clone(), runtime)?),
     );
 
     info!("Listening on {} with 1 thread for workload API.", url);
