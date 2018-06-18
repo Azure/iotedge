@@ -27,7 +27,7 @@ provisioning:
 
 # provisioning:
 #   source: "dps"
-#   global_endpoint: "global.azure-devices-provisioning.net"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
 #   scope_id: "{scope_id}"
 #   registration_id: "{registration_id}"
 

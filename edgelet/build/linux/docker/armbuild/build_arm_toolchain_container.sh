@@ -21,7 +21,7 @@ main() {
     rm ${build_tools}.tar.xz
 
     # Once toolchain is downloaded and extracted, build docker image with toolchain
-    docker build --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:0.1 .
+    docker build --build-arg TOOLCHAIN=${build_tools} --tag ${build_tools}:0.2 .
 
     # cleanup
     rm -fr gcc-linaro-${version}-x86_64_arm-linux-gnueabihf

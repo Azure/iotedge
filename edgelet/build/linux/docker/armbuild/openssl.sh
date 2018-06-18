@@ -2,7 +2,10 @@
 set -ex
 
 main() {
-    local version=1.0.2m
+    local SHLIB_VERSION_NUMBER=1.0.2 
+    local SHLIB_MAJOR=1 
+    local SHLIB_MINOR=0.2 
+    local version=${SHLIB_VERSION_NUMBER}m
     local os=$1 \
     local triple=$2
     local sysroot=$3
@@ -30,13 +33,15 @@ main() {
         tar --strip-components=1 -xz
     AR=${triple}ar CC=${triple}gcc ./Configure \
       --prefix=${sysroot}/usr \
-      no-dso \
+      --openssldir=${sysroot}/usr \
+      shared \
+      no-asm \
       $os \
       -fPIC \
       ${@:4}
-    make -j$(nproc)
-    make install
-
+    make SHLIB_VERSION_NUMBER=${SHLIB_VERSION_NUMBER} SHLIB_MAJOR=${SHLIB_MAJOR} SHLIB_MINOR=${SHLIB_MINOR} -j$(nproc)
+    make SHLIB_VERSION_NUMBER=${SHLIB_VERSION_NUMBER} SHLIB_MAJOR=${SHLIB_MAJOR} SHLIB_MINOR=${SHLIB_MINOR} install_sw
+    
     # clean up
 
     popd

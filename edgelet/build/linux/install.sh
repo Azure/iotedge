@@ -13,6 +13,8 @@ SCRIPT_NAME=$(basename "$0")
 RUSTUP="$HOME/.cargo/bin/rustup"
 TOOLCHAIN="stable"
 ARM_PACKAGE=
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
+PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -92,4 +94,11 @@ if [[ -n "$ARM_PACKAGE" ]]; then
         gcc-4.8-multilib-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
         libc6-armhf-cross=2.19-0ubuntu2cross1.104 \
         gcc-arm-linux-gnueabihf=4:4.8.2-1
+
+    # For future reference:
+    # ubuntu systems (host) sets openssl library version to 1.0.0, 
+    # Debian (Jessie) systems (target) expects library version to be 1.0.0.  
+    # Debian (Stretch and later) systems (target) expects 1.0 library version to be 1.0.2.
+    
+    ${PROJECT_ROOT}/build/linux/copy-arm-libs.sh
 fi
