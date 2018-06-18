@@ -100,8 +100,8 @@ connect:
 ###############################################################################
 
 listen:
-  workload_uri: "fd://0"
-  management_uri: "fd://1"
+  workload_uri: "fd://iotedge.socket"
+  management_uri: "fd://iotedge.mgmt.socket"
 
 ###############################################################################
 # Home Directory
