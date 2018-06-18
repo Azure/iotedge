@@ -176,7 +176,10 @@ impl IntoResponse for Error {
             ErrorKind::BadParam => StatusCode::BAD_REQUEST,
             ErrorKind::BadBody => StatusCode::BAD_REQUEST,
             ErrorKind::InvalidApiVersion => StatusCode::BAD_REQUEST,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => {
+                error!("Internal server error: {}", message);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
 
         let body = serde_json::to_string(&ErrorResponse::new(message))

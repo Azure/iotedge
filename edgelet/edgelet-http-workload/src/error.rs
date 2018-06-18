@@ -173,7 +173,10 @@ impl IntoResponse for Error {
             ErrorKind::BadParam => StatusCode::BAD_REQUEST,
             ErrorKind::BadBody => StatusCode::BAD_REQUEST,
             ErrorKind::Base64 => StatusCode::UNPROCESSABLE_ENTITY,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => {
+                error!("Internal server error: {}", message);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
 
         // Per the RFC, status code NotModified should not have a body

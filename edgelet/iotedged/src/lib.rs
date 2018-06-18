@@ -544,11 +544,13 @@ where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
+    let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
     let server_handle = handle.clone();
-    let service = LoggingService::new(ApiVersionService::new(ManagementService::new(
-        mgmt, id_man,
-    )?));
+    let service = LoggingService::new(
+        label,
+        ApiVersionService::new(ManagementService::new(mgmt, id_man)?),
+    );
 
     info!("Listening on {} with 1 thread for management API.", url);
 
@@ -569,13 +571,13 @@ fn start_workload<K>(
 where
     K: 'static + KeyStore + Clone,
 {
+    let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
     let server_handle = handle.clone();
-    let service = LoggingService::new(ApiVersionService::new(WorkloadService::new(
-        key_store,
-        Crypto::new()?,
-        runtime,
-    )?));
+    let service = LoggingService::new(
+        label,
+        ApiVersionService::new(WorkloadService::new(key_store, Crypto::new()?, runtime)?),
+    );
 
     info!("Listening on {} with 1 thread for workload API.", url);
 

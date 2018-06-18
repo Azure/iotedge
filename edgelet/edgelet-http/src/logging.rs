@@ -13,17 +13,19 @@ use hyper::{Body, Error as HyperError};
 
 #[derive(Clone)]
 pub struct LoggingService<T> {
+    label: String,
     inner: T,
 }
 
 impl<T> LoggingService<T> {
-    pub fn new(inner: T) -> LoggingService<T> {
-        LoggingService { inner }
+    pub fn new(label: String, inner: T) -> LoggingService<T> {
+        LoggingService { label, inner }
     }
 }
 
 pub struct ResponseFuture<T> {
     inner: T,
+    label: String,
     request: String,
     user_agent: String,
     pid: Option<Pid>,
@@ -50,7 +52,8 @@ where
             .unwrap_or_else(|| "-".to_string());
 
         info!(
-            "- - - [{}] \"{}\" {} {} \"-\" \"{}\" pid({})",
+            "[{}] - - - [{}] \"{}\" {} {} \"-\" \"{}\" pid({})",
+            self.label,
             Utc::now(),
             self.request,
             response.status(),
@@ -86,6 +89,7 @@ where
 
         let inner = self.inner.call(req);
         ResponseFuture {
+            label: self.label.clone(),
             inner,
             request,
             user_agent,
