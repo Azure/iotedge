@@ -1,9 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::fs::{File as FsFile, OpenOptions};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use base64;
 use config::{Config, Environment, File, FileFormat};
+use edgelet_utils::log_failure;
+use log::Level;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
+use serde_json;
+use sha2::{Digest, Sha256};
 use url::Url;
 use url_serde;
 
@@ -16,7 +24,7 @@ static DEFAULTS: &str = include_str!("config/unix/default.yaml");
 #[cfg(windows)]
 static DEFAULTS: &str = include_str!("config/windows/default.yaml");
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct Manual {
     device_connection_string: String,
@@ -28,7 +36,7 @@ impl Manual {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct Dps {
     #[serde(with = "url_serde")]
@@ -51,7 +59,7 @@ impl Dps {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
@@ -59,7 +67,7 @@ pub enum Provisioning {
     Dps(Dps),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Connect {
     #[serde(with = "url_serde")]
     workload_uri: Url,
@@ -77,7 +85,7 @@ impl Connect {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Listen {
     #[serde(with = "url_serde")]
     workload_uri: Url,
@@ -95,7 +103,7 @@ impl Listen {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
@@ -110,7 +118,7 @@ pub struct Settings<T> {
 
 impl<T> Settings<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + Serialize,
 {
     pub fn new(filename: Option<&str>) -> Result<Self, Error> {
         let mut config = Config::default();
@@ -158,6 +166,33 @@ where
         &self.homedir
     }
 
+    pub fn diff_with_cached(&self, path: PathBuf) -> Result<bool, Error> {
+        OpenOptions::new()
+            .read(true)
+            .open(path)
+            .map_err(Error::from)
+            .and_then(|mut file: FsFile| {
+                let mut buffer = String::new();
+                file.read_to_string(&mut buffer)?;
+                let encoded = serde_json::to_string(self)
+                    .map_err(Error::from)
+                    .map(|s| Sha256::digest_str(&s))
+                    .map(|s| base64::encode(&s))?;
+                if encoded == buffer {
+                    debug!("Config state matches supplied config.");
+                    Ok(false)
+                } else {
+                    info!("Detected change to config.");
+                    Ok(true)
+                }
+            })
+            .or_else(|err| {
+                log_failure(Level::Debug, &err);
+                debug!("Error reading config backup.");
+                Ok(true)
+            })
+    }
+
     pub fn network(&self) -> &str {
         &self.network
     }
@@ -167,14 +202,20 @@ where
 mod tests {
     use super::*;
     use edgelet_docker::DockerConfig;
+    use std::io::Write;
+    use tempdir::TempDir;
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS1: &str = "test/linux/sample_settings1.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS1: &str = "test/windows/sample_settings1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
 
@@ -221,6 +262,48 @@ mod tests {
         assert_eq!(
             connection_string,
             "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
+        );
+    }
+
+    #[test]
+    fn diff_with_same_cached_returns_false() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
+        let settings_to_write = serde_json::to_string(&settings).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        FsFile::create(path.clone())
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        assert_eq!(settings.diff_with_cached(path).unwrap(), false);
+    }
+
+    #[test]
+    fn diff_with_different_cached_returns_true() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let path = tmp_dir.path().join("cache");
+        let settings1 = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS1)).unwrap();
+        let settings_to_write = serde_json::to_string(&settings1).unwrap();
+        let sha_to_write = Sha256::digest_str(&settings_to_write);
+        let base64_to_write = base64::encode(&sha_to_write);
+        FsFile::create(path.clone())
+            .unwrap()
+            .write_all(base64_to_write.as_bytes())
+            .unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
+        assert_eq!(settings.diff_with_cached(path).unwrap(), true);
+    }
+
+    #[test]
+    fn diff_with_no_file_returns_true() {
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS)).unwrap();
+        assert_eq!(
+            settings
+                .diff_with_cached(PathBuf::from("i dont exist"))
+                .unwrap(),
+            true
         );
     }
 }

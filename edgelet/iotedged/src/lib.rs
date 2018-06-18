@@ -14,6 +14,8 @@ extern crate edgelet_http;
 extern crate edgelet_http_mgmt;
 extern crate edgelet_http_workload;
 extern crate edgelet_iothub;
+#[cfg(test)]
+extern crate edgelet_test_utils;
 extern crate edgelet_utils;
 extern crate env_logger;
 #[macro_use]
@@ -27,9 +29,12 @@ extern crate iothubservice;
 extern crate log;
 extern crate provisioning;
 extern crate serde;
+extern crate sha2;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+#[cfg(test)]
+extern crate tempdir;
 extern crate tokio_core;
 extern crate tokio_signal;
 extern crate url;
@@ -43,10 +48,14 @@ pub mod signal;
 
 use std::collections::HashMap;
 use std::env;
+use std::fs;
+use std::fs::{DirBuilder, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
-use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore, Sign};
+use edgelet_core::crypto::{DerivedKeyStore, KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey,
+                           MemoryKeyStore, Sign};
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
@@ -70,6 +79,7 @@ use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{BackupProvisioning, DpsProvisioning, ManualProvisioning,
                                  Provision, ProvisioningResult};
+use sha2::{Digest, Sha256};
 use tokio_core::reactor::{Core, Handle};
 use url::Url;
 
@@ -140,6 +150,12 @@ const UNIX_SCHEME: &str = "unix";
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
 
+/// This is the name of the settings backup file
+const EDGE_SETTINGS_STATE_FILENAME: &str = "settings_state";
+
+/// This is the name of the cache subdirectory for settings state
+const EDGE_SETTINGS_SUBDIR: &str = "cache";
+
 pub struct Main {
     settings: Settings<DockerConfig>,
     reactor: Core,
@@ -182,6 +198,19 @@ impl Main {
         init_docker_runtime(&runtime, &mut core)?;
 
         env::set_var(HOMEDIR_KEY, &settings.homedir());
+
+        // Detect if the settings were changed and if the device needs to be reconfigured
+        let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
+        let crypto = Crypto::new()?;
+        check_settings_state(
+            cache_subdir_path.clone(),
+            EDGE_SETTINGS_STATE_FILENAME,
+            &settings,
+            &runtime,
+            &mut core,
+            &crypto,
+        )?;
+
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 let (key_store, provisioning_result, root_key) =
@@ -199,10 +228,9 @@ impl Main {
                 )?;
             }
             Provisioning::Dps(dps) => {
-                let home_dir = env::var(HOMEDIR_KEY)?;
-                let path = Path::new(&home_dir).join(EDGE_PROVISIONING_BACKUP_FILENAME);
+                let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
                 let (key_store, provisioning_result, root_key) =
-                    dps_provision(&dps, hyper_client.clone(), &mut core, path)?;
+                    dps_provision(&dps, hyper_client.clone(), &mut core, dps_path)?;
                 start_api(
                     &settings,
                     core,
@@ -220,6 +248,60 @@ impl Main {
         info!("Shutdown complete");
         Ok(())
     }
+}
+
+fn check_settings_state<M, C>(
+    subdir_path: PathBuf,
+    filename: &str,
+    settings: &Settings<DockerConfig>,
+    runtime: &M,
+    core: &mut Core,
+    crypto: &C,
+) -> Result<(), Error>
+where
+    M: ModuleRuntime,
+    M::Error: Into<Error>,
+    C: MasterEncryptionKey,
+{
+    let path = subdir_path.join(filename);
+    let diff = settings.diff_with_cached(path)?;
+    if diff {
+        reconfigure(subdir_path, filename, settings, runtime, crypto, core)?;
+    }
+    Ok(())
+}
+
+fn reconfigure<M, C>(
+    subdir: PathBuf,
+    filename: &str,
+    settings: &Settings<DockerConfig>,
+    runtime: &M,
+    crypto: &C,
+    core: &mut Core,
+) -> Result<(), Error>
+where
+    M: ModuleRuntime,
+    M::Error: Into<Error>,
+    C: MasterEncryptionKey,
+{
+    // Remove all edge containers and destroy the cache (settings and dps backup)
+    core.run(runtime.remove_all().map_err(|err| err.into()))?;
+    let _u = fs::remove_dir_all(subdir.clone());
+
+    let path = subdir.join(filename);
+
+    DirBuilder::new().recursive(true).create(subdir)?;
+
+    // Generate a new master encryption key and save the new settings
+    // TODO pass back a specific error code indicating key already exists and ignore only
+    // that error
+    let _u = crypto.create_key();
+    let mut file = File::create(path)?;
+    serde_json::to_string(settings)
+        .map_err(Error::from)
+        .map(|s| Sha256::digest_str(&s))
+        .map(|s| base64::encode(&s))
+        .and_then(|sb| file.write_all(sb.as_bytes()).map_err(Error::from))
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
@@ -502,4 +584,134 @@ where
         .run_until(shutdown.map_err(|_| ()))
         .map_err(Error::from);
     Ok(run)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    use edgelet_core::ModuleRuntimeState;
+    use edgelet_test_utils::module::*;
+    use tempdir::TempDir;
+
+    #[cfg(unix)]
+    static SETTINGS: &str = "test/linux/sample_settings.yaml";
+    #[cfg(unix)]
+    static SETTINGS1: &str = "test/linux/sample_settings1.yaml";
+
+    #[cfg(windows)]
+    static SETTINGS: &str = "test/windows/sample_settings.yaml";
+    #[cfg(windows)]
+    static SETTINGS1: &str = "test/windows/sample_settings1.yaml";
+
+    #[derive(Clone, Debug, Fail)]
+    pub enum Error {
+        #[fail(display = "General error")]
+        General,
+    }
+
+    impl From<Error> for super::Error {
+        fn from(_error: Error) -> super::Error {
+            super::Error::from(ErrorKind::Var)
+        }
+    }
+
+    struct TestCrypto {}
+
+    impl MasterEncryptionKey for TestCrypto {
+        fn create_key(&self) -> Result<(), edgelet_core::Error> {
+            Ok(())
+        }
+        fn destroy_key(&self) -> Result<(), edgelet_core::Error> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn settings_first_time_creates_backup() {
+        let mut core = Core::new().unwrap();
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {};
+        assert_eq!(
+            check_settings_state(
+                tmp_dir.path().to_path_buf(),
+                "settings_state",
+                &settings,
+                &runtime,
+                &mut core,
+                &crypto
+            ).unwrap(),
+            ()
+        );
+        let expected = serde_json::to_string(&settings).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
+        let mut written = String::new();
+        File::open(tmp_dir.path().join("settings_state"))
+            .unwrap()
+            .read_to_string(&mut written)
+            .unwrap();
+
+        assert_eq!(expected_base64, written);
+    }
+
+    #[test]
+    fn settings_change_creates_new_backup() {
+        let mut core = Core::new().unwrap();
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::<DockerConfig>::new(Some(SETTINGS)).unwrap();
+        let config = TestConfig::new("microsoft/test-image".to_string());
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error> =
+            TestModule::new("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::new(Ok(module));
+        let crypto = TestCrypto {};
+        assert_eq!(
+            check_settings_state(
+                tmp_dir.path().to_path_buf(),
+                "settings_state",
+                &settings,
+                &runtime,
+                &mut core,
+                &crypto
+            ).unwrap(),
+            ()
+        );
+        let mut written = String::new();
+        File::open(tmp_dir.path().join("settings_state"))
+            .unwrap()
+            .read_to_string(&mut written)
+            .unwrap();
+
+        let settings1 = Settings::<DockerConfig>::new(Some(SETTINGS1)).unwrap();
+        assert_eq!(
+            check_settings_state(
+                tmp_dir.path().to_path_buf(),
+                "settings_state",
+                &settings1,
+                &runtime,
+                &mut core,
+                &crypto
+            ).unwrap(),
+            ()
+        );
+        let expected = serde_json::to_string(&settings1).unwrap();
+        let expected_sha = Sha256::digest_str(&expected);
+        let expected_base64 = base64::encode(&expected_sha);
+        let mut written1 = String::new();
+        File::open(tmp_dir.path().join("settings_state"))
+            .unwrap()
+            .read_to_string(&mut written1)
+            .unwrap();
+
+        assert_eq!(expected_base64, written1);
+        assert_ne!(written1, written);
+    }
 }

@@ -156,6 +156,7 @@ impl ModuleRuntime for ModuleClient {
     type StartFuture = Box<Future<Item = (), Error = Self::Error>>;
     type StopFuture = Box<Future<Item = (), Error = Self::Error>>;
     type SystemInfoFuture = Box<Future<Item = CoreSystemInfo, Error = Self::Error>>;
+    type RemoveAllFuture = Box<Future<Item = (), Error = Self::Error>>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         unimplemented!()
@@ -249,6 +250,15 @@ impl ModuleRuntime for ModuleClient {
 
     fn registry(&self) -> &Self::ModuleRegistry {
         self
+    }
+
+    fn remove_all(&self) -> Self::RemoveAllFuture {
+        let self_for_remove = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list.into_iter()
+                .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
+            future::join_all(n).map(|_| ())
+        }))
     }
 }
 

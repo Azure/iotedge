@@ -163,6 +163,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type StartFuture = FutureResult<(), Self::Error>;
     type StopFuture = FutureResult<(), Self::Error>;
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
+    type RemoveAllFuture = FutureResult<(), Self::Error>;
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module {
@@ -232,5 +233,9 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
 
     fn registry(&self) -> &Self::ModuleRegistry {
         &self.registry
+    }
+
+    fn remove_all(&self) -> Self::RemoveAllFuture {
+        future::ok(())
     }
 }

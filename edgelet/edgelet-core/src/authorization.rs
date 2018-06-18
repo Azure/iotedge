@@ -364,6 +364,7 @@ mod tests {
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
+        type RemoveAllFuture = FutureResult<(), Self::Error>;
 
         fn init(&self) -> Self::InitFuture {
             notimpl_error!()
@@ -406,6 +407,10 @@ mod tests {
 
         fn registry(&self) -> &Self::ModuleRegistry {
             self
+        }
+
+        fn remove_all(&self) -> Self::RemoveAllFuture {
+            notimpl_error!()
         }
     }
 }
