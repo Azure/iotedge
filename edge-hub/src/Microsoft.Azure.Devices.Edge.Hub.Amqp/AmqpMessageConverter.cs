@@ -59,31 +59,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.LockToken, lockToken);
             }
 
-            foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
+            if(sourceMessage.ApplicationProperties != null)
             {
-                string key = property.Key.ToString();
-                string value = property.Value as string;
-                switch (key)
+                foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
                 {
-                    case Constants.MessagePropertiesMessageSchemaKey:
-                        systemProperties[SystemProperties.MessageSchema] = value;
-                        break;
+                    string key = property.Key.ToString();
+                    string value = property.Value as string;
+                    switch (key)
+                    {
+                        case Constants.MessagePropertiesMessageSchemaKey:
+                            systemProperties[SystemProperties.MessageSchema] = value;
+                            break;
 
-                    case Constants.MessagePropertiesCreationTimeKey:
-                        systemProperties[SystemProperties.CreationTime] = value;
-                        break;
+                        case Constants.MessagePropertiesCreationTimeKey:
+                            systemProperties[SystemProperties.CreationTime] = value;
+                            break;
 
-                    case Constants.MessagePropertiesOperationKey:
-                        systemProperties[SystemProperties.Operation] = value;
-                        break;
+                        case Constants.MessagePropertiesOperationKey:
+                            systemProperties[SystemProperties.Operation] = value;
+                            break;
 
-                    case Constants.MessagePropertiesOutputNameKey:
-                        systemProperties[SystemProperties.OutputName] = value;
-                        break;
+                        case Constants.MessagePropertiesOutputNameKey:
+                            systemProperties[SystemProperties.OutputName] = value;
+                            break;
 
-                    default:
-                        properties[key] = value;
-                        break;
+                        default:
+                            properties[key] = value;
+                            break;
+                    }
                 }
             }
 
