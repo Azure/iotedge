@@ -27,8 +27,26 @@ add_groups()
     done
 }
 
+check_runtime()
+{
+    # Verify a container runtime exists before installing.
+
+    if ! getent group docker >/dev/null; then
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        echo ""
+        echo " ERROR: No container runtime detected."
+        echo ""
+        echo " Please install a container runtime and run this install again."
+        echo ""
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    fi
+
+    exit 1
+}
+
 case "$1" in
     install|upgrade)
+        check_runtime
         add_groups
     ;;
 
