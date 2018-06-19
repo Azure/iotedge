@@ -1769,9 +1769,18 @@ static int hsm_provision_edge_certificates(void)
             STORE_ENTRY_PKI_CERT *store_entry = get_pki_cert(g_crypto_store, OWNER_CA_ALIAS);
             if (store_entry == NULL)
             {
+                LOG_ERROR("Could not get certificate entry for issuer %s", OWNER_CA_ALIAS);
                 result = __FAILURE__;
             }
-            owner_ca_path = STRING_c_str(store_entry->cert_file);
+            else
+            {
+                owner_ca_path = STRING_c_str(store_entry->cert_file);
+                if (owner_ca_path == NULL)
+                {
+                    LOG_ERROR("Owner CA Path is NULL for issuer %s", OWNER_CA_ALIAS);
+                    result = __FAILURE__;
+                }
+            }
         }
         if (result == 0)
         {
