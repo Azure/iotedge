@@ -23,6 +23,12 @@ use error::{Error, ErrorKind};
 use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
             TpmAttestation, TpmRegistrationResult};
 
+/// This is the interval at which to poll DPS for registration assignment status
+const DPS_ASSIGNMENT_RETRY_INTERVAL_SECS: u64 = 10;
+
+/// This is the number of seconds to wait for DPS to complete assignment to a hub
+const DPS_ASSIGNMENT_TIMEOUT_SECS: u64 = 120;
+
 define_encode_set! {
     pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
 }
@@ -90,7 +96,6 @@ where
     tpm_ek: Bytes,
     tpm_srk: Bytes,
     key_store: A,
-    seconds_to_try_operation_status: u64,
 }
 
 impl<S, K, A> DpsClient<S, K, A>
@@ -106,7 +111,6 @@ where
         tpm_ek: Bytes,
         tpm_srk: Bytes,
         key_store: A,
-        seconds_to_try_operation_status: u64,
     ) -> Result<DpsClient<S, K, A>, Error> {
         Ok(DpsClient {
             client: Arc::new(RwLock::new(client)),
@@ -115,7 +119,6 @@ where
             tpm_ek,
             tpm_srk,
             key_store,
-            seconds_to_try_operation_status,
         })
     }
 
@@ -246,11 +249,17 @@ where
         scope_id: String,
         registration_id: String,
         operation_id: String,
-        seconds_to_try: u64,
         key: K,
+        retry_count: u64,
     ) -> Box<Future<Item = Option<DeviceRegistrationResult>, Error = Error>> {
-        let chain = Interval::new(Instant::now(), Duration::from_secs(1))
-            .take(seconds_to_try)
+        debug!(
+            "DPS registration result will retry {} times every {} seconds",
+            retry_count, DPS_ASSIGNMENT_RETRY_INTERVAL_SECS
+        );
+        let chain = Interval::new(
+            Instant::now(),
+            Duration::from_secs(DPS_ASSIGNMENT_RETRY_INTERVAL_SECS),
+        ).take(retry_count)
             .map_err(|_| Error::from(ErrorKind::TimerError))
             .and_then(move |_instant: Instant| {
                 debug!("Ask DPS for registration status");
@@ -352,10 +361,9 @@ where
         let registration_id_status = self.registration_id.clone();
         let tpm_ek = self.tpm_ek.clone();
         let tpm_srk = self.tpm_srk.clone();
-        let seconds_to_try = self.seconds_to_try_operation_status;
-        debug!(
-            "Starting DPS registration process, scope_id \"{}\", registration_id \"{}\"",
-            scope_id, registration_id
+        info!(
+            "Starting DPS registration with scope_id \"{}\", registration_id \"{}\"",
+            scope_id, registration_id,
         );
         let r = Self::register_with_auth(
             &self.client,
@@ -371,13 +379,16 @@ where
                     .map(|k| {
                         operation_status
                             .map(move |s| {
+                                let retry_count = (DPS_ASSIGNMENT_TIMEOUT_SECS
+                                    / DPS_ASSIGNMENT_RETRY_INTERVAL_SECS)
+                                    + 1;
                                 Either::A(Self::get_device_registration_result(
                                     client_with_token_status,
                                     scope_id_status,
                                     registration_id_status,
                                     s.operation_id().clone(),
-                                    seconds_to_try,
                                     k.clone(),
+                                    retry_count,
                                 ))
                             })
                             .unwrap_or_else(|| {
@@ -523,7 +534,6 @@ mod tests {
             Bytes::from("ek".to_string().into_bytes()),
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
-            5,
         ).unwrap();
         let task = dps.register().then(|result| {
             match result {
@@ -571,7 +581,6 @@ mod tests {
             Bytes::from("ek".to_string().into_bytes()),
             Bytes::from("srk".to_string().into_bytes()),
             MemoryKeyStore::new(),
-            5,
         ).unwrap();
         let task = dps.register().then(|result| {
             match result {
@@ -636,8 +645,8 @@ mod tests {
             "scope_id".to_string(),
             "reg".to_string(),
             "operation".to_string(),
-            5,
             key,
+            3,
         );
         let task = dps_operation.map(|result| {
             match result {
@@ -683,8 +692,8 @@ mod tests {
             "scope_id".to_string(),
             "reg".to_string(),
             "operation".to_string(),
-            5,
             key,
+            3,
         );
         let task = dps_operation.map(|result| {
             match result {

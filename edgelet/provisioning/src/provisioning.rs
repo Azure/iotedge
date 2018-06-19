@@ -193,11 +193,6 @@ where
         self,
         key_activator: Self::Hsm,
     ) -> Box<Future<Item = ProvisioningResult, Error = Error>> {
-        let timeout = 30;
-        info!(
-            "Starting DPS registration with a {} second timeout",
-            timeout
-        );
         let d = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
@@ -205,7 +200,6 @@ where
             Bytes::from(self.hsm_tpm_ek.as_ref()),
             Bytes::from(self.hsm_tpm_srk.as_ref()),
             key_activator,
-            timeout, /* seconds to retry pinging dps for status */
         ).map(|c| {
             Either::A(
                 c.register()
