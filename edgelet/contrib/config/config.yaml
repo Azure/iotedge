@@ -94,7 +94,7 @@ connect:
 # They can be different than the connect uris.
 #
 # For instance, when using the fd:// scheme for systemd,
-#   the listen address is fd://iotedge.workload,
+#   the listen address is fd://iotedge.socket,
 #   but the connect address is unix:///var/run/iotedge/workload.sock
 #
 ###############################################################################
@@ -114,19 +114,14 @@ listen:
 homedir: "/var/lib/iotedge"
 
 ###############################################################################
-# Container Runtime settings
+# Moby Container Runtime settings
 ###############################################################################
 #
-# This configures the uri for the container runtime.
-#
-###############################################################################
-
-docker_uri: "unix:///var/run/docker.sock"
-
-###############################################################################
-#
-# This configures the network on which the containers will be created.
+# uri - configures the uri for the container runtime.
+# network - configures the network on which the containers will be created.
 #
 ###############################################################################
 
-network: "azure-iot-edge"
+moby_runtime:
+  uri: "unix:///var/run/docker.sock"
+#   network: "azure-iot-edge"

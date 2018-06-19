@@ -21,8 +21,8 @@ listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
 
-docker_uri: "npipe://./pipe/docker_engine"
-
 homedir: "C:\\Temp\\iotedge"
 
-network: "azure-iot-edge"
+moby_runtime:
+  uri: "npipe://./pipe/docker_engine"
+  network: "azure-iot-edge"

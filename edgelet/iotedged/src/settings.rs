@@ -104,16 +104,31 @@ impl Listen {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct MobyRuntime {
+    #[serde(with = "url_serde")]
+    uri: Url,
+    network: String,
+}
+
+impl MobyRuntime {
+    pub fn uri(&self) -> &Url {
+        &self.uri
+    }
+
+    pub fn network(&self) -> &str {
+        &self.network
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
     connect: Connect,
     listen: Listen,
-    #[serde(with = "url_serde")]
-    docker_uri: Url,
     homedir: PathBuf,
-    network: String,
+    moby_runtime: MobyRuntime,
 }
 
 impl<T> Settings<T>
@@ -158,12 +173,12 @@ where
         &self.listen
     }
 
-    pub fn docker_uri(&self) -> &Url {
-        &self.docker_uri
-    }
-
     pub fn homedir(&self) -> &Path {
         &self.homedir
+    }
+
+    pub fn moby_runtime(&self) -> &MobyRuntime {
+        &self.moby_runtime
     }
 
     pub fn diff_with_cached(&self, path: PathBuf) -> Result<bool, Error> {
@@ -191,10 +206,6 @@ where
                 debug!("Error reading config backup.");
                 Ok(true)
             })
-    }
-
-    pub fn network(&self) -> &str {
-        &self.network
     }
 }
 

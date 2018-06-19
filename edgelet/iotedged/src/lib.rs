@@ -187,13 +187,13 @@ impl Main {
             .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
             .build(&handle);
 
-        let network_id = if settings.network().is_empty() {
+        let network_id = if settings.moby_runtime().network().is_empty() {
             EDGE_NETWORKID
         } else {
-            settings.network()
+            settings.moby_runtime().network()
         }.to_string();
         info!("Using runtime network id {}", network_id);
-        let runtime = DockerModuleRuntime::new(settings.docker_uri(), &handle)?
+        let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri(), &handle)?
             .with_network_id(network_id.clone());
 
         init_docker_runtime(&runtime, &mut core)?;
