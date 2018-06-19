@@ -68,7 +68,7 @@ if (run_unittests)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -std=c99")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC")
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -std=c99 -Wno-unknown-pragmas -Wno-strict-aliasing ")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -Wall -Werror -std=c99 -Wno-unknown-pragmas ")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Werror ")
     # todo enable extra warnings when azure shared util warnings are fixed
