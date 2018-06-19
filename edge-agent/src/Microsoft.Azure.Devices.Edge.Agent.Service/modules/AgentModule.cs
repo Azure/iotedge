@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Extensions.Logging;
 
     public class AgentModule : Module
@@ -23,6 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly int coolOffTimeUnitInSeconds;
         readonly bool usePersistentStorage;
         readonly string storagePath;
+        readonly Option<Uri> workloadUri;
+        readonly Option<string> moduleId;
+        readonly Option<string> moduleGenerationId;
         const string DockerType = "docker";
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -61,13 +65,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         }
 
         public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
-            bool usePersistentStorage, string storagePath)
+            bool usePersistentStorage, string storagePath) : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Option.None<string>())
+        {
+
+        }
+
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
+            bool usePersistentStorage, string storagePath, Option<Uri> workloadUri, Option<string> moduleId, Option<string> moduleGenerationId)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
             this.coolOffTimeUnitInSeconds = coolOffTimeUnitInSeconds;
             this.usePersistentStorage = usePersistentStorage;
-            this.storagePath = usePersistentStorage ? Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath)) : storagePath;
+            this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.workloadUri = workloadUri;
+            this.moduleId = moduleId;
+            this.moduleGenerationId = moduleGenerationId;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -191,30 +204,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IPlanRunner>()
                 .SingleInstance();
 
+            // IEncryptionDecryptionProvider
+            builder.Register(
+                    async c =>
+                    {
+                        IEncryptionProvider provider = await this.workloadUri.Map(
+                            async uri =>
+                            {
+                                IEncryptionProvider encryptionProvider = await EncryptionProvider.CreateAsync(this.storagePath, this.workloadUri.OrDefault(), Constants.EdgeletWorkloadApiVersion, this.moduleId.OrDefault(), this.moduleGenerationId.OrDefault(), Constants.EdgeletInitializationVectorFileName);
+                                return encryptionProvider;
+                            }).GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
+
+                        return provider;
+                    })
+                .As<Task<IEncryptionProvider>>()
+                .SingleInstance();
+
             // Task<Agent>
             builder.Register(
                 async c =>
-                {
-                    var configSource = c.Resolve<Task<IConfigSource>>();
-                    var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
-                    var planner = c.Resolve<Task<IPlanner>>();
-                    var planRunner = c.Resolve<IPlanRunner>();
-                    var reporter = c.Resolve<IReporter>();
-                    var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
-                    var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                    var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
-                    return await Agent.Create(
-                        await configSource,
-                        await planner,
-                        planRunner,
-                        reporter,
-                        moduleIdentityLifecycleManager,
-                        await environmentProvider,
-                        deploymentConfigInfoStore,
-                        deploymentConfigInfoSerde);
-                })
-                .As<Task<Agent>>()
-                .SingleInstance();
+                    {
+                        var configSource = c.Resolve<Task<IConfigSource>>();
+                        var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
+                        var planner = c.Resolve<Task<IPlanner>>();
+                        var planRunner = c.Resolve<IPlanRunner>();
+                        var reporter = c.Resolve<IReporter>();
+                        var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
+                        var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                        var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
+                        var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
+                        return await Agent.Create(
+                            await configSource,
+                            await planner,
+                            planRunner,
+                            reporter,
+                            moduleIdentityLifecycleManager,
+                            await environmentProvider,
+                            deploymentConfigInfoStore,
+                            deploymentConfigInfoSerde,
+                            await encryptionProvider);
+                    })
+                    .As<Task<Agent>>()
+                    .SingleInstance();
 
             base.Load(builder);
         }

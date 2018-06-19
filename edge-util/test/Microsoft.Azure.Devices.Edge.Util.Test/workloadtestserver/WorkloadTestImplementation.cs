@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 {
     using System;
+    using System.IO;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
@@ -23,9 +24,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
             }
         }
 
-        public Task<EncryptResponse> EncryptAsync(string api_version, string name, string genid, EncryptRequest payload) => throw new System.NotImplementedException();
+        public Task<EncryptResponse> EncryptAsync(string api_version, string name, string genid, EncryptRequest payload)
+        {
+            string encrypted = Encoding.UTF8.GetString(payload.InitializationVector) + Encoding.UTF8.GetString(payload.Plaintext);
+            return Task.FromResult(new EncryptResponse() { Ciphertext = Encoding.UTF8.GetBytes(encrypted) });
+        }
 
-        public Task<DecryptResponse> DecryptAsync(string api_version, string name, string genid, DecryptRequest payload) => throw new System.NotImplementedException();
+        public Task<DecryptResponse> DecryptAsync(string api_version, string name, string genid, DecryptRequest payload)
+        {
+            string dencrypted = Encoding.UTF8.GetString(payload.InitializationVector) + Encoding.UTF8.GetString(payload.Ciphertext);
+            return Task.FromResult(new DecryptResponse() { Plaintext = Encoding.UTF8.GetBytes(dencrypted) });
+        }
 
         public Task<CertificateResponse> CreateIdentityCertificateAsync(string api_version, string name, string genid) => throw new System.NotImplementedException();
 

@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfig>>();
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, configRefreshFrequency);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, this.configRefreshFrequency);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()
@@ -52,13 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IConfigSource>
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var edgeAgentConnection = c.Resolve<IEdgeAgentConnection>();
+                        IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
                         var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
-                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde);
-                        return Task.FromResult(backupConfigSource);
+                        IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde, encryptionProvider);
+                        return backupConfigSource;
                     })
                 .As<Task<IConfigSource>>()
                 .SingleInstance();

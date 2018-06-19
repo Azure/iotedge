@@ -13,11 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -111,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
 
                 Agent agent = await Agent.Create(configSource.Object, new RestartPlanner(commandFactory), new OrderedPlanRunner(), reporter,
-                    moduleIdentityLifecycleManager.Object, environmentProvider, configStore, deploymentConfigInfoSerde);
+                    moduleIdentityLifecycleManager.Object, environmentProvider, configStore, deploymentConfigInfoSerde, NullEncryptionProvider.Instance);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

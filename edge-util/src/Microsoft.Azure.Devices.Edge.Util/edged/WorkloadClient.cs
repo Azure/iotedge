@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public async Task<CertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration)
         {
-            var request = new ServerCertificateRequest()
+            var request = new ServerCertificateRequest
             {
                 CommonName = hostname,
                 Expiration = expiration
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public async Task<string> EncryptAsync(string initializationVector, string plainText)
         {
-            var request = new EncryptRequest()
+            var request = new EncryptRequest
             {
                 Plaintext = Encoding.UTF8.GetBytes(plainText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
@@ -55,15 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.workloadUri) };
                 EncryptResponse result = await this.Execute(() => edgeletHttpClient.EncryptAsync(this.apiVersion, this.moduleId, this.moduleGenerationId, request), "Encrypt");
-                return Encoding.UTF8.GetString(result.Ciphertext);
+                return Convert.ToBase64String(result.Ciphertext);
             }
         }
 
         public async Task<string> DecryptAsync(string initializationVector, string encryptedText)
         {
-            var request = new DecryptRequest()
+            var request = new DecryptRequest
             {
-                Ciphertext = Encoding.UTF8.GetBytes(encryptedText),
+                Ciphertext = Convert.FromBase64String(encryptedText),
                 InitializationVector = Encoding.UTF8.GetBytes(initializationVector)
             };
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.workloadUri))

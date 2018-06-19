@@ -17,12 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
         readonly IConfigSource underlying;
         readonly AsyncLock sync = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> serde;
+        readonly IEncryptionProvider encryptionProvider;
 
-        public FileBackupConfigSource(string path, IConfigSource underlying, ISerde<DeploymentConfigInfo> serde)
+        public FileBackupConfigSource(string path, IConfigSource underlying, ISerde<DeploymentConfigInfo> serde, IEncryptionProvider encryptionProvider)
         {
             this.configFilePath = Preconditions.CheckNonWhiteSpace(path, nameof(path));
             this.underlying = Preconditions.CheckNotNull(underlying, nameof(underlying));
             this.serde = Preconditions.CheckNotNull(serde, nameof(serde));
+            this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(IEncryptionProvider));
             Events.Created(this.configFilePath);
         }
 
@@ -40,7 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
                 {
                     using (await this.sync.LockAsync())
                     {
-                        string json = await DiskFile.ReadAllAsync(this.configFilePath);
+                        string encryptedJson = await DiskFile.ReadAllAsync(this.configFilePath);
+                        string json = await this.encryptionProvider.DecryptAsync(encryptedJson);
                         DeploymentConfigInfo deploymentConfigInfo = this.serde.Deserialize(json);
                         Events.ObtainedDeploymentFromBackup(this.configFilePath);
                         return deploymentConfigInfo;
@@ -62,9 +65,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
                 if (deploymentConfigInfo.Exception.HasValue == false)
                 {
                     string json = this.serde.Serialize(deploymentConfigInfo);
+                    string encrypted = await this.encryptionProvider.EncryptAsync(json);
                     using (await this.sync.LockAsync())
                     {
-                        await DiskFile.WriteAllAsync(this.configFilePath, json);
+                        await DiskFile.WriteAllAsync(this.configFilePath, encrypted);
                     }
                 }
             }

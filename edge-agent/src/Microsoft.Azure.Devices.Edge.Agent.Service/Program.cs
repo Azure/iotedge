@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
                 coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
-                storagePath = usePersistentStorage ? GetStoragePath(configuration) : string.Empty;
+                storagePath = GetStoragePath(configuration);
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -98,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             try
             {
                 var builder = new ContainerBuilder();
-                builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                 builder.RegisterModule(new LoggingModule(dockerLoggingDriver, dockerLoggingOptions));
                 Option<string> productInfo = versionInfo != VersionInfo.Empty ? Option.Some(versionInfo.ToString()) : Option.None<string>();
                 Option<UpstreamProtocol> upstreamProtocol = configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol();
@@ -107,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case Constants.DockerMode:
                         var dockerUri = new Uri(configuration.GetValue<string>("DockerUri"));
                         string deviceConnectionString = configuration.GetValue<string>("DeviceConnectionString");
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, productInfo));
                         break;
 
@@ -115,6 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+                        string moduleId = configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                        string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(moduleId), Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
                         break;
 

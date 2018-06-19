@@ -30,16 +30,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockModuleLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
 
-            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, null, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, null, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, null, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, null, configStore, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, null, DeploymentConfigInfo.Empty, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, null, serde));
-            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, null));
+            Assert.Throws<ArgumentNullException>(() => new Agent(null, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, null, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, null, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, null, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, null, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, null, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, null, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, null, serde, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, null, encryptionDecryptionProvider));
+            Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, null));
         }
 
         [Fact]
@@ -57,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
@@ -76,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(Plan.Empty));
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             await agent.ReconcileAsync(token);
 
@@ -102,13 +105,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).Throws<InvalidOperationException>();
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             // Act
             // Assert
@@ -160,6 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfigInfo = new DeploymentConfigInfo(10, testException);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -168,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == statusCode)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             // Act
             // Assert
@@ -193,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
@@ -201,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.Setup(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             // Act
             // Assert
@@ -226,6 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
@@ -241,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             // Act
             // Assert
@@ -288,6 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
@@ -301,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success))
                 .Returns(Task.CompletedTask);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
 
             await agent.ReconcileAsync(token);
 
@@ -327,6 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo.Object, new SystemModules(null, null), ImmutableDictionary<string, IModule>.Empty));
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -334,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Throws<InvalidOperationException>();
 
             // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
             await agent.ReconcileAsync(token);
 
             // Assert
@@ -357,13 +366,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .Throws<InvalidOperationException>();
             mockEnvironment.Setup(e => e.GetModulesAsync(token))
                 .ReturnsAsync(ModuleSet.Empty);
 
             // Act
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
             await agent.ReconcileAsync(token);
 
             // Assert
@@ -385,6 +395,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>
             {
                 { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
@@ -397,7 +408,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockEnvironment.Setup(e => e.GetModulesAsync(token))
                 .ReturnsAsync(ModuleSet.Empty);
 
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
             await agent.ReportShutdownAsync(token);
 
             // Assert

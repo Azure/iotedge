@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -161,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
             var response = new CertificateResponse()
             {
-                Certificate = TestCertificateHelper.CertificatePem,
+                Certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}",
                 Expiration = DateTime.UtcNow.AddDays(1),
                 PrivateKey = new PrivateKey()
                 {
@@ -170,8 +171,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             };
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateResponse(response);
 
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
-            Assert.Equal(chain.Count(), 0);
+            Assert.Equal(chain.Count(), 1);
+            Assert.Equal(expected, chain.First());
         }
     }
 }

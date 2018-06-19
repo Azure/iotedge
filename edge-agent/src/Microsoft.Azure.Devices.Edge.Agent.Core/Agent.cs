@@ -28,13 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly IEnvironmentProvider environmentProvider;
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
+        readonly IEncryptionProvider encryptionProvider;
         DeploymentConfigInfo currentConfig;
 
         public Agent(IConfigSource configSource, IEnvironmentProvider environmentProvider,
             IPlanner planner, IPlanRunner planRunner, IReporter reporter,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IEntityStore<string, string> configStore, DeploymentConfigInfo initialDeployedConfigInfo,
-            ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde)
+            ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
+            IEncryptionProvider encryptionProvider)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -46,12 +48,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.currentConfig = Preconditions.CheckNotNull(initialDeployedConfigInfo);
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
+            this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
             Events.AgentCreated();
         }
 
         public static async Task<Agent> Create(IConfigSource configSource, IPlanner planner, IPlanRunner planRunner, IReporter reporter,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager, IEnvironmentProvider environmentProvider,
-            IEntityStore<string, string> configStore, ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde)
+            IEntityStore<string, string> configStore, ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde, IEncryptionProvider  encryptionProvider)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -60,14 +63,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             try
             {
                 Option<string> deploymentConfigInfoJson = await Preconditions.CheckNotNull(configStore, nameof(configStore)).Get(StoreConfigKey);
-                deploymentConfigInfo = deploymentConfigInfoJson.Map(json => deploymentConfigInfoSerde.Deserialize(json));
+                await deploymentConfigInfoJson.ForEachAsync(async json =>
+                {
+                    string decryptedJson = await encryptionProvider.DecryptAsync(json);
+                    deploymentConfigInfo = Option.Some(deploymentConfigInfoSerde.Deserialize(decryptedJson));
+                });
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
                 Events.ErrorDeserializingConfig(ex);
             }
             var agent = new Agent(configSource, environmentProvider, planner, planRunner, reporter, moduleIdentityLifecycleManager,
-                configStore, deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty), deploymentConfigInfoSerde);
+                configStore, deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty), deploymentConfigInfoSerde, encryptionProvider);
             return agent;
         }
 
@@ -209,7 +216,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         {
             this.environment = this.environmentProvider.Create(deploymentConfigInfo.DeploymentConfig);
             this.currentConfig = deploymentConfigInfo;
-            await this.configStore.Put(StoreConfigKey, this.deploymentConfigInfoSerde.Serialize(deploymentConfigInfo));
+
+            string encryptedConfig = await this.encryptionProvider.EncryptAsync(this.deploymentConfigInfoSerde.Serialize(deploymentConfigInfo));
+            await this.configStore.Put(StoreConfigKey, encryptedConfig);
         }
 
         public async Task HandleShutdown(CancellationToken token)

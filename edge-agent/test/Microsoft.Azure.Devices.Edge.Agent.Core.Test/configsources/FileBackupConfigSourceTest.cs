@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             var underlying = new Mock<IConfigSource>();
 
-            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, this.GetSerde()))
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance))
             {
                 Assert.NotNull(configSource);
             }
@@ -59,10 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             var underlying = new Mock<IConfigSource>();
 
-            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource("", underlying.Object, this.GetSerde()));
-            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource(null, underlying.Object, this.GetSerde()));
-            Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, null, this.GetSerde()));
-            Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, underlying.Object, null));
+            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource("", underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentException>(() => new FileBackupConfigSource(null, underlying.Object, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, null, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, underlying.Object, null, NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentNullException>(() => new FileBackupConfigSource(this.tempFileName, underlying.Object, this.GetSerde(), null));
         }
 
         [Fact]
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 .ReturnsAsync(ValidConfigInfo1)
                 .ThrowsAsync(new InvalidOperationException());
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
-            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
             {
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
                 Assert.NotNull(config1);
@@ -115,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
             // Act
-            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
             {
                 // this call should fetch the config properly
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
@@ -155,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
             // Act
-            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
             {
                 // this call should fetch the config properly
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
@@ -182,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
             // Act
-            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde))
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, NullEncryptionProvider.Instance))
             {
                 // this call should fetch the config properly
                 DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
