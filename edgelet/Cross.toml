@@ -1,3 +1,8 @@
+[build.env]
+passthrough = [
+    "BUILD_SOURCEVERSION",
+    "VERSION",
+]
 
 [target.armv7-unknown-linux-gnueabihf]
 image = "edgebuilds.azurecr.io/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf:0.2"

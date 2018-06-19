@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use clap::{App, Arg};
+use edgelet_core;
 use edgelet_docker::DockerConfig;
 
 use error::Error;
@@ -9,6 +10,9 @@ use settings::Settings;
 
 pub fn init() -> Result<Settings<DockerConfig>, Error> {
     logging::init();
+
+    info!("Starting Azure IoT Edge Security Daemon");
+    info!("Version - {}", edgelet_core::version());
 
     let matches = App::new(crate_name!())
         .version(crate_version!())

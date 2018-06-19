@@ -15,7 +15,8 @@ IMAGE="edgebuilds.azurecr.io/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabihf
 
 PACKAGE_NAME="libiothsm-std"
 REVISION=${REVISION:-1}
-VERSION=$(cat $PROJECT_ROOT/version.txt)
+DEFAULT_VERSION=$(cat $PROJECT_ROOT/version.txt)
+VERSION=${VERSION:-$DEFAULT_VERSION}
 DEBIAN_VERSION="$VERSION-$REVISION"
 
 docker pull "$IMAGE"

@@ -48,7 +48,7 @@ fn run() -> Result<(), Error> {
     let mut core = Core::new()?;
 
     let matches = App::new(crate_name!())
-        .version(crate_version!())
+        .version(edgelet_core::version())
         .about(crate_description!())
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(

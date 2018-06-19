@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use edgelet_core;
 use futures::future::{self, FutureResult};
 
 use error::Error;
@@ -19,7 +20,7 @@ impl Command for Version {
 
     #[cfg_attr(feature = "cargo-clippy", allow(print_literal))]
     fn execute(&mut self) -> Self::Future {
-        println!("{} {}", crate_name!(), crate_version!());
+        println!("{} {}", crate_name!(), edgelet_core::version());
         future::ok(())
     }
 }
