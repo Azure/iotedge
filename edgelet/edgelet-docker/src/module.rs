@@ -12,6 +12,7 @@ use edgelet_core::{pid::Pid, Module, ModuleRuntimeState, ModuleStatus};
 use error::{Error, Result};
 
 pub const MODULE_TYPE: &str = "docker";
+pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
 pub struct DockerModule<C: Connect> {
     client: DockerClient<C>,
@@ -88,12 +89,16 @@ impl<C: Connect> Module for DockerModule<C> {
                                 .with_started_at(
                                     state
                                         .started_at()
+                                        .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
                                         .and_then(|started_at| DateTime::from_str(started_at).ok()),
                                 )
                                 .with_finished_at(
-                                    state.finished_at().and_then(|finished_at| {
-                                        DateTime::from_str(finished_at).ok()
-                                    }),
+                                    state
+                                        .finished_at()
+                                        .and_then(|d| if d != MIN_DATE { Some(d) } else { None })
+                                        .and_then(|finished_at| {
+                                            DateTime::from_str(finished_at).ok()
+                                        }),
                                 )
                                 .with_image_id(resp.id().cloned())
                                 .with_pid(&state
@@ -110,9 +115,10 @@ impl<C: Connect> Module for DockerModule<C> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::string::ToString;
 
-    use chrono::prelude::*;
     use hyper::Client;
     use serde::Serialize;
     use time::Duration;
@@ -335,6 +341,33 @@ mod tests {
         ).unwrap();
 
         let runtime_state = core.run(docker_module.runtime_state()).unwrap();
+        assert_eq!(None, runtime_state.finished_at());
+    }
+
+    #[test]
+    fn module_runtime_state_with_min_dates() {
+        let started_at = MIN_DATE.to_string();
+        let finished_at = MIN_DATE.to_string();
+        let mut core = Core::new().unwrap();
+        let docker_module = DockerModule::new(
+            create_api_client(
+                &core,
+                InlineResponse200::new()
+                    .with_state(
+                        InlineResponse200State::new()
+                            .with_exit_code(10)
+                            .with_status("stopped".to_string())
+                            .with_started_at(started_at.clone())
+                            .with_finished_at(finished_at.clone()),
+                    )
+                    .with_id("mod1".to_string()),
+            ),
+            "mod1",
+            DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),
+        ).unwrap();
+
+        let runtime_state = core.run(docker_module.runtime_state()).unwrap();
+        assert_eq!(None, runtime_state.started_at());
         assert_eq!(None, runtime_state.finished_at());
     }
 }
