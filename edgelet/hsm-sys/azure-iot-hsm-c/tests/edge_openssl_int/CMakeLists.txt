@@ -12,6 +12,8 @@ set(theseTestsName edge_openssl_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
+prepare_edge_homedir(${theseTestsName})
+
 set(${theseTestsName}_test_files
     ../../src/certificate_info.c
     ../../src/edge_pki_openssl.c

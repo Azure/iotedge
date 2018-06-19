@@ -96,6 +96,21 @@ size_t TEST_CIPHER_SIZE = sizeof(TEST_CIPHER);
 // Test helpers
 //#############################################################################
 
+static void test_helper_setup_homedir(void)
+{
+#if defined(TESTONLY_IOTEDGE_HOMEDIR)
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
+    #else
+        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
+    #endif
+    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+#else
+    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
+#endif
+}
+
 //#############################################################################
 // Test cases
 //#############################################################################
@@ -107,6 +122,7 @@ BEGIN_TEST_SUITE(edge_openssl_enc_tests)
         TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
+        test_helper_setup_homedir();
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)

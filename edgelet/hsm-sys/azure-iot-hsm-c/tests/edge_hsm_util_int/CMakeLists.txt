@@ -12,6 +12,8 @@ set(theseTestsName edge_hsm_util_int)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
+prepare_edge_homedir(${theseTestsName})
+
 set(${theseTestsName}_test_files
     ../../src/hsm_utils.c
     ../../src/hsm_log.c

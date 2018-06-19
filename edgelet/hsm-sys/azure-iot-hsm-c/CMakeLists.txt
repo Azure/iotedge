@@ -101,6 +101,18 @@ function(copy_iothsm_dll whatIsBuilding whatIsBuildingLocation)
     endif()
 endfunction(copy_iothsm_dll)
 
+function(prepare_edge_homedir whatIsBuilding)
+    if(WIN32)
+        STRING(CONCAT testOnlyHomeDir  "$ENV{Temp}" "/" "${whatIsBuilding}")
+        STRING(REGEX REPLACE "\\\\" "/" testOnlyHomeDir ${testOnlyHomeDir} )
+    else()
+        STRING(CONCAT testOnlyHomeDir  "/tmp/" "${whatIsBuilding}")
+    endif(WIN32)
+
+    FILE(MAKE_DIRECTORY ${testOnlyHomeDir})
+    add_definitions(-DTESTONLY_IOTEDGE_HOMEDIR="${testOnlyHomeDir}")
+endfunction(prepare_edge_homedir)
+
 if (run_unittests)
     enable_testing()
     set(save_ut ${run_unittests})

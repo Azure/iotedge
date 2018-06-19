@@ -37,6 +37,21 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 //#############################################################################
 // Test helpers
 //#############################################################################
+static void test_helper_setup_homedir(void)
+{
+#if defined(TESTONLY_IOTEDGE_HOMEDIR)
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
+    #else
+        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
+    #endif
+    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+#else
+    #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
+#endif
+}
+
 int test_helper_write_data_to_file
 (
     const char* file_name,
@@ -95,6 +110,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             unsigned char numeric[] = {'1', '2', '3', '4'};
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, numeric, sizeof(numeric)));
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_EMPTY, NULL, 0));
+            test_helper_setup_homedir();
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)

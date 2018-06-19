@@ -84,6 +84,7 @@ static const char *ENC_KEYS_DIR = "enc_keys";
 static HSM_STATE_T g_hsm_state = HSM_STATE_UNPROVISIONED;
 
 static CRYPTO_STORE* g_crypto_store = NULL;
+static int g_store_ref_count = 0;
 
 //##############################################################################
 // Forward declarations
@@ -272,7 +273,7 @@ static int remove_key
     LIST_ITEM_HANDLE list_item = singlylinkedlist_find(key_list, find_key_cb, key_name);
     if (list_item == NULL)
     {
-        LOG_ERROR("Key not found %s", key_name);
+        LOG_DEBUG("Key not found %s", key_name);
         result = __FAILURE__;
     }
     else
@@ -824,7 +825,7 @@ static int delete_encryption_key_file(const char *key_name)
             LOG_ERROR("Key file path NULL");
             result = __FAILURE__;
         }
-        else if (delete_file(key_file) != 0)
+        else if (is_file_valid(key_file) && (delete_file(key_file) != 0))
         {
             LOG_ERROR("Could not delete key file");
             result = __FAILURE__;
@@ -1774,9 +1775,7 @@ static int hsm_provision_edge_certificates(void)
         }
         if (result == 0)
         {
-            result = edge_hsm_client_store_insert_pki_trusted_cert(g_crypto_store,
-                                                                   OWNER_CA_ALIAS,
-                                                                   owner_ca_path);
+            result = put_pki_trusted_cert(g_crypto_store, OWNER_CA_ALIAS, owner_ca_path);
         }
     }
 
@@ -1827,15 +1826,22 @@ static int edge_hsm_client_store_create(const char* store_name)
         }
         else
         {
-            g_hsm_state = HSM_STATE_PROVISIONED;
-            if ((result = hsm_provision()) != 0)
+            if (hsm_provision() != 0)
             {
                 g_hsm_state = HSM_STATE_PROVISIONING_ERROR;
+                result = __FAILURE__;
+            }
+            else
+            {
+                g_store_ref_count = 1;
+                g_hsm_state = HSM_STATE_PROVISIONED;
+                result = 0;
             }
         }
     }
     else
     {
+        g_store_ref_count++;
         result = 0;
     }
 
@@ -1858,10 +1864,14 @@ static int edge_hsm_client_store_destroy(const char* store_name)
     }
     else
     {
-        result = hsm_deprovision();
-        destroy_store(g_crypto_store);
-        g_hsm_state = HSM_STATE_UNPROVISIONED;
-        g_crypto_store = NULL;
+        g_store_ref_count--;
+        if (g_store_ref_count == 0)
+        {
+            result = hsm_deprovision();
+            destroy_store(g_crypto_store);
+            g_hsm_state = HSM_STATE_UNPROVISIONED;
+            g_crypto_store = NULL;
+        }
     }
 
     return result;
@@ -1981,14 +1991,25 @@ static int edge_hsm_client_store_remove_key
     else
     {
         result = 0;
-        if (remove_key((CRYPTO_STORE*)handle, key_type, key_name) != 0)
-        {
-            LOG_DEBUG("Key not loaded in HSM store %s", key_name);
-            result = __FAILURE__;
-        }
         if (key_type == HSM_KEY_ENCRYPTION)
         {
+            if (remove_key((CRYPTO_STORE*)handle, key_type, key_name) != 0)
+            {
+                LOG_DEBUG("Encryption key not loaded in HSM store %s", key_name);
+            }
             result = delete_encryption_key_file(key_name);
+        }
+        else
+        {
+            if (remove_key((CRYPTO_STORE*)handle, key_type, key_name) != 0)
+            {
+                LOG_ERROR("Key not loaded in HSM store %s", key_name);
+                result = __FAILURE__;
+            }
+            else
+            {
+                result = 0;
+            }
         }
     }
 
@@ -2226,7 +2247,6 @@ static int edge_hsm_client_store_create_pki_cert_internal
         LOG_ERROR("Invalid certificate alias value");
         result = __FAILURE__;
     }
-
     else
     {
         STRING_HANDLE alias_cert_handle = NULL;
@@ -2485,8 +2505,8 @@ static int edge_hsm_client_store_insert_encryption_key
     }
     else if (key_exists((CRYPTO_STORE*)handle, HSM_KEY_ENCRYPTION, key_name))
     {
-        LOG_ERROR("HSM store already has encryption key set %s", key_name);
-        result = __FAILURE__;
+        LOG_DEBUG("HSM store already has encryption key set %s", key_name);
+        result = 0;
     }
     else
     {

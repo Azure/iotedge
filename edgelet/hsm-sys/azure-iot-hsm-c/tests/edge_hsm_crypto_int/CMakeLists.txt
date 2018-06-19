@@ -13,6 +13,8 @@ set(theseTestsName edge_hsm_crypto_inut)
 
 add_definitions(-DGB_DEBUG_ALLOC)
 
+prepare_edge_homedir(${theseTestsName})
+
 set(${theseTestsName}_test_files
     edge_hsm_crypto_int.c
 )

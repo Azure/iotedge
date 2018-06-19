@@ -14,19 +14,31 @@ fn crypto_master_key_success() {
     // act
     match crypto.destroy_key() {
         // assert
-        Ok(_result) => panic!("Destroy master key returned unexpected success"),
-        Err(_) => assert!(true),
+        Ok(_result) => assert!(true),
+        Err(_) => panic!("Destroy master key returned error"),
     };
 
     match crypto.create_key() {
         // assert
         Ok(_result) => assert!(true),
-        Err(_) => panic!("Create master key function returned error"),
+        Err(_) => panic!("First create master key function returned error"),
+    };
+
+    match crypto.create_key() {
+        // assert
+        Ok(_result) => assert!(true),
+        Err(_) => panic!("Second master key function returned error"),
     };
 
     match crypto.destroy_key() {
         // assert
         Ok(_result) => assert!(true),
-        Err(_) => panic!("Destroy master key function returned error"),
+        Err(_) => panic!("First destroy master key function returned error"),
+    };
+
+    match crypto.destroy_key() {
+        // assert
+        Ok(_result) => assert!(true),
+        Err(_) => panic!("Second destroy master key function returned error"),
     };
 }
