@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 2.8.11)
 project(iothsm)
 set (iothsm_VERSION_MAJOR 0)
 set (iothsm_VERSION_MINOR 1)
+set (iothsm_VERSION_PATCH 0)
 
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -143,12 +144,17 @@ install(TARGETS iothsm DESTINATION lib)
 
 # CPack
 include (InstallRequiredSystemLibraries)
-set (CPACK_PACKAGE_VERSION_MAJOR "${iothsm_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${iothsm_VERSION_MINOR}")
+
+if (NOT CPACK_PACKAGE_VERSION)
+    set (CPACK_PACKAGE_VERSION_MAJOR "${iothsm_VERSION_MAJOR}")
+    set (CPACK_PACKAGE_VERSION_MINOR "${iothsm_VERSION_MINOR}")
+    set (CPACK_PACKAGE_VERSION_PATCH "${iothsm_VERSION_PATCH}")
+endif()
+
 set (CPACK_PACKAGE_NAME "libiothsm-std")
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
-set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs <edgedevs@microsoft.com>")
+set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs")
 set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
 include (CPack)
