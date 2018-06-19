@@ -5,24 +5,23 @@ namespace IotEdgeQuickstart
 {
     using System;
     using System.Threading.Tasks;
+    using IotEdgeQuickstart.Details;
+    using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Quickstart : Details
+    public class Quickstart : Details.Details
     {
         readonly LeaveRunning leaveRunning;
 
         public Quickstart(
-            string iotedgectlArchivePath,
+            IBootstrapper bootstrapper,
+            Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
-            string registryAddress,
-            string registryUser,
-            string registryPassword,
             string imageTag,
             string deviceId,
             string hostname,
             LeaveRunning leaveRunning) :
-            base(iotedgectlArchivePath, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath,
-                registryAddress, registryUser, registryPassword, imageTag, deviceId, hostname)
+            base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname)
         {
             this.leaveRunning = leaveRunning;
         }
@@ -34,19 +33,19 @@ namespace IotEdgeQuickstart
             // test hub with the target condition: "NOT deviceId=''". Since this is an unlikely scenario, we won't
             // invest the effort to guard against it.
 
-            await VerifyEdgeIsNotAlreadyInstalled(); // don't accidentally overwrite an edge installation on a dev machine
+            await VerifyEdgeIsNotAlreadyActive(); // don't accidentally overwrite an edge configuration on a dev machine
             await VerifyDockerIsInstalled();
-            await VerifyPipIsInstalled();
-            Task.WaitAll(
-                InstallIotedgectl(),
-                GetOrCreateEdgeDeviceIdentity());
+            await VerifyBootstrapperDependencies();
+            await InstallBootstrapper();
 
             try
             {
+                await GetOrCreateEdgeDeviceIdentity();
+                await ConfigureBootstrapper();
+
                 try
                 {
-                    await IotedgectlSetup();
-                    await IotedgectlStart();
+                    await StartBootstrapper();
                     await VerifyEdgeAgentIsRunning();
                     await VerifyEdgeAgentIsConnectedToIotHub();
                     await DeployTempSensorToEdgeDevice();
@@ -61,20 +60,21 @@ namespace IotEdgeQuickstart
                 catch(Exception)
                 {
                     Console.WriteLine("** Oops, there was a problem. We'll stop the IoT Edge runtime, but we'll leave it configured so you can investigate.");
-                    await IotedgectlStop();
+                    KeepEdgeDeviceIdentity();
+                    await StopBootstrapper();
                     throw;
                 }
 
                 if (this.leaveRunning == LeaveRunning.None)
                 {
-                    await IotedgectlStop();
-                    await IotedgectlUninstall();
+                    await StopBootstrapper();
                 }
             }
             finally
             {
                 if (this.leaveRunning == LeaveRunning.None)
                 {
+                    await this.ResetBootstrapper();
                     // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
                     await MaybeDeleteEdgeDeviceIdentity();
                 }

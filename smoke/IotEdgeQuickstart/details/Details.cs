@@ -1,29 +1,24 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace IotEdgeQuickstart
+namespace IotEdgeQuickstart.Details
 {
     using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Diagnostics;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
-    using RunProcessAsTask;
 
     public class Details
     {
-        readonly string iotedgectlArchivePath;
+        readonly IBootstrapper bootstrapper;
+        readonly Option<RegistryCredentials> credentials;
         readonly string iothubConnectionString;
         readonly string eventhubCompatibleEndpointWithEntityPath;
-        readonly string registryAddress;
-        readonly string registryUser;
-        readonly string registryPassword;
         readonly string imageTag;
         readonly string deviceId;
         readonly string hostname;
@@ -31,67 +26,31 @@ namespace IotEdgeQuickstart
         DeviceContext context;
 
         protected Details(
-            string iotedgectlArchivePath,
+            IBootstrapper bootstrapper,
+            Option<RegistryCredentials> credentials,
             string iothubConnectionString,
             string eventhubCompatibleEndpointWithEntityPath,
-            string registryAddress,
-            string registryUser,
-            string registryPassword,
             string imageTag,
             string deviceId,
             string hostname
             )
         {
-            this.iotedgectlArchivePath = iotedgectlArchivePath;
+            this.bootstrapper = bootstrapper;
+            this.credentials = credentials;
             this.iothubConnectionString = iothubConnectionString;
-            this.registryAddress = registryAddress;
-            this.registryUser = registryUser;
-            this.registryPassword = registryPassword;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
         }
 
-        protected static async Task VerifyEdgeIsNotAlreadyInstalled()
-        {
-            try
-            {
-                await RunProcessAsync("iotedgectl", "status");
-            }
-            catch (Win32Exception)
-            {
-                // Should fail for one of two reasons:
-                // 1. [ExitCode == 9009] iotedgectl isn't installed
-                // 2. [ExitCode == 1] `iotedgectl status` failed because there's no config
-                return;
-            }
+        protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
 
-            throw new Exception("IoT Edge runtime is installed. Run `iotedgectl uninstall` before running this test.");
-        }
+        protected static Task VerifyDockerIsInstalled() => Process.RunAsync("docker", "--version");
 
-        protected static Task VerifyDockerIsInstalled()
-        {
-            return RunProcessAsync("docker", "--version");
-        }
+        protected Task VerifyBootstrapperDependencies() => this.bootstrapper.VerifyDependenciesAreInstalled();
 
-        protected static Task VerifyPipIsInstalled()
-        {
-            return RunProcessAsync("pip", "--version");
-        }
-
-        protected Task InstallIotedgectl()
-        {
-            const string PackageName = "azure-iot-edge-runtime-ctl";
-            string archivePath = this.iotedgectlArchivePath;
-
-            Console.WriteLine($"Installing python package '{PackageName}' from {archivePath ?? "pypi"}");
-
-            return RunProcessAsync(
-                "pip",
-                $"install --disable-pip-version-check --upgrade {archivePath ?? PackageName}",
-                300); // 5 min timeout because install can be slow on raspberry pi
-        }
+        protected Task InstallBootstrapper() => this.bootstrapper.Install();
 
         protected async Task GetOrCreateEdgeDeviceIdentity()
         {
@@ -139,39 +98,22 @@ namespace IotEdgeQuickstart
             };
         }
 
-        protected async Task IotedgectlSetup()
+        protected Task ConfigureBootstrapper()
         {
-            string registryArgs =
-                this.registryAddress != null && this.registryUser != null && this.registryPassword != null
-                ? $"--docker-registries {this.registryAddress} {this.registryUser} {this.registryPassword}"
-                : string.Empty;
-
-            Console.WriteLine($"Setting up iotedgectl with container registry '{(registryArgs != string.Empty ? this.registryAddress : "<none>")}'");
-
             IotHubConnectionStringBuilder builder =
                 IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
 
-            string deviceConnectionString =
+            string connectionString =
                 $"HostName={builder.HostName};" +
                 $"DeviceId={this.context.Device.Id};" +
                 $"SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey}";
 
-            await RunProcessAsync(
-                "iotedgectl",
-                $"setup --connection-string \"{deviceConnectionString}\" --nopass {registryArgs} --image {this.EdgeAgentImage()} --edge-hostname {this.hostname}",
-                120);
+            return this.bootstrapper.Configure(connectionString, this.EdgeAgentImage(), this.hostname);
         }
 
-        protected static Task IotedgectlStart()
-        {
-            return RunProcessAsync("iotedgectl", "start",
-                300); // 5 min timeout because docker pull can be slow on raspberry pi
-        }
+        protected Task StartBootstrapper() => this.bootstrapper.Start();
 
-        protected static Task VerifyEdgeAgentIsRunning()
-        {
-            return VerifyDockerContainerIsRunning("edgeAgent");
-        }
+        protected static Task VerifyEdgeAgentIsRunning() => VerifyDockerContainerIsRunning("edgeAgent");
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
@@ -216,17 +158,13 @@ namespace IotEdgeQuickstart
 
         protected Task DeployTempSensorToEdgeDevice()
         {
-            string deployJson = DeployJson;
-            string edgeAgentImage = this.EdgeAgentImage();
-            string edgeHubImage = this.EdgeHubImage();
-            string tempSensorImage = this.TempSensorImage();
+            (string deployJson, string[] modules) = this.DeploymentJson();
 
             Console.WriteLine($"Sending configuration to device '{this.context.Device.Id}' with modules:");
-            Console.WriteLine($"  {edgeAgentImage}\n  {edgeHubImage}\n  {tempSensorImage}");
-
-            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", edgeAgentImage);
-            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", edgeHubImage);
-            deployJson = Regex.Replace(deployJson, "<image-temp-sensor>", tempSensorImage);
+            foreach (string module in modules)
+            {
+                Console.WriteLine($"  {module}");
+            }
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
@@ -283,9 +221,7 @@ namespace IotEdgeQuickstart
 
         protected Task RemoveTempSensorFromEdgeDevice()
         {
-            string deployJson = DeployJson;
-            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", this.EdgeAgentImage());
-            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", this.EdgeHubImage());
+            (string deployJson, string[] _) = this.DeploymentJson();
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
             config.ModuleContent["$edgeAgent"].TargetContent["modules"] = new { };
@@ -293,14 +229,16 @@ namespace IotEdgeQuickstart
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected static Task IotedgectlStop()
-        {
-            return RunProcessAsync("iotedgectl", "stop", 120);
-        }
+        protected Task StopBootstrapper() => this.bootstrapper.Stop();
 
-        protected static Task IotedgectlUninstall()
+        protected Task ResetBootstrapper() => this.bootstrapper.Reset();
+
+        protected void KeepEdgeDeviceIdentity()
         {
-            return RunProcessAsync("iotedgectl", "uninstall", 60);
+            if (this.context != null)
+            {
+                this.context.RemoveDevice = false;
+            }
         }
 
         protected Task MaybeDeleteEdgeDeviceIdentity()
@@ -320,29 +258,6 @@ namespace IotEdgeQuickstart
             return Task.CompletedTask;
         }
 
-        string EdgeAgentImage()
-        {
-            return this.BuildImageName("microsoft/azureiotedge-agent");
-        }
-
-        string EdgeHubImage()
-        {
-            return this.BuildImageName("microsoft/azureiotedge-hub");
-        }
-
-        string TempSensorImage()
-        {
-            return this.BuildImageName("microsoft/azureiotedge-simulated-temperature-sensor");
-        }
-
-        string BuildImageName(string name)
-        {
-            string address = this.registryAddress;
-            string registry = address == null ? string.Empty : $"{address}/";
-
-            return $"{registry}{name}:{this.imageTag}";
-        }
-
         static async Task VerifyDockerContainerIsRunning(string name)
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
@@ -355,7 +270,7 @@ namespace IotEdgeQuickstart
                     {
                         await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
 
-                        string status = await RunProcessAsync(
+                        string status = await Process.RunAsync(
                             "docker",
                             $"ps --quiet --filter \"name = {name}\"",
                             cts.Token);
@@ -376,31 +291,51 @@ namespace IotEdgeQuickstart
             }
         }
 
-        static async Task<string> RunProcessAsync(string name, string args, int timeoutSeconds = 15)
+        string EdgeAgentImage()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
-            {
-                return await RunProcessAsync(name, args, cts.Token);
-            }
+            return this.BuildImageName("microsoft/azureiotedge-agent");
         }
 
-        static async Task<string> RunProcessAsync(string name, string args, CancellationToken token)
+        string EdgeHubImage()
         {
-            var info = new ProcessStartInfo
-            {
-                FileName = name,
-                Arguments = args,
-            };
+            return this.BuildImageName("microsoft/azureiotedge-hub");
+        }
 
-            using (ProcessResults result = await ProcessEx.RunAsync(info, token))
-            {
-                if (result.ExitCode != 0)
+        string TempSensorImage()
+        {
+            return this.BuildImageName("microsoft/azureiotedge-simulated-temperature-sensor");
+        }
+
+        string BuildImageName(string name)
+        {
+            string registry = this.credentials.Match(c => $"{c.Address}/", () => string.Empty);
+            return $"{registry}{name}:{this.imageTag}";
+        }
+
+        (string, string[]) DeploymentJson()
+        {
+            string edgeAgentImage = this.EdgeAgentImage();
+            string edgeHubImage = this.EdgeHubImage();
+            string tempSensorImage = this.TempSensorImage();
+            string deployJsonRegistry = this.credentials.Match(
+                c =>
                 {
-                    throw new Win32Exception(result.ExitCode, $"'{name}' failed with: {string.Join("\n", result.StandardError)}");
-                }
+                    string json = DeployJsonRegistry;
+                    json = Regex.Replace(json, "<registry-address>", c.Address);
+                    json = Regex.Replace(json, "<registry-username>", c.User);
+                    json = Regex.Replace(json, "<registry-password>", c.Password);
+                    return json;
+                },
+                () => string.Empty
+            );
 
-                return string.Join("\n", result.StandardOutput);
-            }
+            string deployJson = DeployJson;
+            deployJson = Regex.Replace(deployJson, "<image-edge-agent>", edgeAgentImage);
+            deployJson = Regex.Replace(deployJson, "<image-edge-hub>", edgeHubImage);
+            deployJson = Regex.Replace(deployJson, "<image-temp-sensor>", tempSensorImage);
+            deployJson = Regex.Replace(deployJson, "<registry-info>", deployJsonRegistry);
+
+            return (deployJson, new [] { edgeAgentImage, edgeHubImage, tempSensorImage });
         }
 
         const string DeployJson = @"
@@ -412,8 +347,8 @@ namespace IotEdgeQuickstart
         ""runtime"": {
           ""type"": ""docker"",
           ""settings"": {
-            ""minDockerVersion"": ""v1.13"",
-            ""loggingOptions"": """"
+            ""minDockerVersion"": ""v1.25"",
+            ""loggingOptions"": """"<registry-info>
           }
         },
         ""systemModules"": {
@@ -422,9 +357,6 @@ namespace IotEdgeQuickstart
             ""settings"": {
               ""image"": ""<image-edge-agent>"",
               ""createOptions"": """"
-            },
-            ""configuration"": {
-              ""id"": ""1234""
             }
           },
           ""edgeHub"": {
@@ -433,10 +365,7 @@ namespace IotEdgeQuickstart
             ""restartPolicy"": ""always"",
             ""settings"": {
               ""image"": ""<image-edge-hub>"",
-              ""createOptions"": """"
-            },
-            ""configuration"": {
-              ""id"": ""1234""
+              ""createOptions"": ""{\""HostConfig\"":{\""PortBindings\"":{\""8883/tcp\"":[{\""HostPort\"":\""8883\""}],\""443/tcp\"":[{\""HostPort\"":\""443\""}]}}}""
             }
           }
         },
@@ -449,9 +378,6 @@ namespace IotEdgeQuickstart
             ""settings"": {
               ""image"": ""<image-temp-sensor>"",
               ""createOptions"": """"
-            },
-            ""configuration"": {
-              ""id"": ""1234""
             }
           }
         }
@@ -461,15 +387,25 @@ namespace IotEdgeQuickstart
       ""properties.desired"": {
         ""schemaVersion"": ""1.0"",
         ""routes"": {
-          ""route1"": ""FROM /* INTO $upstream""
+          ""route"": ""FROM /* INTO $upstream""
         },
         ""storeAndForwardConfiguration"": {
-          ""timeToLiveSecs"": 90000
+          ""timeToLiveSecs"": 7200
         }
       }
     }
   }
 }
+";
+
+        const string DeployJsonRegistry = @"
+            ,""registryCredentials"": {
+                ""registry"": {
+                    ""address"": ""<registry-address>"",
+                    ""username"": ""<registry-username>"",
+                    ""password"": ""<registry-password>""
+                }
+            }
 ";
     }
 
@@ -479,27 +415,5 @@ namespace IotEdgeQuickstart
         public string IotHubConnectionString;
         public RegistryManager RegistryManager;
         public bool RemoveDevice;
-    }
-
-    class PartitionReceiveHandler : IPartitionReceiveHandler
-    {
-        readonly Func<EventData, bool> onEventReceived;
-        public PartitionReceiveHandler(Func<EventData, bool> onEventReceived)
-        {
-            this.onEventReceived = onEventReceived;
-        }
-        public Task ProcessEventsAsync(IEnumerable<EventData> events)
-        {
-            if (events != null)
-            {
-                foreach (EventData @event in events)
-                {
-                    if (this.onEventReceived(@event)) break;
-                }
-            }
-            return Task.CompletedTask;
-        }
-        public Task ProcessErrorAsync(Exception error) => throw error;
-        public int MaxBatchSize { get; } = 10;
     }
 }
