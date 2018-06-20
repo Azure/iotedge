@@ -3,13 +3,12 @@
 namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
+    using ExponentialBackoff = Util.TransientFaultHandling.ExponentialBackoff;
 
     class ModuleClientCache
     {
@@ -17,7 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         static readonly ITransientErrorDetectionStrategy TimeoutErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
-        readonly ConcurrentDictionary<string, Task<ModuleClient>> clients = new ConcurrentDictionary<string, Task<ModuleClient>>();
+        readonly AsyncLock asyncLock = new AsyncLock();
+        ModuleClient client;
 
         // Private constructor to ensure single instance
         ModuleClientCache()
@@ -26,10 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
 
         public static ModuleClientCache Instance { get; } = new ModuleClientCache();
 
-        public Task<ModuleClient> GetOrCreateAsync(TransportType transportType) =>
-            this.clients.GetOrAdd(
-                transportType.ToString(),
-                client =>
+        public async Task<ModuleClient> GetOrCreateAsync()
+        {
+            using (await this.asyncLock.LockAsync())
+            {
+                if (this.client == null)
                 {
                     var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
                     retryPolicy.Retrying += (_, args) =>
@@ -40,16 +41,16 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                             Console.WriteLine("Retrying...");
                         }
                     };
-                    return retryPolicy.ExecuteAsync(() => this.CreateModuleClient(transportType));
-                });
+                    this.client = await retryPolicy.ExecuteAsync(() => this.CreateModuleClient());
+                }
 
+                return this.client;
+            }
+        }
 
-        async Task<ModuleClient> CreateModuleClient(TransportType transportType)
+        async Task<ModuleClient> CreateModuleClient()
         {
-            var mqttSetting = new MqttTransportSettings(transportType);
-
-            ITransportSettings[] settings = { mqttSetting };
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync().ConfigureAwait(false);
 
             moduleClient.ProductInfo = "Microsoft.Azure.Devices.Edge.Functions.Binding";
             return moduleClient;

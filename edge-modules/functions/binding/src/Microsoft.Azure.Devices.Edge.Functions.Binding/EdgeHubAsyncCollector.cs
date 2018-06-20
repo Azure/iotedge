@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     /// </summary>
     public class EdgeHubAsyncCollector : IAsyncCollector<Message>
     {
-        readonly TransportType transportType;
         readonly EdgeHubAttribute attribute;
         readonly int batchSize;
 
@@ -35,11 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
         /// <summary>
         /// Create a sender around the given client. 
         /// </summary>
-        /// <param name="transportType">Device Client transport type. </param>
         /// <param name="attribute">Attributes used by EdgeHub when receiving a message from function.</param>
-        public EdgeHubAsyncCollector(TransportType transportType, EdgeHubAttribute attribute)
+        public EdgeHubAsyncCollector(EdgeHubAttribute attribute)
         {
-            this.transportType = transportType;
             this.attribute = attribute;
             this.batchSize = attribute.BatchSize > 0 ? (attribute.BatchSize > MaxBatchSize ? MaxBatchSize : attribute.BatchSize) : DefaultBatchSize;
         }
@@ -104,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return;
             }
 
-            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync(this.transportType).ConfigureAwait(false);
+            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync().ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(this.attribute.OutputName))
             {

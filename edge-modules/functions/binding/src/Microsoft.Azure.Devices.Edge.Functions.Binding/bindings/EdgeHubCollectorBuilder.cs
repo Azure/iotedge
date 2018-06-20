@@ -7,16 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding.Bindings
 
     class EdgeHubCollectorBuilder : IConverter<EdgeHubAttribute, IAsyncCollector<Message>>
     {
-        readonly TransportType transportType;
-
-        public EdgeHubCollectorBuilder(TransportType transportType)
-        {
-            this.transportType = transportType;
-        }
-
         public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
         {
-            return new EdgeHubAsyncCollector(this.transportType, attribute);
+            return new EdgeHubAsyncCollector(attribute);
         }
     }
 }

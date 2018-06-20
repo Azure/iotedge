@@ -19,13 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
     class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
-        readonly TransportType transportType;
         ModuleClient moduleClient;
-
-        public EdgeHubTriggerBindingProvider(TransportType transportType)
-        {
-            this.transportType = transportType;
-        }
 
         public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
         {
@@ -46,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 throw new InvalidOperationException($"Can't bind EdgeHubTriggerAttribute to type '{parameter.ParameterType}'.");
             }
 
-            await TrySetEventDefaultHandlerAsync().ConfigureAwait(false);
+            await this.TrySetEventDefaultHandlerAsync().ConfigureAwait(false);
 
             var messageProcessor = new EdgeHubMessageProcessor();
             var triggerBinding = new EdgeHubTriggerBinding(context.Parameter, messageProcessor);
@@ -77,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Functions.Binding
                 return;
             }
 
-            this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync(transportType).ConfigureAwait(false);
+            this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync().ConfigureAwait(false);
             await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null).ConfigureAwait(false);
         }
 
