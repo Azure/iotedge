@@ -21,4 +21,5 @@ members = [
     "provisioning",
     "systemd",
     "tokio-named-pipe",
+    "win-logger",
 ]

@@ -1,0 +1,12 @@
+[package]
+name = "win-logger"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs <edgedevs@microsoft.com>"]
+publish = false
+
+[dependencies]
+failure = "0.1"
+log = { version = "0.4", features = ["std"] }
+winapi = { version = "0.3.5", features = ["winbase", "winnt"] }
+
+edgelet-utils = { path = "../edgelet-utils" }
