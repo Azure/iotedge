@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -25,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public void BasicTest()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
-            var deviceProxyMock = new Mock<IDeviceProxy>();
+            var connectionManager = new Mock<IConnectionManager>();
             string modId = "device1/module1";
             string moduleEndpointId = "in1";
 
-            var moduleEndpoint = new ModuleEndpoint($"{modId}/{moduleEndpointId}", modId, moduleEndpointId, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{modId}/{moduleEndpointId}", modId, moduleEndpointId, connectionManager.Object, routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             Assert.Equal(moduleEndpoint, moduleMessageProcessor.Endpoint);
@@ -51,6 +52,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
 
+            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
+                new Dictionary<DeviceSubscription, bool>
+                {
+                    [DeviceSubscription.ModuleMessages] = true
+                });
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxyMock.Object));
+            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
+
             byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
             var properties = new Dictionary<string, string>()
             {
@@ -66,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
             var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
 
-            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, () => Option.Some(deviceProxyMock.Object), routingMessageConverter);
+            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, connectionManager.Object, routingMessageConverter);
             IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);

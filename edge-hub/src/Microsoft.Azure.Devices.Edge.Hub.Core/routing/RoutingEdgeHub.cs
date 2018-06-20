@@ -60,8 +60,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.MethodCallReceived(id, methodRequest.Id, methodRequest.CorrelationId);
             Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(methodRequest.Id);
             return deviceProxy.Match(
-                dp => dp.InvokeMethodAsync(methodRequest),
-                () => Task.FromResult(new DirectMethodResponse(null, null, (int)HttpStatusCode.NotFound)));
+                dp =>
+                {
+                    if (this.connectionManager.GetSubscriptions(methodRequest.Id)
+                        .Filter(s => s.TryGetValue(DeviceSubscription.Methods, out bool isActive) && isActive)
+                        .HasValue)
+                    {
+                        Events.InvokingMethod(methodRequest);
+                        return dp.InvokeMethodAsync(methodRequest);
+                    }
+                    else
+                    {
+                        Events.NoSubscriptionForMethodInvocation(methodRequest);
+                        return Task.FromResult(new DirectMethodResponse(null, null, (int)HttpStatusCode.NotFound));
+                    }
+                },
+                () =>
+                {
+                    Events.NoDeviceProxyForMethodInvocation(methodRequest);
+                    return Task.FromResult(new DirectMethodResponse(null, null, (int)HttpStatusCode.NotFound));
+                });
         }
 
         public Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage)
@@ -264,7 +282,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 AddingSubscription,
-                RemovingSubscription
+                RemovingSubscription,
+                InvokingMethod,
+                NoSubscription,
+                ClientNotFound
             }
 
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
@@ -320,6 +341,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void RemovingSubscription(string id, DeviceSubscription subscription)
             {
                 Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
+            }
+
+            public static void InvokingMethod(DirectMethodRequest methodRequest)
+            {
+                Log.LogDebug((int)EventIds.InvokingMethod, Invariant($"Invoking method {methodRequest.Name} on client {methodRequest.Id}."));
+            }
+
+            public static void NoSubscriptionForMethodInvocation(DirectMethodRequest methodRequest)
+            {
+                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method {methodRequest.Name} on client {methodRequest.Id} because no subscription for methods for found."));
+            }
+
+            public static void NoDeviceProxyForMethodInvocation(DirectMethodRequest methodRequest)
+            {
+                Log.LogWarning((int)EventIds.ClientNotFound, Invariant($"Unable to invoke method {methodRequest.Name} as client {methodRequest.Id} is not connected."));
             }
         }
     }

@@ -23,16 +23,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class ModuleEndpoint : Endpoint
     {
-        readonly Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc;
+        readonly IConnectionManager connectionManager;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly string moduleId;
 
-        public ModuleEndpoint(string id, string moduleId, string input, Func<Util.Option<IDeviceProxy>> deviceProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
+        public ModuleEndpoint(string id, string moduleId, string input, IConnectionManager connectionManager, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
-            this.Input = Preconditions.CheckNotNull(input);
-            this.deviceProxyGetterFunc = Preconditions.CheckNotNull(deviceProxyGetterFunc);
-            this.messageConverter = Preconditions.CheckNotNull(messageConverter);
+            this.Input = Preconditions.CheckNonWhiteSpace(input, nameof(input));
+            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 {
                     failed.AddRange(routingMessages);
                     sendFailureDetails = new SendFailureDetails(FailureKind.None, new EdgeHubConnectionException($"Target module {this.moduleEndpoint.moduleId} is not connected"));
-                    Events.NoDeviceProxy(this.moduleEndpoint);
                 }
                 else
                 {
@@ -122,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
                 }
 
-                return new SinkResult<IRoutingMessage>(succeeded, failed, sendFailureDetails);
+                return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
             }
 
             public Task CloseAsync(CancellationToken token)
@@ -140,9 +139,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             Util.Option<IDeviceProxy> GetDeviceProxy()
             {
-                this.devicePoxy = this.devicePoxy.Filter(d => d.IsActive).Match(
-                    d => Option.Some(d),
-                    () => this.moduleEndpoint.deviceProxyGetterFunc().Filter(d => d.IsActive));
+                this.devicePoxy = this.devicePoxy.Filter(d => d.IsActive)
+                    .Map(d => Option.Some(d))
+                    .GetOrElse(
+                        () =>
+                        {
+                            Util.Option<IDeviceProxy> currentDeviceProxy = this.moduleEndpoint.connectionManager.GetDeviceConnection(this.moduleEndpoint.moduleId).Filter(d => d.IsActive);
+                            if (currentDeviceProxy.HasValue)
+                            {
+                                if (this.moduleEndpoint.connectionManager.GetSubscriptions(this.moduleEndpoint.moduleId)
+                                    .Filter(s => s.TryGetValue(DeviceSubscription.ModuleMessages, out bool isActive) && isActive)
+                                    .HasValue)
+                                {
+                                    return currentDeviceProxy;
+                                }
+                                else
+                                {
+                                    Events.NoMessagesSubscription(this.moduleEndpoint.moduleId);
+                                }
+                            }
+                            else
+                            {
+                                Events.NoDeviceProxy(this.moduleEndpoint);
+                            }
+                            return Option.None<IDeviceProxy>();
+                        });
+
                 return this.devicePoxy;
             }
 
@@ -188,6 +210,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public static void ProcessingMessages(ModuleEndpoint moduleEndpoint, ICollection<IRoutingMessage> routingMessages)
             {
                 Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) to module {moduleEndpoint.moduleId}."));
+            }
+
+            public static void NoMessagesSubscription(string moduleId)
+            {
+                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"No subscription for receiving messages found for {moduleId}"));
             }
         }
     }

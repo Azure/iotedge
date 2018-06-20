@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
 
     /// <summary>
     /// This handles direct method requests to the client.
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         protected override async Task OnOpenAsync(TimeSpan timeout)
         {
             await base.OnOpenAsync(timeout);
-            await this.DeviceListener.SetupCallMethodAsync();
+            await this.DeviceListener.AddSubscription(DeviceSubscription.Methods);
         }
     }
 }

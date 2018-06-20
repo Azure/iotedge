@@ -26,10 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         IIdentity Identity { get; }
 
-        void StartListeningToC2DMessages();
+        Task AddSubscription(DeviceSubscription subscription);
 
-        Task SetupCallMethodAsync();
-
-        Task SetupDesiredPropertyUpdatesAsync();
+        Task RemoveSubscription(DeviceSubscription subscription);
     }
 }
