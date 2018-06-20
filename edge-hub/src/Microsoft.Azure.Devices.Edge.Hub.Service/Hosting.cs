@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         listenOptions.UseHttps(ServerCertificateCache.X509Certificate);
                     });
                 })
+                .UseSockets()
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
