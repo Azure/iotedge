@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             return moduleSpec;
         }
 
-        static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
+        internal static IEnumerable<EnvVar> GetEnvVars(IDictionary<string, EnvVal> moduleEnvVars, IModuleIdentity identity, IConfigSource configSource)
         {
             List<EnvVar> envVars = moduleEnvVars.Select(m => new EnvVar { Key = m.Key, Value = m.Value.Value }).ToList();
 
@@ -168,7 +168,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar { Key = Constants.ModuleIdVariableName, Value = identity.ModuleId });
             }
 
-            envVars.Add(new EnvVar { Key = Logger.RuntimeLogLevelEnvKey, Value = Logger.GetLogLevel().ToString() });
+            if (!envVars.Exists(e => e.Key == Logger.RuntimeLogLevelEnvKey))
+            {
+                envVars.Add(new EnvVar { Key = Logger.RuntimeLogLevelEnvKey, Value = Logger.GetLogLevel().ToString() });
+            }
 
             configSource.Configuration.GetValue<string>(Constants.UpstreamProtocolKey).ToUpstreamProtocol().ForEach(
                 u =>
