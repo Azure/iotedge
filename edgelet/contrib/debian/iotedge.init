@@ -15,13 +15,13 @@
 DAEMON=/usr/bin/iotedged # Introduce the server's location here
 DAEMON_ARGS=""           # Arguments to run the daemon with
 DESC=iotedged            # Introduce a short description here
+USER=iotedge
 GROUP=iotedge
-LOGFILE=/var/log/$NAME/$NAME.log
-NAME=iotedged            # Introduce the short server's name here
+NAME=iotedge             # Introduce the short server's name here
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
+LOGFILE=/var/log/$NAME/$NAME.log
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-USER=iotedge
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
