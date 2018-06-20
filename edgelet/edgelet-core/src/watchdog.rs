@@ -111,7 +111,10 @@ where
     M::Error: Into<Error>,
     <M::Module as Module>::Error: Into<Error>,
 {
-    info!("Starting watchdog...");
+    info!(
+        "Starting watchdog with {} second frequency...",
+        WATCHDOG_FREQUENCY_SECS
+    );
     Interval::new(Instant::now(), Duration::from_secs(WATCHDOG_FREQUENCY_SECS))
         .map_err(Error::from)
         .for_each(move |_| {

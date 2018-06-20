@@ -18,6 +18,9 @@ use url_serde;
 use edgelet_core::ModuleSpec;
 use error::Error;
 
+/// This is the name of the network created by the iotedged
+const EDGE_NETWORKID: &str = "azure-iot-edge";
+
 #[cfg(unix)]
 static DEFAULTS: &str = include_str!("config/unix/default.yaml");
 
@@ -116,7 +119,11 @@ impl MobyRuntime {
     }
 
     pub fn network(&self) -> &str {
-        &self.network
+        if self.network.is_empty() {
+            &EDGE_NETWORKID
+        } else {
+            &self.network
+        }
     }
 }
 
