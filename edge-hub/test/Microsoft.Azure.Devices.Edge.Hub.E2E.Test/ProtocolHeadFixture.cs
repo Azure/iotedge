@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         Option.Some(edgeHubConnectionString),
                         this.routes, false, false, storeAndForwardConfiguration,
                         string.Empty, ConnectionPoolSize, false, versionInfo, Option.Some(UpstreamProtocol.Amqp),
-                        true, TimeSpan.FromSeconds(5), 101, false)
+                        true, TimeSpan.FromSeconds(5), 101, false, Option.None<string>(), Option.None<string>())
                 );
                 builder.RegisterModule(new HttpModule());
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, certificate, false, false, string.Empty, false));

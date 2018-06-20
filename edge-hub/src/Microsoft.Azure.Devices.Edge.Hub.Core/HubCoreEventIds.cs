@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
 	public static class HubCoreEventIds
@@ -14,5 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 		public const int TwinManager = EventIdStart + 700;
 		public const int ConfigUpdater = EventIdStart + 800;
 		public const int EdgeHubConnection = EventIdStart + 900;
+	    public const int TokenCredentialsStore = EventIdStart + 1000;
+
 	}
 }

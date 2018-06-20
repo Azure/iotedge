@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
@@ -45,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
         readonly bool cacheTokens;
+        readonly Option<string> workloadUri;
+        readonly Option<string> edgeModuleGenerationId;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -62,7 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool optimizeForPerformance,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
-            bool cacheTokens)
+            bool cacheTokens,
+            Option<string> workloadUri,
+            Option<string> edgeModuleGenerationId)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -81,6 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
             this.cacheTokens = cacheTokens;
+            this.workloadUri = workloadUri;
+            this.edgeModuleGenerationId = edgeModuleGenerationId;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -220,21 +227,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
             }
 
-            // ICredentialsStore
-            builder.Register(c =>
+            // Task<ICredentialsStore>
+            builder.Register(async c =>
                 {
                     if (this.cacheTokens)
                     {
                         var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                        IEncryptionProvider encryptionProvider = await this.workloadUri.Map(
+                            async uri => await EncryptionProvider.CreateAsync(
+                                this.storagePath,
+                                new Uri(uri),
+                                Service.Constants.WorkloadApiVersion,
+                                this.edgeModuleId,
+                                this.edgeModuleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
+                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));                        
                         IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                        return new TokenCredentialsStore(storeProvider.GetEntityStore<string, string>("tokenCredentials"));
+                        IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
+                        return new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
                     }
                     else
                     {
                         return new NullCredentialsStore() as ICredentialsStore;
                     }
                 })
-                .As<ICredentialsStore>()
+                .As<Task<ICredentialsStore>>()
                 .SingleInstance();
 
             // IConnectionManager
@@ -455,7 +472,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     }
                 })
                 .As<Task<IConfigSource>>()
-                .SingleInstance();            
+                .SingleInstance();
 
             // Task<IConnectionProvider>
             builder.Register(

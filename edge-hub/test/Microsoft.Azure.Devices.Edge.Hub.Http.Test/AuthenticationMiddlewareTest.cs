@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.True(result.success);
@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             (bool success, string message) result = await authenticationMiddleware.AuthenticateRequest(httpContext);
             Assert.NotNull(result);
             Assert.False(result.success);
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var identityFactory = new ClientCredentialsFactory(iothubHostName);
 
-            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), authenticator.Object, identityFactory, iothubHostName);
+            var authenticationMiddleware = new AuthenticationMiddleware(Mock.Of<RequestDelegate>(), Task.FromResult(authenticator.Object), identityFactory, iothubHostName);
             await Assert.ThrowsAsync<SomeException>(() => authenticationMiddleware.Invoke(httpContext));
         }
 

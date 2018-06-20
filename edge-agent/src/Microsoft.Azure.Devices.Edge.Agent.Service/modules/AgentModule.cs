@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool usePersistentStorage;
         readonly string storagePath;
         readonly Option<Uri> workloadUri;
-        readonly Option<string> moduleId;
+        readonly string moduleId;
         readonly Option<string> moduleGenerationId;
         const string DockerType = "docker";
 
@@ -64,14 +64,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             }
         }
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
-            bool usePersistentStorage, string storagePath) : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Option.None<string>())
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
         {
 
         }
 
         public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds,
-            bool usePersistentStorage, string storagePath, Option<Uri> workloadUri, Option<string> moduleId, Option<string> moduleGenerationId)
+            bool usePersistentStorage, string storagePath, Option<Uri> workloadUri, string moduleId, Option<string> moduleGenerationId)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -211,7 +211,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         IEncryptionProvider provider = await this.workloadUri.Map(
                             async uri =>
                             {
-                                IEncryptionProvider encryptionProvider = await EncryptionProvider.CreateAsync(this.storagePath, this.workloadUri.OrDefault(), Constants.EdgeletWorkloadApiVersion, this.moduleId.OrDefault(), this.moduleGenerationId.OrDefault(), Constants.EdgeletInitializationVectorFileName);
+                                IEncryptionProvider encryptionProvider = await EncryptionProvider.CreateAsync(
+                                    this.storagePath,
+                                    uri,
+                                    Constants.EdgeletWorkloadApiVersion,
+                                    this.moduleId,
+                                    this.moduleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                    Constants.EdgeletInitializationVectorFileName);
                                 return encryptionProvider;
                             }).GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
 

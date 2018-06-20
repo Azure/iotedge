@@ -67,12 +67,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var credentialsStore = c.Resolve<ICredentialsStore>();
-                    var authenticator = c.Resolve<IAuthenticator>();
                     var identityFactory = c.Resolve<IClientCredentialsFactory>();
                     var transportSettings = c.Resolve<ITransportSettings>();
                     var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
                     var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
+                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
+                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
                     IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                     AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(
                         this.iotHubHostName,

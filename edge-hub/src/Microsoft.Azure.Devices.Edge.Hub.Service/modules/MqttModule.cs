@@ -90,14 +90,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(c => new DeviceIdentityProvider(c.Resolve<IAuthenticator>(), c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider)
-                .As<IDeviceIdentityProvider>()
+            builder.Register(async c =>
+                {
+                    IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
+                    return new DeviceIdentityProvider(authenticator, c.Resolve<IClientCredentialsFactory>(), this.clientCertAuthAllowed) as IDeviceIdentityProvider;
+                })
+                .As<Task<IDeviceIdentityProvider>>()
                 .SingleInstance();
 
             // Task<ISessionStatePersistenceProvider>
             builder.Register(
                     async c =>
-                    {                        
+                    {
                         if (this.isStoreAndForwardEnabled)
                         {
                             IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Core.Constants.SessionStorePartitionKey);
@@ -119,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         c.Resolve<ISettingsProvider>(),
                         this.tlsCertificate,
                         await c.Resolve<Task<IMqttConnectionProvider>>(),
-                        c.Resolve<IDeviceIdentityProvider>(),
+                        await c.Resolve<Task<IDeviceIdentityProvider>>(),
                         await c.Resolve<Task<ISessionStatePersistenceProvider>>(),
                         c.Resolve<IWebSocketListenerRegistry>(),
                         c.Resolve<IByteBufferAllocator>(),

@@ -19,18 +19,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     public class AuthenticationMiddleware
     {
         readonly RequestDelegate next;
-        readonly IAuthenticator authenticator;
+        readonly Task<IAuthenticator> authenticatorTask;
         readonly IClientCredentialsFactory identityFactory;
         readonly string iotHubName;
 
         public AuthenticationMiddleware(
             RequestDelegate next,
-            IAuthenticator authenticator,
+            Task<IAuthenticator> authenticatorTask,
             IClientCredentialsFactory identityFactory,
             string iotHubName)
         {
             this.next = next;
-            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.authenticatorTask = Preconditions.CheckNotNull(authenticatorTask, nameof(authenticatorTask));
             this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
         }
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             }
             string clientId = clientIds.First();
             string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
-            if (clientIdParts?.Length != 2)
+            if (clientIdParts.Length != 2)
             {
                 return LogAndReturnFailure("Id header doesn't contain device Id and module Id as expected.");
             }
@@ -112,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             IClientCredentials clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId, string.Empty, authHeader);
             IIdentity identity = clientCredentials.Identity;
-            if (!await this.authenticator.AuthenticateAsync(clientCredentials))
+            IAuthenticator authenticator = await this.authenticatorTask;
+            if (!await authenticator.AuthenticateAsync(clientCredentials))
             {
                 return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
             }

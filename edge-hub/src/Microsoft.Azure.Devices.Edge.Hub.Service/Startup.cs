@@ -110,6 +110,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             //bool clientCertAuthEnabled = this.Configuration.GetValue("ClientCertAuthEnabled", false);
             bool clientCertAuthEnabled = false;
             bool cacheTokens = this.Configuration.GetValue("CacheTokens", false);
+            Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.WorkloadUriVariableName);
+            Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ModuleGenerationIdVariableName);
 
             string caChainPath = this.Configuration.GetValue("EdgeModuleHubServerCAChainCertificateFile", string.Empty);
             // n Clients + 1 Edgehub
@@ -132,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
-            string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();;
+            string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
 
             // Register modules
             builder.RegisterModule(
@@ -158,7 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     optimizeForPerformance,
                     connectivityCheckFrequency,
                     maxConnectedClients,
-                    cacheTokens));
+                    cacheTokens,
+                    workloadUri,
+                    moduleGenerationId));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));
@@ -210,6 +214,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string storagePath = Path.Combine(baseStoragePath, Constants.EdgeHubStorageFolder);
             Directory.CreateDirectory(storagePath);
             return storagePath;
+        }
+
+        Option<T> GetConfigurationValueIfExists<T>(string key) where T : class
+        {
+            var value = this.Configuration.GetValue<T>(key);
+            return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
         }
     }
 }

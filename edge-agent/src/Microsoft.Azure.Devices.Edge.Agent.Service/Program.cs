@@ -115,9 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         string iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         string deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string moduleId = configuration.GetValue<string>(Constants.ModuleIdVariableName);
+                        string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(moduleId), Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), dockerAuthConfig, upstreamProtocol, productInfo));
                         break;
 

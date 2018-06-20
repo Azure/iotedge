@@ -19,5 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string EdgeDeviceHostnameVariableName = "EdgeDeviceHostName";
         public const string WorkloadApiVersion = "2018-06-28";
         public const int CertificateValidityDays = 90;
+        public const string InitializationVectorFileName = "EdgeHubIV";
     }
 }

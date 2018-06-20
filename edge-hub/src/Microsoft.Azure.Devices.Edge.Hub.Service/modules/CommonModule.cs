@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -23,14 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         protected override void Load(ContainerBuilder builder)
         {
-            // IAuthenticator
-            builder.Register(c =>
+            // Task<IAuthenticator>
+            builder.Register(async c =>
                 {
-                    
-                    var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(c.Resolve<IConnectionManager>(), c.Resolve<ICredentialsStore>(), this.iothubHostName);
-                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId);
+                    var connectionManager = c.Resolve<IConnectionManager>();
+                    ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
+                    var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore, this.iothubHostName);
+                    return new Authenticator(tokenCredentialsAuthenticator, this.deviceId) as IAuthenticator;
                 })
-                .As<IAuthenticator>()
+                .As<Task<IAuthenticator>>()
                 .SingleInstance();
 
             // IClientCredentialsFactory
