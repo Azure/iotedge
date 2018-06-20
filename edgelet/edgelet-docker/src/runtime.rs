@@ -114,6 +114,7 @@ impl ModuleRegistry for DockerModuleRuntime {
             .map(|a| serde_json::to_string(a).map(|json| base64::encode(&json)))
             .unwrap_or_else(|| Ok("".to_string()))
             .map(|creds: String| {
+                debug!("Pulling {}", config.image());
                 let ok = self.client
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
@@ -125,6 +126,7 @@ impl ModuleRegistry for DockerModuleRuntime {
     }
 
     fn remove(&self, name: &str) -> Self::RemoveFuture {
+        debug!("Removing {}", name);
         Box::new(
             self.client
                 .image_api()
@@ -200,6 +202,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                     .unwrap_or_else(HashMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
+                debug!(
+                    "Creating container {} with image {}",
+                    module.name(),
+                    module.config().image()
+                );
+
                 let create_options = create_options
                     .with_image(module.config().image().to_string())
                     .with_env(merged_env)
@@ -222,6 +230,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
+        debug!("Starting container {}", id);
         Box::new(
             self.client
                 .container_api()
@@ -232,6 +241,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
+        debug!("Stopping container {}", id);
         Box::new(
             self.client
                 .container_api()
@@ -268,6 +278,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
+        debug!("Restarting container {}", id);
         Box::new(
             self.client
                 .container_api()
@@ -278,6 +289,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     }
 
     fn remove(&self, id: &str) -> Self::RemoveFuture {
+        debug!("Removing container {}", id);
         Box::new(
             self.client
                 .container_api()
