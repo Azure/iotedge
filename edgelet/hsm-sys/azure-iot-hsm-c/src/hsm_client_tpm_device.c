@@ -21,6 +21,7 @@
 
 #define EPOCH_TIME_T_VALUE          0
 #define HMAC_LENGTH                 32
+#define TPM_DATA_LENGTH             1024
 
 static TPM2B_AUTH      NullAuth = { .t = {0,  {0}} };
 static TSS_SESSION     NullPwSession;
@@ -495,10 +496,15 @@ static int hsm_client_tpm_get_endorsement_key
         }
         else
         {
-            unsigned char data_bytes[1024];
+            unsigned char data_bytes[TPM_DATA_LENGTH];
             unsigned char* data_pos = data_bytes;
             uint32_t data_length = TPM2B_PUBLIC_Marshal(&hsm_client_info->ek_pub, &data_pos, NULL);
-            if ((*key = (unsigned char*)malloc(data_length)) == NULL)
+            if (data_length > TPM_DATA_LENGTH)
+            {
+                LOG_ERROR("EK data length larger than allocated buffer %zu", data_length);
+                result = __FAILURE__;
+            }
+            else if ((*key = (unsigned char*)malloc(data_length)) == NULL)
             {
                 LOG_ERROR("Failure creating buffer handle");
                 result = __FAILURE__;
@@ -537,10 +543,16 @@ static int hsm_client_tpm_get_storage_key
         }
         else
         {
-            unsigned char data_bytes[1024];
+            unsigned char data_bytes[TPM_DATA_LENGTH];
             unsigned char* data_pos = data_bytes;
             uint32_t data_length = TPM2B_PUBLIC_Marshal(&hsm_client_info->srk_pub, &data_pos, NULL);
-            if ((*key = (unsigned char*)malloc(data_length)) == NULL)
+            
+            if (data_length > TPM_DATA_LENGTH)
+            {
+                LOG_ERROR("SRK data length larger than allocated buffer %zu", data_length);
+                result = __FAILURE__;
+            }
+            else if ((*key = (unsigned char*)malloc(data_length)) == NULL)
             {
                 LOG_ERROR("Failure creating buffer handle");
                 result = __FAILURE__;
@@ -576,7 +588,7 @@ static int hsm_client_tpm_sign_data
     }
     else
     {
-        BYTE data_signature[1024];
+        BYTE data_signature[TPM_DATA_LENGTH];
         BYTE* data_copy = (unsigned char*)data_to_be_signed;
         HSM_CLIENT_INFO* hsm_client_info = (HSM_CLIENT_INFO*)handle;
 
@@ -658,7 +670,7 @@ static int hsm_client_tpm_derive_and_sign_with_identity
         *digest = NULL;
         *digest_size = 0;
 
-        BYTE data_signature[1024];
+        BYTE data_signature[TPM_DATA_LENGTH];
         BYTE* data_copy = (unsigned char*)identity;
         HSM_CLIENT_INFO* hsm_client_info = (HSM_CLIENT_INFO*)handle;
 
@@ -686,7 +698,7 @@ static int hsm_client_tpm_derive_and_sign_with_identity
                 result =0;
             }
 
-            memset(data_signature, 0, 1024);
+            memset(data_signature, 0, TPM_DATA_LENGTH);
         }
     }
     return result;
