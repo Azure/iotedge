@@ -3,6 +3,7 @@
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
+#[cfg(target_os = "linux")]
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
@@ -39,7 +40,7 @@ pub use self::other::{listener, listener_name, listeners_name};
 mod other {
     use super::*;
 
-    pub fn listener(num: i32) -> Result<Socket, Error> {
+    pub fn listener(_num: i32) -> Result<Socket, Error> {
         Err(Error::from(ErrorKind::NotFound))
     }
 

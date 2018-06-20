@@ -39,12 +39,21 @@ extern crate tokio_core;
 extern crate tokio_signal;
 extern crate url;
 extern crate url_serde;
+#[cfg(target_os = "windows")]
+#[macro_use]
+extern crate windows_service;
 
 pub mod app;
 mod error;
 pub mod logging;
 pub mod settings;
 pub mod signal;
+
+#[cfg(not(target_os = "windows"))]
+pub mod unix;
+
+#[cfg(target_os = "windows")]
+pub mod windows;
 
 use std::collections::HashMap;
 use std::env;

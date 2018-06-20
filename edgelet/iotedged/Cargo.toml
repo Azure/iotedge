@@ -36,6 +36,9 @@ edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 provisioning = { path = "../provisioning" }
 
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.1"
+
 [dev_dependencies]
 tempdir = "0.3.7"
 edgelet-test-utils = { path = "../edgelet-test-utils" }

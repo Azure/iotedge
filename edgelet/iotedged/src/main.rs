@@ -4,20 +4,18 @@
 
 extern crate iotedged;
 
-use iotedged::Error;
-
+#[cfg(not(target_os = "windows"))]
 fn main() {
-    if let Err(e) = run() {
+    if let Err(e) = iotedged::unix::run() {
         iotedged::logging::log_error(&e);
         std::process::exit(1);
     }
 }
 
-fn run() -> Result<(), Error> {
-    let settings = iotedged::app::init()?;
-    let main = iotedged::Main::new(settings)?;
-
-    let shutdown_signal = iotedged::signal::shutdown(&main.handle());
-    main.run_until(shutdown_signal)?;
-    Ok(())
+#[cfg(target_os = "windows")]
+fn main() {
+    if let Err(e) = iotedged::windows::run() {
+        iotedged::logging::log_error(&e);
+        std::process::exit(1);
+    }
 }

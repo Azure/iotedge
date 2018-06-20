@@ -5,6 +5,8 @@ use std::fmt;
 use std::fmt::Display;
 use std::io;
 use std::net::AddrParseError;
+#[cfg(target_os = "windows")]
+use std::sync::Mutex;
 
 use base64::DecodeError;
 use config::ConfigError as SettingsError;
@@ -20,6 +22,8 @@ use iothubservice::error::Error as IotHubError;
 use provisioning::Error as ProvisioningError;
 use serde_json::Error as JsonError;
 use url::ParseError;
+#[cfg(target_os = "windows")]
+use windows_service::Error as WindowsServiceError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -58,6 +62,9 @@ pub enum ErrorKind {
     SoftHsm,
     #[fail(display = "Env var error")]
     Var,
+    #[cfg(target_os = "windows")]
+    #[fail(display = "Windows service error")]
+    WindowsService,
 }
 
 impl Fail for Error {
@@ -95,6 +102,38 @@ impl From<SettingsError> for Error {
         Error {
             inner: error.context(ErrorKind::Settings),
         }
+    }
+}
+
+// The use of the Mutex below is an artifact of trying to unify 2 different error
+// handling crates. `windows_service` uses `error_chain` and we use `failure`.
+// `error_chain`'s error type does not implement `Sync` unfortunately (they have
+// an open PR to address that). But `failure` requires errors to implement `Sync`.
+// So this `Mutex` helps us work around the problem.
+#[cfg(target_os = "windows")]
+#[derive(Debug, Fail)]
+pub struct ServiceError(Mutex<WindowsServiceError>);
+
+#[cfg(target_os = "windows")]
+impl Display for ServiceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.lock().unwrap().fmt(f)
+    }
+}
+
+#[cfg(target_os = "windows")]
+impl From<ServiceError> for Error {
+    fn from(error: ServiceError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::WindowsService),
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+impl From<WindowsServiceError> for Error {
+    fn from(error: WindowsServiceError) -> Error {
+        Error::from(ServiceError(Mutex::new(error)))
     }
 }
 
