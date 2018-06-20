@@ -64,22 +64,6 @@ fn run() -> Result<(), Error> {
         )
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
-            SubCommand::with_name("start").about("Start a module").arg(
-                Arg::with_name("MODULE")
-                    .help("Sets the module identity to start")
-                    .required(true)
-                    .index(1),
-            ),
-        )
-        .subcommand(
-            SubCommand::with_name("stop").about("Stop a module").arg(
-                Arg::with_name("MODULE")
-                    .help("Sets the module identity to stop")
-                    .required(true)
-                    .index(1),
-            ),
-        )
-        .subcommand(
             SubCommand::with_name("restart")
                 .about("Restart a module")
                 .arg(
@@ -124,20 +108,6 @@ fn run() -> Result<(), Error> {
 
     match matches.subcommand() {
         ("list", Some(_args)) => core.run(List::new(runtime, io::stdout()).execute()),
-        ("start", Some(args)) => core.run(
-            Start::new(
-                args.value_of("MODULE").unwrap().to_string(),
-                runtime,
-                io::stdout(),
-            ).execute(),
-        ),
-        ("stop", Some(args)) => core.run(
-            Stop::new(
-                args.value_of("MODULE").unwrap().to_string(),
-                runtime,
-                io::stdout(),
-            ).execute(),
-        ),
         ("restart", Some(args)) => core.run(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
