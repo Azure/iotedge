@@ -225,7 +225,9 @@ docker_build_and_tag_and_push()
     fi
 
     if [ $SKIP_PUSH -eq 0 ]; then
-        docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch
+        docker_push_cmd="docker push $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
+        echo "Running... $docker_push_cmd"
+        $docker_push_cmd
         if [ $? -ne 0 ]; then
             echo "Docker push failed with exit code $?"
             exit 1
