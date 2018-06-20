@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public interface IPlanRunner
     {
-        Task ExecuteAsync(long deploymentId, Plan plan, CancellationToken token);
+        Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token);
     }
 }

@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
-            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, runtimeInfo, DeploymentConfigInfo.Empty.Version, DeploymentStatus.Success), Times.Once);
+            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, runtimeInfo, DeploymentConfigInfo.Empty.Version, Option.None<DeploymentStatus>()), Times.Once);
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, Plan.Empty, token), Times.Never);
         }
 
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).Throws<InvalidOperationException>();
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token))
                 .ReturnsAsync(currentSet);
-            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == statusCode)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == statusCode)))
                 .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(env => env.GetModulesAsync(token)).Throws<InvalidOperationException>();
-            mockReporter.Setup(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(ModuleSet.Empty);
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), ModuleSet.Empty))
                 .Throws<InvalidOperationException>();
-            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)))
                 .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
@@ -306,7 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Returns(Task.FromResult(testPlan));
             mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet))
                 .Returns(Task.FromResult((IImmutableDictionary<string, IModuleIdentity>)ImmutableDictionary<string, IModuleIdentity>.Empty));
-            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success))
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), Option.Some(DeploymentStatus.Success)))
                 .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
@@ -347,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await agent.ReconcileAsync(token);
 
             // Assert
-            mockReporter.Verify(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
+            mockReporter.Verify(r => r.ReportAsync(token, null, It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)));
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 
@@ -377,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             await agent.ReconcileAsync(token);
 
             // Assert
-            mockReporter.Verify(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<DeploymentStatus>(s => s.Code == DeploymentStatusCode.Failed)));
+            mockReporter.Verify(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), It.Is<Option<DeploymentStatus>>(s => s.HasValue && s.OrDefault().Code == DeploymentStatusCode.Failed)));
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
         }
 

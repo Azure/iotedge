@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
     public class OrderedPlanRunner : IPlanRunner
     {
-        public async Task ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
+        public async Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
             Option<List<Exception>> failures = Option.None<List<Exception>>();
             Events.PlanExecStarted(deploymentId);
@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
             Events.PlanExecEnded(deploymentId);
             failures.ForEach(f => throw new AggregateException(f));
+            return true;
         }
 
         static class Events

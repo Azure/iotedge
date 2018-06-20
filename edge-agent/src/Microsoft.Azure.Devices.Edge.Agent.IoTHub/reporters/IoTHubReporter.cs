@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             }
         }
 
-        AgentState BuildCurrentStateAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus status)
+        AgentState BuildCurrentState(ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus status)
         {
             IEdgeAgentModule edgeAgentModule;
             IEdgeHubModule edgeHubModule;
@@ -108,10 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             return currentState;
         }
 
-        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus status)
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, Option<DeploymentStatus> updatedStatus)
         {
-            Preconditions.CheckNotNull(status, nameof(status));
-
             Option<AgentState> agentState = Option.None<AgentState>();
             using (await this.sync.LockAsync(token))
             {
@@ -123,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     // we have no connection yet
                     await agentState.ForEachAsync(async rs =>
                     {
-                        AgentState currentState = this.BuildCurrentStateAsync(token, moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, status);
+                        AgentState currentState = this.BuildCurrentState(moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, updatedStatus.GetOrElse(rs.LastDesiredStatus));
                         // diff, prepare patch and report
                         await this.DiffAndReportAsync(currentState, rs);
                     });

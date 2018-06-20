@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
     public class OrderedRetryPlanRunner : IPlanRunner
     {
-        AsyncLock sync;
+        readonly AsyncLock sync;
         long lastDeploymentId;
         Dictionary<string, (int RunCount, DateTime LastRunTimeUtc)> commandRunStatus;
         readonly int maxRunCount;
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             this.commandRunStatus = new Dictionary<string, (int RunCount, DateTime LastRunTimeUtc)>();
         }
 
-        public async Task ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
+        public async Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
         {
             Preconditions.CheckRange(deploymentId, -1, nameof(deploymentId));
             Preconditions.CheckNotNull(plan, nameof(plan));
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 this.lastDeploymentId = deploymentId;
 
                 Option<List<Exception>> failures = Option.None<List<Exception>>();
-
+                bool skippedModules = false;
                 foreach (ICommand command in plan.Commands)
                 {
                     try
@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                         }
                         else
                         {
+                            skippedModules = true;
                             Events.SkippingCommand(deploymentId, command, runCount, this.maxRunCount, coolOffPeriod, elapsedTime);
                         }
                     }
@@ -114,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
 
                 Events.PlanExecEnded(deploymentId);
                 failures.ForEach(f => throw new AggregateException(f));
+                return !skippedModules;
             }
         }
 

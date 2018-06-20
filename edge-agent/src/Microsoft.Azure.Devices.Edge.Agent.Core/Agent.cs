@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            DeploymentStatus status = DeploymentStatus.Success;
+            Option<DeploymentStatus> status = Option.None<DeploymentStatus>();
             ModuleSet moduleSetToReport = null;
             using (await this.reconcileLock.LockAsync(token))
             {
@@ -169,8 +169,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         {
                             try
                             {
-                                await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                if (result)
+                                {
+                                    status = Option.Some(DeploymentStatus.Success);
+                                }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
                             {
@@ -181,28 +185,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                         }
                     }
+                    else
+                    {
+                        status = Option.Some(DeploymentStatus.Success);
+                    }
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
                     switch (ex)
                     {
                         case ConfigEmptyException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message));
                             Events.EmptyConfig(ex);
                             break;
 
                         case InvalidSchemaVersionException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message));
                             Events.InvalidSchemaVersion(ex);
                             break;
 
                         case ConfigFormatException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message));
                             Events.InvalidConfigFormat(ex);
                             break;
 
                         default:
-                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
                             Events.UnknownFailure(ex);
                             break;
                     }
