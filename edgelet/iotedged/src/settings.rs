@@ -19,7 +19,7 @@ use edgelet_core::ModuleSpec;
 use error::Error;
 
 /// This is the name of the network created by the iotedged
-const EDGE_NETWORKID: &str = "azure-iot-edge";
+const DEFAULT_NETWORKID: &str = "azure-iot-edge";
 
 #[cfg(unix)]
 static DEFAULTS: &str = include_str!("config/unix/default.yaml");
@@ -120,7 +120,7 @@ impl MobyRuntime {
 
     pub fn network(&self) -> &str {
         if self.network.is_empty() {
-            &EDGE_NETWORKID
+            &DEFAULT_NETWORKID
         } else {
             &self.network
         }
@@ -371,5 +371,20 @@ mod tests {
                 .unwrap(),
             true
         );
+    }
+
+    #[test]
+    fn network_default() {
+        let moby1 = MobyRuntime {
+            uri: Url::parse("http://test").unwrap(),
+            network: "".to_string(),
+        };
+        assert_eq!(DEFAULT_NETWORKID, moby1.network());
+
+        let moby2 = MobyRuntime {
+            uri: Url::parse("http://test").unwrap(),
+            network: "some-network".to_string(),
+        };
+        assert_eq!("some-network", moby2.network());
     }
 }

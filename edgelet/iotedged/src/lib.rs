@@ -155,9 +155,6 @@ const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
-/// This is the name of the network created by the iotedged
-const EDGE_NETWORKID: &str = "azure-iot-edge";
-
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
@@ -204,24 +201,26 @@ impl Main {
             .connector(HttpsConnector::new(DNS_WORKER_THREADS, &handle)?)
             .build(&handle);
 
-        let network_id = if settings.moby_runtime().network().is_empty() {
-            EDGE_NETWORKID
-        } else {
+        info!(
+            "Using runtime network id {}",
             settings.moby_runtime().network()
-        }.to_string();
-        info!("Using runtime network id {}", network_id);
+        );
         let runtime = DockerModuleRuntime::new(settings.moby_runtime().uri(), &handle)?
-            .with_network_id(network_id.clone());
+            .with_network_id(settings.moby_runtime().network().to_string());
 
         init_docker_runtime(&runtime, &mut core)?;
 
+        info!(
+            "Configuring {} as the home directory.",
+            settings.homedir().display()
+        );
         env::set_var(HOMEDIR_KEY, &settings.homedir());
 
-        info!("Configuring Edge certificates...");
+        info!("Configuring certificates...");
         let certificates = &settings.certificates();
         match certificates.as_ref() {
             None => info!(
-                "Transparent gateway certificates not found, Edge operating in quick start mode..."
+                "Transparent gateway certificates not found, operating in quick start mode..."
             ),
             Some(&c) => {
                 let path = c.device_ca_cert().as_os_str();
@@ -237,10 +236,14 @@ impl Main {
                 env::set_var(TRUSTED_CA_CERTS_KEY, path);
             }
         };
+        info!("Finished configuring certificates.");
+
+        info!("Initializing hsm...");
+        let crypto = Crypto::new()?;
+        info!("Finished initializing hsm.");
 
         // Detect if the settings were changed and if the device needs to be reconfigured
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
-        let crypto = Crypto::new()?;
         check_settings_state(
             cache_subdir_path.clone(),
             EDGE_SETTINGS_STATE_FILENAME,
@@ -250,10 +253,12 @@ impl Main {
             &crypto,
         )?;
 
+        info!("Provisioning edge device...");
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
                 let (key_store, provisioning_result, root_key) =
                     manual_provision(&manual, &mut core)?;
+                info!("Finished provisioning edge device.");
                 start_api(
                     &settings,
                     core,
@@ -263,7 +268,6 @@ impl Main {
                     &provisioning_result,
                     root_key,
                     shutdown_signal,
-                    network_id,
                     &crypto,
                 )?;
             }
@@ -271,6 +275,7 @@ impl Main {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
                 let (key_store, provisioning_result, root_key) =
                     dps_provision(&dps, hyper_client.clone(), &mut core, dps_path, &runtime)?;
+                info!("Finished provisioning edge device.");
                 start_api(
                     &settings,
                     core,
@@ -280,13 +285,12 @@ impl Main {
                     &provisioning_result,
                     root_key,
                     shutdown_signal,
-                    network_id,
                     &crypto,
                 )?;
             }
         };
 
-        info!("Shutdown complete");
+        info!("Shutdown complete.");
         Ok(())
     }
 }
@@ -304,10 +308,14 @@ where
     M::Error: Into<Error>,
     C: MasterEncryptionKey,
 {
+    info!("Detecting if configuration file has changed...");
     let path = subdir_path.join(filename);
     let diff = settings.diff_with_cached(path)?;
     if diff {
+        info!("Change to configuration file detected.");
         reconfigure(subdir_path, filename, settings, runtime, crypto, core)?;
+    } else {
+        info!("No change to configuration file detected.");
     }
     Ok(())
 }
@@ -326,7 +334,9 @@ where
     C: MasterEncryptionKey,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
+    info!("Removing all modules...");
     core.run(runtime.remove_all().map_err(|err| err.into()))?;
+    info!("Finished removing modules.");
 
     // Ignore errors from this operation because we could be recovering from a previous bad
     // configuration and shouldn't stall the current configuration because of that
@@ -356,7 +366,6 @@ fn start_api<S, K, F, C>(
     provisioning_result: &ProvisioningResult,
     root_key: K,
     shutdown_signal: F,
-    network_id: String,
     crypto: &C,
 ) -> Result<(), Error>
 where
@@ -399,9 +408,7 @@ where
     )?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
-    let edge_rt = start_runtime(
-        &runtime, &id_man, &hub_name, &device_id, &settings, runt_rx, network_id,
-    )?;
+    let edge_rt = start_runtime(&runtime, &id_man, &hub_name, &device_id, &settings, runt_rx)?;
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
@@ -425,7 +432,9 @@ where
 }
 
 fn init_docker_runtime(runtime: &DockerModuleRuntime, core: &mut Core) -> Result<(), Error> {
+    info!("Initializing the module runtime...");
     core.run(runtime.init())?;
+    info!("Finished initializing the module runtime.");
     Ok(())
 }
 
@@ -515,14 +524,13 @@ fn start_runtime<K, S>(
     device_id: &str,
     settings: &Settings<DockerConfig>,
     shutdown: Receiver<()>,
-    network_id: String,
 ) -> Result<impl Future<Item = (), Error = Error>, Error>
 where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
     let spec = settings.agent().clone();
-    let env = build_env(spec.env(), hostname, device_id, settings, network_id);
+    let env = build_env(spec.env(), hostname, device_id, settings);
     let mut spec = ModuleSpec::<DockerConfig>::new(
         EDGE_RUNTIME_MODULE_NAME,
         spec.type_(),
@@ -578,7 +586,6 @@ fn build_env(
     hostname: &str,
     device_id: &str,
     settings: &Settings<DockerConfig>,
-    network_id: String,
 ) -> HashMap<String, String> {
     let mut env = HashMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
@@ -601,7 +608,10 @@ fn build_env(
         EDGE_RUNTIME_MODE_KEY.to_string(),
         EDGE_RUNTIME_MODE.to_string(),
     );
-    env.insert(EDGE_NETWORKID_KEY.to_string(), network_id);
+    env.insert(
+        EDGE_NETWORKID_KEY.to_string(),
+        settings.moby_runtime().network().to_string(),
+    );
     for (key, val) in spec_env.iter() {
         env.insert(key.clone(), val.clone());
     }
@@ -620,6 +630,8 @@ where
     K: 'static + Sign + Clone,
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
 {
+    info!("Starting management API...");
+
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
     let server_handle = handle.clone();
@@ -628,12 +640,11 @@ where
         ApiVersionService::new(ManagementService::new(mgmt, id_man)?),
     );
 
-    info!("Listening on {} with 1 thread for management API.", url);
-
     let run = Http::new()
-        .bind_handle(url, server_handle, service)?
+        .bind_handle(url.clone(), server_handle, service)?
         .run_until(shutdown.map_err(|_| ()))
         .map_err(Error::from);
+    info!("Listening on {} with 1 thread for management API.", url);
     Ok(run)
 }
 
@@ -655,6 +666,8 @@ where
         + MasterEncryptionKey
         + Clone,
 {
+    info!("Starting workload API...");
+
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
     let server_handle = handle.clone();
@@ -663,12 +676,11 @@ where
         ApiVersionService::new(WorkloadService::new(key_store, crypto.clone(), runtime)?),
     );
 
-    info!("Listening on {} with 1 thread for workload API.", url);
-
     let run = Http::new()
-        .bind_handle(url, server_handle, service)?
+        .bind_handle(url.clone(), server_handle, service)?
         .run_until(shutdown.map_err(|_| ()))
         .map_err(Error::from);
+    info!("Listening on {} with 1 thread for workload API.", url);
     Ok(run)
 }
 

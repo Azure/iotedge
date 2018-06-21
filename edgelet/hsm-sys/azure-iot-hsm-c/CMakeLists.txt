@@ -152,6 +152,7 @@ if (NOT CPACK_PACKAGE_VERSION)
 endif()
 
 set (CPACK_PACKAGE_NAME "libiothsm-std")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Azure IoT standard mode HSM lib")
 
 set (CPACK_GENERATOR "DEB")
 set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
