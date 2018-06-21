@@ -128,6 +128,27 @@ impl MobyRuntime {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Certificates {
+    device_ca_cert: PathBuf,
+    device_ca_pk: PathBuf,
+    trusted_ca_certs: PathBuf,
+}
+
+impl Certificates {
+    pub fn device_ca_cert(&self) -> &Path {
+        &self.device_ca_cert
+    }
+
+    pub fn device_ca_pk(&self) -> &Path {
+        &self.device_ca_pk
+    }
+
+    pub fn trusted_ca_certs(&self) -> &Path {
+        &self.trusted_ca_certs
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
@@ -136,6 +157,7 @@ pub struct Settings<T> {
     listen: Listen,
     homedir: PathBuf,
     moby_runtime: MobyRuntime,
+    certificates: Option<Certificates>,
 }
 
 impl<T> Settings<T>
@@ -188,6 +210,10 @@ where
         &self.moby_runtime
     }
 
+    pub fn certificates(&self) -> Option<&Certificates> {
+        self.certificates.as_ref()
+    }
+
     pub fn diff_with_cached(&self, path: PathBuf) -> Result<bool, Error> {
         OpenOptions::new()
             .read(true)
@@ -229,6 +255,8 @@ mod tests {
     static GOOD_SETTINGS1: &str = "test/linux/sample_settings1.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TG: &str = "test/linux/sample_settings.tg.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -236,6 +264,8 @@ mod tests {
     static GOOD_SETTINGS1: &str = "test/windows/sample_settings1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TG: &str = "test/windows/sample_settings.tg.yaml";
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
@@ -281,6 +311,25 @@ mod tests {
             connection_string,
             "HostName=something.something.com;DeviceId=something;SharedAccessKey=something"
         );
+    }
+
+    #[test]
+    fn manual_file_gets_sample_tg_paths() {
+        let settings = Settings::<DockerConfig>::new(Some(GOOD_SETTINGS_TG));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let certificates = s.certificates();
+        certificates
+            .map(|c| {
+                assert_eq!(c.device_ca_cert().to_str().unwrap(), "device_ca_cert.pem");
+                assert_eq!(c.device_ca_pk().to_str().unwrap(), "device_ca_pk.pem");
+                assert_eq!(
+                    c.trusted_ca_certs().to_str().unwrap(),
+                    "trusted_ca_certs.pem"
+                );
+            })
+            .expect("certificates not configured");
     }
 
     #[test]

@@ -9,8 +9,12 @@
 #include "testrunnerswitcher.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
+#include "azure_c_shared_utility/strings.h"
+#include "hsm_client_store.h"
+#include "hsm_key.h"
 #include "hsm_utils.h"
 #include "hsm_log.h"
+#include "hsm_constants.h"
 
 //#############################################################################
 // Interface(s) under test
@@ -40,23 +44,333 @@ static size_t TEST_PLAINTEXT_SIZE = sizeof(TEST_PLAINTEXT);
 static unsigned char TEST_IV[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G'};
 static size_t TEST_IV_SIZE = sizeof(TEST_IV);
 
+// transparent gateway scenario test data
+#define TEST_VALIDITY 3600 * 24 // 1 day
+#define TEST_SERIAL_NUM 1000
+#define ROOT_CA_CN "Root CA"
+#define ROOT_CA_ALIAS "test_root"
+#define ROOT_CA_PATH_LEN 5
+#define INT_CA_1_CN "Int 1 CA"
+#define INT_CA_1_ALIAS "test_int_1"
+#define INT_CA_1_PATH_LEN ((ROOT_CA_PATH_LEN) - 1)
+#define INT_CA_2_CN "Int 2 CA"
+#define INT_CA_2_ALIAS "test_int_2"
+#define INT_CA_2_PATH_LEN ((INT_CA_1_PATH_LEN) - 1)
+#define NUM_TRUSTED_CERTS 3 //root, int1, int2
+#define DEVICE_CA_CN "Device CA"
+#define DEVICE_CA_ALIAS "test_device_ca"
+#define DEVICE_CA_PATH_LEN ((INT_CA_2_PATH_LEN) - 1)
+
+static STRING_HANDLE BASE_TG_CERTS_PATH = NULL;
+static STRING_HANDLE VALID_DEVICE_CA_PATH = NULL;
+static STRING_HANDLE VALID_DEVICE_PK_PATH = NULL;
+static STRING_HANDLE VALID_TRUSTED_CA_PATH = NULL;
+static STRING_HANDLE ROOT_CA_PATH = NULL;
+static STRING_HANDLE ROOT_PK_PATH = NULL;
+static STRING_HANDLE INT_1_CA_PATH = NULL;
+static STRING_HANDLE INT_1_PK_PATH = NULL;
+static STRING_HANDLE INT_2_CA_PATH = NULL;
+static STRING_HANDLE INT_2_PK_PATH = NULL;
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    static const char *SLASH = "\\";
+#else
+    static const char *SLASH = "/";
+#endif
 //#############################################################################
 // Test helpers
 //#############################################################################
 
+static void test_helper_setenv(const char *key, const char *value)
+{
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        errno_t status = _putenv_s(key, value);
+    #else
+        int status = setenv(key, value, 1);
+    #endif
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    const char *retrieved_value = getenv(key);
+    if (retrieved_value != NULL)
+    {
+        int cmp = strcmp(retrieved_value, value);
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+    }
+}
+
+static void test_helper_unsetenv(const char *key)
+{
+    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        STRING_HANDLE key_handle = STRING_construct(key);
+        ASSERT_IS_NOT_NULL_WITH_MSG(key_handle, "Line:" TOSTRING(__LINE__));
+        int ret_val = STRING_concat(key_handle, "=");
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, ret_val, "Line:" TOSTRING(__LINE__));
+        errno_t status = _putenv(STRING_c_str(key_handle));
+        STRING_delete(key_handle);
+    #else
+        int status = unsetenv(key);
+    #endif
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    const char *retrieved_value = getenv(key);
+    ASSERT_IS_NULL_WITH_MSG(retrieved_value, "Line:" TOSTRING(__LINE__));
+}
+
+static CERT_PROPS_HANDLE test_helper_create_certificate_props
+(
+    const char *common_name,
+    const char *alias,
+    const char *issuer_alias,
+    CERTIFICATE_TYPE type,
+    uint64_t validity
+)
+{
+    CERT_PROPS_HANDLE cert_props_handle = cert_properties_create();
+    ASSERT_IS_NOT_NULL_WITH_MSG(cert_props_handle, "Line:" TOSTRING(__LINE__));
+    set_validity_seconds(cert_props_handle, validity);
+    set_common_name(cert_props_handle, common_name);
+    set_country_name(cert_props_handle, "US");
+    set_state_name(cert_props_handle, "Test State");
+    set_locality(cert_props_handle, "Test Locality");
+    set_organization_name(cert_props_handle, "Test Org");
+    set_organization_unit(cert_props_handle, "Test Org Unit");
+    set_certificate_type(cert_props_handle, type);
+    set_issuer_alias(cert_props_handle, issuer_alias);
+    set_alias(cert_props_handle, alias);
+    return cert_props_handle;
+}
+
+static void test_helper_generate_pki_certificate
+(
+    CERT_PROPS_HANDLE cert_props_handle,
+    int serial_num,
+    int path_len,
+    const char *private_key_file,
+    const char *cert_file,
+    const char *issuer_private_key_file,
+    const char *issuer_cert_file
+)
+{
+    int result = generate_pki_cert_and_key(cert_props_handle,
+                                           serial_num,
+                                           path_len,
+                                           private_key_file,
+                                           cert_file,
+                                           issuer_private_key_file,
+                                           issuer_cert_file);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+}
+
+static void test_helper_generate_self_signed
+(
+    CERT_PROPS_HANDLE cert_props_handle,
+    int serial_num,
+    int path_len,
+    const char *private_key_file,
+    const char *cert_file,
+    const PKI_KEY_PROPS *key_props
+)
+{
+    int result = generate_pki_cert_and_key_with_props(cert_props_handle,
+                                                      serial_num,
+                                                      path_len,
+                                                      private_key_file,
+                                                      cert_file,
+                                                      key_props);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, result, "Line:" TOSTRING(__LINE__));
+}
+
+static void test_helper_prepare_transparent_gateway_certs(void)
+{
+    CERT_PROPS_HANDLE ca_root_handle;
+    CERT_PROPS_HANDLE int_ca_1_root_handle;
+    CERT_PROPS_HANDLE int_ca_2_root_handle;
+    CERT_PROPS_HANDLE device_ca_handle;
+
+    int status;
+    PKI_KEY_PROPS key_props = { HSM_PKI_KEY_RSA, NULL };
+
+    const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
+    const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
+    const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
+    const char *root_ca_path = STRING_c_str(ROOT_CA_PATH);
+    const char *root_pk_path = STRING_c_str(ROOT_PK_PATH);
+    const char *int_ca_1_path = STRING_c_str(INT_1_CA_PATH);
+    const char *int_pk_1_path = STRING_c_str(INT_1_PK_PATH);
+    const char *int_ca_2_path = STRING_c_str(INT_2_CA_PATH);
+    const char *int_pk_2_path = STRING_c_str(INT_2_PK_PATH);
+
+    ca_root_handle = test_helper_create_certificate_props(ROOT_CA_CN,
+                                                          ROOT_CA_ALIAS,
+                                                          ROOT_CA_ALIAS,
+                                                          CERTIFICATE_TYPE_CA,
+                                                          TEST_VALIDITY);
+
+    test_helper_generate_self_signed(ca_root_handle,
+                                     TEST_SERIAL_NUM + 1,
+                                     ROOT_CA_PATH_LEN,
+                                     root_pk_path,
+                                     root_ca_path,
+                                     &key_props);
+
+    int_ca_1_root_handle = test_helper_create_certificate_props(INT_CA_1_CN,
+                                                                INT_CA_1_ALIAS,
+                                                                ROOT_CA_ALIAS,
+                                                                CERTIFICATE_TYPE_CA,
+                                                                TEST_VALIDITY);
+
+    test_helper_generate_pki_certificate(int_ca_1_root_handle,
+                                         TEST_SERIAL_NUM + 2,
+                                         INT_CA_1_PATH_LEN,
+                                         int_pk_1_path,
+                                         int_ca_1_path,
+                                         root_pk_path,
+                                         root_ca_path);
+
+    int_ca_2_root_handle = test_helper_create_certificate_props(INT_CA_2_CN,
+                                                                INT_CA_2_ALIAS,
+                                                                INT_CA_1_ALIAS,
+                                                                CERTIFICATE_TYPE_CA,
+                                                                TEST_VALIDITY);
+
+    test_helper_generate_pki_certificate(int_ca_2_root_handle,
+                                         TEST_SERIAL_NUM + 3,
+                                         INT_CA_2_PATH_LEN,
+                                         int_pk_2_path,
+                                         int_ca_2_path,
+                                         int_pk_1_path,
+                                         int_ca_1_path);
+
+    device_ca_handle = test_helper_create_certificate_props(INT_CA_2_CN,
+                                                            INT_CA_2_ALIAS,
+                                                            INT_CA_1_ALIAS,
+                                                            CERTIFICATE_TYPE_CA,
+                                                            TEST_VALIDITY);
+
+    test_helper_generate_pki_certificate(device_ca_handle,
+                                         TEST_SERIAL_NUM + 4,
+                                         DEVICE_CA_PATH_LEN,
+                                         device_pk_path,
+                                         device_ca_path,
+                                         int_pk_2_path,
+                                         int_ca_2_path);
+
+    const char *trusted_files[NUM_TRUSTED_CERTS] = { NULL, NULL, NULL };
+    trusted_files[0] = int_ca_2_path;
+    trusted_files[1] = int_ca_1_path;
+    trusted_files[2] = root_ca_path;
+    char* trusted_ca_certs = concat_files_to_cstring(trusted_files, NUM_TRUSTED_CERTS);
+    ASSERT_IS_NOT_NULL_WITH_MSG(trusted_ca_certs, "Line:" TOSTRING(__LINE__));
+    status = write_cstring_to_file(trusted_ca_path, trusted_ca_certs);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    const char *chained_device_files[2] = { device_ca_path, trusted_ca_path };
+    char* chained_device_ca_cert = concat_files_to_cstring(chained_device_files, 2);
+    ASSERT_IS_NOT_NULL_WITH_MSG(chained_device_ca_cert, "Line:" TOSTRING(__LINE__));
+    status = write_cstring_to_file(device_ca_path, chained_device_ca_cert);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    // cleanup
+    free(chained_device_ca_cert);
+    free(trusted_ca_certs);
+    cert_properties_destroy(device_ca_handle);
+    cert_properties_destroy(int_ca_2_root_handle);
+    cert_properties_destroy(int_ca_1_root_handle);
+    cert_properties_destroy(ca_root_handle);
+}
+
 static void test_helper_setup_homedir(void)
 {
 #if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
+    int status;
+    test_helper_setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
     printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
+
+    STRING_HANDLE BASE_TG_CERTS_PATH = STRING_construct(TESTONLY_IOTEDGE_HOMEDIR);
+    ASSERT_IS_NOT_NULL_WITH_MSG(BASE_TG_CERTS_PATH, "Line:" TOSTRING(__LINE__));
+    status = STRING_concat(BASE_TG_CERTS_PATH, SLASH);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    VALID_DEVICE_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(VALID_DEVICE_CA_PATH, "device_ca_cert.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    VALID_DEVICE_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(VALID_DEVICE_PK_PATH, "device_pk_cert.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    VALID_TRUSTED_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(VALID_TRUSTED_CA_PATH, "trusted_ca_certs.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    ROOT_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(ROOT_CA_PATH, "root_ca_cert.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    ROOT_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(ROOT_PK_PATH, "root_ca_pk.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    INT_1_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(INT_1_CA_PATH, "int_1_ca_cert.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    INT_1_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(INT_1_PK_PATH, "int_1_ca_pk.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    INT_2_CA_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(INT_2_CA_PATH, "int_2_ca_cert.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    INT_2_PK_PATH = STRING_clone(BASE_TG_CERTS_PATH);
+    status = STRING_concat(INT_2_PK_PATH, "int_2_ca_pk.pem");
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+    test_helper_prepare_transparent_gateway_certs();
+
+    STRING_delete(BASE_TG_CERTS_PATH);
+    BASE_TG_CERTS_PATH = NULL;
 #else
     #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
 #endif
+}
+
+static void test_helper_teardown_homedir(void)
+{
+    delete_file(STRING_c_str(VALID_DEVICE_CA_PATH));
+    STRING_delete(VALID_DEVICE_CA_PATH);
+    VALID_DEVICE_CA_PATH = NULL;
+
+    delete_file(STRING_c_str(VALID_DEVICE_PK_PATH));
+    STRING_delete(VALID_DEVICE_PK_PATH);
+    VALID_DEVICE_PK_PATH = NULL;
+
+    delete_file(STRING_c_str(VALID_TRUSTED_CA_PATH));
+    STRING_delete(VALID_TRUSTED_CA_PATH);
+    VALID_TRUSTED_CA_PATH = NULL;
+
+    delete_file(STRING_c_str(ROOT_CA_PATH));
+    STRING_delete(ROOT_CA_PATH);
+    ROOT_CA_PATH = NULL;
+
+    delete_file(STRING_c_str(ROOT_PK_PATH));
+    STRING_delete(ROOT_PK_PATH);
+    ROOT_PK_PATH = NULL;
+
+    delete_file(STRING_c_str(INT_1_CA_PATH));
+    STRING_delete(INT_1_CA_PATH);
+    INT_1_CA_PATH = NULL;
+
+    delete_file(STRING_c_str(INT_1_PK_PATH));
+    STRING_delete(INT_1_PK_PATH);
+    INT_1_PK_PATH = NULL;
+
+    delete_file(STRING_c_str(INT_2_CA_PATH));
+    STRING_delete(INT_2_CA_PATH);
+    INT_2_CA_PATH = NULL;
+
+    delete_file(STRING_c_str(INT_2_PK_PATH));
+    STRING_delete(INT_2_PK_PATH);
+    INT_2_PK_PATH = NULL;
 }
 
 static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
@@ -128,6 +442,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
+        test_helper_teardown_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
         TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
@@ -416,10 +731,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
 
         // assert
         const char *certificate = certificate_info_get_certificate(result);
-        const char *chain_certificate = certificate_info_get_chain(result);
         const void *private_key = certificate_info_get_private_key(result, &pk_size);
         ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_NULL_WITH_MSG(private_key, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, pk_size, "Line:" TOSTRING(__LINE__));
 
@@ -542,6 +855,155 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_transparent_gateway_trust_bundle_smoke)
+    {
+        // arrange
+        const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
+        const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
+        const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+
+        // act, assert
+        CERT_INFO_HANDLE result = interface->hsm_client_get_trust_bundle(hsm_handle);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        const char *certificate = certificate_info_get_certificate(result);
+        ASSERT_IS_NOT_NULL_WITH_MSG(certificate, "Line:" TOSTRING(__LINE__));
+        char *expected_trust_bundle = read_file_into_cstring(trusted_ca_path, NULL);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(certificate), strlen(expected_trust_bundle), "Line:" TOSTRING(__LINE__));
+        int cmp = memcmp(certificate, expected_trust_bundle, strlen(certificate));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(expected_trust_bundle);
+        certificate_info_destroy(result);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_transparent_gateway_ca_cert_create_smoke)
+    {
+        // arrange
+        const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
+        const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
+        const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE ca_certificate_props = test_helper_create_ca_cert_properties();
+
+        // act, assert
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, ca_certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        const char *chain_certificate = certificate_info_get_chain(result);
+        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        char *expected_chain_certificate = read_file_into_cstring(device_ca_path, NULL);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
+        int cmp = memcmp(expected_chain_certificate, chain_certificate, strlen(chain_certificate));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(expected_chain_certificate);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(ca_certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_transparent_gateway_server_cert_create_smoke)
+    {
+        // arrange
+        const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
+        const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
+        const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_server_cert_properties();
+        set_issuer_alias(certificate_props, hsm_get_device_ca_alias());
+
+        // act, assert
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+        const char *chain_certificate = certificate_info_get_chain(result);
+        ASSERT_IS_NOT_NULL_WITH_MSG(chain_certificate, "Line:" TOSTRING(__LINE__));
+        char *expected_chain_certificate = read_file_into_cstring(device_ca_path, NULL);
+        ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(expected_chain_certificate), strlen(chain_certificate), "Line:" TOSTRING(__LINE__));
+        int cmp = memcmp(expected_chain_certificate, chain_certificate, strlen(chain_certificate));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        free(expected_chain_certificate);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_SERVER_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
+    TEST_FUNCTION(hsm_client_transparent_gateway_erroneous_config)
+    {
+        // arrange
+        int status;
+        const char INVALID_PATH[] = "b_l_a_h.txt";
+        const char *device_ca_path = STRING_c_str(VALID_DEVICE_CA_PATH);
+        const char *device_pk_path = STRING_c_str(VALID_DEVICE_PK_PATH);
+        const char *trusted_ca_path = STRING_c_str(VALID_TRUSTED_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+
+        // act, assert
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        test_helper_setenv(ENV_DEVICE_CA_PATH, INVALID_PATH);
+        test_helper_setenv(ENV_DEVICE_PK_PATH, INVALID_PATH);
+        test_helper_setenv(ENV_TRUSTED_CA_CERTS_PATH, INVALID_PATH);
+        status = hsm_client_crypto_init();
+        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
     }
 
 END_TEST_SUITE(edge_hsm_crypto_int_tests)

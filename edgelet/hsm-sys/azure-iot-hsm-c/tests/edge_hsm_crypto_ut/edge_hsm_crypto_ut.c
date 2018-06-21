@@ -583,6 +583,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             //arrange
             (void)hsm_client_crypto_init();
             umock_c_reset_all_calls();
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_destroy(TEST_EDGE_STORE_NAME));
 
             // act
             hsm_client_crypto_deinit();

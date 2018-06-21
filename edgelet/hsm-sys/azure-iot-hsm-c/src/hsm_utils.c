@@ -579,13 +579,26 @@ int delete_file(const char* file_name)
         LOG_ERROR("Invalid file name");
         result = __FAILURE__;
     }
-    else if (remove(file_name) != 0)
-    {
-        result = __FAILURE__;
-    }
     else
     {
-        result = 0;
+        #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+        if (DeleteFileA(file_name) == 0)
+        {
+            LOG_ERROR("Failed to delete file %s. GetLastError=%08x", file_name, GetLastError());
+            result = __FAILURE__;
+        }
+        #else
+        if (remove(file_name) != 0)
+        {
+            LOG_ERROR("Failed to delete file %s. Errno: %s.", file_name, strerror(errno));
+            result = __FAILURE__;
+        }
+        #endif
+        else
+        {
+            result = 0;
+        }
+
     }
 
     return result;

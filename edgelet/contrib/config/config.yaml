@@ -32,6 +32,29 @@ provisioning:
 #   registration_id: "{registration_id}"
 
 ###############################################################################
+# Certificate settings
+###############################################################################
+#
+# This configures the certificates required to operate the IoT Edge
+# runtime as a gateway which enables external leaf devices to securely
+# communicate with the Edge Hub. If not specified, the required certificates
+# are auto generated for quick start scenarios which are not intended for
+# production environments.
+#
+# Settings:
+#     device_ca_cert   - path to the device ca certificate and its chain
+#     device_ca_pk     - path to the device ca private key file
+#     trusted_ca_certs - path to a file containing all the trusted CA
+#                        certificates required for Edge module communication
+#
+###############################################################################
+
+# certificates:
+#   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
+#   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
+#   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+
+###############################################################################
 # Edge Agent module spec
 ###############################################################################
 #

@@ -68,6 +68,11 @@ void hsm_client_crypto_deinit(void)
     }
     else
     {
+        int status;
+        if ((status = g_hsm_store_if->hsm_client_store_destroy(EDGE_STORE_NAME)) != 0)
+        {
+            LOG_ERROR("Could not destroy store. Error code %d", status);
+        }
         g_hsm_store_if = NULL;
         g_hsm_key_if = NULL;
         g_is_crypto_initialized = false;

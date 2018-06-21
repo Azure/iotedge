@@ -500,7 +500,7 @@ static int write_private_key_file(EVP_PKEY* evp_key, const char* key_file_name)
     int fd = OPEN_HELPER(key_file_name);
     if (fd == -1)
     {
-        LOG_ERROR("Failure opening key file for writing for %s", key_file_name);
+        LOG_ERROR("Failure opening key file for writing for %s. Errno %d, %s", key_file_name, errno, strerror(errno));
         result = __FAILURE__;
     }
     else

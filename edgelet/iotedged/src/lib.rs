@@ -146,6 +146,11 @@ const EDGE_RUNTIME_MODE: &str = "iotedged";
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
 
+/// The HSM lib expects these environment variables to be set if the Edge has to be operated as a gateway
+const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
+const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
+const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
+
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
@@ -210,6 +215,27 @@ impl Main {
         init_docker_runtime(&runtime, &mut core)?;
 
         env::set_var(HOMEDIR_KEY, &settings.homedir());
+
+        info!("Configuring Edge certificates...");
+        let certificates = &settings.certificates();
+        match certificates.as_ref() {
+            None => info!(
+                "Transparent gateway certificates not found, Edge operating in quick start mode..."
+            ),
+            Some(&c) => {
+                let path = c.device_ca_cert().as_os_str();
+                info!("Configuring the Device CA certificate using {:?}.", path);
+                env::set_var(DEVICE_CA_CERT_KEY, path);
+
+                let path = c.device_ca_pk().as_os_str();
+                info!("Configuring the Device private key using {:?}.", path);
+                env::set_var(DEVICE_CA_PK_KEY, path);
+
+                let path = c.trusted_ca_certs().as_os_str();
+                info!("Configuring the trusted CA certificates using {:?}.", path);
+                env::set_var(TRUSTED_CA_CERTS_KEY, path);
+            }
+        };
 
         // Detect if the settings were changed and if the device needs to be reconfigured
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);

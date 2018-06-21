@@ -107,9 +107,9 @@ static int edge_hsm_client_store_insert_pki_cert
 
 static int edge_hsm_client_store_insert_pki_trusted_cert
 (
-	HSM_CLIENT_STORE_HANDLE handle,
+    HSM_CLIENT_STORE_HANDLE handle,
     const char* alias,
-	const char* cert_file_name
+    const char* cert_file_name
 );
 
 static const char* get_base_dir(void);
@@ -1564,10 +1564,10 @@ static int load_if_cert_and_key_exist_by_alias
             if (is_file_valid(cert_file_path) && is_file_valid(key_file_path))
             {
                 if (edge_hsm_client_store_insert_pki_cert(handle,
-                                                        alias,
-                                                        issuer_alias,
-                                                        cert_file_path,
-                                                        key_file_path) != 0)
+                                                          alias,
+                                                          issuer_alias,
+                                                          cert_file_path,
+                                                          key_file_path) != 0)
                 {
                     LOG_ERROR("Could not load certificates into store for alias %s", alias);
                     result = __FAILURE__;
@@ -1707,84 +1707,83 @@ static int hsm_provision_edge_certificates(void)
     int result = 0;
     unsigned int mask = 0, i = 0;
     bool env_set = false;
-    const char *owner_ca_path = getenv(ENV_OWNER_CA_PATH);
+    const char *trusted_certs_path = getenv(ENV_TRUSTED_CA_CERTS_PATH);
     const char *device_ca_path = getenv(ENV_DEVICE_CA_PATH);
     const char *device_pk_path = getenv(ENV_DEVICE_PK_PATH);
-    const char *device_ca_chain_path = getenv(ENV_DEVICE_CA_CHAIN_PATH);
 
-    if (owner_ca_path != NULL)
+    if (trusted_certs_path != NULL)
     {
-        if (is_file_valid(owner_ca_path))
+        if ((strlen(trusted_certs_path) != 0) && is_file_valid(trusted_certs_path))
         {
             mask |= 1 << i; i++;
         }
         env_set = true;
+        LOG_DEBUG("Env %s set to %s", ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path);
     }
     if (device_ca_path != NULL)
     {
-        if (is_file_valid(device_ca_path))
+        if ((strlen(device_ca_path) != 0) && is_file_valid(device_ca_path))
         {
             mask |= 1 << i; i++;
         }
         env_set = true;
+        LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CA_PATH, device_ca_path);
     }
     if (device_pk_path != NULL)
     {
-        if (is_file_valid(device_pk_path))
+        if ((strlen(device_pk_path) != 0) && is_file_valid(device_pk_path))
         {
             mask |= 1 << i; i++;
         }
         env_set = true;
+        LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PK_PATH, device_pk_path);
     }
-    if (device_ca_chain_path != NULL)
+
+    LOG_DEBUG("Transparent gateway setup mask 0x%02x", mask);
+
+    if (env_set && (mask != 0x7))
     {
-        if (is_file_valid(device_ca_chain_path))
-        {
-            mask |= 1 << i; i++;
-        }
-        env_set = true;
+        LOG_ERROR("To operate Edge as a transparent gateway, set "
+                  "env variables with valid values:\n  %s\n  %s\n  %s",
+                  ENV_TRUSTED_CA_CERTS_PATH, ENV_DEVICE_CA_PATH, ENV_DEVICE_PK_PATH);
+        result = __FAILURE__;
     }
-    if (env_set)
+    // none of the certificate files were provided so generate them if needed
+    else if (!env_set && (generate_edge_hsm_certificates_if_needed() != 0))
     {
-        if (mask != 0xF)
-        {
-            LOG_ERROR("To operate Edge as a transparent gateway, set "
-                      "env variables with valid values:\n  %s\n  %s\n  %s\n  %s",
-                      ENV_OWNER_CA_PATH, ENV_DEVICE_CA_PATH,
-                      ENV_DEVICE_CA_CHAIN_PATH, ENV_DEVICE_PK_PATH);
-            result = __FAILURE__;
-        }
+        LOG_ERROR("Failure generating required HSM certificates");
+        result = __FAILURE__;
+    }
+    else if (env_set && (edge_hsm_client_store_insert_pki_cert(g_crypto_store,
+                                                               hsm_get_device_ca_alias(),
+                                                               hsm_get_device_ca_alias(), // since we don't know the issuer, we treat this certificate as the issuer
+                                                               device_ca_path,
+                                                               device_pk_path) != 0))
+    {
+        LOG_ERROR("Failure inserting device CA certificate and key into the HSM store`");
+        result = __FAILURE__;
     }
     else
     {
-        // none of the certificate files were provided so generate them if needed
-        result = generate_edge_hsm_certificates_if_needed();
-    }
-
-    if (result == 0)
-    {
-        // all required certificate files are available now setup trust bundle
-        if (owner_ca_path == NULL)
+        // all required certificate files are available/generated now setup the trust bundle
+        if (trusted_certs_path == NULL)
         {
+            // certificates were generated so set the Owner CA as the trusted CA cert
             STORE_ENTRY_PKI_CERT *store_entry = get_pki_cert(g_crypto_store, OWNER_CA_ALIAS);
             if (store_entry == NULL)
             {
-                LOG_ERROR("Could not get certificate entry for issuer %s", OWNER_CA_ALIAS);
+                LOG_ERROR("Failure obtaining owner CA certificate entry");
                 result = __FAILURE__;
             }
-            else
+            else if ((trusted_certs_path = STRING_c_str(store_entry->cert_file)) == NULL)
             {
-                owner_ca_path = STRING_c_str(store_entry->cert_file);
-                if (owner_ca_path == NULL)
-                {
-                    LOG_ERROR("Owner CA Path is NULL for issuer %s", OWNER_CA_ALIAS);
-                    result = __FAILURE__;
-                }
+                LOG_ERROR("Failure obtaining owner CA certificate path");
+                result = __FAILURE__;
             }
         }
-        if (result == 0)
+        if (trusted_certs_path != NULL)
         {
-            result = put_pki_trusted_cert(g_crypto_store, OWNER_CA_ALIAS, owner_ca_path);
+            result = put_pki_trusted_cert(g_crypto_store, DEFAULT_TRUSTED_CA_ALIAS, trusted_certs_path);
         }
     }
 
@@ -1825,7 +1824,8 @@ static int edge_hsm_client_store_create(const char* store_name)
     {
         result = __FAILURE__;
     }
-    else if (g_hsm_state == HSM_STATE_UNPROVISIONED)
+    else if ((g_hsm_state == HSM_STATE_UNPROVISIONED) ||
+             (g_hsm_state == HSM_STATE_PROVISIONING_ERROR))
     {
         g_crypto_store = create_store(store_name);
         if (g_crypto_store == NULL)
@@ -1837,6 +1837,8 @@ static int edge_hsm_client_store_create(const char* store_name)
         {
             if (hsm_provision() != 0)
             {
+                destroy_store(g_crypto_store);
+                g_crypto_store = NULL;
                 g_hsm_state = HSM_STATE_PROVISIONING_ERROR;
                 result = __FAILURE__;
             }

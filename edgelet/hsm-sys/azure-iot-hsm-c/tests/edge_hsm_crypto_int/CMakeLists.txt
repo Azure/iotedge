@@ -16,6 +16,7 @@ add_definitions(-DGB_DEBUG_ALLOC)
 prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
+    ../../src/edge_pki_openssl.c #needed to generate transparent gateway certs for tests
     edge_hsm_crypto_int.c
 )
 
