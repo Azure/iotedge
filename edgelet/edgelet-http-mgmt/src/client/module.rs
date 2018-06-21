@@ -108,7 +108,7 @@ fn runtime_status(details: &HttpModuleDetails) -> Result<ModuleRuntimeState, Err
     let exit_code = details
         .status()
         .exit_status()
-        .and_then(|e| e.status_code().parse::<i32>().ok());
+        .and_then(|e| e.status_code().parse::<i64>().ok());
     let exit_time = details
         .status()
         .exit_status()

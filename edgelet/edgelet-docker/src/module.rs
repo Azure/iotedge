@@ -34,7 +34,7 @@ impl<C: Connect> DockerModule<C> {
     }
 }
 
-fn status_from_exit_code(exit_code: Option<i32>) -> Option<ModuleStatus> {
+fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
     exit_code.map(|code| {
         if code == 0 {
             ModuleStatus::Stopped
@@ -185,7 +185,7 @@ mod tests {
         ).unwrap();
     }
 
-    fn get_inputs() -> Vec<(&'static str, i32, ModuleStatus)> {
+    fn get_inputs() -> Vec<(&'static str, i64, ModuleStatus)> {
         vec![
             ("created", 0, ModuleStatus::Stopped),
             ("paused", 0, ModuleStatus::Stopped),

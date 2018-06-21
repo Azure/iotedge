@@ -37,7 +37,7 @@ pub struct InlineResponse200State {
     pid: Option<i32>,
     /// The last exit code of this container
     #[serde(rename = "ExitCode", skip_serializing_if = "Option::is_none")]
-    exit_code: Option<i32>,
+    exit_code: Option<i64>,
     #[serde(rename = "Error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     /// The time when this container was last started.
@@ -185,16 +185,16 @@ impl InlineResponse200State {
         self.pid = None;
     }
 
-    pub fn set_exit_code(&mut self, exit_code: i32) {
+    pub fn set_exit_code(&mut self, exit_code: i64) {
         self.exit_code = Some(exit_code);
     }
 
-    pub fn with_exit_code(mut self, exit_code: i32) -> InlineResponse200State {
+    pub fn with_exit_code(mut self, exit_code: i64) -> InlineResponse200State {
         self.exit_code = Some(exit_code);
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i32> {
+    pub fn exit_code(&self) -> Option<&i64> {
         self.exit_code.as_ref()
     }
 

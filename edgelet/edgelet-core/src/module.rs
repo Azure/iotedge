@@ -48,7 +48,7 @@ impl fmt::Display for ModuleStatus {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
-    exit_code: Option<i32>,
+    exit_code: Option<i64>,
     status_description: Option<String>,
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
@@ -80,11 +80,11 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn exit_code(&self) -> Option<&i32> {
+    pub fn exit_code(&self) -> Option<&i64> {
         self.exit_code.as_ref()
     }
 
-    pub fn with_exit_code(mut self, exit_code: Option<i32>) -> ModuleRuntimeState {
+    pub fn with_exit_code(mut self, exit_code: Option<i64>) -> ModuleRuntimeState {
         self.exit_code = exit_code;
         self
     }
