@@ -230,7 +230,6 @@ where
                     debug!("Config state matches supplied config.");
                     Ok(false)
                 } else {
-                    info!("Detected change to config.");
                     Ok(true)
                 }
             })

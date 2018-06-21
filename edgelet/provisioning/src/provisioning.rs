@@ -37,6 +37,8 @@ static SHAREDACCESSKEY_REGEX: &'static str = r"SharedAccessKey=(.+)";
 pub struct ProvisioningResult {
     device_id: String,
     hub_name: String,
+    #[serde(skip)]
+    reconfigure: bool,
 }
 
 impl ProvisioningResult {
@@ -46,6 +48,10 @@ impl ProvisioningResult {
 
     pub fn hub_name(&self) -> &str {
         &self.hub_name
+    }
+
+    pub fn reconfigure(&self) -> bool {
+        self.reconfigure
     }
 }
 
@@ -135,6 +141,7 @@ impl Provision for ManualProvisioning {
             .map(|_| ProvisioningResult {
                 device_id,
                 hub_name: hub,
+                reconfigure: false,
             })
             .map_err(Error::from);
         Box::new(future::result(result))
@@ -211,6 +218,7 @@ where
                         ProvisioningResult {
                             device_id,
                             hub_name,
+                            reconfigure: false,
                         }
                     })
                     .map_err(Error::from),
@@ -279,7 +287,8 @@ where
         Box::new(
             self.underlying
                 .provision(key_activator)
-                .and_then(move |prov_result| {
+                .and_then(move |mut prov_result| {
+                    prov_result.reconfigure = true;
                     Self::backup(&prov_result, path)
                         .map(|_| Either::A(future::ok(prov_result.clone())))
                         .unwrap_or_else(|err| Either::B(future::err(err)))
@@ -315,6 +324,7 @@ mod tests {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
+                reconfigure: false,
             }))
         }
     }
@@ -503,5 +513,20 @@ mod tests {
                 Ok(()) as Result<(), Error>
             });
         core.run(task1).unwrap();
+    }
+
+    #[test]
+    fn prov_result_serialize_skips_reconfigure_flag() {
+        let json = serde_json::to_string(&ProvisioningResult {
+            device_id: "something".to_string(),
+            hub_name: "something".to_string(),
+            reconfigure: true,
+        }).unwrap();
+        assert_eq!(
+            "{\"device_id\":\"something\",\"hub_name\":\"something\"}",
+            json
+        );
+        let result: ProvisioningResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(result.reconfigure, false)
     }
 }

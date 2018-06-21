@@ -80,6 +80,7 @@ use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use futures::future;
+use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::Future;
 use hsm::tpm::Tpm;
@@ -269,7 +270,7 @@ impl Main {
             Provisioning::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
                 let (key_store, provisioning_result, root_key) =
-                    dps_provision(&dps, hyper_client.clone(), &mut core, dps_path)?;
+                    dps_provision(&dps, hyper_client.clone(), &mut core, dps_path, &runtime)?;
                 start_api(
                     &settings,
                     core,
@@ -326,6 +327,9 @@ where
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     core.run(runtime.remove_all().map_err(|err| err.into()))?;
+
+    // Ignore errors from this operation because we could be recovering from a previous bad
+    // configuration and shouldn't stall the current configuration because of that
     let _u = fs::remove_dir_all(subdir.clone());
 
     let path = subdir.join(filename);
@@ -333,9 +337,7 @@ where
     DirBuilder::new().recursive(true).create(subdir)?;
 
     // Generate a new master encryption key and save the new settings
-    // TODO pass back a specific error code indicating key already exists and ignore only
-    // that error
-    let _u = crypto.create_key();
+    crypto.create_key()?;
     let mut file = File::create(path)?;
     serde_json::to_string(settings)
         .map_err(Error::from)
@@ -448,14 +450,17 @@ fn manual_provision(
     core.run(provision)
 }
 
-fn dps_provision<S>(
+fn dps_provision<S, M>(
     provisioning: &Dps,
     hyper_client: S,
     core: &mut Core,
     backup_path: PathBuf,
+    runtime: &M,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     S: 'static + Service<Error = HyperError, Request = Request, Response = Response>,
+    M: ModuleRuntime,
+    M::Error: Into<Error>,
 {
     let tpm = Tpm::new().map_err(Error::from)?;
     let ek_result = tpm.get_ek().map_err(Error::from)?;
@@ -474,6 +479,22 @@ where
     let provision = provision_with_file_backup
         .provision(tpm_hsm.clone())
         .map_err(Error::from)
+        .and_then(|prov_result| {
+            if prov_result.reconfigure() {
+                info!("Successful DPS provisioning. This will trigger reconfiguration of modules.");
+                // Each time DPS provisions, it gets back a new device key. This results in obsolete
+                // module keys in IoTHub from the previous provisioning. We delete all containers
+                // after each DPS provisioning run so that IoTHub can be updated with new module
+                // keys when the deployment is executed by EdgeAgent.
+                let remove = runtime
+                    .remove_all()
+                    .map_err(|err| err.into())
+                    .map(|_| prov_result);
+                Either::A(remove)
+            } else {
+                Either::B(future::ok(prov_result))
+            }
+        })
         .and_then(move |prov_result| {
             tpm_hsm
                 .get(&KeyIdentity::Device, "primary")
