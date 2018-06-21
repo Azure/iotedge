@@ -12,6 +12,7 @@ libdir?=$(exec_prefix)/lib
 sysconfdir?=/etc
 datarootdir?=$(prefix)/share
 datadir?=$(datarootdir)
+docdir?=$(datarootdir)/doc/$(PACKAGE_NAME)
 mandir?=$(datarootdir)/man
 man1=$(mandir)/man1
 man8=$(mandir)/man8
@@ -44,6 +45,9 @@ package: all
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
 
 deb: package
 	cp -R $(srcdir)/contrib/debian $(TARGET)/$(PACKAGE)
@@ -57,6 +61,9 @@ install: all
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
+	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedged
@@ -65,6 +72,9 @@ uninstall:
 	-rm -f $(DESTDIR)$(man8)/iotedged.8
 	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
 	-rm $(DESTDIR)$(systconfdir)/logrotate.d/iotedge
+	-rm $(DESTDIR)$(docdir)/LICENSE
+	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
+	-rm $(DESTDIR)$(docdir)/trademark
 
 clean:
 	rm -rf $(TARGET)
