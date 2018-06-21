@@ -22,7 +22,7 @@ pub struct UpdateIdentity {
 impl UpdateIdentity {
     pub fn new(generation_id: String) -> UpdateIdentity {
         UpdateIdentity {
-            generation_id: generation_id,
+            generation_id,
             managed_by: None,
         }
     }

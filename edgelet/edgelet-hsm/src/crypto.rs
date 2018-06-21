@@ -51,23 +51,21 @@ impl Crypto {
 
 impl CoreMasterEncryptionKey for Crypto {
     fn create_key(&self) -> Result<(), CoreError> {
-        let result = self.crypto
+        self.crypto
             .read()
             .expect("Shared read lock on crypto structure failed")
             .create_master_encryption_key()
             .map_err(Error::from)
-            .map_err(CoreError::from)?;
-        Ok(result)
+            .map_err(CoreError::from)
     }
 
     fn destroy_key(&self) -> Result<(), CoreError> {
-        let result = self.crypto
+        self.crypto
             .read()
             .expect("Shared read lock on crypto structure failed")
             .destroy_master_encryption_key()
             .map_err(Error::from)
-            .map_err(CoreError::from)?;
-        Ok(result)
+            .map_err(CoreError::from)
     }
 }
 

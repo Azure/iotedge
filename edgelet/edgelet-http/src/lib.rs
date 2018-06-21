@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![deny(warnings)]
+
 extern crate bytes;
 extern crate chrono;
 extern crate edgelet_core;
@@ -14,6 +16,7 @@ extern crate hyper;
 extern crate hyper_named_pipe;
 #[cfg(unix)]
 extern crate hyperlocal;
+#[cfg(target_os = "linux")]
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;

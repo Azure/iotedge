@@ -22,7 +22,7 @@ pub struct IdentitySpec {
 impl IdentitySpec {
     pub fn new(module_id: String) -> IdentitySpec {
         IdentitySpec {
-            module_id: module_id,
+            module_id,
             managed_by: None,
         }
     }
