@@ -16,8 +16,15 @@ add_definitions(-DGB_DEBUG_ALLOC)
 prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
-    ../../src/edge_pki_openssl.c #needed to generate transparent gateway certs for tests
+    # test file
     edge_hsm_crypto_int.c
+
+    # the following files are needed when running tests using BUILD_SHARED=ON
+    ../../src/certificate_info.c
+    ../../src/edge_pki_openssl.c
+    ../../src/hsm_utils.c
+    ../../src/hsm_log.c
+    ../../src/constants.c
 )
 
 set(${theseTestsName}_h_files

@@ -15,7 +15,20 @@ add_definitions(-DGB_DEBUG_ALLOC)
 prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
+    # test file
     edge_hsm_store_int.c
+
+    # the following files are needed when running tests using BUILD_SHARED=ON
+    ../../src/edge_sas_perform_sign_with_key.c
+    ../../src/edge_enc_openssl_key.c
+    ../../src/edge_sas_key.c
+    ../../src/edge_hsm_key_interface.c
+    ../../src/edge_hsm_client_store.c
+    ../../src/certificate_info.c
+    ../../src/edge_pki_openssl.c
+    ../../src/hsm_utils.c
+    ../../src/hsm_log.c
+    ../../src/constants.c
 )
 
 set(${theseTestsName}_h_files

@@ -43,5 +43,3 @@ EXPORTS
     set_organization_unit
     set_state_name
     set_validity_seconds
-    hsm_client_key_interface
-    hsm_client_store_interface
