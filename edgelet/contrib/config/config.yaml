@@ -47,7 +47,7 @@ agent:
   type: "docker"
   env: {}
   config:
-    image: "microsoft/azureiotedge-agent:1.0-preview"
+    image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 
 ###############################################################################
