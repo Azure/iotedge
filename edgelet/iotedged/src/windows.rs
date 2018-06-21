@@ -60,7 +60,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
 
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
-    let settings = app::init()?;
+    let settings = app::init_win_svc()?;
     let main = super::Main::new(settings)?;
     let shutdown_signal = signal::shutdown(&main.handle())
         .select(receiver.into_future().map(|_| ()).map_err(|_| ()))
@@ -90,6 +90,20 @@ pub fn run_as_console() -> Result<(), Error> {
     Ok(())
 }
 
+pub fn run() -> Result<(), Error> {
+    // start app as a console app if an environment variable called
+    // IOTEDGE_RUN_AS_CONSOLE exists
+    if let Ok(_) = env::var(RUN_AS_CONSOLE_KEY) {
+        Ok(run_as_console()?)
+    } else {
+        // kick-off the Windows service dance
+        Ok(service_dispatcher::start(
+            IOTEDGED_SERVICE_NAME,
+            ffi_service_main,
+        )?)
+    }
+}
+
 fn update_service_state(
     status_handle: &ServiceStatusHandle,
     current_state: ServiceState,
@@ -103,18 +117,4 @@ fn update_service_state(
         wait_hint: Duration::default(),
     })?;
     Ok(())
-}
-
-pub fn run() -> Result<(), Error> {
-    // start app as a console app if an environment variable called
-    // IOTEDGE_RUN_AS_CONSOLE exists
-    if let Ok(_) = env::var(RUN_AS_CONSOLE_KEY) {
-        Ok(run_as_console()?)
-    } else {
-        // kick-off the Windows service dance
-        Ok(service_dispatcher::start(
-            IOTEDGED_SERVICE_NAME,
-            ffi_service_main,
-        )?)
-    }
 }

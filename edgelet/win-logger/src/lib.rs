@@ -23,8 +23,8 @@ use std::ptr;
 
 use error::Error;
 use handle::Handle;
-use log::{Level, Log, Metadata, Record};
-use winapi::shared::minwindef::WORD;
+use log::{Level, LevelFilter, Log, Metadata, Record};
+use winapi::shared::minwindef::{DWORD, WORD};
 use winapi::um::winbase::{DeregisterEventSource, RegisterEventSourceW, ReportEventW};
 use winapi::um::winnt::{EVENTLOG_ERROR_TYPE, EVENTLOG_INFORMATION_TYPE, EVENTLOG_SUCCESS,
                         EVENTLOG_WARNING_TYPE};
@@ -59,6 +59,7 @@ impl EventLogger {
     }
 
     pub fn init(self) -> Result<(), Error> {
+        log::set_max_level(LevelFilter::Trace);
         Ok(log::set_boxed_logger(Box::new(self))?)
     }
 }
@@ -83,7 +84,7 @@ impl Log for EventLogger {
                     self.handle.raw(),
                     log_level_to_type(record.level()),
                     0,
-                    0,
+                    log_level_to_eventid(record.level()),
                     ptr::null_mut(),
                     1,
                     0,
@@ -102,6 +103,18 @@ impl Drop for EventLogger {
         unsafe {
             DeregisterEventSource(self.handle.raw());
         }
+    }
+}
+
+fn log_level_to_eventid(level: Level) -> DWORD {
+    // The values returned here must match the event message IDs specified
+    // in the event_messages.mc file.
+    match level {
+        Level::Error => 1,
+        Level::Warn => 2,
+        Level::Info => 3,
+        Level::Debug => 4,
+        Level::Trace => 5,
     }
 }
 
