@@ -46,6 +46,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal("in1", moduleEndpoint.Input);
         }
 
+        [Fact]
+        public void TestCreateDuplicateFunctionsEndpoint()
+        {
+            Endpoint endpoint1 = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in1");
+            Assert.NotNull(endpoint1);
+
+            var moduleEndpoint1 = endpoint1 as ModuleEndpoint;
+            Assert.NotNull(moduleEndpoint1);
+            Assert.Equal("Device1/alertLogic/in1", moduleEndpoint1.Id);
+            Assert.Equal("in1", moduleEndpoint1.Input);
+
+            Endpoint endpoint2 = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in1");
+            Assert.NotNull(endpoint2);
+
+            var moduleEndpoint2 = endpoint2 as ModuleEndpoint;
+            Assert.NotNull(moduleEndpoint2);
+            Assert.Equal("Device1/alertLogic/in1", moduleEndpoint2.Id);
+            Assert.Equal("in1", moduleEndpoint2.Input);
+
+            Endpoint endpoint3 = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic/inputs/in2");
+            Assert.NotNull(endpoint3);
+
+            var moduleEndpoint3 = endpoint3 as ModuleEndpoint;
+            Assert.NotNull(moduleEndpoint3);
+            Assert.Equal("Device1/alertLogic/in2", moduleEndpoint3.Id);
+            Assert.Equal("in2", moduleEndpoint3.Input);
+
+            Endpoint endpoint4 = this.endpointFactory.CreateFunctionEndpoint("BrokeredEndpoint", "/modules/alertLogic2/inputs/in1");
+            Assert.NotNull(endpoint4);
+
+            var moduleEndpoint4 = endpoint4 as ModuleEndpoint;
+            Assert.NotNull(moduleEndpoint4);
+            Assert.Equal("Device1/alertLogic2/in1", moduleEndpoint4.Id);
+            Assert.Equal("in1", moduleEndpoint4.Input);
+
+            Assert.Equal(endpoint1, endpoint2);
+            Assert.NotEqual(endpoint1, endpoint3);
+            Assert.NotEqual(endpoint1, endpoint4);
+            Assert.NotEqual(endpoint3, endpoint4);
+        }
+
         [Theory]
         [InlineData("upstream")]
         [InlineData("PascalCase")]
