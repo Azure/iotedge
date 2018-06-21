@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -202,6 +203,145 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                 string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
                 string returnedJson = serde.Serialize(config1);
                 Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupSuccessCallsEncrypt()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1);
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+            var encryptionProvider = new Mock<IEncryptionProvider>();
+            encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
+                .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.Equal(backupJson, returnedJson, true);
+                encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupDoesNotThrowWhenEncryptFails()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1);
+
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+            var encryptionProvider = new Mock<IEncryptionProvider>();
+            encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
+                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.Equal(ValidConfigInfo1, config1);
+
+                encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupReadFromBackupCallsEncryptDecrypt()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ThrowsAsync(new InvalidOperationException());
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+            var encryptionProvider = new Mock<IEncryptionProvider>();
+            encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
+                .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
+            encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
+                .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config2);
+
+                Assert.Equal(serde.Serialize(config1), serde.Serialize(config2));
+                encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
+                encryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()));
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void FileBackupShouldNotThrowWhenDecryptFails()
+        {
+            if (File.Exists(this.tempFileName))
+            {
+                File.Delete(this.tempFileName);
+            }
+
+            var underlying = new Mock<IConfigSource>();
+            underlying.SetupSequence(t => t.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(ValidConfigInfo1)
+                .ThrowsAsync(new InvalidOperationException());
+            ISerde<DeploymentConfigInfo> serde = this.GetSerde();
+            var encryptionProvider = new Mock<IEncryptionProvider>();
+            encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
+                .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
+            encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
+                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+
+            using (IConfigSource configSource = new FileBackupConfigSource(this.tempFileName, underlying.Object, serde, encryptionProvider.Object))
+            {
+                DeploymentConfigInfo config1 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config1);
+
+                Assert.True(File.Exists(this.tempFileName));
+                string backupJson = await DiskFile.ReadAllAsync(this.tempFileName);
+                string returnedJson = serde.Serialize(config1);
+
+                Assert.True(string.Equals(backupJson, returnedJson, StringComparison.OrdinalIgnoreCase));
+
+                DeploymentConfigInfo config2 = await configSource.GetDeploymentConfigInfoAsync();
+                Assert.NotNull(config2);
+
+                Assert.Equal(DeploymentConfigInfo.Empty, config2);
+                encryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()));
+                encryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()));
             }
         }
 

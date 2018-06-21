@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -42,6 +43,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, null, serde, encryptionDecryptionProvider));
             Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, null, encryptionDecryptionProvider));
             Assert.Throws<ArgumentNullException>(() => new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, null));
+        }
+
+        [Fact]
+        [Unit]
+        public async void AgentCreateSuccessWhenDecryptFails()
+        {
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironmentProvider = new Mock<IEnvironmentProvider>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockPlanRunner = new Mock<IPlanRunner>();
+            var mockReporter = new Mock<IReporter>();
+            var mockModuleLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var configStore = new Mock<IEntityStore<string, string>>();
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = new Mock<IEncryptionProvider>();
+            configStore.Setup(cs => cs.Get(It.IsAny<string>()))
+                .ReturnsAsync(Option.Some("encrypted"));
+            encryptionDecryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
+                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+
+            Agent agent = await Agent.Create(mockConfigSource.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleLifecycleManager.Object, mockEnvironmentProvider.Object, configStore.Object, serde, encryptionDecryptionProvider.Object);
+
+            Assert.NotNull(agent);
+            encryptionDecryptionProvider.Verify(ep => ep.DecryptAsync(It.IsAny<string>()), Times.Once);
         }
 
         [Fact]
@@ -256,6 +281,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Never);
             mockReporter.VerifyAll();
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, It.IsAny<Plan>(), token), Times.Never);
+        }
+
+        [Fact]
+        [Unit]
+        public async void ReconcileAsyncReportsFailedWhenEncryptProviderThrows()
+        {
+            var token = new CancellationToken();
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockEnvironmentProvider = new Mock<IEnvironmentProvider>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockPlanRunner = new Mock<IPlanRunner>();
+            var mockReporter = new Mock<IReporter>();
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var encryptionDecryptionProvider = new Mock<IEncryptionProvider>();
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule>
+            {
+                { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null) }
+            });
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, new ConfigurationInfo("1"), null);
+            Option<TestPlanRecorder> recordKeeper = Option.Some(new TestPlanRecorder());
+            var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
+            ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+            ModuleSet currentModuleSet = desiredModuleSet;
+
+            var commandList = new List<ICommand>
+            {
+                new TestCommand(TestCommandType.TestCreate, desiredModule, recordKeeper),
+            };
+            var testPlan = new Plan(commandList);
+
+            mockEnvironmentProvider.Setup(m => m.Create(It.IsAny<DeploymentConfig>())).Returns(mockEnvironment.Object);
+            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(deploymentConfigInfo);
+            mockEnvironment.Setup(env => env.GetModulesAsync(token))
+                .ReturnsAsync(currentModuleSet);
+            mockEnvironment.Setup(env => env.GetRuntimeInfoAsync()).ReturnsAsync(runtimeInfo);
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet))
+                .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
+            mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
+                .ReturnsAsync(testPlan);
+            encryptionDecryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
+                .ThrowsAsync(new IoTEdgedException("failed", 404, "", null, null));
+
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider.Object);
+
+            await agent.ReconcileAsync(token);
+
+            // Assert
+            mockPlanner.Verify(p => p.PlanAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<ImmutableDictionary<string, IModuleIdentity>>()), Times.Once);
+            mockReporter.Verify(r => r.ReportAsync(It.IsAny<CancellationToken>(), It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), 0, Option.Some(new DeploymentStatus(DeploymentStatusCode.Failed, "failed"))));
+            mockPlanRunner.Verify(r => r.ExecuteAsync(0, It.IsAny<Plan>(), token), Times.Once);
+            encryptionDecryptionProvider.Verify(ep => ep.EncryptAsync(It.IsAny<string>()), Times.Exactly(2));
         }
 
         [Fact]
