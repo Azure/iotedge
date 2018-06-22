@@ -103,8 +103,20 @@ static int cert_key_sign
     size_t* digest_size
 )
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_to_be_signed_size;
+
     LOG_ERROR("Sign for cert keys is not supported");
-    return 1;
+    if (digest != NULL)
+    {
+        *digest = NULL;
+    }
+    if (digest_size != NULL)
+    {
+        *digest_size = 0;
+    }
+    return __FAILURE__;
 }
 
 int cert_key_derive_and_sign
@@ -118,40 +130,22 @@ int cert_key_derive_and_sign
     size_t* digest_size
 )
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_to_be_signed_size;
+    (void)identity;
+    (void)identity_size;
+
     LOG_ERROR("Derive and sign for cert keys is not supported");
-    return 1;
-}
-
-static int cert_key_verify
-(
-    KEY_HANDLE key_handle,
-    const unsigned char* data_to_be_signed,
-    size_t data_to_be_signed_size,
-    const unsigned char* signature_to_verify,
-    size_t signature_to_verify_size,
-    bool* verification_status
-)
-{
-    LOG_ERROR("Cert key verify operation not supported");
-    *verification_status = false;
-    return 1;
-}
-
-static int cert_key_derive_and_verify
-(
-    KEY_HANDLE key_handle,
-    const unsigned char* data_to_be_signed,
-    size_t data_to_be_signed_size,
-    const unsigned char* identity,
-    size_t identity_size,
-    const unsigned char* signature_to_verify,
-    size_t signature_to_verify_size,
-    bool* verification_status
-)
-{
-    LOG_ERROR("Cert key derive and verify operation not supported");
-    *verification_status = false;
-    return 1;
+    if (digest != NULL)
+    {
+        *digest = NULL;
+    }
+    if (digest_size != NULL)
+    {
+        *digest_size = 0;
+    }
+    return __FAILURE__;
 }
 
 static int cert_key_encrypt
@@ -163,10 +157,15 @@ static int cert_key_encrypt
     SIZED_BUFFER *ciphertext
 )
 {
+    (void)key_handle;
+    (void)identity;
+    (void)plaintext;
+    (void)initialization_vector;
+
     LOG_ERROR("Cert key encrypt operation not supported");
     ciphertext->buffer = NULL;
     ciphertext->size = 0;
-    return 1;
+    return __FAILURE__;
 }
 
 static int cert_key_decrypt
@@ -178,10 +177,15 @@ static int cert_key_decrypt
     SIZED_BUFFER *plaintext
 )
 {
+    (void)key_handle;
+    (void)identity;
+    (void)ciphertext;
+    (void)initialization_vector;
+
     LOG_ERROR("Cert key decrypt operation not supported");
     plaintext->buffer = NULL;
     plaintext->size = 0;
-    return 1;
+    return __FAILURE__;
 }
 
 static void cert_key_destroy(KEY_HANDLE key_handle)
@@ -539,7 +543,9 @@ static int cert_set_core_properties
     int serial_num
 )
 {
+    (void)cert_props_handle;
     int result;
+
     if (!X509_set_version(x509_cert, X509_VERSION))
     {
         LOG_ERROR("Failure setting the certificate version");
@@ -712,7 +718,7 @@ static int cert_set_subject_field
     }
     else if (issuer_name != NULL)
     {
-        int index, found = 0;
+        size_t index, found = 0;
         for (index = 0; index < sizeof(subj_offsets)/sizeof(subj_offsets[0]); index++)
         {
             if (strcmp(field, subj_offsets[index].field) == 0)
@@ -721,7 +727,7 @@ static int cert_set_subject_field
                 break;
             }
         }
-        if (found)
+        if (found == 1)
         {
             int status;
             memset(issuer_name_field, 0 , sizeof(issuer_name_field));
@@ -818,7 +824,7 @@ static int cert_set_subject_fields_and_issuer
                 }
                 else
                 {
-                    LOG_DEBUG("Certificate issuer set", result);
+                    LOG_DEBUG("Certificate issuer set successfully");
                 }
             }
         }
@@ -842,7 +848,7 @@ static int generate_cert_key
         (type != CERTIFICATE_TYPE_SERVER) &&
         (type != CERTIFICATE_TYPE_CA))
     {
-        LOG_ERROR("Error invalid certificate type", type);
+        LOG_ERROR("Error invalid certificate type %d", type);
         result = __FAILURE__;
     }
     else if ((evp_key = generate_evp_key(type, issuer_certificate, key_props)) == NULL)
@@ -1141,8 +1147,6 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     {
         cert_key->interface.hsm_client_key_sign = cert_key_sign;
         cert_key->interface.hsm_client_key_derive_and_sign = cert_key_derive_and_sign;
-        cert_key->interface.hsm_client_key_verify = cert_key_verify;
-        cert_key->interface.hsm_client_key_derive_and_verify = cert_key_derive_and_verify;
         cert_key->interface.hsm_client_key_encrypt = cert_key_encrypt;
         cert_key->interface.hsm_client_key_decrypt = cert_key_decrypt;
         cert_key->interface.hsm_client_key_destroy = cert_key_destroy;

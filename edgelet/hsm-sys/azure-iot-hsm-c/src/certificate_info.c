@@ -181,6 +181,7 @@ static BUFFER_HANDLE decode_certificate(CERT_DATA_INFO* cert_info)
 static char* get_object_id_value(const ASN1_OBJECT* target_obj)
 {
     // TODO: need to implement
+    (void)target_obj;
     return NULL;
 }
 

@@ -47,6 +47,11 @@ static int enc_key_sign
     size_t *digest_size
 )
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_to_be_signed_size;
+
+    LOG_ERROR("Sign for encryption keys is not supported");
     if (digest != NULL)
     {
         *digest = NULL;
@@ -55,7 +60,6 @@ static int enc_key_sign
     {
         *digest_size = 0;
     }
-    LOG_ERROR("Sign for encryption keys is not supported");
     return __FAILURE__;
 }
 
@@ -70,6 +74,13 @@ int enc_key_derive_and_sign
     size_t *digest_size
 )
 {
+    (void)key_handle;
+    (void)data_to_be_signed;
+    (void)data_to_be_signed_size;
+    (void)identity;
+    (void)identity_size;
+
+    LOG_ERROR("Derive and sign for encryption keys is not supported");
     if (digest != NULL)
     {
         *digest = NULL;
@@ -78,46 +89,6 @@ int enc_key_derive_and_sign
     {
         *digest_size = 0;
     }
-    LOG_ERROR("Derive and sign for encryption keys is not supported");
-    return __FAILURE__;
-}
-
-static int enc_key_verify
-(
-    KEY_HANDLE key_handle,
-    const unsigned char* data_to_be_signed,
-    size_t data_to_be_signed_size,
-    const unsigned char* signature_to_verify,
-    size_t signature_to_verify_size,
-    bool* verification_status
-)
-{
-    if (verification_status != NULL)
-    {
-        *verification_status = false;
-    }
-    LOG_ERROR("Encryption key verify operation not supported");
-    return __FAILURE__;
-}
-
-static int enc_key_derive_and_verify
-(
-    KEY_HANDLE key_handle,
-    const unsigned char* data_to_be_signed,
-    size_t data_to_be_signed_size,
-    const unsigned char* identity,
-    size_t identity_size,
-    const unsigned char* signature_to_verify,
-    size_t signature_to_verify_size,
-    bool* verification_status
-)
-{
-    if (verification_status != NULL)
-    {
-        *verification_status = false;
-    }
-    LOG_ERROR("Encryption key derive and verify operation not supported");
-    *verification_status = false;
     return __FAILURE__;
 }
 
@@ -609,8 +580,6 @@ KEY_HANDLE create_encryption_key(const unsigned char *key, size_t key_size)
         {
             enc_key->intf.hsm_client_key_sign = enc_key_sign;
             enc_key->intf.hsm_client_key_derive_and_sign = enc_key_derive_and_sign;
-            enc_key->intf.hsm_client_key_verify = enc_key_verify;
-            enc_key->intf.hsm_client_key_derive_and_verify = enc_key_derive_and_verify;
             enc_key->intf.hsm_client_key_encrypt = enc_key_encrypt;
             enc_key->intf.hsm_client_key_decrypt = enc_key_decrypt;
             enc_key->intf.hsm_client_key_destroy = enc_key_destroy;

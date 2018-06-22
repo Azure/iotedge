@@ -218,8 +218,6 @@ BEGIN_TEST_SUITE(edge_hsm_key_interface_sas_key_unittests)
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_sign, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_derive_and_sign, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_verify, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_derive_and_verify, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_encrypt, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_decrypt, "Line:" TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL_WITH_MSG(key_if->hsm_client_key_destroy, "Line:" TOSTRING(__LINE__));

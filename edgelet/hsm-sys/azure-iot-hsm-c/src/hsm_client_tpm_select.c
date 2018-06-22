@@ -12,11 +12,11 @@ extern const char* const ENV_TPM_SELECT;
 static int strcmp_i(const char* lhs, const char* rhs)
 {
     char lc, rc;
-    int cmp;
+    int cmp = 0;
     do
     {
-        lc = *lhs++; 
-        rc = *rhs++; 
+        lc = *lhs++;
+        rc = *rhs++;
         if ((tolower(lc) - tolower(rc)) != 0)
         {
             cmp = 1;
@@ -26,7 +26,7 @@ static int strcmp_i(const char* lhs, const char* rhs)
     return cmp;
 }
 
-// IF ENV_TPM_SELECT is set and not empty, "NO", "OFF" or "FALSE", then user wants to use the 
+// IF ENV_TPM_SELECT is set and not empty, "NO", "OFF" or "FALSE", then user wants to use the
 // TPM device for TPM functionality.
 static bool use_tpm_device()
 {
@@ -48,7 +48,7 @@ static bool use_tpm_device()
     }
     else
     {
-        result = false; 
+        result = false;
     }
 
     return result;

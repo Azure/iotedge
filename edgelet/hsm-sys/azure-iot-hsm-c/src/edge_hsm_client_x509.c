@@ -34,23 +34,27 @@ HSM_CLIENT_HANDLE iothub_x509_hsm_create()
 
 void iothub_x509_hsm_destroy(HSM_CLIENT_HANDLE handle)
 {
+    (void)handle;
     LOG_ERROR("API unsupported");
 }
 
 char* iothub_x509_hsm_get_certificate(HSM_CLIENT_HANDLE handle)
 {
+    (void)handle;
     LOG_ERROR("API unsupported");
     return NULL;
 }
 
 char* iothub_x509_hsm_get_alias_key(HSM_CLIENT_HANDLE handle)
 {
+    (void)handle;
     LOG_ERROR("API unsupported");
     return NULL;
 }
 
 char* iothub_x509_hsm_get_common_name(HSM_CLIENT_HANDLE handle)
 {
+    (void)handle;
     LOG_ERROR("API unsupported");
     return NULL;
 }

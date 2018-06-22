@@ -596,7 +596,7 @@ static STRING_HANDLE normalize_alias_file_path(const char *alias)
     {
         LOG_ERROR("Could not allocate normalized file string handle");
     }
-    else if ((alias_sha = compute_b64_sha_digest_string(alias, alias_len)) == NULL)
+    else if ((alias_sha = compute_b64_sha_digest_string((unsigned char*)alias, alias_len)) == NULL)
     {
         LOG_ERROR("Could not compute SHA for normalizing %s", alias);
         STRING_delete(result);
@@ -784,7 +784,7 @@ static int load_encryption_key_from_file(CRYPTO_STORE* store, const char *key_na
         else if (((key = read_file_into_buffer(key_file, &key_size)) == NULL) ||
                   (key_size == 0))
         {
-            LOG_ERROR("Could not read key from file. Key size %d", key_size);
+            LOG_ERROR("Could not read key from file. Key size %zu", key_size);
             result = __FAILURE__;
         }
         else
@@ -1649,7 +1649,6 @@ static int create_device_ca_cert(void)
 static int generate_edge_hsm_certificates_if_needed(void)
 {
     int result = 0;
-    bool regen_required = false;
     bool both_loaded = false;
 
     if ((load_if_cert_and_key_exist_by_alias(g_crypto_store,
@@ -1883,6 +1882,10 @@ static int edge_hsm_client_store_destroy(const char* store_name)
             g_hsm_state = HSM_STATE_UNPROVISIONED;
             g_crypto_store = NULL;
         }
+        else
+        {
+            result = 0;
+        }
     }
 
     return result;
@@ -2068,11 +2071,14 @@ static KEY_HANDLE edge_hsm_client_open_key
             {
                 LOG_ERROR("HSM store could not load encryption key %s", key_name);
                 do_key_create = false;
-                result = NULL;
             }
         }
 
-        if (do_key_create)
+        if (!do_key_create)
+        {
+            result = NULL;
+        }
+        else
         {
             STORE_ENTRY_KEY* key_entry;
             size_t buffer_size = 0;

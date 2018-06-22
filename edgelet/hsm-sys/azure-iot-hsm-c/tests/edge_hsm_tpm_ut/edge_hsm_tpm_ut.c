@@ -68,8 +68,6 @@ MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_remove_pki_trusted_cert, HSM_CL
 // key interface mocks
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_sign, KEY_HANDLE, key_handle, const unsigned char*, data_to_be_signed, size_t, data_len, unsigned char**, digest, size_t*, digest_size);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_derive_and_sign, KEY_HANDLE, key_handle, const unsigned char*, data_to_be_signed, size_t, data_len, const unsigned char*, identity, size_t, identity_size, unsigned char**, digest, size_t*, digest_size);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_verify, KEY_HANDLE, key_handle, const unsigned char*, data, size_t, data_size, const unsigned char*, sig_verify, size_t, sig_verify_size, bool*, status);
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_derive_and_verify, KEY_HANDLE, key_handle, const unsigned char*, data, size_t, data_size, const unsigned char*, identity, size_t, identity_size, const unsigned char*, sig_verify, size_t, sig_verify_size, bool*, status);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_encrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, plaintext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, ciphertext);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_key_decrypt, KEY_HANDLE, key_handle, const SIZED_BUFFER*, identity, const SIZED_BUFFER*, ciphertext, const SIZED_BUFFER*, iv, SIZED_BUFFER*, plaintext);
 
@@ -125,8 +123,6 @@ static const HSM_CLIENT_KEY_INTERFACE mocked_hsm_client_key_interface =
 {
     mocked_hsm_client_key_sign,
     mocked_hsm_client_key_derive_and_sign,
-    mocked_hsm_client_key_verify,
-    mocked_hsm_client_key_derive_and_verify,
     mocked_hsm_client_key_encrypt,
     mocked_hsm_client_key_decrypt
 };
@@ -276,30 +272,6 @@ static int test_hook_hsm_client_key_derive_and_sign(KEY_HANDLE key_handle,
     return 0;
 }
 
-static int test_hook_hsm_client_key_verify(KEY_HANDLE key_handle,
-                                           const unsigned char* data_to_be_signed,
-                                           size_t data_to_be_signed_size,
-                                           const unsigned char* signature_to_verify,
-                                           size_t signature_to_verify_size,
-                                           bool* verification_status)
-{
-    ASSERT_FAIL("API not expected to be called");
-    return __LINE__;
-}
-
-static int test_hook_hsm_client_key_derive_and_verify(KEY_HANDLE key_handle,
-                                                      const unsigned char* data_to_be_signed,
-                                                      size_t data_to_be_signed_size,
-                                                      const unsigned char* identity,
-                                                      size_t identity_size,
-                                                      const unsigned char* signature_to_verify,
-                                                      size_t signature_to_verify_size,
-                                                      bool* verification_status)
-{
-    ASSERT_FAIL("API not expected to be called");
-    return __LINE__;
-}
-
 static int test_hook_hsm_client_key_encrypt(KEY_HANDLE key_handle,
                                             const SIZED_BUFFER *identity,
                                             const SIZED_BUFFER *plaintext,
@@ -410,12 +382,6 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_derive_and_sign, test_hook_hsm_client_key_derive_and_sign);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_derive_and_sign, 1);
-
-            REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_verify, test_hook_hsm_client_key_verify);
-            REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_verify, 1);
-
-            REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_derive_and_verify, test_hook_hsm_client_key_derive_and_verify);
-            REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_derive_and_verify, 1);
 
             REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_encrypt, test_hook_hsm_client_key_encrypt);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_encrypt, 1);

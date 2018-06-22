@@ -1,6 +1,7 @@
 #Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+include(../deps/c-shared/configs/azure_iot_build_rules.cmake)
 usePermissiveRulesForSamplesAndTests()
 
 set(SHARED_UTIL_REAL_TEST_FOLDER ${SHARED_UTIL_SRC_FOLDER}/../tests/real_test_files CACHE INTERNAL "this is what needs to be included when doing test sources" FORCE)

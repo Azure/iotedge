@@ -41,27 +41,27 @@ typedef struct HSM_CLIENT_INFO_TAG
 } HSM_CLIENT_INFO;
 
 static TPMS_RSA_PARMS  RsaStorageParams = {
-    { TPM_ALG_AES, {128}, {TPM_ALG_CFB} },  // TPMT_SYM_DEF_OBJECT  symmetric
-    { TPM_ALG_NULL },                       // TPMT_RSA_SCHEME      scheme
-    2048,                                   // TPMI_RSA_KEY_BITS    keyBits
-    0                                       // UINT32               exponent
+    { TPM_ALG_AES, {128}, {TPM_ALG_CFB} },              // TPMT_SYM_DEF_OBJECT  symmetric
+    { TPM_ALG_NULL,  {.anySig = {ALG_ERROR_VALUE} }},   // TPMT_RSA_SCHEME      scheme
+    2048,                                               // TPMI_RSA_KEY_BITS    keyBits
+    0                                                   // UINT32               exponent
 };
 
 static TPM2B_PUBLIC* GetEkTemplate ()
 {
     static TPM2B_PUBLIC EkTemplate = { 0,   // size will be computed during marshaling
     {
-        TPM_ALG_RSA,                    // TPMI_ALG_PUBLIC      type
-        TPM_ALG_SHA256,                 // TPMI_ALG_HASH        nameAlg
-        { 0 },                          // TPMA_OBJECT  objectAttributes (set below)
-        { .t.size = 32,
-          .t.buffer = { 0x83, 0x71, 0x97, 0x67, 0x44, 0x84, 0xb3, 0xf8,
-                       0x1a, 0x90, 0xcc, 0x8d, 0x46, 0xa5, 0xd7, 0x24,
-                       0xfd, 0x52, 0xd7, 0x6e, 0x06, 0x52, 0x0b, 0x64,
-                       0xf2, 0xa1, 0xda, 0x1b, 0x33, 0x14, 0x69, 0xaa }
-        },                              // TPM2B_DIGEST         authPolicy
-        { .rsaDetail = {{0}, {0}, 0, 0} }, // TPMU_PUBLIC_PARMS    parameters (set below)
-        { .sym.b = {0} }                // TPMU_PUBLIC_ID       unique
+        TPM_ALG_RSA,                        // TPMI_ALG_PUBLIC      type
+        TPM_ALG_SHA256,                     // TPMI_ALG_HASH        nameAlg
+        { 0 },                              // TPMA_OBJECT  objectAttributes (set below)
+        { .t = {.size = 32,
+                .buffer = { 0x83, 0x71, 0x97, 0x67, 0x44, 0x84, 0xb3, 0xf8,
+                            0x1a, 0x90, 0xcc, 0x8d, 0x46, 0xa5, 0xd7, 0x24,
+                            0xfd, 0x52, 0xd7, 0x6e, 0x06, 0x52, 0x0b, 0x64,
+                            0xf2, 0xa1, 0xda, 0x1b, 0x33, 0x14, 0x69, 0xaa }}
+        },                                  // TPM2B_DIGEST         authPolicy
+        { .rsaDetail = {{0}, {0}, 0, 0} },  // TPMU_PUBLIC_PARMS    parameters (set below)
+        { .sym.b = {0} }                    // TPMU_PUBLIC_ID       unique
     } };
     EkTemplate.publicArea.objectAttributes = ToTpmaObject(
         Restricted | Decrypt | FixedTPM | FixedParent | AdminWithPolicy | SensitiveDataOrigin);
@@ -73,12 +73,12 @@ static TPM2B_PUBLIC* GetSrkTemplate()
 {
     static TPM2B_PUBLIC SrkTemplate = { 0,  // size will be computed during marshaling
     {
-        TPM_ALG_RSA,                // TPMI_ALG_PUBLIC      type
-        TPM_ALG_SHA256,             // TPMI_ALG_HASH        nameAlg
-        { 0 },                      // TPMA_OBJECT  objectAttributes (set below)
-        { .t = {0, {0}} },            // TPM2B_DIGEST         authPolicy
-        { .rsaDetail = {{0}, {0}, 0, 0} }, // TPMU_PUBLIC_PARMS    parameters (set below)
-        { .sym.b = {0} }            // TPMU_PUBLIC_ID       unique
+        TPM_ALG_RSA,                        // TPMI_ALG_PUBLIC      type
+        TPM_ALG_SHA256,                     // TPMI_ALG_HASH        nameAlg
+        { 0 },                              // TPMA_OBJECT  objectAttributes (set below)
+        { .t = {0, {0}} },                  // TPM2B_DIGEST         authPolicy
+        { .rsaDetail = {{0}, {0}, 0, 0} },  // TPMU_PUBLIC_PARMS    parameters (set below)
+        { .sym.b = {0} }                    // TPMU_PUBLIC_ID       unique
     } };
     SrkTemplate.publicArea.objectAttributes = ToTpmaObject(
         Restricted | Decrypt | FixedTPM | FixedParent | NoDA | UserWithAuth | SensitiveDataOrigin);
@@ -253,7 +253,7 @@ static int create_tpm_session
 )
 {
     int result;
-    TPMA_SESSION sess_attrib = { 1 };
+    TPMA_SESSION sess_attrib = { .continueSession = 1 };
     if (TSS_StartAuthSession(&sec_info->tpm_device, TPM_SE_POLICY, TPM_ALG_SHA256, sess_attrib, tpm_session) != TPM_RC_SUCCESS)
     {
         LOG_ERROR("Failure: Starting EK policy session");
@@ -279,7 +279,8 @@ static int insert_key_in_tpm
 )
 {
     int result;
-    TSS_SESSION ek_sess = { { TPM_RH_NULL } };
+    TSS_SESSION ek_sess;
+    memset(&ek_sess, 0, sizeof(TSS_SESSION));
     if (create_tpm_session(sec_info, &ek_sess) != 0)
     {
         LOG_ERROR("Failure: Starting EK policy session");
@@ -292,7 +293,7 @@ static int insert_key_in_tpm
         TPM2B_ENCRYPTED_SECRET tpm_enc_secret;
         TPM2B_PRIVATE id_key_dup_blob;
         TPM2B_ENCRYPTED_SECRET encrypt_wrap_key;
-        TPM2B_PUBLIC id_key_Public = { TPM_ALG_NULL };
+        TPM2B_PUBLIC id_key_Public;
         UINT16 enc_data_size = 0;
         TPM2B_DIGEST inner_wrap_key = { .t = {0, {0}} };
         TPM2B_PRIVATE id_key_priv;
@@ -300,7 +301,9 @@ static int insert_key_in_tpm
 
         uint8_t* curr_pos = (uint8_t*)key;
         uint32_t act_size = (int32_t)key_len;
-
+        memset(&id_key_Public, 0, sizeof(TPM2B_PUBLIC));
+        id_key_Public.size = 0;
+        id_key_Public.publicArea.type = TPM_ALG_NULL;
         DPS_UNMARSHAL(TPM2B_ID_OBJECT, &enc_key_blob);
         DPS_UNMARSHAL(TPM2B_ENCRYPTED_SECRET, &tpm_enc_secret);
         DPS_UNMARSHAL(TPM2B_PRIVATE, &id_key_dup_blob);
@@ -501,7 +504,7 @@ static int hsm_client_tpm_get_endorsement_key
             uint32_t data_length = TPM2B_PUBLIC_Marshal(&hsm_client_info->ek_pub, &data_pos, NULL);
             if (data_length > TPM_DATA_LENGTH)
             {
-                LOG_ERROR("EK data length larger than allocated buffer %zu", data_length);
+                LOG_ERROR("EK data length larger than allocated buffer %zu", (size_t)data_length);
                 result = __FAILURE__;
             }
             else if ((*key = (unsigned char*)malloc(data_length)) == NULL)
@@ -546,10 +549,10 @@ static int hsm_client_tpm_get_storage_key
             unsigned char data_bytes[TPM_DATA_LENGTH];
             unsigned char* data_pos = data_bytes;
             uint32_t data_length = TPM2B_PUBLIC_Marshal(&hsm_client_info->srk_pub, &data_pos, NULL);
-            
+
             if (data_length > TPM_DATA_LENGTH)
             {
-                LOG_ERROR("SRK data length larger than allocated buffer %zu", data_length);
+                LOG_ERROR("SRK data length larger than allocated buffer %zu", (size_t)data_length);
                 result = __FAILURE__;
             }
             else if ((*key = (unsigned char*)malloc(data_length)) == NULL)

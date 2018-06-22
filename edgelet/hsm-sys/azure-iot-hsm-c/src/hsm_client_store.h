@@ -13,75 +13,9 @@ extern "C" {
 #endif /* __cplusplus */
 
 #include "hsm_client_data.h"
-typedef void* KEY_HANDLE;
-
-enum HSM_KEY_TAG_T
-{
-    HSM_KEY_UNKNOWN = 0,
-    HSM_KEY_SAS,
-    HSM_KEY_ENCRYPTION
-};
-typedef enum HSM_KEY_TAG_T HSM_KEY_T;
-
-typedef int (*HSM_KEY_SIGN)(KEY_HANDLE key_handle,
-                            const unsigned char* data_to_be_signed,
-                            size_t data_to_be_signed_size,
-                            unsigned char** digest,
-                            size_t* digest_size);
-
-typedef int (*HSM_KEY_DERIVE_AND_SIGN)(KEY_HANDLE key_handle,
-                                       const unsigned char* data_to_be_signed,
-                                       size_t data_to_be_signed_size,
-                                       const unsigned char* identity,
-                                       size_t identity_size,
-                                       unsigned char** digest,
-                                       size_t* digest_size);
-
-typedef int (*HSM_KEY_VERIFY)(KEY_HANDLE key_handle,
-                              const unsigned char* data_to_be_signed,
-                              size_t data_to_be_signed_size,
-                              const unsigned char* signature_to_verify,
-                              size_t signature_to_verify_size,
-                              bool* verification_status);
-
-typedef int (*HSM_KEY_DERIVE_AND_VERIFY)(KEY_HANDLE key_handle,
-                                         const unsigned char* data_to_be_signed,
-                                         size_t data_to_be_signed_size,
-                                         const unsigned char* identity,
-                                         size_t identity_size,
-                                         const unsigned char* signature_to_verify,
-                                         size_t signature_to_verify_size,
-                                         bool* verification_status);
-
-typedef int (*HSM_KEY_ENCRYPT)(KEY_HANDLE key_handle,
-                               const SIZED_BUFFER *identity,
-                               const SIZED_BUFFER *plaintext,
-                               const SIZED_BUFFER *initialization_vector,
-                               SIZED_BUFFER *ciphertext);
-
-typedef int (*HSM_KEY_DECRYPT)(KEY_HANDLE key_handle,
-                               const SIZED_BUFFER *identity,
-                               const SIZED_BUFFER *ciphertext,
-                               const SIZED_BUFFER *initialization_vector,
-                               SIZED_BUFFER *plaintext);
-
-typedef void (*HSM_KEY_DESTROY)(KEY_HANDLE key_handle);
-
-struct HSM_CLIENT_KEY_INTERFACE_TAG
-{
-    HSM_KEY_SIGN hsm_client_key_sign;
-    HSM_KEY_DERIVE_AND_SIGN hsm_client_key_derive_and_sign;
-    HSM_KEY_VERIFY hsm_client_key_verify;
-    HSM_KEY_DERIVE_AND_VERIFY hsm_client_key_derive_and_verify;
-    HSM_KEY_ENCRYPT hsm_client_key_encrypt;
-    HSM_KEY_DECRYPT hsm_client_key_decrypt;
-    HSM_KEY_DESTROY hsm_client_key_destroy;
-};
-typedef struct HSM_CLIENT_KEY_INTERFACE_TAG HSM_CLIENT_KEY_INTERFACE;
-const HSM_CLIENT_KEY_INTERFACE* hsm_client_key_interface(void);
+#include "hsm_key_interface.h"
 
 typedef void* HSM_CLIENT_STORE_HANDLE;
-
 typedef int (*HSM_CLIENT_STORE_CREATE)(const char* store_name);
 typedef int (*HSM_CLIENT_STORE_DESTROY)(const char* store_name);
 typedef HSM_CLIENT_STORE_HANDLE (*HSM_CLIENT_STORE_OPEN)(const char* store_name);

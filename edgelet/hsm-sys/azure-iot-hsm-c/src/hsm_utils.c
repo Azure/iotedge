@@ -211,7 +211,7 @@ static int read_file_into_buffer_impl
                     else
                     {
                         num_bytes_read = read(fd, output_buffer, num_bytes_to_read);
-                        if (num_bytes_read == -1)
+                        if (num_bytes_read < 0)
                         {
                             LOG_ERROR("File read failed for file %s. Errno %d '%s'", file_name, errno, err_to_str());
                             result = HSM_UTIL_ERROR;
@@ -293,12 +293,11 @@ static int write_ascii_buffer_into_file
         }
         else
         {
-            size_t num_bytes_written;
             result = HSM_UTIL_SUCCESS;
             if (input_buffer_size != 0)
             {
                 ssize_t write_status = write(fd, input_buffer, input_buffer_size);
-                if ((write_status == -1) || (write_status != input_buffer_size))
+                if ((write_status < 0) || ((size_t)write_status != input_buffer_size))
                 {
                     LOG_ERROR("File write failed for file %s", file_name);
                     result = HSM_UTIL_ERROR;
@@ -413,6 +412,7 @@ char* read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
 char* concat_files_to_cstring(const char **file_names, int num_files)
 {
     char *result;
+
     if ((file_names == NULL) || (num_files <= 0))
     {
         LOG_ERROR("Invalid parameters");
@@ -424,30 +424,33 @@ char* concat_files_to_cstring(const char **file_names, int num_files)
         bool errors_found = false;
         size_t accumulated_size = 0;
         size_t accumulated_size_check;
+
         for (index = 0; index < num_files; index++)
         {
             size_t buffer_size;
             int status = read_file_into_buffer_impl(file_names[index], NULL, 0, &buffer_size);
             if (status == HSM_UTIL_ERROR)
             {
-                result = NULL;
+                errors_found = true;
+                break;
+            }
+            else if ((accumulated_size_check = accumulated_size + buffer_size) < accumulated_size)
+            {
+                LOG_ERROR("Concatenated file sizes too large");
                 errors_found = true;
                 break;
             }
             else
             {
-                accumulated_size_check = accumulated_size + buffer_size;
-                if (accumulated_size_check < accumulated_size)
-                {
-                    LOG_ERROR("Concatenated file sizes too large");
-                    result = NULL;
-                    errors_found = true;
-                    break;
-                }
                 accumulated_size = accumulated_size_check;
             }
         }
-        if (!errors_found)
+
+        if (errors_found)
+        {
+            result = NULL;
+        }
+        else
         {
             // add one more for null term
             accumulated_size_check = accumulated_size + 1;
