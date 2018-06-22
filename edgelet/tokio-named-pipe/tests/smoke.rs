@@ -47,14 +47,14 @@ fn server() -> (NamedPipe, String) {
 #[should_panic(expected = "The system cannot find the file specified")]
 fn connect_invalid_path() {
     let core = Core::new().unwrap();
-    let _stream = PipeStream::connect(r"\\.\pipe\boo", &core.handle()).unwrap();
+    let _stream = PipeStream::connect(r"\\.\pipe\boo", &core.handle(), None).unwrap();
 }
 
 #[test]
 fn connect_succeeds() {
     let core = Core::new().unwrap();
     let (_server, path) = server();
-    let _stream = PipeStream::connect(path, &core.handle()).unwrap();
+    let _stream = PipeStream::connect(path, &core.handle(), None).unwrap();
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn read_data() {
     let (mut server, path) = server();
 
     let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle()).unwrap();
+    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(
@@ -90,7 +90,7 @@ fn read_data() {
 fn write_data() {
     let (mut server, path) = server();
     let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle()).unwrap();
+    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
 
     let write_future = tio::write_all(stream, b"cow say moo");
     core.run(write_future).unwrap();
@@ -126,7 +126,7 @@ fn read_async() {
     let (mut server, path) = server();
 
     let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle()).unwrap();
+    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
 
     let poll = t!(Poll::new());
     t!(poll.register(
@@ -158,7 +158,7 @@ fn read_async() {
 fn write_async() {
     let (mut server, path) = server();
     let mut core = Core::new().unwrap();
-    let stream = PipeStream::connect(path, &core.handle()).unwrap();
+    let stream = PipeStream::connect(path, &core.handle(), None).unwrap();
 
     let framed_write = FramedWrite::new(stream, LinesCodec::new());
     let task = framed_write

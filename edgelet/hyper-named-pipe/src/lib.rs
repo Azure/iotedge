@@ -54,7 +54,7 @@ impl Service for PipeConnector {
             .map_err(|_err| {
                 io::Error::new(io::ErrorKind::InvalidInput, format!("Invalid uri {}", uri))
             })
-            .and_then(|path| PipeStream::connect(path, &self.0))
+            .and_then(|path| PipeStream::connect(path, &self.0, None))
             .into_future()
     }
 }

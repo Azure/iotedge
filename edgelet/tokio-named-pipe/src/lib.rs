@@ -13,15 +13,21 @@ extern crate winapi;
 use std::convert::AsRef;
 use std::fs::OpenOptions;
 use std::io::{self, Read, Write};
+use std::iter::once;
 use std::os::windows::prelude::*;
 use std::path::Path;
+use std::time::Duration;
 
 use bytes::{Buf, BufMut};
 use futures::{Async, Poll};
 use mio_named_pipes::NamedPipe;
 use tokio_core::reactor::{Handle, PollEvented};
 use tokio_io::{AsyncRead, AsyncWrite};
+use winapi::um::namedpipeapi::WaitNamedPipeW;
 use winapi::um::winbase::*;
+
+const ERROR_PIPE_BUSY: i32 = 0xE7;
+const PIPE_WAIT_TIMEOUT_MS: u32 = 10 * 1000;
 
 #[derive(Debug)]
 pub struct PipeStream {
@@ -29,18 +35,55 @@ pub struct PipeStream {
 }
 
 impl PipeStream {
-    pub fn connect<P: AsRef<Path>>(path: P, handle: &Handle) -> io::Result<PipeStream> {
+    pub fn connect<P: AsRef<Path>>(
+        path: P,
+        handle: &Handle,
+        timeout: Option<Duration>,
+    ) -> io::Result<PipeStream> {
+        let timeout = timeout
+            .map(|t| (t.as_secs() as u32) + t.subsec_millis())
+            .unwrap_or(PIPE_WAIT_TIMEOUT_MS);
+        let pipe_path: Vec<u16> = path.as_ref()
+            .as_os_str()
+            .encode_wide()
+            .chain(once(0))
+            .collect();
+
+        unsafe {
+            WaitNamedPipeW(pipe_path.as_ptr(), timeout);
+        }
+
         let mut options = OpenOptions::new();
         options
             .read(true)
             .write(true)
             .custom_flags(FILE_FLAG_OVERLAPPED);
-        let file = options.open(path)?;
-        let named_pipe = unsafe { NamedPipe::from_raw_handle(file.into_raw_handle()) };
 
-        Ok(PipeStream {
-            io: PollEvented::new(named_pipe, handle)?,
-        })
+        match options.open(path.as_ref().clone()) {
+            Err(err) => {
+                if let Some(code) = err.raw_os_error() {
+                    if code == ERROR_PIPE_BUSY {
+                        unsafe {
+                            WaitNamedPipeW(pipe_path.as_ptr(), timeout);
+                        }
+                        return PipeStream::connect(
+                            path,
+                            handle,
+                            Some(Duration::from_millis(timeout as u64)),
+                        );
+                    }
+                }
+
+                Err(err)
+            }
+            Ok(file) => {
+                let named_pipe = unsafe { NamedPipe::from_raw_handle(file.into_raw_handle()) };
+
+                Ok(PipeStream {
+                    io: PollEvented::new(named_pipe, handle)?,
+                })
+            }
+        }
     }
 
     pub fn poll_read(&self) -> Async<()> {
