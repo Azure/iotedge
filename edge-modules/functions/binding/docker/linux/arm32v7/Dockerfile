@@ -1,4 +1,4 @@
-FROM microsoft/azure-functions-runtime:2.0.0-stretch-arm32v7
+FROM microsoft/azure-functions-dotnet-core2.0:2.0-arm32v7
 
 WORKDIR /app
 

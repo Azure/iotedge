@@ -1,6 +1,6 @@
 # escape=`
 
-FROM microsoft/azure-functions-runtime:2.0.0-nanoserver-1709
+FROM microsoft/azure-functions-dotnet-core2.0:2.0-nanoserver-1803
 
 ARG EXE_DIR=.
 
