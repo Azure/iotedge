@@ -16,7 +16,8 @@ SCRIPT_NAME=$(basename $0)
 
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
-BINDIR=$DIR/../../bin
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
+ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 
 # Holds the list of tags to apply
 DOCKER_TAGS="[]"
@@ -154,7 +155,7 @@ echo "Build image with following manifest:"
 cat $manifest
 
 echo "Done Building And Pushing Docker Images"
-$BINDIR/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+$ROOT_FOLDER/bin/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file
