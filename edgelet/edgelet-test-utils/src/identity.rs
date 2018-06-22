@@ -2,8 +2,10 @@
 
 use futures::future::{self, FutureResult};
 
-use edgelet_core::{AuthType, Error as CoreError, ErrorKind as CoreErrorKind, Identity,
-                   IdentityManager, IdentitySpec};
+use edgelet_core::{
+    AuthType, Error as CoreError, ErrorKind as CoreErrorKind, Identity, IdentityManager,
+    IdentitySpec,
+};
 
 #[derive(Clone, Debug, Fail)]
 pub enum Error {

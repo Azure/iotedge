@@ -555,8 +555,10 @@ mod tests {
     use std::ffi::CString;
     use std::os::raw::{c_char, c_int, c_uchar, c_void};
 
-    use super::super::{CreateCertificate, CreateMasterEncryptionKey, Decrypt,
-                       DestroyMasterEncryptionKey, Encrypt, GetTrustBundle, MakeRandom};
+    use super::super::{
+        CreateCertificate, CreateMasterEncryptionKey, Decrypt, DestroyMasterEncryptionKey, Encrypt,
+        GetTrustBundle, MakeRandom,
+    };
     use super::{Buffer, CertificateProperties, Crypto};
     use hsm_sys::*;
 

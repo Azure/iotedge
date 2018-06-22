@@ -20,8 +20,10 @@ use edgelet_core::crypto::{Activate, KeyIdentity, KeyStore, Sign, Signature, Sig
 use edgelet_http::client::{Client, TokenSource};
 use edgelet_http::ErrorKind as HttpErrorKind;
 use error::{Error, ErrorKind};
-use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
-            TpmAttestation, TpmRegistrationResult};
+use model::{
+    DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus, TpmAttestation,
+    TpmRegistrationResult,
+};
 
 /// This is the interval at which to poll DPS for registration assignment status
 const DPS_ASSIGNMENT_RETRY_INTERVAL_SECS: u64 = 10;

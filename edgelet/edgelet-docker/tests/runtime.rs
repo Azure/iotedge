@@ -33,8 +33,10 @@ use url::Url;
 
 #[cfg(unix)]
 use docker::models::AuthConfig;
-use docker::models::{ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
-                     ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem};
+use docker::models::{
+    ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings, ContainerSummary,
+    HostConfig, HostConfigPortBindings, ImageDeleteResponseItem,
+};
 use edgelet_core::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};

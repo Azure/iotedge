@@ -26,8 +26,9 @@ use handle::Handle;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use winapi::shared::minwindef::{DWORD, WORD};
 use winapi::um::winbase::{DeregisterEventSource, RegisterEventSourceW, ReportEventW};
-use winapi::um::winnt::{EVENTLOG_ERROR_TYPE, EVENTLOG_INFORMATION_TYPE, EVENTLOG_SUCCESS,
-                        EVENTLOG_WARNING_TYPE};
+use winapi::um::winnt::{
+    EVENTLOG_ERROR_TYPE, EVENTLOG_INFORMATION_TYPE, EVENTLOG_SUCCESS, EVENTLOG_WARNING_TYPE,
+};
 
 pub struct EventLogger {
     name: String,

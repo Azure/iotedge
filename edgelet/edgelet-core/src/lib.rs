@@ -38,12 +38,16 @@ pub mod watchdog;
 
 pub use authorization::{Authorization, Policy};
 pub use certificate_properties::{CertificateProperties, CertificateType};
-pub use crypto::{Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes,
-                 KeyIdentity, KeyStore, MasterEncryptionKey, PrivateKey, Signature};
+pub use crypto::{
+    Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes, KeyIdentity,
+    KeyStore, MasterEncryptionKey, PrivateKey, Signature,
+};
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};
-pub use module::{LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-                 ModuleSpec, ModuleStatus, SystemInfo};
+pub use module::{
+    LogOptions, LogTail, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    ModuleStatus, SystemInfo,
+};
 
 lazy_static! {
     static ref VERSION: String = option_env!("VERSION")

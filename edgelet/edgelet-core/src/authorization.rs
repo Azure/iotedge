@@ -97,8 +97,10 @@ mod tests {
     use futures::future;
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use module::{LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
-                 SystemInfo as CoreSystemInfo};
+    use module::{
+        LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
+        SystemInfo as CoreSystemInfo,
+    };
 
     #[test]
     fn should_authorize_anonymous() {

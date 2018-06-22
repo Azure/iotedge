@@ -18,8 +18,9 @@ use config::DockerConfig;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, NetworkConfig};
-use edgelet_core::{LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleSpec,
-                   SystemInfo as CoreSystemInfo};
+use edgelet_core::{
+    LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, SystemInfo as CoreSystemInfo,
+};
 use edgelet_http::UrlConnector;
 
 use error::{Error, Result};

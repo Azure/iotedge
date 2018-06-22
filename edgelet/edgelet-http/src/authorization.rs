@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::{pid::Pid, Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime,
-                   Policy};
+use edgelet_core::{
+    pid::Pid, Authorization as CoreAuth, Error as CoreError, Module, ModuleRuntime, Policy,
+};
 use error::{Error, ErrorKind};
 use futures::{future, future::Either, Future};
 use http::{Request, Response};

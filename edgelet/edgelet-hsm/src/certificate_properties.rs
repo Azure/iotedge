@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use super::IOTEDGED_CA;
-use edgelet_core::{CertificateProperties as CoreCertificateProperties,
-                   CertificateType as CoreCertificateType};
-use hsm::{CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType};
+use edgelet_core::{
+    CertificateProperties as CoreCertificateProperties, CertificateType as CoreCertificateType,
+};
+use hsm::{
+    CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
+};
 
 fn convert_certificate_type(core: &CoreCertificateType) -> HsmCertificateType {
     match *core {
@@ -28,10 +31,12 @@ pub fn convert_properties(core: &CoreCertificateProperties) -> HsmCertificatePro
 #[cfg(test)]
 mod tests {
     use super::super::IOTEDGED_CA;
-    use edgelet_core::{CertificateProperties as CoreCertificateProperties,
-                       CertificateType as CoreCertificateType};
-    use hsm::{CertificateProperties as HsmCertificateProperties,
-              CertificateType as HsmCertificateType};
+    use edgelet_core::{
+        CertificateProperties as CoreCertificateProperties, CertificateType as CoreCertificateType,
+    };
+    use hsm::{
+        CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
+    };
 
     fn check_conversion(core: &CoreCertificateProperties, hsm: HsmCertificateProperties) {
         assert_eq!(core.validity_in_secs(), hsm.validity_in_secs());

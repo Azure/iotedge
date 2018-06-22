@@ -65,9 +65,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
-use edgelet_core::crypto::{CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle,
-                           KeyIdentity, KeyStore, MasterEncryptionKey, MemoryKey, MemoryKeyStore,
-                           Sign};
+use edgelet_core::crypto::{
+    CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity, KeyStore,
+    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign,
+};
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
@@ -90,8 +91,9 @@ use hyper::server::Http;
 use hyper::{Client as HyperClient, Error as HyperError, Request, Response};
 use hyper_tls::HttpsConnector;
 use iothubservice::DeviceClient;
-use provisioning::provisioning::{BackupProvisioning, DpsProvisioning, ManualProvisioning,
-                                 Provision, ProvisioningResult};
+use provisioning::provisioning::{
+    BackupProvisioning, DpsProvisioning, ManualProvisioning, Provision, ProvisioningResult,
+};
 use sha2::{Digest, Sha256};
 use tokio_core::reactor::{Core, Handle};
 use url::Url;

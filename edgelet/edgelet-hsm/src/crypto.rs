@@ -3,21 +3,25 @@
 use std::sync::{Arc, RwLock};
 
 use certificate_properties::convert_properties;
-use edgelet_core::{Certificate as CoreCertificate,
-                   CertificateProperties as CoreCertificateProperties,
-                   CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt,
-                   Encrypt as CoreEncrypt, Error as CoreError,
-                   GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
-                   MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey};
+use edgelet_core::{
+    Certificate as CoreCertificate, CertificateProperties as CoreCertificateProperties,
+    CreateCertificate as CoreCreateCertificate, Decrypt as CoreDecrypt, Encrypt as CoreEncrypt,
+    Error as CoreError, GetTrustBundle as CoreGetTrustBundle, KeyBytes as CoreKeyBytes,
+    MasterEncryptionKey as CoreMasterEncryptionKey, PrivateKey as CorePrivateKey,
+};
 
 use super::{IOTEDGED_CA, IOTEDGED_COMMONNAME, IOTEDGED_VALIDITY};
 pub use error::{Error, ErrorKind};
-pub use hsm::{Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
-              PrivateKey as HsmPrivateKey};
-use hsm::{CertificateProperties as HsmCertificateProperties,
-          CertificateType as HsmCertificateType, CreateCertificate as HsmCreateCertificate,
-          CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
-          DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey};
+pub use hsm::{
+    Buffer, Decrypt, Encrypt, GetTrustBundle, HsmCertificate, KeyBytes as HsmKeyBytes,
+    PrivateKey as HsmPrivateKey,
+};
+use hsm::{
+    CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
+    CreateCertificate as HsmCreateCertificate,
+    CreateMasterEncryptionKey as HsmCreateMasterEncryptionKey, Crypto as HsmCrypto,
+    DestroyMasterEncryptionKey as HsmDestroyMasterEncryptionKey,
+};
 
 /// The TPM Key Store.
 /// Activate a private key, and then you can use that key to sign data.

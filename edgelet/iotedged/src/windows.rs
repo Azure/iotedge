@@ -11,10 +11,12 @@ use futures::prelude::*;
 use futures::sync::mpsc;
 use logging;
 use signal;
-use windows_service::service::{ServiceControl, ServiceControlAccept, ServiceExitCode,
-                               ServiceState, ServiceStatus, ServiceType};
-use windows_service::service_control_handler::{register, ServiceControlHandlerResult,
-                                               ServiceStatusHandle};
+use windows_service::service::{
+    ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
+};
+use windows_service::service_control_handler::{
+    register, ServiceControlHandlerResult, ServiceStatusHandle,
+};
 use windows_service::service_dispatcher;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";

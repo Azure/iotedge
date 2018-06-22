@@ -5,8 +5,9 @@ use std::marker::PhantomData;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 
-use serde::{de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor},
-            ser::Serialize};
+use serde::{
+    de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor}, ser::Serialize,
+};
 use serde_json;
 
 use error::Result;

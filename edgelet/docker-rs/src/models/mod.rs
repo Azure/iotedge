@@ -31,7 +31,9 @@ pub use self::container_config_volumes::ContainerConfigVolumes;
 mod container_create_body_networking_config;
 pub use self::container_create_body_networking_config::ContainerCreateBodyNetworkingConfig;
 mod container_summary;
-pub use self::container_summary::{ContainerHostConfig, ContainerNetworkSettings, ContainerSummary};
+pub use self::container_summary::{
+    ContainerHostConfig, ContainerNetworkSettings, ContainerSummary,
+};
 mod container_summary_inner;
 pub use self::container_summary_inner::ContainerSummaryInner;
 mod container_summary_inner_host_config;

@@ -44,8 +44,10 @@ use url::form_urlencoded::Serializer as UrlSerializer;
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
 use edgelet_core::{AuthType, Identity, IdentityManager, IdentitySpec};
 use edgelet_http::client::TokenSource;
-use iothubservice::{AuthMechanism, AuthType as HubAuthType, DeviceClient,
-                    ErrorKind as HubErrorKind, Module, SymmetricKey};
+use iothubservice::{
+    AuthMechanism, AuthType as HubAuthType, DeviceClient, ErrorKind as HubErrorKind, Module,
+    SymmetricKey,
+};
 
 pub use error::{Error, ErrorKind};
 

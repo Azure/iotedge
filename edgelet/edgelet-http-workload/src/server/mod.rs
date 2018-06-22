@@ -8,8 +8,10 @@ mod trust_bundle;
 
 use std::io;
 
-use edgelet_core::{CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle,
-                   KeyStore, Module, ModuleRuntime, Policy};
+use edgelet_core::{
+    CreateCertificate, Decrypt, Encrypt, Error as CoreError, GetTrustBundle, KeyStore, Module,
+    ModuleRuntime, Policy,
+};
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use http::{Request, Response};

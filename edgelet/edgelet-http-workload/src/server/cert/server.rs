@@ -8,11 +8,13 @@ use http::{Request, Response, StatusCode};
 use hyper::{Body, Error as HyperError};
 use serde_json;
 
-use edgelet_core::{Certificate, CertificateProperties, CertificateType, CreateCertificate,
-                   KeyBytes, PrivateKey};
+use edgelet_core::{
+    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
+};
 use edgelet_http::route::{BoxFuture, Handler, Parameters};
-use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse,
-                       ServerCertificateRequest};
+use workload::models::{
+    CertificateResponse, PrivateKey as PrivateKeyResponse, ServerCertificateRequest,
+};
 
 use error::{Error, ErrorKind, Result};
 use IntoResponse;

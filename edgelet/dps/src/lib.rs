@@ -32,6 +32,8 @@ mod model;
 pub mod registration;
 
 pub use error::{Error, ErrorKind};
-pub use model::{DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
-                TpmRegistrationResult};
+pub use model::{
+    DeviceRegistration, DeviceRegistrationResult, RegistrationOperationStatus,
+    TpmRegistrationResult,
+};
 pub use registration::{DpsClient, DpsTokenSource};

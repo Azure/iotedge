@@ -6,8 +6,9 @@ mod system_info;
 
 use std::io;
 
-use edgelet_core::{Error as CoreError, IdentityManager, Module, ModuleRegistry, ModuleRuntime,
-                   Policy};
+use edgelet_core::{
+    Error as CoreError, IdentityManager, Module, ModuleRegistry, ModuleRuntime, Policy,
+};
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::*;
 use http::{Request, Response};

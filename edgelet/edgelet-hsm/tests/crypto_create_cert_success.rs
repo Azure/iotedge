@@ -2,8 +2,10 @@
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
-use edgelet_core::{Certificate, CertificateProperties, CertificateType, CreateCertificate,
-                   KeyBytes, PrivateKey, Signature};
+use edgelet_core::{
+    Certificate, CertificateProperties, CertificateType, CreateCertificate, KeyBytes, PrivateKey,
+    Signature,
+};
 use edgelet_hsm::Crypto;
 
 #[test]
