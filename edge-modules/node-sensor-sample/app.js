@@ -24,7 +24,7 @@ function main() {
             console.log(`<- Data: ${JSON.stringify(JSON.parse(data))}`);
           });
 
-          client.onDeviceMethod("reset", (req, res) => {
+          client.onMethod("reset", (req, res) => {
             console.log(
               `Got method call [${req.requestId}, ${
                 req.methodName

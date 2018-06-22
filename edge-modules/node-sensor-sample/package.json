@@ -5,7 +5,7 @@
   "main": "app.js",
   "license": "UNLICENSED",
   "dependencies": {
-    "azure-iot-device": "^1.7.0-modules-preview.2",
-    "azure-iot-device-mqtt": "^1.7.0-modules-preview.2"
+    "azure-iot-device": "^1.7.0-modules-preview.3",
+    "azure-iot-device-mqtt": "^1.7.0-modules-preview.3"
   }
 }
