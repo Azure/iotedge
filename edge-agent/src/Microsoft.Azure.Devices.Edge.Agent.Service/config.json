@@ -13,7 +13,7 @@
       "edgeAgent": { // System Module - required
         "type": "docker", // Enum - values - docker
         "settings": {
-          "image": "edgebuilds.azurecr.io/azedge-edge-agent-x64:6407819", // Location of the edgeAgent image
+          "image": "someregistry/someimage:sometag", // Location of the edgeAgent image
           "createOptions": "" // Optional - will be null in general case. This is for future proofing
         },
         "configuration": {
@@ -25,7 +25,7 @@
         "status": "running", // Enum - values - running, stopped
         "restartPolicy": "always", // This value should be "always"
         "settings": {
-          "image": "edgebuilds.azurecr.io/azedge-edge-hub-x64:6407819", // Path to the EdgeHub Image
+          "image": "someregistry/someimage:sometag", // Path to the EdgeHub Image
           "createOptions": "" // Options string to start the Edge Hub module (templated)
         },
         "configuration": {
@@ -40,7 +40,7 @@
         "status": "running",
         "restartPolicy": "always",
         "settings": {
-          "image": "edgebuilds.azurecr.io/azedge-simulated-temperature-sensor-x64:6407819",
+          "image": "someregistry/someimage:sometag",
           "createOptions": ""
         },
         "configuration": {
