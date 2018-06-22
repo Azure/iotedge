@@ -45,9 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     ""image"": ""edg0eHubImage"",
     ""createOptions"": ""{}""
   },
-  ""configuration"": {
-    ""id"": ""1""
-  },
   ""env"": {}
 }
             ");
@@ -75,9 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""settings"": {
     ""image"": ""edg0eHubImage"",
     ""createOptions"": ""{}""
-  },
-  ""configuration"": {
-    ""id"": ""1""
   }
 }";
 
@@ -90,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new DockerConfig("edg0eHubImage"), 0, string.Empty,
                 DateTime.MinValue, DateTime.MinValue, 0,
                 DateTime.MinValue, ModuleStatus.Running,
-                new ConfigurationInfo("1"), new Dictionary<string, EnvVal>()
+                null, new Dictionary<string, EnvVal>()
             );
 
             Assert.Equal(expected, actual);

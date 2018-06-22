@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "restartPolicy")]
         RestartPolicy RestartPolicy { get;  }
 
-        [JsonProperty(PropertyName = "configuration")]
+        [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }
 
         [JsonProperty(PropertyName = "env")]

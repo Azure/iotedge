@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "",
                 lastStartTimeUtc,
                 lastExitTimeUtc,
-                new ConfigurationInfo("bing"),
+                null,
                 new Dictionary<string, EnvVal>()
             );
 
@@ -42,10 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 lastStartTimeUtc = lastStartTimeUtc,
                 lastExitTimeUtc = lastExitTimeUtc,
                 statusDescription = "",
-                configuration = new
-                {
-                    id = "bing"
-                },
                 type = "docker",
                 settings = new
                 {

@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [ExcludeFromCodeCoverage]
     public class DockerModuleTest
     {
-        static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly ConfigurationInfo DefaultConfigurationInfo = null;
         static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
         static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
 

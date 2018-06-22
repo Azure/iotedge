@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(Required = Required.Always, PropertyName = "settings")]
         public DockerConfig Config { get; }
 
-        [JsonProperty(PropertyName = "configuration")]
+        [JsonIgnore]
         public virtual ConfigurationInfo ConfigurationInfo { get; }
 
         [JsonProperty(PropertyName = "env")]
