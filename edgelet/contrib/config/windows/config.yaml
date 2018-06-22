@@ -2,8 +2,8 @@
 #                      IoT Edge Daemon configuration
 ###############################################################################
 #
-# This file configures the IoT Edge daemon.
-# The daemon must be restarted to pick up any configuration changes.
+# This file configures the IoT Edge daemon. The daemon must be restarted to
+# pick up any configuration changes.
 #
 # Note - this file is yaml. Learn more here: http://yaml.org/refcard.html
 #
@@ -13,7 +13,7 @@
 # Provisioning mode and settings
 ###############################################################################
 #
-# This configures the identity provisioning mode of the daemon.
+# Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
 #     manual - using an iothub connection string
@@ -35,7 +35,7 @@ provisioning:
 # Certificate settings
 ###############################################################################
 #
-# This configures the certificates required to operate the IoT Edge
+# Configures the certificates required to operate the IoT Edge
 # runtime as a gateway which enables external leaf devices to securely
 # communicate with the Edge Hub. If not specified, the required certificates
 # are auto generated for quick start scenarios which are not intended for
@@ -58,10 +58,11 @@ provisioning:
 # Edge Agent module spec
 ###############################################################################
 #
-# This configures the initial Edge Agent module.
-# The daemon uses this Edge Agent definition to bootstrap the system.
-# The Edge Agent can then update itself based on the Edge Agent module
-# definition present in the deployment.
+# Configures the initial Edge Agent module.
+#
+# The daemon uses this definition to bootstrap the system. The Edge Agent can
+# then update itself based on the Edge Agent module definition present in the
+# deployment in IoT Hub.
 #
 ###############################################################################
 
@@ -74,8 +75,12 @@ agent:
     auth: {}
 
 ###############################################################################
-# Edge Device Hostname
-# This is injected into modules as IOTEDGE_GATEWAYHOSTNAME
+# Edge device hostname
+###############################################################################
+#
+# Configures the environment variable 'IOTEDGE_GATEWAYHOSTNAME' injected into
+# modules.
+#
 ###############################################################################
 
 hostname: "<ADD HOSTNAME HERE>"
@@ -84,46 +89,38 @@ hostname: "<ADD HOSTNAME HERE>"
 # Connect settings
 ###############################################################################
 #
-# This configures the connection uri for a client of the workload/mgmt APIs
-# The workload_uri is the API modules use to retrieve tokens and certificates.
-# The management_uri is the API the Edge Agent uses to start/stop/manage
-# modules.
+#
+# Configures URIs used by clients of the management and workload APIs
+#     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
+#                      stop, and manage modules
+#     workload_uri   - used by modules to retrieve tokens and certificates
 #
 # The following uri schemes are supported:
-#     http - connect over tcp
-#     unix - connect over unix domain socket
+#     http - connect over TCP
 #
 ###############################################################################
 
 connect:
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+  management_uri: "http://<GATEWAY_ADDRESS>:15580"
+  workload_uri: "http://<GATEWAY_ADDRESS>:15581"
 
 ###############################################################################
 # Listen settings
 ###############################################################################
 #
-# This configures the listen address for the daemon.
-# The workload_uri is the API modules use to retrieve tokens and certificates.
-# The management_uri is the API the Edge Agent uses to start/stop/manage
-# modules.
+# Configures the listen addresses for the daemon.
+#     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
+#                      stop, and manage modules
+#     workload_uri   - used by modules to retrieve tokens and certificates
 #
 # The following uri schemes are supported:
-#     http - listen over tcp
-#     unix - listen over unix domain socket
-#     fd   - listen using systemd socket activation
-#
-# They can be different than the connect uris.
-#
-# For instance, when using the fd:// scheme for systemd,
-#   the listen address is fd://iotedge.socket,
-#   but the connect address is unix:///var/run/iotedge/workload.sock
+#     http - listen over TCP
 #
 ###############################################################################
 
 listen:
-  workload_uri: "fd://iotedge.socket"
-  management_uri: "fd://iotedge.mgmt.socket"
+  management_uri: "http://<GATEWAY_ADDRESS>:15580"
+  workload_uri: "http://<GATEWAY_ADDRESS>:15581"
 
 ###############################################################################
 # Home Directory
@@ -133,7 +130,7 @@ listen:
 #
 ###############################################################################
 
-homedir: "/var/lib/iotedge"
+homedir: "C:\\ProgramData\\iotedge"
 
 ###############################################################################
 # Moby Container Runtime settings
@@ -145,5 +142,5 @@ homedir: "/var/lib/iotedge"
 ###############################################################################
 
 moby_runtime:
-  uri: "unix:///var/run/docker.sock"
-#   network: "azure-iot-edge"
+  uri: "npipe://./pipe/docker_engine"
+#   network: "nat"

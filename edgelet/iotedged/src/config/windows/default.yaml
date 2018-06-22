@@ -13,15 +13,15 @@ agent:
 hostname: "localhost"
 
 connect:
-  workload_uri: "http://localhost:8081"
-  management_uri: "http://localhost:8080"
+  management_uri: "http://localhost:15580"
+  workload_uri: "http://localhost:15581"
 
 listen:
-  workload_uri: "http://0.0.0.0:8081"
-  management_uri: "http://0.0.0.0:8080"
+  management_uri: "http://0.0.0.0:15580"
+  workload_uri: "http://0.0.0.0:15581"
 
 homedir: "C:\\Temp\\iotedge"
 
 moby_runtime:
   uri: "npipe://./pipe/docker_engine"
-  network: "azure-iot-edge"
+  network: "nat"

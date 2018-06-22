@@ -1,0 +1,154 @@
+###############################################################################
+#                      IoT Edge Daemon configuration
+###############################################################################
+#
+# This file configures the IoT Edge daemon. The daemon must be restarted to
+# pick up any configuration changes.
+#
+# Note - this file is yaml. Learn more here: http://yaml.org/refcard.html
+#
+###############################################################################
+
+###############################################################################
+# Provisioning mode and settings
+###############################################################################
+#
+# Configures the identity provisioning mode of the daemon.
+#
+# Supported modes:
+#     manual - using an iothub connection string
+#     dps    - using dps for provisioning
+#
+###############################################################################
+
+provisioning:
+  source: "manual"
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+
+# provisioning:
+#   source: "dps"
+#   global_endpoint: "https://global.azure-devices-provisioning.net"
+#   scope_id: "{scope_id}"
+#   registration_id: "{registration_id}"
+
+###############################################################################
+# Certificate settings
+###############################################################################
+#
+# Configures the certificates required to operate the IoT Edge
+# runtime as a gateway which enables external leaf devices to securely
+# communicate with the Edge Hub. If not specified, the required certificates
+# are auto generated for quick start scenarios which are not intended for
+# production environments.
+#
+# Settings:
+#     device_ca_cert   - path to the device ca certificate and its chain
+#     device_ca_pk     - path to the device ca private key file
+#     trusted_ca_certs - path to a file containing all the trusted CA
+#                        certificates required for Edge module communication
+#
+###############################################################################
+
+# certificates:
+#   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
+#   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
+#   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+
+###############################################################################
+# Edge Agent module spec
+###############################################################################
+#
+# Configures the initial Edge Agent module.
+#
+# The daemon uses this definition to bootstrap the system. The Edge Agent can
+# then update itself based on the Edge Agent module definition present in the
+# deployment in IoT Hub.
+#
+###############################################################################
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env: {}
+  config:
+    image: "mcr.microsoft.com/azureiotedge-agent:1.0"
+    auth: {}
+
+###############################################################################
+# Edge device hostname
+###############################################################################
+#
+# Configures the environment variable 'IOTEDGE_GATEWAYHOSTNAME' injected into
+# modules.
+#
+###############################################################################
+
+hostname: "<ADD HOSTNAME HERE>"
+
+###############################################################################
+# Connect settings
+###############################################################################
+#
+#
+#Configures URIs used by clients of the management and workload APIs
+#     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
+#                      stop, and manage modules
+#     workload_uri   - used by modules to retrieve tokens and certificates
+#
+# The following uri schemes are supported:
+#     http - connect over TCP
+#     unix - connect over Unix domain socket
+#
+###############################################################################
+
+connect:
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/run/iotedge/workload.sock"
+
+###############################################################################
+# Listen settings
+###############################################################################
+#
+# Configures the listen addresses for the daemon.
+#     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
+#                      stop, and manage modules
+#     workload_uri   - used by modules to retrieve tokens and certificates
+#
+# The following uri schemes are supported:
+#     http - listen over TCP
+#     unix - listen over Unix domain socket
+#     fd   - listen using systemd socket activation
+#
+# These values can be different from the connect URIs. For instance, when
+# using the fd:// scheme for systemd:
+#     listen address is fd://iotedge.workload,
+#     connect address is unix:///var/run/iotedge/workload.sock
+#
+###############################################################################
+
+listen:
+  management_uri: "fd://iotedge.mgmt.socket"
+  workload_uri: "fd://iotedge.socket"
+
+###############################################################################
+# Home Directory
+###############################################################################
+#
+# Configures the home directory for the daemon.
+#
+###############################################################################
+
+homedir: "/var/lib/iotedge"
+
+###############################################################################
+# Moby Container Runtime settings
+###############################################################################
+#
+# uri - configures the uri for the container runtime.
+# network - configures the network on which the containers will be created.
+#
+###############################################################################
+
+moby_runtime:
+  uri: "unix:///var/run/docker.sock"
+#   network: "azure-iot-edge"

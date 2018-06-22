@@ -27,7 +27,7 @@ use url::Url;
 #[cfg(unix)]
 const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
 #[cfg(windows)]
-const MGMT_URI: &str = "http://localhost:8080";
+const MGMT_URI: &str = "http://localhost:15580";
 
 fn main() {
     if let Err(ref error) = run() {

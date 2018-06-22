@@ -13,12 +13,12 @@ agent:
 hostname: "localhost"
 
 connect:
-  workload_uri: "http://localhost:8081"
-  management_uri: "http://localhost:8080"
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/run/iotedge/workload.sock"
 
 listen:
-  workload_uri: "http://0.0.0.0:8081"
-  management_uri: "http://0.0.0.0:8080"
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/run/iotedge/workload.sock"
 
 homedir: "/tmp/iotedge"
 
