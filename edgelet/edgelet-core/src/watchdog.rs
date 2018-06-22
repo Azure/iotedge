@@ -60,16 +60,27 @@ where
 
         // Check if the Edge runtime module exists, and if not create it
         let watchdog = get_edge_runtime_mod(&runtime, name.clone())
-            .and_then(move |m| get_or_update_identity(&mut id_mgr, &module_id, m.is_none()))
-            .and_then(|id| {
-                // add the generation ID for edge agent as an environment variable
-                let mut env = spec.env().clone();
-                env.insert(
-                    MODULE_GENERATIONID.to_string(),
-                    id.generation_id().to_string(),
-                );
-                start_watchdog(runtime, spec.with_env(env))
-            });
+            .and_then(move |m| {
+                // If the module doesn't exist, update the cloud with its identity and stash its
+                // generation id (obtained from the cloud) in an environment object. The environment is
+                // then injected in to the new module at creation time. If the module already
+                // exists, just start it.
+                if m.is_none() {
+                    let update = update_identity(&mut id_mgr, &module_id).and_then(|id| {
+                        // add the generation ID for edge agent as an environment variable
+                        let mut env = spec.env().clone();
+                        env.insert(
+                            MODULE_GENERATIONID.to_string(),
+                            id.generation_id().to_string(),
+                        );
+                        future::ok(spec.with_env(env))
+                    });
+                    Either::A(update)
+                } else {
+                    Either::B(future::ok(spec))
+                }
+            })
+            .and_then(|spec| start_watchdog(runtime, spec));
 
         // Swallow any errors from shutdown_signal
         let shutdown_signal = shutdown_signal.then(|_| Ok(()));
@@ -187,10 +198,9 @@ where
 
 // Gets the identity for the module.
 // If the update flag is specified, then also updates the identity of the module.
-fn get_or_update_identity<I>(
+fn update_identity<I>(
     id_mgr: &mut I,
     module_id: &str,
-    update: bool,
 ) -> impl Future<Item = I::Identity, Error = Error>
 where
     I: 'static + IdentityManager + Clone,
@@ -203,18 +213,13 @@ where
         .and_then(move |identity| {
             identity
                 .map(|module| {
-                    let res = if update {
-                        info!("Updating identity for module {}", module.module_id());
-                        let res = id_mgr_copy
-                            .update(
-                                IdentitySpec::new(module.module_id())
-                                    .with_generation_id(module.generation_id().to_string()),
-                            )
-                            .map_err(|e| e.into());
-                        Either::A(res)
-                    } else {
-                        Either::B(future::ok(module))
-                    };
+                    info!("Updating identity for module {}", module.module_id());
+                    let res = id_mgr_copy
+                        .update(
+                            IdentitySpec::new(module.module_id())
+                                .with_generation_id(module.generation_id().to_string()),
+                        )
+                        .map_err(|e| e.into());
                     Either::A(res)
                 })
                 .unwrap_or_else(|| {
@@ -445,9 +450,7 @@ mod tests {
         let mut manager = TestIdentityManager::new(vec![]).with_fail_get(true);
         assert_eq!(
             true,
-            get_or_update_identity(&mut manager, "$edgeAgent", false)
-                .wait()
-                .is_err()
+            update_identity(&mut manager, "$edgeAgent").wait().is_err()
         );
     }
 
@@ -462,9 +465,7 @@ mod tests {
 
         assert_eq!(
             true,
-            get_or_update_identity(&mut manager, "$edgeAgent", true)
-                .wait()
-                .is_err()
+            update_identity(&mut manager, "$edgeAgent").wait().is_err()
         );
         assert_eq!(true, manager.state.borrow().update_called);
     }
@@ -480,9 +481,7 @@ mod tests {
 
         assert_eq!(
             false,
-            get_or_update_identity(&mut manager, "$edgeAgent", true)
-                .wait()
-                .is_err()
+            update_identity(&mut manager, "$edgeAgent").wait().is_err()
         );
         assert_eq!(true, manager.state.borrow().update_called);
         assert_eq!(
