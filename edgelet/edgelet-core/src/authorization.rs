@@ -67,7 +67,13 @@ where
                                     Either::A(
                                         m.runtime_state()
                                             .map_err(|e| e.into())
-                                            .and_then(move |rs| Ok(rs.pid() == &pid)),
+                                            .and_then(move |rs| {                                                 
+                                                let authorized = rs.pid() == &pid;
+                                                if !authorized {
+                                                    debug!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
+                                                }
+                                                Ok(authorized)   
+                                            }),
                                     )
                                 })
                                 .unwrap_or_else(|| Either::B(future::ok(false)))
