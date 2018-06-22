@@ -280,10 +280,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task SetDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
-            var twinContent = new TwinContent();
-            cc.ModuleContent["$edgeHub"] = twinContent;
-
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -299,18 +295,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     timeToLiveSecs = 20
                 }
             };
-            string patch = JsonConvert.SerializeObject(desiredProperties);
 
-            twinContent.TargetContent = new TwinCollection(patch);
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = desiredProperties
+
+                    }
+                }
+            };
+
             await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
         }
 
         async Task UpdateDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
         {
-            var cc = new ConfigurationContent() { ModuleContent = new Dictionary<string, TwinContent>() };
-            var twinContent = new TwinContent();
-            cc.ModuleContent["$edgeHub"] = twinContent;
-
             var desiredProperties = new
             {
                 schemaVersion = "1.0",
@@ -327,8 +329,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            string patch = JsonConvert.SerializeObject(desiredProperties);
-            twinContent.TargetContent = new TwinCollection(patch);
+            var cc = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = desiredProperties
+
+                    }
+                }
+            };
+
             await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
         }
 

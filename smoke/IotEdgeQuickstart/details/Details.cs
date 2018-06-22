@@ -3,6 +3,7 @@
 namespace IotEdgeQuickstart.Details
 {
     using System;
+    using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace IotEdgeQuickstart.Details
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public class Details
     {
@@ -224,7 +226,21 @@ namespace IotEdgeQuickstart.Details
             (string deployJson, string[] _) = this.DeploymentJson();
 
             var config = JsonConvert.DeserializeObject<ConfigurationContent>(deployJson);
-            config.ModuleContent["$edgeAgent"].TargetContent["modules"] = new { };
+            JObject desired = JObject.FromObject(config.ModulesContent["$edgeAgent"]["properties.desired"]);
+            if (desired.TryGetValue("modules", out JToken modules))
+            {
+                IList<JToken> removeList = new List<JToken>();
+                foreach (JToken module in modules.Children())
+                {
+                    removeList.Add(module);
+                }
+
+                foreach (JToken module in removeList)
+                {
+                    module.Remove();
+                }
+            }
+            config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
 
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
@@ -340,7 +356,7 @@ namespace IotEdgeQuickstart.Details
 
         const string DeployJson = @"
 {
-  ""moduleContent"": {
+  ""modulesContent"": {
     ""$edgeAgent"": {
       ""properties.desired"": {
         ""schemaVersion"": ""1.0"",
