@@ -55,32 +55,10 @@ where
         let runtime = self.runtime.clone();
         let runtime_copy = self.runtime.clone();
         let name = spec.name().to_string();
-        let mut id_mgr = self.id_mgr.clone();
+        let id_mgr = self.id_mgr.clone();
         let module_id = module_id.to_string();
 
-        // Check if the Edge runtime module exists, and if not create it
-        let watchdog = get_edge_runtime_mod(&runtime, name.clone())
-            .and_then(move |m| {
-                // If the module doesn't exist, update the cloud with its identity and stash its
-                // generation id (obtained from the cloud) in an environment object. The environment is
-                // then injected in to the new module at creation time. If the module already
-                // exists, just start it.
-                if m.is_none() {
-                    let update = update_identity(&mut id_mgr, &module_id).and_then(|id| {
-                        // add the generation ID for edge agent as an environment variable
-                        let mut env = spec.env().clone();
-                        env.insert(
-                            MODULE_GENERATIONID.to_string(),
-                            id.generation_id().to_string(),
-                        );
-                        future::ok(spec.with_env(env))
-                    });
-                    Either::A(update)
-                } else {
-                    Either::B(future::ok(spec))
-                }
-            })
-            .and_then(|spec| start_watchdog(runtime, spec));
+        let watchdog = start_watchdog(runtime, id_mgr, spec, module_id);
 
         // Swallow any errors from shutdown_signal
         let shutdown_signal = shutdown_signal.then(|_| Ok(()));
@@ -112,15 +90,19 @@ where
 }
 
 // Start watchdog on a timer for 1 minute
-pub fn start_watchdog<M>(
+pub fn start_watchdog<M, I>(
     runtime: M,
+    id_mgr: I,
     spec: ModuleSpec<<M::Module as Module>::Config>,
+    module_id: String,
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
     M::Error: Into<Error>,
     <M::Module as Module>::Error: Into<Error>,
+    I: 'static + IdentityManager + Clone,
+    I::Error: Into<Error>,
 {
     info!(
         "Starting watchdog with {} second frequency...",
@@ -130,7 +112,12 @@ where
         .map_err(Error::from)
         .for_each(move |_| {
             info!("Checking edge runtime status");
-            check_runtime(runtime.clone(), spec.clone()).or_else(|e| {
+            check_runtime(
+                runtime.clone(),
+                id_mgr.clone(),
+                spec.clone(),
+                module_id.clone(),
+            ).or_else(|e| {
                 warn!("Error in watchdog when checking for edge runtime status:");
                 log_failure(Level::Warn, &e);
                 future::ok(())
@@ -139,15 +126,19 @@ where
 }
 
 // Check if the edge runtime module is running, and if not, start it.
-fn check_runtime<M>(
+fn check_runtime<M, I>(
     runtime: M,
+    id_mgr: I,
     spec: ModuleSpec<<M::Module as Module>::Config>,
+    module_id: String,
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
     M::Error: Into<Error>,
     <M::Module as Module>::Error: Into<Error>,
+    I: 'static + IdentityManager + Clone,
+    I::Error: Into<Error>,
 {
     let module = spec.name().to_string();
     get_edge_runtime_mod(&runtime, module.clone())
@@ -170,7 +161,7 @@ where
                     };
                     Either::A(res)
                 })
-                .unwrap_or_else(|| Either::B(create_and_start(runtime, spec)))
+                .unwrap_or_else(|| Either::B(create_and_start(runtime, &id_mgr, spec, &module_id)))
         })
         .map(|_| ())
 }
@@ -196,8 +187,7 @@ where
         .map_err(|e| e.into())
 }
 
-// Gets the identity for the module.
-// If the update flag is specified, then also updates the identity of the module.
+// Gets and updates the identity of the module.
 fn update_identity<I>(
     id_mgr: &mut I,
     module_id: &str,
@@ -223,33 +213,49 @@ where
                     Either::A(res)
                 })
                 .unwrap_or_else(|| {
-                    Either::B(future::err(Error::from(ErrorKind::EdgeRuntimeNotFound))
-                        as FutureResult<I::Identity, Error>)
+                    Either::B(
+                        future::err(Error::from(ErrorKind::EdgeRuntimeIdentityNotFound))
+                            as FutureResult<I::Identity, Error>,
+                    )
                 })
         })
 }
 
 // Edge agent does not exist - pull, create and start the container
-fn create_and_start<M>(
+fn create_and_start<M, I>(
     runtime: M,
+    id_mgr: &I,
     spec: ModuleSpec<<M::Module as Module>::Config>,
+    module_id: &str,
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
     <M::Module as Module>::Config: Clone,
     M::Error: Into<Error>,
     <M::Module as Module>::Error: Into<Error>,
+    I: 'static + IdentityManager + Clone,
+    I::Error: Into<Error>,
 {
     let module_name = spec.name().to_string();
     info!("Creating and starting edge runtime module {}", module_name);
     let runtime_copy = runtime.clone();
 
-    runtime
-        .registry()
-        .pull(spec.clone().config())
-        .and_then(move |_| runtime.create(spec))
-        .and_then(move |_| runtime_copy.start(&module_name))
-        .map_err(|e| e.into())
+    let mut id_mgr = id_mgr.clone();
+    update_identity(&mut id_mgr, module_id).and_then(|id| {
+        // add the generation ID for edge agent as an environment variable
+        let mut env = spec.env().clone();
+        env.insert(
+            MODULE_GENERATIONID.to_string(),
+            id.generation_id().to_string(),
+        );
+        let spec = spec.with_env(env);
+        runtime
+            .registry()
+            .pull(spec.clone().config())
+            .and_then(move |_| runtime.create(spec))
+            .and_then(move |_| runtime_copy.start(&module_name))
+            .map_err(|e| e.into())
+    })
 }
 
 #[cfg(test)]
