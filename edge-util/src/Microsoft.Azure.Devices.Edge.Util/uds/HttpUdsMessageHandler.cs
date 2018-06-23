@@ -21,13 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Socket socket = await GetConnectedSocketAsync().ConfigureAwait(false);
-            HttpBufferedStream stream = new HttpBufferedStream(new NetworkStream(socket, true));
+            Socket socket = await this.GetConnectedSocketAsync().ConfigureAwait(false);
+            var stream = new HttpBufferedStream(new NetworkStream(socket, true));
 
             var serializer = new HttpRequestResponseSerializer();
             byte[] requestBytes = serializer.SerializeRequest(request);
 
-            Events.SendRequest(requestBytes);
+            Events.SendRequest(request.RequestUri);
             await stream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken).ConfigureAwait(false);
             if (request.Content != null)
             {
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         private async Task<Socket> GetConnectedSocketAsync()
         {
             var endpoint = new UnixDomainSocketEndPoint(this.providerUri.LocalPath);
-            Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             Events.Connecting(this.providerUri.LocalPath);
             await socket.ConnectAsync(endpoint).ConfigureAwait(false);
             Events.Connected(this.providerUri.LocalPath);
@@ -74,9 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                 Log.LogDebug((int)EventIds.Connected, $"Connected socket {url}");
             }
 
-            internal static void SendRequest(byte[] requestBytes)
+            internal static void SendRequest(Uri requestUri)
             {
-                Log.LogDebug((int)EventIds.SendRequest, $"Sending request {System.Text.Encoding.ASCII.GetString(requestBytes)}");
+                Log.LogDebug((int)EventIds.SendRequest, $"Sending request {requestUri}");
             }
 
             internal static void ResponseReceived(HttpStatusCode statusCode)
