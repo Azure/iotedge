@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
 
@@ -52,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = jsonResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
-            Assert.Equal(string.Empty, methodResult.Payload);
+            Assert.Equal(null, methodResult.Payload);
         }
 
         [Fact]
@@ -86,7 +88,76 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = jsonResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
-            Assert.Equal(string.Empty, methodResult.Payload);
+            Assert.Equal(null, methodResult.Payload);
+        }
+
+        [Fact]
+        public async Task TestInvokeMethodWithResponse()
+        {
+            var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
+            ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
+
+            string responsePayload = "{ \"resp1\" : \"respvalue1\" }";
+            var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), Encoding.UTF8.GetBytes(responsePayload), 200);
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == identity.Id), It.IsAny<DirectMethodRequest>()))
+                .ReturnsAsync(directMethodResponse);
+
+            var validator = new Mock<IValidator<MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
+
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
+            testController.OnActionExecuting(actionExecutingContext);
+
+            string toDeviceId = "device1";
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.NotNull(actionResult);
+            var jsonResult = actionResult as JsonResult;
+            Assert.NotNull(jsonResult);
+            var methodResult = jsonResult.Value as MethodResult;
+            Assert.NotNull(methodResult);
+            Assert.Equal(200, methodResult.Status);
+            Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
+        }
+
+        [Fact]
+        public async Task TestInvokeMethodOnModuleWithResponse()
+        {
+            var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
+            ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
+
+            string responsePayload = "{ \"resp1\" : \"respvalue1\" }";
+            var directMethodResponse = new DirectMethodResponse(Guid.NewGuid().ToString(), Encoding.UTF8.GetBytes(responsePayload), 200);
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == identity.Id), It.IsAny<DirectMethodRequest>()))
+                .ReturnsAsync(directMethodResponse);
+
+            var validator = new Mock<IValidator<Http.MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<Http.MethodRequest>()));
+
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
+            testController.OnActionExecuting(actionExecutingContext);
+
+            string toDeviceId = "edgedevice";
+            string toModuleId = "module2";
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new Http.MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
+
+            Assert.NotNull(actionResult);
+            var jsonResult = actionResult as JsonResult;
+            Assert.NotNull(jsonResult);
+            var methodResult = jsonResult.Value as MethodResult;
+            Assert.NotNull(methodResult);
+            Assert.Equal(200, methodResult.Status);
+            Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
         }
 
         ActionExecutingContext GetActionExecutingContextMock(IIdentity identity)
@@ -100,6 +171,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var actionContext = new ActionContext(httpContext, Mock.Of<RouteData>(), Mock.Of<ActionDescriptor>());
             var actionExecutingContext = new ActionExecutingContext(actionContext, Mock.Of<IList<IFilterMetadata>>(), Mock.Of<IDictionary<string, object>>(), new object());
             return actionExecutingContext;
+        }
+
+        static IEnumerable<object[]> GetRawJsonData()
+        {
+            yield return new object[] { null, null };
+
+            yield return new object[] { new byte[0], null};
+
+            object obj = new
+            {
+                prop1 = "foo",
+                prop2 = new
+                {
+                    prop3 = 100
+                }
+            };
+            string json = JsonConvert.SerializeObject(obj);
+            yield return new object[] { Encoding.UTF8.GetBytes(json), new JRaw(json) };
+        }
+
+        [Unit]
+        [Theory]
+        [MemberData(nameof(GetRawJsonData))]
+        public void GetRawJsonTest(byte[] input, JRaw expectedOutput)
+        {
+            // Act
+            JRaw output = TwinsController.GetRawJson(input);
+
+            // Assert
+            Assert.Equal(expectedOutput, output);
         }
     }
 }

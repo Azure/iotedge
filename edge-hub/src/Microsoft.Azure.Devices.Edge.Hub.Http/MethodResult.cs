@@ -1,7 +1,8 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public class MethodResult
     {
@@ -9,6 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public int Status { get; set; }
 
         [JsonProperty("payload")]
-        public string Payload { get; set; }
+        public JRaw Payload { get; set; }
     }
 }

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
 
     public class TwinsController : Controller
     {
@@ -61,13 +62,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             IEdgeHub edgeHub = await this.edgeHubGetter;
             DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
             Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
-
+            
             var methodResult = new MethodResult
             {
                 Status = directMethodResponse.Status,
-                Payload = directMethodResponse.Data != null ? Encoding.UTF8.GetString(directMethodResponse.Data) : string.Empty
+                Payload = GetRawJson(directMethodResponse.Data)
             };
             return this.Json(methodResult);
+        }
+
+        internal static JRaw GetRawJson(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+            {
+                return null;
+            }
+
+            string json = Encoding.UTF8.GetString(bytes);
+            return new JRaw(json);
         }
 
         static class Events
