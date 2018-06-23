@@ -70,7 +70,7 @@ where
                                             .and_then(move |rs| {                                                 
                                                 let authorized = rs.pid() == &pid;
                                                 if !authorized {
-                                                    debug!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
+                                                    info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
                                                 }
                                                 Ok(authorized)   
                                             }),
