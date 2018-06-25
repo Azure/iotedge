@@ -244,7 +244,7 @@ static bool is_windows()
     #endif
 }
 
-static int write_ascii_buffer_into_file
+static int write_buffer_into_file
 (
     const char *file_name,
     const void *input_buffer,
@@ -257,7 +257,7 @@ static int write_ascii_buffer_into_file
     if (is_windows() || !make_private)
     {
         FILE *file_handle;
-        if ((file_handle = fopen(file_name, "w")) == NULL)
+        if ((file_handle = fopen(file_name, "wb")) == NULL)
         {
             LOG_ERROR("Could not open file for writing %s", file_name);
             result = HSM_UTIL_ERROR;
@@ -534,7 +534,7 @@ int write_cstring_to_file(const char* file_name, const char* data)
     }
     else
     {
-        result = write_ascii_buffer_into_file(file_name, data, strlen(data), false);
+        result = write_buffer_into_file(file_name, data, strlen(data), false);
     }
 
     return result;
@@ -567,7 +567,7 @@ int write_buffer_to_file
     }
     else
     {
-        result = write_ascii_buffer_into_file(file_name, data, data_size, make_private);
+        result = write_buffer_into_file(file_name, data, data_size, make_private);
     }
 
     return result;

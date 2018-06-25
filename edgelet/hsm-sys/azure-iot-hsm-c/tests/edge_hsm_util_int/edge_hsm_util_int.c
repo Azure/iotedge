@@ -10,16 +10,6 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_log.h"
 
-// //#############################################################################
-// // Declare and enable MOCK definitions
-// //#############################################################################
-
-#define TEST_FILE_ALPHA "test_alpha.txt"
-#define TEST_FILE_NUMERIC "test_numeric.txt"
-#define TEST_FILE_BAD "test_bad.txt"
-#define TEST_FILE_EMPTY "test_empty.txt"
-#define TEST_WRITE_FILE "test_write_data.txt"
-#define TEST_WRITE_FILE_FOR_DELETE "test_write_data_del.txt"
 
 //#############################################################################
 // Interface(s) under test
@@ -30,6 +20,20 @@
 //#############################################################################
 // Test defines and data
 //#############################################################################
+
+#define TEST_FILE_ALPHA "test_alpha.txt"
+#define TEST_FILE_ALPHA_NEWLINE "test_alpha_newline.txt"
+#define TEST_FILE_NUMERIC "test_numeric.txt"
+#define TEST_FILE_NUMERIC_NEWLINE "test_numeric_newline.txt"
+#define TEST_FILE_BAD "test_bad.txt"
+#define TEST_FILE_EMPTY "test_empty.txt"
+#define TEST_WRITE_FILE "test_write_data.txt"
+#define TEST_WRITE_FILE_FOR_DELETE "test_write_data_del.txt"
+
+static char ALPHA[] = "ABCD";
+static char ALPHA_NEWLINE[] = "AB\nCD\n";
+static unsigned char NUMERIC[] = {'1', '2', '3', '4'};
+static unsigned char NUMERIC_NEWLINE[] = {'1', '2', '\n', '4', '5', '\n'};
 
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
@@ -61,7 +65,7 @@ int test_helper_write_data_to_file
 {
     FILE *file_handle;
     int result;
-    if ((file_handle = fopen(file_name, "w")) == NULL)
+    if ((file_handle = fopen(file_name, "wb")) == NULL)
     {
         LOG_ERROR("Could not open file for write %s", file_name);
         result = __LINE__;
@@ -105,10 +109,10 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
-            char alpha[] = "ABCD";
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, alpha, strlen(alpha)));
-            unsigned char numeric[] = {'1', '2', '3', '4'};
-            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, numeric, sizeof(numeric)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA, ALPHA, strlen(ALPHA)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_ALPHA_NEWLINE, ALPHA_NEWLINE, strlen(ALPHA_NEWLINE)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC, NUMERIC, sizeof(NUMERIC)));
+            ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_NUMERIC_NEWLINE, NUMERIC_NEWLINE, sizeof(NUMERIC_NEWLINE)));
             ASSERT_ARE_EQUAL(int, 0, test_helper_write_data_to_file(TEST_FILE_EMPTY, NULL, 0));
             test_helper_setup_homedir();
         }
@@ -117,6 +121,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         {
             delete_file_if_exists(TEST_FILE_ALPHA);
             delete_file_if_exists(TEST_FILE_NUMERIC);
+            delete_file_if_exists(TEST_FILE_ALPHA_NEWLINE);
+            delete_file_if_exists(TEST_FILE_NUMERIC_NEWLINE);
             delete_file_if_exists(TEST_FILE_EMPTY);
 
             TEST_MUTEX_DESTROY(g_testByTest);
@@ -139,12 +145,32 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         TEST_FUNCTION(read_file_into_cstring_smoke)
         {
             // arrange
-            char *expected_string = "ABCD";
-            size_t expected_string_size = 5;
+            char *expected_string = ALPHA;
+            size_t expected_string_size = sizeof(ALPHA);
 
             // act
             size_t output_size = 0;
             char *output_string = read_file_into_cstring(TEST_FILE_ALPHA, &output_size);
+
+            // assert
+            ASSERT_IS_NOT_NULL(output_string);
+            int cmp_result = strcmp(expected_string, output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output_string);
+        }
+
+        TEST_FUNCTION(read_file_into_cstring_with_newline_smoke)
+        {
+            // arrange
+            char *expected_string = ALPHA_NEWLINE;
+            size_t expected_string_size = sizeof(ALPHA_NEWLINE);
+
+            // act
+            size_t output_size = 0;
+            char *output_string = read_file_into_cstring(TEST_FILE_ALPHA_NEWLINE, &output_size);
 
             // assert
             ASSERT_IS_NOT_NULL(output_string);
@@ -210,12 +236,32 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         TEST_FUNCTION(read_file_into_cbuffer_smoke)
         {
             // arrange
-            unsigned char expected_buffer[] = {'1', '2', '3', '4'};
-            size_t expected_buffer_size = 4;
+            unsigned char *expected_buffer = NUMERIC;
+            size_t expected_buffer_size = sizeof(NUMERIC);
 
             // act
             size_t output_size = 0;
             unsigned char *output_buffer = read_file_into_buffer(TEST_FILE_NUMERIC, &output_size);
+
+            // assert
+            ASSERT_IS_NOT_NULL(output_buffer);
+            int cmp_result = memcmp(expected_buffer, output_buffer, expected_buffer_size);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_buffer_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output_buffer);
+        }
+
+        TEST_FUNCTION(read_file_into_cbuffer_newline_smoke)
+        {
+            // arrange
+            unsigned char *expected_buffer = NUMERIC_NEWLINE;
+            size_t expected_buffer_size = sizeof(NUMERIC_NEWLINE);
+
+            // act
+            size_t output_size = 0;
+            unsigned char *output_buffer = read_file_into_buffer(TEST_FILE_NUMERIC_NEWLINE, &output_size);
 
             // assert
             ASSERT_IS_NOT_NULL(output_buffer);
@@ -305,6 +351,30 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             const char *files[] = {
                 TEST_FILE_ALPHA,
                 TEST_FILE_NUMERIC
+            };
+
+            // act
+            char *output_string = concat_files_to_cstring(files, sizeof(files)/sizeof(files[0]));
+            size_t output_size = strlen(output_string) + 1;
+
+            // assert
+            ASSERT_IS_NOT_NULL(output_string);
+            int cmp_result = strcmp(expected_string, output_string);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output_string);
+        }
+
+        TEST_FUNCTION(concat_files_to_cstring_newline_smoke)
+        {
+            // arrange
+            char *expected_string = "AB\nCD\n12\n45\n";
+            size_t expected_string_size = 13;
+            const char *files[] = {
+                TEST_FILE_ALPHA_NEWLINE,
+                TEST_FILE_NUMERIC_NEWLINE
             };
 
             // act
