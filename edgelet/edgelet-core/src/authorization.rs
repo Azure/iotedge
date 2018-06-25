@@ -64,17 +64,15 @@ where
                                 .filter_map(|m| if m.name() == name { Some(m) } else { None })
                                 .nth(0)
                                 .map(|m| {
-                                    Either::A(
-                                        m.runtime_state()
-                                            .map_err(|e| e.into())
-                                            .and_then(move |rs| {                                                 
-                                                let authorized = rs.pid() == &pid;
-                                                if !authorized {
-                                                    info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
-                                                }
-                                                Ok(authorized)   
-                                            }),
-                                    )
+                                    Either::A(m.runtime_state().map_err(|e| e.into()).and_then(
+                                        move |rs| {
+                                            let authorized = rs.pid() == &pid;
+                                            if !authorized {
+                                                info!("Request not authorized - expected caller pid: {}, actual caller pid: {}", rs.pid(), pid);
+                                            }
+                                            Ok(authorized)
+                                        },
+                                    ))
                                 })
                                 .unwrap_or_else(|| Either::B(future::ok(false)))
                         }),
