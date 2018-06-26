@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void AuthenticatedWithIotHub(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.AuthenticatedWithCloud, $"Authenticated {identity.Id} with IotHub, and added the validated token to cache");
+                Log.LogDebug((int)EventIds.AuthenticatedWithCloud, $"Authenticated {identity.Id} with IotHub");
             }
 
             public static void ErrorValidatingCachedToken(IIdentity identity, Exception exception)

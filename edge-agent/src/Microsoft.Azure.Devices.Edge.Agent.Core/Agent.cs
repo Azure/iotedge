@@ -317,22 +317,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             public static void EmptyConfig(Exception ex)
             {
-                Log.LogDebug((int)EventIds.EmptyConfig, ex.Message);
+                Log.LogDebug((int)EventIds.EmptyConfig, ex, "Reconcile failed because of empty configuration");
             }
 
             public static void InvalidSchemaVersion(Exception ex)
             {
-                Log.LogWarning((int)EventIds.InvalidSchemaVersion, ex.Message);
+                Log.LogWarning((int)EventIds.InvalidSchemaVersion, ex, "Reconcile failed because of invalid schema");
             }
 
             public static void InvalidConfigFormat(Exception ex)
             {
-                Log.LogWarning((int)EventIds.InvalidConfigFormat, ex.Message);
+                Log.LogWarning((int)EventIds.InvalidConfigFormat, ex, "Reconcile failed because of invalid configuration format");
             }
 
             public static void UnknownFailure(Exception ex)
             {
-                Log.LogWarning((int)EventIds.UnknownFailure, ex.Message);
+                Log.LogWarning((int)EventIds.UnknownFailure, ex, "Reconcile failed because of the an exception");
             }
 
             public static void ReportShutdown()
