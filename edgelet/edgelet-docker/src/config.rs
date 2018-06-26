@@ -10,6 +10,7 @@ use error::Result;
 pub struct DockerConfig {
     image: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "imageHash")]
     image_id: Option<String>,
     #[serde(default = "ContainerCreateBody::new")]
     create_options: ContainerCreateBody,
@@ -119,7 +120,7 @@ mod tests {
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
             "image": "ubuntu",
-            "imageId": "42",
+            "imageHash": "42",
             "createOptions": {
                 "Labels": {
                     "k1": "v1",
