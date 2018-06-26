@@ -1,4 +1,4 @@
-# Azure IoT Edge
+#IoT Edge
 
 This repository consists of two projects: the Module Management Agent (edge-agent) and the Edge Hub (edge-hub).
 
