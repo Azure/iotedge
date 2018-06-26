@@ -1,2 +1,2 @@
-# IoT Hub Module
-This project contains the local IoT Hub module.
+# Edge Hub
+This project contains the Edge Hub.

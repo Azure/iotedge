@@ -1,10 +1,10 @@
-Azure IoT Edge Build and Test Infrastructure
+IoT Edge Build and Test Infrastructure
 ============================================
 
 Build
 -----
 
-We use VSTS to [build](https://msazure.visualstudio.com/One/IoT-Platform-Edge/_Build/index?_a=allDefinitions&path=%5CCustom%5CAzure%5CIoT%5CEdge%5CCore%5C) and [release](https://msazure.visualstudio.com/One/_release).
+We use VSTS to build and release.
 
 More information about VSTS is available [here](https://docs.microsoft.com/en-us/vsts/build-release/overview).
 

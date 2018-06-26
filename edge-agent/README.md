@@ -1,9 +1,9 @@
-# Module Management Agent
-This project contains the module management agent.
+# Edge Agent
+This project contains the Edge Agent.
 
 ## Application Settings.
 
-The settings to run the MMA may be configured through the `appsettings.json` 
+The settings to run the Edge Agent may be configured through the `appsettings.json` 
 file or environment variables.
 
 ### appsettings.json
