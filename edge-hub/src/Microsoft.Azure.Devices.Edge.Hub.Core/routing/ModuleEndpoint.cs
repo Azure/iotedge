@@ -214,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void NoMessagesSubscription(string moduleId)
             {
-                Log.LogError((int)EventIds.NoDeviceProxy, Invariant($"No subscription for receiving messages found for {moduleId}"));
+                Log.LogWarning((int)EventIds.NoDeviceProxy, Invariant($"No subscription for receiving messages found for {moduleId}"));
             }
         }
     }

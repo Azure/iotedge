@@ -54,7 +54,7 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Mqtt_Tcp_Only);
+            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             Console.WriteLine($"Using transport {transportType.ToString()}");
 
             var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
@@ -81,7 +81,19 @@ namespace SimulatedTemperatureSensor
 
         static async Task<ModuleClient> InitModuleClient(TransportType transportType)
         {
-            ITransportSettings[] settings = { new MqttTransportSettings(transportType) };
+            ITransportSettings[] GetTransportSettings()
+            {
+                switch (transportType)
+                {
+                    case TransportType.Mqtt:
+                    case TransportType.Mqtt_Tcp_Only:
+                    case TransportType.Mqtt_WebSocket_Only:
+                        return new ITransportSettings[] { new MqttTransportSettings(transportType) };
+                    default:
+                        return new ITransportSettings[] { new AmqpTransportSettings(transportType) };
+                }
+            }
+            ITransportSettings[] settings = GetTransportSettings();
 
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings).ConfigureAwait(false);
             await moduleClient.OpenAsync().ConfigureAwait(false);
