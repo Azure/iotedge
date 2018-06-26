@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -19,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1); 
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         const string ConfigFileName = "appsettings_agent.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string VersionInfoFileName = "versionInfo.json";
@@ -74,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             try
             {
-                mode = configuration.GetValue(Constants.ModeKey, "docker");                
+                mode = configuration.GetValue(Constants.ModeKey, "docker");
                 configSourceConfig = configuration.GetValue<string>("ConfigSource");
                 backupConfigFilePath = configuration.GetValue<string>("BackupConfigFilePath");
                 maxRestartCount = configuration.GetValue<int>("MaxRestartCount");
@@ -147,18 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
-            var cts = new CancellationTokenSource();
-            var completed = new ManualResetEventSlim();
-
-            void OnUnload(AssemblyLoadContext ctx) => CancelProgram();
-
-            void CancelProgram()
-            {
-                logger.LogInformation("Termination requested, closing.");
-                cts.Cancel();
-                // Wait for shutdown oprations to complete.
-                completed.Wait(ShutdownWaitPeriod);
-            }
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
+                = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
@@ -166,11 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<Agent> agentOption = Option.None<Agent>();
 
                 try
-                {
-
-                    AssemblyLoadContext.Default.Unloading += OnUnload;
-                    Console.CancelKeyPress += (sender, cpe) => CancelProgram();
-
+                {                    
                     Agent agent = await container.Resolve<Task<Agent>>();
                     agentOption = Option.Some(agent);
                     while (!cts.Token.IsCancellationRequested)
@@ -185,7 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         }
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                     }
-                    AssemblyLoadContext.Default.Unloading -= OnUnload;
                     logger.LogInformation("Closing module management agent.");
 
                     returnCode = 0;
@@ -193,7 +177,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 catch (OperationCanceledException)
                 {
                     logger.LogInformation("Main thread terminated");
-                    AssemblyLoadContext.Default.Unloading -= OnUnload;
                     returnCode = 0;
                 }
                 catch (Exception ex)
@@ -206,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 await Cleanup(agentOption, logger);
                 completed.Set();
             }
-
+            handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
         }
 

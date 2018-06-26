@@ -71,12 +71,11 @@ namespace SimulatedTemperatureSensor
             ModuleClient userContext = moduleClient;
             await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext).ConfigureAwait(false);
 
-            var cts = new CancellationTokenSource();
-            void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts);
-            AssemblyLoadContext.Default.Unloading += OnUnload;
-            Console.CancelKeyPress += (sender, cpe) => { CancelProgram(cts); };
-
-            await SendEvent(moduleClient, messageDelay, sim, cts).ConfigureAwait(false);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
+                = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            await SendEvents(moduleClient, messageDelay, sim, cts).ConfigureAwait(false);
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             return 0;
         }
 
@@ -150,7 +149,7 @@ namespace SimulatedTemperatureSensor
         /// <param name="sim"></param>
         /// <param name="cts"></param>
         /// <returns></returns>
-        static async Task SendEvent(
+        static async Task SendEvents(
             ModuleClient moduleClient,
             TimeSpan messageDelay,
             SimulatorParameters sim,

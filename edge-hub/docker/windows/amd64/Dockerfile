@@ -15,5 +15,4 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
-CMD echo %DATE:~4,2%-%DATE:~7,2%-%DATE:~10,4% %TIME%: Starting Edge Hub && \
-    dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
+CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]

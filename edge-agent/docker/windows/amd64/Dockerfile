@@ -13,5 +13,4 @@ COPY $EXE_DIR/ ./
 
 ENV IPInterfaceName vEthernet (Ethernet)
 
-CMD echo %DATE:~4,2%-%DATE:~7,2%-%DATE:~10,4% %TIME%: Starting Edge Agent && \
-    dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
+CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Agent.Service.dll"]

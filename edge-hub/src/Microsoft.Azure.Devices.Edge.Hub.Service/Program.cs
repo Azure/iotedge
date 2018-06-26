@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Globalization;
     using System.Runtime.InteropServices;
-    using System.Runtime.Loader;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -16,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -26,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Program
     {
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(20);
         public static int Main()
         {
             Console.WriteLine($"[{DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt", CultureInfo.InvariantCulture)}] Edge Hub Main()");
@@ -80,13 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 logger.LogInformation($"Version - {versionInfo.ToString(true)}");
             }
             LogLogo(logger);
-
-            var cts = new CancellationTokenSource();
-
-            void OnUnload(AssemblyLoadContext ctx) => CancelProgram(cts, logger);
-            AssemblyLoadContext.Default.Unloading += OnUnload;
-            Console.CancelKeyPress += (sender, cpe) => CancelProgram(cts, logger);
-
+            
             if (chain != null)
             {
                 logger.LogInformation("Installing intermediate certificates.");
@@ -112,6 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
 
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
+                = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
             using (IProtocolHead protocolHead = new EdgeHubProtocolHead(
                 new IProtocolHead[]
                 {
@@ -123,17 +119,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await protocolHead.StartAsync();
                 await cts.Token.WhenCanceled();
                 await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
-                AssemblyLoadContext.Default.Unloading -= OnUnload;
             }
 
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             return 0;
-        }
-
-        static void CancelProgram(CancellationTokenSource cts, ILogger logger)
-        {
-            logger.LogInformation("Termination requested, closing.");
-            cts.Cancel();
-        }
+        }        
 
         static void LogLogo(ILogger logger)
         {
