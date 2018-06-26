@@ -498,7 +498,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
-        public async Task ClearSubscriptionsOnDeviceRemoveTest()
+        public async Task KeepSubscriptionsOnDeviceRemoveTest()
         {
             // Arrange
             string deviceId = "d1";
@@ -557,7 +557,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
-            Assert.Empty(subscriptions);
+            Assert.Equal(2, subscriptions.Count);
+            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
 
             // Act
             connectionManager.AddSubscription(deviceId, DeviceSubscription.DesiredPropertyUpdates);
@@ -567,7 +569,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
-            Assert.Equal(2, subscriptions.Count);
+            Assert.Equal(4, subscriptions.Count);
+            Assert.Equal(true, subscriptions[DeviceSubscription.Methods]);
+            Assert.Equal(true, subscriptions[DeviceSubscription.C2D]);
             Assert.Equal(true, subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
             Assert.Equal(true, subscriptions[DeviceSubscription.ModuleMessages]);
         }

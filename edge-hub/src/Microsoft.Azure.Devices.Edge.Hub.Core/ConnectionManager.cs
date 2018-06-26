@@ -263,7 +263,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 lock (this.deviceProxyLock)
                 {
                     currentValue = this.DeviceConnection.Map(d => d.DeviceProxy);
-                    this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy));
+                    // TODO: Here we set the subscriptions to the existing device subscriptions. This is because if the MQTT setting of cleanSession is set to false
+                    // the server is expected to "remember" the subscriptions. 
+                    // This way of keeping subscriptions might cause issues in the unlikely case that to different devices with 2 different set of subscriptions use the same device ID.
+                    // The right way to do this, would be to not store the subscriptions, and instead, query the transport layer (MQTT/AMQP) for the current subscriptions. 
+                    IDictionary<DeviceSubscription, bool> subscriptions = this.DeviceConnection.Map(d => d.Subscriptions)
+                        .GetOrElse(new ConcurrentDictionary<DeviceSubscription, bool>());
+                    this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy, subscriptions));
                 }
                 return currentValue;
             }
@@ -308,10 +314,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class DeviceConnection
         {
-            public DeviceConnection(IDeviceProxy deviceProxy)
+            public DeviceConnection(IDeviceProxy deviceProxy, IDictionary<DeviceSubscription, bool> subscriptions)
             {
                 this.DeviceProxy = deviceProxy;
-                this.Subscriptions = new ConcurrentDictionary<DeviceSubscription, bool>();
+                this.Subscriptions = subscriptions;
             }
 
             public IDeviceProxy DeviceProxy { get; }
