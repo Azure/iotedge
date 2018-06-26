@@ -31,7 +31,7 @@ pub fn init() {
                 writeln!(
                     fmt,
                     "<{}>{} [{}] - [{}] {}",
-                    syslog_level(&record.level()),
+                    syslog_level(record.level()),
                     timestamp,
                     level,
                     record.target(),
@@ -41,7 +41,7 @@ pub fn init() {
                 writeln!(
                     fmt,
                     "<{}>{} [{}] - {}",
-                    syslog_level(&record.level()),
+                    syslog_level(record.level()),
                     timestamp,
                     level,
                     record.args()
@@ -66,7 +66,7 @@ pub fn init_win_log() {
         .expect("Could not initialize Windows EventLogger");
 }
 
-fn syslog_level(level: &Level) -> i8 {
+fn syslog_level(level: Level) -> i8 {
     match level {
         Level::Error => 3,
         Level::Warn => 4,

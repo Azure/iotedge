@@ -9,6 +9,7 @@ use base64;
 use futures::future;
 use futures::prelude::*;
 use hyper::{Body, Chunk as HyperChunk, Client};
+use log::Level;
 use serde_json;
 use tokio_core::reactor::Handle;
 use url::Url;
@@ -22,6 +23,7 @@ use edgelet_core::{
     LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleSpec, SystemInfo as CoreSystemInfo,
 };
 use edgelet_http::UrlConnector;
+use edgelet_utils::log_failure;
 
 use error::{Error, Result};
 use module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
@@ -119,7 +121,11 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let ok = self.client
                     .image_api()
                     .image_create(config.image(), "", "", "", "", &creds, "")
-                    .map_err(Error::from);
+                    .map_err(|err| {
+                        let e = Error::from(err);
+                        log_failure(Level::Warn, &e);
+                        e
+                    });
                 future::Either::A(ok)
             })
             .unwrap_or_else(|e| future::Either::B(future::err(Error::from(e))));
@@ -133,7 +139,11 @@ impl ModuleRegistry for DockerModuleRuntime {
                 .image_api()
                 .image_delete(fensure_not_empty!(name), false, false)
                 .map(|_| ())
-                .map_err(Error::from),
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                }),
         )
     }
 }
@@ -178,7 +188,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                             future::Either::B(future::ok(()))
                         }
                     })
-                    .map_err(Error::from);
+                    .map_err(|err| {
+                        let e = Error::from(err);
+                        log_failure(Level::Warn, &e);
+                        e
+                    });
                 future::Either::A(fut)
             })
             .unwrap_or_else(|| future::Either::B(future::ok(())));
@@ -226,7 +240,10 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         match result {
             Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
+            Err(err) => {
+                log_failure(Level::Warn, &err);
+                Box::new(future::err(err))
+            }
         }
     }
 
@@ -236,7 +253,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_start(fensure_not_empty!(id), "")
-                .map_err(Error::from)
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                })
                 .map(|_| ()),
         )
     }
@@ -252,7 +273,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                         .map(|s| s.as_secs() as i32)
                         .unwrap_or(WAIT_BEFORE_KILL_SECONDS),
                 )
-                .map_err(Error::from)
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                })
                 .map(|_| ()),
         )
     }
@@ -274,7 +299,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .to_string(),
                     )
                 })
-                .map_err(Error::from),
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                }),
         )
     }
 
@@ -284,7 +313,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.client
                 .container_api()
                 .container_restart(fensure_not_empty!(id), WAIT_BEFORE_KILL_SECONDS)
-                .map_err(Error::from)
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                })
                 .map(|_| ()),
         )
     }
@@ -300,7 +333,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                     /* force */ true,
                     /* remove link */ false,
                 )
-                .map_err(Error::from)
+                .map_err(|err| {
+                    let e = Error::from(err);
+                    log_failure(Level::Warn, &e);
+                    e
+                })
                 .map(|_| ()),
         )
     }
@@ -352,7 +389,10 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         match result {
             Ok(f) => Box::new(f),
-            Err(err) => Box::new(future::err(err)),
+            Err(err) => {
+                log_failure(Level::Warn, &err);
+                Box::new(future::err(err))
+            }
         }
     }
 
@@ -362,7 +402,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             .container_api()
             .container_logs(id, options.follow(), true, true, 0, false, tail)
             .map(Logs)
-            .map_err(Error::from);
+            .map_err(|err| {
+                let e = Error::from(err);
+                log_failure(Level::Warn, &e);
+                e
+            });
         Box::new(result)
     }
 
