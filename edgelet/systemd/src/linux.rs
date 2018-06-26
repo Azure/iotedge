@@ -58,8 +58,12 @@ fn unsetenv_all() {
     env::remove_var(ENV_NAMES);
 }
 
+fn get_env(key: &str) -> Result<String, Error> {
+    env::var(key).map_err(|_| Error::from(ErrorKind::Var(key.to_string())))
+}
+
 fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Error> {
-    let pid_str = env::var(ENV_PID)?;
+    let pid_str = get_env(ENV_PID)?;
     debug!("{} {}", ENV_PID, pid_str);
     let pid: Pid = Pid::from_raw(pid_str.parse()?);
 
@@ -67,7 +71,7 @@ fn listen_fds(unset_environment: bool, start_fd: Fd) -> Result<Vec<Socket>, Erro
         return Err(Error::from(ErrorKind::WrongProcess));
     }
 
-    let fds_str = env::var(ENV_FDS)?;
+    let fds_str = get_env(ENV_FDS)?;
     debug!("{} {}", ENV_FDS, fds_str);
     let fds: Fd = fds_str.parse()?;
     if fds < 0 {
@@ -102,7 +106,7 @@ fn listen_fds_with_names(
     unset_environment: bool,
     start_fd: Fd,
 ) -> Result<HashMap<String, Vec<Socket>>, Error> {
-    let names_str = env::var(ENV_NAMES)?;
+    let names_str = get_env(ENV_NAMES)?;
     debug!("{} {}", ENV_NAMES, names_str);
     let names: Vec<&str> = names_str.split(':').collect();
 
@@ -276,5 +280,11 @@ mod tests {
         for socks in fds.values() {
             close_fds(socks.iter());
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "LISTEN_FDNAMES")]
+    fn test_listen_fds_with_missing_env() {
+        listen_fds_with_names(true, 3).unwrap();
     }
 }

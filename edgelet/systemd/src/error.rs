@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::env::VarError;
 use std::fmt;
 use std::fmt::Display;
 use std::num::ParseIntError;
@@ -16,8 +15,8 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "Missing required environment variable.")]
-    Var,
+    #[fail(display = "Missing required environment variable - {}.", _0)]
+    Var(String),
     #[fail(display = "Error parsing pid.")]
     Parse,
     #[fail(display = "Environment variables meant for a different process.")]
@@ -70,14 +69,6 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
         Error { inner }
-    }
-}
-
-impl From<VarError> for Error {
-    fn from(error: VarError) -> Error {
-        Error {
-            inner: error.context(ErrorKind::Var),
-        }
     }
 }
 
