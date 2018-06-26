@@ -101,12 +101,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
                 return offset;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 // If adding the message to the SequentialStore throws, then remove the message from the EntityStore as well, so that there is no leak.
                 await this.messageEntityStore.Remove(edgeMessageId);
                 throw;
-            }            
+            }
         }
 
         public IMessageIterator GetMessageIterator(string endpointId, long startingOffset)
@@ -160,31 +160,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
                 var messageList = new List<IMessage>();
 
-                Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
-                // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at 
-                // application level. But need to check if creating a snapshot for iterating is needed.
-                List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))
-                    .ToList();
-                if (batch.Count > 0)
+                try
                 {
-                    foreach ((long offset, MessageRef msgRef) item in batch)
+                    Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
+                    // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at 
+                    // application level. But need to check if creating a snapshot for iterating is needed.
+                    List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))
+                        .ToList();
+                    if (batch.Count > 0)
                     {
-                        Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
-                        if (!messageWrapper.HasValue)
+                        foreach ((long offset, MessageRef msgRef) item in batch)
                         {
-                            Events.MessageNotFound(item.msgRef.EdgeMessageId);
+                            Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
+                            if (!messageWrapper.HasValue)
+                            {
+                                Events.MessageNotFound(item.msgRef.EdgeMessageId);
+                            }
+                            else
+                            {
+                                messageWrapper
+                                    .Map(m => this.AddMessageOffset(m.Message, item.offset))
+                                    .ForEach(m => messageList.Add(m));
+                            }
                         }
-                        else
-                        {
-                            messageWrapper
-                                .Map(m => this.AddMessageOffset(m.Message, item.offset))
-                                .ForEach(m => messageList.Add(m));
-                        }
-                    }
 
-                    this.startingOffset = batch[batch.Count - 1].offset + 1;
+                        this.startingOffset = batch[batch.Count - 1].offset + 1;
+                    }
+                    Events.ObtainedNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, messageList.Count);
                 }
-                Events.ObtainedNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, messageList.Count);
+                catch (Exception e)
+                {
+                    Events.ErrorGettingMessagesBatch(this.endpointSequentialStore.EntityName, e);
+                }
                 return messageList;
             }
 
@@ -406,7 +413,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 GettingNextBatch,
                 ObtainedNextBatch,
                 CleanupCheckpointState,
-                MessageAdded
+                MessageAdded,
+                ErrorGettingMessagesBatch
             }
 
             public static void MessageStoreCreated()
@@ -487,6 +495,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 {
                     Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
                 }
+            }
+
+            public static void ErrorGettingMessagesBatch(string entityName, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.ErrorGettingMessagesBatch, ex, $"Error getting next batch for endpoint {entityName}.");
             }
         }
     }

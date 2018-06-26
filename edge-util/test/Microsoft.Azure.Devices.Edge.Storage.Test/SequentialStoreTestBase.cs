@@ -66,50 +66,53 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 Assert.Equal(i, offset);
             }
 
-            IEnumerable<(long offset, Item item)> batch = await sequentialStore.GetBatch(0, 100);
-            IEnumerable<(long offset, Item item)> batchItemsAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
-            Assert.Equal(10, batchItemsAsList.Count());
+            List<(long offset, Item item)> batch = (await sequentialStore.GetBatch(0, 100)).ToList();
+            Assert.Equal(10, batch.Count);
             int counter = 0;
-            foreach ((long offset, Item item) batchItem in batchItemsAsList)
+            foreach ((long offset, Item item) batchItem in batch)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
-            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sequentialStore.GetBatch(0, 100));
 
-            batch = await sequentialStore.GetBatch(1, 100);
-            IEnumerable<(long offset, Item item)> items = batch as IList<(long offset, Item item)> ?? batch.ToList();
-            Assert.Equal(9, items.Count());
+            batch = (await sequentialStore.GetBatch(0, 100)).ToList();
+            Assert.Equal(9, batch.Count);
             counter = 1;
-            foreach ((long offset, Item item) batchItem in items)
+            foreach ((long offset, Item item) batchItem in batch)
+            {
+                Assert.Equal(counter++, batchItem.offset);
+            }
+
+            batch = (await sequentialStore.GetBatch(1, 100)).ToList();
+            Assert.Equal(9, batch.Count);
+            counter = 1;
+            foreach ((long offset, Item item) batchItem in batch)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
-            batch = await sequentialStore.GetBatch(1, 100);
-            IEnumerable<(long offset, Item item)> batchItems = batch as IList<(long offset, Item item)> ?? batch.ToList();
-            Assert.Equal(9, batchItems.Count());
+            batch = (await sequentialStore.GetBatch(1, 100)).ToList();
+            Assert.Equal(9, batch.Count);
             counter = 1;
-            foreach ((long offset, Item item) batchItem in batchItems)
+            foreach ((long offset, Item item) batchItem in batch)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
 
             await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 1));
-            batch = await sequentialStore.GetBatch(2, 100);
-            IEnumerable<(long offset, Item item)> batchAsList = batch as IList<(long offset, Item item)> ?? batch.ToList();
-            Assert.Equal(8, batchAsList.Count());
+            batch = (await sequentialStore.GetBatch(2, 100)).ToList();
+            Assert.Equal(8, batch.Count);
             counter = 2;
-            foreach ((long offset, Item item) batchItem in batchAsList)
+            foreach ((long offset, Item item) batchItem in batch)
             {
                 Assert.Equal(counter++, batchItem.offset);
             }
         }
 
         [Fact]
-        public async Task GetBatchInvalidInputTest()
+        public async Task GetBatchTest()
         {
             // Arrange
             
@@ -132,14 +135,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 await sequentialStore.RemoveFirst((o, itm) => Task.FromResult(true));
             }
 
-            // Try to get with starting offset < 4, should throw. 
-            for (int i = 0; i < 4; i++)
+            // Try to get with starting offset <= 4, should return remaining elements - 4 - 9. 
+            for (int i = 0; i <= 4; i++)
             {
-                await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => sequentialStore.GetBatch(i, 10));
+                batch = (await sequentialStore.GetBatch(i, 10)).ToList();
+                Assert.NotNull(batch);
+                Assert.Equal(10 - 4, batch.Count);
+                Assert.Equal(4, batch[0].Item1);
             }
 
-            // Try to get with starting offset between 4 and 9, should return a valid batch. 
-            for (int i = 4; i < 10; i++)
+            // Try to get with starting offset between 5 and 9, should return a valid batch. 
+            for (int i = 5; i < 10; i++)
             {
                 batch = (await sequentialStore.GetBatch(i, 10)).ToList();
                 Assert.NotNull(batch);

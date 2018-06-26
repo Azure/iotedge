@@ -88,10 +88,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize)
         {
-            Preconditions.CheckRange(startingOffset, this.headOffset, nameof(startingOffset));
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));
 
-            if(this.IsEmpty() || this.tailOffset < startingOffset)
+            if (startingOffset < this.headOffset)
+            {
+                startingOffset = this.headOffset;
+            }
+
+            if (this.IsEmpty() || this.tailOffset < startingOffset)
             {
                 return Enumerable.Empty<(long, T)>();
             }
