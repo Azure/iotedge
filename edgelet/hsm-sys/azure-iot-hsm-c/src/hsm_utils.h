@@ -13,5 +13,6 @@ MOCKABLE_FUNCTION(, int, write_cstring_to_file, const char*, file_name, const ch
 MOCKABLE_FUNCTION(, int, write_buffer_to_file, const char*, file_name, const unsigned char*, data, size_t, data_size, bool, make_private);
 MOCKABLE_FUNCTION(, int, delete_file, const char*, file_name);
 MOCKABLE_FUNCTION(, int, make_dir, const char*, dir_path);
+MOCKABLE_FUNCTION(, int, hsm_get_env, const char*, key, char**, output);
 
 #endif  //HSM_UTILS_H

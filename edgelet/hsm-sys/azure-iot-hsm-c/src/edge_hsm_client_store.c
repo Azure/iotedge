@@ -367,8 +367,14 @@ static const char* obtain_default_platform_base_dir(void)
     {
         #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
             STRING_HANDLE path;
-            char *env_base_path = getenv(DEFAULT_EDGE_BASE_DIR_ENV_WIN);
-            if (env_base_path == NULL)
+            char *env_base_path = NULL;
+
+            if (hsm_get_env(DEFAULT_EDGE_BASE_DIR_ENV_WIN, &env_base_path) != 0)
+            {
+                LOG_ERROR("Error obtaining Windows env variable %s", DEFAULT_EDGE_HOME_DIR_WIN);
+                result = NULL;
+            }
+            else if (env_base_path == NULL)
             {
                 LOG_ERROR("Windows env variable %s is not set", DEFAULT_EDGE_HOME_DIR_WIN);
                 result = NULL;
@@ -406,6 +412,11 @@ static const char* obtain_default_platform_base_dir(void)
                         PLATFORM_BASE_PATH = path;
                     }
                 }
+            }
+            if (env_base_path != NULL)
+            {
+                free(env_base_path);
+                env_base_path = NULL;
             }
         #else
             if (make_dir(DEFAULT_EDGE_HOME_DIR_UNIX) != 0)
@@ -448,8 +459,13 @@ static const char* get_base_dir(void)
         }
         else
         {
-            char* env_base_path = getenv(ENV_EDGE_HOME_DIR);
-            if ((env_base_path != NULL) && (strlen(env_base_path) != 0))
+            char* env_base_path = NULL;
+            if (hsm_get_env(ENV_EDGE_HOME_DIR, &env_base_path) != 0)
+            {
+                LOG_ERROR("Could not lookup home dir env variable %s", ENV_EDGE_HOME_DIR);
+                status = __FAILURE__;
+            }
+            else if ((env_base_path != NULL) && (strlen(env_base_path) != 0))
             {
                 if (!is_directory_valid(env_base_path))
                 {
@@ -475,6 +491,11 @@ static const char* get_base_dir(void)
                     LOG_ERROR("Could not construct path to HSM dir");
                     status = __FAILURE__;
                 }
+            }
+            if (env_base_path != NULL)
+            {
+                free(env_base_path);
+                env_base_path = NULL;
             }
             if (status == 0)
             {
@@ -1701,88 +1722,174 @@ static int generate_edge_hsm_certificates_if_needed(void)
     return result;
 }
 
-static int hsm_provision_edge_certificates(void)
+static int get_tg_env_vars(char **trusted_certs_path, char **device_ca_path, char **device_pk_path)
 {
-    int result = 0;
-    unsigned int mask = 0, i = 0;
-    bool env_set = false;
-    const char *trusted_certs_path = getenv(ENV_TRUSTED_CA_CERTS_PATH);
-    const char *device_ca_path = getenv(ENV_DEVICE_CA_PATH);
-    const char *device_pk_path = getenv(ENV_DEVICE_PK_PATH);
+    int result;
 
-    if (trusted_certs_path != NULL)
+    if (hsm_get_env(ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path) != 0)
     {
-        if ((strlen(trusted_certs_path) != 0) && is_file_valid(trusted_certs_path))
-        {
-            mask |= 1 << i; i++;
-        }
-        env_set = true;
-        LOG_DEBUG("Env %s set to %s", ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path);
-    }
-    if (device_ca_path != NULL)
-    {
-        if ((strlen(device_ca_path) != 0) && is_file_valid(device_ca_path))
-        {
-            mask |= 1 << i; i++;
-        }
-        env_set = true;
-        LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CA_PATH, device_ca_path);
-    }
-    if (device_pk_path != NULL)
-    {
-        if ((strlen(device_pk_path) != 0) && is_file_valid(device_pk_path))
-        {
-            mask |= 1 << i; i++;
-        }
-        env_set = true;
-        LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PK_PATH, device_pk_path);
-    }
-
-    LOG_DEBUG("Transparent gateway setup mask 0x%02x", mask);
-
-    if (env_set && (mask != 0x7))
-    {
-        LOG_ERROR("To operate Edge as a transparent gateway, set "
-                  "env variables with valid values:\n  %s\n  %s\n  %s",
-                  ENV_TRUSTED_CA_CERTS_PATH, ENV_DEVICE_CA_PATH, ENV_DEVICE_PK_PATH);
+        LOG_ERROR("Failed to read env variable %s", ENV_TRUSTED_CA_CERTS_PATH);
         result = __FAILURE__;
     }
-    // none of the certificate files were provided so generate them if needed
-    else if (!env_set && (generate_edge_hsm_certificates_if_needed() != 0))
+    else if (hsm_get_env(ENV_DEVICE_CA_PATH, device_ca_path) != 0)
     {
-        LOG_ERROR("Failure generating required HSM certificates");
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CA_PATH);
         result = __FAILURE__;
     }
-    else if (env_set && (edge_hsm_client_store_insert_pki_cert(g_crypto_store,
-                                                               hsm_get_device_ca_alias(),
-                                                               hsm_get_device_ca_alias(), // since we don't know the issuer, we treat this certificate as the issuer
-                                                               device_ca_path,
-                                                               device_pk_path) != 0))
+    else if (hsm_get_env(ENV_DEVICE_PK_PATH, device_pk_path) != 0)
     {
-        LOG_ERROR("Failure inserting device CA certificate and key into the HSM store`");
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PK_PATH);
         result = __FAILURE__;
     }
     else
     {
-        // all required certificate files are available/generated now setup the trust bundle
-        if (trusted_certs_path == NULL)
+        result = 0;
+    }
+
+    return result;
+}
+
+static int hsm_provision_edge_certificates(void)
+{
+    int result;
+    unsigned int mask = 0, i = 0;
+    bool env_set = false;
+    char *trusted_certs_path = NULL;
+    char *device_ca_path = NULL;
+    char *device_pk_path = NULL;
+
+    if (get_tg_env_vars(&trusted_certs_path, &device_ca_path, &device_pk_path) != 0)
+    {
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (trusted_certs_path != NULL)
         {
-            // certificates were generated so set the Owner CA as the trusted CA cert
-            STORE_ENTRY_PKI_CERT *store_entry = get_pki_cert(g_crypto_store, OWNER_CA_ALIAS);
-            if (store_entry == NULL)
+            if ((strlen(trusted_certs_path) != 0) && is_file_valid(trusted_certs_path))
             {
-                LOG_ERROR("Failure obtaining owner CA certificate entry");
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path);
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_TRUSTED_CA_CERTS_PATH, trusted_certs_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_TRUSTED_CA_CERTS_PATH);
+        }
+
+        if (device_ca_path != NULL)
+        {
+            if ((strlen(device_ca_path) != 0) && is_file_valid(device_ca_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                          ENV_DEVICE_CA_PATH, device_ca_path);
+
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CA_PATH, device_ca_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_CA_PATH);
+        }
+
+        if (device_pk_path != NULL)
+        {
+            if ((strlen(device_pk_path) != 0) && is_file_valid(device_pk_path))
+            {
+                mask |= 1 << i; i++;
+            }
+            else
+            {
+                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
+                        ENV_DEVICE_PK_PATH, device_pk_path);
+
+            }
+            env_set = true;
+            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PK_PATH, device_pk_path);
+        }
+        else
+        {
+            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_PK_PATH);
+        }
+
+        LOG_DEBUG("Transparent gateway setup mask 0x%02x", mask);
+
+        if (env_set && (mask != 0x7))
+        {
+            LOG_ERROR("To operate Edge as a transparent gateway, set "
+                      "env variables with valid values:\n  %s\n  %s\n  %s",
+                      ENV_TRUSTED_CA_CERTS_PATH, ENV_DEVICE_CA_PATH, ENV_DEVICE_PK_PATH);
+            result = __FAILURE__;
+        }
+        // none of the certificate files were provided so generate them if needed
+        else if (!env_set && (generate_edge_hsm_certificates_if_needed() != 0))
+        {
+            LOG_ERROR("Failure generating required HSM certificates");
+            result = __FAILURE__;
+        }
+        else if (env_set && (edge_hsm_client_store_insert_pki_cert(g_crypto_store,
+                                                                hsm_get_device_ca_alias(),
+                                                                hsm_get_device_ca_alias(), // since we don't know the issuer, we treat this certificate as the issuer
+                                                                device_ca_path,
+                                                                device_pk_path) != 0))
+        {
+            LOG_ERROR("Failure inserting device CA certificate and key into the HSM store`");
+            result = __FAILURE__;
+        }
+        else
+        {
+            const char *trusted_ca;
+            // all required certificate files are available/generated now setup the trust bundle
+            if (trusted_certs_path == NULL)
+            {
+                // certificates were generated so set the Owner CA as the trusted CA cert
+                STORE_ENTRY_PKI_CERT *store_entry;
+                trusted_ca = NULL;
+                if ((store_entry = get_pki_cert(g_crypto_store, OWNER_CA_ALIAS)) == NULL)
+                {
+                    LOG_ERROR("Failure obtaining owner CA certificate entry");
+                }
+                else if ((trusted_ca = STRING_c_str(store_entry->cert_file)) == NULL)
+                {
+                    LOG_ERROR("Failure obtaining owner CA certificate path");
+                }
+            }
+            else
+            {
+                trusted_ca = trusted_certs_path;
+            }
+
+            if (trusted_ca == NULL)
+            {
                 result = __FAILURE__;
             }
-            else if ((trusted_certs_path = STRING_c_str(store_entry->cert_file)) == NULL)
+            else
             {
-                LOG_ERROR("Failure obtaining owner CA certificate path");
-                result = __FAILURE__;
+                result = put_pki_trusted_cert(g_crypto_store, DEFAULT_TRUSTED_CA_ALIAS, trusted_ca);
             }
         }
         if (trusted_certs_path != NULL)
         {
-            result = put_pki_trusted_cert(g_crypto_store, DEFAULT_TRUSTED_CA_ALIAS, trusted_certs_path);
+            free(trusted_certs_path);
+        }
+        if (device_ca_path != NULL)
+        {
+            free(device_ca_path);
+        }
+        if (device_pk_path != NULL)
+        {
+            free(device_pk_path);
         }
     }
 

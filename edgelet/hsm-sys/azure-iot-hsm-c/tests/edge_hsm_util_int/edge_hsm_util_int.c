@@ -7,6 +7,8 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
+#include "umocktypes.h"
+#include "umocktypes_charptr.h"
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_log.h"
 
@@ -41,16 +43,32 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 //#############################################################################
 // Test helpers
 //#############################################################################
+
+static void test_helper_setup_env(const char *key, const char *val)
+{
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    errno_t status = _putenv_s(key, val);
+#else
+    int status = setenv(key, val, 1);
+#endif
+    printf("Env variable %s set to %s\n", key, val);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+}
+
+static void test_helper_unset_env(const char *key)
+{
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    errno_t status = _putenv_s(key, "");
+#else
+    int status = unsetenv(key);
+#endif
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+}
+
 static void test_helper_setup_homedir(void)
 {
 #if defined(TESTONLY_IOTEDGE_HOMEDIR)
-    #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-        errno_t status = _putenv_s("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
-    #else
-        int status = setenv("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR, 1);
-    #endif
-    printf("IoT Edge home dir set to %s\n", TESTONLY_IOTEDGE_HOMEDIR);
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    test_helper_setup_env("IOTEDGE_HOMEDIR", TESTONLY_IOTEDGE_HOMEDIR);
 #else
     #error "Could not find symbol TESTONLY_IOTEDGE_HOMEDIR"
 #endif
@@ -622,6 +640,39 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             output = delete_file("");
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, output, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_hsm_env_get_smoke)
+        {
+            // arrange
+            int status;
+            char *input_data = "1234";
+            test_helper_setup_env("TEST_ENV_1", input_data);
+            char *output = NULL;
+
+            // act
+            status = hsm_get_env("TEST_ENV_1", &output);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, input_data, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(input_data), strlen(output), "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output);
+            output = NULL;
+
+            // arrange
+            test_helper_unset_env("TEST_ENV_1");
+
+            // act
+            status = hsm_get_env("TEST_ENV_1", &output);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL_WITH_MSG(output, "Line:" TOSTRING(__LINE__));
 
             // cleanup
         }

@@ -632,3 +632,96 @@ int make_dir(const char* dir_path)
     }
     return result;
 }
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+static int hsm_get_env_internal(const char *key, char **buffer)
+{
+    int result;
+    char *env_value = NULL;
+    DWORD env_size;
+
+    *buffer = NULL;
+    // per spec, env_size below will contain the size including the null pointer
+    env_size = GetEnvironmentVariableA(key, NULL, 0);
+    if (env_size == 0)
+    {
+        DWORD err = GetLastError();
+        if (err != ERROR_ENVVAR_NOT_FOUND)
+        {
+            LOG_ERROR("Failed to read environment variable %s. GetLastError=%08x", key, err);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    else
+    {
+        if ((env_value = malloc(env_size)) == NULL)
+        {
+            LOG_ERROR("Failed to allocate memory to hold env value for %s", key);
+            result = __FAILURE__;
+        }
+        else if (GetEnvironmentVariableA(key, env_value, env_size) == 0)
+        {
+            LOG_ERROR("Failed to read environment variable %s into buffer. GetLastError=%08x",
+                      key, GetLastError());
+            free(env_value);
+            env_value = NULL;
+            result = __FAILURE__;
+        }
+        else
+        {
+            *buffer = env_value;
+            result = 0;
+        }
+    }
+
+    return result;
+}
+#else
+static int hsm_get_env_internal(const char *key, char **buffer)
+{
+    int result;
+    char *value;
+
+    *buffer = NULL;
+    value = getenv(key);
+    if (value != NULL)
+    {
+        if (mallocAndStrcpy_s(buffer, value) != 0)
+        {
+            LOG_ERROR("Failed to allocate memory to hold env value for %s", key);
+            result = __FAILURE__;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+#endif
+
+int hsm_get_env(const char *key, char **buffer)
+{
+    int result;
+
+    if ((key == NULL) || (buffer == NULL))
+    {
+        LOG_ERROR("Invalid parameters");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = hsm_get_env_internal(key, buffer);
+    }
+
+    return result;
+}

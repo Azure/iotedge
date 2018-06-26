@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include "hsm_utils.h"
+#include "hsm_log.h"
 #include "hsm_client_tpm_device.h"
 #include "hsm_client_tpm_in_mem.h"
 
@@ -28,27 +30,39 @@ static int strcmp_i(const char* lhs, const char* rhs)
 
 // IF ENV_TPM_SELECT is set and not empty, "NO", "OFF" or "FALSE", then user wants to use the
 // TPM device for TPM functionality.
-static bool use_tpm_device()
+static int use_tpm_device(bool *use_tpm)
 {
     static const char * user_says_no[] = { "", "off", "no", "false" };
     int array_size = sizeof(user_says_no)/sizeof(user_says_no[0]);
-    bool result;
-    char * env_use_tpm = getenv(ENV_TPM_SELECT);
-    if (env_use_tpm != NULL)
+    int result;
+    char * env_use_tpm;
+
+    *use_tpm = false;
+    if (hsm_get_env(ENV_TPM_SELECT, &env_use_tpm) != 0)
     {
-        result = true;
-        for(int no =0; no < array_size; no++)
-        {
-            if (strcmp_i(env_use_tpm, user_says_no[no]) == 0)
-            {
-                result = false;
-                break;
-            }
-        }
+        LOG_ERROR("Could not lookup env variable %s", ENV_TPM_SELECT);
+        result = __FAILURE__;
     }
     else
     {
-        result = false;
+        if (env_use_tpm != NULL)
+        {
+            *use_tpm = true;
+            for(int no = 0; no < array_size; no++)
+            {
+                if (strcmp_i(env_use_tpm, user_says_no[no]) == 0)
+                {
+                    *use_tpm = false;
+                    break;
+                }
+            }
+            free(env_use_tpm);
+        }
+        else
+        {
+            *use_tpm = false;
+        }
+        result = 0;
     }
 
     return result;
@@ -59,22 +73,28 @@ static bool g_use_tpm_device = false;
 int hsm_client_tpm_init(void)
 {
     int result;
-    if (use_tpm_device())
+    bool use_tpm_flag = false;
+
+    if (use_tpm_device(&use_tpm_flag) != 0)
     {
-        result = hsm_client_tpm_device_init();
-        if (result ==0)
-        {
-            g_use_tpm_device = true;
-        }
+        result = __FAILURE__;
     }
     else
     {
-        result = hsm_client_tpm_store_init();
-        if (result ==0)
+        if (use_tpm_flag)
         {
-            g_use_tpm_device = false;
+            result = hsm_client_tpm_device_init();
+            if (result == 0)
+            {
+                g_use_tpm_device = true;
+            }
+        }
+        else
+        {
+            result = hsm_client_tpm_store_init();
         }
     }
+
     return result;
 }
 
@@ -103,4 +123,3 @@ const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface(void)
     }
     return result;
 }
-
