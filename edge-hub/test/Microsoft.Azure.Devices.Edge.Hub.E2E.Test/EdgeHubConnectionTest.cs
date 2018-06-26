@@ -300,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
-                    ["$edgeAgent"] = new Dictionary<string, object>
+                    ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
 
@@ -333,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
-                    ["$edgeAgent"] = new Dictionary<string, object>
+                    ["$edgeHub"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = desiredProperties
 
