@@ -361,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
                         var messageStore = c.Resolve<IMessageStore>();
-                        IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10), messageStore);
+                        IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
                         return endpointExecutorFactory;
                     })
                    .As<IEndpointExecutorFactory>()
