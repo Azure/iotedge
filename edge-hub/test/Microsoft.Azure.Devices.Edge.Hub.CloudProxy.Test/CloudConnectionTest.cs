@@ -360,5 +360,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var identity = new DeviceIdentity(hostname, deviceId);
             return new TokenCredentials(identity, token, string.Empty);
         }
+
+        [Fact]
+        [Unit]
+        public void CheckTokenExpiredTest()
+        {
+            // Arrange
+            string hostname = "dummy.azure-devices.net";
+            DateTime expiryTime = DateTime.UtcNow.AddHours(2);
+            string validToken = TokenHelper.CreateSasToken(hostname, expiryTime);
+
+            // Act
+            DateTime actualExpiryTime = CloudConnection.GetTokenExpiry(hostname, validToken);
+
+            // Assert
+            Assert.True(actualExpiryTime - expiryTime < TimeSpan.FromSeconds(1));
+
+            // Arrange
+            expiryTime = DateTime.UtcNow.AddHours(-2);
+            string expiredToken = TokenHelper.CreateSasToken(hostname, expiryTime);
+
+            // Act
+            actualExpiryTime = CloudConnection.GetTokenExpiry(hostname, expiredToken);
+
+            // Assert
+            Assert.Equal(DateTime.MinValue, actualExpiryTime);
+        }
     }
 }

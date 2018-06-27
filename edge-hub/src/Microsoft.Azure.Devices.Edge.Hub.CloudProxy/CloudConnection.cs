@@ -253,17 +253,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.GetNewToken(id);
             // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
             // Device Client and it throws if the token is expired.
-            try
+            if (IsTokenUsable(iotHub, currentToken))
             {
-                if (IsTokenUsable(iotHub, currentToken))
-                {
-                    Events.UsingExistingToken(id);
-                    return currentToken;
-                }
+                Events.UsingExistingToken(id);
+                return currentToken;
             }
-            catch (UnauthorizedAccessException ex)
+            else
             {
-                Events.TokenExpiredException(ex, id, currentToken);
+                Events.TokenExpired(id, currentToken);
             }
 
             // No need to lock here as the lock is being held by the refresher.
@@ -282,17 +279,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
 
-        static DateTime GetTokenExpiry(string hostName, string token)
+        internal static DateTime GetTokenExpiry(string hostName, string token)
         {
-            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(hostName, token);
-            DateTime expiryTime = sharedAccessSignature.ExpiresOn.ToUniversalTime();
-            return expiryTime;
+            try
+            {
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(hostName, token);
+                DateTime expiryTime = sharedAccessSignature.ExpiresOn.ToUniversalTime();
+                return expiryTime;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return DateTime.MinValue;
+            }
         }
 
-        internal static TimeSpan GetTokenExpiryTimeRemaining(string hostname, string token) => (GetTokenExpiry(hostname, token) - DateTime.UtcNow);
+        internal static TimeSpan GetTokenExpiryTimeRemaining(string hostname, string token) => GetTokenExpiry(hostname, token) - DateTime.UtcNow;
 
         // Checks if the token expires too soon
-        static bool IsTokenUsable(string hostname, string token) => GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
+        static bool IsTokenUsable(string hostname, string token)
+        {
+            try
+            {
+                return GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorCheckingTokenUsable(e);
+                return false;
+            }
+        }
 
         class DeviceTokenRefresher : DeviceAuthenticationWithTokenRefresh
         {
@@ -373,7 +388,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 UpdatedCloudConnection,
                 ObtainedNewToken,
                 TokenExpired,
-                ErrorRenewingToken
+                ErrorRenewingToken,
+                ErrorCheckingTokenUsability
             }
 
             static string TransportName(TransportType type)
@@ -430,14 +446,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {id} that expires in {timeRemaining}"));
             }
 
-            internal static void TokenExpiredException(Exception ex, string id, string currentToken)
+            internal static void TokenExpired(string id, string currentToken)
             {
-                Log.LogDebug((int)EventIds.TokenExpired, ex, Invariant($"Token Expired. Id:{id}, CurrentToken: {currentToken}."));
+                Log.LogDebug((int)EventIds.TokenExpired, Invariant($"Token Expired. Id:{id}, CurrentToken: {currentToken}."));
             }
 
             internal static void ErrorRenewingToken(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
+            }
+
+            public static void ErrorCheckingTokenUsable(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorCheckingTokenUsability, ex, "Error checking if token is usable.");
             }
         }
     }
