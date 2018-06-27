@@ -4,6 +4,8 @@ namespace IotEdgeQuickstart.Details
 {
     using System;
     using System.ComponentModel;
+    using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -36,6 +38,39 @@ namespace IotEdgeQuickstart.Details
         }
 
         public Task VerifyDependenciesAreInstalled() => Process.RunAsync("pip", "--version");
+
+        public async Task VerifyModuleIsRunning(string name)
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+            {
+                string errorMessage = null;
+
+                try
+                {
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+
+                        string[] status = await Process.RunAsync(
+                            "docker",
+                            $"ps --quiet --filter \"name = {name}\"",
+                            cts.Token);
+
+                        if (status.First().Trim() != string.Empty) break;
+
+                        errorMessage = "Not found";
+                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.Message}");
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Error searching for {name} module: {e.Message}");
+                }
+            }
+        }
 
         public Task Install()
         {

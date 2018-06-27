@@ -4,6 +4,7 @@ namespace IotEdgeQuickstart.Details
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -47,8 +48,6 @@ namespace IotEdgeQuickstart.Details
         }
 
         protected Task VerifyEdgeIsNotAlreadyActive() => this.bootstrapper.VerifyNotActive();
-
-        protected static Task VerifyDockerIsInstalled() => Process.RunAsync("docker", "--version");
 
         protected Task VerifyBootstrapperDependencies() => this.bootstrapper.VerifyDependenciesAreInstalled();
 
@@ -115,7 +114,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task StartBootstrapper() => this.bootstrapper.Start();
 
-        protected static Task VerifyEdgeAgentIsRunning() => VerifyDockerContainerIsRunning("edgeAgent");
+        protected Task VerifyEdgeAgentIsRunning() => this.bootstrapper.VerifyModuleIsRunning("edgeAgent");
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
@@ -172,10 +171,7 @@ namespace IotEdgeQuickstart.Details
             return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.Device.Id, config);
         }
 
-        protected static Task VerifyTempSensorIsRunning()
-        {
-            return VerifyDockerContainerIsRunning("tempSensor");
-        }
+        protected Task VerifyTempSensorIsRunning() => this.bootstrapper.VerifyModuleIsRunning("tempSensor");
 
         protected async Task VerifyTempSensorIsSendingDataToIotHub()
         {
@@ -272,39 +268,6 @@ namespace IotEdgeQuickstart.Details
             }
 
             return Task.CompletedTask;
-        }
-
-        static async Task VerifyDockerContainerIsRunning(string name)
-        {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
-            {
-                string errorMessage = null;
-
-                try
-                {
-                    while (true)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-
-                        string status = await Process.RunAsync(
-                            "docker",
-                            $"ps --quiet --filter \"name = {name}\"",
-                            cts.Token);
-
-                        if (status.Trim() != string.Empty) break;
-
-                        errorMessage = "Not found";
-                    }
-                }
-                catch (OperationCanceledException e)
-                {
-                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.Message}");
-                }
-                catch (Exception e)
-                {
-                    throw new Exception($"Error searching for {name} module: {e.Message}");
-                }
-            }
         }
 
         string EdgeAgentImage()

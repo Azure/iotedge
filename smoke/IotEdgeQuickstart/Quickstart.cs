@@ -34,7 +34,6 @@ namespace IotEdgeQuickstart
             // invest the effort to guard against it.
 
             await VerifyEdgeIsNotAlreadyActive(); // don't accidentally overwrite an edge configuration on a dev machine
-            await VerifyDockerIsInstalled();
             await VerifyBootstrapperDependencies();
             await InstallBootstrapper();
 

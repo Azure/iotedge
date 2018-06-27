@@ -44,6 +44,9 @@ Defaults:
   --password                anonymous, or Key Vault if --registry is specified
   --registry                DockerHub (anonymous)
   --tag                     '1.0-preview'
+  --use-http                if --bootstrapper=iotedged then use Unix Domain
+                            Sockets, otherwise N/A
+                            switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
 "
         )]
@@ -67,6 +70,9 @@ Defaults:
 
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
+
+        [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
+        public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
 
         [Option("-n|--edge-hostname", Description = "Edge device's hostname")]
         public string EdgeHostname { get; } = "quickstart";
@@ -115,7 +121,13 @@ Defaults:
                 switch (this.BootstrapperType)
                 {
                     case BootstrapperType.Iotedged:
-                        bootstrapper = new Iotedged(this.BootstrapperArchivePath, credentials);
+                        {
+                            (bool useHttp, string hostname) = this.UseHttp;
+                            Option<HttpUris> uris = useHttp
+                                ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
+                                : Option.None<HttpUris>();
+                            bootstrapper = new Iotedged(this.BootstrapperArchivePath, credentials, uris);
+                        }
                         break;
                     case BootstrapperType.Iotedgectl:
                         bootstrapper = new Iotedgectl(this.BootstrapperArchivePath, credentials);

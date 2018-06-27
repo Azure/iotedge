@@ -10,6 +10,8 @@ namespace IotEdgeQuickstart.Details
 
         Task VerifyDependenciesAreInstalled();
 
+        Task VerifyModuleIsRunning(string name);
+
         Task Install();
 
         Task Configure(string connectionString, string image, string hostname);

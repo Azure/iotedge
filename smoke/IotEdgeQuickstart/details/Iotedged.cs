@@ -6,30 +6,126 @@ namespace IotEdgeQuickstart.Details
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Net;
+    using System.Net.NetworkInformation;
+    using System.Net.Sockets;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+
+    public class HttpUris
+    {
+        const int managementPort = 15580;
+        const int workloadPort = 15581;
+
+        public string ConnectManagement { get; }
+        public string ConnectWorkload { get; }
+        public string ListenManagement { get; }
+        public string ListenWorkload { get; }
+
+        public HttpUris() : this(GetIpAddress()) {}
+
+        public HttpUris(string hostname)
+        {
+            this.ConnectManagement = $"http://{hostname}:{managementPort}";
+            this.ConnectWorkload = $"http://{hostname}:{workloadPort}";
+            this.ListenManagement = $"http://0.0.0.0:{managementPort}";
+            this.ListenWorkload = $"http://0.0.0.0:{workloadPort}";
+        }
+
+        static string GetIpAddress()
+        {
+            // TODO: should use an internal IP address--e.g. docker0's address--instead
+            //       of the public-facing address. The output of this command would be
+            //       a good candidate:
+            //       docker network inspect --format='{{(index .IPAM.Config 0).Gateway}}' bridge
+            const string server = "microsoft.com";
+            const int port = 443;
+
+            IPHostEntry entry = Dns.GetHostEntry(server);
+
+            foreach (IPAddress address in entry.AddressList)
+            {
+                IPEndPoint endpoint = new IPEndPoint(address, port);
+                using (Socket s = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    s.Connect(endpoint);
+                    if (s.Connected)
+                    {
+                        return (s.LocalEndPoint as IPEndPoint).Address.ToString();
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
+    }
 
     class Iotedged : IBootstrapper
     {
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
+        readonly Option<HttpUris> httpUris;
 
-        public Iotedged(string archivePath, Option<RegistryCredentials> credentials)
+        public Iotedged(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
+            this.httpUris = httpUris;
         }
 
         public async Task VerifyNotActive()
         {
-            string result = await Process.RunAsync("systemctl", "--no-pager show iotedge | grep ActiveState=");
-            if (result.Split("=").Last() == "active")
+            string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
+            if (result.First().Split("=").Last() == "active")
             {
                 throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl disable --now iotedged` first.");
             }
         }
 
         public Task VerifyDependenciesAreInstalled() => Task.CompletedTask;
+
+        public async Task VerifyModuleIsRunning(string name)
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+            {
+                string errorMessage = null;
+
+                try
+                {
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+
+                        string options = this.httpUris.Match(uris => $"-H {uris.ConnectManagement} ", () => string.Empty);
+
+                        string[] result = await Process.RunAsync(
+                            "iotedge",
+                            $"{options}list",
+                            cts.Token);
+
+                        var status = result
+                            .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
+                            .DefaultIfEmpty("name status")
+                            .Single()
+                            .Split(null as char[], StringSplitOptions.RemoveEmptyEntries)
+                            .ElementAt(1);  // second column is STATUS
+
+                        if (status == "running") break;
+
+                        errorMessage = "Not found";
+                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    throw new Exception($"Error searching for {name} module: {errorMessage ?? e.Message}");
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Error searching for {name} module: {e.Message}");
+                }
+            }
+        }
 
         public Task Install()
         {
@@ -62,6 +158,23 @@ namespace IotEdgeQuickstart.Details
                 doc.Replace("agent.config.auth.password", c.Password);
             }
 
+            this.httpUris.Match<int>(
+                some: uris => {
+                    doc.Replace("connect.management_uri", uris.ConnectManagement);
+                    doc.Replace("connect.workload_uri", uris.ConnectWorkload);
+                    doc.Replace("listen.management_uri", uris.ListenManagement);
+                    doc.Replace("listen.workload_uri", uris.ListenWorkload);
+                    return 0;
+                },
+                none: () => {
+                    doc.Replace("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
+                    doc.Replace("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
+                    doc.Replace("listen.management_uri", "fd://iotedge.mgmt.socket");
+                    doc.Replace("listen.workload_uri", "fd://iotedge.socket");
+                    return 0;
+                }
+            );
+
             string result = doc.ToString();
 
             FileAttributes attr = 0;
@@ -81,14 +194,30 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Start()
         {
-            try // Remove previous containers with the same name
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
-                await Process.RunAsync("docker", $"rm -f edgeAgent edgeHub tempSensor", 60);
-            }
-            catch (Win32Exception e) when (e.Message.Contains("No such container"))
-            { }
+                string errorMessage = null;
 
-            await Process.RunAsync("systemctl", "enable --now iotedge", 60);
+                try
+                {
+                    await Process.RunAsync("systemctl", "enable iotedge", cts.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+                    await Process.RunAsync("systemctl", "restart iotedge", cts.Token);
+
+                    // Wait for service to become active
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
+                        if (result.First().Split("=").Last() == "active") break;
+                        errorMessage = result.First();
+                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    throw new Exception($"Error starting iotedged: {errorMessage ?? e.Message}");
+                }
+            }
         }
 
         public Task Stop() => Process.RunAsync("systemctl", "disable --now iotedge", 60);

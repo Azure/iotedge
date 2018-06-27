@@ -11,7 +11,7 @@ namespace IotEdgeQuickstart.Details
 
     public class Process
     {
-        public static async Task<string> RunAsync(string name, string args, int timeoutSeconds = 15)
+        public static async Task<string[]> RunAsync(string name, string args, int timeoutSeconds = 15)
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
@@ -19,7 +19,7 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public static async Task<string> RunAsync(string name, string args, CancellationToken token)
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
         {
             var info = new ProcessStartInfo
             {
@@ -34,7 +34,7 @@ namespace IotEdgeQuickstart.Details
                     throw new Win32Exception(result.ExitCode, $"'{name}' failed with: {string.Join("\n", result.StandardError)}");
                 }
 
-                return string.Join("\n", result.StandardOutput);
+                return result.StandardOutput;
             }
         }
     }
