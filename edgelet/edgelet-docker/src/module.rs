@@ -241,7 +241,8 @@ mod tests {
                             .with_finished_at(finished_at.clone())
                             .with_pid(1234),
                     )
-                    .with_id("mod1".to_string()),
+                    .with_id("mod1".to_string())
+                    .with_exec_i_ds(vec!["id1".to_string(), "id2".to_string()]),
             ),
             "mod1",
             DockerConfig::new("ubuntu", ContainerCreateBody::new(), None).unwrap(),

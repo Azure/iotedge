@@ -54,7 +54,7 @@ pub struct InlineResponse200 {
     #[serde(rename = "AppArmorProfile", skip_serializing_if = "Option::is_none")]
     app_armor_profile: Option<String>,
     #[serde(rename = "ExecIDs", skip_serializing_if = "Option::is_none")]
-    exec_i_ds: Option<String>,
+    exec_i_ds: Option<Vec<String>>,
     #[serde(rename = "HostConfig", skip_serializing_if = "Option::is_none")]
     host_config: Option<::models::HostConfig>,
     #[serde(rename = "GraphDriver", skip_serializing_if = "Option::is_none")]
@@ -393,16 +393,16 @@ impl InlineResponse200 {
         self.app_armor_profile = None;
     }
 
-    pub fn set_exec_i_ds(&mut self, exec_i_ds: String) {
+    pub fn set_exec_i_ds(&mut self, exec_i_ds: Vec<String>) {
         self.exec_i_ds = Some(exec_i_ds);
     }
 
-    pub fn with_exec_i_ds(mut self, exec_i_ds: String) -> InlineResponse200 {
+    pub fn with_exec_i_ds(mut self, exec_i_ds: Vec<String>) -> InlineResponse200 {
         self.exec_i_ds = Some(exec_i_ds);
         self
     }
 
-    pub fn exec_i_ds(&self) -> Option<&String> {
+    pub fn exec_i_ds(&self) -> Option<&Vec<String>> {
         self.exec_i_ds.as_ref()
     }
 
