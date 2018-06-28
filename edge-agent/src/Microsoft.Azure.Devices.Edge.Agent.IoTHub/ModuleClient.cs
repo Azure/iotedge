@@ -156,21 +156,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 RetryingDeviceClientConnection,
                 DeviceClientSetupFailed
             }
-
-            static string TransportName(TransportType type)
-            {
-                Preconditions.CheckArgument(type == TransportType.Amqp_Tcp_Only || type == TransportType.Amqp_WebSocket_Only);
-                return type == TransportType.Amqp_Tcp_Only ? "AMQP" : "AMQP over WebSocket";
-            }
-
+            
             public static void AttemptingConnectionWithTransport(TransportType transport)
             {
-                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {TransportName(transport)}...");
+                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}...");
             }
 
             public static void ConnectedWithTransport(TransportType transport)
             {
-                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {TransportName(transport)}.");
+                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}.");
             }
 
             public static void DeviceClientCreated()
