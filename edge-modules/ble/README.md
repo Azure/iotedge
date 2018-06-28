@@ -18,8 +18,8 @@ Prerequisites
 -------------
 
 1. The host OS would need to be setup per the recommendations made at the documents below:
-  * [https://github.com/Azure/azure-iot-gateway-sdk/blob/master/doc/devbox_setup.md](https://github.com/Azure/azure-iot-gateway-sdk/blob/master/doc/devbox_setup.md)
-  * [https://github.com/Azure/azure-iot-gateway-sdk/tree/master/samples/ble_gateway](https://github.com/Azure/azure-iot-gateway-sdk/tree/master/samples/ble_gateway)
+  * [https://github.com/Azure/iot-edge-v1/blob/master/v1/doc/devbox_setup.md](https://github.com/Azure/iot-edge-v1/blob/master/v1/doc/devbox_setup.md)
+  * [https://github.com/Azure/iot-edge-v1/tree/master/v1/samples/ble_gateway](https://github.com/Azure/iot-edge-v1/tree/master/v1/samples/ble_gateway)
 
 2. Building and running this module will require ***root/sudo*** privileges.
     
