@@ -64,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.DesiredStatus == other.DesiredStatus &&
                 this.Config.Equals(other.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
-                this.ConfigurationInfo.Equals(other.ConfigurationInfo) &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 

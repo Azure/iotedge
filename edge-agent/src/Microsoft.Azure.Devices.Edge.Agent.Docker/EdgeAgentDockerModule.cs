@@ -23,10 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (ReferenceEquals(this, other))
                 return true;
             return string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
-                string.Equals(this.Config.Image, other.Config.Image) &&
-                this.ConfigurationInfo.Equals(other.ConfigurationInfo);
+                string.Equals(this.Config.Image, other.Config.Image);
         }
 
         public override int GetHashCode()
