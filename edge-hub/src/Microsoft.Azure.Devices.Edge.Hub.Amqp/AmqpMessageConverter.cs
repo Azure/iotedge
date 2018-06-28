@@ -165,6 +165,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsInputNameKey] = inputName;
             }
 
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionDeviceId, out string connectionDeviceId))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionDeviceId] = connectionDeviceId;
+            }
+
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionModuleId, out string connectionModuleId))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId] = connectionModuleId;
+            }
+
             if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageSchema, out string messageSchema))
             {
                 amqpMessage.ApplicationProperties.Map[Constants.MessagePropertiesMessageSchemaKey] = messageSchema;

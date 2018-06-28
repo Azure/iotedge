@@ -235,6 +235,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             string operation = "foo";
             string inputName = "inputName";
             string outputName = "outputName";
+            string connectionDeviceId = "edgeDevice1";
+            string connectionModuleId = "module1";
 
             var systemProperties = new Dictionary<string, string>
             {
@@ -253,7 +255,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 [SystemProperties.CreationTime] = creationTime,
                 [SystemProperties.Operation] = operation,
                 [SystemProperties.InputName] = inputName,
-                [SystemProperties.OutputName] = outputName
+                [SystemProperties.OutputName] = outputName,
+                [SystemProperties.ConnectionDeviceId] = connectionDeviceId,
+                [SystemProperties.ConnectionModuleId] = connectionModuleId
             };
 
             var properties = new Dictionary<string, string>
@@ -294,6 +298,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 Assert.Equal(lockToken, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsLockTokenName]);
                 Assert.Equal(sequenceNumber, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsSequenceNumberName]);
                 Assert.Equal(inputName, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsInputNameKey]);
+                Assert.Equal(connectionDeviceId, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsConnectionDeviceId]);
+                Assert.Equal(connectionModuleId, amqpMessage.MessageAnnotations.Map[Amqp.Constants.MessageAnnotationsConnectionModuleId]);
 
                 Assert.Equal(messageSchema, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesMessageSchemaKey]);
                 Assert.Equal(creationTime, amqpMessage.ApplicationProperties.Map[Amqp.Constants.MessagePropertiesCreationTimeKey]);
