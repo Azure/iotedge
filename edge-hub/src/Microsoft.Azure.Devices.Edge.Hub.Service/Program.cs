@@ -62,7 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             else
             {
-                (cert, chain) = CertificateHelper.GetServerCertificatesFromFile(configuration.GetValue<string>(Constants.SslCertPathEnvName), configuration.GetValue<string>(Constants.SslCertEnvName));
+                string edgeHubCertPath = configuration.GetValue<string>(Constants.EdgeHubServerCertificateFileKey);
+                cert = new X509Certificate2(edgeHubCertPath);
+                string edgeHubCaChainCertPath = configuration.GetValue<string>(Constants.EdgeHubServerCAChainCertificateFileKey);
+                chain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubCaChainCertPath);
             }
 
             // TODO: set certificate for Startup without the cache

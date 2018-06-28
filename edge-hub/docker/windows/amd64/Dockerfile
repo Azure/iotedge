@@ -1,9 +1,6 @@
 ARG base_tag=2.1.0-runtime-nanoserver-1803
 FROM microsoft/dotnet:${base_tag}
 
-ENV SSL_CERTIFICATE_PATH=c:\\mnt\\edgehub
-ENV SSL_CERTIFICATE_NAME=edge-hub-server.cert.pfx
-
 ARG EXE_DIR=.
 
 WORKDIR /app

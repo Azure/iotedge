@@ -20,5 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string WorkloadApiVersion = "2018-06-28";
         public const int CertificateValidityDays = 90;
         public const string InitializationVectorFileName = "EdgeHubIV";
+        public const string EdgeHubServerCAChainCertificateFileKey = "EdgeModuleHubServerCAChainCertificateFile";
+        public const string EdgeHubServerCertificateFileKey = "EdgeModuleHubServerCertificateFile";
     }
 }

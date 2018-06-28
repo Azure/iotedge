@@ -4,8 +4,6 @@ FROM azureiotedge/azureiotedge-runtime-base:1.0.0-preview001-linux-amd64 as buil
 FROM microsoft/dotnet:${base_tag}
 
 ARG EXE_DIR=.
-ENV SSL_CERTIFICATE_PATH=/app/certs
-ENV SSL_CERTIFICATE_NAME=mqtt-server.pfx
 
 # RocksDB requires snappy
 RUN apk update && \
