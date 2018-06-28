@@ -56,7 +56,7 @@ namespace IotEdgeQuickstart.Details
                             $"ps --quiet --filter \"name = {name}\"",
                             cts.Token);
 
-                        if (status.First().Trim() != string.Empty) break;
+                        if (!string.IsNullOrWhiteSpace(status.FirstOrDefault())) break;
 
                         errorMessage = "Not found";
                     }
@@ -86,7 +86,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(string connectionString, string image, string hostname)
         {
-            Console.WriteLine($"Setting up iotedgectl with container registry '{this.credentials.Match(c => c.Address, () => "<none>")}'");
+            Console.WriteLine($"Setting up iotedgectl with agent image '{image}'");
 
             string registryArgs = this.credentials.Match(
                 c => $"--docker-registries {c.Address} {c.User} {c.Password}",

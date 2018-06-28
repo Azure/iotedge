@@ -3,11 +3,9 @@
 namespace IotEdgeQuickstart.Details
 {
     using System;
-    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
-    using System.Net.NetworkInformation;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -15,8 +13,8 @@ namespace IotEdgeQuickstart.Details
 
     public class HttpUris
     {
-        const int managementPort = 15580;
-        const int workloadPort = 15581;
+        const int ManagementPort = 15580;
+        const int WorkloadPort = 15581;
 
         public string ConnectManagement { get; }
         public string ConnectWorkload { get; }
@@ -27,10 +25,10 @@ namespace IotEdgeQuickstart.Details
 
         public HttpUris(string hostname)
         {
-            this.ConnectManagement = $"http://{hostname}:{managementPort}";
-            this.ConnectWorkload = $"http://{hostname}:{workloadPort}";
-            this.ListenManagement = $"http://0.0.0.0:{managementPort}";
-            this.ListenWorkload = $"http://0.0.0.0:{workloadPort}";
+            this.ConnectManagement = $"http://{hostname}:{ManagementPort}";
+            this.ConnectWorkload = $"http://{hostname}:{WorkloadPort}";
+            this.ListenManagement = $"http://0.0.0.0:{ManagementPort}";
+            this.ListenWorkload = $"http://0.0.0.0:{WorkloadPort}";
         }
 
         static string GetIpAddress()
@@ -39,20 +37,20 @@ namespace IotEdgeQuickstart.Details
             //       of the public-facing address. The output of this command would be
             //       a good candidate:
             //       docker network inspect --format='{{(index .IPAM.Config 0).Gateway}}' bridge
-            const string server = "microsoft.com";
-            const int port = 443;
+            const string Server = "microsoft.com";
+            const int Port = 443;
 
-            IPHostEntry entry = Dns.GetHostEntry(server);
+            IPHostEntry entry = Dns.GetHostEntry(Server);
 
             foreach (IPAddress address in entry.AddressList)
             {
-                IPEndPoint endpoint = new IPEndPoint(address, port);
-                using (Socket s = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+                var endpoint = new IPEndPoint(address, Port);
+                using (var s = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
                 {
                     s.Connect(endpoint);
                     if (s.Connected)
                     {
-                        return (s.LocalEndPoint as IPEndPoint).Address.ToString();
+                        return (s.LocalEndPoint as IPEndPoint)?.Address.ToString();
                     }
                 }
             }
@@ -104,7 +102,7 @@ namespace IotEdgeQuickstart.Details
                             $"{options}list",
                             cts.Token);
 
-                        var status = result
+                        string status = result
                             .Where(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First() == name)
                             .DefaultIfEmpty("name status")
                             .Single()
@@ -141,7 +139,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(string connectionString, string image, string hostname)
         {
-            Console.WriteLine($"Setting up iotedged with container registry '{this.credentials.Match(c => c.Address, () => "<none>")}'");
+            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             const string YamlPath = "/etc/iotedge/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
@@ -158,22 +156,21 @@ namespace IotEdgeQuickstart.Details
                 doc.Replace("agent.config.auth.password", c.Password);
             }
 
-            this.httpUris.Match<int>(
-                some: uris => {
-                    doc.Replace("connect.management_uri", uris.ConnectManagement);
-                    doc.Replace("connect.workload_uri", uris.ConnectWorkload);
-                    doc.Replace("listen.management_uri", uris.ListenManagement);
-                    doc.Replace("listen.workload_uri", uris.ListenWorkload);
-                    return 0;
-                },
-                none: () => {
-                    doc.Replace("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
-                    doc.Replace("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
-                    doc.Replace("listen.management_uri", "fd://iotedge.mgmt.socket");
-                    doc.Replace("listen.workload_uri", "fd://iotedge.socket");
-                    return 0;
-                }
-            );
+            if (this.httpUris.HasValue)
+            {
+                HttpUris uris = this.httpUris.OrDefault();
+                doc.Replace("connect.management_uri", uris.ConnectManagement);
+                doc.Replace("connect.workload_uri", uris.ConnectWorkload);
+                doc.Replace("listen.management_uri", uris.ListenManagement);
+                doc.Replace("listen.workload_uri", uris.ListenWorkload);
+            }
+            else
+            {
+                doc.Replace("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
+                doc.Replace("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
+                doc.Replace("listen.management_uri", "fd://iotedge.mgmt.socket");
+                doc.Replace("listen.workload_uri", "fd://iotedge.socket");
+            }
 
             string result = doc.ToString();
 

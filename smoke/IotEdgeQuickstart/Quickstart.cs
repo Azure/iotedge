@@ -67,13 +67,13 @@ namespace IotEdgeQuickstart
                 if (this.leaveRunning == LeaveRunning.None)
                 {
                     await StopBootstrapper();
+                    await ResetBootstrapper();
                 }
             }
             finally
             {
                 if (this.leaveRunning == LeaveRunning.None)
                 {
-                    await this.ResetBootstrapper();
                     // only remove the identity if we created it; if it already existed in IoT Hub then leave it alone
                     await MaybeDeleteEdgeDeviceIdentity();
                 }

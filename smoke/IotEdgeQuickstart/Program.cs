@@ -42,8 +42,8 @@ Defaults:
   --eventhub-endpoint       get the value from Key Vault
   --leave-running           none (or 'all' if given as a switch)
   --password                anonymous, or Key Vault if --registry is specified
-  --registry                DockerHub (anonymous)
-  --tag                     '1.0-preview'
+  --registry                mcr.microsoft.com (anonymous)
+  --tag                     '1.0'
   --use-http                if --bootstrapper=iotedged then use Unix Domain
                             Sockets, otherwise N/A
                             switch form uses local IP address as hostname
@@ -142,7 +142,7 @@ Defaults:
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                     await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
-                string tag = this.ImageTag ?? "1.0-preview";
+                string tag = this.ImageTag ?? "1.0";
 
                 var test = new Quickstart(
                     bootstrapper,
