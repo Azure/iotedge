@@ -43,4 +43,9 @@ win-logger = { path = "../win-logger" }
 
 [dev_dependencies]
 tempdir = "0.3.7"
+
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[target.'cfg(windows)'.build-dependencies]
+winreg = "0.5.1"
+version-compare = "0.0.6"
