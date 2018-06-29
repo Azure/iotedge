@@ -20,7 +20,7 @@ class EdgeCertUtil(object):
     """
     TYPE_RSA = 0
     MIN_VALIDITY_DAYS = 1
-    MAX_VALIDITY_DAYS = 1095 #3 years
+    MAX_VALIDITY_DAYS = 365 # 1 year
     MIN_PASSPHRASE_LENGTH = 4
     MAX_PASSPHRASE_LENGTH = 1023
     CA_KEY_LEN = 4096

@@ -99,7 +99,7 @@ class TestEdgeCertUtilAPICreateRootCACert(unittest.TestCase):
         Test API create_root_ca_cert raises exception when invalid validity day values are used
         """
         cert_util = EdgeCertUtil()
-        for validity in [-1, 0, 1096]:
+        for validity in [-1, 0, 366, 1096]:
             with self.assertRaises(edgectl.errors.EdgeValueError):
                 cert_util.create_root_ca_cert('root',
                                               subject_dict=VALID_SUBJECT_DICT,
@@ -443,7 +443,7 @@ class TestEdgeCertUtilAPICreateIntCACert(unittest.TestCase):
         """
         cert_util = EdgeCertUtil()
         cert_util.create_root_ca_cert('root', subject_dict=VALID_SUBJECT_DICT)
-        for validity in [-1, 0, 1096]:
+        for validity in [-1, 0, 366, 1096]:
             with self.assertRaises(edgectl.errors.EdgeValueError):
                 cert_util.create_intermediate_ca_cert('int', 'root', common_name='name',
                                                       validity_days_from_now=validity)
@@ -504,7 +504,7 @@ class TestEdgeCertUtilAPICreateServerCert(unittest.TestCase):
         """
         cert_util = EdgeCertUtil()
         cert_util.create_root_ca_cert('root', subject_dict=VALID_SUBJECT_DICT)
-        for validity in [-1, 0, 1096]:
+        for validity in [-1, 0, 366, 1096]:
             with self.assertRaises(edgectl.errors.EdgeValueError):
                 cert_util.create_server_cert('server', 'root', host_name='name',
                                              validity_days_from_now=validity)
