@@ -18,7 +18,7 @@ man1=$(mandir)/man1
 man8=$(mandir)/man8
 srcdir?=.
 
-CARGOFLAGS=--release --manifest-path=$(srcdir)/Cargo.toml
+CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 
 CARGO=cargo
@@ -30,15 +30,18 @@ MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
 
-all: $(TARGET)/iotedged $(TARGET)/iotedge
+all:
+	$(CARGO) build $(CARGOFLAGS)
+
+release: $(TARGET)/iotedged $(TARGET)/iotedge
 
 $(TARGET)/iotedged:
-	$(CARGO) build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS) --release
 
 $(TARGET)/iotedge:
-	$(CARGO) build $(CARGOFLAGS)
+	$(CARGO) build $(CARGOFLAGS) --release
 
-package: all
+package: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
@@ -54,7 +57,7 @@ deb: package
 	$(SED) "s/@version@/${VERSION}/g; s/@revision@/${REVISION}/g;" $(srcdir)/contrib/debian/changelog > $(TARGET)/$(PACKAGE)/debian/changelog
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-install: all
+install: release
 	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 	$(INSTALL_PROGRAM) -D -s $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
