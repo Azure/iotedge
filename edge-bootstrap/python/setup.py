@@ -29,7 +29,7 @@ setup(
 
     # Author details
     author='Azure IoT Edge',
-    author_email='edgedevs@microsoft.com',
+    author_email='Azure IoT Edge Devs',
 
     # Choose your license
     license='MIT',
