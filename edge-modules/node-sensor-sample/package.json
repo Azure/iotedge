@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "A sample sensor module",
   "main": "app.js",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
-    "azure-iot-device": "^1.7.0-modules-preview.3",
-    "azure-iot-device-mqtt": "^1.7.0-modules-preview.3"
+    "azure-iot-device": "^1.7.0",
+    "azure-iot-device-mqtt": "^1.7.0"
   }
 }

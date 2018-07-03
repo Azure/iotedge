@@ -1,89 +1,89 @@
 {
-    "schema": "1",
-    "version": "2",
-    "sensorHub_sensorTag": {
-        "name": "CC2650 SensorTag",
-        "device_info": {
-            "name": "Sensor Information",
-            "serviceUUID": "180A",
-            "cmd_modelNumber": {
-                "type": "read",
-                "characteristicUUID": "2A24"
-            },
-            "cmd_serialNumber": {
-                "type": "read",
-                "characteristicUUID": "2A25"
-            },
-            "cmd_firmwareRevision": {
-                "type": "read",
-                "characteristicUUID": "2A26"
-            },
-            "cmd_hardwareRevision": {
-                "type": "read",
-                "characteristicUUID": "2A27"
-            },
-            "cmd_softwareRevision": {
-                "type": "read",
-                "characteristicUUID": "2A28"
-            },
-            "cmd_manufacturerName": {
-                "type": "read",
-                "characteristicUUID": "2A29"
-            }
-        },
-        "device_temperature": {
-            "name": "IR Temp TMP007",
-            "serviceUUID": "F000AA0004514000B000000000000000",
-            "cmd_powerOn": {
-                "type": "write",
-                "characteristicUUID": "F000AA0204514000B000000000000000",
-                "data": "01"
-            },
-            "cmd_powerStatus": {
-                "type": "read",
-                "characteristicUUID": "F000AA0204514000B000000000000000"
-            },
-            "cmd_powerOff": {
-                "type": "write",
-                "characteristicUUID": "F000AA0204514000B000000000000000",
-                "data": "00"
-            },
-            "cmd_readData": {
-                "type": "read",
-                "characteristicUUID": "F000AA0104514000B000000000000000"
-            },
-            "cmd_reportInterval": {
-                "type": "read",
-                "characteristicUUID": "F000AA0104514000B000000000000000",
-                "defaultIntervalInMs": 1000
-            }
-        },
-        "device_optical": {
-            "name": "Opt 3000",
-            "serviceUUID": "f000aa7004514000b000000000000000",
-            "cmd_powerOn": {
-                "type": "write",
-                "characteristicUUID": "f000aa7204514000b000000000000000",
-                "data": "01"
-            },
-            "cmd_powerStatus": {
-                "type": "read",
-                "characteristicUUID": "f000aa7204514000b000000000000000"
-            },
-            "cmd_powerOff": {
-                "type": "write",
-                "characteristicUUID": "f000aa7204514000b000000000000000",
-                "data": "00"
-            },
-            "cmd_readData": {
-                "type": "read",
-                "characteristicUUID": "f000aa7104514000b000000000000000"
-            },
-            "cmd_reportInterval": {
-                "type": "read",
-                "characteristicUUID": "f000aa7104514000b000000000000000",
-                "defaultIntervalInMs": 1000
-            }
-        }
+  "schema": "1",
+  "version": "2",
+  "sensorHub_sensorTag": {
+    "name": "CC2650 SensorTag",
+    "device_info": {
+      "name": "Sensor Information",
+      "serviceUUID": "180A",
+      "cmd_modelNumber": {
+        "type": "read",
+        "characteristicUUID": "2A24"
+      },
+      "cmd_serialNumber": {
+        "type": "read",
+        "characteristicUUID": "2A25"
+      },
+      "cmd_firmwareRevision": {
+        "type": "read",
+        "characteristicUUID": "2A26"
+      },
+      "cmd_hardwareRevision": {
+        "type": "read",
+        "characteristicUUID": "2A27"
+      },
+      "cmd_softwareRevision": {
+        "type": "read",
+        "characteristicUUID": "2A28"
+      },
+      "cmd_manufacturerName": {
+        "type": "read",
+        "characteristicUUID": "2A29"
+      }
+    },
+    "device_temperature": {
+      "name": "IR Temp TMP007",
+      "serviceUUID": "F000AA0004514000B000000000000000",
+      "cmd_powerOn": {
+        "type": "write",
+        "characteristicUUID": "F000AA0204514000B000000000000000",
+        "data": "01"
+      },
+      "cmd_powerStatus": {
+        "type": "read",
+        "characteristicUUID": "F000AA0204514000B000000000000000"
+      },
+      "cmd_powerOff": {
+        "type": "write",
+        "characteristicUUID": "F000AA0204514000B000000000000000",
+        "data": "00"
+      },
+      "cmd_readData": {
+        "type": "read",
+        "characteristicUUID": "F000AA0104514000B000000000000000"
+      },
+      "cmd_reportInterval": {
+        "type": "read",
+        "characteristicUUID": "F000AA0104514000B000000000000000",
+        "defaultIntervalInMs": 1000
+      }
+    },
+    "device_optical": {
+      "name": "Opt 3000",
+      "serviceUUID": "f000aa7004514000b000000000000000",
+      "cmd_powerOn": {
+        "type": "write",
+        "characteristicUUID": "f000aa7204514000b000000000000000",
+        "data": "01"
+      },
+      "cmd_powerStatus": {
+        "type": "read",
+        "characteristicUUID": "f000aa7204514000b000000000000000"
+      },
+      "cmd_powerOff": {
+        "type": "write",
+        "characteristicUUID": "f000aa7204514000b000000000000000",
+        "data": "00"
+      },
+      "cmd_readData": {
+        "type": "read",
+        "characteristicUUID": "f000aa7104514000b000000000000000"
+      },
+      "cmd_reportInterval": {
+        "type": "read",
+        "characteristicUUID": "f000aa7104514000b000000000000000",
+        "defaultIntervalInMs": 1000
+      }
     }
+  }
 }
