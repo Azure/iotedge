@@ -75,8 +75,8 @@ powershell scripts\windows\DownloadAndInstallCertificate.ps1 <VaultName> <Certif
 
 | Argument    | Description                |
 |-------------|----------------------------|
-| VaultName   | KeyVault name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
-| CertName    | Certificate name. See `Get-​Azure​Key​Vault​Secret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
+| VaultName   | KeyVault name. See `Get-AzureKeyVaultSecret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
+| CertName    | Certificate name. See `Get-AzureKeyVaultSecret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
 
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 

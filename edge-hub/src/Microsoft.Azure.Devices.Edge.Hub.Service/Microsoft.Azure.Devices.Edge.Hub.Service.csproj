@@ -23,7 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.5.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />	
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
 	<PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.1.0" />
   </ItemGroup>
 
@@ -55,13 +55,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="kubernetes\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\..\..\kubernetes\edge-hub.yaml" Link="kubernetes\edge-hub.yaml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Include="..\..\..\versionInfo.json" Link="versionInfo.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
