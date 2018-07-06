@@ -9,6 +9,28 @@ This repository consists of three main projects: the [Edge Agent](edge-agent), t
 ## Documentation
 Documentation for the Azure IoT Edge product can be found at https://docs.microsoft.com/azure/iot-edge.
 
+## Featured Modules
+The following modules are available in this repository:
+>| Name                     | Description                     | Project Link                                                                                          |
+>| ------------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+>| Simulated Temp Sensor    | Simulated C# Temperature Sensor | [Project Link](https://github.com/Azure/iotedge/tree/master/edge-modules/SimulatedTemperatureSensor)  |
+>| Temperature Filter       | Simple Value Filter Module      | [Project Link](https://github.com/Azure/iotedge/tree/master/edge-modules/TemperatureFilter)           |
+>| BLE                      | Bluetooth Low Eneregy           | [Project Link](https://github.com/Azure/iotedge/tree/master/edge-modules/ble)                         |
+>| Functions                | Azure Functions on Edge         | [Project Link](https://github.com/Azure/iotedge/tree/master/edge-modules/functions)                   |
+>| Node Sensor              | Simulated Node Temp Sensor      | [Project Link](https://github.com/Azure/iotedge/tree/master/edge-modules/node-sensor-sample)          | 
+
+## Community Modules
+Other people are creating modules for Azure IoT Edge too! See the Project Link for a module to find out how to get it, who supports it, etc.
+>| Name             | Project Link                                                            |
+>| ---------------- | ----------------------------------------------------------------------- |
+>| OPC Publisher    | [Project Link](https://github.com/Azure/iot-edge-opc-publisher)         |
+>| OPC Proxy        | [Project Link](https://github.com/Azure/iot-edge-opc-proxy)             |
+>| Modbus           | [Project Link](https://github.com/Azure/iot-edge-modbus)                |
+>| Darknet          | [Project Link](https://github.com/vjrantal/iot-edge-darknet-module)     |
+>| General Logging  | [Project Link](https://github.com/ytechie/IoTEdgeLoggingModule)         |
+>| Log Analytics    | [Project Link](https://github.com/veyalla/logspout-loganalytics)        | 
+
+
 ## Contributing
 
 If you would like to build or change the IoT Edge source code, please follow the [devguide](doc/devguide.md).
