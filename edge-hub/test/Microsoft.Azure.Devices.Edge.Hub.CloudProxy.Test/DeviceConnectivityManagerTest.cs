@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Xunit;
 
     [Unit]
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask);
             IClient connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager);
-            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null);
+            var cloudProxy = new CloudProxy(connectivityAwareClient, Mock.Of<IMessageConverterProvider>(), Mock.Of<IIdentity>(i => i.Id == "d1/m1"), null);
             deviceConnectivityManager.SetTestCloudProxy(cloudProxy);
 
             bool connected = false;
@@ -110,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Throws<TimeoutException>();
             IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager);
             edgeHubClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
-            var edgeHubCloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null);
+            var edgeHubCloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), Mock.Of<IIdentity>(i => i.Id == "d1/m1"), null);
             deviceConnectivityManager.SetTestCloudProxy(edgeHubCloudProxy);
 
             bool connected = false;
