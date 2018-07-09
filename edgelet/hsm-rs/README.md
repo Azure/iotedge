@@ -1,4 +1,4 @@
 # HSM Crate
 
-This create represents a Rust friendlier link to HSM services. 
+This crate represents a Rust friendlier link to HSM services. 
 
