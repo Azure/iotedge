@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<ICloudProxy> GetCloudProxyAsync(IClientCredentials newCredentials)
         {
             IClient client = await this.ConnectToIoTHub(newCredentials);
-            ICloudProxy proxy = new CloudProxy(client, this.messageConverterProvider, newCredentials.Identity.Id, this.connectionStatusChangedHandler);
+            ICloudProxy proxy = new CloudProxy(client, this.messageConverterProvider, newCredentials.Identity, this.connectionStatusChangedHandler);
             return proxy;
         }
 
