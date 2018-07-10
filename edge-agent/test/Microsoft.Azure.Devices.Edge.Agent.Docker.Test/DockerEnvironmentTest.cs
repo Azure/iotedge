@@ -22,13 +22,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     {
         const string OperatingSystemType = "linux";
         const string Architecture = "x86_x64";
+        const string Version = "17.11.0-ce";
 
         [Fact]
         [Unit]
         public async Task GetRuntimeInfoTest()
         {
             // Arrange
-            var systemInfo = new SystemInfo(OperatingSystemType, Architecture);
+            var systemInfo = new SystemInfo(OperatingSystemType, Architecture, Version);
 
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>()),
                 new Dictionary<string, IModule>());
 
-            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture, systemInfo.Version);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetRuntimeInfoAsync();
@@ -53,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var dockerReported = reportedRuntimeInfo as DockerReportedRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+            Assert.Equal(Version, dockerReported.Platform.Version);
             Assert.Equal(minDockerVersion, dockerReported.Config.MinDockerVersion);
             Assert.Equal(dockerLoggingOptions, dockerReported.Config.LoggingOptions);
         }
@@ -62,17 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public async Task GetUnknownRuntimeInfoTest()
         {
             // Arrange
-            var systemInfoResponse = new SystemInfoResponse
-            {
-                OSType = OperatingSystemType,
-                Architecture = Architecture
-            };
-
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();
             var moduleStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var environment = new DockerEnvironment(runtimeInfoProvider, DeploymentConfig.Empty, moduleStateStore, restartPolicyManager, OperatingSystemType, Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, DeploymentConfig.Empty, moduleStateStore, restartPolicyManager, OperatingSystemType, Architecture, Version);
 
             // act
             IRuntimeInfo reportedRuntimeInfo = await environment.GetRuntimeInfoAsync();
@@ -82,13 +78,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var dockerReported = reportedRuntimeInfo as DockerReportedUnknownRuntimeInfo;
             Assert.Equal(OperatingSystemType, dockerReported.Platform.OperatingSystemType);
             Assert.Equal(Architecture, dockerReported.Platform.Architecture);
+            Assert.Equal(Version, dockerReported.Platform.Version);
         }
 
         [Fact]
         [Unit]
         public async Task GetModulesTest()
         {
-            // Arrange            
+            // Arrange
             var restartPolicyManager = new Mock<IRestartPolicyManager>();
             restartPolicyManager.Setup(
                     r => r.ComputeModuleStatusFromRestartPolicy(
@@ -159,12 +156,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 new SystemModules(edgeAgentModule, edgeHubModule),
                 new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2 });
 
-            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture);
+            var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture, Version);
 
-            // act
+            // Act
             ModuleSet moduleSet = await environment.GetModulesAsync(CancellationToken.None);
 
-            //. assert
+            // Assert
             Assert.NotNull(moduleSet);
             Assert.True(moduleSet.Modules.TryGetValue("module1", out IModule receivedModule1));
             Assert.True(moduleSet.Modules.TryGetValue("module2", out IModule receivedModule2));

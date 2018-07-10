@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     /// <summary>
     /// This implementation gets the module runtime information from IRuntimeInfoProvider and
     /// the configuration information from the deploymentConfig.
-    /// TODO: This could be made generic (not docker specific) and moved to Core. 
+    /// TODO: This could be made generic (not docker specific) and moved to Core.
     /// </summary>
     public class DockerEnvironment : IEnvironment
     {
@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly IEntityStore<string, ModuleState> moduleStateStore;
         readonly string operatingSystemType;
         readonly string architecture;
+        readonly string version;
         readonly DeploymentConfig deploymentConfig;
         readonly IRestartPolicyManager restartManager;
 
@@ -31,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             IEntityStore<string, ModuleState> moduleStateStore,
             IRestartPolicyManager restartManager,
             string operatingSystemType,
-            string architecture)
+            string architecture,
+            string version)
         {
             this.moduleStatusProvider = moduleStatusProvider;
             this.deploymentConfig = deploymentConfig;
@@ -39,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.restartManager = restartManager;
             this.operatingSystemType = operatingSystemType;
             this.architecture = architecture;
+            this.version = version;
         }
 
         public async Task<ModuleSet> GetModulesAsync(CancellationToken token)
@@ -103,13 +106,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             IRuntimeInfo runtimeInfo = this.deploymentConfig.Runtime;
             if (runtimeInfo?.Type == "docker")
             {
-                var platform = new DockerPlatformInfo(this.operatingSystemType, this.architecture);
+                var platform = new DockerPlatformInfo(this.operatingSystemType, this.architecture, this.version);
                 DockerRuntimeConfig config = (runtimeInfo as DockerRuntimeInfo)?.Config;
                 runtimeInfo = new DockerReportedRuntimeInfo(runtimeInfo.Type, config, platform);
             }
             else if (runtimeInfo == null || runtimeInfo is UnknownRuntimeInfo)
             {
-                var platform = new DockerPlatformInfo(this.operatingSystemType, this.architecture);
+                var platform = new DockerPlatformInfo(this.operatingSystemType, this.architecture, this.version);
                 runtimeInfo = new DockerReportedUnknownRuntimeInfo(platform);
             }
 

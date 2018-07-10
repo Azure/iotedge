@@ -525,9 +525,12 @@ definitions:
         type: string
       architecture:
         type: string
+      version:
+        type: string
     required:
       - osType
       - architecture
+      - version
     example:
       osType: "linux/windows"
       architecture: "arm/amd64/x86"

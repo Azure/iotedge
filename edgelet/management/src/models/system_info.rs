@@ -17,13 +17,16 @@ pub struct SystemInfo {
     os_type: String,
     #[serde(rename = "architecture")]
     architecture: String,
+    #[serde(rename = "version")]
+    version: String,
 }
 
 impl SystemInfo {
-    pub fn new(os_type: String, architecture: String) -> SystemInfo {
+    pub fn new(os_type: String, architecture: String, version: String) -> SystemInfo {
         SystemInfo {
             os_type,
             architecture,
+            version,
         }
     }
 
@@ -51,5 +54,18 @@ impl SystemInfo {
 
     pub fn architecture(&self) -> &String {
         &self.architecture
+    }
+
+    pub fn set_version(&mut self, version: String) {
+        self.version = version;
+    }
+
+    pub fn with_version(mut self, version: String) -> SystemInfo {
+        self.version = version;
+        self
+    }
+
+    pub fn version(&self) -> &String {
+        &self.version
     }
 }

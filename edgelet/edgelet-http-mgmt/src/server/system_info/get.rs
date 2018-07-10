@@ -52,6 +52,7 @@ where
                 let body = SystemInfo::new(
                     systeminfo.os_type().to_string(),
                     systeminfo.architecture().to_string(),
+                    systeminfo.version().to_string(),
                 );
                 let response = serde_json::to_string(&body)
                     .context(ErrorKind::Serde)
@@ -74,7 +75,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::ModuleRuntimeState;
+    use edgelet_core::{self, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::*;
     use futures::Stream;
@@ -110,6 +111,7 @@ mod tests {
 
                 assert_eq!("os_type_sample", os_type);
                 assert_eq!("architecture_sample", architecture);
+                assert_eq!(edgelet_core::version(), system_info.version());
 
                 Ok(())
             })

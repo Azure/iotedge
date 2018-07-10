@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     /// <summary>
     /// This interface provides the module runtime information.
     /// TODO: Consider replacing this with IEnvironment and the decorator pattern.
-    /// However, that would require IModule implementations to be made generic. 
+    /// However, that would require IModule implementations to be made generic.
     /// </summary>
     public interface IRuntimeInfoProvider
     {
@@ -21,17 +21,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class SystemInfo
     {
-        static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty);
+        static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
 
         [JsonConstructor]
-        public SystemInfo(string operatingSystemType, string architecture)
+        public SystemInfo(string operatingSystemType, string architecture, string version)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
+            this.Version = version;
         }
 
         public string OperatingSystemType { get; }
 
         public string Architecture { get; }
+
+        public string Version { get; }
     }
 }

@@ -9,10 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class DockerPlatformInfo : IEquatable<DockerPlatformInfo>
     {
         [JsonConstructor]
-        public DockerPlatformInfo(string operatingSystemType, string architecture)
+        public DockerPlatformInfo(string operatingSystemType, string architecture, string version)
         {
             this.OperatingSystemType = operatingSystemType ?? string.Empty;
             this.Architecture = architecture ?? string.Empty;
+            this.Version = version ?? string.Empty;
         }
 
         [JsonProperty("os")]
@@ -21,16 +22,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty("architecture")]
         public string Architecture { get; }
 
+        [JsonProperty("version")]
+        public string Version { get; }
+
         public override bool Equals(object obj) => this.Equals(obj as DockerPlatformInfo);
 
         public bool Equals(DockerPlatformInfo other) =>
-                   other != null && this.OperatingSystemType == other.OperatingSystemType && this.Architecture == other.Architecture;
+                   other != null &&
+                   this.OperatingSystemType == other.OperatingSystemType &&
+                   this.Architecture == other.Architecture &&
+                   this.Version == other.Version;
 
         public override int GetHashCode()
         {
             int hashCode = 577840947;
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.OperatingSystemType);
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Architecture);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Version);
             return hashCode;
         }
 

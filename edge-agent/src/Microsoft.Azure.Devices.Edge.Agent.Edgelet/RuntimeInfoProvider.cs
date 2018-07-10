@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             GeneratedCode.SystemInfo systemInfo = await this.moduleManager.GetSystemInfoAsync();
 
-            return new Core.SystemInfo(systemInfo.OsType, systemInfo.Architecture);
-        } 
+            return new Core.SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
+        }
 
         internal static ModuleRuntimeInfo<T> GetModuleRuntimeInfo(ModuleDetails moduleDetails)
         {
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Option<DateTime> exitTime = exitStatus == null ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime);
             Option<DateTime> startTime = !moduleDetails.Status.StartTime.HasValue ? Option.None<DateTime>() : Option.Some(moduleDetails.Status.StartTime.Value);
 
-            if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, true,  out ModuleStatus status))
+            if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, true, out ModuleStatus status))
             {
                 status = ModuleStatus.Unknown;
             }

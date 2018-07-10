@@ -25,13 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly IDockerClient client;
         readonly string operatingSystemType;
         readonly string architecture;
+        readonly string version;
 
-        RuntimeInfoProvider(IDockerClient client, string operatingSystemType, string architecture)
+        RuntimeInfoProvider(IDockerClient client, string operatingSystemType, string architecture, string version)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));
 
             this.operatingSystemType = string.IsNullOrWhiteSpace(operatingSystemType) ? CoreConstants.Unknown : operatingSystemType;
             this.architecture = string.IsNullOrWhiteSpace(architecture) ? CoreConstants.Unknown : architecture;
+            this.version = string.IsNullOrWhiteSpace(version) ? CoreConstants.Unknown : version;
         }
 
         public async static Task<RuntimeInfoProvider> CreateAsync(IDockerClient client)
@@ -41,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // get system information from docker
             SystemInfoResponse info = await client.System.GetSystemInfoAsync();
 
-            return new RuntimeInfoProvider(client, info.OSType, info.Architecture);
+            return new RuntimeInfoProvider(client, info.OSType, info.Architecture, info.ServerVersion);
         }
 
         public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken ctsToken)
@@ -171,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return status;
         }
 
-        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture));
+        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
 
         static class Events
         {
