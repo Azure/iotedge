@@ -74,10 +74,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyNotActive()
         {
-            // 'sleep' before 'systemctl' works around a problem in
-            // RunProcessAsTask seen on Raspberry Pi 3. See
-            // https://github.com/jamesmanning/RunProcessAsTask/issues/20
-            string[] result = await Process.RunAsync("bash", "-c \"sleep .5 && systemctl --no-pager show iotedge | grep ActiveState=\"");
+            string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
             if (result.First().Split("=").Last() == "active")
             {
                 throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedged` first.");
