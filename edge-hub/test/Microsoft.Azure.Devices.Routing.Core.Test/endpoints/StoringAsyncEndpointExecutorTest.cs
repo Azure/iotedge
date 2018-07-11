@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -28,7 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(10);
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore, Option.None<IMetricsRoot>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
 
             // Act - Send messages to invoke
@@ -83,7 +85,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(4, TimeSpan.FromSeconds(2));
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore, Option.None<IMetricsRoot>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
 
             // Act - Send messages to invoke
@@ -116,7 +118,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(RoutingPumpBatchSize);
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore, Option.None<IMetricsRoot>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
 
             // Act - Send messages to invoke
@@ -147,7 +149,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(1, TimeSpan.FromSeconds(1));
             var messageStore = new TestMessageStore();
-            var executor = new StoringAsyncEndpointExecutor(endpoint1, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var executor = new StoringAsyncEndpointExecutor(endpoint1, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore, Option.None<IMetricsRoot>());
 
             Assert.Equal(endpoint1, executor.Endpoint);
             await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Option<ICloudProxy> GetCloudProxy(string id) => Option.Some(cloudProxyMock.Object);
 
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, Option.None<IMetricsRoot>());
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             Assert.Equal(cloudEndpoint, cloudMessageProcessor.Endpoint);
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                     : Option.None<ICloudProxy>();
             }
 
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, Option.None<IMetricsRoot>());
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result1 = await cloudMessageProcessor.ProcessAsync(message1, CancellationToken.None);

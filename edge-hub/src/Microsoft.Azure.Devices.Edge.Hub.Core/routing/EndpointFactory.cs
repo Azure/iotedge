@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
@@ -17,22 +18,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly string edgeDeviceId;
         readonly ConcurrentDictionary<string, Endpoint> cache;
+        readonly Option<IMetricsRoot> metricsCollector;
 
         public EndpointFactory(IConnectionManager connectionManager,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            string edgeDeviceId)
+            string edgeDeviceId, Option<IMetricsRoot> metricsCollector)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.cache = new ConcurrentDictionary<string, Endpoint>();
+            this.metricsCollector = Preconditions.CheckNotNull(metricsCollector);
         }
 
         public Endpoint CreateSystemEndpoint(string endpoint)
         {
             if (CloudEndpointName.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
             {
-                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter));
+                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter, this.metricsCollector));
             }
             else
             {

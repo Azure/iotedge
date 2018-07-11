@@ -2,7 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
+    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Moq;
@@ -18,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var connectionManager = new Mock<IConnectionManager>();
             var messageConverter = new Mock<Core.IMessageConverter<IRoutingMessage>>();
-            this.endpointFactory = new EndpointFactory(connectionManager.Object, messageConverter.Object, "Device1");
+            this.endpointFactory = new EndpointFactory(connectionManager.Object, messageConverter.Object, "Device1", Option.None<IMetricsRoot>());
         }
 
         [Fact]

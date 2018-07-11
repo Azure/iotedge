@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -427,17 +428,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>())).ReturnsAsync(Try.Success(cloudConnection));
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
             var routingMessageConverter = new RoutingMessageConverter();
-            RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId));
+            RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, Option.None<IMetricsRoot>()));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
             IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
             var routerConfig = new RouterConfig(endpoints, routesList);
             IDbStoreProvider dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             IMessageStore messageStore = new MessageStore(storeProvider, CheckpointStore.Create(dbStoreProvider), TimeSpan.MaxValue);
-            IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore);
+            IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore, Option.None<IMetricsRoot>());
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Option.None<IMetricsRoot>());
             return (edgeHub, connectionManager);
         }
 
