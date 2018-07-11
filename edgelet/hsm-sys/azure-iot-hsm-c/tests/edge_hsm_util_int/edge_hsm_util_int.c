@@ -644,6 +644,29 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // cleanup
         }
 
+        TEST_FUNCTION(test_hsm_env_input)
+        {
+            // arrange
+            int status;
+            char *input_data = "1234";
+            char *output = NULL;
+
+            // act
+            status = hsm_get_env(NULL,&output);
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            // act
+            status = hsm_get_env("TEST_ENV_1",NULL);
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            // act
+            status = hsm_set_env(NULL,input_data);
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            // cleanup
+            
+        }
+
         TEST_FUNCTION(test_hsm_env_get_smoke)
         {
             // arrange
@@ -668,6 +691,41 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             test_helper_unset_env("TEST_ENV_1");
 
             // act
+            status = hsm_get_env("TEST_ENV_1", &output);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL_WITH_MSG(output, "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+        }
+
+        TEST_FUNCTION(test_hsm_env_get_set)
+        {
+            // arrange
+            int status;
+            char *input_data = "1234";
+            char *output = NULL;
+
+            // act
+            status = hsm_set_env("TEST_ENV_1", input_data);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            status = hsm_get_env("TEST_ENV_1", &output);
+
+            // assert
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, input_data, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL_WITH_MSG(size_t, strlen(input_data), strlen(output), "Line:" TOSTRING(__LINE__));
+
+            // cleanup
+            free(output);
+            output = NULL;
+
+            // arrange
+
+            // act
+            status = hsm_set_env("TEST_ENV_1", NULL);
+            ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             status = hsm_get_env("TEST_ENV_1", &output);
 
             // assert

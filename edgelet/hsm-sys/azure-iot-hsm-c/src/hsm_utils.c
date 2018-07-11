@@ -725,3 +725,63 @@ int hsm_get_env(const char *key, char **buffer)
 
     return result;
 }
+
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+static int hsm_set_env_internal(const char *key, const char *buffer)
+{
+    int result;
+
+    if (!SetEnvironmentVariable(key, buffer))
+    {
+        LOG_ERROR("Failed to Set environment variable %s. GetLastError=%08x", key, GetLastError());
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+#else
+static int hsm_set_env_internal(const char *key, const char *buffer)
+{
+    int result;
+
+    if (buffer == NULL)
+    {
+        result =  unsetenv(key);
+        if (result !=0)
+        {
+            LOG_ERROR("Failed to Unset environment variable %s", key);
+        }
+    }
+    else
+    {
+        result = setenv(key, buffer, 1);
+        if (result !=0)
+        {
+            LOG_ERROR("Failed to Set environment variable %s", key);
+        }
+    }
+
+    return result;
+}
+#endif
+
+
+int hsm_set_env(const char *key, const char *buffer)
+{
+    int result;
+    if (key == NULL)
+    {
+        LOG_ERROR("Invalid parameters");
+        result = __FAILURE__;
+    }
+    else
+    {
+        result = hsm_set_env_internal(key, buffer);
+    }
+
+    return result;
+}
