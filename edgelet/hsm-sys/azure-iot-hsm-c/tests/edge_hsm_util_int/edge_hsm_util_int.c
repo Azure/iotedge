@@ -648,7 +648,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
         {
             // arrange
             int status;
-            char *input_data = "1234";
             char *output = NULL;
 
             // act
@@ -660,7 +659,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             // cleanup
-            
         }
 
         TEST_FUNCTION(test_hsm_env_get_smoke)
