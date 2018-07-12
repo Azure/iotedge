@@ -131,12 +131,26 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
 
-            // Would be nice to use 'apt-get --yes install' instead of 'dpkg -i' because
-            // apt-get automatically installs dependencies, but Raspbian's version of
-            // apt-get doesn't support .deb files as arguments
+            string commandName;
+            string commandArgs;
+
+            // Use apt-get if a package name is given, or dpkg if a package file is given.
+            // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
+            // in Raspbian) can't accept a package file.
+            if (string.IsNullOrEmpty(this.archivePath))
+            {
+                commandName = "apt-get";
+                commandArgs = $"--yes install {PackageName}";
+            }
+            else
+            {
+                commandName = "dpkg";
+                commandArgs = $"-i {this.archivePath}";
+            }
+
             return Process.RunAsync(
-                "dpkg",
-                $"-i {this.archivePath ?? PackageName}",
+                commandName,
+                commandArgs,
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
