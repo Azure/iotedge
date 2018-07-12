@@ -34,11 +34,32 @@
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
+extern const char* const ENV_TPM_SELECT;
+
 //#############################################################################
 // Test helpers
 //#############################################################################
-extern const char* const ENV_TPM_SELECT;
 
+static void test_helper_setup_env(const char *key, const char *val)
+{
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    errno_t status = _putenv_s(key, val);
+#else
+    int status = setenv(key, val, 1);
+#endif
+    printf("Env variable %s set to %s\n", key, val);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+}
+
+static void test_helper_unset_env(const char *key)
+{
+#if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
+    errno_t status = _putenv_s(key, "");
+#else
+    int status = unsetenv(key);
+#endif
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+}
 
 static void test_helper_setup_homedir(void)
 {
@@ -108,14 +129,14 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                                                "no", "NO", "No", 
                                                "false", "FALSE", "False" };
         int array_size = sizeof(user_says_no)/sizeof(user_says_no[0]);
-        int status = hsm_set_env(ENV_TPM_SELECT, NULL)
+        int status = test_helper_unset_env(ENV_TPM_SELECT);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int no = 0; no < array_size; no++)
         {
-            int status = hsm_set_env(ENV_TPM_SELECT, user_says_no[no]);
+            int status = test_helper_setup_env(ENV_TPM_SELECT, user_says_no[no]);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *, 
                                       no_tpm, init_get_if_deinit(), 
@@ -133,14 +154,14 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
                                                 "Like CMAKE, it's anything that's not assocated with false",
                                                 "plugh" };
         int array_size = sizeof(user_says_yes)/sizeof(user_says_yes[0]);
-        int status = hsm_set_env(ENV_TPM_SELECT, NULL)
+        int status = test_helper_unset_env(ENV_TPM_SELECT);
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_TPM_INTERFACE * no_tpm =  init_get_if_deinit();
         // act
         // assert
         for(int yes = 0; yes < array_size; yes++)
         {
-            int status = hsm_set_env(ENV_TPM_SELECT, user_says_yes[yes]);
+            int status = test_helper_setup_env(ENV_TPM_SELECT, user_says_yes[yes]);
             ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
             ASSERT_ARE_NOT_EQUAL_WITH_MSG(const HSM_CLIENT_TPM_INTERFACE *, 
                                           no_tpm, init_get_if_deinit(), 
