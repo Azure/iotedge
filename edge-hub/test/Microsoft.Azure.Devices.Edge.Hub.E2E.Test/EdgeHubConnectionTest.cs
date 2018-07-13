@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Xunit;
 
     [E2E]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class EdgeHubConnectionTest : IClassFixture<ProtocolHeadFixture>
     {
         const string EdgeHubModuleId = "$edgeHub";
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Try<ICloudProxy> edgeHubCloudProxy = await connectionManager.CreateCloudConnectionAsync(edgeHubCredentials);
                 Assert.True(edgeHubCloudProxy.Success);
                 EdgeHubConnection edgeHubConnection = await EdgeHubConnection.Create(
-                    edgeHubCredentials.Identity as IModuleIdentity, 
+                    edgeHubCredentials.Identity as IModuleIdentity,
                     edgeHub,
                     twinManager,
                     connectionManager,
@@ -342,30 +343,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             };
 
             await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
-        }
-
-        [Theory]
-        [Unit]
-        [InlineData("1.0", null)]
-        [InlineData("1.1", null)]
-        [InlineData("1.2", null)]
-        [InlineData("1.3", null)]
-        [InlineData("1", typeof(ArgumentException))]
-        [InlineData("", typeof(ArgumentException))]
-        [InlineData(null, typeof(ArgumentException))]
-        [InlineData("0.1", typeof(InvalidOperationException))]
-        [InlineData("2.0", typeof(InvalidOperationException))]
-        [InlineData("2.1", typeof(InvalidOperationException))]
-        public void SchemaVersionCheckTest(string schemaVersion, Type expectedException)
-        {
-            if (expectedException != null)
-            {
-                Assert.Throws(expectedException, () => EdgeHubConnection.ValidateSchemaVersion(schemaVersion));
-            }
-            else
-            {
-                EdgeHubConnection.ValidateSchemaVersion(schemaVersion);
-            }
         }
     }
 }

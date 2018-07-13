@@ -15,7 +15,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-IMAGE="edgebuilds.azurecr.io/cargo-clippy:nightly"
+IMAGE="azureiotedge/cargo-clippy:nightly"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
