@@ -67,13 +67,13 @@ add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
 apt-get update && \
 apt-get install -y \
     pkg-config \
-    libssl1.0.0 \
-    libssl-dev \
     uuid-dev curl \
     libcurl4-openssl-dev \
     debhelper \
     dh-systemd \
-    valgrind 
+    valgrind && \
+apt-get remove --yes libssl-dev && \
+apt-get install --yes --target-release xenial-updates libssl-dev
 
 if [[ -n "$ARM_PACKAGE" ]]; then
     # armhf cross tools for packaging
