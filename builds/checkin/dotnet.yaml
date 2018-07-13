@@ -27,3 +27,4 @@ phases:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/result.trx'
         condition: succeededOrFailed()
+
