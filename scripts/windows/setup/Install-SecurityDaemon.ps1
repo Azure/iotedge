@@ -12,7 +12,7 @@ param (
 
     [Parameter(ParameterSetName = "DPS")]
     [Switch] $Dps,
-    
+
     [Parameter(Mandatory = $true, ParameterSetName = "Manual")]
     [String] $DeviceConnectionString,
 
@@ -117,9 +117,12 @@ function Get-SecurityDaemon {
 }
 
 function Set-Path {
-    if ($env:PATH -notlike "*C:\ProgramData\iotedge*") {
-        $env:PATH += ";C:\ProgramData\iotedge"
-        Invoke-Native "setx /M PATH `"$env:PATH`""
+    $SystemEnvironment = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+    $EdgePath = "C:\ProgramData\iotedge"
+    $SystemPath = (Get-ItemProperty -Path $SystemEnvironment -Name Path).Path
+    if ($SystemPath -notlike "*$EdgePath*") {
+        Set-ItemProperty -Path $SystemEnvironment -Name Path -Value "$SystemPath;$EdgePath"
+        $env:Path += ";$EdgePath"
         Write-Host "Updated system PATH." -ForegroundColor "Green"
     }
     else {
@@ -187,7 +190,7 @@ function Add-IotEdgeRegistryKey {
     }
     finally {
         Remove-Item "$env:TEMP\iotedge.reg" -Force -ErrorAction "SilentlyContinue"
-    } 
+    }
 }
 
 function Set-ProvisioningMode {
@@ -240,7 +243,7 @@ function Set-GatewayAddress {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
     $GatewayAddress = (Get-NetIpAddress |
             Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
-    
+
     $SelectionRegex = "connect:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
     $ReplacementContent = @(
         "connect:",
@@ -278,16 +281,16 @@ function Invoke-Native {
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [String] $Command,
-    
+
         [Switch] $Passthru
     )
-    
-    process { 
+
+    process {
         Write-Verbose "Executing native Windows command '$Command'..."
         $out = cmd /c "($Command) 2>&1" 2>&1 | Out-String
         Write-Verbose $out
         Write-Verbose "Exit code: $LASTEXITCODE"
-    
+
         if ($LASTEXITCODE) {
             throw $out
         }
