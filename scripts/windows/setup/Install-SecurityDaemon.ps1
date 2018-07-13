@@ -28,7 +28,7 @@ Set-StrictMode -Version 5
 
 function Install-SecurityDaemon {
     if (-not (Test-IsDockerRunning) -or -not (Test-IsKernelValid)) {
-        Write-Host ("The prerequisites for installation of the IoT Edge Security daemon are not met. " +
+        Write-Host ("`nThe prerequisites for installation of the IoT Edge Security daemon are not met. " +
             "Please fix all known issues before rerunning this script.") `
             -ForegroundColor "Red"
         return
@@ -37,7 +37,6 @@ function Install-SecurityDaemon {
     Get-SecurityDaemon
     Set-Path
     Get-VcRuntime
-    Initialize-IotEdgeService
     Add-FirewallExceptions
     Add-IotEdgeRegistryKey
 
@@ -45,7 +44,7 @@ function Install-SecurityDaemon {
     Set-Hostname
     Set-GatewayAddress
     Set-MobyNetwork
-    Restart-IotEdgeService
+    Initialize-IotEdgeService
 
     Write-Host ("`nThis device is now provisioned with the IoT Edge runtime.`n" +
         "Check the status of the IoT Edge service with `"Get-Service iotedge`"`n" +
@@ -272,12 +271,6 @@ function Set-MobyNetwork {
         "  network: `"nat`"")
     ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
     Write-Host "Set the Moby runtime network to NAT." -ForegroundColor "Green"
-}
-
-function Restart-IotEdgeService {
-    Stop-Service iotedge -NoWait
-    Start-Sleep 5
-    Start-Service iotedge
 }
 
 function Invoke-Native {
