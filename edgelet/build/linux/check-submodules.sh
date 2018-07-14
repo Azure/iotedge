@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script runs cargo clippy on your project
+# This script builds the project
 ###############################################################################
 
 set -e
@@ -13,9 +13,11 @@ set -e
 DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
-PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
+PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/tools/check_submodules
 SCRIPT_NAME=$(basename "$0")
-IMAGE="azureiotedge/cargo-clippy:nightly"
+CARGO="$HOME/.cargo/bin/cargo"
+TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
+RELEASE=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -26,14 +28,9 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -i, --image         Docker image to run (default: $IMAGE)"
+    echo " -t, --toolchain     Toolchain (default: stable-x86_64-unknown-linux-gnu)"
+    echo " -r, --release       Release build? (flag, default: false)"
     exit 1;
-}
-
-print_help_and_exit()
-{
-    echo "Run $SCRIPT_NAME --help for more information."
-    exit 1
 }
 
 ###############################################################################
@@ -45,12 +42,16 @@ process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            IMAGE="$arg"
+            TOOLCHAIN="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            RELEASE="true"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-i" | "--image" ) save_next_arg=1;;
+                "-t" | "--toolchain" ) save_next_arg=1;;
+                "-r" | "--release" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
@@ -59,5 +60,8 @@ process_args()
 
 process_args "$@"
 
-echo "Running cargo clippy"
-docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
+if [[ -z ${RELEASE} ]]; then
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" run -- "${BUILD_REPOSITORY_LOCALPATH}"
+else
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" run --release -- "${BUILD_REPOSITORY_LOCALPATH}"
+fi

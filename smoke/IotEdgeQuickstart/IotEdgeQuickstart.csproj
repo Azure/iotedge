@@ -25,7 +25,7 @@
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.16.0" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="1.1.0" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3" />
-    <PackageReference Include="RunProcessAsTask" Version="1.2.1" />
+    <PackageReference Include="RunProcessAsTask" Version="1.2.3" />
     <PackageReference Include="YamlDotNet" Version="4.3.2" />
   </ItemGroup>
 

@@ -317,6 +317,8 @@ pub struct SystemInfo {
     os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
     architecture: String,
+    /// iotedge version string
+    version: &'static str,
 }
 
 impl SystemInfo {
@@ -324,6 +326,7 @@ impl SystemInfo {
         SystemInfo {
             os_type,
             architecture,
+            version: super::version(),
         }
     }
 
@@ -333,6 +336,10 @@ impl SystemInfo {
 
     pub fn architecture(&self) -> &str {
         &self.architecture
+    }
+
+    pub fn version(&self) -> &str {
+        self.version
     }
 }
 

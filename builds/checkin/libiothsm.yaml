@@ -1,0 +1,46 @@
+phases:
+
+################################################################################
+  - phase: linux_amd64
+################################################################################
+    displayName: Linux amd64
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - task: Bash@3
+        displayName: Install dependencies
+        inputs:
+          filePath: edgelet/build/linux/install.sh
+      - task: CMake@1
+        displayName: Setup
+        inputs:
+          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+          cmakeArgs: -Drun_valgrind=ON -DBUILD_SHARED=ON -Drun_unittests=ON -Duse_emulator=OFF -DCMAKE_BUILD_TYPE=Release -DCPACK_DEBIAN_PACKAGE_RELEASE=$(Build.BuildNumber) ..
+      - script: make package
+        displayName: Build
+        workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
+      - script: ctest -C debug -V
+        displayName: Test
+        workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
+
+################################################################################
+  - phase: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    queue:
+      name: Hosted VS2017
+    steps:
+      - task: PowerShell@2
+        displayName: Install
+        inputs:
+          filePath: edgelet/build/windows/install.ps1
+      - task: CMake@1
+        displayName: Setup
+        inputs:
+          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+          cmakeArgs: -G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -DCMAKE_BUILD_TYPE=Release ..
+      - task: CMake@1
+        displayName: Build
+        inputs:
+          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
+          cmakeArgs: --build .

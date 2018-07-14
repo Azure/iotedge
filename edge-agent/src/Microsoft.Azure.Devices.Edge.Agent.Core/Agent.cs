@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public static async Task<Agent> Create(IConfigSource configSource, IPlanner planner, IPlanRunner planRunner, IReporter reporter,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager, IEnvironmentProvider environmentProvider,
-            IEntityStore<string, string> configStore, ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde, IEncryptionProvider  encryptionProvider)
+            IEntityStore<string, string> configStore, ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde, IEncryptionProvider encryptionProvider)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -182,7 +182,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
                                 throw;
                             }
-
                         }
                     }
                     else
@@ -219,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
-        // This should be called only within the reconcile lock. 
+        // This should be called only within the reconcile lock.
         private async Task UpdateCurrentConfig(DeploymentConfigInfo deploymentConfigInfo)
         {
             this.environment = this.environmentProvider.Create(deploymentConfigInfo.DeploymentConfig);

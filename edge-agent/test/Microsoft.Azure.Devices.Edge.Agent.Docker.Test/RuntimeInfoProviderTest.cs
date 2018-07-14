@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 // Assert
                 Assert.Equal(systemInfo.OSType, recivedSystemInfo.OperatingSystemType);
                 Assert.Equal(systemInfo.Architecture, recivedSystemInfo.Architecture);
+                Assert.Equal(systemInfo.ServerVersion, recivedSystemInfo.Version);
             }
         }
 

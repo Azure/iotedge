@@ -1,0 +1,29 @@
+phases:
+
+################################################################################
+  - phase: linux_amd64
+################################################################################
+    displayName: Linux amd64
+    queue:
+      name: Hosted Linux Preview
+    steps:
+      - task: Bash@3
+        displayName: Install
+        inputs:
+          filePath: scripts/linux/installPrereqs.sh
+          arguments: -u $(NetCorePackageUriLinux)
+      - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: scripts/linux/buildBranch.sh
+      - task: Bash@3
+        displayName: Test
+        inputs:
+          filePath: scripts/linux/runTests.sh
+          arguments: "\"--filter Category=Unit\""
+      - task: PublishTestResults@2
+        displayName: Publish Test Results
+        inputs:
+          testRunner: VSTest
+          testResultsFiles: '**/TestResults/result.trx'
+        condition: succeededOrFailed()

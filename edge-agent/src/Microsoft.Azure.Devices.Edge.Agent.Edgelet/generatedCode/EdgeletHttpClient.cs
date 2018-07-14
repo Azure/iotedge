@@ -7,7 +7,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
 {
-    #pragma warning disable // Disable all warnings
+#pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "11.17.12.0 (NJsonSchema v9.10.50.0 (Newtonsoft.Json v9.0.0.0))")]
     public partial class EdgeletHttpClient
@@ -1403,11 +1403,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             }
             else if (value is byte[])
             {
-                return System.Convert.ToBase64String((byte[]) value);
+                return System.Convert.ToBase64String((byte[])value);
             }
             else if (value.GetType().IsArray)
             {
-                var array = System.Linq.Enumerable.OfType<object>((System.Array) value);
+                var array = System.Linq.Enumerable.OfType<object>((System.Array)value);
                 return string.Join(",", System.Linq.Enumerable.Select(array, o => ConvertToString(o, cultureInfo)));
             }
 
@@ -1420,6 +1420,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
     {
         private string _osType;
         private string _architecture;
+        private string _version;
 
         [Newtonsoft.Json.JsonProperty("osType", Required = Newtonsoft.Json.Required.Always)]
         public string OsType
@@ -1444,6 +1445,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
                 if (_architecture != value)
                 {
                     _architecture = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("version", Required = Newtonsoft.Json.Required.Always)]
+        public string Version
+        {
+            get { return _version; }
+            set
+            {
+                if (_version != value)
+                {
+                    _version = value;
                     RaisePropertyChanged();
                 }
             }

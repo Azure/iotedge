@@ -1,4 +1,9 @@
 & {
+
+<#
+ # Installs the IoT Edge runtime on RS3 Windows.
+ #>
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 5
 

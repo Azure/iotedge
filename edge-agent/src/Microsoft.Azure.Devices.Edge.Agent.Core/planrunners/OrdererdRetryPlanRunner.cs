@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
     {
         readonly AsyncLock sync;
         long lastDeploymentId;
-        Dictionary<string, (int RunCount, DateTime LastRunTimeUtc)> commandRunStatus;
+        Dictionary<string, CommandRunStats> commandRunStatus;
         readonly int maxRunCount;
         readonly int coolOffTimeUnitInSeconds;
         readonly ISystemTime systemTime;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             this.systemTime = Preconditions.CheckNotNull(systemTime, nameof(systemTime));
             this.sync = new AsyncLock();
             this.lastDeploymentId = -1;
-            this.commandRunStatus = new Dictionary<string, (int RunCount, DateTime LastRunTimeUtc)>();
+            this.commandRunStatus = new Dictionary<string, CommandRunStats>();
         }
 
         public async Task<bool> ExecuteAsync(long deploymentId, Plan plan, CancellationToken token)
@@ -68,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 bool skippedModules = false;
                 foreach (ICommand command in plan.Commands)
                 {
+                    var (shouldRun, runCount, coolOffPeriod, elapsedTime) = this.ShouldRunCommand(command);
                     try
                     {
                         if (token.IsCancellationRequested)
@@ -76,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                             break;
                         }
 
-                        var (shouldRun, runCount, coolOffPeriod, elapsedTime) = this.ShouldRunCommand(command);
                         if (shouldRun)
                         {
                             await command.ExecuteAsync(token);
@@ -85,18 +85,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                             // run status
                             if (this.commandRunStatus.ContainsKey(command.Id))
                             {
-                                this.commandRunStatus[command.Id] = (0, this.systemTime.UtcNow);
+                                this.commandRunStatus[command.Id] = CommandRunStats.Default;
                             }
                         }
                         else
                         {
                             skippedModules = true;
-                            Events.SkippingCommand(deploymentId, command, runCount, this.maxRunCount, coolOffPeriod, elapsedTime);
+                            Events.SkippingCommand(deploymentId, command, this.commandRunStatus[command.Id], this.maxRunCount, coolOffPeriod, elapsedTime);
                         }
                     }
                     catch (Exception ex) when (ex.IsFatal() == false)
                     {
-                        Events.PlanExecStepFailed(deploymentId, command);
+                        Events.PlanExecStepFailed(deploymentId, command, coolOffPeriod, elapsedTime);
                         if (!failures.HasValue)
                         {
                             failures = Option.Some(new List<Exception>());
@@ -104,12 +104,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                         failures.ForEach(f => f.Add(ex));
 
                         // since this command failed, record its status
-                        int runCount = 0;
-                        if (this.commandRunStatus.ContainsKey(command.Id))
-                        {
-                            runCount = this.commandRunStatus[command.Id].RunCount;
-                        }
-                        this.commandRunStatus[command.Id] = (runCount + 1, this.systemTime.UtcNow);
+                        int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ?
+                            this.commandRunStatus[command.Id].RunCount : 0;
+                        this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
                     }
                 }
 
@@ -133,21 +130,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                 return (true, -1, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
-            var (runCount, lastRunTimeUtc) = this.commandRunStatus[command.Id];
+            CommandRunStats commandRunStatus = this.commandRunStatus[command.Id];
 
             // if this command has been run maxRunCount times already then don't
             // run it anymore
-            if (runCount == this.maxRunCount)
+            if (commandRunStatus.RunCount == this.maxRunCount)
             {
-                return (false, runCount, TimeSpan.MinValue, TimeSpan.MinValue);
+                return (false, commandRunStatus.RunCount, TimeSpan.MinValue, TimeSpan.MinValue);
             }
 
             TimeSpan coolOffPeriod = TimeSpan.FromSeconds(
-                this.coolOffTimeUnitInSeconds * Math.Pow(2, runCount)
+                this.coolOffTimeUnitInSeconds * Math.Pow(2, commandRunStatus.RunCount)
             );
-            TimeSpan elapsedTime = this.systemTime.UtcNow - lastRunTimeUtc;
+            TimeSpan elapsedTime = this.systemTime.UtcNow - commandRunStatus.LastRunTimeUtc;
 
-            return (elapsedTime > coolOffPeriod, runCount, coolOffPeriod, elapsedTime);
+            return (elapsedTime > coolOffPeriod, commandRunStatus.RunCount, coolOffPeriod, elapsedTime);
+        }
+
+        class CommandRunStats
+        {
+            public int RunCount { get; }
+            public DateTime LastRunTimeUtc { get; }
+            public Option<Exception> Exception { get; }
+            public bool LoggedWarning { get; set; }
+
+            public static readonly CommandRunStats Default = new CommandRunStats(0, DateTime.MinValue);
+
+            public CommandRunStats(int runCount, DateTime lastRunTimeUtc, Exception exception = null)
+            {
+                this.RunCount = runCount;
+                this.LastRunTimeUtc = lastRunTimeUtc;
+                this.Exception = Option.Maybe(exception);
+                this.LoggedWarning = false;
+            }
         }
 
         static class Events
@@ -178,23 +193,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             public static void OldDeployment(long deploymentId) =>
                 Log.LogDebug((int)EventIds.OldDeployment, $"Running plan on existing deployment {deploymentId}");
 
-            public static void SkippingCommand(long deploymentId, ICommand command, int runCount, int maxRunCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime)
+            public static void SkippingCommand(long deploymentId, ICommand command, CommandRunStats runStats, int maxRunCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime)
             {
                 string msg = $"Skipping command \"{command.Show()}\" in deployment {deploymentId}.";
-                if (runCount == maxRunCount)
+                runStats.Exception.ForEach(ex => msg += $" Error: {ex.Message}.");
+
+                if (runStats.RunCount == maxRunCount)
                 {
-                    msg += $" Command has been tried {runCount} times. Max run count is {maxRunCount}.";
+                    if (runStats.LoggedWarning == false)
+                    {
+                        msg += $" Command has been tried {runStats.RunCount} times. Giving up (max run count is {maxRunCount}).";
+                        Log.LogWarning((int)EventIds.SkippingCommand, msg);
+                        runStats.LoggedWarning = true;
+                    }
                 }
                 else
                 {
                     msg += $" Will retry in {(coolOffPeriod - elapsedTime).Humanize()}";
+                    Log.LogDebug((int)EventIds.SkippingCommand, msg);
                 }
-
-                Log.LogInformation((int)EventIds.SkippingCommand, msg);
             }
 
-            public static void PlanExecStepFailed(long deploymentId, ICommand command) =>
-                Log.LogError((int)EventIds.PlanExecStepFailed, $"Step failed in deployment {deploymentId}, continuing execution. Failure when running command {command.Show()}");
+            public static void PlanExecStepFailed(long deploymentId, ICommand command, TimeSpan coolOffPeriod, TimeSpan elapsedTime) =>
+                Log.LogError(
+                    (int)EventIds.PlanExecStepFailed,
+                    $"Step failed in deployment {deploymentId}, continuing execution. Failure when running command {command.Show()}. Will retry in {(coolOffPeriod - elapsedTime).Humanize()}.");
 
             public static void PlanExecEnded(long deploymentId)
             {

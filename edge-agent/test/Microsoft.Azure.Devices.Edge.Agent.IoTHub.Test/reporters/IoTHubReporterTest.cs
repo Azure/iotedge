@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
                 // Mock IEdgeAgentConnection
@@ -128,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                         RuntimeType,
                         (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                        new DockerPlatformInfo(OperatingSystemType, Architecture));
+                        new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // Mock AgentStateSerDe
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
@@ -190,7 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new
@@ -228,6 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -275,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
 
                 // build current module set
@@ -325,7 +328,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new
@@ -371,6 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -418,7 +423,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
 
                 // build current module set
@@ -468,7 +473,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new
@@ -523,6 +529,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -575,7 +582,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -624,7 +631,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new
@@ -669,6 +677,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -714,7 +723,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -793,6 +802,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -834,7 +844,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -882,6 +892,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -921,7 +932,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                                         RuntimeType,
                                         (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                                        new DockerPlatformInfo(OperatingSystemType, Architecture));
+                                        new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // build current module set
                 DateTime lastStartTimeUtc = DateTime.Parse(
@@ -987,7 +998,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new
@@ -1107,6 +1119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "logging options";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
                 DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
 
@@ -1145,7 +1158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                         RuntimeType,
                         (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                        new DockerPlatformInfo(OperatingSystemType, Architecture));
+                        new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -1228,6 +1241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 const string LoggingOptions = "";
                 const string OperatingSystemType = "linux";
                 const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 // prepare IEdgeAgentConnection mock
@@ -1280,7 +1294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
                     RuntimeType,
                     (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
-                    new DockerPlatformInfo(OperatingSystemType, Architecture));
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
 
                 // build current module set
@@ -1344,7 +1358,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         platform = new
                         {
                             os = OperatingSystemType,
-                            architecture = Architecture
+                            architecture = Architecture,
+                            version = Version
                         }
                     },
                     systemModules = new

@@ -77,7 +77,7 @@ namespace IotEdgeQuickstart.Details
             string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
             if (result.First().Split("=").Last() == "active")
             {
-                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl disable --now iotedged` first.");
+                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedged` first.");
             }
         }
 
@@ -85,7 +85,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyModuleIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
                 string errorMessage = null;
 
@@ -131,9 +131,26 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
 
+            string commandName;
+            string commandArgs;
+
+            // Use apt-get if a package name is given, or dpkg if a package file is given.
+            // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
+            // in Raspbian) can't accept a package file.
+            if (string.IsNullOrEmpty(this.archivePath))
+            {
+                commandName = "apt-get";
+                commandArgs = $"--yes install {PackageName}";
+            }
+            else
+            {
+                commandName = "dpkg";
+                commandArgs = $"-i {this.archivePath}";
+            }
+
             return Process.RunAsync(
-                "apt-get",
-                $"--yes install {this.archivePath ?? PackageName}",
+                commandName,
+                commandArgs,
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
@@ -217,7 +234,13 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public Task Stop() => Process.RunAsync("systemctl", "disable --now iotedge", 60);
+        public async Task Stop()
+        {
+            // Raspbian's systemctl doesn't support 'disable --now', so do
+            // 'disable' + 'stop' instead
+            await Process.RunAsync("systemctl", "disable iotedge", 60);
+            await Process.RunAsync("systemctl", "stop iotedge", 60);
+        }
 
         public Task Reset() => Task.CompletedTask;
     }
