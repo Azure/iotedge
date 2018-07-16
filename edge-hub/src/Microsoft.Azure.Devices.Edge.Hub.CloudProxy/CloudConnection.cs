@@ -298,7 +298,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        internal static bool IsTokenExpired(string hostName, string token) => GetTokenExpiry(hostName, token) > DateTime.UtcNow;
+        internal static bool IsTokenExpired(string hostName, string token)
+        {
+            try
+            {
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(hostName, token);
+                return sharedAccessSignature.IsExpired();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return true;
+            }
+        }
 
         internal static TimeSpan GetTokenExpiryTimeRemaining(string hostName, string token) => GetTokenExpiry(hostName, token) - DateTime.UtcNow;
 
