@@ -175,7 +175,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         {
                             await token.ForEachAsync(async t =>
                             {
-                                await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
+                                Try<ICloudConnection> cloudConnectionTry = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, t));
+                                if (!cloudConnectionTry.Success)
+                                {
+                                    await this.RemoveDeviceConnection(device, true);
+                                    this.CloudConnectionLost?.Invoke(this, device.Identity);
+                                }
                             });
                         }
                         else
