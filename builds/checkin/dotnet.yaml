@@ -27,3 +27,32 @@ phases:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/result.trx'
         condition: succeededOrFailed()
+
+################################################################################
+  - phase: windows_amd64
+################################################################################
+    displayName: Windows amd64
+    queue:
+      name: Hosted VS2017
+    steps:
+      - task: PowerShell@2
+        displayName: Install
+        inputs:
+          filePath: scripts/windows/setup/Install-Prerequisites.ps1
+          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows)
+      - task: PowerShell@2
+        displayName: Build
+        inputs:
+          filePath: scripts/windows/build/Publish-Branch.ps1
+          arguments: -PublishTests:$True -UpdateVersion
+      - task: PowerShell@2
+        displayName: Test
+        inputs:
+          filePath: scripts/windows/test/Test-Branch.ps1
+          arguments: -Filter Category=Unit
+      - task: PublishTestResults@2
+        displayName: Publish Test Results
+        inputs:
+          testRunner: VSTest
+          testResultsFiles: '**/TestResults/result.trx'
+        condition: succeededOrFailed()
