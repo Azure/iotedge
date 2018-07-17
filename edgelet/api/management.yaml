@@ -369,7 +369,7 @@ paths:
           required: true
           type: string
       responses:
-        '200':
+        '204':
           description: Ok
         '404':
           description: Not Found
