@@ -1450,7 +1450,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.GeneratedCode
             }
         }
 
-        [Newtonsoft.Json.JsonProperty("version", Required = Newtonsoft.Json.Required.Always)]
+        [Newtonsoft.Json.JsonProperty("version", Required = Newtonsoft.Json.Required.DisallowNull)]
         public string Version
         {
             get { return _version; }
