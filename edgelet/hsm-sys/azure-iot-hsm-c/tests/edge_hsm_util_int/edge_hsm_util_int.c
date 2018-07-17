@@ -644,6 +644,23 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // cleanup
         }
 
+        TEST_FUNCTION(test_hsm_env_input)
+        {
+            // arrange
+            int status;
+            char *output = NULL;
+
+            // act
+            status = hsm_get_env(NULL,&output);
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            // act
+            status = hsm_get_env("TEST_ENV_1",NULL);
+            // assert
+            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+            // cleanup
+        }
+
         TEST_FUNCTION(test_hsm_env_get_smoke)
         {
             // arrange
