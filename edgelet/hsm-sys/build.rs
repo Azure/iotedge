@@ -141,6 +141,7 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", iothsm.display());
     // For libraries (ie. C Shared) which will install in $target/lib
     println!("cargo:rustc-link-search=native={}/lib", iothsm.display());
+    println!("cargo:rustc-link-search=native={}/lib64", iothsm.display());
     println!("cargo:rustc-link-lib=iothsm");
 
     // we need to explicitly link with c shared util only when we build the C
