@@ -178,8 +178,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             };
             static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
             {
-                Name = "EndpointMessageStoredLatency",
-                MeasurementUnit = Unit.Requests,
+                Name = "EndpointMessageStoredLatencyMs",
+                MeasurementUnit = Unit.None,
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };

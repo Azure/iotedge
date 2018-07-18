@@ -285,8 +285,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             };
             static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
             {
-                Name = "EdgeHubMessageLatency",
-                MeasurementUnit = Unit.Requests,
+                Name = "EdgeHubMessageLatencyMs",
+                MeasurementUnit = Unit.None,
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
