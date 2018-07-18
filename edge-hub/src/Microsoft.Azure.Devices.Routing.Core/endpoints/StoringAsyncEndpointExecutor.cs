@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly AsyncEndpointExecutorOptions options;
         readonly EndpointExecutorFsm machine;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
-        readonly Edge.Util.Option<IMetricsRoot> metricsCollector;
 
         public Endpoint Endpoint => this.machine.Endpoint;
 
@@ -38,8 +37,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             ICheckpointer checkpointer,
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
-            IMessageStore messageStore,
-            Edge.Util.Option<IMetricsRoot> metricsCollector)
+            IMessageStore messageStore)
         {
             Preconditions.CheckNotNull(endpoint);
             Preconditions.CheckNotNull(config);
@@ -48,7 +46,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
             this.messageStore = messageStore;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
-            this.metricsCollector = Preconditions.CheckNotNull(metricsCollector);
         }
 
         public async Task Invoke(IMessage message)
@@ -59,14 +56,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 {
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
-                using (Metrics.StoreLatency(this.metricsCollector, this.Endpoint.Id))
+                using (Metrics.StoreLatency(this.Endpoint.Id))
                 {
                     long offset = await this.messageStore.Add(this.Endpoint.Id, message);
                     this.checkpointer.Propose(message);
                     Events.AddMessageSuccess(this, offset);
                 }
                 this.hasMessagesInQueue.Set();
-                Metrics.StoredCount(this.metricsCollector, this.Endpoint.Id);
+                Metrics.StoredCount(this.Endpoint.Id);
             }
             catch (Exception ex)
             {
@@ -192,9 +189,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 return new MetricTags(new[] { "EndpointId" }, new[] { id });
             }
 
-            public static void StoredCount(Edge.Util.Option<IMetricsRoot> metricsCollector, string identity) => Edge.Util.Metrics.Count(metricsCollector, GetTags(identity), EndpointMessageCountOptions);
+            public static void StoredCount(string identity) => Edge.Util.Metrics.Count(GetTags(identity), EndpointMessageCountOptions);
 
-            public static IDisposable StoreLatency(Edge.Util.Option<IMetricsRoot> metricsCollector, string identity) => Edge.Util.Metrics.Latency(metricsCollector, GetTags(identity), EndpointMessageLatencyOptions);
+            public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), EndpointMessageLatencyOptions);
         }
 
         static class Events

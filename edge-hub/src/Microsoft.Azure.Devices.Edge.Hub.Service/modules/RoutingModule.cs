@@ -50,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool cacheTokens;
         readonly Option<string> workloadUri;
         readonly Option<string> edgeModuleGenerationId;
-        readonly Option<IMetricsRoot> metricsCollector;
 
         public RoutingModule(string iotHubName,
             string edgeDeviceId,
@@ -70,8 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int maxConnectedClients,
             bool cacheTokens,
             Option<string> workloadUri,
-            Option<string> edgeModuleGenerationId,
-            Option<IMetricsRoot> metricsCollector)
+            Option<string> edgeModuleGenerationId)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -92,7 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.cacheTokens = cacheTokens;
             this.workloadUri = workloadUri;
             this.edgeModuleGenerationId = edgeModuleGenerationId;
-            this.metricsCollector = Preconditions.CheckNotNull(metricsCollector);
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -265,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IEndpointFactory
-            builder.Register(c => new EndpointFactory(c.Resolve<IConnectionManager>(), c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), this.edgeDeviceId, this.metricsCollector))
+            builder.Register(c => new EndpointFactory(c.Resolve<IConnectionManager>(), c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), this.edgeDeviceId))
                 .As<IEndpointFactory>()
                 .SingleInstance();
 
@@ -366,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
                         var messageStore = c.Resolve<IMessageStore>();
-                        IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore, this.metricsCollector);
+                        IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
                         return endpointExecutorFactory;
                     })
                    .As<IEndpointExecutorFactory>()
@@ -425,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 async c =>
                 {
                     Router router = await c.Resolve<Task<Router>>();
-                    IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(), c.Resolve<ITwinManager>(), this.edgeDeviceId, this.metricsCollector);
+                    IEdgeHub hub = new RoutingEdgeHub(router, c.Resolve<Core.IMessageConverter<IRoutingMessage>>(), c.Resolve<IConnectionManager>(), c.Resolve<ITwinManager>(), this.edgeDeviceId);
                     return hub;
                 })
                 .As<Task<IEdgeHub>>()

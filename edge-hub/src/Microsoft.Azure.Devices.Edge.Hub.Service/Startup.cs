@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
 
-            var metricsCollector = this.BuildMetricsCollector();
+            this.BuildMetricsCollector();
 
             // Register modules
             builder.RegisterModule(
@@ -167,8 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     maxConnectedClients,
                     cacheTokens,
                     workloadUri,
-                    moduleGenerationId,
-                    metricsCollector));
+                    moduleGenerationId));
 
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, ServerCertificateCache.X509Certificate, storeAndForward.isEnabled, clientCertAuthEnabled, caChainPath, optimizeForPerformance));
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), ServerCertificateCache.X509Certificate, this.iotHubHostname));
@@ -228,61 +227,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
         }
 
-        Option<IMetricsRoot> BuildMetricsCollector()
+        void BuildMetricsCollector()
         {
-            Option<IMetricsRoot> metricsCollector = Option.None<IMetricsRoot>();
             bool collectMetrics = this.Configuration.GetValue("CollectMetrics", false);
-            if (!collectMetrics)
-            {
-                return metricsCollector;
-            }
 
-            string metricsStoreType = this.Configuration.GetValue<string>("MetricsStoreType");
-            
-            if (metricsStoreType == "influxdb")
+            if (collectMetrics)
             {
-                string metricsDbName = this.Configuration.GetValue("MetricsDbName", "metricsdatabase");
-                string influxDbUrl = this.Configuration.GetValue("InfluxDbUrl", "http://127.0.0.1:8086");
-                metricsCollector = Option.Some(new MetricsBuilder()
-                    .Report.ToInfluxDb(
-                options =>
+                IConfiguration metricsConfigurationSection = this.Configuration.GetSection("Metrics");
+                string metricsStoreType = metricsConfigurationSection.GetValue<string>("MetricsStoreType");
+
+                if (metricsStoreType == "influxdb")
                 {
-                    options.InfluxDb.BaseUri = new Uri(influxDbUrl);
-                    options.InfluxDb.Database = metricsDbName;
-                    options.InfluxDb.CreateDataBaseIfNotExists = true;
-                })
-                .Build());
-            }
-            else if (metricsStoreType == "json")
-            {
-                string metricsStoreLocation = this.Configuration.GetValue("MetricsStore", "json");
-                bool appendToMetricsFile = this.Configuration.GetValue("MetricsStoreAppend", false);
-                metricsCollector = Option.Some(new MetricsBuilder()
-                    .Report.ToTextFile(
-                        options =>
-                        {
-                            options.MetricsOutputFormatter = new MetricsJsonOutputFormatter();
-                            options.AppendMetricsToTextFile = appendToMetricsFile;
-                            options.FlushInterval = TimeSpan.FromSeconds(20);
-                            options.OutputPathAndFileName = metricsStoreLocation;
-                        }
-                    ).Build());
-            }
-
-            // Start reporting metrics
-            metricsCollector.Match(m =>
-            {
-                var scheduler = new AppMetricsTaskScheduler(
-                    TimeSpan.FromSeconds(20),
-                    async () =>
+                    string metricsDbName = metricsConfigurationSection.GetValue("MetricsDbName", "metricsdatabase");
+                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://influxdb:8086");
+                    Metrics.MetricsCollector = Option.Some(new MetricsBuilder()
+                        .Report.ToInfluxDb(
+                    options =>
                     {
-                        await Task.WhenAll(m.ReportRunner.RunAllAsync());
-                    });
-                scheduler.Start();
-                return m;
-            }, () => throw new Exception("Unsupported metrics store type"));
-
-            return metricsCollector;
+                        options.InfluxDb.BaseUri = new Uri(influxDbUrl);
+                        options.InfluxDb.Database = metricsDbName;
+                        options.InfluxDb.CreateDataBaseIfNotExists = true;
+                    })
+                    .Build());
+                }
+                else
+                {
+                    string metricsStoreLocation = metricsConfigurationSection.GetValue("MetricsStoreLocation", "metrics");
+                    bool appendToMetricsFile = metricsConfigurationSection.GetValue("MetricsStoreAppend", false);
+                    Metrics.MetricsCollector = Option.Some(new MetricsBuilder()
+                        .Report.ToTextFile(
+                            options =>
+                            {
+                                options.MetricsOutputFormatter = new MetricsJsonOutputFormatter();
+                                options.AppendMetricsToTextFile = appendToMetricsFile;
+                                options.FlushInterval = TimeSpan.FromSeconds(20);
+                                options.OutputPathAndFileName = metricsStoreLocation;
+                            }
+                        ).Build());
+                }
+                Metrics.StartReporting();
+            }
         }
     }
 }

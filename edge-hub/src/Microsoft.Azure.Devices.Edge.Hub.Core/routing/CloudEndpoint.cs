@@ -29,14 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     {
         readonly Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
-        readonly Util.Option<IMetricsRoot> metricsCollector;
 
-        public CloudEndpoint(string id, Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter, Util.Option<IMetricsRoot> metricsCollector)
+        public CloudEndpoint(string id, Func<string, Util.Option<ICloudProxy>> cloudProxyGetterFunc, Core.IMessageConverter<IRoutingMessage> messageConverter)
             : base(id)
         {
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
-            this.metricsCollector = Preconditions.CheckNotNull(metricsCollector);
         }
 
         public override string Type => this.GetType().Name;
@@ -89,12 +87,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         try
                         {
                             string id = this.GetIdentity(routingMessage).Expect(() => new InvalidOperationException("Could not retrieve identity of message"));
-                            using (Metrics.CloudLatency(this.cloudEndpoint.metricsCollector, id))
+                            using (Metrics.CloudLatency(id))
                             {
                                 await cp.SendMessageAsync(message);
                             }
                             succeeded.Add(routingMessage);
-                            Metrics.MessageCount(this.cloudEndpoint.metricsCollector, id);
+                            Metrics.MessageCount(id);
                         }
                         catch (Exception ex)
                         {
@@ -208,9 +206,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags(new[] { "DeviceId" }, new[] { id });
             }
 
-            public static void MessageCount(Util.Option<IMetricsRoot> metricsCollector, string identity) => Util.Metrics.Count(metricsCollector, GetTags(identity), EdgeHub2CMessageCountOptions);
+            public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHub2CMessageCountOptions);
 
-            public static IDisposable CloudLatency(Util.Option<IMetricsRoot> metricsCollector, string identity) => Util.Metrics.Latency(metricsCollector, GetTags(identity), EdgeHub2CMessageLatencyOptions);
+            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHub2CMessageLatencyOptions);
         }
 
         static class Events

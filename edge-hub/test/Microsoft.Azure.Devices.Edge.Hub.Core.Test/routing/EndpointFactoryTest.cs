@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         {
             var connectionManager = new Mock<IConnectionManager>();
             var messageConverter = new Mock<Core.IMessageConverter<IRoutingMessage>>();
-            this.endpointFactory = new EndpointFactory(connectionManager.Object, messageConverter.Object, "Device1", Option.None<IMetricsRoot>());
+            this.endpointFactory = new EndpointFactory(connectionManager.Object, messageConverter.Object, "Device1");
         }
 
         [Fact]

@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = Mock.Of<ITwinManager>();
 
             // Test Scenario
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
             var identity = Mock.Of<IIdentity>();
             EdgeMessage[] messages = { new Message.Builder(new byte[0]).Build() };
             await routingEdgeHub.ProcessDeviceMessageBatch(identity, messages);
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             Message badMessage = new Message.Builder(new byte[300 * 1024]).Build();
 
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
 
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = new Mock<ITwinManager>();
             var message = Mock.Of<Core.IMessage>();
             twinManager.Setup(t => t.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(message));
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
 
             Core.IMessage received = await routingEdgeHub.GetTwinAsync("*");
             twinManager.Verify(x => x.GetTwinAsync("*"), Times.Once);
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message = Mock.Of<Core.IMessage>();
             Core.IMessage received = new Message.Builder(new byte[0]).Build();
             twinManager.Setup(t => t.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<Core.IMessage>())).Callback<string, Core.IMessage>((s, m) => received = message).Returns(Task.CompletedTask);
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager.Object, "testEdgeDevice");
 
             await routingEdgeHub.UpdateDesiredPropertiesAsync("*", message);
             twinManager.Verify(x => x.UpdateDesiredPropertiesAsync("*", message), Times.Once);
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);            
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
@@ -309,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var connectionManager = new ConnectionManager(cloudConnectionProvider.Object);
 
             // RoutingEdgeHub
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice");
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager);
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
@@ -353,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             string edgeDeviceId = "testEdgeDevice";
             // Test Scenario
-            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, edgeDeviceId, Option.None<IMetricsRoot>());
+            var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, edgeDeviceId);
 
             Message clientMessage1 = new Message.Builder(new byte[0]).Build();
             clientMessage1.SystemProperties[Core.SystemProperties.ConnectionDeviceId] = edgeDeviceId;
@@ -623,7 +623,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routerConfig = new RouterConfig(new[] { route });
             Router router = await Router.CreateAsync("myRouter", "myIotHub", routerConfig, endpointExecutorFactory);
             var edgeHub = new RoutingEdgeHub(router, Mock.Of<Core.IMessageConverter<IMessage>>(),
-                connectionManager, Mock.Of<ITwinManager>(), "ed1", Option.None<IMetricsRoot>());
+                connectionManager, Mock.Of<ITwinManager>(), "ed1");
             return edgeHub;
         }
     }

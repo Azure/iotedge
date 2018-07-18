@@ -28,12 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly IConnectionManager connectionManager;
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
-        readonly Option<IMetricsRoot> metricsCollector;
 
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
-            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId, Option<IMetricsRoot> metricsCollector)
+            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -41,7 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;
-            this.metricsCollector = Preconditions.CheckNotNull(metricsCollector);
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -49,8 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity);
-            Metrics.MessageCount(this.metricsCollector, identity);
-            using (Metrics.MessageLatency(this.metricsCollector, identity))
+            Metrics.MessageCount(identity);
+            using (Metrics.MessageLatency(identity))
             {
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
                 return this.router.RouteAsync(routingMessage);
@@ -280,14 +278,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         static class Metrics
         {
-            static readonly CounterOptions D2CMessageReceivedCountOptions = new CounterOptions
+            static readonly CounterOptions EdgeHubMessageReceivedCountOptions = new CounterOptions
             {
-                Name = "D2CMessageReceivedCount",
+                Name = "EdgeHubMessageReceivedCount",
                 MeasurementUnit = Unit.Events
             };
-            static readonly TimerOptions D2CMessageLatencyOptions = new TimerOptions
+            static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
             {
-                Name = "D2CMessageLatency",
+                Name = "EdgeHubMessageLatency",
                 MeasurementUnit = Unit.Requests,
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
@@ -298,9 +296,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags(new[] { "Id" }, new[] { identity.Id });
             }
 
-            public static void MessageCount(Option<IMetricsRoot> metricsCollector, IIdentity identity) => Util.Metrics.Count(metricsCollector, GetTags(identity), D2CMessageReceivedCountOptions);
+            public static void MessageCount(IIdentity identity) => Util.Metrics.Count(GetTags(identity), EdgeHubMessageReceivedCountOptions);
 
-            public static IDisposable MessageLatency(Option<IMetricsRoot> metricsCollector, IIdentity identity) => Util.Metrics.Latency(metricsCollector, GetTags(identity), D2CMessageLatencyOptions);
+            public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
         }
 
         static class Events
