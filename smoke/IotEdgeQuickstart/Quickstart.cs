@@ -11,6 +11,7 @@ namespace IotEdgeQuickstart
     public class Quickstart : Details.Details
     {
         readonly LeaveRunning leaveRunning;
+        readonly bool noDeployment;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -20,10 +21,12 @@ namespace IotEdgeQuickstart
             string imageTag,
             string deviceId,
             string hostname,
-            LeaveRunning leaveRunning) :
+            LeaveRunning leaveRunning,
+            bool noDeployment) :
             base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, imageTag, deviceId, hostname)
         {
             this.leaveRunning = leaveRunning;
+            this.noDeployment = noDeployment;
         }
 
         public async Task RunAsync()
@@ -47,13 +50,16 @@ namespace IotEdgeQuickstart
                     await StartBootstrapper();
                     await VerifyEdgeAgentIsRunning();
                     await VerifyEdgeAgentIsConnectedToIotHub();
-                    await DeployTempSensorToEdgeDevice();
-                    await VerifyTempSensorIsRunning();
-                    await VerifyTempSensorIsSendingDataToIotHub();
-
-                    if (this.leaveRunning == LeaveRunning.Core)
+                    if (!noDeployment)
                     {
-                        await RemoveTempSensorFromEdgeDevice();
+                        await DeployTempSensorToEdgeDevice();
+                        await VerifyTempSensorIsRunning();
+                        await VerifyTempSensorIsSendingDataToIotHub();
+
+                        if (this.leaveRunning == LeaveRunning.Core)
+                        {
+                            await RemoveTempSensorFromEdgeDevice();
+                        }
                     }
                 }
                 catch(Exception)
