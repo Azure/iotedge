@@ -50,7 +50,7 @@ namespace IotEdgeQuickstart
                     await StartBootstrapper();
                     await VerifyEdgeAgentIsRunning();
                     await VerifyEdgeAgentIsConnectedToIotHub();
-                    if (!noDeployment)
+                    if (!this.noDeployment)
                     {
                         await DeployTempSensorToEdgeDevice();
                         await VerifyTempSensorIsRunning();
