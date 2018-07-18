@@ -13,14 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.CorrelationId = rid;
             this.Data = data;
             this.Status = statusCode;
+            this.HttpStatusCode = HttpStatusCode.OK;
+            this.Exception = Option.None<Exception>();
         }
 
         public DirectMethodResponse(Exception exception, HttpStatusCode code)
         {
-            this.Exception = Preconditions.CheckNotNull(exception, nameof(exception));
+            this.Exception = Option.Some(Preconditions.CheckNotNull(exception, nameof(exception)));
+            this.HttpStatusCode = code;
         }
 
-        public Exception Exception { get; }
+        public Option<Exception> Exception { get; }
 
         public HttpStatusCode HttpStatusCode { get; }
 

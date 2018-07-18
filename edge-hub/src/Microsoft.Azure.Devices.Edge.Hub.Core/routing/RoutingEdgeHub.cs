@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -24,17 +25,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly IConnectionManager connectionManager;
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
+        readonly IInvokeMethodHandler invokeMethodHandler;
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
-            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId)
+            IConnectionManager connectionManager, ITwinManager twinManager, string edgeDeviceId, IInvokeMethodHandler invokeMethodHandler)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
-            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;
+            this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
+            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;            
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -55,31 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)
         {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Preconditions.CheckNotNull(methodRequest, nameof(methodRequest));
 
             Events.MethodCallReceived(id, methodRequest.Id, methodRequest.CorrelationId);
-            Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(methodRequest.Id);
-            return deviceProxy.Match(
-                dp =>
-                {
-                    if (this.connectionManager.GetSubscriptions(methodRequest.Id)
-                        .Filter(s => s.TryGetValue(DeviceSubscription.Methods, out bool isActive) && isActive)
-                        .HasValue)
-                    {
-                        Events.InvokingMethod(methodRequest);
-                        return dp.InvokeMethodAsync(methodRequest);
-                    }
-                    else
-                    {
-                        Events.NoSubscriptionForMethodInvocation(methodRequest);
-                        return Task.FromResult(new DirectMethodResponse(null, null, (int)HttpStatusCode.NotFound));
-                    }
-                },
-                () =>
-                {
-                    Events.NoDeviceProxyForMethodInvocation(methodRequest);
-                    return Task.FromResult(new DirectMethodResponse(null, null, (int)HttpStatusCode.NotFound));
-                });
+            return this.invokeMethodHandler.InvokeMethod(methodRequest);
         }
 
         public Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage)
@@ -163,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             try
             {
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(c, deviceSubscription, true));
+                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(id, c, deviceSubscription, true));
             }
             catch (Exception e)
             {
@@ -182,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             try
             {
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(c, deviceSubscription, false));
+                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(id, c, deviceSubscription, false));
             }
             catch (Exception e)
             {
@@ -194,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        internal async Task ProcessSubscription(ICloudProxy cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
+        internal async Task ProcessSubscription(string id, ICloudProxy cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
             switch (deviceSubscription)
             {
@@ -211,6 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 case DeviceSubscription.Methods:
                     await (addSubscription ? cloudProxy.SetupCallMethodAsync() : cloudProxy.RemoveCallMethodAsync());
+                    await this.invokeMethodHandler.ProcessInvokeMethodSubscription(id);
                     break;
 
                 case DeviceSubscription.ModuleMessages:
@@ -245,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         {
                             foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
                             {
-                                await this.ProcessSubscription(c, subscription.Key, subscription.Value);
+                                await this.ProcessSubscription(id, c, subscription.Key, subscription.Value);
                             }
                         });
 
