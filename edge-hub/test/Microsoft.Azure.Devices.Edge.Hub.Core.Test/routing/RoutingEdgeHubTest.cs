@@ -377,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Fact]
         public async Task ProcessC2DSubscriptionTest()
         {
-            // Arrange
+            // Arrange            
             RoutingEdgeHub edgeHub = await GetTestEdgeHub();
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.StartListening());
