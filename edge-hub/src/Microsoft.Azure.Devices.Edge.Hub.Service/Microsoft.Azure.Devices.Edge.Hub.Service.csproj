@@ -21,9 +21,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="App.Metrics" Version="3.0.0-alpha-0780" />
-    <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="3.0.0-alpha-0067" />
-    <PackageReference Include="App.Metrics.Reporting.TextFile" Version="3.0.0-alpha-0081" />
     <PackageReference Include="Autofac" Version="4.5.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />

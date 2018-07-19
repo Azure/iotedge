@@ -6,10 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
-    using System.Threading.Tasks;
-    using App.Metrics;
-    using App.Metrics.Formatters.Json;
-    using App.Metrics.Scheduling;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using DotNetty.Common.Internal.Logging;
@@ -139,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
 
-            this.BuildMetricsCollector();
+            Metrics.BuildMetricsCollector(this.Configuration);
 
             // Register modules
             builder.RegisterModule(
@@ -225,48 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var value = this.Configuration.GetValue<T>(key);
             return EqualityComparer<T>.Default.Equals(value, default(T)) ? Option.None<T>() : Option.Some(value);
-        }
-
-        void BuildMetricsCollector()
-        {
-            bool collectMetrics = this.Configuration.GetValue("CollectMetrics", false);
-
-            if (collectMetrics)
-            {
-                IConfiguration metricsConfigurationSection = this.Configuration.GetSection("Metrics");
-                string metricsStoreType = metricsConfigurationSection.GetValue<string>("MetricsStoreType");
-
-                if (metricsStoreType == "influxdb")
-                {
-                    string metricsDbName = metricsConfigurationSection.GetValue("MetricsDbName", "metricsdatabase");
-                    string influxDbUrl = metricsConfigurationSection.GetValue("InfluxDbUrl", "http://influxdb:8086");
-                    Metrics.MetricsCollector = Option.Some(new MetricsBuilder()
-                        .Report.ToInfluxDb(
-                    options =>
-                    {
-                        options.InfluxDb.BaseUri = new Uri(influxDbUrl);
-                        options.InfluxDb.Database = metricsDbName;
-                        options.InfluxDb.CreateDataBaseIfNotExists = true;
-                    })
-                    .Build());
-                }
-                else
-                {
-                    string metricsStoreLocation = metricsConfigurationSection.GetValue("MetricsStoreLocation", "metrics");
-                    bool appendToMetricsFile = metricsConfigurationSection.GetValue("MetricsStoreAppend", false);
-                    Metrics.MetricsCollector = Option.Some(new MetricsBuilder()
-                        .Report.ToTextFile(
-                            options =>
-                            {
-                                options.MetricsOutputFormatter = new MetricsJsonOutputFormatter();
-                                options.AppendMetricsToTextFile = appendToMetricsFile;
-                                options.FlushInterval = TimeSpan.FromSeconds(20);
-                                options.OutputPathAndFileName = metricsStoreLocation;
-                            }
-                        ).Build());
-                }
-                Metrics.StartReporting();
-            }
         }
     }
 }

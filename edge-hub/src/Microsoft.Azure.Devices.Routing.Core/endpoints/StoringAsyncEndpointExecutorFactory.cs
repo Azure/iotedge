@@ -5,7 +5,6 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System.Threading.Tasks;
-    using App.Metrics;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 

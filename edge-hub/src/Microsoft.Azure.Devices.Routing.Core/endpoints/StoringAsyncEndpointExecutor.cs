@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
             internal static MetricTags GetTags(string id)
             {
-                return new MetricTags(new[] { "EndpointId" }, new[] { id });
+                return new MetricTags("EndpointId", id);
             }
 
             public static void StoredCount(string identity) => Edge.Util.Metrics.Count(GetTags(identity), EndpointMessageCountOptions);

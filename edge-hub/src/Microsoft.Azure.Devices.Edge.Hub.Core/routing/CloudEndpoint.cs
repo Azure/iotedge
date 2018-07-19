@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             internal static MetricTags GetTags(string id)
             {
-                return new MetricTags(new[] { "DeviceId" }, new[] { id });
+                return new MetricTags("DeviceId", id);
             }
 
             public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHub2CMessageCountOptions);

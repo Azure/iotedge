@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Counter;
-    using App.Metrics.Meter;
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -293,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             internal static MetricTags GetTags(IIdentity identity)
             {
-                return new MetricTags(new[] { "Id" }, new[] { identity.Id });
+                return new MetricTags("Id", identity.Id);
             }
 
             public static void MessageCount(IIdentity identity) => Util.Metrics.Count(GetTags(identity), EdgeHubMessageReceivedCountOptions);
