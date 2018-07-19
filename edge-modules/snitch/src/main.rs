@@ -17,6 +17,8 @@ extern crate tokio_uds;
 extern crate url;
 extern crate url_serde;
 
+mod client;
+mod connect;
 mod error;
 mod settings;
 
