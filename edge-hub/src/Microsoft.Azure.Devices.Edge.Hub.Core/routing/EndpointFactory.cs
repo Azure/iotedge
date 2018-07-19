@@ -3,8 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
