@@ -49,12 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
 
             Assert.NotNull(actionResult);
-            var jsonResult = actionResult as JsonResult;
-            Assert.NotNull(jsonResult);
-            var methodResult = jsonResult.Value as MethodResult;
+            var objectResult = actionResult as ObjectResult;
+            Assert.NotNull(objectResult);
+            var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Equal(null, methodResult.Payload);
+            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
         }
 
         [Fact]
@@ -83,16 +84,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
-            var jsonResult = actionResult as JsonResult;
-            Assert.NotNull(jsonResult);
-            var methodResult = jsonResult.Value as MethodResult;
+            var objectResult = actionResult as ObjectResult;
+            Assert.NotNull(objectResult);
+            var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Equal(null, methodResult.Payload);
+            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
         }
 
         [Fact]
-        public async Task TestInvokeMethodWithResponse()
+        public async Task TestInvokeMethodWithResponsePayload()
         {
             var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
             ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
@@ -117,16 +119,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
 
             Assert.NotNull(actionResult);
-            var jsonResult = actionResult as JsonResult;
-            Assert.NotNull(jsonResult);
-            var methodResult = jsonResult.Value as MethodResult;
+            var objectResult = actionResult as ObjectResult;
+            Assert.NotNull(objectResult);
+            var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
+            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
         }
 
         [Fact]
-        public async Task TestInvokeMethodOnModuleWithResponse()
+        public async Task TestInvokeMethodOnModuleWithResponsePayload()
         {
             var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
             ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
@@ -152,12 +155,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             IActionResult actionResult = await testController.InvokeModuleMethodAsync(WebUtility.UrlEncode(toDeviceId), WebUtility.UrlEncode(toModuleId), methodRequest);
 
             Assert.NotNull(actionResult);
-            var jsonResult = actionResult as JsonResult;
-            Assert.NotNull(jsonResult);
-            var methodResult = jsonResult.Value as MethodResult;
+            var objectResult = actionResult as ObjectResult;
+            Assert.NotNull(objectResult);
+            var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
+            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task TestInvokeMethodWithException()
+        {
+            var identity = Mock.Of<IIdentity>(i => i.Id == "edgedevice/module1");
+            ActionExecutingContext actionExecutingContext = this.GetActionExecutingContextMock(identity);
+
+            var timeoutException = new EdgeHubTimeoutException("EdgeHub timed out");
+            var directMethodResponse = new DirectMethodResponse(timeoutException, HttpStatusCode.GatewayTimeout);
+            var edgeHub = new Mock<IEdgeHub>();
+            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == identity.Id), It.IsAny<DirectMethodRequest>()))
+                .ReturnsAsync(directMethodResponse);
+
+            var validator = new Mock<IValidator<MethodRequest>>();
+            validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
+
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object);
+            testController.OnActionExecuting(actionExecutingContext);
+
+            string toDeviceId = "device1";
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new MethodRequest { MethodName = command, Payload = new JRaw(payload) };
+            IActionResult actionResult = await testController.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.NotNull(actionResult);
+            var objectResult = actionResult as ObjectResult;
+            Assert.NotNull(objectResult);
+            var methodResult = objectResult.Value as MethodErrorResult;
+            Assert.NotNull(methodResult);
+            Assert.Equal(0, methodResult.Status);
+            Assert.Equal(null, methodResult.Payload);
+            Assert.Equal(timeoutException.Message, methodResult.Message);
+            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.GatewayTimeout);
         }
 
         ActionExecutingContext GetActionExecutingContextMock(IIdentity identity)

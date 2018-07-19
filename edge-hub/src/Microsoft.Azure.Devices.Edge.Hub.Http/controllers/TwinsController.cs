@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -65,8 +66,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
             MethodResult methodResult = GetMethodResult(directMethodResponse);
-            //this.Request.HttpContext.Response.ContentLength = GetContentLength(methodResult);
-            //this.HttpContext.Response.ContentType = "application/json; charset=utf-8";
+            HttpResponse response = this.Request?.HttpContext?.Response;
+            if (response != null)
+            {
+                response.ContentLength = GetContentLength(methodResult);
+            }
             return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
         }
 

@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
-            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;            
+            this.connectionManager.CloudConnectionEstablished += this.CloudConnectionEstablished;
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             try
             {
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(id, c, deviceSubscription, true));
+                await this.ProcessSubscription(id, cloudProxy, deviceSubscription, true);
             }
             catch (Exception e)
             {
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             try
             {
                 Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-                await cloudProxy.ForEachAsync(c => this.ProcessSubscription(id, c, deviceSubscription, false));
+                await this.ProcessSubscription(id, cloudProxy, deviceSubscription, false);
             }
             catch (Exception e)
             {
@@ -177,24 +177,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        internal async Task ProcessSubscription(string id, ICloudProxy cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
+        internal async Task ProcessSubscription(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
             switch (deviceSubscription)
             {
                 case DeviceSubscription.C2D:
                     if (addSubscription)
                     {
-                        cloudProxy.StartListening();
+                        cloudProxy.ForEach(c => c.StartListening());
                     }
                     break;
 
                 case DeviceSubscription.DesiredPropertyUpdates:
-                    await (addSubscription ? cloudProxy.SetupDesiredPropertyUpdatesAsync() : cloudProxy.RemoveDesiredPropertyUpdatesAsync());
+                    await cloudProxy.ForEachAsync(c => addSubscription ? c.SetupDesiredPropertyUpdatesAsync() : c.RemoveDesiredPropertyUpdatesAsync());
                     break;
 
                 case DeviceSubscription.Methods:
-                    await (addSubscription ? cloudProxy.SetupCallMethodAsync() : cloudProxy.RemoveCallMethodAsync());
-                    await this.invokeMethodHandler.ProcessInvokeMethodSubscription(id);
+                    if (addSubscription)
+                    {
+                        await cloudProxy.ForEachAsync(c => c.SetupCallMethodAsync());
+                        await this.invokeMethodHandler.ProcessInvokeMethodSubscription(id);
+                    }
+                    else
+                    {
+                        await cloudProxy.ForEachAsync(c => c.RemoveCallMethodAsync());
+                    }
                     break;
 
                 case DeviceSubscription.ModuleMessages:
@@ -217,22 +224,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             }
         }
 
-        async Task ProcessSubscriptions(string id)
+        Task ProcessSubscriptions(string id)
         {
             Option<ICloudProxy> cloudProxy = this.connectionManager.GetCloudConnection(id);
-            await cloudProxy.ForEachAsync(
-                c =>
+            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
+            return subscriptions.ForEachAsync(
+                async s =>
                 {
-                    Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
-                    return subscriptions.ForEachAsync(
-                        async s =>
-                        {
-                            foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
-                            {
-                                await this.ProcessSubscription(id, c, subscription.Key, subscription.Value);
-                            }
-                        });
-
+                    foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+                    {
+                        await this.ProcessSubscription(id, cloudProxy, subscription.Key, subscription.Value);
+                    }
                 });
         }
 
