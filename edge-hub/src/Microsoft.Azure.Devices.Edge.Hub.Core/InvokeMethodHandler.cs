@@ -21,39 +21,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
         }
 
-        public async Task<DirectMethodResponse> InvokeMethod(DirectMethodRequest methodRequest)
+        public Task<DirectMethodResponse> InvokeMethod(DirectMethodRequest methodRequest)
         {
             Preconditions.CheckNotNull(methodRequest, nameof(methodRequest));
-            Events.InvokingMethod(methodRequest);
-            var taskCompletion = new TaskCompletionSource<DirectMethodResponse>();
-            ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> clientQueue = this.GetClientQueue(methodRequest.Id);
-            clientQueue.TryAdd(methodRequest, taskCompletion);
-            await this.ProcessInvokeMethodsForClient(methodRequest.Id);
-            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(methodRequest.ConnectTimeout));
-            if (completedTask != taskCompletion.Task && clientQueue.TryRemove(methodRequest, out taskCompletion))
-            {
-                taskCompletion.TrySetResult(new DirectMethodResponse(new InvalidOperationException($"Client {methodRequest.Id} not found"), HttpStatusCode.NotFound));
-            }
 
-            return await taskCompletion.Task;
+            Option<IDeviceProxy> deviceProxy = this.GetDeviceProxyWithSubscription(methodRequest.Id);
+            return deviceProxy.Map(
+                    d =>
+                    {
+                        Events.InvokingMethod(methodRequest);
+                        return d.InvokeMethodAsync(methodRequest);
+                    })
+                .GetOrElse(
+                    async () =>
+                    {
+                        var taskCompletion = new TaskCompletionSource<DirectMethodResponse>();
+                        ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> clientQueue = this.GetClientQueue(methodRequest.Id);
+                        clientQueue.TryAdd(methodRequest, taskCompletion);
+                        Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(methodRequest.ConnectTimeout));
+                        if (completedTask != taskCompletion.Task && clientQueue.TryRemove(methodRequest, out taskCompletion))
+                        {
+                            taskCompletion.TrySetResult(new DirectMethodResponse(new EdgeHubTimeoutException($"Client {methodRequest.Id} not found"), HttpStatusCode.NotFound));
+                        }
+
+                        return await taskCompletion.Task;
+                    });
         }
 
         public Task ProcessInvokeMethodSubscription(string id)
         {
-            // Call the method to handle invoke method requests, but don't block on that call,
-            // since the subscription call must complete before the invoke method is called.
-            this.ProcessInvokeMethodsSubscriptionInternal(id);
-            return Task.CompletedTask;            
+            this.ProcessInvokeMethodSubscriptionInternal(id);
+            return Task.CompletedTask;
         }
 
-        async void ProcessInvokeMethodsSubscriptionInternal(string id)
+        async void ProcessInvokeMethodSubscriptionInternal(string id)
         {
             try
             {
                 Events.ProcessingInvokeMethodQueue(id);
-                // Wait for the Subscription call to complete successfully
-                await Task.Delay(TimeSpan.FromSeconds(2));
-                await this.ProcessInvokeMethodsForClient(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
+                // Temporary hack to wait for the subscription call to complete. Without this,
+                // the EdgeHub will invoke the pending method request "too soon", before the layers
+                // in between have been set up correctly. To fix this, changes are needed in ProtocolGateway,
+                // Client SDK, and need to figure out a way to raise events for AMQP Links. 
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                await this.ProcessInvokeMethodsForClient(id);
             }
             catch (Exception e)
             {
@@ -61,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task ProcessInvokeMethodsForClient(string id)
+        Option<IDeviceProxy> GetDeviceProxyWithSubscription(string id)
         {
             Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
             if (!deviceProxy.HasValue)
@@ -76,20 +87,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             else
             {
-                await deviceProxy.ForEachAsync(
-                    async dp =>
-                    {
-                        ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> clientQueue = this.GetClientQueue(id);
-                        foreach (KeyValuePair<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> invokeMethodRequest in clientQueue)
-                        {
-                            if (clientQueue.TryRemove(invokeMethodRequest.Key, out TaskCompletionSource<DirectMethodResponse> taskCompletionSource))
-                            {
-                                DirectMethodResponse response = await dp.InvokeMethodAsync(invokeMethodRequest.Key);
-                                taskCompletionSource.TrySetResult(response);
-                            }
-                        }
-                    });
+                return deviceProxy;
             }
+            return Option.None<IDeviceProxy>();
+        }
+
+        async Task ProcessInvokeMethodsForClient(string id)
+        {
+            Option<IDeviceProxy> deviceProxy = this.GetDeviceProxyWithSubscription(id);
+            await deviceProxy.ForEachAsync(
+                async dp =>
+                {
+                    ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> clientQueue = this.GetClientQueue(id);
+                    foreach (KeyValuePair<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> invokeMethodRequest in clientQueue)
+                    {
+                        if (clientQueue.TryRemove(invokeMethodRequest.Key, out TaskCompletionSource<DirectMethodResponse> taskCompletionSource))
+                        {
+                            DirectMethodResponse response = await dp.InvokeMethodAsync(invokeMethodRequest.Key);
+                            taskCompletionSource.TrySetResult(response);
+                        }
+                    }
+                });
         }
 
         ConcurrentDictionary<DirectMethodRequest, TaskCompletionSource<DirectMethodResponse>> GetClientQueue(string id) => this.clientMethodRequestQueue.GetOrAdd(
@@ -102,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             const int IdStart = HubCoreEventIds.InvokeMethodHandler;
 
             enum EventIds
-            {                
+            {
                 InvokingMethod = IdStart,
                 NoSubscription,
                 ClientNotFound,
@@ -135,5 +153,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogWarning((int)EventIds.ErrorProcessingInvokeMethodRequests, exception, Invariant($"Error processing invoke method requests for client {id}."));
             }
         }
-    }    
+    }
 }
