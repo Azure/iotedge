@@ -1,0 +1,96 @@
+// Copyright (c) Microsoft. All rights reserved.
+
+use std::collections::HashMap;
+use std::io::Write;
+
+use bytes::Bytes;
+use chrono::{DateTime, Utc};
+use libflate::finish::AutoFinish;
+use libflate::gzip::Encoder as GzipEncoder;
+use tar::{Builder as TarBuilder, Header as TarHeader};
+
+use error::Result;
+use influx::QueryResults;
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Interval {
+    missed_messages_count: u64,
+    start_date_time: DateTime<Utc>,
+    end_date_time: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageAnalysis {
+    module_id: String,
+    status_code: u16,
+    status_message: String,
+    received_messages_count: u64,
+    last_message_received_at: DateTime<Utc>,
+    missed_messages: Vec<Interval>,
+}
+
+#[derive(Serialize)]
+pub struct Report {
+    id: String,
+    #[serde(skip)]
+    files: Vec<(String, Bytes)>,
+    metrics: HashMap<String, QueryResults>,
+    notes: Vec<String>,
+    message_analysis: Option<Vec<MessageAnalysis>>,
+}
+
+impl Report {
+    pub fn new(id: String) -> Report {
+        Report {
+            id,
+            files: vec![],
+            metrics: HashMap::new(),
+            notes: vec![],
+            message_analysis: None,
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn set_message_analysis(&mut self, analysis: Vec<MessageAnalysis>) {
+        self.message_analysis = Some(analysis);
+    }
+
+    pub fn add_file(&mut self, name: &str, data: &[u8]) -> &Self {
+        self.files.push((name.to_owned(), Bytes::from(data)));
+        self
+    }
+
+    pub fn add_metric(&mut self, name: &str, metric: QueryResults) -> &Self {
+        self.metrics.insert(name.to_owned(), metric);
+        self
+    }
+
+    pub fn add_notes(&mut self, notes: String) -> &Self {
+        self.notes.push(notes);
+        self
+    }
+
+    pub fn write_files<W: Write>(&self, writer: W) -> Result<W> {
+        // make a gzip from the tar
+        let encoder = AutoFinish::new(GzipEncoder::new(writer)?);
+
+        // build a tar with all the file data
+        let mut builder = TarBuilder::new(encoder);
+        for (name, bytes) in &self.files {
+            let mut header = TarHeader::new_gnu();
+            header.set_path(name.as_str())?;
+            header.set_size(bytes.len() as u64);
+
+            builder.append(&header, bytes.as_ref())?;
+        }
+
+        // this is basically a series of unwraps to get at W:
+        //  TarBuilder -> AutoFinish -> Encoder<W> -> W
+        Ok(builder.into_inner()?.into_inner().into_inner())
+    }
+}
