@@ -4,12 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class TwinsController : Controller
@@ -17,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         readonly Task<IEdgeHub> edgeHubGetter;
         readonly IValidator<MethodRequest> validator;
         IIdentity identity;
-
+        
         public TwinsController(Task<IEdgeHub> edgeHub, IValidator<MethodRequest> validator)
         {
             this.edgeHubGetter = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
@@ -62,14 +64,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             IEdgeHub edgeHub = await this.edgeHubGetter;
             DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
             Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
-            
-            var methodResult = new MethodResult
+
+            MethodResult methodResult = GetMethodResult(directMethodResponse);
+            HttpResponse response = this.Request?.HttpContext?.Response;
+            if (response != null)
             {
-                Status = directMethodResponse.Status,
-                Payload = GetRawJson(directMethodResponse.Data)
-            };
-            return this.Json(methodResult);
+                response.ContentLength = GetContentLength(methodResult);
+            }
+            return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
         }
+
+        static int GetContentLength(MethodResult methodResult)
+        {
+            string json = JsonConvert.SerializeObject(methodResult);
+            return json.Length;
+        }
+
+        internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
+            directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.Status, null, e.Message, string.Empty) as MethodResult)
+                .GetOrElse(() => new MethodResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
 
         internal static JRaw GetRawJson(byte[] bytes)
         {
