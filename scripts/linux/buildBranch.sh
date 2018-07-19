@@ -191,6 +191,7 @@ publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
+publish_app "MessagesAnalyzer"
 
 publish_lib "Microsoft.Azure.Devices.Edge.Functions.Binding"
 
