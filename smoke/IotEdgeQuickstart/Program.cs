@@ -48,6 +48,7 @@ Defaults:
                             Sockets, otherwise N/A
                             switch form uses local IP address as hostname
   --username                anonymous, or Key Vault if --registry is specified
+  --no-deployment           deploy Edge Hub and temperature sensor modules
 "
         )]
     [HelpOption]
@@ -91,6 +92,9 @@ Defaults:
 
         [Option("--leave-running=<All/Core/None>", CommandOptionType.SingleOrNoValue, Description = "Leave IoT Edge running when the app is finished")]
         public LeaveRunning LeaveRunning { get; } = LeaveRunning.None;
+
+        [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
+        public bool NoDeployment { get; } = false;
 
         // ReSharper disable once UnusedMember.Local
         async Task<int> OnExecuteAsync()
@@ -152,7 +156,8 @@ Defaults:
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
-                    this.LeaveRunning);
+                    this.LeaveRunning,
+                    this.NoDeployment);
                 await test.RunAsync();
             }
             catch (Exception ex)
