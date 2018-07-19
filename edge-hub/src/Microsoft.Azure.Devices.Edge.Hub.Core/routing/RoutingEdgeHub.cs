@@ -155,7 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task<IMessage> GetTwinAsync(string id)
         {
             Events.GetTwinCallReceived(id);
-            // TODO Count twin calls here
             return this.twinManager.GetTwinAsync(id);
         }
 

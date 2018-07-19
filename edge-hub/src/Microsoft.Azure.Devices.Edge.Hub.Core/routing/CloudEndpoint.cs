@@ -188,14 +188,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         static class Metrics
         {
-            static readonly CounterOptions EdgeHub2CMessageCountOptions = new CounterOptions
+            static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
             {
-                Name = "EdgeHub2CMessageSentCount",
+                Name = "EdgeHubToCloudMessageSentCount",
                 MeasurementUnit = Unit.Events
             };
-            static readonly TimerOptions EdgeHub2CMessageLatencyOptions = new TimerOptions
+            static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
             {
-                Name = "EdgeHub2CMessageLatencyMs",
+                Name = "EdgeHubToCloudMessageLatencyMs",
                 MeasurementUnit = Unit.None,
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
@@ -206,9 +206,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new MetricTags("DeviceId", id);
             }
 
-            public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHub2CMessageCountOptions);
+            public static void MessageCount(string identity) => Util.Metrics.Count(GetTags(identity), EdgeHubToCloudMessageCountOptions);
 
-            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHub2CMessageLatencyOptions);
+            public static IDisposable CloudLatency(string identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
         }
 
         static class Events

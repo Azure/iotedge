@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;

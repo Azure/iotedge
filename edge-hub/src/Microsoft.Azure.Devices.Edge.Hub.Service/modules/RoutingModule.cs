@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using App.Metrics;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -27,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Extensions.Logging;
     using IRoutingMessage = Routing.Core.IMessage;
     using Message = Client.Message;
-    using App.Metrics.Filtering;
 
     public class RoutingModule : Module
     {

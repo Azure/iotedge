@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
