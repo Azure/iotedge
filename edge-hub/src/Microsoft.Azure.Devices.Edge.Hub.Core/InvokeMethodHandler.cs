@@ -25,6 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(methodRequest, nameof(methodRequest));
 
+            // Check if a device Proxy is available with the right subscriptions
+            // If so, then invoke the method on the deviceProxy right away.
+            // If not, then add this method invocation to a list. If the client connects
+            // and subscribes to methods invocations before the method invocation expires,
+            // then invoke it, else return a 404
             Option<IDeviceProxy> deviceProxy = this.GetDeviceProxyWithSubscription(methodRequest.Id);
             return deviceProxy.Map(
                     d =>
@@ -48,12 +53,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     });
         }
 
+        /// <summary>
+        /// This method is called when a client subscribes to Method invocations. 
+        /// It processes all the pending method requests for that client (i.e the method requests
+        /// that came in before the client subscribed to method invocations and that haven't expired yet)
+        /// </summary>
         public Task ProcessInvokeMethodSubscription(string id)
         {
+            // We don't want to wait for all pending method requests to be processed here.
+            // So return without waiting
             this.ProcessInvokeMethodSubscriptionInternal(id);
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// This method is used to process all pending method requests, but without waiting for the 
+        /// processing to complete
+        /// </summary>
         async void ProcessInvokeMethodSubscriptionInternal(string id)
         {
             try
@@ -135,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void NoSubscriptionForMethodInvocation(string id)
             {
-                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method on client {id} because no subscription for methods for found."));
+                Log.LogWarning((int)EventIds.NoSubscription, Invariant($"Unable to invoke method on client {id} because no subscription for methods found."));
             }
 
             public static void NoDeviceProxyForMethodInvocation(string id)
