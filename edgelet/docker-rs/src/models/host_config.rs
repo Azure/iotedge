@@ -300,16 +300,16 @@ impl HostConfig {
         self.cpu_shares = None;
     }
 
-    pub fn set_memory(&mut self, memory: i32) {
+    pub fn set_memory(&mut self, memory: i64) {
         self.memory = Some(memory);
     }
 
-    pub fn with_memory(mut self, memory: i32) -> HostConfig {
+    pub fn with_memory(mut self, memory: i64) -> HostConfig {
         self.memory = Some(memory);
         self
     }
 
-    pub fn memory(&self) -> Option<&i32> {
+    pub fn memory(&self) -> Option<&i64> {
         self.memory.as_ref()
     }
 
