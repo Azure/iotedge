@@ -75,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
                 var endpointExecutorFactory = new SyncEndpointExecutorFactory(new EndpointExecutorConfig(defaultTimeout, new FixedInterval(0, TimeSpan.FromSeconds(1)), defaultTimeout, true));
                 Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
-                IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId);
+                IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
+                IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, invokeMethodHandler);
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
