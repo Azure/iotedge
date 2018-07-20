@@ -20,7 +20,7 @@ pub struct HostConfig {
     cpu_shares: Option<i32>,
     /// Memory limit in bytes.
     #[serde(rename = "Memory", skip_serializing_if = "Option::is_none")]
-    memory: Option<i32>,
+    memory: Option<i64>,
     /// Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
     #[serde(rename = "CgroupParent", skip_serializing_if = "Option::is_none")]
     cgroup_parent: Option<String>,
