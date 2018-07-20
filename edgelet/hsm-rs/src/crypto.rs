@@ -212,6 +212,23 @@ impl CreateCertificate for Crypto {
             Ok(HsmCertificate { cert_info_handle })
         }
     }
+
+    fn destroy_certificate(&self, alias: String) -> Result<(), Error> {
+        let if_fn = self.interface
+            .hsm_client_destroy_certificate
+            .ok_or(ErrorKind::NoneFn)?;
+
+        CString::new(alias.clone())
+            .ok()
+            .and_then(|c_alias| {
+                unsafe { if_fn(self.handle, c_alias.as_ptr()) };
+                Some(())
+            })
+            .ok_or_else(|| {
+                ErrorKind::ToCStr
+            })?;
+        Ok(())
+    }
 }
 
 impl GetTrustBundle for Crypto {

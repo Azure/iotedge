@@ -52,4 +52,8 @@ fn crypto_create_cert_input_fail() {
         Ok(_) => panic!("Expected an error from bad alias"),
         Err(_) => (),
     }
+    match crypto.destroy_certificate("unknown_cert_alias".to_string()) {
+        Ok(_) => (),
+        Err(_) => panic!("Expected no error when destroying a certificate that does not exist"),
+    }
 }

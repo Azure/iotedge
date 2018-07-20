@@ -25,6 +25,8 @@ pub enum ErrorKind {
     CertProps,
     #[fail(display = "HSM API returned an invalid null response")]
     NullResponse,
+    #[fail(display = "Could not convert parameter to c string")]
+    ToCStr,
     #[fail(display = "Could not parse bytes as utf-8")]
     Utf8,
     #[fail(display = "Invalid private key type: {}", _0)]

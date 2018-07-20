@@ -115,6 +115,8 @@ pub trait CreateCertificate {
         &self,
         properties: &CertificateProperties,
     ) -> Result<Self::Certificate, Error>;
+
+    fn destroy_certificate(&self, alias: String) -> Result<(), Error>;
 }
 
 pub trait Certificate {
