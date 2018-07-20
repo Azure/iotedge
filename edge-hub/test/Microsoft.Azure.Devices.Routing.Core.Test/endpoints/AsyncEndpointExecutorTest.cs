@@ -107,7 +107,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
         }
 
-        /* Disabled due to flakiness: https://github.com/Azure/iotedge/issues/46
         [Fact, Unit]
         public async Task TestBatchTimeout()
         {
@@ -117,28 +116,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await executor.Invoke(Message1);
             await executor.Invoke(Message1);
 
-            await Task.Delay(100);
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
             
             var expected = new List<IMessage> { Message1, Message1 };
             Assert.Equal(expected, endpoint1.Processed);
 
             await executor.Invoke(Message2);
-
-            await Task.Delay(100);
             expected.Add(Message2);
+
+            await Task.Delay(TimeSpan.FromMilliseconds(500));            
             Assert.Equal(expected, endpoint1.Processed);
-
-            await Task.Delay(200);
-
+            
             await executor.Invoke(Message2);
-
-            await Task.Delay(100);
             expected.Add(Message2);
+
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
             Assert.Equal(expected, endpoint1.Processed);
 
             await executor.CloseAsync();
         }
-        */
 
         [Fact, Unit]
         public async Task TestStatus()
