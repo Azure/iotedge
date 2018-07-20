@@ -1,0 +1,12 @@
+test_duration:
+  secs: 28800
+  nanos: 0
+alert_url: http://localhost/
+influx_url: http://localhost/
+influx_db_name: eh
+analyzer_url: http://analyzer/
+blob_storage_account: ""
+blob_storage_master_key: ""
+blob_container_name: ""
+reporting_interval: null
+docker_url: unix:///var/run/docker.sock
