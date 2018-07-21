@@ -232,7 +232,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                     }
                 }
-
             }
 
             async Task SetupMessageListening(IClient deviceClient)
