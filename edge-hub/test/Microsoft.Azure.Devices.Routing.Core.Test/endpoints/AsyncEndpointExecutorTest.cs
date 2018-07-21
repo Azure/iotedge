@@ -107,6 +107,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
         }
 
+        /* Disabled due to flakiness: https://github.com/Azure/iotedge/issues/46
         [Fact, Unit]
         public async Task TestBatchTimeout()
         {
@@ -137,6 +138,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             await executor.CloseAsync();
         }
+        */
 
         [Fact, Unit]
         public async Task TestStatus()

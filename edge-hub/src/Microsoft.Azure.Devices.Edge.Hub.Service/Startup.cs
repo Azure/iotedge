@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Diagnostics.Tracing;
     using System.IO;
     using Autofac;
@@ -135,6 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
+
+            Metrics.BuildMetricsCollector(this.Configuration);
 
             // Register modules
             builder.RegisterModule(

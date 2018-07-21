@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -26,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
         readonly IInvokeMethodHandler invokeMethodHandler;
+
         const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public RoutingEdgeHub(Router router, Core.IMessageConverter<IRoutingMessage> messageConverter,
@@ -45,8 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity);
-            IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
-            return this.router.RouteAsync(routingMessage);
+            Metrics.MessageCount(identity);
+            using (Metrics.MessageLatency(identity))
+            {
+                IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
+                return this.router.RouteAsync(routingMessage);
+            }
         }
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
@@ -250,6 +258,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EdgeHubMessageReceivedCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubMessageReceivedCount",
+                MeasurementUnit = Unit.Events
+            };
+            static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            internal static MetricTags GetTags(IIdentity identity)
+            {
+                return new MetricTags("Id", identity.Id);
+            }
+
+            public static void MessageCount(IIdentity identity) => Util.Metrics.Count(GetTags(identity), EdgeHubMessageReceivedCountOptions);
+
+            public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
         }
 
         static class Events
