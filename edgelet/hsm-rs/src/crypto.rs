@@ -224,9 +224,7 @@ impl CreateCertificate for Crypto {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
                 Some(())
             })
-            .ok_or_else(|| {
-                ErrorKind::ToCStr
-            })?;
+            .ok_or_else(|| ErrorKind::ToCStr)?;
         Ok(())
     }
 }
