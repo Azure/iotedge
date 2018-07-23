@@ -328,7 +328,11 @@ fn container_create_succeeds() {
     );
     let memory: i64 = 3221225472;
     let create_options = ContainerCreateBody::new()
-        .with_host_config(HostConfig::new().with_port_bindings(port_bindings).with_memory(memory))
+        .with_host_config(
+            HostConfig::new()
+                .with_port_bindings(port_bindings)
+                .with_memory(memory),
+        )
         .with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
