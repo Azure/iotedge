@@ -96,7 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = Mock.Of<ITwinManager>();
 
             // Mock of identity
-            var identity = Mock.Of<IIdentity>();
+            var identity = new Mock<IIdentity>();
+            identity.SetupGet(id => id.Id).Returns("something");
 
             var messageConverter = new RoutingMessageConverter();
 
@@ -104,18 +105,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var routingEdgeHub = new RoutingEdgeHub(router, messageConverter, connectionManager, twinManager, "testEdgeDevice", Mock.Of<IInvokeMethodHandler>());
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity.Object, badMessage));
 
             string badString = System.Text.Encoding.UTF8.GetString(new byte[300 * 1024], 0, 300 * 1024);
             var badProperties = new Dictionary<string, string> { ["toolong"] = badString };
 
             badMessage = new Message.Builder(new byte[1]).SetProperties(badProperties).Build();
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity.Object, badMessage));
 
             badMessage = new Message(new byte[1], new Dictionary<string, string>(), badProperties);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity, badMessage));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => routingEdgeHub.ProcessDeviceMessage(identity.Object, badMessage));
         }
 
         [Fact]
