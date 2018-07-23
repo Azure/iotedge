@@ -326,9 +326,13 @@ fn container_create_succeeds() {
         "80/tcp".to_string(),
         vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
     );
-
+    let memory: i64 = 3221225472;
     let create_options = ContainerCreateBody::new()
-        .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
+        .with_host_config(
+            HostConfig::new()
+                .with_port_bindings(port_bindings)
+                .with_memory(memory),
+        )
         .with_cmd(vec![
             "/do/the/custom/command".to_string(),
             "with these args".to_string(),
