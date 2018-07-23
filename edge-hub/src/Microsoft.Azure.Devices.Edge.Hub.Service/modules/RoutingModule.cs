@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.edgeModuleId,
                                 this.edgeModuleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                 Service.Constants.InitializationVectorFileName) as IEncryptionProvider)
-                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));                        
+                            .GetOrElse(() => Task.FromResult<IEncryptionProvider>(NullEncryptionProvider.Instance));
                         IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                         IEntityStore<string, string> tokenCredentialsEntityStore = storeProvider.GetEntityStore<string, string>("tokenCredentials");
                         return new TokenCredentialsStore(tokenCredentialsEntityStore, encryptionProvider);
