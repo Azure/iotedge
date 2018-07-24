@@ -44,8 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "azure_c_shared_utility/gballoc.h"
 
 // store mocks
-MOCKABLE_FUNCTION(, void, OPENSSL_add_all_algorithms_conf);
-MOCKABLE_FUNCTION(, void, OPENSSL_add_all_algorithms_noconf);
+MOCKABLE_FUNCTION(, void, mocked_OpenSSL_add_all_algorithms);
 MOCKABLE_FUNCTION(, void, ERR_load_BIO_strings);
 MOCKABLE_FUNCTION(, void, ERR_load_crypto_strings);
 
@@ -76,12 +75,7 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL(temp_str);
 }
 
-static void test_hook_OPENSSL_add_all_algorithms_conf(void)
-{
-
-}
-
-static void test_hook_OPENSSL_add_all_algorithms_noconf(void)
+static void test_hook_mocked_OpenSSL_add_all_algorithms(void)
 {
 
 }
@@ -111,8 +105,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
         umock_c_init(test_hook_on_umock_c_error);
         ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
 
-        REGISTER_GLOBAL_MOCK_HOOK(OPENSSL_add_all_algorithms_conf, test_hook_OPENSSL_add_all_algorithms_conf);
-        REGISTER_GLOBAL_MOCK_HOOK(OPENSSL_add_all_algorithms_noconf, test_hook_OPENSSL_add_all_algorithms_noconf);
+        REGISTER_GLOBAL_MOCK_HOOK(mocked_OpenSSL_add_all_algorithms, test_hook_mocked_OpenSSL_add_all_algorithms);
         REGISTER_GLOBAL_MOCK_HOOK(ERR_load_BIO_strings, test_hook_ERR_load_BIO_strings);
         REGISTER_GLOBAL_MOCK_HOOK(ERR_load_crypto_strings, test_hook_ERR_load_crypto_strings);
     }
@@ -147,7 +140,7 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
     TEST_FUNCTION(initialize_openssl_initializes_just_once_success)
     {
         // arrange
-        STRICT_EXPECTED_CALL(OpenSSL_add_all_algorithms());
+        STRICT_EXPECTED_CALL(mocked_OpenSSL_add_all_algorithms());
         STRICT_EXPECTED_CALL(ERR_load_BIO_strings());
         STRICT_EXPECTED_CALL(ERR_load_crypto_strings());
 

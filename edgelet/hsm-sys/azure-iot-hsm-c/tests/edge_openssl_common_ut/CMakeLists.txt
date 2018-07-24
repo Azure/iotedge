@@ -13,12 +13,15 @@ include_directories(../../src)
 add_definitions(-DGB_DEBUG_ALLOC)
 
 set(${theseTestsName}_test_files
-    ../../src/edge_openssl_common.c
     ${theseTestsName}.c
 )
 
+set(${theseTestsName}_c_files
+    openssl_mocked.c
+)
+
 set(${theseTestsName}_h_files
-    ../../src/hsm_client_tpm_in_mem.h
+    ../../src/edge_openssl_common.h
 
 )
 
