@@ -44,6 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
+#include "edge_openssl_common.h"
 
 MOCKABLE_FUNCTION(, int, RAND_bytes, unsigned char*, buf, int, num);
 MOCKABLE_FUNCTION(, EVP_CIPHER_CTX*, EVP_CIPHER_CTX_new);
@@ -124,6 +125,11 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     (void)snprintf(temp_str, sizeof(temp_str), "umock_c reported error :%s",
                    ENUM_TO_STRING(UMOCK_C_ERROR_CODE, error_code));
     ASSERT_FAIL(temp_str);
+}
+
+static void test_hook_initialize_openssl(void)
+{
+
 }
 
 static int test_hook_RAND_bytes(unsigned char *buf, int num)
@@ -242,6 +248,8 @@ static uint64_t test_stack_helper_encrypt(void)
     uint64_t failed_function_bitmask = 0;
     size_t i = 0;
 
+	EXPECTED_CALL(initialize_openssl());
+	i++;
     STRICT_EXPECTED_CALL(gballoc_malloc(TEST_CIPHERTEXT_SIZE));
     failed_function_bitmask |= ((uint64_t)1 << i++);
     STRICT_EXPECTED_CALL(EVP_CIPHER_CTX_new());
@@ -272,6 +280,8 @@ static uint64_t test_stack_helper_decrypt(void)
     uint64_t failed_function_bitmask = 0;
     size_t i = 0;
 
+	EXPECTED_CALL(initialize_openssl());
+	i++;
     STRICT_EXPECTED_CALL(gballoc_malloc(TEST_CIPHERTEXT_SIZE));
     failed_function_bitmask |= ((uint64_t)1 << i++);
     STRICT_EXPECTED_CALL(EVP_CIPHER_CTX_new());
@@ -326,6 +336,8 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_realloc, NULL);
 
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, test_hook_gballoc_free);
+
+        REGISTER_GLOBAL_MOCK_HOOK(initialize_openssl, test_hook_initialize_openssl);
 
         REGISTER_GLOBAL_MOCK_HOOK(RAND_bytes, test_hook_RAND_bytes);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(RAND_bytes, -1);
@@ -417,6 +429,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         size_t key_size;
         int status;
 
+        EXPECTED_CALL(initialize_openssl());
         STRICT_EXPECTED_CALL(gballoc_malloc(ENCRYPTION_KEY_SIZE));
         STRICT_EXPECTED_CALL(RAND_bytes(IGNORED_PTR_ARG, ENCRYPTION_KEY_SIZE));
 
@@ -443,6 +456,7 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
         int test_result = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
+        EXPECTED_CALL(initialize_openssl());
         STRICT_EXPECTED_CALL(gballoc_malloc(ENCRYPTION_KEY_SIZE));
         STRICT_EXPECTED_CALL(RAND_bytes(IGNORED_PTR_ARG, ENCRYPTION_KEY_SIZE));
 
@@ -457,13 +471,17 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
 
-            // act
-            status = generate_encryption_key(&key, &key_size);
+			if (i != 0)
+			{
+               // act
+               status = generate_encryption_key(&key, &key_size);
 
-            // assert
-            ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
+               // assert
+               ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+               ASSERT_IS_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
+               ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));			
+			}
+
         }
 
         //cleanup

@@ -16,6 +16,7 @@ prepare_edge_homedir(${theseTestsName})
 
 set(${theseTestsName}_test_files
     ../../src/certificate_info.c
+    ../../src/edge_openssl_common.c
     ../../src/edge_pki_openssl.c
     ../../src/hsm_utils.c
     ../../src/hsm_log.c

@@ -25,6 +25,7 @@ set(source_c_files
     ./src/edge_hsm_client_store.c
     ./src/edge_hsm_client_x509.c
     ./src/edge_hsm_key_interface.c
+    ./src/edge_openssl_common.c
     ./src/edge_sas_perform_sign_with_key.c
     ./src/edge_pki_openssl.c
     ./src/edge_sas_key.c
