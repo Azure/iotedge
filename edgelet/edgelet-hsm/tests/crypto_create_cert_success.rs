@@ -36,4 +36,6 @@ fn crypto_create_cert_success() {
         PrivateKey::Ref(_) => panic!("did not expect reference private key"),
         PrivateKey::Key(KeyBytes::Pem(k)) => assert!(k.as_bytes().len() > 0),
     }
+
+    crypto.destroy_certificate("Alias".to_string()).unwrap();
 }

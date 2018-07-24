@@ -88,6 +88,16 @@ impl CoreCreateCertificate for Crypto {
             .map_err(CoreError::from)?;
         Ok(Certificate(cert))
     }
+
+    fn destroy_certificate(&self, alias: String) -> Result<(), CoreError> {
+        self.crypto
+            .read()
+            .expect("Shared read lock on crypto structure failed")
+            .destroy_certificate(alias)
+            .map_err(Error::from)
+            .map_err(CoreError::from)?;
+        Ok(())
+    }
 }
 
 impl CoreEncrypt for Crypto {

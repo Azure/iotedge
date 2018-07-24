@@ -550,6 +550,28 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         test_helper_crypto_deinit(hsm_handle);
     }
 
+    TEST_FUNCTION(hsm_client_mulitple_destroy_create_destroy_certificate_smoke)
+    {
+        //arrange
+        HSM_CLIENT_HANDLE hsm_handle = test_helper_crypto_init();
+        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+        CERT_PROPS_HANDLE certificate_props = test_helper_create_ca_cert_properties();
+
+        // act
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        CERT_INFO_HANDLE result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
+
+        // assert
+        ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+        interface->hsm_client_destroy_certificate(hsm_handle, TEST_CA_ALIAS);
+        certificate_info_destroy(result);
+        cert_properties_destroy(certificate_props);
+        test_helper_crypto_deinit(hsm_handle);
+    }
+
     TEST_FUNCTION(hsm_client_create_server_certificate_with_larger_expiration_time_will_use_issuers_expiration)
     {
         //arrange
@@ -659,7 +681,6 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         // destroy the certificate in the HSM and create a new one and test if different from prior call
         certificate_info_destroy(result_second);
         interface->hsm_client_destroy_certificate(hsm_handle, TEST_CLIENT_ALIAS);
-        result_second = NULL;
         result_second = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
         ASSERT_IS_NOT_NULL_WITH_MSG(result_second, "Line:" TOSTRING(__LINE__));
         second_certificate = certificate_info_get_certificate(result_second);
@@ -883,6 +904,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         free(expected_trust_bundle);
         certificate_info_destroy(result);
         test_helper_crypto_deinit(hsm_handle);
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_ca_cert_create_smoke)
@@ -914,6 +938,10 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         certificate_info_destroy(result);
         cert_properties_destroy(ca_certificate_props);
         test_helper_crypto_deinit(hsm_handle);
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
+
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_server_cert_create_smoke)
@@ -946,6 +974,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         certificate_info_destroy(result);
         cert_properties_destroy(certificate_props);
         test_helper_crypto_deinit(hsm_handle);
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
     TEST_FUNCTION(hsm_client_transparent_gateway_erroneous_config)
@@ -1004,6 +1035,9 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
+        test_helper_unsetenv(ENV_DEVICE_CA_PATH);
+        test_helper_unsetenv(ENV_DEVICE_PK_PATH);
+        test_helper_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
     }
 
 END_TEST_SUITE(edge_hsm_crypto_int_tests)
