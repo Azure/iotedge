@@ -1,15 +1,13 @@
-new-module -name IoTEdge -scriptblock {
+New-Module -name IoTEdge -scriptblock {
 
 [Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
 
 <#
- # Installs the IoT Edge Security Daemon on RS4 Windows.
+ # Installs the IoT Edge Security Daemon on Windows.
  #>
 
 #requires -Version 5
 #requires -RunAsAdministrator
-
-
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 5
@@ -43,6 +41,12 @@ function Install-SecurityDaemon {
         return
     }
 
+    if ((Check-EdgeAlreadyInstalled)) {
+        Write-Host ("`nIoT Edge appears to be already installed, exiting.") `
+            -ForegroundColor "Red"
+        return
+    }
+
     Get-SecurityDaemon
     Set-Path
     Get-VcRuntime
@@ -66,19 +70,26 @@ function Install-SecurityDaemon {
 }
 
 function Test-IsDockerRunning {
+    $DockerCliExe = $env:ProgramFiles\Docker\Docker\DockerCli.exe
     if ((Get-Service "Docker").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
         $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
         if (($UseWindowsContainers) -and -not ($os -match "\s*windows\s*$")) {
+            if (-not (Test-Path -Path $DockerCliExe)) {
+                throw "Unable to switch to Windows containers."
+            }
             Write-Host "Switching Docker to use Windows containers" -ForegroundColor "Green"
-            Invoke-Native "`"$env:ProgramFiles\Docker\Docker\DockerCli.exe`" -SwitchDaemon"
+            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
             $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
             if (-not ($os -match "\s*windows\s*$")) {
                 throw "Unable to switch to Windows containers."
             }
         } elseif (-not ($UseWindowsContainers) -and ($os -match "\s*windows\s*$")) {
+            if (-not (Test-Path -Path $DockerCliExe)) {
+                throw "Unable to switch to Windows containers."
+            }
             Write-Host "Switching Docker to use Linux containers" -ForegroundColor "Green"
-            Invoke-Native "`"$env:ProgramFiles\Docker\Docker\DockerCli.exe`" -SwitchDaemon"
+            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
             $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
             if (($os -match "\s*windows\s*$")) {
                 throw "Unable to switch to Linux containers."
@@ -314,6 +325,16 @@ function Set-MobyNetwork {
     }
 }
 
+function Check-EdgeAlreadyInstalled {
+    $ServiceName = "iotedge"
+    $IoTEdgePath = "C:\ProgramData\iotedge"
+
+    if ((Get-Service $ServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $IoTEdgePath)) {
+        return $true
+    }
+    return $false
+}
+
 function Invoke-Native {
     [CmdletBinding()]
     param (
@@ -338,5 +359,5 @@ function Invoke-Native {
     }
 }
 
-export-modulemember -function 'Install-SecurityDaemon'
+Export-ModuleMember -function 'Install-SecurityDaemon'
 }
