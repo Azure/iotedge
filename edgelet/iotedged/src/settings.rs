@@ -16,10 +16,13 @@ use url::Url;
 use url_serde;
 
 use edgelet_core::ModuleSpec;
-use error::Error;
+use error::{Error, ErrorKind};
 
 /// This is the name of the network created by the iotedged
 const DEFAULT_NETWORKID: &str = "azure-iot-edge";
+
+/// This is the default connection string
+const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
 #[cfg(unix)]
 static DEFAULTS: &str = include_str!("config/unix/default.yaml");
@@ -167,14 +170,20 @@ where
     pub fn new(filename: Option<&str>) -> Result<Self, Error> {
         let mut config = Config::default();
         config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
-
         if let Some(file) = filename {
             config.merge(File::with_name(file).required(true))?;
         }
 
         config.merge(Environment::with_prefix("iotedge"))?;
 
-        let settings = config.try_into()?;
+        let settings: Self = config.try_into()?;
+
+        if let Provisioning::Manual(manual) = settings.provisioning() {
+            if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
+                Err(ErrorKind::Unconfigured)?;
+            }
+        }
+
         Ok(settings)
     }
 
@@ -244,6 +253,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use config::{Config, File, FileFormat};
     use edgelet_docker::DockerConfig;
     use std::io::Write;
     use tempdir::TempDir;
@@ -274,16 +284,28 @@ mod tests {
     }
 
     #[test]
-    fn manual_gets_default_connection_string() {
-        let settings = Settings::<DockerConfig>::new(None);
-        assert_eq!(settings.is_ok(), true);
-        let s = settings.unwrap();
-        let p = s.provisioning();
-        let connection_string = unwrap_manual_provisioning(p);
-        assert_eq!(
-            connection_string,
-            "HostName=something.some.com;DeviceId=some;SharedAccessKey=some"
-        );
+    fn default_in_yaml_matches_constant() {
+        let mut config = Config::default();
+        config
+            .merge(File::from_str(DEFAULTS, FileFormat::Yaml))
+            .unwrap();
+        let settings: Settings<DockerConfig> = config.try_into().unwrap();
+
+        match settings.provisioning() {
+            Provisioning::Manual(ref manual) => {
+                assert_eq!(manual.device_connection_string(), DEFAULT_CONNECTION_STRING)
+            }
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Edge device information is required.\n\
+        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub."
+    )]
+    fn warn_user_on_default() {
+        let _settings = Settings::<DockerConfig>::new(None).unwrap();
     }
 
     #[test]

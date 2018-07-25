@@ -54,6 +54,20 @@ pub enum ErrorKind {
     Parse,
     #[fail(display = "An http error occurred.")]
     Http,
+    #[cfg(target_os = "windows")]
+    #[fail(
+        display = "Edge device information is required.\n\
+        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub.\n\
+        See https://aka.ms/iot-edge-configure-windows"
+    )]
+    Unconfigured,
+    #[cfg(not(target_os = "windows"))]
+    #[fail(
+        display = "Edge device information is required.\n\
+        Please edit your config.yaml and provide information to connection the Edge to the IoT Hub.\n\
+        See https://aka.ms/iot-edge-configure-linux"
+    )]
+    Unconfigured,
     #[fail(display = "A provisioning error occurred.")]
     Provisioning,
     #[fail(display = "A hardware hsm error occurred.")]
