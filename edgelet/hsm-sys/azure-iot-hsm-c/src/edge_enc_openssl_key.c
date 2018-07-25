@@ -6,6 +6,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
+#include "edge_openssl_common.h"
 
 //#################################################################################################
 // Data types and defines
@@ -223,6 +224,7 @@ static int encrypt
 {
     int result;
 
+    initialize_openssl();
     if (version == CIPHER_VERSION_V1)
     {
         if (!validate_key_v1(key, key_size))
@@ -371,6 +373,7 @@ static int decrypt
 )
 {
     int result;
+    initialize_openssl();
     if (version == CIPHER_VERSION_V1)
     {
         if (!validate_key_v1(key, key_size))
@@ -594,6 +597,8 @@ KEY_HANDLE create_encryption_key(const unsigned char *key, size_t key_size)
 int generate_encryption_key(unsigned char **key, size_t *key_size)
 {
     int result = 0;
+
+    initialize_openssl();
 
     if (key == NULL)
     {
