@@ -45,7 +45,7 @@ static void test_hook_gballoc_free(void* ptr)
 
 // store mocks
 MOCKABLE_FUNCTION(, void, mocked_OpenSSL_add_all_algorithms);
-MOCKABLE_FUNCTION(, void, ERR_load_BIO_strings);
+MOCKABLE_FUNCTION(, int, ERR_load_BIO_strings);
 MOCKABLE_FUNCTION(, void, ERR_load_crypto_strings);
 
 #undef ENABLE_MOCKS
@@ -80,7 +80,7 @@ static void test_hook_mocked_OpenSSL_add_all_algorithms(void)
 
 }
 
-static void test_hook_ERR_load_BIO_strings(void)
+static int test_hook_ERR_load_BIO_strings(void)
 {
 
 }
@@ -140,9 +140,9 @@ BEGIN_TEST_SUITE(edge_openssl_common_ut)
     TEST_FUNCTION(initialize_openssl_initializes_just_once_success)
     {
         // arrange
-        STRICT_EXPECTED_CALL(mocked_OpenSSL_add_all_algorithms());
-        STRICT_EXPECTED_CALL(ERR_load_BIO_strings());
-        STRICT_EXPECTED_CALL(ERR_load_crypto_strings());
+        EXPECTED_CALL(mocked_OpenSSL_add_all_algorithms());
+        EXPECTED_CALL(ERR_load_BIO_strings());
+        EXPECTED_CALL(ERR_load_crypto_strings());
 
         // act 1
         initialize_openssl();
