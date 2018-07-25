@@ -471,17 +471,16 @@ BEGIN_TEST_SUITE(edge_openssl_encryption_unittests)
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
 
-			if (i != 0)
-			{
+            if (i != 0)
+            {
                // act
                status = generate_encryption_key(&key, &key_size);
 
                // assert
                ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
                ASSERT_IS_NULL_WITH_MSG(key, "Line:" TOSTRING(__LINE__));
-               ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));			
-			}
-
+               ASSERT_ARE_EQUAL_WITH_MSG(size_t, 0, key_size, "Line:" TOSTRING(__LINE__));
+            }
         }
 
         //cleanup
