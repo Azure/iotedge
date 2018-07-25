@@ -70,7 +70,7 @@ function Install-SecurityDaemon {
 }
 
 function Test-IsDockerRunning {
-    $DockerCliExe = $env:ProgramFiles\Docker\Docker\DockerCli.exe
+    $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
     if ((Get-Service "Docker").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
         $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
