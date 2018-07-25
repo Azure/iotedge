@@ -37,10 +37,10 @@ pub mod pid;
 pub mod watchdog;
 
 pub use authorization::{Authorization, Policy};
-pub use certificate_properties::{CertificateProperties, CertificateType};
+pub use certificate_properties::{CertificateProperties, CertificateType, CertificateIssuer};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes, KeyIdentity,
-    KeyStore, MasterEncryptionKey, PrivateKey, Signature,
+    KeyStore, MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentitySpec};

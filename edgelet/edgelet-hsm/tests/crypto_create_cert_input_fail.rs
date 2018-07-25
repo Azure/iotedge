@@ -2,13 +2,22 @@
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
-use edgelet_core::{CertificateProperties, CertificateType, CreateCertificate};
+use edgelet_core::{CertificateProperties, CertificateType, CreateCertificate, CertificateIssuer, IOTEDGED_CA_ALIAS};
 use edgelet_hsm::Crypto;
 
 #[test]
 fn crypto_create_cert_input_fail() {
     // arrange
     let crypto = Crypto::new().unwrap();
+
+    let edgelet_ca_props = CertificateProperties::new(
+        3600,
+        "test-iotedge-cn".to_string(),
+        CertificateType::Ca,
+        IOTEDGED_CA_ALIAS.to_string(),
+    ).with_issuer(CertificateIssuer::DeviceCa);
+
+    let _workload_ca_cert = crypto.create_certificate(&edgelet_ca_props).unwrap();
 
     let props_time = CertificateProperties::new(
         0,
@@ -56,4 +65,7 @@ fn crypto_create_cert_input_fail() {
         Ok(_) => (),
         Err(_) => panic!("Expected no error when destroying a certificate that does not exist"),
     }
+
+    // cleanup
+    crypto.destroy_certificate(IOTEDGED_CA_ALIAS.to_string()).unwrap();
 }

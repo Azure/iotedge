@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <string.h>
 
 #include "azure_c_shared_utility/gballoc.h"
+#include "azure_c_shared_utility/crt_abstractions.h"
 #include "testrunnerswitcher.h"
 #include "hsm_client_store.h"
 #include "hsm_log.h"
@@ -64,6 +66,8 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_SERVER_PK_ECC_FILE_1   "server_ecc_cert_1.key.pem"
 #define TEST_SERVER_PK_ECC_FILE_3   "server_ecc_cert_3.key.pem"
 #define TEST_CLIENT_PK_ECC_FILE_1   "client_ecc_cert_1.key.pem"
+
+#define TEST_CHAIN_FILE_PATH        "chain_file.pem"
 
 //#############################################################################
 // Test helpers
@@ -175,11 +179,11 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
 
     // act
     test_helper_generate_self_signed(ca_root_handle,
-                                    TEST_SERIAL_NUM + 1,
-                                    2,
-                                    TEST_CA_PK_RSA_FILE_1,
-                                    TEST_CA_CERT_RSA_FILE_1,
-                                    key_props);
+                                     TEST_SERIAL_NUM + 1,
+                                     2,
+                                     TEST_CA_PK_RSA_FILE_1,
+                                     TEST_CA_CERT_RSA_FILE_1,
+                                     key_props);
 
     test_helper_generate_pki_certificate(int_ca_root_handle,
                                          TEST_SERIAL_NUM + 2,
@@ -198,6 +202,21 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
                                          TEST_CA_CERT_RSA_FILE_2);
 
     // assert
+    bool cert_verified = false;
+    int status = verify_certificate(TEST_CA_CERT_RSA_FILE_2, TEST_CA_PK_RSA_FILE_2, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    cert_verified = false;
+    status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_2, &cert_verified);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 1, cert_verified, "Line:" TOSTRING(__LINE__));
+    cert_verified = false;
+    status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_SERVER_CERT_RSA_FILE_3, &cert_verified);
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 1, cert_verified, "Line:" TOSTRING(__LINE__));
+    cert_verified = false;
+    status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
+    ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cert_verified, "Line:" TOSTRING(__LINE__));
 
     // cleanup
     delete_file(TEST_SERVER_PK_RSA_FILE_3);

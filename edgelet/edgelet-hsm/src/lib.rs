@@ -11,10 +11,6 @@ mod crypto;
 mod error;
 pub mod tpm;
 
-pub const IOTEDGED_VALIDITY: u64 = 7_776_000; // 90 days
-pub const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
-pub const IOTEDGED_CA: &str = "iotedged-workload-ca";
-
 pub use crypto::{Certificate, Crypto};
 pub use error::{Error, ErrorKind};
 pub use tpm::{TpmKey, TpmKeyStore};
