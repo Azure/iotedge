@@ -20,6 +20,7 @@ ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 SRC_BIN_DIR=$ROOT_FOLDER/bin
 SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
+SRC_STRESS_DIR=$ROOT_FOLDER/stress
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 
 DOTNET_RUNTIME=netcoreapp2.1
@@ -197,6 +198,7 @@ publish_lib "Microsoft.Azure.Devices.Edge.Functions.Binding"
 publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
 publish_files $SRC_BIN_DIR $PUBLISH_FOLDER
+publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 
 if [ $PUBLISH_TESTS -eq 1 ]; then
     while read proj; do
