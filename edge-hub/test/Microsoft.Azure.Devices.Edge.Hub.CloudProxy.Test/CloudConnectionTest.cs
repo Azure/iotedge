@@ -392,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void GetIsTokenExpiredTest()
         {
             // Arrange
-            var tokenExpiry = new DateTime(2019, 01, 01);
+            DateTime tokenExpiry = DateTime.UtcNow.AddYears(1);
             string token = TokenHelper.CreateSasToken("azure.devices.net", tokenExpiry);
 
             // Act
