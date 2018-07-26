@@ -312,7 +312,7 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 char* test_hook_read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
 {
-    char *result = malloc(1);
+    char *result = test_hook_gballoc_malloc(1);
     ASSERT_IS_NOT_NULL(result);
     if (output_buffer_size) *output_buffer_size = 1;
     return result;
