@@ -41,7 +41,7 @@ function Install-SecurityDaemon {
         return
     }
 
-    if ((Check-EdgeAlreadyInstalled)) {
+    if ((Test-EdgeAlreadyInstalled)) {
         Write-Host ("`nIoT Edge appears to be already installed, exiting.") `
             -ForegroundColor "Red"
         return
@@ -325,7 +325,7 @@ function Set-MobyNetwork {
     }
 }
 
-function Check-EdgeAlreadyInstalled {
+function Test-EdgeAlreadyInstalled {
     $ServiceName = "iotedge"
     $IoTEdgePath = "C:\ProgramData\iotedge"
 
