@@ -1708,6 +1708,17 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         REGISTER_UMOCK_ALIAS_TYPE(CERTIFICATE_TYPE, int);
         REGISTER_UMOCK_ALIAS_TYPE(MODE_T, int);
 
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, test_hook_gballoc_malloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_calloc, test_hook_gballoc_calloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_calloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_realloc, test_hook_gballoc_realloc);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_realloc, NULL);
+
+        REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, test_hook_gballoc_free);
+
         REGISTER_GLOBAL_MOCK_HOOK(read_file_into_cstring, test_hook_read_file_into_cstring);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(read_file_into_cstring, NULL);
 
