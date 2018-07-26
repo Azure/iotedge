@@ -23,6 +23,7 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/buffer_.h"
 #include "azure_c_shared_utility/hmacsha256.h"
+#include "edge_openssl_common.h"
 
 #include "hsm_key.h"
 #include "hsm_log.h"
@@ -966,13 +967,7 @@ static int generate_pki_cert_and_key_helper
     EVP_PKEY* issuer_evp_key = NULL;
     static bool is_openssl_initialized = false;
 
-    if (!is_openssl_initialized)
-    {
-        OpenSSL_add_all_algorithms();
-        ERR_load_BIO_strings();
-        ERR_load_crypto_strings();
-        is_openssl_initialized = true;
-    }
+    initialize_openssl();
     if (cert_props_handle == NULL)
     {
         LOG_ERROR("Failure saving x509 certificate");
