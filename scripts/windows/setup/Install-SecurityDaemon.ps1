@@ -42,7 +42,7 @@ function Install-SecurityDaemon {
     }
 
     if ((Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is already installed, exiting.") `
+        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first. Exiting...") `
             -ForegroundColor "Red"
         return
     }
@@ -65,7 +65,8 @@ function Install-SecurityDaemon {
         "Display logs from the last five minutes in chronological order with`n" +
         "    Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName=`"iotedged`";LogName=`"application`";StartTime=[datetime]::Now.AddMinutes(-5)} |`n" +
         "    Select TimeCreated, Message |`n" +
-        "    Sort-Object @{Expression=`"TimeCreated`";Descending=`$false}") `
+        "    Sort-Object @{Expression=`"TimeCreated`";Descending=`$false} |`n" +
+        "    Format-Table -AutoSize -Wrap") `
         -ForegroundColor "Green"
 }
 
@@ -76,7 +77,7 @@ function Uninstall-SecurityDaemon {
     )
 
     if (-not $Force -and -not (Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is not installed, exiting.") `
+        Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway. Exiting...") `
             -ForegroundColor "Red"
         return
     }
@@ -175,13 +176,13 @@ function Get-SecurityDaemon {
 }
 
 function Remove-SecurityDaemonResources {
-    $EdgePath = "C:\ProgramData\iotedge"
-    Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose $(if ($?) { "Deleted install directory '$EdgePath'" } else { $CmdErr })
-
     $LogKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged"
     Remove-Item $LogKey -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     Write-Verbose $(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })
+
+    $EdgePath = "C:\ProgramData\iotedge"
+    Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
+    Write-Verbose $(if ($?) { "Deleted install directory '$EdgePath'" } else { $CmdErr })
 }
 
 function Get-SystemPathKey {
