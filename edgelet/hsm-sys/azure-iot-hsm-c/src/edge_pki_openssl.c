@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -1294,6 +1295,54 @@ KEY_HANDLE create_cert_key(const char* key_file_name)
     return result;
 }
 
+static int validate_cert_chain
+(
+    const char *cert_file,
+    const char *issuer_cert_file,
+    bool *verify_status
+)
+{
+    int result;
+    char *cert_data = NULL;
+    char *issuer_data = NULL;
+
+    *verify_status = false;
+    if ((cert_data = read_file_into_cstring(cert_file, NULL)) == NULL)
+    {
+        LOG_ERROR("Could not read certificate %s", cert_file);
+        result = __FAILURE__;
+    }
+    else if ((issuer_data = read_file_into_cstring(issuer_cert_file, NULL)) == NULL)
+    {
+        LOG_ERROR("Could not read issuer certificate %s", issuer_cert_file);
+        result = __FAILURE__;
+    }
+    else
+    {
+        if (strstr(cert_data, issuer_data) == NULL)
+        {
+            LOG_ERROR("Did not find issuer certificate in certificate %s", cert_file);
+        }
+        else
+        {
+            *verify_status = true;
+        }
+        result = 0;
+    }
+
+    if (cert_data != NULL)
+    {
+        free(cert_data);
+    }
+
+    if (issuer_data != NULL)
+    {
+        free(issuer_data);
+    }
+
+    return result;
+}
+
 static int check_certificates
 (
     X509_STORE *store,
@@ -1304,11 +1353,10 @@ static int check_certificates
 {
     int result;
     X509_STORE_CTX *store_ctxt = NULL;
-    X509* x509_cert;
+    X509* x509_cert = NULL;
     double exp_seconds = 0;
-    x509_cert = load_certificate_file(cert_file);
 
-    if (x509_cert == NULL)
+    if ((x509_cert = load_certificate_file(cert_file)) == NULL)
     {
         LOG_ERROR("Could not create X509 to verify certificate %s", cert_file);
         result = __FAILURE__;
@@ -1316,6 +1364,7 @@ static int check_certificates
     else if (validate_certificate_expiration(x509_cert, &exp_seconds) != 0)
     {
         LOG_ERROR("Certificate file has expired %s", cert_file);
+        X509_free(x509_cert);
         result = __FAILURE__;
     }
     else if ((store_ctxt = X509_STORE_CTX_new()) == NULL)
@@ -1326,7 +1375,6 @@ static int check_certificates
     }
     else
     {
-        int status;
         X509_STORE_set_flags(store, X509_V_FLAG_X509_STRICT |
                                     X509_V_FLAG_CHECK_SS_SIGNATURE |
                                     X509_V_FLAG_POLICY_CHECK);
@@ -1335,24 +1383,27 @@ static int check_certificates
             LOG_ERROR("Could not initialize X509 store context");
             result = __FAILURE__;
         }
-        else if ((status = X509_verify_cert(store_ctxt)) <= 0)
-        {
-            const char *msg;
-            int err_code = X509_STORE_CTX_get_error(store_ctxt);
-            msg = X509_verify_cert_error_string(err_code);
-            if (msg == NULL)
-            {
-                msg = "";
-            }
-            LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
-                      cert_file, issuer_cert_file);
-            LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
-            result = __FAILURE__;
-        }
         else
         {
-            LOG_DEBUG("Certificate validated %s", cert_file);
-            *verify_status = true;
+            int status;
+            if ((status = X509_verify_cert(store_ctxt)) <= 0)
+            {
+                const char *msg;
+                int err_code = X509_STORE_CTX_get_error(store_ctxt);
+                msg = X509_verify_cert_error_string(err_code);
+                if (msg == NULL)
+                {
+                    msg = "";
+                }
+                LOG_ERROR("Could not verify certificate %s using issuer certificate %s.",
+                        cert_file, issuer_cert_file);
+                LOG_ERROR("Verification status: %d, Error: %d, Msg: '%s'", status, err_code, msg);
+            }
+            else
+            {
+                LOG_DEBUG("Certificate validated %s", cert_file);
+                *verify_status = true;
+            }
             result = 0;
         }
         X509_STORE_CTX_free(store_ctxt);
@@ -1371,11 +1422,24 @@ static int verify_certificate_internal
 {
     int result;
     X509_LOOKUP *lookup = NULL;
-    X509_STORE *store;
+    X509_STORE *store = NULL;
+    bool check_chain = false;
 
     initialize_openssl();
-    if ((store = X509_STORE_new()) == NULL)
+
+    if (validate_cert_chain(certificate, issuer_certificate, &check_chain) != 0)
     {
+        LOG_ERROR("Failed verifying if issuer is contained in certificate file %s", certificate);
+        result = __FAILURE__;
+    }
+    else if (!check_chain)
+    {
+        LOG_ERROR("Certificate file does not contain issuer certificate %s", certificate);
+        result = 0;
+    }
+    else if ((store = X509_STORE_new()) == NULL)
+    {
+        LOG_ERROR("API X509_STORE_new failed");
         result = __FAILURE__;
     }
     else if ((lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())) == NULL)

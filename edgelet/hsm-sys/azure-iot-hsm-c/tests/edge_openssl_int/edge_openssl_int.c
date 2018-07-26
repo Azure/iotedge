@@ -205,17 +205,19 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
     bool cert_verified = false;
     int status = verify_certificate(TEST_CA_CERT_RSA_FILE_2, TEST_CA_PK_RSA_FILE_2, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_2, &cert_verified);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 1, cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_SERVER_CERT_RSA_FILE_3, &cert_verified);
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
-    ASSERT_ARE_EQUAL_WITH_MSG(int, 1, cert_verified, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
     cert_verified = false;
     status = verify_certificate(TEST_SERVER_CERT_RSA_FILE_3, TEST_SERVER_PK_RSA_FILE_3, TEST_CA_CERT_RSA_FILE_1, &cert_verified);
-    ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_FALSE_WITH_MSG(cert_verified, "Line:" TOSTRING(__LINE__));
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, cert_verified, "Line:" TOSTRING(__LINE__));
 
     // cleanup

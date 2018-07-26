@@ -59,11 +59,13 @@ static void test_hook_gballoc_free(void* ptr)
     typedef int MODE_T;
     static int EXPECTED_CREATE_FLAGS = _O_CREAT|_O_WRONLY|_O_TRUNC;
     static int EXPECTED_MODE_FLAGS = _S_IREAD|_S_IWRITE;
+    #define STRDUP _strdup
 #else
     #include <unistd.h>
     typedef mode_t MODE_T;
     static int EXPECTED_CREATE_FLAGS = O_CREAT|O_WRONLY|O_TRUNC;
     static int EXPECTED_MODE_FLAGS = S_IRUSR|S_IWUSR;
+    #define STRDUP strdup
 #endif
 
 typedef void (*MOCKED_CALLBACK)(int,int,void *);
@@ -73,10 +75,6 @@ typedef void (*MOCKED_CALLBACK)(int,int,void *);
 #include "edge_openssl_common.h"
 #include "hsm_utils.h"
 
-MOCKABLE_FUNCTION(, void, OPENSSL_add_all_algorithms_conf);
-MOCKABLE_FUNCTION(, void, OPENSSL_add_all_algorithms_noconf);
-MOCKABLE_FUNCTION(, void, ERR_load_BIO_strings);
-MOCKABLE_FUNCTION(, void, ERR_load_crypto_strings);
 MOCKABLE_FUNCTION(, EVP_PKEY*, EVP_PKEY_new);
 MOCKABLE_FUNCTION(, void, EVP_PKEY_free, EVP_PKEY*, x);
 MOCKABLE_FUNCTION(, int, mocked_OPEN, const char*, path, int, flags, MODE_T, mode);
@@ -179,8 +177,10 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_CERT_FILE "cert.pem"
 #define TEST_ISSUER_KEY_FILE "issuer_key.pem"
 #define TEST_ISSUER_CERT_FILE "issuer_cert.pem"
-#define TEST_ISSUER_CERT_DATA "test_certificate_data"
+#define TEST_ISSUER_CERT_DATA "test_issuer_certificate_data"
 #define TEST_ISSUER_KEY_DATA "test_key_data"
+#define TEST_VALID_CHAIN_CERT_DATA "test_certificate_data" TEST_ISSUER_CERT_DATA
+#define TEST_INVALID_CHAIN_CERT_DATA "test_certificate_data"
 #define TEST_EC_NUM_BITS 256
 #define TEST_CURVE_NAME "TEST_CURVE"
 #define TEST_CURVE_NAME_ID (int)0x100
@@ -312,24 +312,12 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL(temp_str);
 }
 
-static void test_hook_OPENSSL_add_all_algorithms_conf(void)
+char* test_hook_read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
 {
-
-}
-
-static void test_hook_OPENSSL_add_all_algorithms_noconf(void)
-{
-
-}
-
-static void test_hook_ERR_load_BIO_strings(void)
-{
-
-}
-
-static void test_hook_ERR_load_crypto_strings(void)
-{
-
+    char *result = malloc(1);
+    ASSERT_IS_NOT_NULL(result);
+    if (output_buffer_size) *output_buffer_size = 1;
+    return result;
 }
 
 static int test_hook_mocked_OPEN(const char *pathname, int flags, MODE_T mode)
@@ -1560,7 +1548,8 @@ static void test_helper_verify_certificate
     const char *cert_file,
     const char *key_file,
     const char *issuer_cert_file,
-    bool set_verify_return_value,
+    bool force_invalid_cert_data,
+    bool force_set_verify_return_value,
     char *failed_function_list,
     size_t failed_function_size
 )
@@ -1574,6 +1563,40 @@ static void test_helper_verify_certificate
     EXPECTED_CALL(initialize_openssl());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
+
+    char *cert_file_data;
+    if (force_invalid_cert_data)
+    {
+        cert_file_data = STRDUP(TEST_INVALID_CHAIN_CERT_DATA);
+    }
+    else
+    {
+        cert_file_data = STRDUP(TEST_VALID_CHAIN_CERT_DATA);
+    }
+    ASSERT_IS_NOT_NULL(cert_file_data);
+    char *issuer_cert_file_data = STRDUP(TEST_ISSUER_CERT_DATA);
+    ASSERT_IS_NOT_NULL(issuer_cert_file_data);
+
+    STRICT_EXPECTED_CALL(read_file_into_cstring(cert_file, NULL)).SetReturn(cert_file_data);
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    STRICT_EXPECTED_CALL(read_file_into_cstring(issuer_cert_file, NULL)).SetReturn(issuer_cert_file_data);
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    failed_function_list[i++] = 1;
+
+    EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+    ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    i++;
+
+    if (force_invalid_cert_data)
+    {
+        return;
+    }
 
     STRICT_EXPECTED_CALL(X509_STORE_new());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
@@ -1629,12 +1652,12 @@ static void test_helper_verify_certificate
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
-    int return_value = (set_verify_return_value)?1:0;
+    int return_value = (force_set_verify_return_value)?1:0;
     STRICT_EXPECTED_CALL(X509_verify_cert(TEST_STORE_CTXT)).SetReturn(return_value);
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
-    failed_function_list[i++] = 1;
+    i++;
 
-    if(!set_verify_return_value)
+    if(!force_set_verify_return_value)
     {
         STRICT_EXPECTED_CALL(X509_STORE_CTX_get_error(TEST_STORE_CTXT));
         ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
@@ -1679,10 +1702,8 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         REGISTER_UMOCK_ALIAS_TYPE(CERTIFICATE_TYPE, int);
         REGISTER_UMOCK_ALIAS_TYPE(MODE_T, int);
 
-        REGISTER_GLOBAL_MOCK_HOOK(OPENSSL_add_all_algorithms_conf, test_hook_OPENSSL_add_all_algorithms_conf);
-        REGISTER_GLOBAL_MOCK_HOOK(OPENSSL_add_all_algorithms_noconf, test_hook_OPENSSL_add_all_algorithms_noconf);
-        REGISTER_GLOBAL_MOCK_HOOK(ERR_load_BIO_strings, test_hook_ERR_load_BIO_strings);
-        REGISTER_GLOBAL_MOCK_HOOK(ERR_load_crypto_strings, test_hook_ERR_load_crypto_strings);
+        REGISTER_GLOBAL_MOCK_HOOK(read_file_into_cstring, test_hook_read_file_into_cstring);
+        REGISTER_GLOBAL_MOCK_FAIL_RETURN(read_file_into_cstring, NULL);
 
         REGISTER_GLOBAL_MOCK_HOOK(mocked_OPEN, test_hook_mocked_OPEN);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_OPEN, -1);
@@ -2879,13 +2900,13 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
      * Test function for API
      *   verify_certificate
     */
-    TEST_FUNCTION(verify_certificate_returns_true_success)
+    TEST_FUNCTION(verify_certificate_verifies_true_and_returns_success)
     {
         // arrange
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, true, failed_function_list, failed_function_size);
         bool verify_status = true;
 
         // act
@@ -2903,20 +2924,44 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
      * Test function for API
      *   verify_certificate
     */
-    TEST_FUNCTION(verify_certificate_returns_false_returns_error)
+    TEST_FUNCTION(invalid_chain_cert_data_verifies_false_and_returns_success)
     {
         // arrange
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, false, failed_function_list, failed_function_size);
         bool verify_status = false;
 
         // act
         int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+
+        // cleanup
+    }
+
+    /**
+     * Test function for API
+     *   verify_certificate
+    */
+    TEST_FUNCTION(verify_certificate_verifies_false_and_returns_success)
+    {
+        // arrange
+        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
+        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
+        memset(failed_function_list, 0, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, false, failed_function_list, failed_function_size);
+        bool verify_status = false;
+
+        // act
+        int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
+
+        // assert
+        ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
         ASSERT_IS_FALSE_WITH_MSG(verify_status, "Line:" TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL_WITH_MSG(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
 
@@ -2936,7 +2981,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, true, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
