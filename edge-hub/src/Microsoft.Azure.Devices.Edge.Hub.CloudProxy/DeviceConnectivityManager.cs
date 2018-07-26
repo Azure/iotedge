@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .OnEntry(this.OnDisconnected)
                 .OnExit(this.OnDisconnectedExit);
 
-            this.state = State.Trying;
+            this.state = State.Disconnected;
 
             Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
         }
@@ -118,8 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         void OnConnected()
         {
-            Events.OnConnected();
-            this.DeviceConnected?.Invoke(this, EventArgs.Empty);
+            Events.OnConnected();            
             this.connectedTimer.Start();
         }
 
@@ -145,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void OnDisconnectedExit()
         {
             Events.OnDisconnectedExit();
+            this.DeviceConnected?.Invoke(this, EventArgs.Empty);
             this.disconnectedTimer.Stop();
         }
 
