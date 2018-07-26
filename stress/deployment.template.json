@@ -10,8 +10,8 @@
             "loggingOptions": "",
             "registryCredentials": {
               "jadsa": {
-                "username": "<edgebuilds-azurecr-io-username>",
-                "password": "<edgebuilds-azurecr-io-pwd>",
+                "username": "<CR.Username>",
+                "password": "<CR.Password>",
                 "address": "edgebuilds.azurecr.io"
               }
             }
