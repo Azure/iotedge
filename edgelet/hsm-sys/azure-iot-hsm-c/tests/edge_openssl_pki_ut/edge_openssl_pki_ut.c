@@ -59,13 +59,11 @@ static void test_hook_gballoc_free(void* ptr)
     typedef int MODE_T;
     static int EXPECTED_CREATE_FLAGS = _O_CREAT|_O_WRONLY|_O_TRUNC;
     static int EXPECTED_MODE_FLAGS = _S_IREAD|_S_IWRITE;
-    #define STRDUP _strdup
 #else
     #include <unistd.h>
     typedef mode_t MODE_T;
     static int EXPECTED_CREATE_FLAGS = O_CREAT|O_WRONLY|O_TRUNC;
     static int EXPECTED_MODE_FLAGS = S_IRUSR|S_IWUSR;
-    #define STRDUP strdup
 #endif
 
 typedef void (*MOCKED_CALLBACK)(int,int,void *);
@@ -978,6 +976,16 @@ static bool test_helper_is_windows(void)
 #endif
 }
 
+static char *test_helper_strdup(const char *s)
+{
+    size_t size = strlen(s) + 1;
+    char *result = test_hook_gballoc_malloc(size);
+    ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
+    memset(result, 0 , size);
+    strcpy(result, s);
+    return result;
+}
+
 void test_helper_generate_rsa_key(int key_len, size_t *index, char *failed_function_list, size_t failed_function_size)
 {
     size_t i = *index;
@@ -1567,15 +1575,13 @@ static void test_helper_verify_certificate
     char *cert_file_data;
     if (force_invalid_cert_data)
     {
-        cert_file_data = STRDUP(TEST_INVALID_CHAIN_CERT_DATA);
+        cert_file_data = test_helper_strdup(TEST_INVALID_CHAIN_CERT_DATA);
     }
     else
     {
-        cert_file_data = STRDUP(TEST_VALID_CHAIN_CERT_DATA);
+        cert_file_data = test_helper_strdup(TEST_VALID_CHAIN_CERT_DATA);
     }
-    ASSERT_IS_NOT_NULL(cert_file_data);
-    char *issuer_cert_file_data = STRDUP(TEST_ISSUER_CERT_DATA);
-    ASSERT_IS_NOT_NULL(issuer_cert_file_data);
+    char *issuer_cert_file_data = test_helper_strdup(TEST_ISSUER_CERT_DATA);
 
     STRICT_EXPECTED_CALL(read_file_into_cstring(cert_file, NULL)).SetReturn(cert_file_data);
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
