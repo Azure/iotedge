@@ -97,7 +97,7 @@ Defaults:
         [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
         public bool NoDeployment { get; } = false;
 
-        [Option("--deployment", CommandOptionType.NoValue, Description = "Deployment json file")]
+        [Option("-l|--deployment <filename>", Description = "Deployment json file")]
         public string DeploymentFileName { get; } = Environment.GetEnvironmentVariable("deployment");
 
         // ReSharper disable once UnusedMember.Local
