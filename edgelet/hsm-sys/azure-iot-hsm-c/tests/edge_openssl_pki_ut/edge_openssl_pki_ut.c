@@ -68,6 +68,11 @@ static void test_hook_gballoc_free(void* ptr)
 
 typedef void (*MOCKED_CALLBACK)(int,int,void *);
 
+//#############################################################################
+// Forward declarations
+//#############################################################################
+static char *test_helper_strdup(const char *s);
+
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
 #include "edge_openssl_common.h"
@@ -173,6 +178,7 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 #define TEST_PATH_LEN_NON_CA 0
 #define TEST_KEY_FILE "key.pem"
 #define TEST_CERT_FILE "cert.pem"
+#define TEST_BAD_CHAIN_CERT_FILE "bad_chain_cert.pem"
 #define TEST_ISSUER_KEY_FILE "issuer_key.pem"
 #define TEST_ISSUER_CERT_FILE "issuer_cert.pem"
 #define TEST_ISSUER_CERT_DATA "test_issuer_certificate_data"
@@ -312,9 +318,34 @@ static void test_hook_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 char* test_hook_read_file_into_cstring(const char* file_name, size_t *output_buffer_size)
 {
-    char *result = test_hook_gballoc_malloc(1);
-    ASSERT_IS_NOT_NULL(result);
-    if (output_buffer_size) *output_buffer_size = 1;
+    char *result;
+    size_t size;
+
+    if (strcmp(file_name, TEST_CERT_FILE) == 0)
+    {
+        result = test_helper_strdup(TEST_VALID_CHAIN_CERT_DATA);
+        ASSERT_IS_NOT_NULL(result);
+        size = strlen(TEST_VALID_CHAIN_CERT_DATA) + 1;
+    }
+    else if (strcmp(file_name, TEST_BAD_CHAIN_CERT_FILE) == 0)
+    {
+        result = test_helper_strdup(TEST_INVALID_CHAIN_CERT_DATA);
+        ASSERT_IS_NOT_NULL(result);
+        size = strlen(TEST_INVALID_CHAIN_CERT_DATA) + 1;
+    }
+    else if (strcmp(file_name, TEST_ISSUER_CERT_FILE) == 0)
+    {
+        result = test_helper_strdup(TEST_ISSUER_CERT_DATA);
+        ASSERT_IS_NOT_NULL(result);
+        size = strlen(TEST_ISSUER_CERT_DATA) + 1;
+    }
+    else
+    {
+        result = NULL;
+        size = 0;
+    }
+
+    if (output_buffer_size) *output_buffer_size = size;
     return result;
 }
 
@@ -615,11 +646,12 @@ static void* test_hook_read_file_into_buffer
 {
     (void)file_name;
     size_t test_data_len = strlen(TEST_ISSUER_CERT_DATA);
-    *output_buffer_size = test_data_len + 1;
-    void *data = test_hook_gballoc_malloc(*output_buffer_size);
-    memset(data, 0, test_data_len);
-    memcpy(data, TEST_ISSUER_CERT_DATA, *output_buffer_size);
-
+    size_t test_data_size = test_data_len + 1;
+    void *data = test_hook_gballoc_malloc(test_data_size);
+    ASSERT_IS_NOT_NULL_WITH_MSG(data, "Line:" TOSTRING(__LINE__));
+    memset(data, 0, test_data_size);
+    memcpy(data, TEST_ISSUER_CERT_DATA, test_data_len);
+    if (output_buffer_size) *output_buffer_size = test_data_size;
     return data;
 }
 
@@ -978,10 +1010,11 @@ static bool test_helper_is_windows(void)
 
 static char *test_helper_strdup(const char *s)
 {
-    size_t size = strlen(s) + 1;
+    size_t len = strlen(s);
+    size_t size = len + 1;
     char *result = test_hook_gballoc_malloc(size);
     ASSERT_IS_NOT_NULL_WITH_MSG(result, "Line:" TOSTRING(__LINE__));
-    memset(result, 0 , size);
+    memset(result, 0, size);
     strcpy(result, s);
     return result;
 }
@@ -1556,7 +1589,6 @@ static void test_helper_verify_certificate
     const char *cert_file,
     const char *key_file,
     const char *issuer_cert_file,
-    bool force_invalid_cert_data,
     bool force_set_verify_return_value,
     char *failed_function_list,
     size_t failed_function_size
@@ -1572,22 +1604,11 @@ static void test_helper_verify_certificate
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
-    char *cert_file_data;
-    if (force_invalid_cert_data)
-    {
-        cert_file_data = test_helper_strdup(TEST_INVALID_CHAIN_CERT_DATA);
-    }
-    else
-    {
-        cert_file_data = test_helper_strdup(TEST_VALID_CHAIN_CERT_DATA);
-    }
-    char *issuer_cert_file_data = test_helper_strdup(TEST_ISSUER_CERT_DATA);
-
-    STRICT_EXPECTED_CALL(read_file_into_cstring(cert_file, NULL)).SetReturn(cert_file_data);
+    STRICT_EXPECTED_CALL(read_file_into_cstring(cert_file, NULL));
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
-    STRICT_EXPECTED_CALL(read_file_into_cstring(issuer_cert_file, NULL)).SetReturn(issuer_cert_file_data);
+    STRICT_EXPECTED_CALL(read_file_into_cstring(issuer_cert_file, NULL));
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
@@ -1598,11 +1619,6 @@ static void test_helper_verify_certificate
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
-
-    if (force_invalid_cert_data)
-    {
-        return;
-    }
 
     STRICT_EXPECTED_CALL(X509_STORE_new());
     ASSERT_IS_TRUE_WITH_MSG((i < failed_function_size), "Line:" TOSTRING(__LINE__));
@@ -2923,7 +2939,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
         bool verify_status = true;
 
         // act
@@ -2944,14 +2960,16 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
     TEST_FUNCTION(invalid_chain_cert_data_verifies_false_and_returns_success)
     {
         // arrange
-        size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
-        char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
-        memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, false, failed_function_list, failed_function_size);
         bool verify_status = false;
 
+        EXPECTED_CALL(initialize_openssl());
+        STRICT_EXPECTED_CALL(read_file_into_cstring(TEST_BAD_CHAIN_CERT_FILE, NULL));
+        STRICT_EXPECTED_CALL(read_file_into_cstring(TEST_ISSUER_CERT_FILE, NULL));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+        EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
+
         // act
-        int status = verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
+        int status = verify_certificate(TEST_BAD_CHAIN_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, &verify_status);
 
         // assert
         ASSERT_ARE_EQUAL_WITH_MSG(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -2971,7 +2989,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, false, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, failed_function_list, failed_function_size);
         bool verify_status = false;
 
         // act
@@ -2998,7 +3016,7 @@ BEGIN_TEST_SUITE(edge_openssl_pki_unittests)
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         memset(failed_function_list, 0, failed_function_size);
-        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, false, true, failed_function_list, failed_function_size);
+        test_helper_verify_certificate(TEST_CERT_FILE, TEST_KEY_FILE, TEST_ISSUER_CERT_FILE, true, failed_function_list, failed_function_size);
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
