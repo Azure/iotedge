@@ -134,7 +134,7 @@ Defaults:
                             Option<HttpUris> uris = useHttp
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
-                            bootstrapper = new Iotedged(this.BootstrapperArchivePath, credentials, uris);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris);
                         }
                         break;
                     case BootstrapperType.Iotedgectl:
