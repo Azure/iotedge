@@ -94,7 +94,7 @@ function Uninstall-SecurityDaemon {
 
 function Test-IsDockerRunning {
     $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
-    if ((Get-Service "Docker").Status -eq "Running") {
+    if ((Get-Service "*docker*").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
         if (($UseWindowsContainers) -and -not (Test-UsingWindowsContainers)) {
             if (-not (Test-Path -Path $DockerCliExe)) {
