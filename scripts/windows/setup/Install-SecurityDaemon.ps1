@@ -1,35 +1,48 @@
+New-Module -name IoTEdge -scriptblock {
+
+[Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
+
 <#
- # Installs the IoT Edge Security Daemon on RS4 Windows.
+ # Installs the IoT Edge Security Daemon on Windows.
  #>
 
 #requires -Version 5
 #requires -RunAsAdministrator
 
-[CmdletBinding()]
-param (
-    [Parameter(ParameterSetName = "Manual")]
-    [Switch] $Manual,
-
-    [Parameter(ParameterSetName = "DPS")]
-    [Switch] $Dps,
-
-    [Parameter(Mandatory = $true, ParameterSetName = "Manual")]
-    [String] $DeviceConnectionString,
-
-    [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
-    [String] $ScopeId,
-
-    [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
-    [String] $RegistrationId
-)
-
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 5
 
 function Install-SecurityDaemon {
+    [CmdletBinding()]
+    param (
+        [Parameter(ParameterSetName = "Manual")]
+        [Switch] $Manual,
+
+        [Parameter(ParameterSetName = "DPS")]
+        [Switch] $Dps,
+
+        [Parameter(Mandatory = $false)]
+        [Switch] $UseWindowsContainers = $false,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "Manual")]
+        [String] $DeviceConnectionString,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
+        [String] $ScopeId,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "DPS")]
+        [String] $RegistrationId
+    )
+
     if (-not (Test-IsDockerRunning) -or -not (Test-IsKernelValid)) {
         Write-Host ("`nThe prerequisites for installation of the IoT Edge Security daemon are not met. " +
             "Please fix all known issues before rerunning this script.") `
+            -ForegroundColor "Red"
+        return
+    }
+
+    if ((Test-EdgeAlreadyInstalled)) {
+        Write-Host ("`nIoT Edge appears to be already installed, exiting.") `
             -ForegroundColor "Red"
         return
     }
@@ -57,11 +70,32 @@ function Install-SecurityDaemon {
 }
 
 function Test-IsDockerRunning {
+    $DockerCliExe = "$env:ProgramFiles\Docker\Docker\DockerCli.exe"
     if ((Get-Service "Docker").Status -eq "Running") {
         Write-Host "Docker is running." -ForegroundColor "Green"
-        return $true
-    }
-    else {
+        $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
+        if (($UseWindowsContainers) -and -not ($os -match "\s*windows\s*$")) {
+            if (-not (Test-Path -Path $DockerCliExe)) {
+                throw "Unable to switch to Windows containers."
+            }
+            Write-Host "Switching Docker to use Windows containers" -ForegroundColor "Green"
+            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
+            $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
+            if (-not ($os -match "\s*windows\s*$")) {
+                throw "Unable to switch to Windows containers."
+            }
+        } elseif (-not ($UseWindowsContainers) -and ($os -match "\s*windows\s*$")) {
+            if (-not (Test-Path -Path $DockerCliExe)) {
+                throw "Unable to switch to Windows containers."
+            }
+            Write-Host "Switching Docker to use Linux containers" -ForegroundColor "Green"
+            Invoke-Native "`"$DockerCliExe`" -SwitchDaemon"
+            $os = Invoke-Native "docker version --format {{.Server.Os}}" -Passthru
+            if (($os -match "\s*windows\s*$")) {
+                throw "Unable to switch to Linux containers."
+            }
+        }
+    } else {
         Write-Host "Docker is not running." -ForegroundColor "Red"
         if ((Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("EditionID") -eq "IoTUAP") {
             Write-Host ("Please visit https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-core " +
@@ -75,33 +109,33 @@ function Test-IsDockerRunning {
         }
         return $false
     }
-}
+    return $true
+ }
 
 function Test-IsKernelValid {
-    $SupportedBuilds = @(17134)
+    $MinBuildForLinuxContainers = 14393
+    $SupportedBuildsForWindowsContainers = @(17134)
     $CurrentBuild = (Get-Item "HKLM:\Software\Microsoft\Windows NT\CurrentVersion").GetValue("CurrentBuild")
-    if ((Invoke-Native "docker info --format {{.Isolation}}" -Passthru) -match "hyperv") {
-        Write-Host "Hyper-V isolation is enabled." -ForegroundColor "Green"
+
+    # If using Linux containers, any Windows 10 version >14393 will suffice.
+    if ((-not ($UseWindowsContainers) -and ($CurrentBuild -ge $MinBuildForLinuxContainers)) -or `
+        (($UseWindowsContainers) -and ($SupportedBuildsForWindowsContainers -contains $CurrentBuild))) {
+        Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
         return $true
-    }
-    else {
-        Write-Host "Process isolation is enabled." -ForegroundColor "Green"
-        if ($SupportedBuilds -contains $CurrentBuild) {
-            Write-Host "The container host is on supported build version $CurrentBuild." -ForegroundColor "Green"
-            return $true
-        }
-        else {
-            Write-Host ("The container host is on unsupported build version $CurrentBuild. " +
-                "Please use a container host with one of the following supported build versions:`n" +
-                ($SupportedBuilds -join "`n")) `
-                -ForegroundColor "Red"
-            return $false
-        }
+    } else {
+
+        Write-Host ("The container host is on unsupported build version $CurrentBuild. `n" +
+            "Please use a container host running build $MinBuildForLinuxContainers newer when using Linux containers" +
+            "or with one of the following supported build versions when using Windows containers:`n" +
+            ($SupportedBuildsForWindowsContainers -join "`n")) `
+            -ForegroundColor "Red"
+        return $false
     }
 }
 
 function Get-SecurityDaemon {
     try {
+        Write-Host "Downloading the latest version of IoT Edge security daemon." -ForegroundColor "Green"
         Invoke-WebRequest `
             -Uri "https://aka.ms/iotedged-windows-latest" `
             -OutFile "$env:TEMP\iotedged-windows.zip" `
@@ -137,6 +171,7 @@ function Get-VcRuntime {
     }
 
     try {
+        Write-Host "Downloading vcruntime." -ForegroundColor "Green"
         Invoke-WebRequest `
             -Uri "https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe" `
             -OutFile "$env:TEMP\vc_redist.exe" `
@@ -195,7 +230,7 @@ function Add-IotEdgeRegistryKey {
 
 function Set-ProvisioningMode {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    if ($Manual) {
+    if (($Manual) -or ($DeviceConnectionString)) {
         $SelectionRegex = "(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*`".*`"\s*#?\s*device_connection_string:\s*`".*`""
         $ReplacementContent = @(
             "provisioning:",
@@ -241,8 +276,13 @@ function Set-Hostname {
 
 function Set-GatewayAddress {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
-    $GatewayAddress = (Get-NetIpAddress |
-            Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
+    if (($UseWindowsContainers)) {
+        $GatewayAddress = (Get-NetIpAddress |
+                Where-Object {$_.InterfaceAlias -like "*vEthernet (nat)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
+    } else {
+        $GatewayAddress = (Get-NetIpAddress |
+                Where-Object {$_.InterfaceAlias -like "*vEthernet (DockerNAT)*" -and $_.AddressFamily -like "IPv4"}).IPAddress
+    }
 
     $SelectionRegex = "connect:\s*management_uri:\s*`".*`"\s*workload_uri:\s*`".*`""
     $ReplacementContent = @(
@@ -268,12 +308,31 @@ function Set-GatewayAddress {
 function Set-MobyNetwork {
     $ConfigurationYaml = Get-Content "C:\ProgramData\iotedge\config.yaml" -Raw
     $SelectionRegex = "moby_runtime:\s*uri:\s*`".*`"\s*#?\s*network:\s*`".*`""
-    $ReplacementContent = @(
+    $ReplacementContentWindows = @(
         "moby_runtime:",
         "  docker_uri: `"npipe://./pipe/docker_engine`"",
         "  network: `"nat`"")
-    ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContent -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
-    Write-Host "Set the Moby runtime network to NAT." -ForegroundColor "Green"
+    $ReplacementContentLinux = @(
+        "moby_runtime:",
+        "  docker_uri: `"npipe://./pipe/docker_engine`"",
+        "  network: `"azure-iot-edge`"")
+    if (($UseWindowsContainers)) {
+        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentWindows -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
+        Write-Host "Set the Moby runtime network to nat." -ForegroundColor "Green"
+    } else {
+        ($ConfigurationYaml -replace $SelectionRegex, ($ReplacementContentLinux -join "`n")) | Set-Content "C:\ProgramData\iotedge\config.yaml" -Force
+        Write-Host "Set the Moby runtime network to azure-iot-edge." -ForegroundColor "Green"
+    }
+}
+
+function Test-EdgeAlreadyInstalled {
+    $ServiceName = "iotedge"
+    $IoTEdgePath = "C:\ProgramData\iotedge"
+
+    if ((Get-Service $ServiceName -ErrorAction SilentlyContinue) -or (Test-Path -Path $IoTEdgePath)) {
+        return $true
+    }
+    return $false
 }
 
 function Invoke-Native {
@@ -300,4 +359,5 @@ function Invoke-Native {
     }
 }
 
-Install-SecurityDaemon
+Export-ModuleMember -function 'Install-SecurityDaemon'
+}
