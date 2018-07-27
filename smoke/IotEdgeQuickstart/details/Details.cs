@@ -121,7 +121,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
             {
                 Exception savedException = null;
 
@@ -302,7 +302,6 @@ namespace IotEdgeQuickstart.Details
             string deployJson = this.deploymentFileName.Match(f => {
                 JObject o1 = JObject.Parse(File.ReadAllText(f));
                 string json = o1.ToString();
-                Console.WriteLine(json);
                 return json;
             }, () => {
                 string deployJsonRegistry = this.credentials.Match(
