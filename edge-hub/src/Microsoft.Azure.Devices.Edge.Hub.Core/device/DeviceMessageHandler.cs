@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         IDeviceProxy underlyingProxy;
 
         // IoTHub error codes
-        const int GatewayTimeoutErrorCode = 504101;
         const int GenericBadRequest = 400000;
 
         public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
