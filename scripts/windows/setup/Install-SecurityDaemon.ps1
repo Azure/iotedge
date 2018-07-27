@@ -82,6 +82,8 @@ function Uninstall-SecurityDaemon {
         return
     }
 
+    Write-Host "Uninstalling..."
+
     $UseWindowsContainers = Test-UsingWindowsContainers
 
     Uninstall-IotEdgeService
@@ -178,11 +180,11 @@ function Get-SecurityDaemon {
 function Remove-SecurityDaemonResources {
     $LogKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged"
     Remove-Item $LogKey -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose $(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })
+    Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
 
     $EdgePath = "C:\ProgramData\iotedge"
     Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose $(if ($?) { "Deleted install directory '$EdgePath'" } else { $CmdErr })
+    Write-Verbose "$(if ($?) { "Deleted install directory '$EdgePath'" } else { $CmdErr })"
 }
 
 function Get-SystemPathKey {
@@ -252,7 +254,7 @@ function Install-IotEdgeService {
 
 function Uninstall-IotEdgeService {
     Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable CmdErr iotedge
-    Write-Verbose $(if ($?) { "Stopped the IoT Edge service" } else { $CmdErr })
+    Write-Verbose "$(if ($?) { "Stopped the IoT Edge service" } else { $CmdErr })"
 
     if (Invoke-Native "sc.exe delete iotedge" -ErrorAction SilentlyContinue) {
         Write-Verbose "Removed service subkey from the registry"
@@ -273,7 +275,7 @@ function Add-FirewallExceptions {
 
 function Remove-FirewallExceptions {
     Remove-NetFirewallRule -DisplayName "iotedged allow inbound 15580,15581" -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose $(if ($?) { "Removed firewall exceptions" } else { $CmdErr })
+    Write-Verbose "$(if ($?) { "Removed firewall exceptions" } else { $CmdErr })"
 }
 
 function Add-IotEdgeRegistryKey {
