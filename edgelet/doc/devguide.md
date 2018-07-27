@@ -69,7 +69,7 @@ Clippy is a linting tool for rust. It provides suggestions for more idiomatic ru
 
 Install it with:
 ```
-cargo +nightly install clippy
+rustup component add clippy-preview --toolchain=nightly
 ```
 
 Run it with:

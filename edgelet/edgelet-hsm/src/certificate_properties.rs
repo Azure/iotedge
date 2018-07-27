@@ -8,8 +8,8 @@ use hsm::{
     CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
 };
 
-fn convert_certificate_type(core: &CoreCertificateType) -> HsmCertificateType {
-    match *core {
+fn convert_certificate_type(core: CoreCertificateType) -> HsmCertificateType {
+    match core {
         CoreCertificateType::Ca => HsmCertificateType::Ca,
         CoreCertificateType::Server => HsmCertificateType::Server,
         CoreCertificateType::Client => HsmCertificateType::Client,
@@ -22,7 +22,7 @@ pub fn convert_properties(core: &CoreCertificateProperties) -> HsmCertificatePro
     HsmCertificateProperties::new(
         *core.validity_in_secs(),
         core.common_name().to_string(),
-        convert_certificate_type(core.certificate_type()),
+        convert_certificate_type(*core.certificate_type()),
         IOTEDGED_CA.to_string(),
         core.alias().to_string(),
     )

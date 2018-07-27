@@ -60,8 +60,11 @@ impl EventLogger {
     }
 
     pub fn init(self) -> Result<(), Error> {
+        // log::set_boxed_logger(Box::new(self))
+        //      .map(|()| log::set_max_level(LevelFilter::Trace))
         log::set_max_level(LevelFilter::Trace);
-        Ok(log::set_boxed_logger(Box::new(self))?)
+        log::set_boxed_logger(Box::new(self))?;
+        Ok(())
     }
 }
 
