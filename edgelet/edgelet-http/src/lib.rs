@@ -24,11 +24,13 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-#[cfg(target_os = "linux")]
-#[cfg(test)]
+#[cfg(unix)]
 extern crate nix;
 extern crate percent_encoding;
 extern crate regex;
+#[cfg(unix)]
+#[macro_use]
+extern crate scopeguard;
 extern crate serde;
 #[macro_use]
 extern crate serde_json;
@@ -47,16 +49,12 @@ extern crate url;
 #[macro_use]
 extern crate edgelet_utils;
 
-#[cfg(unix)]
-use std::fs;
 use std::io;
 #[cfg(unix)]
 use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(unix)]
 use std::os::unix::io::FromRawFd;
-#[cfg(unix)]
-use std::path::Path;
 
 use futures::{future, Future, Poll, Stream};
 use http::{Request, Response};
@@ -214,11 +212,7 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             #[cfg(unix)]
             UNIX_SCHEME => {
                 let path = url.path();
-                if Path::new(path).exists() {
-                    fs::remove_file(path)?;
-                }
-                let listener = UnixListener::bind(path, &handle)?;
-                Incoming::Unix(listener)
+                unix::listener(path, &handle)?
             }
             #[cfg(unix)]
             FD_SCHEME => {
@@ -250,6 +244,51 @@ impl<B: AsRef<[u8]> + 'static> HyperExt<B> for Http<B> {
             handle,
             incoming,
         })
+    }
+}
+
+#[cfg(unix)]
+mod unix {
+    use std::fs;
+    use std::os::unix::fs::MetadataExt;
+    use std::path::Path;
+
+    use nix::sys::stat::{umask, Mode};
+    use tokio_core::reactor::Handle;
+    use tokio_uds::UnixListener;
+
+    use error::Error;
+    use util::incoming::Incoming;
+
+    pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Error> {
+        let listener = if path.as_ref().exists() {
+            // get the previous file's metadata
+            let metadata = fs::metadata(&path)?;
+            debug!("read metadata {:?} for {}", metadata, path.as_ref().display());
+
+            debug!("unlinking {}...", path.as_ref().display());
+            fs::remove_file(&path)?;
+            debug!("unlinked {}", path.as_ref().display());
+
+            let mode = Mode::from_bits_truncate(metadata.mode());
+            let mut mask = Mode::all();
+            mask.toggle(mode);
+
+            debug!("settings permissions {:#o} for {}...", mode, path.as_ref().display());
+            let prev = umask(mask);
+            defer! {{ umask(prev); }}
+
+            debug!("binding {}...", path.as_ref().display());
+            let listener = UnixListener::bind(&path, &handle)?;
+            debug!("bound {}", path.as_ref().display());
+
+            Incoming::Unix(listener)
+        } else {
+            let listener = UnixListener::bind(path, &handle)?;
+            Incoming::Unix(listener)
+        };
+
+        Ok(listener)
     }
 }
 
