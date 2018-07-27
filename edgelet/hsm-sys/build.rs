@@ -120,12 +120,11 @@ fn main() {
     // Always make the Release version because Rust links to the Release CRT.
     // (This is especially important for Windows)
 
-    let rut = if env::var("FORCE_NO_UNITTEST").is_ok()
-        {
-            "OFF"
-        } else {
-            "ON"
-        };
+    let rut = if env::var("FORCE_NO_UNITTEST").is_ok() {
+        "OFF"
+    } else {
+        "ON"
+    };
     println!("#Start building HSM dev-mode library");
     let iothsm = Config::new("azure-iot-hsm-c")
         .define(SSL_OPTION, "ON")

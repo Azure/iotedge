@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use edgelet_core::{
-    CertificateProperties as CoreCertificateProperties, CertificateType as CoreCertificateType,
-    CertificateIssuer as CoreCertificateIssuer, IOTEDGED_CA_ALIAS
+    CertificateIssuer as CoreCertificateIssuer, CertificateProperties as CoreCertificateProperties,
+    CertificateType as CoreCertificateType, IOTEDGED_CA_ALIAS,
 };
 use hsm::{
     CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
@@ -18,7 +18,10 @@ fn convert_certificate_type(core: &CoreCertificateType) -> HsmCertificateType {
 }
 
 /// Convert Certificate properties defined in edgelet-core to HSM specific Certificate properties
-pub fn convert_properties(core: &CoreCertificateProperties, device_ca_alias: &str) -> HsmCertificateProperties {
+pub fn convert_properties(
+    core: &CoreCertificateProperties,
+    device_ca_alias: &str,
+) -> HsmCertificateProperties {
     let issuer_ca = match core.issuer() {
         CoreCertificateIssuer::DeviceCa => device_ca_alias.to_string(),
         CoreCertificateIssuer::DefaultCa => IOTEDGED_CA_ALIAS.to_string(),
@@ -35,8 +38,9 @@ pub fn convert_properties(core: &CoreCertificateProperties, device_ca_alias: &st
 #[cfg(test)]
 mod tests {
     use edgelet_core::{
+        CertificateIssuer as CoreCertificateIssuer,
         CertificateProperties as CoreCertificateProperties, CertificateType as CoreCertificateType,
-        CertificateIssuer as CoreCertificateIssuer, IOTEDGED_CA_ALIAS
+        IOTEDGED_CA_ALIAS,
     };
     use hsm::{
         CertificateProperties as HsmCertificateProperties, CertificateType as HsmCertificateType,
@@ -58,8 +62,8 @@ mod tests {
             }
         }
         match core.issuer() {
-            CoreCertificateIssuer::DefaultCa => { assert_eq!(IOTEDGED_CA_ALIAS, hsm.issuer_alias()) },
-            CoreCertificateIssuer::DeviceCa => { assert_eq!("device_ca_test", hsm.issuer_alias()) },
+            CoreCertificateIssuer::DefaultCa => assert_eq!(IOTEDGED_CA_ALIAS, hsm.issuer_alias()),
+            CoreCertificateIssuer::DeviceCa => assert_eq!("device_ca_test", hsm.issuer_alias()),
         };
         assert_eq!(core.alias(), hsm.alias());
 
@@ -89,7 +93,10 @@ mod tests {
                 alias.clone(),
             );
 
-            check_conversion(&core_props, super::convert_properties(&core_props, "device_ca_test"));
+            check_conversion(
+                &core_props,
+                super::convert_properties(&core_props, "device_ca_test"),
+            );
         }
 
         let core_props = CoreCertificateProperties::new(
@@ -98,7 +105,10 @@ mod tests {
             CoreCertificateType::Ca,
             alias.clone(),
         ).with_issuer(CoreCertificateIssuer::DeviceCa);
-        check_conversion(&core_props, super::convert_properties(&core_props, "device_ca_test"));
+        check_conversion(
+            &core_props,
+            super::convert_properties(&core_props, "device_ca_test"),
+        );
     }
 
 }

@@ -2,7 +2,9 @@
 extern crate edgelet_core;
 extern crate edgelet_hsm;
 
-use edgelet_core::{CertificateProperties, CertificateType, CreateCertificate, CertificateIssuer, IOTEDGED_CA_ALIAS};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, CreateCertificate, IOTEDGED_CA_ALIAS,
+};
 use edgelet_hsm::Crypto;
 
 #[test]
@@ -67,5 +69,7 @@ fn crypto_create_cert_input_fail() {
     }
 
     // cleanup
-    crypto.destroy_certificate(IOTEDGED_CA_ALIAS.to_string()).unwrap();
+    crypto
+        .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
+        .unwrap();
 }

@@ -13,7 +13,7 @@ pub enum CertificateType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CertificateIssuer {
     DefaultCa,
-    DeviceCa
+    DeviceCa,
 }
 
 /// Globally supported properties of certificates in the Edge.
@@ -23,7 +23,7 @@ pub struct CertificateProperties {
     common_name: String,
     certificate_type: CertificateType,
     alias: String,
-    issuer: CertificateIssuer
+    issuer: CertificateIssuer,
 }
 
 impl CertificateProperties {
