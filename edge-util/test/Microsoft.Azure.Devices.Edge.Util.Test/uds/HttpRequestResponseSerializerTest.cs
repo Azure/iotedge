@@ -22,7 +22,7 @@ Content-Type: application/json
 Content-Length: 100
 
 ";
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Version = Version.Parse("1.1");
             request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes("test"));
@@ -44,7 +44,7 @@ Content-Type: application/json
 Content-Length: 100
 
 ";
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
             request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes("test"));
@@ -66,7 +66,7 @@ Content-Type: application/json
 Content-Length: 4
 
 ";
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Post;
             request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes("test"));
@@ -85,7 +85,7 @@ Host: localhost:8081
 Connection: close
 
 ";
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Method = HttpMethod.Get;
 
@@ -103,7 +103,7 @@ Connection: close
         [Fact]
         public void TestSerializeRequest_RequestUriIsNull_ShouldThrowArgumentNullException()
         {
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.Method = HttpMethod.Post;
             request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes("test"));
             request.Content.Headers.TryAddWithoutValidation("content-type", "application/json");
@@ -121,7 +121,7 @@ Content-Type: application/json
 Content-Length: 100
 
 ";
-            HttpRequestMessage request = new HttpRequestMessage();
+            var request = new HttpRequestMessage();
             request.Method = HttpMethod.Post;
             request.RequestUri = new Uri("http://localhost:8081/modules/testModule/sign?api-version=2018-06-28", UriKind.Absolute);
             request.Version = Version.Parse("1.1");
@@ -140,7 +140,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("invalid");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -151,7 +151,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("invalid\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -162,7 +162,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/11 200 OK\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -173,7 +173,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP-1.1 200 OK\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -184,7 +184,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 2000 OK\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -195,7 +195,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -206,7 +206,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK \r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -217,7 +217,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
@@ -232,7 +232,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length: 5\r\n\r\nMessage is longer");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -243,7 +243,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length=5\r\n\r\nMessage is longer");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -254,7 +254,7 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length: 5\r\n");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
             Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
@@ -265,10 +265,10 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nTest-header: 4\r\n\r\nTest");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
-            var response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
+            HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
             Assert.Equal(response.StatusCode, System.Net.HttpStatusCode.OK);
@@ -282,10 +282,10 @@ Content-Length: 100
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length: 4\r\n\r\nTest");
             var memory = new MemoryStream(expected, true);
-            HttpBufferedStream stream = new HttpBufferedStream(memory);
+            var stream = new HttpBufferedStream(memory);
 
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken);
-            var response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
+            HttpResponseMessage response = await new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken);
 
             Assert.Equal(response.Version, Version.Parse("1.1"));
             Assert.Equal(response.StatusCode, System.Net.HttpStatusCode.OK);
