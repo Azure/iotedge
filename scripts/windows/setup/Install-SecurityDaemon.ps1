@@ -1,4 +1,4 @@
-New-Module -name IoTEdge -scriptblock {
+New-Module -Name IotEdgeSecurityDaemon -ScriptBlock {
 
 [Console]::OutputEncoding = New-Object -typename System.Text.ASCIIEncoding
 
@@ -492,6 +492,5 @@ function Invoke-Native {
     }
 }
 
-Export-ModuleMember -Function 'Install-SecurityDaemon'
-Export-ModuleMember -Function 'Uninstall-SecurityDaemon'
+Export-ModuleMember -Function Install-SecurityDaemon, Uninstall-SecurityDaemon
 }
