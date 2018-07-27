@@ -60,4 +60,4 @@ process_args()
 process_args "$@"
 
 echo "Running cargo clippy"
-docker run --user "$(id -u)":"$(id -g)" --env "FORCE_NO_UNITTEST=1" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"
+docker run --user "$(id -u)":"$(id -g)" --rm -v "$PROJECT_ROOT:/volume" "$IMAGE"

@@ -103,7 +103,15 @@ MOCKABLE_FUNCTION(, RSA*, RSA_generate_key, int, bits, unsigned long, e_value, M
 MOCKABLE_FUNCTION(, EC_KEY*, EVP_PKEY_get1_EC_KEY, EVP_PKEY*, pkey);
 MOCKABLE_FUNCTION(, const EC_GROUP*, EC_KEY_get0_group, const EC_KEY*, key);
 MOCKABLE_FUNCTION(, int, EC_GROUP_get_curve_name, const EC_GROUP*, group);
-MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, EVP_PKEY*, pkey);
+
+#if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+    MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, const EVP_PKEY*, pkey);
+    MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, const X509*, a);
+#else
+    MOCKABLE_FUNCTION(, int, EVP_PKEY_bits, EVP_PKEY*, pkey);
+    MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, X509*, a);
+#endif
+
 MOCKABLE_FUNCTION(, BIO*, BIO_new_file, const char*, filename, const char*, mode);
 MOCKABLE_FUNCTION(, int, PEM_X509_INFO_write_bio, BIO*, bp, X509_INFO*, xi, EVP_CIPHER*, enc, unsigned char*, kstr, int, klen, pem_password_cb*, cb, void*, u);
 MOCKABLE_FUNCTION(, int, BIO_write, BIO*, b, const void*, in, int, inl);
@@ -125,7 +133,6 @@ MOCKABLE_FUNCTION(, ASN1_INTEGER*, ASN1_INTEGER_new);
 MOCKABLE_FUNCTION(, int, X509_add1_ext_i2d, X509*, x, int, nid, void*, value, int, crit, unsigned long, flags);
 MOCKABLE_FUNCTION(, int, X509_NAME_get_text_by_NID, X509_NAME*, name, int, nid, char*, buf, int, len);
 MOCKABLE_FUNCTION(, int, X509_NAME_add_entry_by_txt, X509_NAME*, name, const char*, field, int, type, const unsigned char*, bytes, int, len, int, loc, int, set);
-MOCKABLE_FUNCTION(, X509_NAME*, X509_get_subject_name, X509*, a);
 MOCKABLE_FUNCTION(, int, X509_set_issuer_name, X509*, x, X509_NAME*, name);
 MOCKABLE_FUNCTION(, X509*, X509_new);
 MOCKABLE_FUNCTION(, void, X509_free, X509*, a);
@@ -513,7 +520,11 @@ static const char* test_hook_OBJ_nid2sn(int n)
     return TEST_CURVE_NAME;
 }
 
+#if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+static int test_hook_EVP_PKEY_bits(const EVP_PKEY *pkey)
+#else
 static int test_hook_EVP_PKEY_bits(EVP_PKEY *pkey)
+#endif
 {
     (void)pkey;
 
@@ -773,7 +784,11 @@ static int test_hook_X509_NAME_add_entry_by_txt
     return 1;
 }
 
+#if ((OPENSSL_VERSION_NUMBER & 0xFFF00000L) >= 0x10100000L)
+static X509_NAME* test_hook_X509_get_subject_name(const X509 *a)
+#else
 static X509_NAME* test_hook_X509_get_subject_name(X509 *a)
+#endif
 {
     return TEST_X509_SUBJECT_NAME;
 }
