@@ -81,7 +81,7 @@
       <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />  
     </CreateProperty>
   </Target>
-    
+
   <Target Name="Antlr4Sources" BeforeTargets="CoreCompile">
     <ItemGroup Condition="'$(Antlr4CodeGenRan)' == 'true'">
       <Compile Include="grammar\generated\**\*.cs" />
