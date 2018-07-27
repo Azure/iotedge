@@ -250,5 +250,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
             Assert.False(pgMessage.Properties.ContainsKey("$.on"));
         }
+
+        [Fact]
+        public void TestFromMessage_DuplicateSystemProperties()
+        {
+            const string DeviceId = "Device1";
+            const string ModuleId = "Module1";
+            const string Input = "input1";
+            var outputTemplates = new Dictionary<string, string>
+            {
+                ["ModuleEndpoint"] = "devices/{deviceId}/modules/{moduleId}/inputs/{inputName}"
+            };
+            var inputTemplates = new List<string>
+            {
+                "devices/{deviceId}/messages/events/{params}/",
+                "devices/{deviceId}/messages/events/"
+            };
+            var config = new MessageAddressConversionConfiguration(
+                inputTemplates,
+                outputTemplates
+            );
+            var converter = new MessageAddressConverter(config);
+
+            var properties = new Dictionary<string, string>
+            {
+                ["Foo"] = "Bar",
+                ["Prop2"] = "Value2",
+                ["Prop3"] = "Value3",
+                ["$.cdid"] = "IncorrectDeviceId",
+                ["$.cmid"] = "IncorrectModuleId"
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                [SystemProperties.OutboundUri] = Mqtt.Constants.OutboundUriModuleEndpoint,
+                [SystemProperties.LockToken] = Guid.NewGuid().ToString(),
+                [TemplateParameters.DeviceIdTemplateParam] = DeviceId,
+                [Mqtt.Constants.ModuleIdTemplateParameter] = ModuleId,
+                [SystemProperties.InputName] = Input,
+                [SystemProperties.OutputName] = "output",
+                [SystemProperties.ContentEncoding] = "utf-8",
+                [SystemProperties.ContentType] = "application/json",
+                [SystemProperties.MessageSchema] = "schema1",
+                [SystemProperties.To] = "foo",
+                [SystemProperties.UserId] = "user1",
+                [SystemProperties.MsgCorrelationId] = "1234",
+                [SystemProperties.MessageId] = "m1",
+                [SystemProperties.ConnectionDeviceId] = "fromDevice1",
+                [SystemProperties.ConnectionModuleId] = "fromModule1"
+            };
+
+            var message = Mock.Of<IMessage>(
+                m =>
+                    m.Body == new byte[] { 1, 2, 3 } &&
+                    m.Properties == properties &&
+                    m.SystemProperties == systemProperties);
+
+            var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
+            IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
+            Assert.NotNull(pgMessage);
+            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.cdid=fromDevice1&%24.cmid=fromModule1&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1",
+                pgMessage.Address);
+            Assert.Equal(12, pgMessage.Properties.Count);
+            Assert.Equal("Bar", pgMessage.Properties["Foo"]);
+            Assert.Equal("Value2", pgMessage.Properties["Prop2"]);
+            Assert.Equal("Value3", pgMessage.Properties["Prop3"]);
+            Assert.Equal("utf-8", pgMessage.Properties["$.ce"]);
+            Assert.Equal("application/json", pgMessage.Properties["$.ct"]);
+            Assert.Equal("schema1", pgMessage.Properties["$.schema"]);
+            Assert.Equal("foo", pgMessage.Properties["$.to"]);
+            Assert.Equal("user1", pgMessage.Properties["$.uid"]);
+            Assert.Equal("1234", pgMessage.Properties["$.cid"]);
+            Assert.Equal("m1", pgMessage.Properties["$.mid"]);
+            Assert.Equal("fromDevice1", pgMessage.Properties["$.cdid"]);
+            Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
+            Assert.False(pgMessage.Properties.ContainsKey("$.on"));
+        }
     }
 }
