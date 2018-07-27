@@ -42,7 +42,7 @@ function Install-SecurityDaemon {
     }
 
     if ((Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first. Exiting...") `
+        Write-Host ("`nIoT Edge is already installed. To reinstall, run 'Uninstall-SecurityDaemon' first.") `
             -ForegroundColor "Red"
         return
     }
@@ -77,7 +77,7 @@ function Uninstall-SecurityDaemon {
     )
 
     if (-not $Force -and -not (Test-EdgeAlreadyInstalled)) {
-        Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway. Exiting...") `
+        Write-Host ("`nIoT Edge is not installed. Use '-Force' to uninstall anyway.") `
             -ForegroundColor "Red"
         return
     }
@@ -88,11 +88,13 @@ function Uninstall-SecurityDaemon {
 
     Uninstall-IotEdgeService
     Stop-IotEdgeContainers
-    Remove-SecurityDaemonResources
+    $success = Remove-SecurityDaemonResources
     Reset-SystemPath
     Remove-FirewallExceptions
 
-    Write-Host "Successfully uninstalled IoT Edge." -ForegroundColor "Green"
+    if ($success) {
+        Write-Host "Successfully uninstalled IoT Edge." -ForegroundColor "Green"
+    }
 }
 
 function Test-IsDockerRunning {
@@ -178,21 +180,36 @@ function Get-SecurityDaemon {
 }
 
 function Remove-SecurityDaemonResources {
+    $success = $true
+
     $LogKey = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\iotedged"
     Remove-Item $LogKey -ErrorAction SilentlyContinue -ErrorVariable CmdErr
     Write-Verbose "$(if ($?) { "Deleted registry key '$LogKey'" } else { $CmdErr })"
 
     $EdgePath = "C:\ProgramData\iotedge"
     Remove-Item -Recurse $EdgePath -ErrorAction SilentlyContinue -ErrorVariable CmdErr
-    Write-Verbose "$(if ($?) { "Deleted install directory '$EdgePath'" } else { $CmdErr })"
+    if ($?) {
+        Write-Verbose "Deleted install directory '$EdgePath'"
+    }
+    else {
+        Write-Verbose "$CmdErr"
+        if ($CmdErr.FullyQualifiedErrorId -ne "PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand") {
+            Write-Host ("Could not delete install directory '$EdgePath'. Please reboot " +
+                "your device and run Uninstall-SecurityDaemon again with '-Force'.") `
+                -ForegroundColor "Red"
+            $success = $false
+        }
+    }
+
+    $success
 }
 
 function Get-SystemPathKey {
-    return "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+    "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 }
 
 function Get-SystemPath {
-    return (Get-ItemProperty -Path (Get-SystemPathKey) -Name Path).Path -split ";" | Where-Object {$_.Length -gt 0}
+    (Get-ItemProperty -Path (Get-SystemPathKey) -Name Path).Path -split ";" | Where-Object {$_.Length -gt 0}
 }
 
 function Set-SystemPath {
