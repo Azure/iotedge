@@ -65,14 +65,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use docker::models::HostConfig;
-use edgelet_core::{
-    CertificateProperties, CertificateType, CertificateIssuer
-};
 use edgelet_core::crypto::{
     CreateCertificate, Decrypt, DerivedKeyStore, Encrypt, GetTrustBundle, KeyIdentity, KeyStore,
-    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS
+    MasterEncryptionKey, MemoryKey, MemoryKeyStore, Sign, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
+use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType};
 use edgelet_core::{ModuleRuntime, ModuleSpec};
 use edgelet_docker::{DockerConfig, DockerModuleRuntime};
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
@@ -306,7 +304,7 @@ impl Main {
 
 fn prepare_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate
+    C: CreateCertificate,
 {
     let edgelet_ca_props = CertificateProperties::new(
         IOTEDGED_VALIDITY,
@@ -315,16 +313,18 @@ where
         IOTEDGED_CA_ALIAS.to_string(),
     ).with_issuer(CertificateIssuer::DeviceCa);
 
-    let _workload_ca_cert = crypto.create_certificate(&edgelet_ca_props)
+    let _workload_ca_cert = crypto
+        .create_certificate(&edgelet_ca_props)
         .map_err(Error::from)?;
     Ok(())
 }
 
 fn destroy_workload_ca<C>(crypto: &C) -> Result<(), Error>
 where
-    C: CreateCertificate
+    C: CreateCertificate,
 {
-    crypto.destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
+    crypto
+        .destroy_certificate(IOTEDGED_CA_ALIAS.to_string())
         .map_err(Error::from)?;
     Ok(())
 }
@@ -376,7 +376,7 @@ fn reconfigure<M, C>(
 where
     M: ModuleRuntime,
     M::Error: Into<Error>,
-    C: MasterEncryptionKey  + CreateCertificate,
+    C: MasterEncryptionKey + CreateCertificate,
 {
     // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
@@ -738,10 +738,10 @@ mod tests {
     use std::io::Read;
 
     use edgelet_core::ModuleRuntimeState;
+    use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::module::*;
     use tempdir::TempDir;
-    use edgelet_test_utils::cert::TestCert;
-    use edgelet_core::{PrivateKey, KeyBytes};
 
     #[cfg(unix)]
     static SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -776,7 +776,6 @@ mod tests {
         }
     }
 
-
     impl CreateCertificate for TestCrypto {
         type Certificate = TestCert;
 
@@ -785,10 +784,10 @@ mod tests {
             _properties: &CertificateProperties,
         ) -> Result<TestCert, edgelet_core::Error> {
             Ok(TestCert::default()
-               .with_cert(vec![1, 2, 3])
-               .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
-               .with_fail_pem(false)
-               .with_fail_private_key(false))
+                .with_cert(vec![1, 2, 3])
+                .with_private_key(PrivateKey::Key(KeyBytes::Pem("some key".to_string())))
+                .with_fail_pem(false)
+                .with_fail_private_key(false))
         }
 
         fn destroy_certificate(&self, _alias: String) -> Result<(), edgelet_core::Error> {

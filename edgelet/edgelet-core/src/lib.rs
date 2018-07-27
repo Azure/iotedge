@@ -37,7 +37,7 @@ pub mod pid;
 pub mod watchdog;
 
 pub use authorization::{Authorization, Policy};
-pub use certificate_properties::{CertificateProperties, CertificateType, CertificateIssuer};
+pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyBytes, KeyIdentity,
     KeyStore, MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,

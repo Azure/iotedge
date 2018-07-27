@@ -68,7 +68,9 @@ impl CoreCreateCertificate for Crypto {
         &self,
         properties: &CoreCertificateProperties,
     ) -> Result<Self::Certificate, CoreError> {
-        let crypto = self.crypto.read().expect("Shared read lock on crypto structure failed");
+        let crypto = self.crypto
+            .read()
+            .expect("Shared read lock on crypto structure failed");
         let device_ca_alias = crypto.get_device_ca_alias();
         let cert = crypto
             .create_certificate(&convert_properties(properties, &device_ca_alias))
