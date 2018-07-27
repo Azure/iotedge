@@ -89,6 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             // complete the tokenGetter
                             if (newCredentials is ITokenCredentials tokenAuth && this.tokenGetter.HasValue)
                             {
+                                if (IsTokenExpired(tokenAuth.Identity.IotHubHostName, tokenAuth.Token))
+                                {                                    
+                                    throw new InvalidOperationException($"Token for client {tokenAuth.Identity.Id} is expired");
+                                }
+
                                 this.tokenGetter.ForEach(tg =>
                                  {
                                      tg.SetResult(tokenAuth.Token);
@@ -293,7 +298,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        internal static TimeSpan GetTokenExpiryTimeRemaining(string hostname, string token) => GetTokenExpiry(hostname, token) - DateTime.UtcNow;
+        internal static bool IsTokenExpired(string hostName, string token)
+        {
+            try
+            {
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(hostName, token);
+                return sharedAccessSignature.IsExpired();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return true;
+            }
+        }
+
+        internal static TimeSpan GetTokenExpiryTimeRemaining(string hostName, string token) => GetTokenExpiry(hostName, token) - DateTime.UtcNow;
 
         // Checks if the token expires too soon
         static bool IsTokenUsable(string hostname, string token)

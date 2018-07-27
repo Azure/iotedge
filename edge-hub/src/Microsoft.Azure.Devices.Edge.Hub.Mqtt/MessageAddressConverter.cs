@@ -97,9 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             if (matches.Count > 1)
             {
-                this.logger.LogWarning($"Topic name {message.Address} matches more than one route. Picking first matching route.");
+                this.logger.LogWarning($"Message address {message.Address} matches more than one topic. Picking first matching topic.");
             }
-            else if (matches.Count == 1)
+            else if (matches.Count == 0)
+            {
+                this.logger.LogWarning($"Message address {message.Address} does not match any topic.");
+            }
+            else
             {
                 foreach (KeyValuePair<string, string> match in matches[0])
                 {
