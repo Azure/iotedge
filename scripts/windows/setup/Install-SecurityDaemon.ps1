@@ -254,7 +254,13 @@ function Install-IotEdgeService {
 
 function Uninstall-IotEdgeService {
     Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable CmdErr iotedge
-    Write-Verbose "$(if ($?) { "Stopped the IoT Edge service" } else { $CmdErr })"
+    if ($?) {
+        Start-Sleep -Seconds 7
+        Write-Verbose "Stopped the IoT Edge service"
+    }
+    else {
+        Write-Verbose "$CmdErr"
+    }
 
     if (Invoke-Native "sc.exe delete iotedge" -ErrorAction SilentlyContinue) {
         Write-Verbose "Removed service subkey from the registry"
