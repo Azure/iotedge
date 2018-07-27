@@ -313,7 +313,7 @@ where
         IOTEDGED_CA_ALIAS.to_string(),
     ).with_issuer(CertificateIssuer::DeviceCa);
 
-    let _workload_ca_cert = crypto
+    crypto
         .create_certificate(&edgelet_ca_props)
         .map_err(Error::from)?;
     Ok(())

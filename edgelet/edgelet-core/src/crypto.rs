@@ -15,6 +15,7 @@ use sha2::Sha256;
 use certificate_properties::CertificateProperties;
 use error::{Error, ErrorKind};
 
+/// This is the issuer alias used when CertificateIssuer::DefaultCa is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
