@@ -66,6 +66,10 @@
     <Antlr4Outputs Condition="'@(Antlr4Outputs)' == ''" Include="grammar\generated\dummy.cs" />
   </ItemGroup>
 
+  <Target Name="RemoveGeneratedCodeFolder" BeforeTargets="Antlr4CodeGen">
+    <RemoveDir Directories="grammar\generated" />  
+  </Target>
+  
   <Target Name="Antlr4CodeGen" BeforeTargets="Antlr4Sources" Inputs="@(Antlr4Inputs)" Outputs="@(Antlr4Outputs)" Condition="'$(BuildingInsideVisualStudio)' != 'true' Or '$(OS)' != 'Windows_NT'">
     <PropertyGroup>
       <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar</FullAntlr4ToolLocation>
@@ -77,7 +81,7 @@
       <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />  
     </CreateProperty>
   </Target>
-
+    
   <Target Name="Antlr4Sources" BeforeTargets="CoreCompile">
     <ItemGroup Condition="'$(Antlr4CodeGenRan)' == 'true'">
       <Compile Include="grammar\generated\**\*.cs" />
