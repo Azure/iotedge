@@ -301,7 +301,9 @@ namespace IotEdgeQuickstart.Details
             string tempSensorImage = this.TempSensorImage();
             string deployJson = this.deploymentFileName.Match(f => {
                 JObject o1 = JObject.Parse(File.ReadAllText(f));
-                return o1.ToString();
+                string json = o1.ToString();
+                Console.WriteLine(json);
+                return json;
             }, () => {
                 string deployJsonRegistry = this.credentials.Match(
                 c =>
