@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 {
                     var connectionManager = c.Resolve<IConnectionManager>();
                     ICredentialsStore credentialsStore = await c.Resolve<Task<ICredentialsStore>>();
-                    var tokenCredentialsAuthenticator = new TokenCredentialsAuthenticator(connectionManager, credentialsStore, this.iothubHostName);
+                    var tokenCredentialsAuthenticator = new TokenCacheAuthenticator(connectionManager, credentialsStore, this.iothubHostName);
                     return new Authenticator(tokenCredentialsAuthenticator, this.deviceId) as IAuthenticator;
                 })
                 .As<Task<IAuthenticator>>()

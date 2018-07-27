@@ -10,13 +10,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TokenCredentialsAuthenticator : IAuthenticator
+    public class TokenCacheAuthenticator : IAuthenticator
     {
         readonly IConnectionManager connectionManager;
         readonly ICredentialsStore credentialsStore;
         readonly string iotHubHostName;
 
-        public TokenCredentialsAuthenticator(IConnectionManager connectionManager, ICredentialsStore credentialsStore, string iotHubHostName)
+        public TokenCacheAuthenticator(IConnectionManager connectionManager, ICredentialsStore credentialsStore, string iotHubHostName)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.credentialsStore = Preconditions.CheckNotNull(credentialsStore, nameof(credentialsStore));
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCredentialsAuthenticator>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TokenCacheAuthenticator>();
             const int IdStart = CloudProxyEventIds.TokenCredentialsAuthenticator;
 
             enum EventIds
