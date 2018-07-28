@@ -49,8 +49,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         await this.credentialsStore.Add(tokenCredentials);
                         Events.AuthenticatedWithIotHub(clientCredentials.Identity);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        Events.AuthenticatingWithIotHubFailed(clientCredentials.Identity, ex);
                         isAuthenticated = false;
                     }
                 }
@@ -103,6 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ErrorValidatingCachedToken(IIdentity identity, Exception exception)
             {
                 Log.LogDebug((int)EventIds.ErrorValidatingCachedToken, $"Error validating cached token for {identity.Id}: {exception.Message}");
+            }
+
+            public static void AuthenticatingWithIotHubFailed(IIdentity identity, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorValidatingCachedToken, $"Error validating token with IoTHub {identity.Id}: {ex.Message}");
             }
         }
     }
