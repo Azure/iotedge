@@ -41,6 +41,6 @@ httparse = "1.2"
 lazy_static = "1.0"
 rand = "0.4"
 tokio-core = "0.1"
-tempfile = "2"
+tempfile = "3"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

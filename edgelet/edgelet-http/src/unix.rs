@@ -46,5 +46,43 @@ pub fn listener<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<Incoming, Er
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    use futures::Stream;
+    use tempfile::tempdir;
+    use tokio_core::reactor::Core;
+
+    #[test]
+    fn test_unlink() {
+        let mut core = Core::new().unwrap();
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("unlink.sock");
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .mode(0o400)
+            .open(path.clone())
+            .unwrap();
+
+        assert_eq!(0o400, file.metadata().unwrap().mode() & 0o7777);
+
+        let listener = listener(&path, &core.handle()).unwrap();
+        let srv = listener.for_each(move |(_socket, _addr)| {
+            Ok(())
+        });
+
+        core.run(srv).unwrap();
+
+        let new_file = OpenOptions::new()
+            .read(true)
+            .open(path.clone())
+            .unwrap();
+        assert_eq!(0o400, new_file.metadata().unwrap().mode() & 0o7777);
+
+        dir.close().unwrap();
+    }
 }
