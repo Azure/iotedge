@@ -7,18 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class EncryptedStore<TK, TV> : IEncryptedStore<TK, TV>
     {
-        IKeyValueStore<TK, string> entityStore;
-        IEncryptionProvider encryptionProvider;
+        readonly IKeyValueStore<TK, string> entityStore;
+        readonly IEncryptionProvider encryptionProvider;
 
         public EncryptedStore(IKeyValueStore<TK, string> entityStore, IEncryptionProvider encryptionProvider)
         {
             this.entityStore = Preconditions.CheckNotNull(entityStore, nameof(entityStore));
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
-        }
-
-        public void Dispose()
-        {
-            this.entityStore?.Dispose();
         }
 
         public async Task Put(TK key, TV value)
@@ -97,6 +92,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     var value = decryptedValue.FromJson<TV>();
                     await perEntityCallback(key, value);
                 });
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.entityStore?.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }
