@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -58,6 +58,9 @@
       <Visitor>False</Visitor>
       <Listener>False</Listener>
     </Antlr4>
+    <Compile Remove="grammar\generated\**" />
+    <EmbeddedResource Remove="grammar\generated\**" />
+    <None Remove="grammar\generated\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -66,10 +69,6 @@
     <Antlr4Outputs Condition="'@(Antlr4Outputs)' == ''" Include="grammar\generated\dummy.cs" />
   </ItemGroup>
 
-  <Target Name="RemoveGeneratedCodeFolder" BeforeTargets="Antlr4CodeGen">
-    <RemoveDir Directories="grammar\generated" />  
-  </Target>
-  
   <Target Name="Antlr4CodeGen" BeforeTargets="Antlr4Sources" Inputs="@(Antlr4Inputs)" Outputs="@(Antlr4Outputs)" Condition="'$(BuildingInsideVisualStudio)' != 'true' Or '$(OS)' != 'Windows_NT'">
     <PropertyGroup>
       <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar</FullAntlr4ToolLocation>
